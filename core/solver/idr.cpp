@@ -61,38 +61,34 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Idr<ValueType>::transpose() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    return build()
-//        .with_generated_preconditioner(
-//            share(as<Transposable>(this->get_preconditioner())->transpose()))
-//        .with_criteria(this->stop_criterion_factory_)
-//        .on(this->get_executor())
-//        ->generate(
-//            share(as<Transposable>(this->get_system_matrix())->transpose()));
-//}
+std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
 
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    return build()
-//        .with_generated_preconditioner(share(
-//            as<Transposable>(this->get_preconditioner())->conj_transpose()))
-//        .with_criteria(this->stop_criterion_factory_)
-//        .on(this->get_executor())
-//        ->generate(share(
-//            as<Transposable>(this->get_system_matrix())->conj_transpose()));
-//}
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
 
 
 template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    std::cout << "Starting apply\n";
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -119,8 +115,12 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
     auto g =
         Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
+    exec->run(idr::make_fill_array(
+        g->get_values(), problem_size * g->get_stride(), zero<ValueType>()));
     auto u =
         Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
+    exec->run(idr::make_fill_array(
+        u->get_values(), problem_size * u->get_stride(), zero<ValueType>()));
     auto f = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
 
     auto c = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
@@ -128,6 +128,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     exec->run(
         idr::make_fill_array(omega->get_values(), nrhs, one<ValueType>()));
     auto rho = Vector::create_with_config_of(omega.get());
+    auto alpha = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
 
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
     auto tht = Vector::create(exec, dim<2>{1, nrhs});
@@ -147,17 +148,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
-    exec->run(idr::make_initialize(m.get(), g.get(), &stop_status));
-
-    std::cout << "initialized M. M is: \n";
-    for (auto i = 0; i < m->get_size()[0]; i++) {
-        for (auto j = 0; j < m->get_size()[1]; j++) {
-            std::cout << m->at(i, j) << "  ";
-        }
-        std::cout << "\n";
-    }
+    exec->run(idr::make_initialize(m.get(), &stop_status));
     residual->compute_norm2(residual_norm.get());
-    std::cout << "initial residual norm: " << residual_norm->at(0, 0) << "\n";
 
     while (true) {
         ++total_iter;
@@ -169,14 +161,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        std::cout << "starting iteration " << total_iter << "\n";
-
         subspace_vectors_->apply(residual.get(), f.get());
-
-        std::cout << "applied subspace matrix to residual. f is: \n";
-        for (auto i = 0; i < f->get_size()[0]; i++) {
-            std::cout << f->at(i, 0) << std::endl;
-        }
 
         for (size_type k = 0; k < subspace_dim_; k++) {
             exec->run(idr::make_step_1(k, m.get(), f.get(), residual.get(),
@@ -185,51 +170,20 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - c_k * g_k - ... - c_s * g_s
 
-            std::cout << "ran step 1. v is: \n";
-            for (auto i = 0; i < v->get_size()[0]; i++) {
-                std::cout << v->at(i, 0) << std::endl;
-            }
-
             get_preconditioner()->apply(v.get(), preconditioned_vector.get());
-
-            std::cout
-                << "applied preconditioner to v. preconditioned_vector is: \n";
-            for (auto i = 0; i < preconditioned_vector->get_size()[0]; i++) {
-                std::cout << preconditioned_vector->at(i, 0) << std::endl;
-            }
 
             exec->run(idr::make_step_2(k, omega.get(),
                                        preconditioned_vector.get(), c.get(),
                                        u.get(), &stop_status));
             // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
 
-            std::cout << "ran step 2. u is: \n";
-            for (auto i = 0; i < u->get_size()[0]; i++) {
-                std::cout << u->at(i, k) << std::endl;
-            }
-
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
-
-            std::cout << "created submatrix of u. it is: \n";
-            for (auto i = 0; i < u->get_size()[0]; i++) {
-                std::cout << u_k->at(i, k) << std::endl;
-            }
 
             auto g_k = g->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
 
-            std::cout << "created submatrix of g. it is: \n";
-            for (auto i = 0; i < g->get_size()[0]; i++) {
-                std::cout << g_k->at(i, k) << std::endl;
-            }
-
             system_matrix_->apply(u_k.get(), g_k.get());
-
-            std::cout << "applied system matrix to u_k. g_k is: \n";
-            for (auto i = 0; i < g->get_size()[0]; i++) {
-                std::cout << g_k->at(i, k) << std::endl;
-            }
 
             exec->run(idr::make_step_3(k, subspace_vectors_.get(), g.get(),
                                        u.get(), m.get(), f.get(),
@@ -246,16 +200,6 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
-
-            std::cout << "ran step 3. dense_x is: \n";
-            for (auto i = 0; i < dense_x->get_size()[0]; i++) {
-                std::cout << dense_x->at(i, 0) << std::endl;
-            }
-
-            std::cout << "residual is: \n";
-            for (auto i = 0; i < residual->get_size()[0]; i++) {
-                std::cout << residual->at(i, 0) << std::endl;
-            }
         }
 
         get_preconditioner()->apply(residual.get(),
@@ -273,7 +217,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         t->scale(neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
-        dense_x->add_scaled(omega.get(), v.get());
+        dense_x->add_scaled(omega.get(), preconditioned_vector.get());
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
@@ -283,14 +227,20 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // residual -= omega * t
         // dense_x += omega * v
     }
-    std::cout << "total iterations: " << total_iter << "\n";
 }
 
 
 template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta,
-                                LinOp *x) const GKO_NOT_IMPLEMENTED;
+                                const LinOp *beta, LinOp *x) const
+{
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+    auto x_clone = dense_x->clone();
+    this->apply(b, x_clone.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, x_clone.get());
+}
 
 
 #define GKO_DECLARE_IDR(_type) class Idr<_type>

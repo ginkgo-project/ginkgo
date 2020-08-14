@@ -46,9 +46,9 @@ namespace kernels {
 namespace idr {
 
 
-#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                      \
-    void initialize(std::shared_ptr<const DefaultExecutor> exec,      \
-                    matrix::Dense<_type> *m, matrix::Dense<_type> *g, \
+#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                 \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
+                    matrix::Dense<_type> *m,                     \
                     Array<stopping_status> *stop_status)
 
 
