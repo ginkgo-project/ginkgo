@@ -235,9 +235,11 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                 break;
             }
             stop_already_encountered = true;
+            /*
             std::cout << type_str << ": " << ++total_checks
                       << ". check in iteration " << total_iter << "; "
                       << forced_iterations << " / " << forced_limit << '\n';
+            */
             Array<stopping_status> host_stop_status(
                 this->get_executor()->get_master(), stop_status);
             bool host_array_changed{false};
@@ -510,7 +512,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(
 GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(GKO_DECLARE_GMRES_MIXED_BOOL);
 */
 #define GKO_DECLARE_GMRES_MIXED(_type1, _type2) class GmresMixed<_type1, _type2>
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(GKO_DECLARE_GMRES_MIXED);
+GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE2(GKO_DECLARE_GMRES_MIXED);
 
 
 }  // namespace solver
