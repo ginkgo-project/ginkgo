@@ -116,14 +116,16 @@ protected:
 };
 
 
-using TestTypes = ::testing::Types<
-    std::tuple<double, double>, std::tuple<double, float>,
-    std::tuple<double, gko::int64>, std::tuple<double, gko::int32>,
-    std::tuple<double, gko::int16>, std::tuple<double, gko::half>,
-    std::tuple<float, float>, std::tuple<float, gko::half>,
-    std::tuple<std::complex<double>, std::complex<double>>,
-    std::tuple<std::complex<double>, std::complex<float>>,
-    std::tuple<std::complex<float>, std::complex<float>>>;
+using TestTypes =
+    ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
+                     // std::tuple<double, gko::int64>,
+                     std::tuple<double, gko::int32>,
+                     std::tuple<double, gko::int16>,
+                     std::tuple<double, gko::half>, std::tuple<float, float>,
+                     std::tuple<float, gko::half>,
+                     std::tuple<std::complex<double>, std::complex<double>>,
+                     std::tuple<std::complex<double>, std::complex<float>>,
+                     std::tuple<std::complex<float>, std::complex<float>>>;
 
 
 TYPED_TEST_CASE(GmresMixed, TestTypes);

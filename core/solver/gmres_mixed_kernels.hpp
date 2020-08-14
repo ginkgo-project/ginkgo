@@ -65,19 +65,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //     template _macro(double, float);                 \
 //     template _macro(double, double)
 // #else
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)        \
+#define GKO_UNPACK(...) __VA_ARGS__
+#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE2(_macro)       \
     template _macro(double, double);                             \
     template _macro(double, float);                              \
     template _macro(double, int64);                              \
     template _macro(double, int32);                              \
     template _macro(double, int16);                              \
     template _macro(double, half);                               \
-    template _macro(float, float);                               \
-    template _macro(float, half);                                \
+    template _macro(float, float, float >);                      \
+    template _macro(float, half, float >);                       \
     template _macro(std::complex<double>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>);  \
     template _macro(std::complex<float>, std::complex<float>)
+
+#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                    \
+    template _macro(double, GKO_UNPACK(Accessor3d<double, double>));         \
+    template _macro(double, GKO_UNPACK(Accessor3d<float, double>));          \
+    template _macro(double, GKO_UNPACK(Accessor3d<int64, double>));          \
+    template _macro(double, GKO_UNPACK(Accessor3d<int32, double>));          \
+    template _macro(double, GKO_UNPACK(Accessor3d<int16, double>));          \
+    template _macro(double, GKO_UNPACK(Accessor3d<half, double>));           \
+    template _macro(float, GKO_UNPACK(Accessor3d<float, float>));            \
+    template _macro(float, GKO_UNPACK(Accessor3d<half, float>));             \
+    template _macro(                                                         \
+        std::complex<double>,                                                \
+        GKO_UNPACK(Accessor3d<std::complex<double>, std::complex<double>>)); \
+    template _macro(                                                         \
+        std::complex<double>,                                                \
+        GKO_UNPACK(Accessor3d<std::complex<float>, std::complex<double>>));  \
+    template _macro(                                                         \
+        std::complex<float>,                                                 \
+        GKO_UNPACK(Accessor3d<std::complex<float>, std::complex<float>>))
 // #endif
+// #undef GKO_UNPACK
 
 
 namespace gko {
@@ -95,26 +116,25 @@ namespace gmres_mixed {
         size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _type2)         \
+#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _accessor)      \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec,          \
                       const matrix::Dense<_type1> *residual,                \
                       matrix::Dense<remove_complex<_type1>> *residual_norm, \
                       matrix::Dense<_type1> *residual_norm_collection,      \
                       matrix::Dense<remove_complex<_type1>> *arnoldi_norm,  \
-                      Accessor3d<_type2, _type1> krylov_bases,              \
+                      _accessor krylov_bases,                               \
                       matrix::Dense<_type1> *next_krylov_basis,             \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _type2)                 \
+#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _accessor)              \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         matrix::Dense<_type1> *next_krylov_basis,                             \
         matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
         matrix::Dense<remove_complex<_type1>> *residual_norm,                 \
         matrix::Dense<_type1> *residual_norm_collection,                      \
-        Accessor3d<_type2, _type1> krylov_bases,                              \
-        matrix::Dense<_type1> *hessenberg_iter,                               \
+        _accessor krylov_bases, matrix::Dense<_type1> *hessenberg_iter,       \
         matrix::Dense<_type1> *buffer_iter,                                   \
         const matrix::Dense<remove_complex<_type1>> *b_norm,                  \
         matrix::Dense<remove_complex<_type1>> *arnoldi_norm, size_type iter,  \
@@ -124,26 +144,25 @@ namespace gmres_mixed {
         int *num_reorth_steps, int *num_reorth_vectors)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _type2)          \
+#define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _accessor)       \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,           \
                 const matrix::Dense<_type1> *residual_norm_collection, \
-                Accessor3dConst<_type2, _type1> krylov_bases,          \
+                _accessor /*::const_type*/ krylov_bases,               \
                 const matrix::Dense<_type1> *hessenberg,               \
                 matrix::Dense<_type1> *y,                              \
                 matrix::Dense<_type1> *before_preconditioner,          \
                 const Array<size_type> *final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(ValueType);                 \
-    template <typename ValueType, typename ValueTypeKrylovBases>            \
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(ValueType,                  \
-                                                ValueTypeKrylovBases);      \
-    template <typename ValueType, typename ValueTypeKrylovBases>            \
-    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases); \
-    template <typename ValueType, typename ValueTypeKrylovBases>            \
-    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(ValueType, ValueTypeKrylovBases)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(ValueType);             \
+    template <typename ValueType, typename Accessor3d>                  \
+    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                  \
+    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(ValueType, Accessor3d);       \
+    template <typename ValueType, typename Accessor3d>                  \
+    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(ValueType, Accessor3d)
 
 
 }  // namespace gmres_mixed

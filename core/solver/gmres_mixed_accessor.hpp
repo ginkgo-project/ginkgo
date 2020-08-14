@@ -66,18 +66,15 @@ template <typename StorageType, typename ArithmeticType,
                   !std::is_same<StorageType, ArithmeticType>::value) ||
                  std::is_integral<StorageType>::value>
 */
-struct helper_have_scale {
-};
+struct helper_have_scale {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, false>
-    : public std::false_type {
-};
+    : public std::false_type {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, true>
-    : public std::true_type {
-};
+    : public std::true_type {};
 
 
 }  // namespace detail
@@ -85,8 +82,7 @@ struct helper_have_scale<StorageType, ArithmeticType, true>
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3dConst {
-};
+class Accessor3dConst {};
 /**
  * @internal
  *
@@ -112,7 +108,33 @@ public:
         "storage_type must not be an integral in this class.");
 
     static constexpr bool has_scale{false};
+    using const_type = Accessor3dConst;
 
+protected:
+    class reference {
+    public:
+        reference() = delete;
+        reference(reference &&) = delete;
+        reference(const reference &) = delete;
+        reference &operator=(const reference &) = delete;
+        reference &operator=(reference &&) = delete;
+
+        reference(storage_type *const GKO_RESTRICT ptr) : ptr_{ptr} {}
+        operator arithmetic_type() const
+        {
+            return static_cast<arithmetic_type>(*ptr_);
+        }
+        arithmetic_type operator=(arithmetic_type val) &&
+        {
+            *ptr_ = static_cast<storage_type>(val);
+            return val;
+        }
+
+    private:
+        storage_type *const GKO_RESTRICT ptr_;
+    };
+
+public:
     /**
      * Creates the accessor with an already allocated storage space with a
      * stride.
@@ -127,6 +149,18 @@ public:
         : storage_{const_cast<storage_type *>(storage)},
           stride_{stride0, stride1}
     {}
+
+    /**
+     * Reads the value at the given index.
+     *
+     * @internal The const is important since it prevents writes
+     */
+    template <typename IndexType>
+    GKO_ATTRIBUTES const reference at(IndexType x, IndexType y,
+                                      IndexType z) const
+    {
+        return {storage_ + x * stride_[0] + y * stride_[1] + z};
+    }
 
     /**
      * Reads the value at the given index.
@@ -185,7 +219,63 @@ public:
                   "storage_type must not be an integral in this class.");
 
     static constexpr bool has_scale{true};
+    using const_type = Accessor3dConst;
 
+protected:
+    class scale_reference {
+    public:
+        scale_reference() = delete;
+        scale_reference(scale_reference &&) = delete;
+        scale_reference(const scale_reference &) = delete;
+        scale_reference &operator=(const scale_reference &) = delete;
+        scale_reference &operator=(scale_reference &&) = delete;
+
+        scale_reference(arithmetic_type *const GKO_RESTRICT scale)
+            : scale_{scale}
+        {}
+        operator arithmetic_type() const { return *scale_; }
+        arithmetic_type operator=(arithmetic_type val) &&
+        {
+            storage_type max_val = one<storage_type>();
+            if (std::is_integral<storage_type>::value) {
+                max_val = std::numeric_limits<storage_type>::max();
+            }
+            *scale_ = val / static_cast<arithmetic_type>(max_val);
+            return val;
+        }
+
+    private:
+        arithmetic_type *const GKO_RESTRICT scale_;
+    };
+
+    class value_reference {
+    public:
+        value_reference() = delete;
+        value_reference(value_reference &&) = delete;
+        value_reference(const value_reference &) = delete;
+        value_reference &operator=(const value_reference &) = delete;
+        value_reference &operator=(value_reference &&) = delete;
+
+        value_reference(storage_type *const GKO_RESTRICT value,
+                        arithmetic_type scale)
+            : value_{value}, scale_{scale}
+        {}
+        operator arithmetic_type() const
+        {
+            return static_cast<arithmetic_type>(*value_) * scale_;
+        }
+        arithmetic_type operator=(arithmetic_type val) &&
+        {
+            *value_ = static_cast<storage_type>(val / scale_);
+            return val;
+        }
+
+    private:
+        storage_type *const GKO_RESTRICT value_;
+        const arithmetic_type scale_;
+    };
+
+public:
     /**
      * Creates the accessor with an already allocated storage space with a
      * stride.
@@ -202,6 +292,20 @@ public:
           scale_{const_cast<arithmetic_type *>(scale)}
     {}
 
+    template <typename IndexType>
+    GKO_ATTRIBUTES const scale_reference scale_at(IndexType x,
+                                                  IndexType z) const
+    {
+        return {scale_ + x * stride_[1] + z};
+    }
+
+    template <typename IndexType>
+    GKO_ATTRIBUTES const value_reference at(IndexType x, IndexType y,
+                                            IndexType z) const
+    {
+        return {storage_ + x * stride_[0] + y * stride_[1] + z,
+                read_scale(x, z)};
+    }
     /**
      * Reads the scale value at the given indices.
      */
@@ -257,8 +361,7 @@ protected:
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3d : public Accessor3dConst<StorageType, ArithmeticType> {
-};
+class Accessor3d : public Accessor3dConst<StorageType, ArithmeticType> {};
 
 
 /**
@@ -281,8 +384,10 @@ public:
 
 private:
     using Accessor3dC = Accessor3dConst<storage_type, arithmetic_type>;
+    using reference = typename Accessor3dC::reference;
 
 public:
+    using const_type = Accessor3dC;
     /**
      * Creates an empty accessor pointing to a nullptr.
      */
@@ -301,6 +406,13 @@ public:
         return {this->storage_, this->stride_[0], this->stride_[1]};
     }
 
+
+    template <typename IndexType>
+    GKO_ATTRIBUTES reference at(IndexType x, IndexType y, IndexType z)
+    {
+        return {this->storage_ + x * this->stride_[0] + y * this->stride_[1] +
+                z};
+    }
     /**
      * Writes the given value at the given index.
      */
@@ -336,8 +448,11 @@ public:
 
 private:
     using Accessor3dC = Accessor3dConst<storage_type, arithmetic_type>;
+    using scale_reference = typename Accessor3dC::scale_reference;
+    using value_reference = typename Accessor3dC::value_reference;
 
 public:
+    using const_type = Accessor3dC;
     /**
      * Creates an empty accessor pointing to a nullptr.
      */
@@ -358,6 +473,20 @@ public:
                 this->scale_};
     }
 
+    template <typename IndexType>
+    GKO_ATTRIBUTES scale_reference scale_at(IndexType x, IndexType z)
+    {
+        return {this->scale_ + x * this->stride_[1] + z};
+    }
+
+    template <typename IndexType>
+    GKO_ATTRIBUTES value_reference at(IndexType x, IndexType y, IndexType z)
+    {
+        return {
+            this->storage_ + x * this->stride_[0] + y * this->stride_[1] + z,
+            this->read_scale(x, z)};
+    }
+
     /**
      * Writes the given value at the given index.
      */
@@ -370,7 +499,7 @@ public:
         const auto stride1 = this->stride_[1];
         rest_storage[x * stride0 + y * stride1 + z] =
             static_cast<storage_type>(value / this->read_scale(x, z));
-#if not defined(__CUDA_ARCH__)
+#if false && not defined(__CUDA_ARCH__)
         std::cout << "storage[" << x << ", " << y << ", " << z
                   << "] = " << rest_storage[x * stride0 + y * stride1 + z]
                   << "; value = " << value
@@ -393,7 +522,7 @@ public:
         }
         rest_scale[x * this->stride_[1] + z] =
             val / static_cast<arithmetic_type>(max_val);
-#if not defined(__CUDA_ARCH__)
+#if false && not defined(__CUDA_ARCH__)
         std::cout << "scale[" << x << ", " << z
                   << "] = " << rest_scale[x * this->stride_[1] + z]
                   << "; val = " << val
@@ -414,8 +543,7 @@ public:
 
 template <typename ValueType, typename ValueTypeKrylovBases,
           bool = Accessor3d<ValueTypeKrylovBases, ValueType>::has_scale>
-class Accessor3dHelper {
-};
+class Accessor3dHelper {};
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
@@ -489,37 +617,43 @@ private:
 
 //----------------------------------------------
 
-template <typename ValueType, typename KrylovType,
-          bool = Accessor3d<KrylovType, ValueType>::has_scale>
-struct helper_functions_accessor {
-};
+template <typename Accessor3d, bool = Accessor3d::has_scale>
+struct helper_functions_accessor {};
 
 // Accessors having a scale
-template <typename ValueType, typename KrylovType>
-struct helper_functions_accessor<ValueType, KrylovType, true> {
+template <typename Accessor3d>
+struct helper_functions_accessor<Accessor3d, true> {
+    using value_type = typename Accessor3d::arithmetic_type;
+    static_assert(Accessor3d::has_scale, "Accessor must have a scale here!");
     template <typename IndexType>
-    static inline GKO_ATTRIBUTES void write_scale(
-        Accessor3d<KrylovType, ValueType> krylov_bases, IndexType vector_idx,
-        IndexType col_idx, ValueType value)
+    static inline GKO_ATTRIBUTES void write_scale(Accessor3d krylov_bases,
+                                                  IndexType vector_idx,
+                                                  IndexType col_idx,
+                                                  value_type value)
     {
-        krylov_bases.set_scale(vector_idx, col_idx, value);
+        // krylov_bases.set_scale(vector_idx, col_idx, value);
+        krylov_bases.scale_at(vector_idx, col_idx) = value;
     }
 };
 
 
 // Accessors not having a scale
-template <typename ValueType, typename KrylovType>
-struct helper_functions_accessor<ValueType, KrylovType, false> {
+template <typename Accessor3d>
+struct helper_functions_accessor<Accessor3d, false> {
+    using value_type = typename Accessor3d::arithmetic_type;
+    static_assert(!Accessor3d::has_scale,
+                  "Accessor must not have a scale here!");
     template <typename IndexType>
-    static inline GKO_ATTRIBUTES void write_scale(
-        Accessor3d<KrylovType, ValueType> krylov_bases, IndexType vector_idx,
-        IndexType col_idx, ValueType value)
+    static inline GKO_ATTRIBUTES void write_scale(Accessor3d krylov_bases,
+                                                  IndexType vector_idx,
+                                                  IndexType col_idx,
+                                                  value_type value)
     {}
 };
 
 // calling it with:
-// helper_functions_accessor<ValueType,
-// ValueTypeKrylovBases>::write_scale(krylov_bases, col_idx, value);
+// helper_functions_accessor<Accessor3d>::write_scale(krylov_bases, col_idx,
+// value);
 
 //----------------------------------------------
 
