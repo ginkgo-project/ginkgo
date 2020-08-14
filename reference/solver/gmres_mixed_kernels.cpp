@@ -59,12 +59,15 @@ namespace gmres_mixed {
 namespace {
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
-                    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                    Accessor3d krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
@@ -73,11 +76,11 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * krylov_bases.read(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
             }
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.read(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases.at(k, j, i);
             }
         }
         // for i in 1:iter
@@ -96,7 +99,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.write((iter + 1), j, i, next_krylov_basis->at(j, i));
+            krylov_bases.at((iter + 1), j, i) = next_krylov_basis->at(j, i);
             // std::cout << next_krylov_basis->at(j, i) << " - "
             //           << krylov_bases.read(
             //                  j,
@@ -111,15 +114,17 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi_reorth(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+    matrix::Dense<ValueType> *next_krylov_basis, Accessor3d krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
     matrix::Dense<ValueType> *buffer_iter,
     matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
     const stopping_status *stop_status)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     //    ValueType nrm = 0, reorth = 0;
 
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
@@ -139,11 +144,11 @@ void finish_arnoldi_reorth(
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * krylov_bases.read(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
             }
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.read(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases.at(k, j, i);
             }
             // if (squared_norm(hessenberg_iter->at(k, i) *
             //                  hessenberg_iter->at(k, i)) >
@@ -156,14 +161,14 @@ void finish_arnoldi_reorth(
                     // DONE: TODO find good alternative here, so the type of
                     // DONE: arnoldi_norm can change to
                     // remove_complex<ValueType>!!! arnoldi_norm->at(1, i) +=
-                    buffer_iter->at(k, i) += next_krylov_basis->at(j, i) *
-                                             krylov_bases.read(k, j, i);
+                    buffer_iter->at(k, i) +=
+                        next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
                 }
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -= buffer_iter->at(k, i) *
                                                    // arnoldi_norm->at(1, i) *
-                                                   krylov_bases.read(k, j, i);
+                                                   krylov_bases.at(k, j, i);
                 }
                 // hessenberg_iter->at(k, i) += arnoldi_norm->at(1, i);
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
@@ -190,7 +195,7 @@ void finish_arnoldi_reorth(
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.write(iter + 1, j, i, next_krylov_basis->at(j, i));
+            krylov_bases.at(iter + 1, j, i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -199,15 +204,17 @@ void finish_arnoldi_reorth(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
+                        Accessor3d krylov_bases,
+                        matrix::Dense<ValueType> *hessenberg_iter,
+                        matrix::Dense<ValueType> *buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                        size_type iter, const stopping_status *stop_status)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
     //    ValueType nrmP = 0, nrmN = 0;
     //    ValueType nrmP = 0, nrmN = 0;
@@ -229,7 +236,7 @@ void finish_arnoldi_CGS(
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * krylov_bases.read(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
             }
         }
         // for i in 1:iter
@@ -238,7 +245,7 @@ void finish_arnoldi_CGS(
         for (size_type k = 0; k < iter + 1; ++k) {
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.read(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases.at(k, j, i);
             }
         }
         // for i in 1:iter
@@ -259,8 +266,8 @@ void finish_arnoldi_CGS(
                 buffer_iter->at(k, i) = zero<ValueType>();
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
-                    buffer_iter->at(k, i) += next_krylov_basis->at(j, i) *
-                                             krylov_bases.read(k, j, i);
+                    buffer_iter->at(k, i) +=
+                        next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
                 }
             }
             // for i in 1:iter
@@ -270,7 +277,7 @@ void finish_arnoldi_CGS(
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * krylov_bases.read(k, j, i);
+                        buffer_iter->at(k, i) * krylov_bases.at(k, j, i);
                 }
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
@@ -298,7 +305,7 @@ void finish_arnoldi_CGS(
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.write(iter + 1, j, i, next_krylov_basis->at(j, i));
+            krylov_bases.at(iter + 1, j, i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -307,15 +314,17 @@ void finish_arnoldi_CGS(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS2(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
+                         Accessor3d krylov_bases,
+                         matrix::Dense<ValueType> *hessenberg_iter,
+                         matrix::Dense<ValueType> *buffer_iter,
+                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                         size_type iter, const stopping_status *stop_status)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
     //    ValueType nrmP = 0, nrmN = 0;
     //    ValueType nrmP = 0, nrmN = 0;
@@ -337,7 +346,7 @@ void finish_arnoldi_CGS2(
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * krylov_bases.read(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
             }
         }
         // for i in 1:iter
@@ -346,7 +355,7 @@ void finish_arnoldi_CGS2(
         for (size_type k = 0; k < iter + 1; ++k) {
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.read(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases.at(k, j, i);
             }
         }
         // for i in 1:iter
@@ -376,8 +385,8 @@ void finish_arnoldi_CGS2(
                 buffer_iter->at(k, i) = zero<ValueType>();
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
-                    buffer_iter->at(k, i) += next_krylov_basis->at(j, i) *
-                                             krylov_bases.read(k, j, i);
+                    buffer_iter->at(k, i) +=
+                        next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
                 }
             }
             // for i in 1:iter
@@ -387,7 +396,7 @@ void finish_arnoldi_CGS2(
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * krylov_bases.read(k, j, i);
+                        buffer_iter->at(k, i) * krylov_bases.at(k, j, i);
                 }
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
@@ -410,7 +419,7 @@ void finish_arnoldi_CGS2(
             //           << arnoldi_norm->at(2, i) << " - " << l << std::endl;
             // nrmN = norm(next_krylov_basis)
         }
-        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scale(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         /*
@@ -431,7 +440,7 @@ void finish_arnoldi_CGS2(
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.write(iter + 1, j, i, next_krylov_basis->at(j, i));
+            krylov_bases.at(iter + 1, j, i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -547,18 +556,22 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void calculate_qy(Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+template <typename ValueType, typename Accessor3dConst>
+void calculate_qy(Accessor3dConst krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
 {
+    static_assert(
+        std::is_same<ValueType,
+                     typename Accessor3dConst::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
         for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases.read(j, i, k) * y->at(j, k);
+                    krylov_bases.at(j, i, k) * y->at(j, k);
             }
         }
     }
@@ -601,16 +614,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                  Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                  Accessor3d krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
         residual_norm->at(0, j) = zero<remove_complex<ValueType>>();
@@ -628,7 +644,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         // std::cout << residual_norm->at(0, j) << " - " << arnoldi_norm->at(2,
         // j)
         //           << std::endl;
-        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scale(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -640,8 +656,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            krylov_bases.write({0}, i, j,
-                               residual->at(i, j) / residual_norm->at(0, j));
+            krylov_bases.at({0}, i, j) =
+                residual->at(i, j) / residual_norm->at(0, j);
             next_krylov_basis->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
         }
@@ -650,11 +666,10 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<ValueType, ValueTypeKrylovBases>::
-                write_scale(krylov_bases, k, j,
-                            one<remove_complex<ValueType>>());
+            helper_functions_accessor<Accessor3d>::write_scale(
+                krylov_bases, k, j, one<remove_complex<ValueType>>());
             for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-                krylov_bases.write(k, i, j, zero<ValueType>());
+                krylov_bases.at(k, i, j) = zero<ValueType>();
             }
         }
     }
@@ -666,15 +681,14 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
 
 // template <typename ValueType, typename ValueTypeKrylovBases, bool
 // Reorthogonalization, bool MGS_CGS>
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
+            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
             const matrix::Dense<remove_complex<ValueType>> *b_norm,
             matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
@@ -683,6 +697,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
             int *num_reorth_steps, int *num_reorth_vectors)
 {
+    static_assert(
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        "ValueType must match arithmetic_type of accessor!");
     /*
         if (Reorthogonalization) std::cout << "Reorthogonalization";
         else  std::cout << "No Reorthogonalization";
@@ -726,10 +743,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3dConst>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+            Accessor3dConst krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,

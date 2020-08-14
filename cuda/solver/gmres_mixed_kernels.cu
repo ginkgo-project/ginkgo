@@ -168,13 +168,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                  Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                  Accessor3d krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
@@ -244,10 +244,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *next_krylov_basis,
-                    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                    Accessor3d krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
@@ -304,11 +304,10 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi_reorth(
     std::shared_ptr<const CudaExecutor> exec,
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+    matrix::Dense<ValueType> *next_krylov_basis, Accessor3d krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
     matrix::Dense<ValueType> *buffer_iter,
     matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
@@ -425,16 +424,16 @@ void finish_arnoldi_reorth(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS(
-    std::shared_ptr<const CudaExecutor> exec,
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status, stopping_status *reorth_status,
-    Array<size_type> *num_reorth)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
+                        matrix::Dense<ValueType> *next_krylov_basis,
+                        Accessor3d krylov_bases,
+                        matrix::Dense<ValueType> *hessenberg_iter,
+                        matrix::Dense<ValueType> *buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                        size_type iter, const stopping_status *stop_status,
+                        stopping_status *reorth_status,
+                        Array<size_type> *num_reorth)
 {
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
@@ -606,17 +605,17 @@ void finish_arnoldi_CGS(
 /**/
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS2(
-    std::shared_ptr<const CudaExecutor> exec,
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status, stopping_status *reorth_status,
-    Array<size_type> *num_reorth, int *num_reorth_steps,
-    int *num_reorth_vectors)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
+                         matrix::Dense<ValueType> *next_krylov_basis,
+                         Accessor3d krylov_bases,
+                         matrix::Dense<ValueType> *hessenberg_iter,
+                         matrix::Dense<ValueType> *buffer_iter,
+                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                         size_type iter, const stopping_status *stop_status,
+                         stopping_status *reorth_status,
+                         Array<size_type> *num_reorth, int *num_reorth_steps,
+                         int *num_reorth_vectors)
 {
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
@@ -1032,15 +1031,14 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
+            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
             const matrix::Dense<remove_complex<ValueType>> *b_norm,
             matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
@@ -1111,9 +1109,9 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void calculate_qy(Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
-                  size_type num_krylov_bases, const matrix::Dense<ValueType> *y,
+template <typename ValueType, typename Accessor3dConst>
+void calculate_qy(Accessor3dConst krylov_bases, size_type num_krylov_bases,
+                  const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const Array<size_type> *final_iter_nums)
 {
@@ -1141,10 +1139,10 @@ void calculate_qy(Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3dConst>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+            Accessor3dConst krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
