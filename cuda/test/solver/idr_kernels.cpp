@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/idr.hpp>
 
 
+#include <iostream>
 #include <random>
 
 
@@ -49,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/idr_kernels.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -64,7 +65,6 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         cuda = gko::CudaExecutor::create(0, ref);
 
@@ -72,7 +72,6 @@ protected:
         make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(cuda);
         d_mtx->copy_from(mtx.get());
-
         cuda_idr_factory =
             Solver::build()
                 .with_criteria(
@@ -81,6 +80,7 @@ protected:
                         .with_reduction_factor(1e-15)
                         .on(cuda))
                 .on(cuda);
+
         ref_idr_factory =
             Solver::build()
                 .with_criteria(
@@ -108,65 +108,60 @@ protected:
 
     void initialize_data()
     {
-        int m = 597;
-        int n = 17;
-        x = gen_mtx(m, n);
-        b = gen_mtx(m, n);
-        r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
-        p = gen_mtx(m, n);
-        rr = gen_mtx(m, n);
-        s = gen_mtx(m, n);
-        t = gen_mtx(m, n);
-        y = gen_mtx(m, n);
-        v = gen_mtx(m, n);
-        prev_rho = gen_mtx(1, n);
-        rho = gen_mtx(1, n);
-        alpha = gen_mtx(1, n);
-        beta = gen_mtx(1, n);
-        gamma = gen_mtx(1, n);
-        omega = gen_mtx(1, n);
+        int size = 597;
+        int nrhs = 17;
+        int s = 4;
+        x = gen_mtx(size, nrhs);
+        b = gen_mtx(size, nrhs);
+        r = gen_mtx(size, nrhs);
+        m = gen_mtx(s, nrhs * s);
+        f = gen_mtx(s, nrhs);
+        g = gen_mtx(size, nrhs * s);
+        u = gen_mtx(size, nrhs * s);
+        c = gen_mtx(s, nrhs);
+        v = gen_mtx(size, nrhs);
+        p = gen_mtx(s, size);
+        omega = gen_mtx(1, nrhs);
+        tht = gen_mtx(1, nrhs);
+        t_norm = gen_mtx(1, nrhs);
+        residual_norm = gen_mtx(1, nrhs);
         stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
-        for (size_t i = 0; i < n; ++i) {
+            new gko::Array<gko::stopping_status>(ref, nrhs));
+        for (size_t i = 0; i < nrhs; ++i) {
             stop_status->get_data()[i].reset();
         }
 
         d_x = Mtx::create(cuda);
         d_b = Mtx::create(cuda);
         d_r = Mtx::create(cuda);
-        d_z = Mtx::create(cuda);
-        d_p = Mtx::create(cuda);
-        d_t = Mtx::create(cuda);
-        d_s = Mtx::create(cuda);
-        d_y = Mtx::create(cuda);
+        d_m = Mtx::create(cuda);
+        d_f = Mtx::create(cuda);
+        d_g = Mtx::create(cuda);
+        d_u = Mtx::create(cuda);
+        d_c = Mtx::create(cuda);
         d_v = Mtx::create(cuda);
-        d_rr = Mtx::create(cuda);
-        d_prev_rho = Mtx::create(cuda);
-        d_rho = Mtx::create(cuda);
-        d_alpha = Mtx::create(cuda);
-        d_beta = Mtx::create(cuda);
-        d_gamma = Mtx::create(cuda);
+        d_p = Mtx::create(cuda);
         d_omega = Mtx::create(cuda);
+        d_tht = Mtx::create(cuda);
+        d_t_norm = Mtx::create(cuda);
+        d_residual_norm = Mtx::create(cuda);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(cuda));
 
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
         d_r->copy_from(r.get());
-        d_z->copy_from(z.get());
-        d_p->copy_from(p.get());
+        d_m->copy_from(m.get());
+        d_f->copy_from(f.get());
+        d_g->copy_from(g.get());
+        d_u->copy_from(u.get());
+        d_c->copy_from(c.get());
         d_v->copy_from(v.get());
-        d_y->copy_from(y.get());
-        d_t->copy_from(t.get());
-        d_s->copy_from(s.get());
-        d_rr->copy_from(rr.get());
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho->copy_from(rho.get());
-        d_alpha->copy_from(alpha.get());
-        d_beta->copy_from(beta.get());
-        d_gamma->copy_from(gamma.get());
+        d_p->copy_from(p.get());
         d_omega->copy_from(omega.get());
+        d_tht->copy_from(tht.get());
+        d_t_norm->copy_from(t_norm.get());
+        d_residual_norm->copy_from(residual_norm.get());
         *d_stop_status =
             *stop_status;  // copy_from is not a public member function of Array
     }
@@ -196,174 +191,156 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> z;
-    std::unique_ptr<Mtx> p;
-    std::unique_ptr<Mtx> rr;
-    std::unique_ptr<Mtx> s;
-    std::unique_ptr<Mtx> t;
-    std::unique_ptr<Mtx> y;
+    std::unique_ptr<Mtx> m;
+    std::unique_ptr<Mtx> f;
+    std::unique_ptr<Mtx> g;
+    std::unique_ptr<Mtx> u;
+    std::unique_ptr<Mtx> c;
     std::unique_ptr<Mtx> v;
-    std::unique_ptr<Mtx> prev_rho;
-    std::unique_ptr<Mtx> rho;
-    std::unique_ptr<Mtx> alpha;
-    std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> gamma;
+    std::unique_ptr<Mtx> p;
     std::unique_ptr<Mtx> omega;
+    std::unique_ptr<Mtx> tht;
+    std::unique_ptr<Mtx> t_norm;
+    std::unique_ptr<Mtx> residual_norm;
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_z;
-    std::unique_ptr<Mtx> d_p;
-    std::unique_ptr<Mtx> d_t;
-    std::unique_ptr<Mtx> d_s;
-    std::unique_ptr<Mtx> d_y;
+    std::unique_ptr<Mtx> d_m;
+    std::unique_ptr<Mtx> d_f;
+    std::unique_ptr<Mtx> d_g;
+    std::unique_ptr<Mtx> d_u;
+    std::unique_ptr<Mtx> d_c;
     std::unique_ptr<Mtx> d_v;
-    std::unique_ptr<Mtx> d_rr;
-    std::unique_ptr<Mtx> d_prev_rho;
-    std::unique_ptr<Mtx> d_rho;
-    std::unique_ptr<Mtx> d_alpha;
-    std::unique_ptr<Mtx> d_beta;
-    std::unique_ptr<Mtx> d_gamma;
+    std::unique_ptr<Mtx> d_p;
     std::unique_ptr<Mtx> d_omega;
+    std::unique_ptr<Mtx> d_tht;
+    std::unique_ptr<Mtx> d_t_norm;
+    std::unique_ptr<Mtx> d_residual_norm;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
 TEST_F(Idr, CudaIdrInitializeIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::idr::initialize(
-//        ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
-//        v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-//        gamma.get(), omega.get(), stop_status.get());
-//    gko::kernels::cuda::idr::initialize(
-//        cuda, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(),
-//        d_t.get(), d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(),
-//        d_rho.get(), d_alpha.get(), d_beta.get(), d_gamma.get(),
-//        d_omega.get(), d_stop_status.get());
-//
-//    GKO_EXPECT_MTX_NEAR(d_r, r, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_z, z, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_p, p, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_y, y, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_t, t, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_s, s, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_rr, rr, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_v, v, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_rho, rho, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_alpha, alpha, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
-//    GKO_EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
-//    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
-//}
+{
+    initialize_data();
+
+    gko::kernels::reference::idr::initialize(ref, m.get(), stop_status.get());
+    gko::kernels::cuda::idr::initialize(cuda, d_m.get(), d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14)
+}
 
 
 TEST_F(Idr, CudaIdrStep1IsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::idr::step_1(
-//        ref, r.get(), p.get(), v.get(), rho.get(), prev_rho.get(),
-//        alpha.get(), omega.get(), stop_status.get());
-//    gko::kernels::cuda::idr::step_1(
-//        cuda, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
-//        d_alpha.get(), d_omega.get(), d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-//}
+{
+    initialize_data();
+
+    gko::size_type k = 2;
+    gko::kernels::reference::idr::step_1(ref, k, m.get(), f.get(), r.get(),
+                                         g.get(), c.get(), v.get(),
+                                         stop_status.get());
+    gko::kernels::cuda::idr::step_1(cuda, k, d_m.get(), d_f.get(), d_r.get(),
+                                    d_g.get(), d_c.get(), d_v.get(),
+                                    d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(c, d_c, 1e-14);
+    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
+}
 
 
 TEST_F(Idr, CudaIdrStep2IsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::idr::step_2(ref, r.get(), s.get(), v.get(),
-//                                              rho.get(), alpha.get(),
-//                                              beta.get(), stop_status.get());
-//    gko::kernels::cuda::idr::step_2(cuda, d_r.get(), d_s.get(), d_v.get(),
-//                                         d_rho.get(), d_alpha.get(),
-//                                         d_beta.get(), d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_s, s, 1e-14);
-//}
+{
+    initialize_data();
+
+    gko::size_type k = 2;
+    gko::kernels::reference::idr::step_2(ref, k, omega.get(), v.get(), c.get(),
+                                         u.get(), stop_status.get());
+    gko::kernels::cuda::idr::step_2(cuda, k, d_omega.get(), d_v.get(),
+                                    d_c.get(), d_u.get(), d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
+}
 
 
 TEST_F(Idr, CudaIdrStep3IsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    initialize_data();
-//
-//    gko::kernels::reference::idr::step_3(
-//        ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(),
-//        alpha.get(), beta.get(), gamma.get(), omega.get(), stop_status.get());
-//    gko::kernels::cuda::idr::step_3(
-//        cuda, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(),
-//        d_z.get(), d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
-//        d_stop_status.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-//    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-//}
+{
+    initialize_data();
+
+    gko::size_type k = 2;
+    gko::kernels::reference::idr::step_3(ref, k, p.get(), g.get(), u.get(),
+                                         m.get(), f.get(), r.get(), x.get(),
+                                         stop_status.get());
+    gko::kernels::cuda::idr::step_3(cuda, k, d_p.get(), d_g.get(), d_u.get(),
+                                    d_m.get(), d_f.get(), d_r.get(), d_x.get(),
+                                    d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(g, d_g, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 1e-14);
+    GKO_ASSERT_MTX_NEAR(r, d_r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 1e-14);
+}
+
+
+TEST_F(Idr, CudaIdrComputeOmegaIsEquivalentToRef)
+{
+    initialize_data();
+
+    double kappa = 0.7;
+    gko::kernels::reference::idr::compute_omega(
+        ref, kappa, tht.get(), t_norm.get(), residual_norm.get(), omega.get(),
+        stop_status.get());
+    gko::kernels::cuda::idr::compute_omega(
+        cuda, kappa, d_tht.get(), d_t_norm.get(), d_residual_norm.get(),
+        d_omega.get(), d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(omega, d_omega, 1e-14);
+}
 
 
 TEST_F(Idr, CudaIdrApplyOneRHSIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    int m = 123;
-//    int n = 1;
-//    auto ref_solver = ref_idr_factory->generate(mtx);
-//    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
-//    auto b = gen_mtx(m, n);
-//    auto x = gen_mtx(m, n);
-//    auto d_b = Mtx::create(cuda);
-//    auto d_x = Mtx::create(cuda);
-//    d_b->copy_from(b.get());
-//    d_x->copy_from(x.get());
-//
-//    ref_solver->apply(b.get(), x.get());
-//    cuda_solver->apply(d_b.get(), d_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
-//}
+{
+    int m = 123;
+    int n = 1;
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(cuda);
+    auto d_x = Mtx::create(cuda);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    cuda_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
 
 
 TEST_F(Idr, CudaIdrApplyMultipleRHSIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    int m = 123;
-//    int n = 16;
-//    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
-//    auto ref_solver = ref_idr_factory->generate(mtx);
-//    auto b = gen_mtx(m, n);
-//    auto x = gen_mtx(m, n);
-//    auto d_b = Mtx::create(cuda);
-//    auto d_x = Mtx::create(cuda);
-//    d_b->copy_from(b.get());
-//    d_x->copy_from(x.get());
-//
-//    ref_solver->apply(b.get(), x.get());
-//    cuda_solver->apply(d_b.get(), d_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
-//}
+{
+    int m = 123;
+    int n = 16;
+    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(cuda);
+    auto d_x = Mtx::create(cuda);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    cuda_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
 
 
 }  // namespace

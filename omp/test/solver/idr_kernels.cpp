@@ -125,7 +125,6 @@ protected:
         tht = gen_mtx(1, nrhs);
         t_norm = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
-        rho = gen_mtx(1, nrhs);
         stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(ref, nrhs));
         for (size_t i = 0; i < nrhs; ++i) {
@@ -146,7 +145,6 @@ protected:
         d_tht = Mtx::create(omp);
         d_t_norm = Mtx::create(omp);
         d_residual_norm = Mtx::create(omp);
-        d_rho = Mtx::create(omp);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(omp));
 
@@ -164,7 +162,6 @@ protected:
         d_tht->copy_from(tht.get());
         d_t_norm->copy_from(t_norm.get());
         d_residual_norm->copy_from(residual_norm.get());
-        d_rho->copy_from(rho.get());
         *d_stop_status =
             *stop_status;  // copy_from is not a public member function of Array
     }
@@ -205,7 +202,6 @@ protected:
     std::unique_ptr<Mtx> tht;
     std::unique_ptr<Mtx> t_norm;
     std::unique_ptr<Mtx> residual_norm;
-    std::unique_ptr<Mtx> rho;
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
@@ -222,7 +218,6 @@ protected:
     std::unique_ptr<Mtx> d_tht;
     std::unique_ptr<Mtx> d_t_norm;
     std::unique_ptr<Mtx> d_residual_norm;
-    std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
@@ -296,11 +291,11 @@ TEST_F(Idr, OmpIdrComputeOmegaIsEquivalentToRef)
 
     double kappa = 0.7;
     gko::kernels::reference::idr::compute_omega(
-        ref, kappa, tht.get(), t_norm.get(), residual_norm.get(), rho.get(),
-        omega.get(), stop_status.get());
-    gko::kernels::omp::idr::compute_omega(
-        omp, kappa, d_tht.get(), d_t_norm.get(), d_residual_norm.get(),
-        d_rho.get(), d_omega.get(), d_stop_status.get());
+        ref, kappa, tht.get(), t_norm.get(), residual_norm.get(), omega.get(),
+        stop_status.get());
+    gko::kernels::omp::idr::compute_omega(omp, kappa, d_tht.get(),
+                                          d_t_norm.get(), d_residual_norm.get(),
+                                          d_omega.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(omega, d_omega, 1e-14);
 }

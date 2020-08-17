@@ -232,8 +232,7 @@ void compute_omega(
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
     const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *omega,
-    const Array<stopping_status> *stop_status)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
     for (size_type i = 0; i < omega->get_size()[1]; i++) {
         if (stop_status->get_const_data()[0].has_stopped()) {
@@ -244,7 +243,6 @@ void compute_omega(
         auto normt = t_norm->at(0, i);
         omega->at(0, i) /= tht->at(0, i);
         auto absrho = abs(thr / (normt * residual_norm->at(0, i)));
-        rho->at(0, i) = absrho;
 
         if (absrho < kappa) {
             omega->at(0, i) *= kappa / absrho;
