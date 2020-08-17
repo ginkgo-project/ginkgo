@@ -68,18 +68,15 @@ template <typename StorageType, typename ArithmeticType,
                   !std::is_same<StorageType, ArithmeticType>::value) ||
                  std::is_integral<StorageType>::value>
 */
-struct helper_have_scale {
-};
+struct helper_have_scale {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, false>
-    : public std::false_type {
-};
+    : public std::false_type {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, true>
-    : public std::true_type {
-};
+    : public std::true_type {};
 
 /**
  * This is a mixin which defines the binary operators for *, /, +, - for the
@@ -153,8 +150,7 @@ struct enable_reference {
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3d {
-};
+class Accessor3d {};
 /**
  * @internal
  *
@@ -206,6 +202,7 @@ protected:
     };
 
 public:
+    Accessor3d() : storage_{nullptr}, stride_{0, 0} {}
     /**
      * TODO update
      * Creates the accessor with an already allocated storage space with a
@@ -333,6 +330,7 @@ protected:
     };
 
 public:
+    Accessor3d() : storage_{nullptr}, stride_{0, 0}, scale_{nullptr} {}
     /**
      * TODO update
      * Creates the accessor with an already allocated storage space with a
@@ -470,8 +468,7 @@ protected:
 
 template <typename ValueType, typename ValueTypeKrylovBases,
           bool = Accessor3d<ValueTypeKrylovBases, ValueType>::has_scale>
-class Accessor3dHelper {
-};
+class Accessor3dHelper {};
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
@@ -546,8 +543,7 @@ private:
 //----------------------------------------------
 
 template <typename Accessor3d, bool = Accessor3d::has_scale>
-struct helper_functions_accessor {
-};
+struct helper_functions_accessor {};
 
 // Accessors having a scale
 template <typename Accessor3d>
