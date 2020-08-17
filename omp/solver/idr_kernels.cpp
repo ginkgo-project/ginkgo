@@ -91,6 +91,7 @@ void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
                 alpha += p->at(j, ind) * g->at(ind, k * nrhs + i);
             }
             alpha /= m->at(j, j * nrhs + i);
+
             for (size_type row = 0; row < g->get_size()[0]; row++) {
                 g->at(row, k * nrhs + i) -= alpha * g->at(row, j * nrhs + i);
                 u->at(row, k * nrhs + i) -= alpha * u->at(row, j * nrhs + i);
@@ -246,8 +247,7 @@ void compute_omega(
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
     const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *omega,
-    const Array<stopping_status> *stop_status)
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < omega->get_size()[1]; i++) {
@@ -259,7 +259,6 @@ void compute_omega(
         auto normt = t_norm->at(0, i);
         omega->at(0, i) /= tht->at(0, i);
         auto absrho = abs(thr / (normt * residual_norm->at(0, i)));
-        rho->at(0, i) = absrho;
 
         if (absrho < kappa) {
             omega->at(0, i) *= kappa / absrho;
