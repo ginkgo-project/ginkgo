@@ -73,8 +73,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(double, int32);                              \
     template _macro(double, int16);                              \
     template _macro(double, half);                               \
-    template _macro(float, float, float >);                      \
-    template _macro(float, half, float >);                       \
+    template _macro(float, float);                               \
+    template _macro(float, half);                                \
     template _macro(std::complex<double>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>);  \
     template _macro(std::complex<float>, std::complex<float>)
@@ -147,7 +147,7 @@ namespace gmres_mixed {
 #define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _accessor)       \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,           \
                 const matrix::Dense<_type1> *residual_norm_collection, \
-                _accessor /*::const_type*/ krylov_bases,               \
+                const _accessor &krylov_bases,                         \
                 const matrix::Dense<_type1> *hessenberg,               \
                 matrix::Dense<_type1> *y,                              \
                 matrix::Dense<_type1> *before_preconditioner,          \
