@@ -306,10 +306,10 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-template <typename ValueType, typename Accessor3d>
+template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_reorth(
     std::shared_ptr<const CudaExecutor> exec,
-    matrix::Dense<ValueType> *next_krylov_basis, Accessor3d krylov_bases,
+    matrix::Dense<ValueType> *next_krylov_basis, Accessor3dim krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
     matrix::Dense<ValueType> *buffer_iter,
     matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
@@ -426,10 +426,10 @@ void finish_arnoldi_reorth(
 }
 
 
-template <typename ValueType, typename Accessor3d>
+template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                         matrix::Dense<ValueType> *next_krylov_basis,
-                        Accessor3d krylov_bases,
+                        Accessor3dim krylov_bases,
                         matrix::Dense<ValueType> *hessenberg_iter,
                         matrix::Dense<ValueType> *buffer_iter,
                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
@@ -607,10 +607,10 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 /**/
 
 
-template <typename ValueType, typename Accessor3d>
+template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Dense<ValueType> *next_krylov_basis,
-                         Accessor3d krylov_bases,
+                         Accessor3dim krylov_bases,
                          matrix::Dense<ValueType> *hessenberg_iter,
                          matrix::Dense<ValueType> *buffer_iter,
                          matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
@@ -622,8 +622,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
-    constexpr bool use_scale =
-        Accessor3d<ValueTypeKrylovBases, ValueType>::has_scale;
+    constexpr bool use_scale = Accessor3dim::has_scale;
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
@@ -650,7 +649,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     Accessor3d<ValueType, ValueType> next_krylov_accessor{
         next_krylov_basis->get_values(), stride_next_krylov,
         stride_next_krylov};
-    const auto next_krylov_const_accessor = next_krylov_accessor;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());
