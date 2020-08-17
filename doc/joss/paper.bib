@@ -187,11 +187,20 @@ archivePrefix = {arXiv},
   pages={1-12}
 }
 
-@misc{xsdk,
-  title = {{x}SDK: Extreme-scale Scientific Software Development Kit},
-  year = {2020},
-  url = {https://xsdk.info/}
+
+@article{xsdk,
+	author = {Roscoe Bartlett and Irina Demeshko and Todd Gamblin and Glenn Hammond and Michael Heroux and Jeffrey Johnson and Alicia Klinvex and Xiaoye Li and Lois McInnes and J. Moulton and Daniel Osei-Kuffuor and Jason Sarich and Barry Smith and James Willenbring and Ulrike Yang},
+	title = {xSDK Foundations: Toward an Extreme-scale Scientific Software Development Kit},
+	journal = {Supercomputing Frontiers and Innovations},
+	volume = {4},
+	number = {1},
+	year = {2017},
+  doi = {10.14529/jsfi170104},
+	keywords = {},
+	abstract = {Extreme-scale computational science increasingly demands multiscale and multiphysics formulations. Combining software developed by independent groups is imperative: no single team has resources for all predictive science and decision support capabilities. Scientific libraries provide high-quality, reusable software components for constructing applications with improved robustness and portability.  However, without coordination, many libraries cannot be easily composed.  Namespace collisions, inconsistent arguments, lack of third-party software versioning, and additional difficulties make composition costly.The Extreme-scale Scientific Software Development Kit (xSDK) defines community policies to improve code quality and compatibility across independently developed packages (hypre, PETSc, SuperLU, Trilinos, and Alquimia) and provides a foundation for addressing broader issues in software interoperability, performance portability, and sustainability.  The xSDK provides turnkey installation of member software and seamless combination of aggregate capabilities, and it marks first steps toward extreme-scale scientific software ecosystems from which future applications can be composed rapidly with assured quality and scalability.},
+	issn = {2313-8734},	url = {https://superfri.org/superfri/article/view/127}
 }
+
 
 @misc{rapidjson,
   title = {RapidJSON - A fast {JSON} parser/generator for C++},
@@ -225,36 +234,81 @@ archivePrefix = {arXiv},
   url = {https://sonarcloud.io/}
 }
 
-@misc{suitesparse,
-  title = {Suitesparse: a suite of sparse matrix algorithms},
-  year = {2020},
-  publisher = {​GitHub},
-  journal = {​GitHub repository},
-  url = {https://github.com/DrTimothyAldenDavis/SuiteSparse}
+@article{cholmod,
+author = {Chen, Yanqing and Davis, Timothy A. and Hager, William W. and Rajamanickam, Sivasankaran},
+title = {Algorithm 887: CHOLMOD, Supernodal Sparse Cholesky Factorization and Update/Downdate},
+year = {2008},
+issue_date = {October 2008},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {35},
+number = {3},
+issn = {0098-3500},
+url = {https://doi.org/10.1145/1391989.1391995},
+doi = {10.1145/1391989.1391995},
+journal = {ACM Trans. Math. Softw.},
+month = oct,
+articleno = {22},
+numpages = {14},
+keywords = {sparse matrices, linear equations, Cholesky factorization}
 }
 
-@misc{petsc,
-  title = {PETSc},
+
+@article{umfpack,
+author = {Davis, Timothy A.},
+title = {Algorithm 832: UMFPACK V4.3---an Unsymmetric-Pattern Multifrontal Method},
+year = {2004},
+issue_date = {June 2004},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {30},
+number = {2},
+issn = {0098-3500},
+url = {https://doi.org/10.1145/992200.992206},
+doi = {10.1145/992200.992206},
+journal = {ACM Trans. Math. Softw.},
+month = jun,
+pages = {196–199},
+numpages = {4},
+keywords = {ordering methods, linear equations, sparse nonsymmetric matrices, multifrontal method}
+}
+
+@techreport{petsc,
+       author = {Satish Balay and Shrirang Abhyankar and Mark~F. Adams and Jed Brown and Peter Brune
+                 and Kris Buschelman and Lisandro Dalcin and Alp Dener and Victor Eijkhout and William~D. Gropp
+                 and Dmitry Karpeyev and Dinesh Kaushik and Matthew~G. Knepley and Dave~A. May and Lois Curfman McInnes
+                 and Richard Tran Mills and Todd Munson and Karl Rupp and Patrick Sanan
+                 and Barry~F. Smith and Stefano Zampini and Hong Zhang and Hong Zhang},
+       title  = {{PETS}c Users Manual},
+       institution = {Argonne National Laboratory},
+       year   = 2020,
+       number = {ANL-95/11 - Revision 3.13},
+       url    = {https://www.mcs.anl.gov/petsc}
+     }
+
+@misc{rapidjson,
+  title = {RapidJSON - A fast {JSON} parser/generator for C++},
   year = {2020},
   publisher = {​GitHub},
   journal = {​GitHub repository},
-  url = {https://github.com/petsc/petsc}
+  url = {https://github.com/Tencent/rapidjson}
+
 }
 
 @misc{trilinos,
-  title = {Trilinos},
-  year = {2020},
-  publisher = {​GitHub},
-  journal = {​GitHub repository},
-  url = {https://github.com/trilinos/Trilinos}
+title = {The {T}rilinos {P}roject {W}ebsite},
+year = {2020},
+url = {https://trilinos.github.io}
 }
 
+
 @misc{eigen,
-  title = {Eigen},
-  year = {2020},
-  publisher = {​GitLab},
-  journal = {​GitLab repository},
-  url = {https://gitlab.com/libeigen/eigen}
-}
+  author = {Ga\"{e}l Guennebaud and Beno\^{i}t Jacob and others},
+  title = {Eigen v3},
+  howpublished = {http://eigen.tuxfamily.org},
+  year = {2010}
+ }
+
+
 
 
