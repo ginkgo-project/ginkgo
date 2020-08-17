@@ -63,8 +63,8 @@ performance overhead.
 
 Solving linear systems is usually one of the most computationally
 and memory intensive aspects of any application. Hence there has been a significant
-amount of effort in this direction with software libraries such as UMFPACK and
-CHOLMOD [@suitesparse] for solving linear systems with direct methods and PETSc [@petsc],
+amount of effort in this direction with software libraries such as UMFPACK [@umfpack] and
+CHOLMOD [@cholmod] for solving linear systems with direct methods and PETSc [@petsc],
 Trilinos [@trilinos], Eigen [@eigen] and many more to solve linear systems with iterative
 methods. With Ginkgo, we aim to ensure high performance while not compromising portability. 
 Hence, we provide very efficient low level kernels optimized for different architectures and
