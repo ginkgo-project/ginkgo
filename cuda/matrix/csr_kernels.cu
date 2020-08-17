@@ -272,18 +272,23 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "adaptive") {
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        auto strategy =
+            std::dynamic_pointer_cast<const typename Tcsr::adaptive>(
+                a->get_strategy());
         components::fill_array(exec, c->get_values(),
                                c->get_num_stored_elements(), zero<ValueType>());
-        size_type srow_size = 2 * a->get_size()[0];
+        size_type srow_row_size = strategy->get_srow_row_size();
+        size_type srow_idx_offset = strategy->get_srow_idx_offset();
         const dim3 csr_block(spmv_block_size);
-        const dim3 csr_grid(ceildiv(srow_size, warps_in_block),
+        const dim3 csr_grid(ceildiv(srow_row_size, warps_in_block),
                             b->get_size()[1]);
         auto srow_row = a->get_const_srow();
-        auto srow_idx = srow_row + srow_size;
+        auto srow_idx = srow_row + srow_idx_offset;
         kernel::abstract_adaptive_spmv<config::warp_size>
             <<<csr_grid, csr_block>>>(
                 a->get_size()[0], as_cuda_type(a->get_const_values()),
-                as_cuda_type(a->get_const_col_idxs()), srow_size,
+                as_cuda_type(a->get_const_col_idxs()), srow_row_size,
                 as_cuda_type(srow_row), as_cuda_type(srow_idx),
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
@@ -411,21 +416,27 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "adaptive") {
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        auto strategy =
+            std::dynamic_pointer_cast<const typename Tcsr::adaptive>(
+                a->get_strategy());
         dense::scale(exec, beta, c);
-        size_type srow_size = 2 * a->get_size()[0];
+        size_type srow_row_size = strategy->get_srow_row_size();
+        size_type srow_idx_offset = strategy->get_srow_idx_offset();
         const dim3 csr_block(spmv_block_size);
-        const dim3 csr_grid(ceildiv(srow_size, warps_in_block),
+        const dim3 csr_grid(ceildiv(srow_row_size, warps_in_block),
                             b->get_size()[1]);
         auto srow_row = a->get_const_srow();
-        auto srow_idx = srow_row + srow_size;
+        auto srow_idx = srow_row + srow_idx_offset;
         kernel::abstract_adaptive_spmv<config::warp_size>
             <<<csr_grid, csr_block>>>(
                 a->get_size()[0], as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()),
-                as_cuda_type(a->get_const_col_idxs()), srow_size,
+                as_cuda_type(a->get_const_col_idxs()), srow_row_size,
                 as_cuda_type(srow_row), as_cuda_type(srow_idx),
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
+
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {

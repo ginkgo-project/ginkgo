@@ -198,6 +198,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
+        {"csra", READ_MATRIX(csr, std::make_shared<csr::adaptive>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
 #ifdef HAS_CUDA

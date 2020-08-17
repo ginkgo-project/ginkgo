@@ -513,9 +513,6 @@ __device__ void device_adaptive_spmv(
         return;
     }
     const auto row = srow_row[subwarp_id];
-    if (row == -1) {
-        return;
-    }
     ValueType temp_val = zero<ValueType>();
     for (auto i = srow_idx[subwarp_id] + subid; i < srow_idx[subwarp_id + 1];
          i += subwarp_size) {

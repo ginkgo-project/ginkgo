@@ -294,23 +294,23 @@ public:
                 srow_host = *mtx_srow;
                 srow_row = srow_host.get_data();
             }
-            srow_idx = srow_row + 2 * num_rows;
+            srow_idx_offset_ = 2 * num_rows;
+            srow_idx = srow_row + srow_idx_offset_;
             auto avg_nnz = row_ptrs[num_rows] / num_rows;
             auto segment = ceildiv(avg_nnz, 32) * 32;
             index_type idx = 0;
             for (index_type i = 0; i < num_rows; i++) {
-                // auto n = ceildiv(row_ptrs[i+1]-row_ptrs[i], segement);
+                auto row_nnz = row_ptrs[i + 1] - row_ptrs[i];
+                auto n = ceildiv(row_nnz, segment);
+                auto row_segment = ceildiv(row_nnz, n * 32) * 32;
                 for (int j = row_ptrs[i]; j < row_ptrs[i + 1];
-                     j += segment, idx++) {
+                     j += row_segment, idx++) {
                     srow_row[idx] = i;
                     srow_idx[idx] = j;
                 }
             }
             srow_idx[idx] = row_ptrs[num_rows];
-            for (; idx < 2 * num_rows; idx++) {
-                srow_row[idx] = -1;
-                srow_idx[idx + 1] = -1;
-            }
+            srow_row_size_ = idx;
             if (!is_srow_on_host) {
                 *mtx_srow = srow_host;
             }
@@ -322,6 +322,17 @@ public:
         {
             return std::make_shared<adaptive>();
         }
+
+        size_type get_srow_row_size() const noexcept { return srow_row_size_; }
+
+        size_type get_srow_idx_offset() const noexcept
+        {
+            return srow_idx_offset_;
+        }
+
+    private:
+        size_type srow_row_size_;
+        size_type srow_idx_offset_;
     };
 
     /**
