@@ -111,9 +111,8 @@ protected:
             for (size_type k = 0; k < size[0]; ++k) {
                 for (size_type i = 0; i < size[2]; ++i) {
                     gko::kernels::helper_functions_accessor<
-                        value_type, krylov_type>::write_scale(accessor, k, i,
-                                                              dist(
-                                                                  rand_engine));
+                        Accessor3d>::write_scale(accessor, k, i,
+                                                 dist(rand_engine));
                 }
             }
         }
@@ -357,13 +356,13 @@ TEST_F(GmresMixed, OmpGmresMixedStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres_mixed::step_2(
-        ref, residual_norm_collection.get(), krylov_bases_accessor.to_const(),
+        ref, residual_norm_collection.get(), krylov_bases_accessor,
         hessenberg.get(), y.get(), before_preconditioner.get(),
         final_iter_nums.get());
     gko::kernels::omp::gmres_mixed::step_2(
-        omp, d_residual_norm_collection.get(),
-        d_krylov_bases_accessor.to_const(), d_hessenberg.get(), d_y.get(),
-        d_before_preconditioner.get(), d_final_iter_nums.get());
+        omp, d_residual_norm_collection.get(), d_krylov_bases_accessor,
+        d_hessenberg.get(), d_y.get(), d_before_preconditioner.get(),
+        d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
