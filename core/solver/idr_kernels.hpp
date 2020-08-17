@@ -84,7 +84,7 @@ namespace idr {
         const remove_complex<_type> kappa, const matrix::Dense<_type> *tht, \
         const matrix::Dense<remove_complex<_type>> *t_norm,                 \
         const matrix::Dense<remove_complex<_type>> *residual_norm,          \
-        matrix::Dense<_type> *rho, matrix::Dense<_type> *omega,             \
+        matrix::Dense<_type> *omega,                                        \
         const Array<stopping_status> *stop_status)
 
 

@@ -127,8 +127,6 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
     exec->run(
         idr::make_fill_array(omega->get_values(), nrhs, one<ValueType>()));
-    auto rho = Vector::create_with_config_of(omega.get());
-    auto alpha = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
 
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
     auto tht = Vector::create(exec, dim<2>{1, nrhs});
@@ -212,8 +210,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         residual->compute_norm2(residual_norm.get());
 
         exec->run(idr::make_compute_omega(kappa_, tht.get(), t_norm.get(),
-                                          residual_norm.get(), rho.get(),
-                                          omega.get(), &stop_status));
+                                          residual_norm.get(), omega.get(),
+                                          &stop_status));
 
         t->scale(neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());

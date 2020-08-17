@@ -156,7 +156,7 @@ void compute_omega(
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
     const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *omega,
+    matrix::Dense<ValueType> *omega,
     const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:idr): change the code imported from solver/bicgstab if needed
