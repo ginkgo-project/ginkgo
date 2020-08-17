@@ -281,7 +281,17 @@ public:
                 row_ptrs = row_ptrs_host.get_const_data();
             }
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            mtx_srow->resize_and_reset(4 * num_rows + 1);
+
+            auto pre_segment = row_ptrs[num_rows] / (216 * 32);
+            auto segment = ceildiv(pre_segment, 32) * 32;
+            srow_row_size_ = 0;
+            for (index_type i = 0; i < num_rows; i++) {
+                srow_row_size_ +=
+                    ceildiv(row_ptrs[i + 1] - row_ptrs[i], segment);
+            }
+            srow_idx_offset_ = srow_row_size_;
+
+            mtx_srow->resize_and_reset(2 * srow_row_size_ + 1);
             auto host_srow_exec = mtx_srow->get_executor()->get_master();
             const bool is_srow_on_host{host_srow_exec ==
                                        mtx_srow->get_executor()};
@@ -294,10 +304,8 @@ public:
                 srow_host = *mtx_srow;
                 srow_row = srow_host.get_data();
             }
-            srow_idx_offset_ = 2 * num_rows;
             srow_idx = srow_row + srow_idx_offset_;
-            auto avg_nnz = row_ptrs[num_rows] / num_rows;
-            auto segment = ceildiv(avg_nnz, 32) * 32;
+
             index_type idx = 0;
             for (index_type i = 0; i < num_rows; i++) {
                 auto row_nnz = row_ptrs[i + 1] - row_ptrs[i];
@@ -310,7 +318,6 @@ public:
                 }
             }
             srow_idx[idx] = row_ptrs[num_rows];
-            srow_row_size_ = idx;
             if (!is_srow_on_host) {
                 *mtx_srow = srow_host;
             }
