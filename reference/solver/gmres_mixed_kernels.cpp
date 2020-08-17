@@ -556,15 +556,14 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename Accessor3dConst>
-void calculate_qy(Accessor3dConst krylov_bases,
+template <typename ValueType, typename Accessor3d>
+void calculate_qy(const Accessor3d &krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
 {
     static_assert(
-        std::is_same<ValueType,
-                     typename Accessor3dConst::arithmetic_type>::value,
+        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
         for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
@@ -743,10 +742,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename Accessor3dConst>
+template <typename ValueType, typename Accessor3d>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3dConst krylov_bases,
+            const Accessor3d &krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
