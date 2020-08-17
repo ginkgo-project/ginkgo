@@ -494,7 +494,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType,
+template <int subwarp_size, typename ValueType, typename IndexType,
           typename Closure>
 __device__ void device_adaptive_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
@@ -506,28 +506,54 @@ __device__ void device_adaptive_spmv(
 {
     auto subwarp_tile =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
+    __shared__ UninitializedArray<ValueType, spmv_block_size / subwarp_size>
+        value_storage;
+    __shared__ UninitializedArray<IndexType, spmv_block_size / subwarp_size>
+        index_storage;
+    ValueType *__restrict__ value = value_storage;
+    IndexType *__restrict__ index = index_storage;
+
     const auto column_id = blockIdx.y;
     auto subwarp_id = thread::get_subwarp_id_flat<subwarp_size>();
+    auto local_subwarp_id = threadIdx.x / subwarp_size;
     const auto subid = subwarp_tile.thread_rank();
     if (subwarp_id >= srow_size) {
-        return;
+        if (subid == 0) {
+            value[local_subwarp_id] = zero<ValueType>();
+            index[local_subwarp_id] = num_rows - 1;
+        }
+    } else {
+        const auto row = srow_row[subwarp_id];
+        ValueType temp_val = zero<ValueType>();
+        for (auto i = srow_idx[subwarp_id] + subid;
+             i < srow_idx[subwarp_id + 1]; i += subwarp_size) {
+            temp_val += val[i] * b[col_idxs[i] * b_stride + column_id];
+        }
+        auto subwarp_result = reduce(
+            subwarp_tile, temp_val,
+            [](const ValueType &a, const ValueType &b) { return a + b; });
+        if (subid == 0) {
+            // atomic_add(&(c[row * c_stride + column_id]),
+            // scale(subwarp_result));
+            value[local_subwarp_id] = subwarp_result;
+            index[local_subwarp_id] = row;
+        }
     }
-    const auto row = srow_row[subwarp_id];
-    ValueType temp_val = zero<ValueType>();
-    for (auto i = srow_idx[subwarp_id] + subid; i < srow_idx[subwarp_id + 1];
-         i += subwarp_size) {
-        temp_val += val[i] * b[col_idxs[i] * b_stride + column_id];
-    }
-    auto subwarp_result =
-        reduce(subwarp_tile, temp_val,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
-    if (subid == 0) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(subwarp_result));
+    __syncthreads();
+    const auto tile = group::tiled_partition<spmv_block_size / subwarp_size>(
+        group::this_thread_block());
+    if (threadIdx.x < spmv_block_size / subwarp_size) {
+        const auto trow = index[threadIdx.x];
+        auto tval = value[threadIdx.x];
+        bool write = segment_scan(tile, trow, &tval);
+        if (write) {
+            atomic_add(&(c[trow * c_stride + column_id]), scale(tval));
+        }
     }
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_adaptive_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs, const size_type srow_size,
@@ -542,7 +568,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_adaptive_spmv(
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_adaptive_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
