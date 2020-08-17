@@ -45,9 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_accessor.hpp"
 
 
-#define FINISH_ARNOLDI 3
-
-
 /**
  * Instantiates a template for each value type with each lower precision type
  * supported by Ginkgo for GmresMixed.
