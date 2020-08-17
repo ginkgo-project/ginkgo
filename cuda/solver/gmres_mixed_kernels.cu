@@ -110,6 +110,7 @@ as_cuda_accessor(Accessor3d<Type1, Type2> acc)
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
 }
 
+/*
 template <typename Type1, typename Type2>
 xstd::enable_if_t<!Accessor3dConst<Type1, Type2>::has_scale,
                   Accessor3dConst<cuda_type<Type1>, cuda_type<Type2>>>
@@ -127,6 +128,7 @@ as_cuda_accessor(const Accessor3dConst<Type1, Type2> &acc)
     return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
 }
+*/
 
 
 template <typename ValueType>
@@ -328,7 +330,7 @@ void finish_arnoldi_reorth(
     Accessor3d<ValueType, ValueType> next_krylov_accessor{
         next_krylov_basis->get_values(), stride_next_krylov,
         stride_next_krylov};
-    auto next_krylov_const_accessor = next_krylov_accessor.to_const();
+    const auto next_krylov_const_accessor = next_krylov_accessor;
     //    size_type num_reorth;
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<ValueType>());
@@ -448,7 +450,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     Accessor3d<ValueType, ValueType> next_krylov_accessor{
         next_krylov_basis->get_values(), stride_next_krylov,
         stride_next_krylov};
-    auto next_krylov_const_accessor = next_krylov_accessor.to_const();
+    const auto next_krylov_const_accessor = next_krylov_accessor;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<ValueType>());
@@ -648,7 +650,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     Accessor3d<ValueType, ValueType> next_krylov_accessor{
         next_krylov_basis->get_values(), stride_next_krylov,
         stride_next_krylov};
-    auto next_krylov_const_accessor = next_krylov_accessor.to_const();
+    const auto next_krylov_const_accessor = next_krylov_accessor;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());
@@ -688,7 +690,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size_num_iters_2, block_size>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases.to_const()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     } else {
@@ -696,7 +698,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size_iters_single, block_size_iters_single>>>(
                 iter + 1, dim_size[0],
                 as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases.to_const()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     }
@@ -723,7 +725,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
            default_block_size>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_accessor(krylov_bases.to_const()),
+            as_cuda_accessor(krylov_bases),
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
 
@@ -858,8 +860,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_num_iters_2, block_size>>>(
                     iter + 1, dim_size[0], dim_size[1],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov,
-                    as_cuda_accessor(krylov_bases.to_const()),
+                    stride_next_krylov, as_cuda_accessor(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         } else {
@@ -867,8 +868,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_iters_single, block_size_iters_single>>>(
                     iter + 1, dim_size[0],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov,
-                    as_cuda_accessor(krylov_bases.to_const()),
+                    stride_next_krylov, as_cuda_accessor(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         }
@@ -881,7 +881,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                default_block_size>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases.to_const()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
                 as_cuda_type(stop_status), as_cuda_type(reorth_status));
@@ -1109,8 +1109,8 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename Accessor3dConst>
-void calculate_qy(Accessor3dConst krylov_bases, size_type num_krylov_bases,
+template <typename ValueType, typename Accessor3d>
+void calculate_qy(const Accessor3d &krylov_bases, size_type num_krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const Array<size_type> *final_iter_nums)
@@ -1139,10 +1139,10 @@ void calculate_qy(Accessor3dConst krylov_bases, size_type num_krylov_bases,
 }
 
 
-template <typename ValueType, typename Accessor3dConst>
+template <typename ValueType, typename Accessor3d>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3dConst krylov_bases,
+            const Accessor3d &krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
