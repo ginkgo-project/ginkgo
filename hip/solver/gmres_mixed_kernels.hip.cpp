@@ -103,12 +103,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void initialize_2(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
-                  Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                  Accessor3d krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums,
                   size_type krylov_dim) GKO_NOT_IMPLEMENTED;
@@ -117,15 +117,14 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const HipExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
+            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
             const matrix::Dense<ValueType> *b_norm,
             matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
@@ -138,10 +137,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_2(std::shared_ptr<const HipExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+            const Accessor3d &krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,

@@ -1275,6 +1275,7 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
 {
     const remove_complex<ValueType> eta = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat();
+    constexpr bool has_scale = Accessor3d::has_scale;
 
     if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
         const auto num0 = (eta * arnoldi_norm[col_idx]);
@@ -1309,14 +1310,15 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
 
 // Must be called with at least `num_cols` blocks, each with `block_size`
 // threads. `block_size` must be a power of 2.
-template <int block_size, typename ValueType, typename Accessor3d>
+template <int block_size, typename RealValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void set_scale_kernel(
     size_type num_rhs, size_type num_blocks,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    size_type stride_residual,
-    const remove_complex<ValueType> *__restrict__ arnoldi_inf,
-    size_type stride_inf, Accessor3d krylov_bases)
+    const RealValueType *__restrict__ residual_norm, size_type stride_residual,
+    const RealValueType *__restrict__ arnoldi_inf, size_type stride_inf,
+    Accessor3d krylov_bases)
 {
+    static_assert(!is_complex_s<RealValueType>::value,
+                  "ValueType must not be complex!");
     const auto global_id = thread::get_thread_id_flat();
     const auto blk_idx = global_id / krylov_bases.get_stride1();
     const auto col_idx = global_id % krylov_bases.get_stride1();
@@ -1329,7 +1331,7 @@ __global__ __launch_bounds__(block_size) void set_scale_kernel(
             helper_functions_accessor<Accessor3d>::write_scale(
                 krylov_bases, {0}, col_idx, num2 / num1);
         } else {
-            const auto num = one<remove_complex<ValueType>>();
+            const auto num = one<RealValueType>();
             helper_functions_accessor<Accessor3d>::write_scale(
                 krylov_bases, blk_idx, col_idx, num);
         }
