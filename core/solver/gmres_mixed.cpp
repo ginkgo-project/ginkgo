@@ -289,16 +289,16 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                 span{0, dense_b->get_size()[1] * (restart_iter)});
 
             exec->run(gmres_mixed::make_step_2(
-                residual_norm_collection.get(),
-                krylov_bases_accessor.to_const(), hessenberg_view.get(),
-                y.get(), before_preconditioner.get(), &final_iter_nums));
+                residual_norm_collection.get(), krylov_bases_accessor,
+                hessenberg_view.get(), y.get(), before_preconditioner.get(),
+                &final_iter_nums));
             /* */ /*
             auto hessenberg_small = hessenberg->create_submatrix(
                 span{0, restart_iter},
                 span{0, dense_b->get_size()[1] * (restart_iter)});
             exec->run(gmres_mixed::make_step_2(
                 residual_norm_collection.get(),
-                krylov_bases_accessor.to_const(),
+                krylov_bases_accessor,
                 hessenberg_small.get(), y.get(),
                 before_preconditioner.get(), &final_iter_nums));
             */
@@ -428,7 +428,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
     exec->run(gmres_mixed::make_step_2(
-        residual_norm_collection.get(), krylov_bases_accessor.to_const(),
+        residual_norm_collection.get(), krylov_bases_accessor,
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
     // Solve upper triangular.

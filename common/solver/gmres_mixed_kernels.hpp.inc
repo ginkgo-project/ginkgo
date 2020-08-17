@@ -371,11 +371,11 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
 }
 
 
-template <typename ValueType, typename Accessor3dConst>
+template <typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_rhs,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, Accessor3dConst krylov_bases,
+    size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -423,7 +423,7 @@ template <typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
     size_type num_iters, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, Accessor3dConst krylov_bases,
+    size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -469,11 +469,11 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
 }
 
 
-template <typename ValueType, typename Accessor3dConst>
+template <typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
     size_type num_iters, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, Accessor3dConst krylov_bases,
+    size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -543,11 +543,11 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
     //    }
 }
 
-template <int dot_dim, typename ValueType, typename Accessor3dConst>
+template <int dot_dim, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel_num_iters_2(
     size_type num_iters, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, Accessor3dConst krylov_bases,
+    size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -602,11 +602,11 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel_num_iters_2(
 }
 
 
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
     size_type num_iters, size_type num_rows,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, Accessor3dConst krylov_bases,
+    size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -654,12 +654,12 @@ __global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    Accessor3dConst krylov_bases, const ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    const Accessor3d krylov_bases,
+    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -680,12 +680,12 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases,
+        const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -712,12 +712,12 @@ __global__
 
 // Must be called with at least `num_vectors * krylov_bases.get_stride0()`
 // threads in total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_0(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases,
+        const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -744,12 +744,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_1(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases,
+        const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -808,12 +808,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_2(
         size_type num_iters, size_type num_blocks, size_type num_rows,
         size_type num_cols, ValueType *__restrict__ next_krylov_basis,
-        size_type stride_next_krylov, Accessor3dConst krylov_bases,
+        size_type stride_next_krylov, const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -889,12 +889,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_3(
         size_type num_iters, size_type num_blocks, size_type num_rows,
         size_type num_cols, ValueType *__restrict__ next_krylov_basis,
-        size_type stride_next_krylov, Accessor3dConst krylov_bases,
+        size_type stride_next_krylov, const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -975,12 +975,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_4(
         size_type num_iters, size_type num_blocks, size_type num_rows,
         size_type num_cols, ValueType *__restrict__ next_krylov_basis,
-        size_type stride_next_krylov, Accessor3dConst krylov_bases,
+        size_type stride_next_krylov, const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
@@ -1052,12 +1052,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_and_check(
         size_type k, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases,
+        const Accessor3d krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const remove_complex<ValueType> *__restrict__ arnoldi_norm,
@@ -1094,11 +1094,11 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
     size_type k, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    Accessor3dConst krylov_bases, ValueType *__restrict__ hessenberg_iter,
+    const Accessor3d krylov_bases, ValueType *__restrict__ hessenberg_iter,
     size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
     size_type stride_buffer, const stopping_status *__restrict__ stop_status,
     const stopping_status *__restrict__ reorth_status)
@@ -1124,12 +1124,12 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_and_add(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases, ValueType *__restrict__ hessenberg_iter,
+        const Accessor3d krylov_bases, ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
         size_type stride_buffer,
         const stopping_status *__restrict__ stop_status,
@@ -1160,12 +1160,12 @@ __global__
 
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
-template <int block_size, typename ValueType, typename Accessor3dConst>
+template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_and_add_1(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        Accessor3dConst krylov_bases, ValueType *__restrict__ hessenberg_iter,
+        const Accessor3d krylov_bases, ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
         size_type stride_buffer,
         const stopping_status *__restrict__ stop_status,
@@ -1564,9 +1564,9 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
 
 // Must be called with at least `stride_preconditioner * num_rows` threads
 // in total.
-template <size_type block_size, typename ValueType, typename Accessor3dConst>
+template <size_type block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
-    size_type num_rows, size_type num_cols, Accessor3dConst krylov_bases,
+    size_type num_rows, size_type num_cols, const Accessor3d krylov_bases,
     const ValueType *__restrict__ y, size_type stride_y,
     ValueType *__restrict__ before_preconditioner,
     size_type stride_preconditioner,
