@@ -71,9 +71,9 @@ namespace gmres_mixed {
 namespace {
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
-                    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                    Accessor3d krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
@@ -125,10 +125,9 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void finish_arnoldi_reorth(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+    matrix::Dense<ValueType> *next_krylov_basis, Accessor3d krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
     matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
     const stopping_status *stop_status)
@@ -214,14 +213,13 @@ void finish_arnoldi_reorth(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
+                        Accessor3d krylov_bases,
+                        matrix::Dense<ValueType> *hessenberg_iter,
+                        matrix::Dense<ValueType> *buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                        size_type iter, const stopping_status *stop_status)
 {
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
@@ -333,14 +331,13 @@ void finish_arnoldi_CGS(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void finish_arnoldi_CGS2(
-    matrix::Dense<ValueType> *next_krylov_basis,
-    Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-    matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
-    const stopping_status *stop_status)
+template <typename ValueType, typename Accessor3d>
+void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
+                         Accessor3d krylov_bases,
+                         matrix::Dense<ValueType> *hessenberg_iter,
+                         matrix::Dense<ValueType> *buffer_iter,
+                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                         size_type iter, const stopping_status *stop_status)
 {
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
@@ -469,7 +466,7 @@ void finish_arnoldi_CGS2(
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
-        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scale(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         // reorthogonalization
@@ -606,8 +603,8 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
-void calculate_qy(Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+template <typename ValueType, typename Accessor3d>
+void calculate_qy(const Accessor3d &krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
@@ -668,13 +665,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                  Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
+                  Accessor3d krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
@@ -699,7 +696,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         // std::cout << residual_norm->at(0, j) << " - " << arnoldi_norm->at(2,
         // j)
         //           << std::endl;
-        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scale(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -724,9 +721,8 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<ValueType, ValueTypeKrylovBases>::
-                write_scale(krylov_bases, k, j,
-                            one<remove_complex<ValueType>>());
+            helper_functions_accessor<Accessor3d>::write_scale(
+                krylov_bases, k, j, one<remove_complex<ValueType>>());
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             for (size_type j = 0; j < residual->get_size()[1]; ++j) {
@@ -740,15 +736,14 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d<ValueTypeKrylovBases, ValueType> krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
+            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
             const matrix::Dense<remove_complex<ValueType>> *b_norm,
             matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
@@ -792,10 +787,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename ValueTypeKrylovBases>
+template <typename ValueType, typename Accessor3d>
 void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+            const Accessor3d &krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
