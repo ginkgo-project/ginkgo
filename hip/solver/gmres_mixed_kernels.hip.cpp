@@ -137,16 +137,16 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename Accessor3d>
+template <typename ValueType, typename ConstAccessor3d>
 void step_2(std::shared_ptr<const HipExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            const Accessor3d &krylov_bases,
+            ConstAccessor3d krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
             const Array<size_type> *final_iter_nums) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
+GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL);
 
 

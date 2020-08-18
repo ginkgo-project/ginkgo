@@ -94,6 +94,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(                                                         \
         std::complex<float>,                                                 \
         GKO_UNPACK(Accessor3d<std::complex<float>, std::complex<float>>))
+
+#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(_macro)            \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<double, double>));  \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<float, double>));   \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<int64, double>));   \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<int32, double>));   \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<int16, double>));   \
+    template _macro(double, GKO_UNPACK(ConstAccessor3d<half, double>));    \
+    template _macro(float, GKO_UNPACK(ConstAccessor3d<float, float>));     \
+    template _macro(float, GKO_UNPACK(ConstAccessor3d<half, float>));      \
+    template _macro(                                                       \
+        std::complex<double>,                                              \
+        GKO_UNPACK(                                                        \
+            ConstAccessor3d<std::complex<double>, std::complex<double>>)); \
+    template _macro(                                                       \
+        std::complex<double>,                                              \
+        GKO_UNPACK(                                                        \
+            ConstAccessor3d<std::complex<float>, std::complex<double>>));  \
+    template _macro(                                                       \
+        std::complex<float>,                                               \
+        GKO_UNPACK(ConstAccessor3d<std::complex<float>, std::complex<float>>))
 // #endif
 // #undef GKO_UNPACK
 
@@ -144,7 +165,7 @@ namespace gmres_mixed {
 #define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _accessor)       \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,           \
                 const matrix::Dense<_type1> *residual_norm_collection, \
-                const _accessor &krylov_bases,                         \
+                _accessor krylov_bases,                                \
                 const matrix::Dense<_type1> *hessenberg,               \
                 matrix::Dense<_type1> *y,                              \
                 matrix::Dense<_type1> *before_preconditioner,          \
