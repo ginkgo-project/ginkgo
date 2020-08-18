@@ -327,8 +327,8 @@ void solve_upper_triangular(
 }
 
 
-template <typename ValueType, typename Accessor3d>
-void calculate_qy(const Accessor3d &krylov_bases,
+template <typename ValueType, typename ConstAccessor3d>
+void calculate_qy(ConstAccessor3d krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
@@ -491,10 +491,10 @@ GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
 
 
-template <typename ValueType, typename Accessor3d>
+template <typename ValueType, typename ConstAccessor3d>
 void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
-            const Accessor3d &krylov_bases,
+            ConstAccessor3d krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
@@ -506,7 +506,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
                  final_iter_nums->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
+GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(
     GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL);
 
 
