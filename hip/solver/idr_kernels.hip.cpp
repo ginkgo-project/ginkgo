@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
@@ -59,10 +61,115 @@ namespace idr {
 constexpr int default_block_size = 512;
 
 
+#include "common/solver/idr_kernels.hpp.inc"
+
+
+namespace {
+
+
+template <typename ValueType>
+void solve_lower_triangular(const matrix::Dense<ValueType> *m,
+                            const matrix::Dense<ValueType> *f,
+                            matrix::Dense<ValueType> *c,
+                            const Array<stopping_status> *stop_status)
+{
+    const auto subspace_dim = m->get_size()[0];
+    const auto nrhs = m->get_size()[1] / subspace_dim;
+
+    const auto grid_dim = ceildiv(nrhs, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(solve_lower_triangular_kernel), grid_dim,
+                       default_block_size, 0, 0, subspace_dim, nrhs,
+                       as_hip_type(m->get_const_values()), m->get_stride(),
+                       as_hip_type(f->get_const_values()), f->get_stride(),
+                       as_hip_type(c->get_values()), c->get_stride(),
+                       as_hip_type(stop_status->get_const_data()));
+}
+
+
+template <typename ValueType>
+void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
+                    const matrix::Dense<ValueType> *m,
+                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u,
+                    const Array<stopping_status> *stop_status)
+{
+    const auto size = g->get_size()[0];
+    const auto nrhs = m->get_size()[1] / m->get_size()[0];
+
+    const auto grid_dim = nrhs;
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(update_g_and_u_kernel<default_block_size>), grid_dim,
+        default_block_size, 0, 0, k, size, nrhs,
+        as_hip_type(p->get_const_values()), p->get_stride(),
+        as_hip_type(m->get_const_values()), m->get_stride(),
+        as_hip_type(g->get_values()), g->get_stride(),
+        as_hip_type(u->get_values()), u->get_stride(),
+        as_hip_type(stop_status->get_const_data()));
+}
+
+
+template <typename ValueType>
+void update_m(size_type k, const matrix::Dense<ValueType> *p,
+              const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *m,
+              const Array<stopping_status> *stop_status)
+{
+    const auto size = g->get_size()[0];
+    const auto subspace_dim = p->get_size()[0];
+    const auto nrhs = m->get_size()[1] / subspace_dim;
+
+    const auto grid_dim = dim3((subspace_dim - k), nrhs, 1);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(update_m_kernel<default_block_size>),
+                       grid_dim, default_block_size, 0, 0, k, size,
+                       subspace_dim, nrhs, as_hip_type(p->get_const_values()),
+                       p->get_stride(), as_hip_type(g->get_const_values()),
+                       g->get_stride(), as_hip_type(m->get_values()),
+                       m->get_stride(),
+                       as_hip_type(stop_status->get_const_data()));
+}
+
+
+template <typename ValueType>
+void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
+                      const matrix::Dense<ValueType> *g,
+                      const matrix::Dense<ValueType> *u,
+                      matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *r,
+                      matrix::Dense<ValueType> *x,
+                      const Array<stopping_status> *stop_status)
+{
+    const auto size = x->get_size()[0];
+    const auto subspace_dim = m->get_size()[0];
+    const auto nrhs = x->get_size()[1];
+
+    const auto grid_dim = ceildiv(size * x->get_stride(), default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(update_x_r_and_f_kernel), grid_dim,
+                       default_block_size, 0, 0, k, size, subspace_dim, nrhs,
+                       as_hip_type(m->get_const_values()), m->get_stride(),
+                       as_hip_type(g->get_const_values()), g->get_stride(),
+                       as_hip_type(u->get_const_values()), u->get_stride(),
+                       as_hip_type(f->get_values()), f->get_stride(),
+                       as_hip_type(r->get_values()), r->get_stride(),
+                       as_hip_type(x->get_values()), x->get_stride(),
+                       as_hip_type(stop_status->get_const_data()));
+}
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void initialize(std::shared_ptr<const HipExecutor> exec,
                 matrix::Dense<ValueType> *m,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
+{
+    const auto subspace_dim = m->get_size()[0];
+    const auto nrhs = m->get_size()[1] / subspace_dim;
+    const auto m_stride = m->get_stride();
+
+    const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(initialize_kernel), grid_dim,
+                       default_block_size, 0, 0, subspace_dim, nrhs,
+                       as_hip_type(m->get_values()), m_stride,
+                       as_hip_type(stop_status->get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
@@ -74,23 +181,24 @@ void step_1(std::shared_ptr<const HipExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *residual,
             const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *c,
             matrix::Dense<ValueType> *v,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
-//
-//    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-//        r->get_size()[0], r->get_size()[1], r->get_stride(),
-//        as_cuda_type(r->get_const_values()), as_cuda_type(p->get_values()),
-//        as_cuda_type(v->get_const_values()),
-//        as_cuda_type(rho->get_const_values()),
-//        as_cuda_type(prev_rho->get_const_values()),
-//        as_cuda_type(alpha->get_const_values()),
-//        as_cuda_type(omega->get_const_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+            const Array<stopping_status> *stop_status)
+{
+    solve_lower_triangular(m, f, c, stop_status);
+
+    const auto num_rows = v->get_size()[0];
+    const auto subspace_dim = m->get_size()[0];
+    const auto nrhs = m->get_size()[1] / subspace_dim;
+
+    const auto grid_dim =
+        ceildiv(v->get_stride() * num_rows, default_block_size);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(step_1_kernel), grid_dim, default_block_size, 0, 0, k,
+        num_rows, subspace_dim, nrhs, as_hip_type(residual->get_const_values()),
+        residual->get_stride(), as_hip_type(c->get_const_values()),
+        c->get_stride(), as_hip_type(g->get_const_values()), g->get_stride(),
+        as_hip_type(v->get_values()), v->get_stride(),
+        as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
@@ -100,22 +208,22 @@ void step_2(std::shared_ptr<const HipExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *omega,
             const matrix::Dense<ValueType> *preconditioned_vector,
             const matrix::Dense<ValueType> *c, matrix::Dense<ValueType> *u,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
-//
-//    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-//        r->get_size()[0], r->get_size()[1], r->get_stride(),
-//        as_cuda_type(r->get_const_values()), as_cuda_type(s->get_values()),
-//        as_cuda_type(v->get_const_values()),
-//        as_cuda_type(rho->get_const_values()),
-//        as_cuda_type(alpha->get_values()),
-//        as_cuda_type(beta->get_const_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+            const Array<stopping_status> *stop_status)
+{
+    const auto num_rows = preconditioned_vector->get_size()[0];
+    const auto nrhs = preconditioned_vector->get_size()[1];
+    const auto subspace_dim = u->get_size()[1] / nrhs;
+
+    const auto grid_dim =
+        ceildiv(u->get_stride() * num_rows, default_block_size);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(step_2_kernel), grid_dim, default_block_size, 0, 0, k,
+        num_rows, subspace_dim, nrhs, as_hip_type(omega->get_const_values()),
+        as_hip_type(preconditioned_vector->get_const_values()),
+        preconditioned_vector->get_stride(), as_hip_type(c->get_const_values()),
+        c->get_stride(), as_hip_type(u->get_values()), u->get_stride(),
+        as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
@@ -126,26 +234,12 @@ void step_3(std::shared_ptr<const HipExecutor> exec, const size_type k,
             matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
             matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *residual,
             matrix::Dense<ValueType> *x,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
-//
-//    step_3_kernel<<<grid_size, block_size, 0, 0>>>(
-//        r->get_size()[0], r->get_size()[1], r->get_stride(), x->get_stride(),
-//        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-//        as_cuda_type(s->get_const_values()),
-//        as_cuda_type(t->get_const_values()),
-//        as_cuda_type(y->get_const_values()),
-//        as_cuda_type(z->get_const_values()),
-//        as_cuda_type(alpha->get_const_values()),
-//        as_cuda_type(beta->get_const_values()),
-//        as_cuda_type(gamma->get_const_values()),
-//        as_cuda_type(omega->get_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+            const Array<stopping_status> *stop_status)
+{
+    update_g_and_u(k, p, m, g, u, stop_status);
+    update_m(k, p, g, m, stop_status);
+    update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
@@ -156,20 +250,19 @@ void compute_omega(
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
     const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *omega,
-    const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:idr): change the code imported from solver/bicgstab if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(y->get_size()[0] * y->get_stride(), block_size.x), 1, 1);
-//
-//    finalize_kernel<<<grid_size, block_size, 0, 0>>>(
-//        y->get_size()[0], y->get_size()[1], y->get_stride(), x->get_stride(),
-//        as_cuda_type(x->get_values()), as_cuda_type(y->get_const_values()),
-//        as_cuda_type(alpha->get_const_values()),
-//        as_cuda_type(stop_status->get_data()));
-//}
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+{
+    const auto nrhs = omega->get_size()[1];
+
+    const auto grid_dim = ceildiv(nrhs, config::warp_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_omega_kernel), grid_dim,
+                       config::warp_size, 0, 0, nrhs, kappa,
+                       as_hip_type(tht->get_const_values()),
+                       as_hip_type(t_norm->get_const_values()),
+                       as_hip_type(residual_norm->get_const_values()),
+                       as_hip_type(omega->get_values()),
+                       as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
