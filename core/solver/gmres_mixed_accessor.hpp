@@ -89,7 +89,7 @@ template <typename Reference, typename ArithmeticType>
 struct enable_reference {
     using arithmetic_type = ArithmeticType;
 
-    enable_reference() =
+    GKO_ATTRIBUTES enable_reference() =
         default;  // Needs to exist, so creation is not probibited
     enable_reference(enable_reference &&) = delete;
     enable_reference(const enable_reference &) = delete;
@@ -137,6 +137,9 @@ struct enable_reference {
     GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator+=, +)
     GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
 #undef GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
+
+    // TODO test if comparison operators need to be overloaded as well
+
     friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
     operator-(const Reference &ref)
     {
@@ -150,7 +153,8 @@ struct enable_reference {
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3d {};
+class ConstAccessor3d {};
+
 /**
  * @internal
  *
@@ -167,10 +171,11 @@ class Accessor3d {};
  * The accessor uses row-major access.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor3d<StorageType, ArithmeticType, false> {
+class ConstAccessor3d<StorageType, ArithmeticType, false> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
+    using const_accessor = ConstAccessor3d;
     static_assert(
         !detail::helper_have_scale<StorageType, ArithmeticType>::value,
         "storage_type must not be an integral in this class.");
@@ -181,7 +186,9 @@ protected:
         : public detail::enable_reference<reference, arithmetic_type> {
     public:
         reference() = delete;
-        reference(storage_type *const GKO_RESTRICT ptr) : ptr_{ptr} {}
+        GKO_ATTRIBUTES reference(storage_type *const GKO_RESTRICT ptr)
+            : ptr_{ptr}
+        {}
         GKO_ATTRIBUTES constexpr GKO_INLINE operator arithmetic_type() const
         {
             return static_cast<arithmetic_type>(*ptr_);
@@ -202,9 +209,7 @@ protected:
     };
 
 public:
-    Accessor3d() : storage_{nullptr}, stride_{0, 0} {}
     /**
-     * TODO update
      * Creates the accessor with an already allocated storage space with a
      * stride.
      *
@@ -213,9 +218,13 @@ public:
      * works. Also, storage_ is never accessed in a non-const fashion, so it
      * is not invalid or UB code.
      */
-    Accessor3d(storage_type *storage, size_type stride0, size_type stride1)
-        : storage_{storage}, stride_{stride0, stride1}
+    GKO_ATTRIBUTES ConstAccessor3d(const storage_type *storage,
+                                   size_type stride0, size_type stride1)
+        : storage_{const_cast<storage_type *>(storage)},
+          stride_{stride0, stride1}
     {}
+
+    GKO_ATTRIBUTES const_accessor to_const() const { return *this; }
 
     /**
      * Reads the value at the given index.
@@ -248,26 +257,6 @@ public:
     {
         return storage_;
     }
-    /**
-     * Writes the given value at the given index.
-     */
-    template <typename IndexType>
-    GKO_ATTRIBUTES void write(IndexType x, IndexType y, IndexType z,
-                              arithmetic_type value)
-    {
-        storage_type *GKO_RESTRICT rest_storage = this->storage_;
-        rest_storage[x * this->stride_[0] + y * this->stride_[1] + z] =
-            static_cast<storage_type>(value);
-    }
-
-    template <typename IndexType>
-    GKO_ATTRIBUTES reference at(IndexType x, IndexType y, IndexType z)
-    {
-        return {this->storage_ + x * this->stride_[0] + y * this->stride_[1] +
-                z};
-    }
-
-    GKO_ATTRIBUTES storage_type *get_storage() { return this->storage_; }
 
 protected:
     storage_type *storage_;
@@ -292,10 +281,11 @@ protected:
  * The accessor uses row-major access.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor3d<StorageType, ArithmeticType, true> {
+class ConstAccessor3d<StorageType, ArithmeticType, true> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
+    using const_accessor = ConstAccessor3d;
     static_assert(detail::helper_have_scale<StorageType, ArithmeticType>::value,
                   "storage_type must not be an integral in this class.");
 
@@ -306,7 +296,8 @@ protected:
         : public detail::enable_reference<reference, arithmetic_type> {
     public:
         reference() = delete;
-        reference(storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
+        GKO_ATTRIBUTES reference(storage_type *const GKO_RESTRICT ptr,
+                                 arithmetic_type scale)
             : ptr_{ptr}, scale_{scale}
         {}
         GKO_ATTRIBUTES constexpr GKO_INLINE operator arithmetic_type() const
@@ -330,9 +321,7 @@ protected:
     };
 
 public:
-    Accessor3d() : storage_{nullptr}, stride_{0, 0}, scale_{nullptr} {}
     /**
-     * TODO update
      * Creates the accessor with an already allocated storage space with a
      * stride.
      *
@@ -341,10 +330,15 @@ public:
      * works. Also, storage_ is never accessed in a non-const fashion, so it
      * is not invalid or UB code.
      */
-    Accessor3d(storage_type *storage, size_type stride0, size_type stride1,
-               arithmetic_type *scale)
-        : storage_{storage}, stride_{stride0, stride1}, scale_{scale}
+    GKO_ATTRIBUTES ConstAccessor3d(const storage_type *storage,
+                                   size_type stride0, size_type stride1,
+                                   const arithmetic_type *scale)
+        : storage_{const_cast<storage_type *>(storage)},
+          stride_{stride0, stride1},
+          scale_{const_cast<arithmetic_type *>(scale)}
     {}
+
+    GKO_ATTRIBUTES const_accessor to_const() const { return *this; }
 
     /**
      * Reads the scale value at the given indices.
@@ -357,11 +351,11 @@ public:
     }
 
     template <typename IndexType>
-    GKO_ATTRIBUTES const reference at(IndexType x, IndexType y,
+    GKO_ATTRIBUTES arithmetic_type at(IndexType x, IndexType y,
                                       IndexType z) const
     {
-        return {storage_ + x * stride_[0] + y * stride_[1] + z,
-                read_scale(x, z)};
+        return reference{storage_ + x * stride_[0] + y * stride_[1] + z,
+                         read_scale(x, z)};
     }
 
     /**
@@ -399,6 +393,105 @@ public:
     {
         return this->scale_;
     }
+
+protected:
+    storage_type *storage_;
+    size_type stride_[2];
+    arithmetic_type *scale_;
+};
+
+template <typename StorageType, typename ArithmeticType,
+          bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
+class Accessor3d : public ConstAccessor3d<StorageType, ArithmeticType> {};
+
+template <typename StorageType, typename ArithmeticType>
+class Accessor3d<StorageType, ArithmeticType, false>
+    : public ConstAccessor3d<StorageType, ArithmeticType, false> {
+public:
+    using storage_type = StorageType;
+    using arithmetic_type = ArithmeticType;
+    using const_accessor = ConstAccessor3d<storage_type, arithmetic_type>;
+    static_assert(
+        !detail::helper_have_scale<StorageType, ArithmeticType>::value,
+        "storage_type must not be an integral in this class.");
+    static constexpr bool has_scale{false};
+
+protected:
+    using reference = typename const_accessor::reference;
+
+public:
+    GKO_ATTRIBUTES Accessor3d() : const_accessor(nullptr, 0, 0) {}
+
+    GKO_ATTRIBUTES Accessor3d(storage_type *storage, size_type stride0,
+                              size_type stride1)
+        : const_accessor(storage, stride0, stride1)
+    {}
+
+    GKO_ATTRIBUTES const_accessor to_const() const
+    {
+        return {this->storage_, this->stride_[0], this->stride_[1]};
+    }
+
+    GKO_ATTRIBUTES operator const_accessor() const { return to_const(); }
+
+    using const_accessor::get_storage;
+    GKO_ATTRIBUTES storage_type *get_storage() { return this->storage_; }
+
+    /**
+     * Writes the given value at the given index.
+     */
+    template <typename IndexType>
+    GKO_ATTRIBUTES void write(IndexType x, IndexType y, IndexType z,
+                              arithmetic_type value)
+    {
+        storage_type *GKO_RESTRICT rest_storage = this->storage_;
+        rest_storage[x * this->stride_[0] + y * this->stride_[1] + z] =
+            static_cast<storage_type>(value);
+    }
+
+    using const_accessor::at;  // Makes sure the at() const function is visible
+    template <typename IndexType>
+    GKO_ATTRIBUTES reference at(IndexType x, IndexType y, IndexType z)
+    {
+        return {this->storage_ + x * this->stride_[0] + y * this->stride_[1] +
+                z};
+    }
+};
+
+
+template <typename StorageType, typename ArithmeticType>
+class Accessor3d<StorageType, ArithmeticType, true>
+    : public ConstAccessor3d<StorageType, ArithmeticType, true> {
+public:
+    using storage_type = StorageType;
+    using arithmetic_type = ArithmeticType;
+    using const_accessor = ConstAccessor3d<storage_type, arithmetic_type>;
+    static_assert(detail::helper_have_scale<StorageType, ArithmeticType>::value,
+                  "storage_type must not be an integral in this class.");
+
+    static constexpr bool has_scale{true};
+
+protected:
+    using reference = typename const_accessor::reference;
+
+public:
+    GKO_ATTRIBUTES Accessor3d() : const_accessor(nullptr, {}, {}, nullptr) {}
+
+    GKO_ATTRIBUTES Accessor3d(storage_type *storage, size_type stride0,
+                              size_type stride1, arithmetic_type *scale)
+        : const_accessor(storage, stride0, stride1, scale)
+    {}
+
+    GKO_ATTRIBUTES const_accessor to_const() const
+    {
+        return {this->storage_, this->stride_[0], this->stride_[1],
+                this->scale_};
+    }
+
+    GKO_ATTRIBUTES operator const_accessor() const { return to_const(); }
+
+
+    using const_accessor::at;
     template <typename IndexType>
     GKO_ATTRIBUTES reference at(IndexType x, IndexType y, IndexType z)
     {
@@ -455,14 +548,11 @@ public:
         //    std::endl;
     }
 
+    using const_accessor::get_storage;
     GKO_ATTRIBUTES storage_type *get_storage() { return this->storage_; }
 
+    using const_accessor::get_scale;
     GKO_ATTRIBUTES arithmetic_type *get_scale() { return this->scale_; }
-
-protected:
-    storage_type *storage_;
-    size_type stride_[2];
-    arithmetic_type *scale_;
 };
 
 
