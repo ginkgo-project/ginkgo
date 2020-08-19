@@ -189,16 +189,18 @@ protected:
         GKO_ATTRIBUTES reference(storage_type *const GKO_RESTRICT ptr)
             : ptr_{ptr}
         {}
-        GKO_ATTRIBUTES constexpr GKO_INLINE operator arithmetic_type() const
+        GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
         {
-            return static_cast<arithmetic_type>(*ptr_);
+            const storage_type *const GKO_RESTRICT r_ptr = ptr_;
+            return static_cast<arithmetic_type>(*r_ptr);
         }
-        GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
+        GKO_ATTRIBUTES GKO_INLINE arithmetic_type
         operator=(arithmetic_type val) &&
         {
-            return *ptr_ = static_cast<storage_type>(val);
+            storage_type *const GKO_RESTRICT r_ptr = ptr_;
+            return *r_ptr = static_cast<storage_type>(val);
         }
-        GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
+        GKO_ATTRIBUTES GKO_INLINE arithmetic_type
         operator=(const reference &ref) &&
         {
             return std::move(*this) = static_cast<arithmetic_type>(ref);
@@ -300,16 +302,18 @@ protected:
                                  arithmetic_type scale)
             : ptr_{ptr}, scale_{scale}
         {}
-        GKO_ATTRIBUTES constexpr GKO_INLINE operator arithmetic_type() const
+        GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
         {
-            return static_cast<arithmetic_type>(*ptr_) * scale_;
+            const storage_type *const GKO_RESTRICT r_ptr = ptr_;
+            return static_cast<arithmetic_type>(*r_ptr) * scale_;
         }
-        GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
+        GKO_ATTRIBUTES GKO_INLINE arithmetic_type
         operator=(arithmetic_type val) &&
         {
-            return *ptr_ = static_cast<storage_type>(val / scale_), val;
+            storage_type *const GKO_RESTRICT r_ptr = ptr_;
+            return *r_ptr = static_cast<storage_type>(val / scale_), val;
         }
-        GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
+        GKO_ATTRIBUTES GKO_INLINE arithmetic_type
         operator=(const reference &ref) &&
         {
             return std::move(*this) = static_cast<arithmetic_type>(ref);
