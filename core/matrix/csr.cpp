@@ -468,13 +468,13 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Dense<ValueType>> Csr<ValueType, IndexType>::extract_diagonal()
-    const
+std::unique_ptr<Diagonal<ValueType>>
+Csr<ValueType, IndexType>::extract_diagonal() const
 {
     auto exec = this->get_executor();
 
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-    auto diag = Dense<ValueType>::create(exec, dim<2>(diag_size, 1));
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(csr::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
     exec->run(csr::make_extract_diagonal(this, lend(diag)));

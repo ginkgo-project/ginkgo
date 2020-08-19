@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -600,10 +601,14 @@ TYPED_TEST(Ell, MovesEmptyToCsr)
 
 TYPED_TEST(Ell, ExtractsDiagonal)
 {
+    using T = typename TestFixture::value_type;
     auto matrix = this->mtx2->clone();
     auto diag = matrix->extract_diagonal();
 
-    GKO_ASSERT_MTX_NEAR(diag, l({{1.}, {5.}}), 0.0);
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], (T)1.);
+    ASSERT_EQ(diag->get_values()[1], (T)5.);
 }
 
 

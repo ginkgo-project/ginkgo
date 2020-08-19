@@ -690,7 +690,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Dense<ValueType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
     const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
     kernel::extract_diagonal<<<grid_dim, default_block_size>>>(

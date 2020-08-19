@@ -366,7 +366,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
     const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
     const auto orig_stride = orig->get_stride();

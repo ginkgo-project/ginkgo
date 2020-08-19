@@ -243,7 +243,7 @@ public:
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<int64> *inverse_permutation_indices) const override;
 
-    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
 
     /**

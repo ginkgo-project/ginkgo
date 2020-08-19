@@ -673,10 +673,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
+    auto diag_values = diag->get_values();
     for (size_type i = 0; i < diag->get_size()[0]; ++i) {
-        diag->at(i, 0) = orig->at(i, i);
+        diag_values[i] = orig->at(i, i);
     }
 }
 

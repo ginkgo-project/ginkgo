@@ -115,7 +115,7 @@ public:
 
     void write(mat_data &data) const override;
 
-    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns the values of the matrix.

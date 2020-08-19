@@ -1977,6 +1977,7 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 
 TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 {
+    using T = typename TestFixture::value_type;
     // clang-format off
     // {1.0, -1.0, -0.5},
     // {-2.0, 2.0, 4.5},
@@ -1984,25 +1985,27 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
     // clang-format on
     auto diag = this->mtx5->extract_diagonal();
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(diag,
-                        l({{1.}, {2.}, {1.2}}), r<TypeParam>::value);
-    // clang-format on
+    ASSERT_EQ(diag->get_size()[0], 3);
+    ASSERT_EQ(diag->get_size()[1], 3);
+    ASSERT_EQ(diag->get_values()[0], (T)1.);
+    ASSERT_EQ(diag->get_values()[1], (T)2.);
+    ASSERT_EQ(diag->get_values()[2], (T)1.2);
 }
 
 
 TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
 {
+    using T = typename TestFixture::value_type;
     // clang-format off
     // {1.0, 3.0, 2.0},
     // {0.0, 5.0, 0.0}
     // clang-format on
     auto diag = this->mtx4->extract_diagonal();
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(diag,
-                        l({{1.}, {5.}}), r<TypeParam>::value);
-    // clang-format on
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], (T)1.);
+    ASSERT_EQ(diag->get_values()[1], (T)5.);
 }
 
 
