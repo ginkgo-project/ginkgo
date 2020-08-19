@@ -233,7 +233,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Sellp<ValueType, IndexType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
     const auto diag_size = diag->get_size()[0];
     const auto diag_stride = diag->get_stride();

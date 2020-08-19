@@ -699,7 +699,7 @@ public:
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<IndexType> *inverse_permutation_indices) const override;
 
-    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

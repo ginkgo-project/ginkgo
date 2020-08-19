@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -169,7 +170,7 @@ namespace kernels {
 #define GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL(_vtype)                    \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
                           const matrix::Dense<_vtype> *orig,           \
-                          matrix::Dense<_vtype> *diag)
+                          matrix::Diagonal<_vtype> *diag)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \

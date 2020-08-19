@@ -54,7 +54,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class Diagonal;
 
 
 }
@@ -618,7 +618,7 @@ public:
      *
      * @param diag  the vector into which the diagonal will be written
      */
-    virtual std::unique_ptr<matrix::Dense<ValueType>> extract_diagonal()
+    virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
         const = 0;
 };
 

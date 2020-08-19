@@ -717,7 +717,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Dense<ValueType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
     const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
     hipLaunchKernelGGL(kernel::extract_diagonal, dim3(grid_dim),

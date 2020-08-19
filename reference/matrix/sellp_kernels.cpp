@@ -242,7 +242,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Sellp<ValueType, IndexType> *orig,
-                      matrix::Dense<ValueType> *diag)
+                      matrix::Diagonal<ValueType> *diag)
 {
     const auto diag_size = diag->get_size()[0];
     const auto slice_size = orig->get_slice_size();
@@ -252,6 +252,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto orig_slice_sets = orig->get_const_slice_sets();
     const auto orig_slice_lengths = orig->get_const_slice_lengths();
     const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
 
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
@@ -264,7 +265,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                         global_row &&
                     orig->val_at(row, orig_slice_sets[slice], i) !=
                         zero<ValueType>()) {
-                    diag->at(global_row, 0) =
+                    diag_values[global_row] =
                         orig->val_at(row, orig_slice_sets[slice], i);
                     break;
                 }
