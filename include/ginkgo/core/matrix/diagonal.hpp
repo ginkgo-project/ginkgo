@@ -64,21 +64,24 @@ class Dense;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Diagonal : public ConvertibleTo<Csr<ValueType, int32>>,
-                 public ConvertibleTo<Csr<ValueType, int64>>,
-                 public EnableLinOp<Diagonal<ValueType>>,
+class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
                  public EnableCreateMethod<Diagonal<ValueType>>,
+                 public ConvertibleTo<Csr<ValueType, int32>>,
+                 public ConvertibleTo<Csr<ValueType, int64>>,
                  public Transposable,
                  public WritableToMatrixData<ValueType, int32>,
                  public WritableToMatrixData<ValueType, int64>,
                  public ReadableFromMatrixData<ValueType, int32>,
                  public ReadableFromMatrixData<ValueType, int64> {
-    friend class Csr<ValueType, int32>;
-    friend class Csr<ValueType, int64>;
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
+    friend class Csr<ValueType, int32>;
+    friend class Csr<ValueType, int64>;
 
 public:
+    using EnableLinOp<Diagonal>::convert_to;
+    using EnableLinOp<Diagonal>::move_to;
+
     using value_type = ValueType;
     using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
