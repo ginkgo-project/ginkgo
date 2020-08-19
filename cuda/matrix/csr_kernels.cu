@@ -1355,14 +1355,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
                           permutation, buffer);
 
         // sort values
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
-#else  // CUDA_VERSION >= 11000
-        auto val_vec = cusparse::create_spvec(nnz, nnz, permutation, vals);
-        auto tmp_vec =
-            cusparse::create_dnvec(nnz, const_cast<ValueType *>(tmp_vals));
-        cusparse::gather(handle, tmp_vec, val_vec);
-#endif
 
         cusparse::destroy(descr);
     } else {

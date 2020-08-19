@@ -366,6 +366,87 @@ private:
     }
 };
 
+#else
+
+
+template <typename Group>
+class enable_extended_shuffle : public Group {
+public:
+    using Group::Group;
+#define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
+    __device__ __forceinline__ ValueType ShflOp(                             \
+        ValueType var, SelectorType selector) const noexcept                 \
+    {                                                                        \
+        return __##ShflOp##_sync(this->build_mask(), var, selector,          \
+                                 this->size());                              \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+    GKO_BIND_SHFL(shfl, int32, int32);
+    GKO_BIND_SHFL(shfl, float, int32);
+    GKO_BIND_SHFL(shfl, uint32, int32);
+    GKO_BIND_SHFL(shfl, double, int32);
+
+    GKO_BIND_SHFL(shfl_up, int32, uint32);
+    GKO_BIND_SHFL(shfl_up, uint32, uint32);
+    GKO_BIND_SHFL(shfl_up, float, uint32);
+    GKO_BIND_SHFL(shfl_up, double, uint32);
+
+    GKO_BIND_SHFL(shfl_down, int32, uint32);
+    GKO_BIND_SHFL(shfl_down, uint32, uint32);
+    GKO_BIND_SHFL(shfl_down, float, uint32);
+    GKO_BIND_SHFL(shfl_down, double, uint32);
+
+    GKO_BIND_SHFL(shfl_xor, int32, int32);
+    GKO_BIND_SHFL(shfl_xor, float, int32);
+    GKO_BIND_SHFL(shfl_xor, uint32, int32);
+    GKO_BIND_SHFL(shfl_xor, double, int32);
+    // using Group::shfl;
+    // using Group::shfl_down;
+    // using Group::shfl_up;
+    // using Group::shfl_xor;
+
+#define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
+    template <typename ValueType>                                           \
+    __device__ __forceinline__ ValueType _name(const ValueType &var,        \
+                                               SelectorType selector) const \
+    {                                                                       \
+        return shuffle_impl(                                                \
+            [this](uint32 v, SelectorType s) {                              \
+                return static_cast<const Group *>(this)->_name(v, s);       \
+            },                                                              \
+            var, selector);                                                 \
+    }
+
+    GKO_ENABLE_SHUFFLE_OPERATION(shfl, int32)
+    GKO_ENABLE_SHUFFLE_OPERATION(shfl_up, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION(shfl_down, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION(shfl_xor, int32)
+
+#undef GKO_ENABLE_SHUFFLE_OPERATION
+
+private:
+    template <typename ShuffleOperator, typename ValueType,
+              typename SelectorType>
+    static __device__ __forceinline__ ValueType
+    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType var,
+                 SelectorType selector)
+    {
+        static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
+                      "Unable to shuffle sizes which are not 4-byte multiples");
+        constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
+        ValueType result;
+        auto var_array = reinterpret_cast<const uint32 *>(&var);
+        auto result_array = reinterpret_cast<uint32 *>(&result);
+#pragma unroll
+        for (std::size_t i = 0; i < value_size; ++i) {
+            result_array[i] = intrinsic_shuffle(var_array[i], selector);
+        }
+        return result;
+    }
+};
+
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
@@ -389,8 +470,14 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 #else  // CUDA_VERSION >= 11000
 
 
-// Cuda11 cooperative group's shuffle supports complex
-using cooperative_groups::thread_block_tile;
+// Cuda cooperative groups must need parent group type from cuda 11
+template <unsigned Size>
+struct thread_block_tile
+    : detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
+          Size, cooperative_groups::thread_block>> {
+    using detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
+        Size, cooperative_groups::thread_block>>::enable_extended_shuffle;
+};
 
 
 #endif
@@ -415,9 +502,6 @@ using cooperative_groups::thread_block_tile;
 namespace detail {
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
 template <unsigned Size>
 struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
 template <unsigned Size>
@@ -432,23 +516,6 @@ struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
 template <unsigned Size>
 struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
     : std::true_type {};
-
-
-#else  // CUDA_VERSION >= 11000
-
-
-// thread_block_tile is same as cuda11's
-template <unsigned Size, typename Group>
-struct is_group_impl<thread_block_tile<Size, Group>> : std::true_type {};
-template <unsigned Size, typename Group>
-struct is_synchronizable_group_impl<thread_block_tile<Size, Group>>
-    : std::true_type {};
-template <unsigned Size, typename Group>
-struct is_communicator_group_impl<thread_block_tile<Size, Group>>
-    : std::true_type {};
-
-
-#endif
 
 
 }  // namespace detail
@@ -501,11 +568,10 @@ __device__ __forceinline__ auto tiled_partition(const Group &g)
 // Only support tile_partition with 1, 2, 4, 8, 16, 32.
 // Reference:
 // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-notes
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 // cooperative group before cuda11 does not contain parent group in template
-template <size_type Size, typename Group>
+template <unsigned Size, typename Group>
 __device__ __forceinline__
     std::enable_if_t<(Size <= kernels::cuda::config::warp_size) && (Size > 0) &&
                          (kernels::cuda::config::warp_size % Size == 0),
@@ -514,23 +580,6 @@ __device__ __forceinline__
 {
     return thread_block_tile<Size>();
 }
-
-
-#else  // CUDA_VERSION >= 11000
-
-
-// cooperative group after cuda11 contain parent group in template.
-// we remove the information because we do not restrict cooperative group by its
-// parent group type.
-template <unsigned Size, typename Group>
-__device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
-    const Group &g)
-{
-    return cooperative_groups::tiled_partition<Size>(g);
-}
-
-
-#endif
 
 
 }  // namespace group
