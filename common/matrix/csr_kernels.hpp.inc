@@ -438,17 +438,23 @@ __device__ void device_classical_spmv(const size_type num_rows,
                                       ValueType *__restrict__ c,
                                       const size_type c_stride, Closure scale)
 {
+    constexpr auto subwarpnum = spmv_block_size / subwarp_size;
     auto subwarp_tile =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
+    __shared__ IndexType tmp_row[subwarpnum][2];
     const auto subid = subwarp_tile.thread_rank();
     const auto column_id = blockIdx.y;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const auto local_warp_id = row % subwarpnum;
     for (; row < num_rows; row += subrow) {
-        const auto ind_end = row_ptrs[row + 1];
+        if (subid < 2) {
+            tmp_row[local_warp_id][subid] = row_ptrs[row + subid];
+        }
+        subwarp_tile.sync();
         ValueType temp_val = zero<ValueType>();
-        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-             ind += subwarp_size) {
+        for (auto ind = tmp_row[local_warp_id][0] + subid;
+             ind < tmp_row[local_warp_id][1]; ind += subwarp_size) {
             temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
         }
         auto subwarp_result = reduce(
@@ -504,18 +510,25 @@ __device__ void device_adaptive_spmv(
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride, Closure scale)
 {
+    constexpr auto subwarpnum = spmv_block_size / subwarp_size;
     auto subwarp_tile =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
+    __shared__ IndexType tmp_row[subwarpnum][2];
     const auto column_id = blockIdx.y;
     auto subwarp_id = thread::get_subwarp_id_flat<subwarp_size>();
     const auto subid = subwarp_tile.thread_rank();
     if (subwarp_id >= srow_size) {
         return;
     }
+    const auto local_warp_id = subwarp_id % subwarpnum;
     const auto row = srow_row[subwarp_id];
     ValueType temp_val = zero<ValueType>();
-    for (auto i = srow_idx[subwarp_id] + subid; i < srow_idx[subwarp_id + 1];
-         i += subwarp_size) {
+    if (subid < 2) {
+        tmp_row[local_warp_id][subid] = srow_idx[subwarp_id + subid];
+    }
+    subwarp_tile.sync();
+    for (auto i = tmp_row[local_warp_id][0] + subid;
+         i < tmp_row[local_warp_id][1]; i += subwarp_size) {
         temp_val += val[i] * b[col_idxs[i] * b_stride + column_id];
     }
     auto subwarp_result =

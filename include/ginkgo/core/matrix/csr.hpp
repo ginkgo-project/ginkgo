@@ -282,7 +282,7 @@ public:
             }
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
 
-            auto pre_segment = row_ptrs[num_rows] / (216 * 32);
+            auto pre_segment = ceildiv(row_ptrs[num_rows], 4096);
             auto segment = ceildiv(pre_segment, 32) * 32;
             srow_row_size_ = 0;
             for (index_type i = 0; i < num_rows; i++) {
