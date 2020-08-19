@@ -103,7 +103,7 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
-#ifdef NDEBUG
+#if defined(NDEBUG) || (GINKGO_HIP_PLATFORM_HCC == 1)
     auto error_code = hipMalloc(&dev_ptr, num_bytes);
 #else
     auto error_code = hipMallocManaged(&dev_ptr, num_bytes);
