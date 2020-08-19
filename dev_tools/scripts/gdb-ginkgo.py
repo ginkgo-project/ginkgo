@@ -106,9 +106,13 @@ class GkoArrayPrinter:
         self.val = val
         self.execname = str(self.val['exec_']['_M_ptr'].dereference().dynamic_type)
         self.pointer = get_unique_ptr_data_ptr(self.val['data_']);
+        # Cuda allows access via unified memory in Debug builds
+        self.is_cpu = re.match('gko::(Reference|Omp|Cuda)Executor', str(self.execname)) is not None
 
     def children(self):
-        return self._iterator(self.pointer, self.val['num_elems_'])
+        if self.is_cpu:
+            return self._iterator(self.pointer, self.val['num_elems_'])
+        return []
 
     def to_string(self):
         return ('%s of length %d on %s (%s)' % (str(self.val.type), int(self.val['num_elems_']), self.execname, self.pointer))
