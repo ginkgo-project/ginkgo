@@ -148,7 +148,16 @@ public:
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
             generated_preconditioner, nullptr);
 
+        /**
+         * Dimension of the subspace S. Determines how many intermediate
+         * residuals are computed in each iteration.
+         */
         size_type GKO_FACTORY_PARAMETER(subspace_dim, 2u);
+
+        /**
+         * Threshold to determine if Av_n and v_n are too close to being
+         * perpendicular.
+         */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(kappa, 0.7);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
