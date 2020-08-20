@@ -82,7 +82,6 @@ namespace idr {
     void compute_omega(                                                     \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const remove_complex<_type> kappa, const matrix::Dense<_type> *tht, \
-        const matrix::Dense<remove_complex<_type>> *t_norm,                 \
         const matrix::Dense<remove_complex<_type>> *residual_norm,          \
         matrix::Dense<_type> *omega,                                        \
         const Array<stopping_status> *stop_status)

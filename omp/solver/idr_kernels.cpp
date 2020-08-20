@@ -245,7 +245,6 @@ template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const OmpExecutor> exec,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
-    const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
@@ -256,7 +255,7 @@ void compute_omega(
         }
 
         auto thr = omega->at(0, i);
-        auto normt = t_norm->at(0, i);
+        auto normt = sqrt(real(tht->at(0, i)));
         omega->at(0, i) /= tht->at(0, i);
         auto absrho = abs(thr / (normt * residual_norm->at(0, i)));
 

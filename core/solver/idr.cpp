@@ -113,41 +113,48 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto m =
         Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
+
     auto g =
         Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
-    exec->run(idr::make_fill_array(
-        g->get_values(), problem_size * g->get_stride(), zero<ValueType>()));
     auto u =
         Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
-    exec->run(idr::make_fill_array(
-        u->get_values(), problem_size * u->get_stride(), zero<ValueType>()));
+
     auto f = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
-
     auto c = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
-    auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
-    exec->run(
-        idr::make_fill_array(omega->get_values(), nrhs, one<ValueType>()));
 
+    auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
     auto tht = Vector::create(exec, dim<2>{1, nrhs});
     auto t_norm = NormVector::create(exec, dim<2>{1, nrhs});
 
-    int total_iter = -1;
-
     bool one_changed{};
     Array<stopping_status> stop_status(exec, nrhs);
 
+    // Initialization
+    // m = identity
+    exec->run(idr::make_initialize(m.get(), &stop_status));
+
+    // omega = 1
+    exec->run(
+        idr::make_fill_array(omega->get_values(), nrhs, one<ValueType>()));
+
+    // residual = b - Ax
     residual->copy_from(dense_b);
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
-    v->copy_from(residual.get());
+
+    // g = u = 0
+    exec->run(idr::make_fill_array(
+        g->get_values(), problem_size * g->get_stride(), zero<ValueType>()));
+    exec->run(idr::make_fill_array(
+        u->get_values(), problem_size * u->get_stride(), zero<ValueType>()));
+
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, residual.get());
 
-    exec->run(idr::make_initialize(m.get(), &stop_status));
-    residual->compute_norm2(residual_norm.get());
+    int total_iter = -1;
 
     while (true) {
         ++total_iter;
@@ -160,6 +167,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         subspace_vectors_->apply(residual.get(), f.get());
+        // f = P^H * residual
 
         for (size_type k = 0; k < subspace_dim_; k++) {
             exec->run(idr::make_step_1(k, m.get(), f.get(), residual.get(),
@@ -182,6 +190,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                            span{k * nrhs, (k + 1) * nrhs});
 
             system_matrix_->apply(u_k.get(), g_k.get());
+            // g_k = Au_k
 
             exec->run(idr::make_step_3(k, subspace_vectors_.get(), g.get(),
                                        u.get(), m.get(), f.get(),
@@ -205,13 +214,12 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_->apply(preconditioned_vector.get(), t.get());
 
         t->compute_dot(residual.get(), omega.get());
-        t->compute_norm2(t_norm.get());
+        // t->compute_norm2(t_norm.get());
         t->compute_dot(t.get(), tht.get());
         residual->compute_norm2(residual_norm.get());
 
-        exec->run(idr::make_compute_omega(kappa_, tht.get(), t_norm.get(),
-                                          residual_norm.get(), omega.get(),
-                                          &stop_status));
+        exec->run(idr::make_compute_omega(
+            kappa_, tht.get(), residual_norm.get(), omega.get(), &stop_status));
 
         t->scale(neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
