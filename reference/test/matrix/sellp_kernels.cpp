@@ -597,8 +597,8 @@ TYPED_TEST(Sellp, ExtractsDiagonal)
 
     ASSERT_EQ(diag->get_size()[0], 2);
     ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], (T)1.);
-    ASSERT_EQ(diag->get_values()[1], (T)5.);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
 }
 
 
@@ -610,8 +610,8 @@ TYPED_TEST(Sellp, ExtractsDiagonalWithSliceSizeAndStrideFactor)
 
     ASSERT_EQ(diag->get_size()[0], 2);
     ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], (T)1.);
-    ASSERT_EQ(diag->get_values()[1], (T)5.);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
 }
 
 

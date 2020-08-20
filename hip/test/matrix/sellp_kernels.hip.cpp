@@ -338,7 +338,7 @@ TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsquivalentToRef)
+TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
     set_up_apply_matrix(32, 2);
 
