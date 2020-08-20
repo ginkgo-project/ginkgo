@@ -253,7 +253,6 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto nnz = orig->get_num_stored_elements();
     const auto diag_size = diag->get_size()[0];
-    const auto diag_stride = diag->get_stride();
     const auto num_blocks = ceildiv(nnz, default_block_size);
 
     const auto orig_values = orig->get_const_values();
@@ -263,7 +262,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 
     kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
         nnz, as_cuda_type(orig_values), as_cuda_type(orig_row_idxs),
-        as_cuda_type(orig_col_idxs), diag_stride, as_cuda_type(diag_values));
+        as_cuda_type(orig_col_idxs), as_cuda_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

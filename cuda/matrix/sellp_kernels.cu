@@ -236,7 +236,6 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       matrix::Diagonal<ValueType> *diag)
 {
     const auto diag_size = diag->get_size()[0];
-    const auto diag_stride = diag->get_stride();
     const auto slice_size = orig->get_slice_size();
     const auto slice_num = ceildiv(diag_size, slice_size);
     const auto num_blocks =
@@ -249,7 +248,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 
     kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
         diag_size, slice_size, as_cuda_type(orig_slice_sets),
-        as_cuda_type(orig_values), as_cuda_type(orig_col_idxs), diag_stride,
+        as_cuda_type(orig_values), as_cuda_type(orig_col_idxs),
         as_cuda_type(diag_values));
 }
 

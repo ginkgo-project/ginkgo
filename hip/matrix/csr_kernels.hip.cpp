@@ -1188,7 +1188,6 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 {
     const auto nnz = orig->get_num_stored_elements();
     const auto diag_size = diag->get_size()[0];
-    const auto diag_stride = diag->get_stride();
     const auto num_blocks =
         ceildiv(config::warp_size * diag_size, default_block_size);
 
@@ -1201,7 +1200,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
                        dim3(num_blocks), dim3(default_block_size), 0, 0,
                        diag_size, nnz, as_hip_type(orig_values),
                        as_hip_type(orig_row_ptrs), as_hip_type(orig_col_idxs),
-                       diag_stride, as_hip_type(diag_values));
+                       as_hip_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);

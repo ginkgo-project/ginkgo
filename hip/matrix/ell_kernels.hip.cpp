@@ -380,7 +380,6 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
     const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
     const auto orig_stride = orig->get_stride();
     const auto diag_size = diag->get_size()[0];
-    const auto diag_stride = diag->get_stride();
     const auto num_blocks =
         ceildiv(diag_size * max_nnz_per_row, default_block_size);
 
@@ -388,10 +387,10 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
     const auto orig_col_idxs = orig->get_const_col_idxs();
     auto diag_values = diag->get_values();
 
-    hipLaunchKernelGGL(
-        kernel::extract_diagonal, dim3(num_blocks), dim3(default_block_size), 0,
-        0, diag_size, max_nnz_per_row, orig_stride, as_hip_type(orig_values),
-        as_hip_type(orig_col_idxs), diag_stride, as_hip_type(diag_values));
+    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, diag_size,
+                       max_nnz_per_row, orig_stride, as_hip_type(orig_values),
+                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

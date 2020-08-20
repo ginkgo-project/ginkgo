@@ -201,8 +201,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type slice_size,
     const size_type *__restrict__ orig_slice_sets,
     const ValueType *__restrict__ orig_values,
-    const IndexType *__restrict__ orig_col_idxs, size_type diag_stride,
-    ValueType *__restrict__ diag)
+    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
@@ -224,7 +223,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
         if (global_row < diag_size) {
             if (orig_col_idxs[sellp_ind] == global_row &&
                 orig_values[sellp_ind] != zero<ValueType>()) {
-                diag[global_row * diag_stride] = orig_values[sellp_ind];
+                diag[global_row] = orig_values[sellp_ind];
             }
         }
     }

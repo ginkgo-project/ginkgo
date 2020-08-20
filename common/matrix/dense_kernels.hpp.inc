@@ -500,12 +500,12 @@ __global__ __launch_bounds__(block_size) void inverse_column_permute(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type problem_size, const ValueType *__restrict__ orig,
-    size_type stride_orig, ValueType *__restrict__ diag, size_type stride_diag)
+    size_type stride_orig, ValueType *__restrict__ diag)
 {
     const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < problem_size) {
-        diag[tidx * stride_diag] = orig[tidx * stride_orig + tidx];
+        diag[tidx] = orig[tidx * stride_orig + tidx];
     }
 }
 

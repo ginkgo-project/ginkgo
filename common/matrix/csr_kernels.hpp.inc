@@ -906,8 +906,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type nnz,
     const ValueType *__restrict__ orig_values,
     const IndexType *__restrict__ orig_row_ptrs,
-    const IndexType *__restrict__ orig_col_idxs, size_type diag_stride,
-    ValueType *__restrict__ diag)
+    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
 {
     constexpr auto warp_size = config::warp_size;
     const auto row = thread::get_subwarp_id_flat<warp_size>();
@@ -919,7 +918,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
             const auto orig_idx = i + orig_row_ptrs[row];
             if (orig_idx < nnz) {
                 if (orig_col_idxs[orig_idx] == row) {
-                    diag[row * diag_stride] = orig_values[orig_idx];
+                    diag[row] = orig_values[orig_idx];
                     return;
                 }
             }
