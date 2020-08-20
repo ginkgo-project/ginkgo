@@ -1300,9 +1300,9 @@ TYPED_TEST(Csr, ExtractsDiagonal)
 
     ASSERT_EQ(diag->get_size()[0], 3);
     ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], (T)0.);
-    ASSERT_EQ(diag->get_values()[1], (T)1.);
-    ASSERT_EQ(diag->get_values()[2], (T)3.);
+    ASSERT_EQ(diag->get_values()[0], T{0.});
+    ASSERT_EQ(diag->get_values()[1], T{1.});
+    ASSERT_EQ(diag->get_values()[2], T{3.});
 }
 
 

@@ -1987,9 +1987,9 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 
     ASSERT_EQ(diag->get_size()[0], 3);
     ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], (T)1.);
-    ASSERT_EQ(diag->get_values()[1], (T)2.);
-    ASSERT_EQ(diag->get_values()[2], (T)1.2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
+    ASSERT_EQ(diag->get_values()[2], T{1.2});
 }
 
 
@@ -2004,8 +2004,8 @@ TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
 
     ASSERT_EQ(diag->get_size()[0], 2);
     ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], (T)1.);
-    ASSERT_EQ(diag->get_values()[1], (T)5.);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
 }
 
 

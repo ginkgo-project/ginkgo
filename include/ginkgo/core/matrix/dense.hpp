@@ -245,7 +245,6 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-
     /**
      * Returns a pointer to the array of values of the matrix.
      *
@@ -264,7 +263,6 @@ public:
     {
         return values_.get_const_data();
     }
-
 
     /**
      * Returns the stride of the matrix.

@@ -262,9 +262,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
             }
             for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
                 if (orig->col_at(row, orig_slice_sets[slice], i) ==
-                        global_row &&
-                    orig->val_at(row, orig_slice_sets[slice], i) !=
-                        zero<ValueType>()) {
+                    global_row) {
                     diag_values[global_row] =
                         orig->val_at(row, orig_slice_sets[slice], i);
                     break;
