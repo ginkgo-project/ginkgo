@@ -36,8 +36,8 @@ if [ ! "${FORMATS}" ]; then
 fi
 
 if [ ! "${SOLVERS}" ]; then
-    echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres\"" 1>&2
-    SOLVERS="bicgstab,cg,cgs,fcg,gmres"
+    echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres,idr\"" 1>&2
+    SOLVERS="bicgstab,cg,cgs,fcg,gmres,idr"
 fi
 
 if [ ! "${SOLVERS_PRECISION}" ]; then
