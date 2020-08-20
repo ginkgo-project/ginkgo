@@ -239,7 +239,6 @@ template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const CudaExecutor> exec,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
-    const matrix::Dense<remove_complex<ValueType>> *t_norm,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
@@ -248,7 +247,6 @@ void compute_omega(
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel<<<grid_dim, config::warp_size>>>(
         nrhs, kappa, as_cuda_type(tht->get_const_values()),
-        as_cuda_type(t_norm->get_const_values()),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(omega->get_values()),
         as_cuda_type(stop_status->get_const_data()));

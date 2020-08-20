@@ -60,13 +60,12 @@ namespace solver {
 
 
 /**
- * BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.
+ * IDR(s) is an efficient method for solving large nonsymmetric systems of
+ * linear equations.
  *
- * Being a generic solver, it is capable of solving general matrices, including
- * non-s.p.d matrices. Though, the memory and the computational requirement of
- * the BiCGSTAB solver are higher than of its s.p.d solver counterpart, it has
- * the capability to solve generic systems. It was developed by stabilizing the
- * BiCG method.
+ * The method is based on the induced dimension reduction theorem which
+ * provides a way to construct subsequent residuals that lie in a sequence
+ * of shrinking subspaces.
  *
  * @tparam ValueType precision of the elements of the system matrix.
  *

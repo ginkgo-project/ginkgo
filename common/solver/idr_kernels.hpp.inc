@@ -255,7 +255,6 @@ template <typename ValueType>
 __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
     size_type nrhs, const remove_complex<ValueType> kappa,
     const ValueType *__restrict__ tht,
-    const remove_complex<ValueType> *__restrict__ t_norm,
     const remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ omega,
     const stopping_status *__restrict__ stop_status)
@@ -268,7 +267,8 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
 
     auto thr = omega[global_id];
     omega[global_id] /= tht[global_id];
-    auto absrho = abs(thr / (t_norm[global_id] * residual_norm[global_id]));
+    auto absrho =
+        abs(thr / (sqrt(real(tht[global_id])) * residual_norm[global_id]));
 
     if (absrho < kappa) {
         omega[global_id] *= kappa / absrho;
