@@ -242,7 +242,6 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
                       matrix::Diagonal<ValueType> *diag)
 {
     const auto diag_size = diag->get_size()[0];
-    const auto diag_stride = diag->get_stride();
     const auto slice_size = orig->get_slice_size();
     const auto slice_num = ceildiv(diag_size, slice_size);
     const auto num_blocks =
@@ -256,8 +255,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
     hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
                        dim3(default_block_size), 0, 0, diag_size, slice_size,
                        as_hip_type(orig_slice_sets), as_hip_type(orig_values),
-                       as_hip_type(orig_col_idxs), diag_stride,
-                       as_hip_type(diag_values));
+                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

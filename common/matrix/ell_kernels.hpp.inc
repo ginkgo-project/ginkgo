@@ -241,8 +241,7 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type max_nnz_per_row, size_type orig_stride,
     const ValueType *__restrict__ orig_values,
-    const IndexType *__restrict__ orig_col_idxs, size_type diag_stride,
-    ValueType *__restrict__ diag)
+    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx % diag_size;
@@ -252,7 +251,7 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     if (col < max_nnz_per_row) {
         if (orig_col_idxs[ell_ind] == row &&
             orig_values[ell_ind] != zero<ValueType>()) {
-            diag[row * diag_stride] = orig_values[ell_ind];
+            diag[row] = orig_values[ell_ind];
         }
     }
 }

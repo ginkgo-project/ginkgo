@@ -695,8 +695,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
     kernel::extract_diagonal<<<grid_dim, default_block_size>>>(
         orig->get_size()[0], as_cuda_type(orig->get_const_values()),
-        orig->get_stride(), as_cuda_type(diag->get_values()),
-        diag->get_stride());
+        orig->get_stride(), as_cuda_type(diag->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL);
