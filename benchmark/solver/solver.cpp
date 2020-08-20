@@ -62,7 +62,7 @@ DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 DEFINE_string(
     solvers, "cg",
     "A comma-separated list of solvers to run. "
-    "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, overhead");
+    "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, idr, overhead");
 
 DEFINE_string(
     preconditioners, "none",
@@ -142,6 +142,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
                    {"gmres", create_solver<gko::solver::Gmres<>>},
+                   {"idr", create_solver<gko::solver::Idr<>>},
                    {"overhead", create_solver<gko::Overhead<>>}};
 
 
