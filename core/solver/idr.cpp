@@ -158,6 +158,9 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     while (true) {
         ++total_iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, total_iter, residual.get(), dense_x);
+
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual.get())
