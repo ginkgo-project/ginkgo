@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <random>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -58,10 +59,15 @@ namespace {
 template <typename ValueType>
 void solve_lower_triangular(const matrix::Dense<ValueType> *m,
                             const matrix::Dense<ValueType> *f,
-                            matrix::Dense<ValueType> *c)
+                            matrix::Dense<ValueType> *c,
+                            const Array<stopping_status> *stop_status)
 {
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
     for (size_type i = 0; i < f->get_size()[1]; i++) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            continue;
+        }
+
         for (size_type row = 0; row < m->get_size()[0]; row++) {
             auto temp = f->at(row, i);
             for (size_type col = 0; col < row; col++) {
@@ -76,10 +82,15 @@ void solve_lower_triangular(const matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
                     const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u)
+                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u,
+                    const Array<stopping_status> *stop_status)
 {
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
     for (size_type i = 0; i < nrhs; i++) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            continue;
+        }
+
         for (size_type j = 0; j < k; j++) {
             auto alpha = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
@@ -101,8 +112,10 @@ void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *m,
+                matrix::Dense<ValueType> *subspace_vectors,
                 Array<stopping_status> *stop_status)
 {
+    // Initialize M
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
     for (size_type i = 0; i < nrhs; i++) {
         stop_status->get_data()[i].reset();
@@ -112,6 +125,34 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type col = 0; col < m->get_size()[1]; col++) {
             m->at(row, col) =
                 (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
+        }
+    }
+
+    // Orthonormalize P
+    const auto num_rows = subspace_vectors->get_size()[0];
+    const auto num_cols = subspace_vectors->get_size()[1];
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type i = 0; i < row; i++) {
+            auto dot = zero<ValueType>();
+            for (size_type j = 0; j < num_cols; j++) {
+                dot += subspace_vectors->at(row, j) *
+                       conj(subspace_vectors->at(i, j));
+            }
+            for (size_type j = 0; j < num_cols; j++) {
+                subspace_vectors->at(row, j) -=
+                    dot * subspace_vectors->at(i, j);
+            }
+        }
+
+        auto norm = zero<remove_complex<ValueType>>();
+        for (size_type j = 0; j < num_cols; j++) {
+            norm += squared_norm(subspace_vectors->at(row, j));
+        }
+
+        norm = sqrt(norm);
+
+        for (size_type j = 0; j < num_cols; j++) {
+            subspace_vectors->at(row, j) /= norm;
         }
     }
 }
@@ -130,16 +171,13 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
 {
     const auto nrhs = f->get_size()[1];
 
+    // Compute c = M \ f
+    solve_lower_triangular(m, f, c, stop_status);
+
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[0].has_stopped()) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }
-    }
-
-    // Compute c = M \ f
-    solve_lower_triangular(m, f, c);
-
-    for (size_type i = 0; i < nrhs; i++) {
         // v = residual - c_k * g_k - ... - c_s * g_s
         for (size_type row = 0; row < v->get_size()[0]; row++) {
             auto temp = residual->at(row, i);
@@ -163,7 +201,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
 {
     const auto nrhs = omega->get_size()[1];
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[0].has_stopped()) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }
 
@@ -190,15 +228,13 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
 {
     const auto nrhs = x->get_size()[1];
 
+    update_g_and_u(k, p, m, g, u, stop_status);
+
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[0].has_stopped()) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }
-    }
 
-    update_g_and_u(k, p, m, g, u);
-
-    for (size_type i = 0; i < nrhs; i++) {
         for (size_type j = k; j < m->get_size()[0]; j++) {
             auto temp = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
@@ -234,7 +270,7 @@ void compute_omega(
     matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
     for (size_type i = 0; i < omega->get_size()[1]; i++) {
-        if (stop_status->get_const_data()[0].has_stopped()) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }
 

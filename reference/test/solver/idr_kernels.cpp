@@ -325,7 +325,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
 
     // Not sure if this is necessary, the assertions above should cover what
     // is needed.
-    GKO_ASSERT_MTX_NEAR(xc, testMtx, r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(xc, testMtx, r<value_type>::value * 1e2);
 }
 
 
