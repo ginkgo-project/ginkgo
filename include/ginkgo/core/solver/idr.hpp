@@ -202,7 +202,9 @@ protected:
 
         subspace_vectors_ =
             matrix::Dense<ValueType>::create(factory->get_executor());
+
         subspace_vectors_->read(subspace_vectors_data);
+
         kappa_ = parameters_.kappa;
     }
 

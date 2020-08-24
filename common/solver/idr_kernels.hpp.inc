@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+__global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
     size_type subspace_dim, size_type nrhs, ValueType *__restrict__ m_values,
     size_type m_stride, stopping_status *__restrict__ stop_status)
 {
@@ -46,6 +46,64 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     if (row < subspace_dim && col < nrhs * subspace_dim) {
         m_values[row * m_stride + col] =
             (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
+    }
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__
+    __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
+        size_type num_rows, size_type num_cols, ValueType *__restrict__ values,
+        size_type stride)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+
+    __shared__ UninitializedArray<remove_complex<ValueType>, block_size>
+        reduction_helper_array_real;
+    remove_complex<ValueType> *__restrict__ reduction_helper_real =
+        reduction_helper_array_real;
+
+    for (size_type row = 0; row < num_rows; row++) {
+        for (size_type i = 0; i < row; i++) {
+            auto dot = zero<ValueType>();
+            for (size_type j = tidx; j < num_cols; j += block_size) {
+                dot += values[row * stride + j] * conj(values[i * stride + j]);
+            }
+
+            reduction_helper[tidx] = dot;
+
+            __syncthreads();
+            reduce(
+                group::this_thread_block(), reduction_helper,
+                [](const ValueType &a, const ValueType &b) { return a + b; });
+            __syncthreads();
+
+            dot = reduction_helper[0];
+            for (size_type j = tidx; j < num_cols; j += block_size) {
+                values[row * stride + j] -= dot * values[i * stride + j];
+            }
+        }
+
+        auto norm = zero<remove_complex<ValueType>>();
+        for (size_type j = tidx; j < num_cols; j += block_size) {
+            norm += squared_norm(values[row * stride + j]);
+        }
+
+        reduction_helper_real[tidx] = norm;
+
+        __syncthreads();
+        reduce(group::this_thread_block(), reduction_helper_real,
+               [](const remove_complex<ValueType> &a,
+                  const remove_complex<ValueType> &b) { return a + b; });
+        __syncthreads();
+
+        norm = sqrt(reduction_helper_real[0]);
+        for (size_type j = 0; j < num_cols; j += block_size) {
+            values[row * stride + j] /= norm;
+        }
     }
 }
 
@@ -147,17 +205,19 @@ __global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
     const auto tidx = threadIdx.x;
     const auto rhs = blockIdx.x;
 
+    if (stop_status[rhs].has_stopped()) {
+        return;
+    }
+
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     for (size_type i = 0; i < k; i++) {
         __syncthreads();
         ValueType alpha = zero<ValueType>();
-        if (!stop_status[rhs].has_stopped()) {
-            for (size_type j = tidx; j < size; j += block_size) {
-                alpha += p_values[i * p_stride + j] *
-                         g_values[j * g_stride + k * nrhs + rhs];
-            }
+        for (size_type j = tidx; j < size; j += block_size) {
+            alpha += p_values[i * p_stride + j] *
+                     g_values[j * g_stride + k * nrhs + rhs];
         }
         reduction_helper[tidx] = alpha;
 
@@ -166,16 +226,13 @@ __global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
                [](const ValueType &a, const ValueType &b) { return a + b; });
         __syncthreads();
 
-        if (!stop_status[rhs].has_stopped()) {
-            alpha =
-                reduction_helper[0] / m_values[i * m_stride + i * nrhs + rhs];
+        alpha = reduction_helper[0] / m_values[i * m_stride + i * nrhs + rhs];
 
-            for (size_type j = tidx; j < size; j += block_size) {
-                g_values[j * g_stride + k * nrhs + rhs] -=
-                    alpha * g_values[j * g_stride + i * nrhs + rhs];
-                u_values[j * u_stride + k * nrhs + rhs] -=
-                    alpha * u_values[j * u_stride + i * nrhs + rhs];
-            }
+        for (size_type j = tidx; j < size; j += block_size) {
+            g_values[j * g_stride + k * nrhs + rhs] -=
+                alpha * g_values[j * g_stride + i * nrhs + rhs];
+            u_values[j * u_stride + k * nrhs + rhs] -=
+                alpha * u_values[j * u_stride + i * nrhs + rhs];
         }
     }
 }
@@ -193,11 +250,15 @@ __global__ __launch_bounds__(block_size) void update_m_kernel(
     const auto row = blockIdx.x + k;
     const auto col = blockIdx.y;
 
+    if (stop_status[col].has_stopped()) {
+        return;
+    }
+
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
-    if (row < subspace_dim && col < nrhs && !stop_status[col].has_stopped()) {
+    if (row < subspace_dim && col < nrhs) {
         for (size_type i = tidx; i < size; i += block_size) {
             local_res += p_values[row * p_stride + i] *
                          g_values[i * g_stride + k * nrhs + col];
@@ -207,7 +268,7 @@ __global__ __launch_bounds__(block_size) void update_m_kernel(
     __syncthreads();
     reduce(group::this_thread_block(), reduction_helper,
            [](const ValueType &a, const ValueType &b) { return a + b; });
-    if (tidx == 0 && !stop_status[col].has_stopped()) {
+    if (tidx == 0) {
         m_values[row * m_stride + k * nrhs + col] = reduction_helper[0];
     }
 }
@@ -265,12 +326,14 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
         return;
     }
 
-    auto thr = omega[global_id];
-    omega[global_id] /= tht[global_id];
-    auto absrho =
-        abs(thr / (sqrt(real(tht[global_id])) * residual_norm[global_id]));
+    if (!stop_status[global_id].has_stopped()) {
+        auto thr = omega[global_id];
+        omega[global_id] /= tht[global_id];
+        auto absrho =
+            abs(thr / (sqrt(real(tht[global_id])) * residual_norm[global_id]));
 
-    if (absrho < kappa) {
-        omega[global_id] *= kappa / absrho;
+        if (absrho < kappa) {
+            omega[global_id] *= kappa / absrho;
+        }
     }
 }
