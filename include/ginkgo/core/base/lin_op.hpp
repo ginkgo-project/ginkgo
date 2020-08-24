@@ -50,6 +50,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace matrix {
+
+
+template <typename ValueType>
+class Diagonal;
+
+
+}
 
 
 /**
@@ -590,6 +598,29 @@ private:
     std::shared_ptr<const LinOp> preconditioner_{};
 };
 
+
+/**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ * extract_diagonal extracts the elements whose col and row index are the
+ * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
+ *
+ * @ingroup LinOp
+ */
+template <typename ValueType>
+class DiagonalExtractable {
+public:
+    using value_type = ValueType;
+
+    virtual ~DiagonalExtractable() = default;
+
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @param diag  the vector into which the diagonal will be written
+     */
+    virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
+        const = 0;
+};
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations

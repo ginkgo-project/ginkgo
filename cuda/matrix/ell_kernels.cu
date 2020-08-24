@@ -363,6 +363,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
+                      const matrix::Ell<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
+    const auto orig_stride = orig->get_stride();
+    const auto diag_size = diag->get_size()[0];
+    const auto num_blocks =
+        ceildiv(diag_size * max_nnz_per_row, default_block_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+    kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
+        diag_size, max_nnz_per_row, orig_stride, as_cuda_type(orig_values),
+        as_cuda_type(orig_col_idxs), as_cuda_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace ell
 }  // namespace cuda
 }  // namespace kernels

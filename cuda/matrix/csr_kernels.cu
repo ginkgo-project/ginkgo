@@ -1355,6 +1355,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto nnz = orig->get_num_stored_elements();
+    const auto diag_size = diag->get_size()[0];
+    const auto num_blocks =
+        ceildiv(config::warp_size * diag_size, default_block_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_row_ptrs = orig->get_const_row_ptrs();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+    kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
+        diag_size, nnz, as_cuda_type(orig_values), as_cuda_type(orig_row_ptrs),
+        as_cuda_type(orig_col_idxs), as_cuda_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
+
+
 }  // namespace csr
 }  // namespace cuda
 }  // namespace kernels

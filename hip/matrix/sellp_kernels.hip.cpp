@@ -236,6 +236,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Sellp<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto diag_size = diag->get_size()[0];
+    const auto slice_size = orig->get_slice_size();
+    const auto slice_num = ceildiv(diag_size, slice_size);
+    const auto num_blocks =
+        ceildiv(slice_num * config::warp_size, default_block_size);
+
+    const auto orig_slice_sets = orig->get_const_slice_sets();
+    const auto orig_values = orig->get_const_values();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, diag_size, slice_size,
+                       as_hip_type(orig_slice_sets), as_hip_type(orig_values),
+                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace sellp
 }  // namespace hip
 }  // namespace kernels

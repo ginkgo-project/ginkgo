@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -725,6 +726,17 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
     EXPECT_EQ("classical", classical_mtx_d->get_strategy()->get_name());
     ASSERT_NE(load_balance_mtx_d->get_strategy().get(),
               classical_mtx_d->get_strategy().get());
+}
+
+
+TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 

@@ -901,6 +901,32 @@ __global__ __launch_bounds__(default_block_size) void check_unsorted(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void extract_diagonal(
+    size_type diag_size, size_type nnz,
+    const ValueType *__restrict__ orig_values,
+    const IndexType *__restrict__ orig_row_ptrs,
+    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto row = thread::get_subwarp_id_flat<warp_size>();
+    const auto local_tidx = threadIdx.x % warp_size;
+
+    if (row < diag_size) {
+        for (size_type i = local_tidx;
+             i < orig_row_ptrs[row + 1] - orig_row_ptrs[row]; i += warp_size) {
+            const auto orig_idx = i + orig_row_ptrs[row];
+            if (orig_idx < nnz) {
+                if (orig_col_idxs[orig_idx] == row) {
+                    diag[row] = orig_values[orig_idx];
+                    return;
+                }
+            }
+        }
+    }
+}
+
+
 }  // namespace kernel
 
 

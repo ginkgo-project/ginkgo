@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -73,6 +74,11 @@ namespace kernels {
                         const matrix::Sellp<ValueType, IndexType> *source, \
                         size_type *result)
 
+#define GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Sellp<ValueType, IndexType> *orig, \
+                          matrix::Diagonal<ValueType> *diag)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename ValueType, typename IndexType>                \
     GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType);             \
@@ -83,7 +89,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                \
     GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                \
+    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

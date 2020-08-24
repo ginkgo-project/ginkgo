@@ -103,6 +103,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
               public ConvertibleTo<SparsityCsr<ValueType, int32>>,
               public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+              public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
@@ -242,6 +243,7 @@ public:
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<int64> *inverse_permutation_indices) const override;
 
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

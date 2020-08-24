@@ -125,6 +125,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+            public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
@@ -697,6 +698,8 @@ public:
 
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<IndexType> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

@@ -84,6 +84,7 @@ GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
+GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
 
 
 }  // namespace dense
@@ -736,6 +737,18 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
         inverse_permutation_indices, this, inverse_permute_cpy.get()));
 
     return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(dense::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

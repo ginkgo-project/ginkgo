@@ -754,6 +754,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
+template <typename ValueType>
+void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    auto diag_values = diag->get_values();
+#pragma omp parallel for
+    for (size_type i = 0; i < diag->get_size()[0]; ++i) {
+        diag_values[i] = orig->at(i, i);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace dense
 }  // namespace omp
 }  // namespace kernels

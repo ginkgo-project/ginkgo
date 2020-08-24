@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -59,6 +60,8 @@ GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        ell::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace ell
@@ -230,6 +233,21 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
             }
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Ell<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(ell::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                   zero<ValueType>()));
+    exec->run(ell::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

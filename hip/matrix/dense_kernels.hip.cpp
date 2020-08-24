@@ -714,6 +714,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
+template <typename ValueType>
+void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
+    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, orig->get_size()[0],
+                       as_hip_type(orig->get_const_values()),
+                       orig->get_stride(), as_hip_type(diag->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace dense
 }  // namespace hip
 }  // namespace kernels

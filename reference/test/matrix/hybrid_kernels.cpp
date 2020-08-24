@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/matrix/hybrid_kernels.hpp"
@@ -613,6 +614,45 @@ TYPED_TEST(Hybrid, MovesWithStrideToDense)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TYPED_TEST(Hybrid, ExtractsDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx1->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Hybrid, ExtractsDiagonalWithStride)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx2->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Hybrid, ExtractsDiagonalWithoutZeros)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx3->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
 }
 
 

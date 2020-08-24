@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/matrix/sellp_kernels.hpp"
@@ -324,6 +325,28 @@ TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
     gko::kernels::cuda::sellp::count_nonzeros(cuda, dmtx.get(), &dnnz);
 
     ASSERT_EQ(nnz, dnnz);
+}
+
+
+TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 
