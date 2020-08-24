@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <cstring>
+#include <deque>
 #include <fstream>
 #include <memory>
 
@@ -62,6 +64,7 @@ protected:
     using Mtx = gko::matrix::Dense<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using strategy = gko::reorder::starting_strategy;
     Rcm()
         : ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),
@@ -73,18 +76,243 @@ protected:
               omp))
     {}
 
-    static void assert_equal_permutations(
-        const gko::matrix::Permutation<i_type> *to_check,
-        const gko::matrix::Permutation<i_type> *orig)
+    static void ubfs_reference(
+        std::shared_ptr<CsrMtx> mtx,
+        i_type
+            *const levels,  // Must be inf/max in all nodes connected to source
+        const i_type start)
     {
-        auto o_p_size = orig->get_permutation_size();
-        auto d_p_size = to_check->get_permutation_size();
-        ASSERT_EQ(d_p_size, o_p_size);
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto col_idxs = mtx->get_const_col_idxs();
 
-        for (auto i = 0; i < d_p_size; ++i) {
-            ASSERT_EQ(to_check->get_const_permutation()[i],
-                      orig->get_const_permutation()[i]);
+        std::deque<i_type> q(0);
+        q.push_back(start);
+        levels[start] = 0;
+
+        while (!q.empty()) {
+            const auto node = q.front();
+            q.pop_front();
+
+            const auto level = levels[node];
+            const auto neighbours_level = level + 1;
+            const auto row_start = row_ptrs[node];
+            const auto row_end = row_ptrs[node + 1];
+
+            for (auto neighbour_i = row_start; neighbour_i < row_end;
+                 ++neighbour_i) {
+                const auto neighbour = col_idxs[neighbour_i];
+                if (neighbours_level < levels[neighbour]) {
+                    levels[neighbour] = neighbours_level;
+                    q.push_back(neighbour);
+                }
+            }
         }
+    }
+
+    static bool is_valid_start_node(std::shared_ptr<CsrMtx> mtx,
+                                    std::shared_ptr<reorder_type> reorder,
+                                    i_type start,
+                                    std::vector<bool> &already_visited)
+    {
+        if (already_visited[start]) {
+            return false;
+        }
+
+        const auto n = reorder->get_permutation()->get_permutation_size();
+        auto degrees = std::vector<i_type>(n);
+        for (auto i = 0; i < n; ++i) {
+            degrees[i] =
+                mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
+        }
+
+        switch (reorder->get_parameters().strategy) {
+        case strategy::minimum_degree: {
+            auto min_degree = std::numeric_limits<i_type>::max();
+            for (auto i = 0; i < n; ++i) {
+                if (!already_visited[i] && degrees[i] < min_degree) {
+                    min_degree = degrees[i];
+                }
+            }
+            if (min_degree != degrees[start]) {
+                return false;
+            }
+            break;
+        }
+
+        case strategy::pseudo_peripheral: {
+            // Check if any valid contender has a lowereq height than the
+            // selected start node.
+
+            std::vector<i_type> reference_current_levels(n);
+            std::fill(reference_current_levels.begin(),
+                      reference_current_levels.end(),
+                      std::numeric_limits<i_type>::max());
+            ubfs_reference(mtx, &reference_current_levels[0], start);
+
+            std::vector<i_type> reference_contenders(0);
+            auto current_height = std::numeric_limits<i_type>::min();
+            for (auto i = 0; i < n; ++i) {
+                if (reference_current_levels[i] !=
+                        std::numeric_limits<i_type>::max() &&
+                    reference_current_levels[i] >= current_height) {
+                    if (reference_current_levels[i] > current_height) {
+                        reference_contenders.clear();
+                    }
+                    reference_contenders.push_back(i);
+                    current_height = reference_current_levels[i];
+                }
+            }
+
+            std::vector<std::vector<i_type>> reference_contenders_levels(
+                reference_contenders.size());
+            for (auto i = 0; i < reference_contenders.size(); ++i) {
+                std::vector<i_type> reference_contender_levels(n);
+                std::fill(reference_contender_levels.begin(),
+                          reference_contender_levels.end(),
+                          std::numeric_limits<i_type>::max());
+                ubfs_reference(mtx, &reference_contender_levels[0],
+                               reference_contenders[i]);
+                reference_contenders_levels[i] = reference_contender_levels;
+            }
+
+            for (auto i = 0; i < reference_contenders.size(); ++i) {
+                auto contender_height = std::numeric_limits<i_type>::min();
+                for (auto j = 0; j < n; ++j) {
+                    if (reference_contenders_levels[i][j] !=
+                            std::numeric_limits<i_type>::max() &&
+                        reference_contenders_levels[i][j] > contender_height) {
+                        contender_height = reference_contenders_levels[i][j];
+                    }
+                }
+                if (contender_height <= current_height) {
+                    return true;
+                }
+            }
+            return false;
+            break;
+        }
+        }
+        return true;
+    }
+
+    static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
+                               std::shared_ptr<reorder_type> reorder)
+    {
+        const auto n = reorder->get_permutation()->get_permutation_size();
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto col_idxs = mtx->get_const_col_idxs();
+        auto degrees = std::vector<i_type>(n);
+        for (auto i = 0; i < n; ++i) {
+            degrees[i] =
+                mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
+        }
+
+        // Following checks for cm ordering, therefore create a reversed perm.
+        auto perm = std::vector<i_type>(n);
+        std::memcpy(&perm[0],
+                    reorder->get_permutation()->get_const_permutation(),
+                    n * sizeof(i_type));
+        for (auto i = 0; i < n / 2; ++i) {
+            const auto tmp = perm[i];
+            perm[i] = perm[n - i - 1];
+            perm[n - i - 1] = tmp;
+        }
+
+        // Now check for cm ordering.
+
+        auto base_offset = 0;
+        std::vector<bool> already_visited(n);
+        while (base_offset != n) {
+            // Assert valid start node.
+            if (!is_valid_start_node(mtx, reorder, perm[base_offset],
+                                     already_visited)) {
+                return false;
+            }
+
+            // Assert valid level structure.
+            // Also update base_offset and mark as visited while at it.
+            std::vector<i_type> levels(n);
+            std::fill(levels.begin(), levels.end(),
+                      std::numeric_limits<i_type>::max());
+            ubfs_reference(mtx, &levels[0], perm[base_offset]);
+
+            auto current_level = 0;
+            const auto previous_base_offset = base_offset;
+            for (auto i = 0; i < n; ++i) {
+                const auto node = perm[i];
+                if (levels[node] != std::numeric_limits<i_type>::max() &&
+                    !already_visited[node]) {
+                    already_visited[node] = true;
+                    ++base_offset;
+
+                    if (levels[node] == current_level) {
+                        continue;
+                    }
+                    if (levels[node] == current_level + 1) {
+                        ++current_level;
+                        continue;
+                    }
+                    return false;
+                }
+            }
+
+            // Assert cm order within levels.
+            for (auto i = previous_base_offset + 1 /* Skip start node */;
+                 i < base_offset - 1; ++i) {
+                const auto x = perm[i];
+                const auto y = perm[i + 1];
+                if (levels[x] != levels[y]) {
+                    continue;  // Skip if on level border
+                }
+                const auto level = levels[x];
+
+                // Get first neighbour of x in the previous level.
+                auto x_first_neighbour =
+                    perm[n - 1];  // There is always a neighbour, this is valid.
+                const auto x_row_start = row_ptrs[x];
+                const auto x_row_end = row_ptrs[x + 1];
+                for (auto x_neighbour_idx = x_row_start;
+                     x_neighbour_idx < x_row_end; ++x_neighbour_idx) {
+                    const auto x_neighbour = col_idxs[x_neighbour_idx];
+                    if (levels[x_neighbour] == level - 1) {
+                        if (std::find(perm.begin(), perm.end(), x_neighbour) <
+                            std::find(perm.begin(), perm.end(),
+                                      x_first_neighbour)) {
+                            x_first_neighbour = x_neighbour;
+                        }
+                    }
+                }
+                // Same again, for y.
+                auto y_first_neighbour = perm[n - 1];
+                const auto y_row_start = row_ptrs[y];
+                const auto y_row_end = row_ptrs[y + 1];
+                for (auto y_neighbour_idx = y_row_start;
+                     y_neighbour_idx < y_row_end; ++y_neighbour_idx) {
+                    const auto y_neighbour = col_idxs[y_neighbour_idx];
+                    if (levels[y_neighbour] == level - 1) {
+                        if (std::find(perm.begin(), perm.end(), y_neighbour) <
+                            std::find(perm.begin(), perm.end(),
+                                      y_first_neighbour)) {
+                            y_first_neighbour = y_neighbour;
+                        }
+                    }
+                }
+
+                // Assert the ... is not after the ... in the previous level.
+                if (std::find(perm.begin(), perm.end(), y_first_neighbour) <
+                    std::find(perm.begin(), perm.end(), x_first_neighbour)) {
+                    return false;
+                }
+
+                if (y_first_neighbour == x_first_neighbour) {
+                    if (degrees[y] < degrees[x]) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     std::shared_ptr<const gko::Executor> ref;
@@ -95,15 +323,16 @@ protected:
     std::unique_ptr<reorder_type> d_reorder_op;
 };
 
-TEST_F(Rcm, OmpPermutationIsEquivalentToRef)
+TEST_F(Rcm, OmpPermutationIsRcmOrdered)
 {
-    reorder_op = reorder_type::build().on(ref)->generate(o_1138_bus_mtx);
     d_reorder_op = reorder_type::build().on(omp)->generate(d_1138_bus_mtx);
 
-    auto perm = reorder_op->get_permutation();
-    auto d_perm = d_reorder_op->get_permutation();
+    auto perm = d_reorder_op->get_permutation();
 
-    assert_equal_permutations(d_perm.get(), perm.get());
+    // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
+    const auto d_reorder_op_shared =
+        std::shared_ptr<reorder_type>(d_reorder_op.release());
+    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op_shared);
 }
 
 }  // namespace
