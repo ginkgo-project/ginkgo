@@ -118,6 +118,8 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_aecc82797062952e616b46a9bc0dbd09c}{inverse\+\_\+column\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Index\+Type $>$ $\ast$inverse\+\_\+permutation\+\_\+indices) const override
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a0eac89f0f2fed5da01c009b6b529043e}{extract\+\_\+diagonal}} () const override
+\begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}\label{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}} 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}{sort\+\_\+by\+\_\+column\+\_\+index}} ()
 \begin{DoxyCompactList}\small\item\em Sorts all (value, col\+\_\+idx) pairs in each row by column index. \end{DoxyCompactList}\item 
@@ -264,6 +266,26 @@ a pointer to the new conjugate transposed object
 
 
 Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a0eac89f0f2fed5da01c009b6b529043e}\label{classgko_1_1matrix_1_1Csr_a0eac89f0f2fed5da01c009b6b529043e}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!extract\_diagonal@{extract\_diagonal}}
+\index{extract\_diagonal@{extract\_diagonal}!gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{extract\_diagonal()}{extract\_diagonal()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::extract\+\_\+diagonal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Extracts the diagonal entries of the matrix into a vector. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em diag} & the vector into which the diagonal will be written \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}\label{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}} 
 \index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!get\_col\_idxs@{get\_col\_idxs}}
@@ -618,5 +640,5 @@ Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/coo.\+hpp (8a86dad58)\item 
-ginkgo/core/matrix/csr.\+hpp (acbeb01b9)\end{DoxyCompactItemize}
+ginkgo/core/matrix/coo.\+hpp (11a5c086c)\item 
+ginkgo/core/matrix/csr.\+hpp (11a5c086c)\end{DoxyCompactItemize}

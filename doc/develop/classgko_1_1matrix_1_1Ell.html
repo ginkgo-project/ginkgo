@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/180306120 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/181170807 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -121,6 +121,10 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = De
 <tr class="memitem:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top"><a id="a96d1c9f59700620c31fca1062f57de92"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Csr&lt; ValueType, IndexType &gt;</td></tr>
 <tr class="separator:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classgko_1_1DiagonalExtractable"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1DiagonalExtractable')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1DiagonalExtractable.html">gko::DiagonalExtractable&lt; ValueType &gt;</a></td></tr>
+<tr class="memitem:a060bfca6e1f069313977e2b87f22e814 inherit pub_types_classgko_1_1DiagonalExtractable"><td class="memItemLeft" align="right" valign="top"><a id="a060bfca6e1f069313977e2b87f22e814"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = ValueType</td></tr>
+<tr class="separator:a060bfca6e1f069313977e2b87f22e814 inherit pub_types_classgko_1_1DiagonalExtractable"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1ReadableFromMatrixData"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1ReadableFromMatrixData')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1ReadableFromMatrixData.html">gko::ReadableFromMatrixData&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memitem:a2b6682ee10df9c1eeba2058fb4d4f1f3 inherit pub_types_classgko_1_1ReadableFromMatrixData"><td class="memItemLeft" align="right" valign="top"><a id="a2b6682ee10df9c1eeba2058fb4d4f1f3"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = ValueType</td></tr>
@@ -162,6 +166,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:afa9148a16a9255003055d8e9156ee941"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#afa9148a16a9255003055d8e9156ee941">write</a> (<a class="el" href="structgko_1_1matrix__data.html">mat_data</a> &amp;data) const override</td></tr>
 <tr class="memdesc:afa9148a16a9255003055d8e9156ee941"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix.">matrix_data</a> structure.  <a href="classgko_1_1matrix_1_1Ell.html#afa9148a16a9255003055d8e9156ee941">More...</a><br /></td></tr>
 <tr class="separator:afa9148a16a9255003055d8e9156ee941"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c247f0fdadbf1a87045256c56bd8071"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Diagonal.html">Diagonal</a>&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#a2c247f0fdadbf1a87045256c56bd8071">extract_diagonal</a> () const override</td></tr>
+<tr class="memdesc:a2c247f0fdadbf1a87045256c56bd8071"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extracts the diagonal entries of the matrix into a vector.  <a href="classgko_1_1matrix_1_1Ell.html#a2c247f0fdadbf1a87045256c56bd8071">More...</a><br /></td></tr>
+<tr class="separator:a2c247f0fdadbf1a87045256c56bd8071"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4028e9629a7d96a7a483e6ea4a686a1d"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a4028e9629a7d96a7a483e6ea4a686a1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the matrix.  <a href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">More...</a><br /></td></tr>
 <tr class="separator:a4028e9629a7d96a7a483e6ea4a686a1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -471,6 +478,43 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 <dl class="section note"><dt>Note</dt><dd>the method has to be called on the same <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> the matrix is stored at (e.g. trying to call this method on a GPU matrix from the OMP results in a runtime error) </dd></dl>
 
 <p class="reference">References <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac80ca9482997e97d88425214fd1b8aef">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_col_idxs()</a>.</p>
+
+</div>
+</div>
+<a id="a2c247f0fdadbf1a87045256c56bd8071"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c247f0fdadbf1a87045256c56bd8071">&#9670;&nbsp;</a></span>extract_diagonal()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Diagonal.html">Diagonal</a>&lt;ValueType&gt; &gt; <a class="el" href="classgko_1_1matrix_1_1Ell.html">gko::matrix::Ell</a>&lt; ValueType, IndexType &gt;::extract_diagonal </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Extracts the diagonal entries of the matrix into a vector. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">diag</td><td>the vector into which the diagonal will be written </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Implements <a class="el" href="classgko_1_1DiagonalExtractable.html#a3a748eb3a1ced4e679b67a0e20f46336">gko::DiagonalExtractable&lt; ValueType &gt;</a>.</p>
 
 </div>
 </div>
@@ -877,8 +921,8 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (acbeb01b9)</a></li>
-<li>ginkgo/core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (8a86dad58)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (11a5c086c)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="ell_8hpp_source.html">ell.hpp (11a5c086c)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

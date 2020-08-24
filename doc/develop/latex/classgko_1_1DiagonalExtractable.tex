@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1DiagonalExtractable}{}\doxysection{gko\+::Diagonal\+Extractable$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1DiagonalExtractable}\index{gko::DiagonalExtractable$<$ ValueType $>$@{gko::DiagonalExtractable$<$ ValueType $>$}}
+
+
+The diagonal of a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be extracted.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1DiagonalExtractable_a060bfca6e1f069313977e2b87f22e814}\label{classgko_1_1DiagonalExtractable_a060bfca6e1f069313977e2b87f22e814}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{matrix\+::\+Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{extract\+\_\+diagonal}} () const =0
+\begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type$>$\newline
+class gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}
+
+The diagonal of a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be extracted. 
+
+extract\+\_\+diagonal extracts the elements whose col and row index are the same and stores the result in a min(nrows, ncols) x 1 dense matrix. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}\label{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}} 
+\index{gko::DiagonalExtractable$<$ ValueType $>$@{gko::DiagonalExtractable$<$ ValueType $>$}!extract\_diagonal@{extract\_diagonal}}
+\index{extract\_diagonal@{extract\_diagonal}!gko::DiagonalExtractable$<$ ValueType $>$@{gko::DiagonalExtractable$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{extract\_diagonal()}{extract\_diagonal()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type $>$ \\
+virtual std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{matrix\+::\+Diagonal}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1DiagonalExtractable}{gko\+::\+Diagonal\+Extractable}}$<$ Value\+Type $>$\+::extract\+\_\+diagonal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Extracts the diagonal entries of the matrix into a vector. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em diag} & the vector into which the diagonal will be written \\
+\hline
+\end{DoxyParams}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a0eac89f0f2fed5da01c009b6b529043e}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a199565373adafb3c9a4e983810c582ea}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Coo_a718eae56f6939543529ad5522d2d14e5}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_ac16e81ae56a0c7f5df7427a20df2cf0b}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp (11a5c086c)\end{DoxyCompactItemize}

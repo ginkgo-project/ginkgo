@@ -56,6 +56,8 @@ void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6f
 \begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee941}{write}} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
 \begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}{extract\+\_\+diagonal}} () const override
+\begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a4028e9629a7d96a7a483e6ea4a686a1d}{get\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a5bc4d3c67b328b353409e76eb9f70803}{get\+\_\+const\+\_\+values}} () const noexcept
@@ -166,6 +168,26 @@ the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{E
 
 
 References gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}\label{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!extract\_diagonal@{extract\_diagonal}}
+\index{extract\_diagonal@{extract\_diagonal}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{extract\_diagonal()}{extract\_diagonal()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::extract\+\_\+diagonal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Extracts the diagonal entries of the matrix into a vector. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em diag} & the vector into which the diagonal will be written \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_ac80ca9482997e97d88425214fd1b8aef}\label{classgko_1_1matrix_1_1Ell_ac80ca9482997e97d88425214fd1b8aef}} 
 \index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_col\_idxs@{get\_col\_idxs}}
@@ -393,5 +415,5 @@ Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (acbeb01b9)\item 
-ginkgo/core/matrix/ell.\+hpp (8a86dad58)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (11a5c086c)\item 
+ginkgo/core/matrix/ell.\+hpp (11a5c086c)\end{DoxyCompactItemize}

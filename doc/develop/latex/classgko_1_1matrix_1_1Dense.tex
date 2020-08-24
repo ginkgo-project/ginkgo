@@ -153,6 +153,8 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a34e436814ee80ce64e105a2a3221ae69}{inverse\+\_\+column\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$inverse\+\_\+permutation\+\_\+indices) const override
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}{extract\+\_\+diagonal}} () const override
+\begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\+\_\+const\+\_\+values}} () const noexcept
@@ -535,6 +537,26 @@ Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the 
 {\em other} & The other matrix whose configuration needs to copied. \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}\label{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!extract\_diagonal@{extract\_diagonal}}
+\index{extract\_diagonal@{extract\_diagonal}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{extract\_diagonal()}{extract\_diagonal()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::extract\+\_\+diagonal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Extracts the diagonal entries of the matrix into a vector. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em diag} & the vector into which the diagonal will be written \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}}.
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}\label{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!get\_const\_values@{get\_const\_values}}
 \index{get\_const\_values@{get\_const\_values}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
@@ -794,5 +816,5 @@ Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf8
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/coo.\+hpp (8a86dad58)\item 
-ginkgo/core/matrix/dense.\+hpp (39bffc87b)\end{DoxyCompactItemize}
+ginkgo/core/matrix/coo.\+hpp (11a5c086c)\item 
+ginkgo/core/matrix/dense.\+hpp (5c64ad1c3)\end{DoxyCompactItemize}
