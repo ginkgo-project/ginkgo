@@ -55,6 +55,16 @@ namespace solver {
 constexpr size_type default_krylov_dim_mixed = 100u;
 
 
+enum class gmres_mixed_storage_precision {
+    keep,
+    reduce1,
+    reduce2,
+    integer,
+    ireduce1,
+    ireduce2
+};
+
+
 /**
  * GMRES_MIXED or the generalized minimal residual method is an iterative type
  * Krylov subspace method which is suitable for nonsymmetric linear systems.
@@ -68,28 +78,14 @@ constexpr size_type default_krylov_dim_mixed = 100u;
  * @ingroup solvers
  * @ingroup LinOp
  */
-/*
-template <typename ValueType = default_precision,
-          typename ValueTypeKrylovBases = float,
-          bool Reorthogonalization = true,
-          bool MGS_CGS = true>
-*/
-template <typename ValueType = default_precision,
-          typename ValueTypeKrylovBases = default_precision>
-//          typename ValueTypeKrylovBases = float>
-class GmresMixed :
-    //		public EnableLinOp<GmresMixed<ValueType,
-    // ValueTypeKrylovBases,Reorthogonalization, MGS_CGS>>,
-    public EnableLinOp<GmresMixed<ValueType, ValueTypeKrylovBases>>,
-    public Preconditionable {
+template <typename ValueType = default_precision>
+class GmresMixed : public EnableLinOp<GmresMixed<ValueType>>,
+                   public Preconditionable {
     friend class EnableLinOp<GmresMixed>;
     friend class EnablePolymorphicObject<GmresMixed, LinOp>;
 
 public:
     using value_type = ValueType;
-    using krylov_type = ValueTypeKrylovBases;
-    //    using reorthogon  = Reorthogonalization;
-    //    using mgs_cgs     = MGS_CGS;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -110,6 +106,12 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * Determines which storage type is used.
+         */
+        gmres_mixed_storage_precision GKO_FACTORY_PARAMETER(
+            storage_precision, gmres_mixed_storage_precision::keep);
+
         /**
          * Criterion factories.
          */
@@ -172,12 +174,14 @@ protected:
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
+        storage_precision_ = parameters_.storage_precision;
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
+    gmres_mixed_storage_precision storage_precision_;
 };
 
 
