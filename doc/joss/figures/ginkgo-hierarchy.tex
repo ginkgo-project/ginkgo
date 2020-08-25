@@ -26,7 +26,7 @@
 \pgfdeclarelayer{background}
 \pgfsetlayers{background,main,foreground}
 \tikzstyle{abstract}=[rectangle, draw=black, rounded corners, fill=gkolightgrey,
-drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
+drop shadow, text centered, anchor=north, text=black, text width=4cm]
 \tikzstyle{myarrow}=[->, >=open triangle 90, thick]
 \tikzstyle{line}=[-, thick]
 
@@ -75,15 +75,27 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
         {
             \textbf{ResidualNorm\\Reduction::Factory}
         };
-    \node (combinedf) [abstract, rectangle, below=of resnormredf]
+    \node (relresnormf) [abstract, rectangle, below=of resnormredf]
+        {
+            \textbf{RelativeResidual\\Norm::Factory}
+        };
+    \node (absresnormf) [abstract, rectangle, below=of relresnormf]
+        {
+            \textbf{AbsoluteResidual\\Norm::Factory}
+        };
+    \node (combinedf) [abstract, rectangle, below=of absresnormf]
         {
             \textbf{Combined::Factory}
         };
     \begin{pgfonlayer}{background}
-    \node[namespace=gkoyellow!70, header=stop, fit=(resnormredf) (iterationf) (combinedf) (timef)] {};
+    \node[namespace=gkoyellow!70, header=stop, fit=(iterationf) (timef) (resnormredf) (relresnormf) (absresnormf) (combinedf)] {};
     \end{pgfonlayer}
     % solvers
-    \node (bicgstabf) [abstract, rectangle, right=of AuxNode03, xshift=-1cm]
+    \node (bicgf) [abstract, rectangle, right=of AuxNode03, xshift=-1cm]
+    {
+      \textbf{Bicg::Factory}
+    };
+    \node (bicgstabf) [abstract, rectangle, below=of bicgf]
         {
             \textbf{Bicgstab::Factory}
         };
@@ -116,23 +128,31 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
           \textbf{UpperTrs::Factory}
         };
     \begin{pgfonlayer}{background}
-    \node[namespace=gkoorange, header=solver, fit=(bicgstabf) (cgf) (cgsf) (fcgf) (gmresf) (irf) (ltrsf) (utrsf)] {};
+    \node[namespace=gkoorange, header=solver, fit=(bicgf) (bicgstabf) (cgf) (cgsf) (fcgf) (gmresf) (irf) (ltrsf) (utrsf)] {};
     \end{pgfonlayer}
     % preconditioners
-    \node (jacobif) [abstract, rectangle, below=1.5cm of combinedf]
+        \node (isaif) [abstract, rectangle, below=1.5cm of combinedf]
+        {
+            \textbf{Isai::Factory}
+        };
+       \node (jacobif) [abstract, rectangle, below=of isaif]
         {
             \textbf{Jacobi::Factory}
         };
-        \node (pariluf) [abstract, rectangle, below=of jacobif]
+        \node (parictf) [abstract, rectangle, below=of jacobif]
         {
-          \textbf{ParIlu::Factory}
+          \textbf{Ilu$<$ParIct$>$::Factory}
+        };
+        \node (pariluf) [abstract, rectangle, below=of parictf]
+        {
+          \textbf{Ilu$<$ParIlu$>$::Factory}
         };
         \node (parilutf) [abstract, rectangle, below=of pariluf]
         {
-          \textbf{ParIlut::Factory}
+          \textbf{Ilu$<$ParIlut$>$::Factory}
         };
     \begin{pgfonlayer}{background}
-    \node[namespace=gkocomplbrown, header=preconditioner, fit=(jacobif) (pariluf) (parilutf)] {};
+    \node[namespace=gkocomplbrown, header=preconditioner, fit=(isaif) (jacobif) (parictf) (pariluf) (parilutf)] {};
     \end{pgfonlayer}
 
 
@@ -155,7 +175,11 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
         {
             \textbf{Dense}
         };
-    \node (ell) [abstract, rectangle, below=of dense]
+    \node (diagonal) [abstract, rectangle, below=of dense]
+        {
+            \textbf{Diagonal}
+        };
+    \node (ell) [abstract, rectangle, below=of diagonal]
         {
             \textbf{Ell}
         };
@@ -180,10 +204,14 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
           \textbf{SparsityCsr}
         };
     \begin{pgfonlayer}{background}
-    \node[namespace=gkocomplblue, header=matrix, fit=(coo) (csr) (dense) (ell) (hybrid) (identity) (permutation) (sellp) (sparsitycsr)] {};
+    \node[namespace=gkocomplblue, header=matrix, fit=(coo) (csr) (dense) (diagonal) (ell) (hybrid) (identity) (permutation) (sellp) (sparsitycsr)] {};
     \end{pgfonlayer}
     % solvers
-    \node (bicgstab) [abstract, rectangle, right=of AuxNode02, xshift=-1cm]
+    \node (bicg) [abstract, rectangle, right=of AuxNode02, xshift=-1cm]
+    {
+      \textbf{Bicg}
+    };
+    \node (bicgstab) [abstract, rectangle, below=of bicg]
         {
             \textbf{Bicgstab}
         };
@@ -237,23 +265,31 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
         };
 
     \begin{pgfonlayer}{background}
-    \node[namespace=gkoorange, header=solver, fit=(bicgstab) (cg) (cgs) (fcg) (gmres) (utrs) (ltrs) (ir)] {};
+    \node[namespace=gkoorange, header=solver, fit=(bicg) (bicgstab) (cg) (cgs) (fcg) (gmres) (utrs) (ltrs) (ir)] {};
     \end{pgfonlayer}
     % preconditioners
-    \node (jacobi) [abstract, rectangle, below=1.5cm of sparsitycsr]
+    \node (isai) [abstract, rectangle, below=1.5cm of sparsitycsr]
+    {
+        \textbf{Isai}
+    };
+    \node (jacobi) [abstract, rectangle, below=of isai]
         {
             \textbf{Jacobi}
         };
-    \node (parilu) [abstract, rectangle, below=of jacobi]
+    \node (parict) [abstract, rectangle, below=of jacobi]
         {
-          \textbf{ParIlu}
+          \textbf{Ilu$<$ParIct$>$}
+        };
+    \node (parilu) [abstract, rectangle, below=of parict]
+        {
+          \textbf{Ilu$<$ParIlu$>$}
         };
     \node (parilut) [abstract, rectangle, below=of parilu]
         {
-          \textbf{ParIlut}
+          \textbf{Ilu$<$ParIlut$>$}
         };
     \begin{pgfonlayer}{background}
-    \node[namespace=gkocomplbrown, header=preconditioner, fit=(jacobi) (parilu) (parilut)] {};
+    \node[namespace=gkocomplbrown, header=preconditioner, fit=(isai) (jacobi) (parict) (parilu) (parilut)] {};
     \end{pgfonlayer}
 
 
@@ -274,7 +310,15 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
         {
             \textbf{ResidualNorm\\Reduction}
         };
-    \node (time) [abstract, rectangle split, rectangle split parts=2, below=of resnormred]
+    \node (relresnorm) [abstract, rectangle, below=of resnormred]
+        {
+            \textbf{RelativeResidualNorm}
+        };
+    \node (absresnorm) [abstract, rectangle, below=of relresnorm]
+        {
+            \textbf{AbsoluteResidualNorm}
+        };
+    \node (time) [abstract, rectangle split, rectangle split parts=2, below=of absresnorm]
         {
             \textbf{Time}
             \nodepart{second}
@@ -295,7 +339,7 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
         };
 
     \begin{pgfonlayer}{background}
-    \node[namespace=gkoyellow!70, header=stop, fit=(criterion) (resnormred) (iteration) (combined) (time)] {};
+    \node[namespace=gkoyellow!70, header=stop, fit=(criterion) (combined) (resnormred) (relresnorm) (absresnorm) (iteration) (time)] {};
     \end{pgfonlayer}
 
     \node (exec) [abstract, rectangle, right=10cm of po]
@@ -347,6 +391,7 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
 
     \draw[myarrow] (abstractf.north) -- ++(0.19,0.5,0.5) -| (po.south);
     % solvers
+    \draw[myarrow] (bicgf.west) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (bicgstabf.west) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (cgf.west) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (cgsf.west) -- ++(0,0) -| (abstractf.south);
@@ -356,13 +401,17 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
     \draw[myarrow] (ltrsf.west) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (utrsf.west) -- ++(0,0) -| (abstractf.south);
     % preconditioners
+    \draw[myarrow] (isaif.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (jacobif.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (parictf.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (pariluf.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (parilutf.east) -- ++(0,0) -| (abstractf.south);
     % criteria
     \draw[myarrow] (iterationf.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (timef.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (resnormredf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (relresnormf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (absresnormf.east) -- ++(0,0) -| (abstractf.south);
     \draw[myarrow] (combinedf.east) -- ++(0,0) -| (abstractf.south);
 
 
@@ -372,12 +421,15 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
     \draw[line] (iteration.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
     \draw[line] (time.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
     \draw[line] (resnormred.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (relresnorm.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (absresnorm.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
 
     \draw[myarrow] (linop.north) -- ++(0.2,0.5,0.5) -| (po.south);
     % matrix format
     \draw[myarrow] (coo.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (csr.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (dense.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (diagonal.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (ell.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (hybrid.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (identity.east) -- ++(0,0) -| (linop.south);
@@ -385,6 +437,7 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
     \draw[myarrow] (sellp.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (sparsitycsr.east) -- ++(0,0) -| (linop.south);
     % solvers
+    \draw[myarrow] (bicg.west) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (bicgstab.west) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (cg.west) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (cgs.west) -- ++(0,0) -| (linop.south);
@@ -394,7 +447,9 @@ drop shadow, text centered, anchor=north, text=black, text width=3.5cm]
     \draw[myarrow] (ltrs.west) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (utrs.west) -- ++(0,0) -| (linop.south);
     % preconditioners
+    \draw[myarrow] (isai.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (jacobi.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (parict.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (parilu.east) -- ++(0,0) -| (linop.south);
     \draw[myarrow] (parilut.east) -- ++(0,0) -| (linop.south);
 
