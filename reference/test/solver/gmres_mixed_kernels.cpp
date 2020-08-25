@@ -52,15 +52,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueKrylovType>
+template <typename ValueType>
 class GmresMixed : public ::testing::Test {
 protected:
+    using value_type = ValueType;
+    /*
     using value_type =
         typename std::tuple_element<0, decltype(ValueKrylovType())>::type;
     using krylov_type =
         typename std::tuple_element<1, decltype(ValueKrylovType())>::type;
+    */
     using Mtx = gko::matrix::Dense<value_type>;
-    using gmres_type = gko::solver::GmresMixed<value_type, krylov_type>;
+    using gmres_type = gko::solver::GmresMixed<value_type>;
+    // using gmres_type = gko::solver::GmresMixed<value_type, krylov_type>;
 
     GmresMixed()
         : exec(gko::ReferenceExecutor::create()),
@@ -68,8 +72,11 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
+          storage_precision{
+              gko::solver::gmres_mixed_storage_precision::ireduce2},
           gmres_mixed_factory(
               gmres_type::build()
+                  .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
@@ -90,6 +97,7 @@ protected:
               exec)),
           gmres_mixed_factory_big(
               gmres_type::build()
+                  .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
@@ -111,11 +119,13 @@ protected:
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
+    gko::solver::gmres_mixed_storage_precision storage_precision;
     std::unique_ptr<typename gmres_type::Factory> gmres_mixed_factory;
     std::unique_ptr<typename gmres_type::Factory> gmres_mixed_factory_big;
 };
 
 
+/*
 using TestTypes =
     ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
                      // std::tuple<double, gko::int64>,
@@ -126,9 +136,10 @@ using TestTypes =
                      std::tuple<std::complex<double>, std::complex<double>>,
                      std::tuple<std::complex<double>, std::complex<float>>,
                      std::tuple<std::complex<float>, std::complex<float>>>;
+*/
 
-
-TYPED_TEST_CASE(GmresMixed, TestTypes);
+TYPED_TEST_CASE(GmresMixed, gko::test::ValueTypes /*TestTypes */);
+// TODO TYPED_TEST_CASE_P
 
 
 TYPED_TEST(GmresMixed, SolvesStencilSystem)
