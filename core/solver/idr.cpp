@@ -109,7 +109,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto residual = Vector::create_with_config_of(dense_b);
     auto v = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
-    auto preconditioned_vector = Vector::create_with_config_of(dense_b);
+    auto helper = Vector::create_with_config_of(dense_b);
 
     auto m =
         Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
@@ -180,24 +180,20 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - c_k * g_k - ... - c_s * g_s
 
-            get_preconditioner()->apply(v.get(), preconditioned_vector.get());
+            get_preconditioner()->apply(v.get(), helper.get());
 
-            exec->run(idr::make_step_2(k, omega.get(),
-                                       preconditioned_vector.get(), c.get(),
+            exec->run(idr::make_step_2(k, omega.get(), helper.get(), c.get(),
                                        u.get(), &stop_status));
             // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
 
-            auto g_k = g->create_submatrix(span{0, problem_size},
-                                           span{k * nrhs, (k + 1) * nrhs});
-
-            system_matrix_->apply(u_k.get(), g_k.get());
+            system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
 
             exec->run(idr::make_step_3(k, subspace_vectors_.get(), g.get(),
-                                       u.get(), m.get(), f.get(),
+                                       helper.get(), u.get(), m.get(), f.get(),
                                        residual.get(), dense_x, &stop_status));
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
@@ -213,9 +209,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
         }
 
-        get_preconditioner()->apply(residual.get(),
-                                    preconditioned_vector.get());
-        system_matrix_->apply(preconditioned_vector.get(), t.get());
+        get_preconditioner()->apply(residual.get(), helper.get());
+        system_matrix_->apply(helper.get(), t.get());
 
         t->compute_dot(residual.get(), omega.get());
         // t->compute_norm2(t_norm.get());
@@ -227,7 +222,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         t->scale(neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
-        dense_x->add_scaled(omega.get(), preconditioned_vector.get());
+        dense_x->add_scaled(omega.get(), helper.get());
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))

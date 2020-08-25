@@ -101,7 +101,7 @@ __global__
         __syncthreads();
 
         norm = sqrt(reduction_helper_real[0]);
-        for (size_type j = 0; j < num_cols; j += block_size) {
+        for (size_type j = tidx; j < num_cols; j += block_size) {
             values[row * stride + j] /= norm;
         }
     }
@@ -199,6 +199,7 @@ __global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
     const ValueType *__restrict__ p_values, size_type p_stride,
     const ValueType *__restrict__ m_values, size_type m_stride,
     ValueType *__restrict__ g_values, size_type g_stride,
+    ValueType *__restrict__ g_k_values, size_type g_k_stride,
     ValueType *__restrict__ u_values, size_type u_stride,
     const stopping_status *__restrict__ stop_status)
 {
@@ -216,8 +217,8 @@ __global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
         __syncthreads();
         ValueType alpha = zero<ValueType>();
         for (size_type j = tidx; j < size; j += block_size) {
-            alpha += p_values[i * p_stride + j] *
-                     g_values[j * g_stride + k * nrhs + rhs];
+            alpha +=
+                p_values[i * p_stride + j] * g_k_values[j * g_k_stride + rhs];
         }
         reduction_helper[tidx] = alpha;
 
@@ -229,11 +230,16 @@ __global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
         alpha = reduction_helper[0] / m_values[i * m_stride + i * nrhs + rhs];
 
         for (size_type j = tidx; j < size; j += block_size) {
-            g_values[j * g_stride + k * nrhs + rhs] -=
+            g_k_values[j * g_k_stride + rhs] -=
                 alpha * g_values[j * g_stride + i * nrhs + rhs];
             u_values[j * u_stride + k * nrhs + rhs] -=
                 alpha * u_values[j * u_stride + i * nrhs + rhs];
         }
+    }
+
+    for (size_type j = tidx; j < size; j += block_size) {
+        g_values[j * g_stride + k * nrhs + rhs] =
+            g_k_values[j * g_k_stride + rhs];
     }
 }
 
@@ -268,6 +274,8 @@ __global__ __launch_bounds__(block_size) void update_m_kernel(
     __syncthreads();
     reduce(group::this_thread_block(), reduction_helper,
            [](const ValueType &a, const ValueType &b) { return a + b; });
+    __syncthreads();
+
     if (tidx == 0) {
         m_values[row * m_stride + k * nrhs + col] = reduction_helper[0];
     }
@@ -305,9 +313,18 @@ __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
             f_values[row * f_stride + col] -=
                 beta * m_values[row * m_stride + k * nrhs + col];
         }
-        if (k == row && row + 1 < subspace_dim) {
-            f_values[row * f_stride + col] = zero<ValueType>();
-        }
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(config::warp_size) void set_f_zeros(
+    size_type k, size_type nrhs, ValueType *__restrict__ f_values,
+    size_type f_stride)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < nrhs) {
+        f_values[k * f_stride + k * nrhs + tidx] = zero<ValueType>();
     }
 }
 

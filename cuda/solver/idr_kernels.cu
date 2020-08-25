@@ -90,7 +90,6 @@ void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
             as_cuda_type(subspace_vectors->get_values()),
             subspace_vectors->get_stride());
-    )
 }
 
 
@@ -115,7 +114,8 @@ void solve_lower_triangular(const matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
                     const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u,
+                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
+                    matrix::Dense<ValueType> *u,
                     const Array<stopping_status> *stop_status)
 {
     const auto size = g->get_size()[0];
@@ -126,6 +126,7 @@ void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
         k, size, nrhs, as_cuda_type(p->get_const_values()), p->get_stride(),
         as_cuda_type(m->get_const_values()), m->get_stride(),
         as_cuda_type(g->get_values()), g->get_stride(),
+        as_cuda_type(g_k->get_values()), g_k->get_stride(),
         as_cuda_type(u->get_values()), u->get_stride(),
         as_cuda_type(stop_status->get_const_data()));
 }
@@ -170,6 +171,8 @@ void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
         as_cuda_type(r->get_values()), r->get_stride(),
         as_cuda_type(x->get_values()), x->get_stride(),
         as_cuda_type(stop_status->get_const_data()));
+    set_f_zeros<<<ceildiv(nrhs, config::warp_size), config::warp_size>>>(
+        k, nrhs, as_cuda_type(f->get_values()), f->get_stride());
 }
 
 
@@ -247,12 +250,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 template <typename ValueType>
 void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *g,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *residual,
-            matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
+            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
-    update_g_and_u(k, p, m, g, u, stop_status);
+    update_g_and_u(k, p, m, g, g_k, u, stop_status);
     update_m(k, p, g, m, stop_status);
     update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
 }

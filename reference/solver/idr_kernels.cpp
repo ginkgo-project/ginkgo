@@ -82,7 +82,8 @@ void solve_lower_triangular(const matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
                     const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u,
+                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
+                    matrix::Dense<ValueType> *u,
                     const Array<stopping_status> *stop_status)
 {
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
@@ -94,13 +95,17 @@ void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
         for (size_type j = 0; j < k; j++) {
             auto alpha = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                alpha += p->at(j, ind) * g->at(ind, k * nrhs + i);
+                alpha += p->at(j, ind) * g_k->at(ind, i);
             }
             alpha /= m->at(j, j * nrhs + i);
             for (size_type row = 0; row < g->get_size()[0]; row++) {
-                g->at(row, k * nrhs + i) -= alpha * g->at(row, j * nrhs + i);
+                g_k->at(row, i) -= alpha * g->at(row, j * nrhs + i);
                 u->at(row, k * nrhs + i) -= alpha * u->at(row, j * nrhs + i);
             }
+        }
+
+        for (size_type row = 0; row < g->get_size()[0]; row++) {
+            g->at(row, k * nrhs + i) = g_k->at(row, i);
         }
     }
 }
@@ -221,14 +226,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 template <typename ValueType>
 void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *g,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *residual,
-            matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
+            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
     const auto nrhs = x->get_size()[1];
 
-    update_g_and_u(k, p, m, g, u, stop_status);
+    update_g_and_u(k, p, m, g, g_k, u, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
