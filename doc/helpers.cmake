@@ -71,7 +71,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${DIR_BASE}/hip
         ${DIR_BASE}/reference
         )
-    set(doxygen_image_path "${CMAKE_SOURCE_DIR}/doc/images/")
+    set(doxygen_image_path "")
     file(GLOB doxygen_depend
         ${DOC_BASE}/headers/*.hpp
         ${DIR_BASE}/include/ginkgo/**/*.hpp
@@ -101,7 +101,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${doxygen_base_input}
         )
     # pick some markdown files we want as pages
-    set(doxygen_markdown_files "../../INSTALL.md ../../TESTING.md ../../BENCHMARKING.md ../../CONTRIBUTING.md ../../CITING.md")
+    set(doxygen_markdown_files "${Ginkgo_SOURCE_DIR}/INSTALL.md ${Ginkgo_SOURCE_DIR}/TESTING.md ${Ginkgo_SOURCE_DIR}/BENCHMARKING.md ${Ginkgo_SOURCE_DIR}/CONTRIBUTING.md ${Ginkgo_SOURCE_DIR}/CITING.md")
     ginkgo_to_string(doxygen_base_input_str ${doxygen_base_input} )
     ginkgo_to_string(doxygen_dev_input_str ${doxygen_dev_input} )
     ginkgo_to_string(doxygen_image_path_str ${doxygen_image_path} )
