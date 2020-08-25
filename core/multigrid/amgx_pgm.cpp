@@ -100,7 +100,18 @@ void AmgxPgm<ValueType, IndexType>::generate()
     Array<IndexType> strongest_neighbor(this->get_executor(), num);
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num);
-    const auto amgxpgm_op = gko::as<matrix_type>(this->system_matrix_.get());
+    // Only support csr matrix currently.
+    const matrix_type *amgxpgm_op = nullptr;
+    // Store the csr matrix if needed
+    auto amgxpgm_op_unique_ptr = matrix_type::create(exec);
+    if (!(amgxpgm_op =
+              dynamic_cast<const matrix_type *>(system_matrix_.get()))) {
+        // if original matrix is not csr, converting it to csr.
+        as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
+            ->convert_to(amgxpgm_op_unique_ptr.get());
+        amgxpgm_op = amgxpgm_op_unique_ptr.get();
+    }
+
     // Initial agg = -1
     exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                         -one<IndexType>()));
