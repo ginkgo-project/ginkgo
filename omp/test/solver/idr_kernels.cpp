@@ -267,12 +267,12 @@ TEST_F(Idr, OmpIdrStep3IsEquivalentToRef)
     initialize_data();
 
     gko::size_type k = 2;
-    gko::kernels::reference::idr::step_3(ref, k, p.get(), g.get(), u.get(),
-                                         m.get(), f.get(), r.get(), x.get(),
-                                         stop_status.get());
-    gko::kernels::omp::idr::step_3(omp, k, d_p.get(), d_g.get(), d_u.get(),
-                                   d_m.get(), d_f.get(), d_r.get(), d_x.get(),
-                                   d_stop_status.get());
+    gko::kernels::reference::idr::step_3(ref, k, p.get(), g.get(), v.get(),
+                                         u.get(), m.get(), f.get(), r.get(),
+                                         x.get(), stop_status.get());
+    gko::kernels::omp::idr::step_3(omp, k, d_p.get(), d_g.get(), d_v.get(),
+                                   d_u.get(), d_m.get(), d_f.get(), d_r.get(),
+                                   d_x.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(g, d_g, 1e-14);
     GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
