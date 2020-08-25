@@ -57,8 +57,7 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using gmres_mixed = gko::solver::GmresMixed<double, long int>;
-    // using gmres_mixed = gko::solver::GmresMixed<double, float>;
+    using gmres_mixed = gko::solver::GmresMixed<double>;
     // using gmres_mixed = gko::solver::GmresMixed<>;
     using bj = gko::preconditioner::Jacobi<>;
 
@@ -225,6 +224,8 @@ int main(int argc, char *argv[])
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             //    .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
+            .with_storage_precision(
+                gko::solver::gmres_mixed_storage_precision::keep)
             .with_preconditioner(bj::build().with_max_block_size(1u).on(exec))
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the
