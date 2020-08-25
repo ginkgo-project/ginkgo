@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres_mixed.hpp>
 
 
+#include <type_traits>
+
+
 #include <gtest/gtest.h>
 
 
@@ -52,19 +55,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueType>
+template <typename ValueEnumType>
 class GmresMixed : public ::testing::Test {
 protected:
-    using value_type = ValueType;
-    /*
     using value_type =
-        typename std::tuple_element<0, decltype(ValueKrylovType())>::type;
-    using krylov_type =
-        typename std::tuple_element<1, decltype(ValueKrylovType())>::type;
-    */
+        typename std::tuple_element<0, decltype(ValueEnumType())>::type;
+    using nc_value_type = gko::remove_complex<value_type>;
+    using storage_helper_type =
+        typename std::tuple_element<1, decltype(ValueEnumType())>::type;
     using Mtx = gko::matrix::Dense<value_type>;
     using gmres_type = gko::solver::GmresMixed<value_type>;
-    // using gmres_type = gko::solver::GmresMixed<value_type, krylov_type>;
+
+    /**
+     * Used to extract the precision of the given value_type.
+     *
+     * @internal
+     * This struct is required because the `r<T>` stores a value of type
+     * remove_complex<T>, which is not possible for half since it can't be
+     * constructed as a constexpr.
+     */
+    template <typename T>
+    struct precision_target {
+        using rc_type = gko::remove_complex<T>;
+        static constexpr nc_value_type value =
+            std::is_same<rc_type, double>::value
+                ? 1e-14
+                : std::is_same<rc_type, float>::value ? 1e-7 : 1e-3;
+    };
 
     GmresMixed()
         : exec(gko::ReferenceExecutor::create()),
@@ -72,8 +89,7 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
-          storage_precision{
-              gko::solver::gmres_mixed_storage_precision::ireduce2},
+          storage_precision{storage_helper_type::value},
           gmres_mixed_factory(
               gmres_type::build()
                   .with_storage_precision(storage_precision)
@@ -84,7 +100,7 @@ protected:
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
+                          .with_reduction_factor(this->precision())
                           .on(exec))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -102,7 +118,7 @@ protected:
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(r<value_type>::value)
+                          .with_reduction_factor(this->precision())
                           .on(exec))
                   .on(exec)),
           mtx_medium(
@@ -113,6 +129,28 @@ protected:
                                     {-0.70, 111.70, 154.40, 235.00, -76.50}},
                                    exec))
     {}
+
+    nc_value_type precision() const noexcept
+    {
+        using gko::reduce_precision;
+        using gko::solver::gmres_mixed_storage_precision;
+
+        // Note: integer and floating point are assumed to have similar
+        //       target precision.
+        switch (storage_precision) {
+        case gmres_mixed_storage_precision::reduce1:
+        case gmres_mixed_storage_precision::ireduce1:
+            return precision_target<reduce_precision<value_type>>::value * 1e-2;
+        case gmres_mixed_storage_precision::reduce2:
+        case gmres_mixed_storage_precision::ireduce2:
+            return precision_target<
+                       reduce_precision<reduce_precision<value_type>>>::value *
+                   1e-2;
+        case gmres_mixed_storage_precision::integer:
+        default:
+            return precision_target<value_type>::value;
+        }
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
@@ -125,21 +163,37 @@ protected:
 };
 
 
-/*
-using TestTypes =
-    ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
-                     // std::tuple<double, gko::int64>,
-                     std::tuple<double, gko::int32>,
-                     std::tuple<double, gko::int16>,
-                     std::tuple<double, gko::half>, std::tuple<float, float>,
-                     std::tuple<float, gko::half>,
-                     std::tuple<std::complex<double>, std::complex<double>>,
-                     std::tuple<std::complex<double>, std::complex<float>>,
-                     std::tuple<std::complex<float>, std::complex<float>>>;
-*/
+/**
+ * This creates a helper structure which translates a type into an enum
+ * parameter.
+ */
+using st_enum = gko::solver::gmres_mixed_storage_precision;
 
-TYPED_TEST_CASE(GmresMixed, gko::test::ValueTypes /*TestTypes */);
-// TODO TYPED_TEST_CASE_P
+template <st_enum P>
+struct st_helper_type {
+    static constexpr st_enum value{P};
+};
+
+using st_keep = st_helper_type<st_enum::keep>;
+using st_r1 = st_helper_type<st_enum::reduce1>;
+using st_r2 = st_helper_type<st_enum::reduce2>;
+using st_i = st_helper_type<st_enum::integer>;
+using st_ir1 = st_helper_type<st_enum::ireduce1>;
+using st_ir2 = st_helper_type<st_enum::ireduce2>;
+
+using TestTypes =
+    ::testing::Types<std::tuple<double, st_keep>, std::tuple<double, st_r1>,
+                     std::tuple<double, st_r2>, std::tuple<double, st_i>,
+                     std::tuple<double, st_ir1>, std::tuple<double, st_ir2>,
+                     std::tuple<float, st_keep>, std::tuple<float, st_r1>,
+                     std::tuple<float, st_r2>, std::tuple<float, st_i>,
+                     std::tuple<float, st_ir1>, std::tuple<float, st_ir2>,
+                     std::tuple<std::complex<double>, st_keep>,
+                     std::tuple<std::complex<double>, st_r1>,
+                     std::tuple<std::complex<double>, st_r2>,
+                     std::tuple<std::complex<float>, st_keep>>;
+
+TYPED_TEST_CASE(GmresMixed, TestTypes);
 
 
 TYPED_TEST(GmresMixed, SolvesStencilSystem)
@@ -152,7 +206,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<T>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->precision() * 1e1);
 }
 
 
@@ -163,6 +217,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem2)
     using gmres_type = typename TestFixture::gmres_type;
     auto factory =
         gmres_type::build()
+            .with_storage_precision(this->storage_precision)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
@@ -170,7 +225,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem2)
                     .with_time_limit(std::chrono::seconds(6))
                     .on(this->exec),
                 gko::stop::ResidualNormReduction<T>::build()
-                    .with_reduction_factor(r<T>::value)
+                    .with_reduction_factor(this->precision())
                     .on(this->exec))
             .on(this->exec);
     auto solver = factory->generate(this->mtx2);
@@ -179,7 +234,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem2)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), r<T>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), this->precision() * 1e1);
 }
 
 
@@ -196,7 +251,7 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystems)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.0, 1.0}, I<T>{3.0, 1.0}, I<T>{2.0, 1.0}}),
-                        r<T>::value * 1e1);
+                        this->precision() * 1e1);
 }
 
 
@@ -212,7 +267,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<T>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->precision() * 1e1);
 }
 
 
@@ -231,7 +286,7 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystemsUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.5, 1.0}, I<T>{5.0, 0.0}, I<T>{2.0, -1.0}}),
-                        r<T>::value * 1e1);
+                        this->precision() * 1e1);
 }
 
 
@@ -248,7 +303,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
-                        r<T>::value * 1e3);
+                        this->precision() * 1e3);
 }
 
 
@@ -265,7 +320,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem2)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        r<T>::value * 1e3);
+                        this->precision() * 1e3);
 }
 
 
@@ -342,12 +397,12 @@ TYPED_TEST(GmresMixed, SolvesMultipleDenseSystemForDivergenceCheck)
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
-    ASSERT_LE(normC1 / normB1, normS1 / normB1 + r<value_type>::value);
-    ASSERT_LE(normC2 / normB2, normS2 / normB2 + r<value_type>::value);
+    ASSERT_LE(normC1 / normB1, normS1 / normB1 + this->precision());
+    ASSERT_LE(normC2 / normB2, normS2 / normB2 + this->precision());
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, this->precision());
 }
 
 
@@ -356,15 +411,16 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using gmres_type = typename TestFixture::gmres_type;
-    const auto half_tol = std::sqrt(r<value_type>::value);
+    const auto half_tol = std::sqrt(this->precision());
     auto gmres_mixed_factory_restart =
         gmres_type::build()
             .with_krylov_dim(4u)
+            .with_storage_precision(this->storage_precision)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
                 gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
+                    .with_reduction_factor(this->precision())
                     .on(this->exec))
             .on(this->exec);
     auto solver = gmres_mixed_factory_restart->generate(this->mtx_medium);
@@ -386,11 +442,12 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
     using gmres_type = typename TestFixture::gmres_type;
     auto gmres_mixed_factory_preconditioner =
         gmres_type::build()
+            .with_storage_precision(this->storage_precision)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
                 gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value)
+                    .with_reduction_factor(this->precision())
                     .on(this->exec))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
@@ -406,7 +463,7 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        r<value_type>::value * 1e3);
+                        this->precision() * 1e3);
 }
 
 

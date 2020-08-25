@@ -63,18 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //     template _macro(double, double)
 // #else
 #define GKO_UNPACK(...) __VA_ARGS__
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE2(_macro)       \
-    template _macro(double, double);                             \
-    template _macro(double, float);                              \
-    template _macro(double, int64);                              \
-    template _macro(double, int32);                              \
-    template _macro(double, int16);                              \
-    template _macro(double, half);                               \
-    template _macro(float, float);                               \
-    template _macro(float, half);                                \
-    template _macro(std::complex<double>, std::complex<double>); \
-    template _macro(std::complex<double>, std::complex<float>);  \
-    template _macro(std::complex<float>, std::complex<float>)
 
 #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                    \
     template _macro(double, GKO_UNPACK(Accessor3d<double, double>));         \
