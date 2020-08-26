@@ -11,7 +11,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.2.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
