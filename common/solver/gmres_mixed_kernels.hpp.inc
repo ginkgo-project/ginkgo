@@ -1274,7 +1274,8 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
 {
     const remove_complex<ValueType> eta = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat();
-    constexpr bool has_scale = Accessor3d::has_scale;
+    constexpr bool has_scale =
+        kernels::detail::is_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
         const auto num0 = (eta * arnoldi_norm[col_idx]);

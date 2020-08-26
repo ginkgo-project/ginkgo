@@ -104,7 +104,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             ValueType hessenberg_iter_entry = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter_entry +=
-                    next_krylov_basis->at(j, i) * krylov_bases.read(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases(k, j, i);
             }
             hessenberg_iter->at(k, i) = hessenberg_iter_entry;
         }
@@ -124,7 +124,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
 #pragma omp parallel for
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.read(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases(k, j, i);
             }
         }
 #ifdef TIMING
@@ -166,8 +166,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                 ValueType hessenberg_iter_entry = zero<ValueType>();
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
-                    hessenberg_iter_entry += next_krylov_basis->at(j, i) *
-                                             krylov_bases.read(k, j, i);
+                    hessenberg_iter_entry +=
+                        next_krylov_basis->at(j, i) * krylov_bases(k, j, i);
                 }
                 buffer_iter->at(k, i) = hessenberg_iter_entry;
             }
@@ -179,7 +179,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * krylov_bases.read(k, j, i);
+                        buffer_iter->at(k, i) * krylov_bases(k, j, i);
                 }
             }
             // for i in 1:iter
@@ -208,7 +208,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
 #pragma omp parallel for
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.write(iter + 1, j, i, next_krylov_basis->at(j, i));
+            krylov_bases(iter + 1, j, i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -339,7 +339,7 @@ void calculate_qy(ConstAccessor3d krylov_bases,
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases.read(j, i, k) * y->at(j, k);
+                    krylov_bases(j, i, k) * y->at(j, k);
             }
         }
     }
@@ -432,7 +432,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             auto value = residual->at(i, j) / residual_norm->at(0, j);
-            krylov_bases.write({0}, i, j, value);
+            krylov_bases({0}, i, j) = value;
             next_krylov_basis->at(i, j) = value;
         }
         final_iter_nums->get_data()[j] = 0;
@@ -446,7 +446,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-                krylov_bases.write(k, i, j, zero<ValueType>());
+                krylov_bases(k, i, j) = zero<ValueType>();
             }
         }
     }

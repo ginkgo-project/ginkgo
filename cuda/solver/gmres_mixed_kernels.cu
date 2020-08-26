@@ -93,36 +93,32 @@ constexpr int default_update_dim = 32;
 
 // Specialization, so the Accessor can use the same function as regular pointers
 template <typename Type1, typename Type2>
-xstd::enable_if_t<!Accessor3d<Type1, Type2>::has_scale,
-                  Accessor3d<cuda_type<Type1>, cuda_type<Type2>>>
-as_cuda_accessor(Accessor3d<Type1, Type2> acc)
+ReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
+    ReducedStorage3d<Type1, Type2> acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
             acc.get_stride1()};
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<Accessor3d<Type1, Type2>::has_scale,
-                  Accessor3d<cuda_type<Type1>, cuda_type<Type2>>>
-as_cuda_accessor(Accessor3d<Type1, Type2> acc)
+ScaledReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
+    ScaledReducedStorage3d<Type1, Type2> acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<!ConstAccessor3d<Type1, Type2>::has_scale,
-                  ConstAccessor3d<cuda_type<Type1>, cuda_type<Type2>>>
-as_cuda_accessor(const ConstAccessor3d<Type1, Type2> &acc)
+ConstReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
+    const ConstReducedStorage3d<Type1, Type2> &acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
             acc.get_stride1()};
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<ConstAccessor3d<Type1, Type2>::has_scale,
-                  ConstAccessor3d<cuda_type<Type1>, cuda_type<Type2>>>
-as_cuda_accessor(const ConstAccessor3d<Type1, Type2> &acc)
+ConstScaledReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>>
+as_cuda_accessor(const ConstScaledReducedStorage3d<Type1, Type2> &acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
@@ -259,7 +255,8 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
-    constexpr bool use_scale = Accessor3dim::has_scale;
+    constexpr bool use_scale =
+        kernels::detail::is_3d_scaled_accessor<Accessor3dim>::value;
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
@@ -283,7 +280,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_size_iters_single(singledot_block_size);
     size_type numReorth;
 
-    Accessor3d<ValueType, ValueType> next_krylov_accessor{
+    ReducedStorage3d<ValueType, ValueType> next_krylov_accessor{
         next_krylov_basis->get_values(), stride_next_krylov,
         stride_next_krylov};
 

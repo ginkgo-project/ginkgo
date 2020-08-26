@@ -60,12 +60,12 @@ namespace {
 class GmresMixed : public ::testing::Test {
 protected:
     using value_type = double;
-    using krylov_type = float;
+    using storage_type = float;
     using index_type = int;
     using size_type = gko::size_type;
-    using Accessor3d = gko::kernels::Accessor3d<krylov_type, value_type>;
+    using Accessor3d = gko::kernels::ReducedStorage3d<value_type, storage_type>;
     using Accessor3dHelper =
-        gko::kernels::Accessor3dHelper<value_type, krylov_type>;
+        gko::kernels::Accessor3dHelper<value_type, storage_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 
@@ -102,18 +102,17 @@ protected:
         auto temp_krylov_bases = gko::test::generate_random_matrix<Dense>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
-            std::normal_distribution<krylov_type>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<storage_type>(-1.0, 1.0), rand_engine,
+            ref);
         std::copy_n(temp_krylov_bases->get_const_values(),
                     bases.get_num_elems(), bases.get_data());
-        if (Accessor3d::has_scale) {
-            auto accessor = helper.get_accessor();
-            auto dist = std::normal_distribution<value_type>(-1, 1);
-            for (size_type k = 0; k < size[0]; ++k) {
-                for (size_type i = 0; i < size[2]; ++i) {
-                    gko::kernels::helper_functions_accessor<
-                        Accessor3d>::write_scale(accessor, k, i,
-                                                 dist(rand_engine));
-                }
+        // Only useful when the Accessor actually has a scale
+        auto accessor = helper.get_accessor();
+        auto dist = std::normal_distribution<value_type>(-1, 1);
+        for (size_type k = 0; k < size[0]; ++k) {
+            for (size_type i = 0; i < size[2]; ++i) {
+                gko::kernels::helper_functions_accessor<
+                    Accessor3d>::write_scale(accessor, k, i, dist(rand_engine));
             }
         }
         return helper;
@@ -213,10 +212,10 @@ protected:
 
     void assert_krylov_bases_near()
     {
-        gko::Array<krylov_type> d_to_host{ref};
+        gko::Array<storage_type> d_to_host{ref};
         auto &krylov_bases = acc_helper.get_bases();
         d_to_host = d_acc_helper.get_bases();
-        const auto tolerance = r<krylov_type>::value;
+        const auto tolerance = r<storage_type>::value;
         using std::abs;
         for (gko::size_type i = 0; i < krylov_bases.get_num_elems(); ++i) {
             const auto ref_value = krylov_bases.get_const_data()[i];
