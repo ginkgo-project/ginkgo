@@ -59,6 +59,7 @@ namespace gko {
  */
 namespace reorder {
 
+
 enum class starting_strategy { minimum_degree, pseudo_peripheral };
 
 
@@ -68,7 +69,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * as effective as more complex algorithms, specifically AMD and nested
  * dissection schemes. The advantage of this algorithm is its low runtime.
  *
- * @note  This class is derives from polymorphic object but is not a LinOp as it
+ * @note  This class is derived from polymorphic object but is not a LinOp as it
  * does not make sense for this class to implement the apply methods. The
  * objective of this class is to generate a reordering/permutation vector (in
  * the form of the Permutation matrix), which can be used to apply to reorder a

@@ -83,7 +83,9 @@ void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
+
 constexpr auto chunk_bound = 512;
+
 
 template <typename IndexType>
 struct UbfsLinearQueue {
@@ -197,6 +199,7 @@ struct UbfsLinearQueue {
     }
 };
 
+
 /**
  * Performs an unordered breadth-first search,
  * thereby building a rooted level structure.
@@ -295,6 +298,7 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
     }
 }
 
+
 /**
  * Finds a 'contender', meaning a node in the last level of the rls with minimum
  * degree, returns it along with the rls height.
@@ -362,6 +366,7 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
     return std::make_pair(global_contender, global_height);
 }
 
+
 /**
  * Finds the index of a node with minimum degree and the maximum degree.
  */
@@ -422,6 +427,7 @@ std::pair<IndexType, IndexType> find_min_idx_and_max_val(
 
     return std::make_pair(global_min_idx, global_max_val);
 }
+
 
 /**
  * Finds a start node for the urcm algorithm, using parallel building blocks.
@@ -486,6 +492,7 @@ IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
+
 /**
  * Counts how many nodes there are per level.
  */
@@ -538,15 +545,15 @@ gko::vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
     gko::vector<IndexType> final_level_counts(max_size + 1, exec);
     auto i = 0;
     while (true) {
-        auto exit = true;
+        auto done = true;
         for (auto tid = 0; tid < num_threads; ++tid) {
             if (i < level_count_sizes[tid]) {
                 const auto count = level_counts[tid][i];
                 final_level_counts[i] += count;
-                exit = false;
+                done = false;
             }
         }
-        if (exit) {
+        if (done) {
             break;
         }
         ++i;
@@ -554,6 +561,7 @@ gko::vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
 
     return final_level_counts;
 }
+
 
 /**
  * Implements the two intermediate phases of urcm,
@@ -569,6 +577,7 @@ gko::vector<IndexType> compute_level_offsets(
     components::prefix_sum(exec, &counts[0], counts.size());
     return counts;
 }
+
 
 /**
  * Helper macros for the helper function below.
@@ -599,6 +608,7 @@ gko::vector<IndexType> compute_level_offsets(
         neighbours[y] = should_swap ? tmp : neighbours[y];           \
     }
 #endif
+
 
 /**
  * Helper fucntion for quickly sorting small vectors by degree.
@@ -650,6 +660,7 @@ inline void sort_by_degree(IndexType *const neighbours, size_type count,
                   return degrees[left] < degrees[right];
               });
 }
+
 
 /**
  * Implements the last phase of urcm,
@@ -742,6 +753,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
+
 /**
  * Processes all isolated nodes, returning their count.
  */
@@ -773,8 +785,9 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
     auto isolated = IsolatedNodes();
 #pragma omp parallel for reduction(FindIsolated : isolated)
     for (auto i = 0; i < num_vertices; ++i) {
-        if (degrees[i] == 0
-            /* || (degrees[i] == 1 && col_idxs[row_ptrs[i]] == i) */) {
+        // No need to check for diagonal elements (only self-neighbouring) here,
+        // those are already removed from the matrix.
+        if (degrees[i] == 0) {
             isolated.nodes.push_back(i);
             previous_component[i] = true;
         }
@@ -784,6 +797,7 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
                 isolated.nodes.size() * sizeof(IndexType));
     return isolated.nodes.size();
 }
+
 
 /**
  * Computes a rcm permutation, employing the parallel unordered rcm algorithm.
