@@ -85,6 +85,10 @@ public:
     /**
      * Returns the aggregate group.
      *
+     * Aggregate group whose size is same as the number of rows stores the
+     * mapping information from row index to coarse row index.
+     * i.e., agg[row_idx] = coarse_row_idx.
+     *
      * @return the aggregate group.
      */
     IndexType *get_agg() noexcept { return agg_.get_data(); }

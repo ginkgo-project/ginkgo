@@ -81,7 +81,6 @@ std::unique_ptr<LinOp> amgx_pgm_generate(
     auto coarse = matrix::Csr<ValueType, IndexType>::create(
         exec, dim<2>{num_agg, num_agg}, 0, source->get_strategy());
     exec->run(amgx_pgm::make_amgx_pgm_generate(source, agg, coarse.get()));
-    matrix::CsrBuilder<ValueType, IndexType> builder(coarse.get());
     return std::move(coarse);
 }
 
@@ -150,11 +149,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
         // copy the agg to intermediate_agg
         intermediate_agg = agg_;
     }
-    while (num_unagg != 0) {
-        exec->run(amgx_pgm::make_assign_to_exist_agg(
-            weight_mtx.get(), diag.get(), agg_, intermediate_agg));
-        exec->run(amgx_pgm::make_count_unagg(agg_, &num_unagg));
-    }
+    // Assign all left points
+    exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
+                                                 agg_, intermediate_agg));
     size_type num_agg;
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
