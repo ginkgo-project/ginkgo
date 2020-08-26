@@ -50,9 +50,9 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The parallel ilu factorization namespace.
+ * @brief The reordering namespace.
  *
- * @ingroup factor
+ * @ingroup reorder
  */
 namespace rcm {
 

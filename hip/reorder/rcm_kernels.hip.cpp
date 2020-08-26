@@ -50,15 +50,15 @@ namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The parallel ilu factorization namespace.
+ * @brief The reordering namespace.
  *
- * @ingroup factor
+ * @ingroup reorder
  */
 namespace rcm {
 
 
 template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const Hipxecutor> exec,
+void get_degree_of_nodes(std::shared_ptr<const HipExecutor> exec,
                          const size_type num_vertices,
                          const IndexType *const row_ptrs,
                          IndexType *const degrees) GKO_NOT_IMPLEMENTED;
