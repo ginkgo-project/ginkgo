@@ -769,7 +769,6 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
         // Using a gko::vector here makes clang and gcc segfault,
         // if we then use 'omp_priv = omp_orig'.
         std::vector<IndexType> nodes;
-        IsolatedNodes() : nodes(std::vector<IndexType>(0)) {}
         IsolatedNodes &operator+=(const IsolatedNodes &rhs)
         {
             nodes.reserve(nodes.size() + rhs.nodes.size());
@@ -778,10 +777,7 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
         }
     };
 
-#pragma omp declare reduction(FindIsolated         \
-                              : IsolatedNodes      \
-                              : omp_out += omp_in) \
-    initializer(omp_priv = IsolatedNodes())
+#pragma omp declare reduction(FindIsolated : IsolatedNodes : omp_out += omp_in)
     auto isolated = IsolatedNodes();
 #pragma omp parallel for reduction(FindIsolated : isolated)
     for (auto i = 0; i < num_vertices; ++i) {
