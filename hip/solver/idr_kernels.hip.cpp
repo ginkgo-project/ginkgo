@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
@@ -116,25 +117,54 @@ void solve_lower_triangular(const matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
-void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
+void update_g_and_u(std::shared_ptr<const HipExecutor> exec, size_type k,
+                    const matrix::Dense<ValueType> *p,
                     const matrix::Dense<ValueType> *m,
+                    matrix::Dense<ValueType> *alpha,
                     matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
                     matrix::Dense<ValueType> *u,
                     const Array<stopping_status> *stop_status)
 {
     const auto size = g->get_size()[0];
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
+    const auto p_stride = p->get_stride();
 
-    const auto grid_dim = nrhs;
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(update_g_and_u_kernel<default_block_size>), grid_dim,
-        default_block_size, 0, 0, k, size, nrhs,
-        as_hip_type(p->get_const_values()), p->get_stride(),
-        as_hip_type(m->get_const_values()), m->get_stride(),
-        as_hip_type(g->get_values()), g->get_stride(),
-        as_hip_type(g_k->get_values()), g_k->get_stride(),
-        as_hip_type(u->get_values()), u->get_stride(),
-        as_hip_type(stop_status->get_const_data()));
+    const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
+                        exec->get_num_multiprocessor() * 2);
+    const dim3 block_dim(default_dot_dim, default_dot_dim);
+
+    for (size_type i = 0; i < k; i++) {
+        const auto p_i = p->get_const_values() + i * p_stride;
+        if (nrhs > 1) {
+            components::fill_array(exec, alpha->get_values(), nrhs,
+                                   zero<ValueType>());
+            hipLaunchKernelGGL(
+                multidot_kernel, grid_dim, block_dim, 0, 0, i, size, nrhs,
+                as_hip_type(p_i), as_hip_type(g_k->get_values()),
+                g_k->get_stride(), as_hip_type(alpha->get_values()),
+                as_hip_type(stop_status->get_const_data()));
+        } else {
+            hipblas::dot(exec->get_hiplas_handle(), size, p_i, 1,
+                         g_k->get_values(), g_k->get_stride(),
+                         alpha->get_values());
+        }
+        hipLaunchKernelGGL(
+            update_g_k_and_u_kernel<default_block_size>,
+            ceildiv(size * g_k->get_stride(), default_block_size),
+            default_block_size, 0, 0, k, i, size, nrhs,
+            as_hip_type(alpha->get_const_values()),
+            as_hip_type(m->get_const_values()), m->get_stride(),
+            as_hip_type(g->get_const_values()), g->get_stride(),
+            as_hip_type(g_k->get_values()), g_k->get_stride(),
+            as_hip_type(u->get_values()), u->get_stride(),
+            as_hip_type(stop_status->get_const_data()));
+    }
+    hipLaunchKernelGGL(update_g_kernel<default_block_size>,
+                       ceildiv(size * g_k->get_stride(), default_block_size),
+                       default_block_size, 0, 0, k, size, nrhs,
+                       as_hip_type(g_k->get_const_values()), g_k->get_stride(),
+                       as_hip_type(g->get_values()), g->get_stride(),
+                       as_hip_type(stop_status->get_const_data()));
 }
 
 
@@ -262,10 +292,11 @@ void step_3(std::shared_ptr<const HipExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *g,
             matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *residual,
+            matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
-    update_g_and_u(k, p, m, g, g_k, u, stop_status);
+    update_g_and_u(exec, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(k, p, g, m, stop_status);
     update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
 }

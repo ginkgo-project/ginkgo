@@ -75,8 +75,8 @@ namespace idr {
                 const size_type k, const matrix::Dense<_type> *p,        \
                 matrix::Dense<_type> *g, matrix::Dense<_type> *g_k,      \
                 matrix::Dense<_type> *u, matrix::Dense<_type> *m,        \
-                matrix::Dense<_type> *f, matrix::Dense<_type> *residual, \
-                matrix::Dense<_type> *x,                                 \
+                matrix::Dense<_type> *f, matrix::Dense<_type> *alpha,    \
+                matrix::Dense<_type> *residual, matrix::Dense<_type> *x, \
                 const Array<stopping_status> *stop_status)
 
 

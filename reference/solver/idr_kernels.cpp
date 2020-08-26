@@ -228,7 +228,8 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
             const matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *g,
             matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
+            matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *residual,
+            matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
     const auto nrhs = x->get_size()[1];
