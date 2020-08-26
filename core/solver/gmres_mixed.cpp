@@ -176,7 +176,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
         using LowArray = Array<storage_type>;
-        using KrylovAccessor = kernels::Accessor3d<storage_type, ValueType>;
+        // using KrylovAccessor = kernels::Accessor3d<storage_type, ValueType>;
         using Accessor3dHelper =
             kernels::Accessor3dHelper<ValueType, storage_type>;
 
@@ -535,8 +535,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 #endif
     };  // End of apply_lambda
 
-    auto check_for_complex = [storage_precision = storage_precision_]()
-    {
+    auto check_for_complex = [storage_precision = storage_precision_]() {
         if (is_complex_s<ValueType>::value) {
             GKO_NOT_SUPPORTED(storage_precision);
         }
