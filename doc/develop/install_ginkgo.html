@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/181170807 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/182076600 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -127,7 +127,7 @@ Building Ginkgo in Windows</h2>
 <p>Depending on the configuration settings, some manual work might be required:</p><ul>
 <li><p class="startli">Build Ginkgo as shared library: Add <code>PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code> into the environment variable <code>PATH</code>. <code>GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code> is <code>windows_shared_library</code> by default. More Details are available in the Installation page.</p><ul>
 <li>cmd: <code>set PATH="&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;;%PATH%"</code></li>
-<li>powershell: <code>@f<dl class="section rcs"><dt>env</dt><dd>ATH="&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;;@f</dd></dl>
+<li>powershell: <code><dl class="section rcs"><dt>env</dt><dd>ATH="&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;;</dd></dl>
 env:PATH"</code></li>
 </ul>
 <p class="startli">CMake will give the following error message if the path is not correct. </p><div class="fragment"><div class="line">Did not find this build in the environment variable PATH. Please add &lt;path&gt; into the environment variable PATH.</div>
@@ -143,7 +143,7 @@ env:PATH"</code></li>
 <li><code>cmake -DCMAKE_CXX_FLAGS=\bigobj &lt;other parameters&gt; &lt;source_folder&gt;</code> which might overwrite the default settings.</li>
 <li>add <code>\bigobj</code> into the environment variable <code>CXXFLAGS</code> (only available in the first cmake configuration)<ul>
 <li>cmd: <code>set CXXFLAGS=\bigobj</code></li>
-<li>powershell: <code>@f$env:CXXFLAGS=\bigobj</code></li>
+<li>powershell: <code>$env:CXXFLAGS=\bigobj</code></li>
 </ul>
 </li>
 </ul>
@@ -171,7 +171,7 @@ env:PATH"</code></li>
 <li><code>bigobj</code> issue<ul>
 <li>add <code>-Wa,-mbig-obj -O1</code> into the environment variable <code>CXXFLAGS</code> (only available in the first cmake configuration)<ul>
 <li>cmd: <code>set CXXFLAGS="-Wa,-mbig-obj"</code></li>
-<li>powershell: <code>@f$env:CXXFLAGS="-Wa,-mbig-obj"</code></li>
+<li>powershell: <code>$env:CXXFLAGS="-Wa,-mbig-obj"</code></li>
 </ul>
 </li>
 <li><code>cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj &lt;other parameters&gt; &lt;source_folder&gt;</code>, which might overwrite the default settings.</li>

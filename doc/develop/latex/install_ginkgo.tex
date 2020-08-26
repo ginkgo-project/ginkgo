@@ -71,8 +71,8 @@ Depending on the configuration settings, some manual work might be required\+:
 \item Build Ginkgo as shared library\+: Add {\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH} into the environment variable {\ttfamily P\+A\+TH}. {\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH} is {\ttfamily windows\+\_\+shared\+\_\+library} by default. More Details are available in the Installation page.
 \begin{DoxyItemize}
 \item cmd\+: {\ttfamily set P\+A\+TH=\char`\"{}$<$\+P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+T\+H$>$;\%\+P\+A\+T\+H\%\char`\"{}}
-\item powershell\+: {\ttfamily @f\begin{DoxyParagraph}{env}
-A\+TH="$<$P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH$>$;@f
+\item powershell\+: {\ttfamily \begin{DoxyParagraph}{env}
+A\+TH="$<$P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH$>$;
 \end{DoxyParagraph}
 env\+:P\+A\+TH"}
 \end{DoxyItemize}
@@ -98,7 +98,7 @@ The following are the details for different environments\+:
 \item add {\ttfamily \textbackslash{}bigobj} into the environment variable {\ttfamily C\+X\+X\+F\+L\+A\+GS} (only available in the first cmake configuration)
 \begin{DoxyItemize}
 \item cmd\+: {\ttfamily set C\+X\+X\+F\+L\+A\+GS=\textbackslash{}bigobj}
-\item powershell\+: {\ttfamily @f\$env\+:C\+X\+X\+F\+L\+A\+GS=\textbackslash{}bigobj}
+\item powershell\+: {\ttfamily \$env\+:C\+X\+X\+F\+L\+A\+GS=\textbackslash{}bigobj}
 \end{DoxyItemize}
 \end{DoxyItemize}
 \item {\ttfamily ld} issue ({\itshape Microsoft Visual Studio} does not have this issue)
@@ -126,7 +126,7 @@ The following are the details for different environments\+:
 \item add {\ttfamily -\/Wa,-\/mbig-\/obj -\/O1} into the environment variable {\ttfamily C\+X\+X\+F\+L\+A\+GS} (only available in the first cmake configuration)
 \begin{DoxyItemize}
 \item cmd\+: {\ttfamily set C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj\char`\"{}}
-\item powershell\+: {\ttfamily @f\$env\+:C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj\char`\"{}}
+\item powershell\+: {\ttfamily \$env\+:C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj\char`\"{}}
 \end{DoxyItemize}
 \item {\ttfamily cmake -\/D\+C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS=-\/Wa,-\/mbig-\/obj $<$other parameters$>$ $<$source\+\_\+folder$>$}, which might overwrite the default settings.
 \end{DoxyItemize}
