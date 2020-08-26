@@ -25,10 +25,10 @@ Supported systems and requirements:
   + CUDA module: CUDA 9.0+
   + HIP module: ROCm 2.8+
 + Windows
-  + MinGW and CygWin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
   + Microsoft Visual Studio: VS 2017 15.7+
   + CUDA module: CUDA 9.0+, Microsoft Visual Studio
-  + OpenMP module: MinGW or CygWin.
+  + OpenMP module: MinGW or Cygwin.
 
 
 The current known issues can be found in the [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
@@ -85,10 +85,10 @@ Supported systems and requirements:
   + CUDA module: CUDA 9.0+
   + HIP module: ROCm 2.8+
 + Windows
-  + MinGW and CygWin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
   + Microsoft Visual Studio: VS 2017 15.7+
   + CUDA module: CUDA 9.0+, Microsoft Visual Studio
-  + OpenMP module: MinGW or CygWin.
+  + OpenMP module: MinGW or Cygwin.
 
 
 The current known issues can be found in the [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).

@@ -17,6 +17,23 @@ available through the following reference:
 Multiple topical papers exist on Ginkgo and its algorithms. The following papers
 can be used to cite specific aspects of the Ginkgo project.
 
+### The Ginkgo Software
+
+The Ginkgo software itself was reviewed and has a paper published in the Journal
+of Open Source Software, which can be cited with the following reference:
+
+```bibtex
+@article{Joss2020,
+  doi = {10.21105.joss.02260},
+  url = {https://doi.org/10.21105/joss.02260},
+  year = {2020},
+  publisher = {The Open Journal},
+  author = {Hartwig Anzt and Terry Cojean and Yen-Chen Chen and Goran Flegar and Fritz G\"{o}bel and Thomas Gr\"{u}tzmacher and Pratik Nayak and Tobias Ribizel and Yu-Hsiang Tsai},
+  title = {Ginkgo: A high performance numerical linear algebra library},
+  journal = {Journal of Open Source Software}
+}
+```
+
 ### On Portability
 
 ``` bibtex
