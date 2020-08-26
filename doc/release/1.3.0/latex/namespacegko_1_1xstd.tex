@@ -1,0 +1,41 @@
+\hypertarget{namespacegko_1_1xstd}{}\doxysection{gko\+::xstd Namespace Reference}
+\label{namespacegko_1_1xstd}\index{gko::xstd@{gko::xstd}}
+
+
+The namespace for functionalities after C++14 standard.  
+
+
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a185b5a0964814a042089d2a6b994d8e9}\label{namespacegko_1_1xstd_a185b5a0964814a042089d2a6b994d8e9}} 
+{\footnotesize template$<$typename... Ts$>$ }\\using {\bfseries void\+\_\+t} = typename detail\+::make\+\_\+void$<$ Ts... $>$\+::type
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_ac4303d8523d2cfc55192b20cb42d6e2b}\label{namespacegko_1_1xstd_ac4303d8523d2cfc55192b20cb42d6e2b}} 
+{\footnotesize template$<$bool B, typename T  = void$>$ }\\using {\bfseries enable\+\_\+if\+\_\+t} = std\+::enable\+\_\+if\+\_\+t$<$ B, T $>$
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a2534f2d842c05c2c3b08a75d3a4e9bc4}\label{namespacegko_1_1xstd_a2534f2d842c05c2c3b08a75d3a4e9bc4}} 
+{\footnotesize template$<$bool B, typename T , typename F $>$ }\\using {\bfseries conditional\+\_\+t} = std\+::conditional\+\_\+t$<$ B, T, F $>$
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a80d4c4c4f0d22fec3d42eaa01c417b56}\label{namespacegko_1_1xstd_a80d4c4c4f0d22fec3d42eaa01c417b56}} 
+{\footnotesize template$<$typename T $>$ }\\using {\bfseries decay\+\_\+t} = std\+::decay\+\_\+t$<$ T $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a9b0471652d383f73d20733fdfc24b6f0}\label{namespacegko_1_1xstd_a9b0471652d383f73d20733fdfc24b6f0}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool {\bfseries greater} (const T \&\&lhs, const T \&\&rhs)
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a315162403fa8c26c2e21d150e1d29d6c}\label{namespacegko_1_1xstd_a315162403fa8c26c2e21d150e1d29d6c}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool {\bfseries greater\+\_\+equal} (const T \&\&lhs, const T \&\&rhs)
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a9b82f6832c0e6e374d86387f70c603fd}\label{namespacegko_1_1xstd_a9b82f6832c0e6e374d86387f70c603fd}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool {\bfseries less} (const T \&\&lhs, const T \&\&rhs)
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_ad459f9d65cc6d1038d585033fae19beb}\label{namespacegko_1_1xstd_ad459f9d65cc6d1038d585033fae19beb}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool {\bfseries less\+\_\+equal} (const T \&\&lhs, const T \&\&rhs)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The namespace for functionalities after C++14 standard. 
