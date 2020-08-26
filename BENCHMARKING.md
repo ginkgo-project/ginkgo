@@ -46,7 +46,7 @@ order to ensure best performance.
    benchmarking accuracy.
 
 In addition, the following specific options can be considered:
-1. When specifically using the adaptive block jacobi preconditioner,, enable
+1. When specifically using the adaptive block jacobi preconditioner, enable
    the `GINKGO_JACOBI_FULL_OPTIMIZATIONS` CMake flag. Be careful that this will
    use much more memory and time for the compilation due to compiler performance
    issues with register optimizations, in particular.
@@ -55,7 +55,7 @@ In addition, the following specific options can be considered:
    `overhead` LinOp. If your purpose is to check Ginkgo's overhead, make sure to
    try this mode.
 
-### 2: Using `ssget` to fetch the matrices
+### 2: Using ssget to fetch the matrices
 
 The benchmark suite tests Ginkgo's performance using the [SuiteSparse matrix
 collection](https://sparse.tamu.edu/) and artificially generated matrices. The
@@ -84,7 +84,9 @@ where `i` is the ID of the matrix to be downloaded. The following loop allows
 to download the full SuiteSparse matrix collection:
 
 ```bash
-for i in $(seq 0 $(ssget -n)); do ssget -f -i $i; done
+for i in $(seq 0 $(ssget -n)); do
+    ssget -f -i ${i}
+done
 ```
 
 Note that `ssget` can also be used to query properties of the matrix and filter
@@ -93,13 +95,14 @@ positive definite matrices with less than 500M non zero elements and 10M
 columns. Please refer to the [`ssget`
 documentation](https://github.com/ginkgo-project/ssget/blob/master/README.md)
 for more information.
+
 ```bash
 for i in $(seq 0 $(ssget -n)); do
-    posdef=$(ssget -p posdef -i $i)
-    cols=$(ssget -p cols -i $i)
-    nnz=$(ssget -p nonzeros -i $i)
+    posdef=$(ssget -p posdef -i ${i})
+    cols=$(ssget -p cols -i ${i})
+    nnz=$(ssget -p nonzeros -i ${i})
     if [ "$posdef" -eq 1 -a "$cols" -lt 10000000 -a "$nnz" -lt 500000000 ]; then
-        ssget -f -i $i
+        ssget -f -i ${i}
     fi
 done
 ```
@@ -113,7 +116,7 @@ script as well. The behavior of the suite can be modified using environment
 variables. Assuming the `bash` shell is used, these can either be specified via
 the `export` command to persist between multiple runs:
 
-```sh
+```bash
 export VARIABLE="value"
 ...
 make benchmark
@@ -121,14 +124,14 @@ make benchmark
 
 or specified on the fly, on the same line as the `make benchmark` command:
 
-```sh
+```bash
 VARIABLE="value" ... make benchmark
 ```
 
 Since `make` sets any variables passed to it as temporary environment variables,
 the following shorthand can also be used:
 
-```sh
+```bash
 make benchmark VARIABLE="value" ...
 ```
 
@@ -157,6 +160,7 @@ benchmark options). Here are the most important options:
     matrix id or name to benchmark. As an example, a matrix list file containing
     the following will ensure that benchmarks are ran for only those three
     matrices:
+
     ```
     1903
     Freescale/circuit5M
@@ -180,12 +184,13 @@ https://github.com/ginkgo-project/ginkgo-data/
 Once it's done, we want to clone the repository locally, put all
 results online and access the GPE for plotting the results. Here are the
 detailed steps:
+
 ```bash
 git clone https://github.com/<username>/ginkgo-data.git $HOME/ginkgo_benchmark/ginkgo-data
 # send the benchmarked data to the ginkgo-data repository
 # If needed, remove the old data so that no previous data is left.
 # rm -r ${HOME}/ginkgo_benchmark/ginkgo-data/data/${SYSTEM_NAME}
-rsync -rtv ${ginkgo_build}/benchmark/results/ $HOME/ginkgo_benchmark/ginkgo-data/data/
+rsync -rtv ${ginkgo_build_dir}/benchmark/results/ $HOME/ginkgo_benchmark/ginkgo-data/data/
 cd ${HOME}/ginkgo_benchmark/ginkgo-data/data/
 # The following updates the main `.json` files with the list of data.
 # Ensure a python 3 installation is available.
