@@ -140,12 +140,11 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec, size_type k,
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
             multidot_kernel<<<grid_dim, block_dim>>>(
-                i, size, nrhs, as_cuda_type(p_i),
-                as_cuda_type(g_k->get_values()), g_k->get_stride(),
-                as_cuda_type(alpha->get_values()),
+                size, nrhs, as_cuda_type(p_i), as_cuda_type(g_k->get_values()),
+                g_k->get_stride(), as_cuda_type(alpha->get_values()),
                 as_cuda_type(stop_status->get_const_data()));
         } else {
-            cublas::dot(exec->get_cublas_handle(), size, p_i, p_stride,
+            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
                         g_k->get_values(), g_k->get_stride(),
                         alpha->get_values());
         }
@@ -160,7 +159,8 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec, size_type k,
                 as_cuda_type(stop_status->get_const_data()));
     }
     update_g_kernel<default_block_size>
-        <<<ceildiv(size * g_k->get_stride()), default_block_size>>>(
+        <<<ceildiv(size * g_k->get_stride(), default_block_size),
+           default_block_size>>>(
             k, size, nrhs, as_cuda_type(g_k->get_const_values()),
             g_k->get_stride(), as_cuda_type(g->get_values()), g->get_stride(),
             as_cuda_type(stop_status->get_const_data()));
@@ -168,20 +168,35 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec, size_type k,
 
 
 template <typename ValueType>
-void update_m(size_type k, const matrix::Dense<ValueType> *p,
-              const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *m,
+void update_m(std::shared_ptr<const CudaExecutor> exec, size_type k,
+              const matrix::Dense<ValueType> *p,
+              const matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *m,
               const Array<stopping_status> *stop_status)
 {
-    const auto size = g->get_size()[0];
-    const auto subspace_dim = p->get_size()[0];
-    const auto nrhs = m->get_size()[1] / subspace_dim;
+    const auto size = g_k->get_size()[0];
+    const auto subspace_dim = m->get_size()[0];
+    const auto nrhs = m->get_size()[1] / m->get_size()[0];
+    const auto p_stride = p->get_stride();
+    const auto m_stride = m->get_stride();
 
-    const auto grid_dim = dim3((subspace_dim - k), nrhs, 1);
-    update_m_kernel<default_block_size><<<grid_dim, default_block_size>>>(
-        k, size, subspace_dim, nrhs, as_cuda_type(p->get_const_values()),
-        p->get_stride(), as_cuda_type(g->get_const_values()), g->get_stride(),
-        as_cuda_type(m->get_values()), m->get_stride(),
-        as_cuda_type(stop_status->get_const_data()));
+    const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
+                        exec->get_num_multiprocessor() * 2);
+    const dim3 block_dim(default_dot_dim, default_dot_dim);
+
+    for (size_type i = k; i < subspace_dim; i++) {
+        const auto p_i = p->get_const_values() + i * p_stride;
+        auto m_i = m->get_values() + i * m_stride + k * nrhs;
+        if (nrhs > 1) {
+            components::fill_array(exec, m_i, nrhs, zero<ValueType>());
+            multidot_kernel<<<grid_dim, block_dim>>>(
+                size, nrhs, as_cuda_type(p_i),
+                as_cuda_type(g_k->get_const_values()), g_k->get_stride(),
+                as_cuda_type(m_i), as_cuda_type(stop_status->get_const_data()));
+        } else {
+            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
+                        g_k->get_const_values(), g_k->get_stride(), m_i);
+        }
+    }
 }
 
 
@@ -292,7 +307,7 @@ void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type k,
             const Array<stopping_status> *stop_status)
 {
     update_g_and_u(exec, k, p, m, alpha, g, g_k, u, stop_status);
-    update_m(k, p, g, m, stop_status);
+    update_m(exec, k, p, g_k, m, stop_status);
     update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
 }
 
