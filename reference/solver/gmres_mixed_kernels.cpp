@@ -85,7 +85,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
+                    next_krylov_basis->at(j, i) * krylov_bases(k, j, i);
             }
         }
         // for i in 1:iter
@@ -94,7 +94,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         for (size_type k = 0; k < iter + 1; ++k) {
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases.at(k, j, i);
+                    hessenberg_iter->at(k, i) * krylov_bases(k, j, i);
             }
         }
         // for i in 1:iter
@@ -120,7 +120,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     buffer_iter->at(k, i) +=
-                        next_krylov_basis->at(j, i) * krylov_bases.at(k, j, i);
+                        next_krylov_basis->at(j, i) * krylov_bases(k, j, i);
                 }
             }
             // for i in 1:iter
@@ -130,7 +130,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * krylov_bases.at(k, j, i);
+                        buffer_iter->at(k, i) * krylov_bases(k, j, i);
                 }
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
@@ -158,7 +158,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases.at(iter + 1, j, i) = next_krylov_basis->at(j, i);
+            krylov_bases(iter + 1, j, i) = next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -289,7 +289,7 @@ void calculate_qy(ConstAccessor3d krylov_bases,
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases.at(j, i, k) * y->at(j, k);
+                    krylov_bases(j, i, k) * y->at(j, k);
             }
         }
     }
@@ -368,7 +368,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            krylov_bases.at({0}, i, j) =
+            krylov_bases({0}, i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
             next_krylov_basis->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
@@ -381,7 +381,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             helper_functions_accessor<Accessor3d>::write_scale(
                 krylov_bases, k, j, one<remove_complex<ValueType>>());
             for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-                krylov_bases.at(k, i, j) = zero<ValueType>();
+                krylov_bases(k, i, j) = zero<ValueType>();
             }
         }
     }
