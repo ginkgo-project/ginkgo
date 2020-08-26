@@ -126,6 +126,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
     auto tht = Vector::create(exec, dim<2>{1, nrhs});
     auto t_norm = NormVector::create(exec, dim<2>{1, nrhs});
+    auto alpha = Vector::create(exec, gko::dim<2>{1, nrhs});
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, nrhs);
@@ -194,7 +195,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             exec->run(idr::make_step_3(k, subspace_vectors_.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
-                                       residual.get(), dense_x, &stop_status));
+                                       alpha.get(), residual.get(), dense_x,
+                                       &stop_status));
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
             //     g_k -= alpha * g_i

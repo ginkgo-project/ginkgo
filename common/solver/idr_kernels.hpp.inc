@@ -193,53 +193,95 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 }
 
 
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void update_g_and_u_kernel(
-    size_type k, size_type size, size_type nrhs,
-    const ValueType *__restrict__ p_values, size_type p_stride,
-    const ValueType *__restrict__ m_values, size_type m_stride,
-    ValueType *__restrict__ g_values, size_type g_stride,
-    ValueType *__restrict__ g_k_values, size_type g_k_stride,
-    ValueType *__restrict__ u_values, size_type u_stride,
+template <typename ValueType>
+__global__ __launch_bounds__(default_dot_size) void multidot_kernel(
+    size_type i, size_type num_rows, size_type nrhs,
+    const ValueType *__restrict__ p_i, const ValueType *__restrict__ g_k,
+    size_type g_k_stride, ValueType *__restrict__ alpha,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
-    const auto rhs = blockIdx.x;
+    const auto tidy = threadIdx.y;
+    const auto rhs = blockIdx.x * default_dot_dim + tidx;
+    const auto num = ceildiv(num_rows, gridDim.y);
+    const auto start_row = blockIdx.y * num;
+    const auto end_row =
+        ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__
+        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
+            reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
-    if (stop_status[rhs].has_stopped()) {
+    ValueType local_res = zero<ValueType>();
+    if (rhs < nrhs && !stop_status[rhs].has_stopped()) {
+        for (size_type i = start_row + tidy; i < end_row;
+             i += default_dot_dim) {
+            const auto g_idx = i * g_k_stride + rhs;
+            local_res += p_i[i] * g_k[g_idx];
+        }
+    }
+    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
+    __syncthreads();
+    local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto sum =
+        reduce(tile_block, local_res,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+    const auto new_rhs = blockIdx.x * default_dot_dim + tidy;
+    if (tidx == 0 && new_rhs < nrhs && !stop_status[new_rhs].has_stopped()) {
+        atomic_add(alpha + new_rhs, sum);
+    }
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_g_k_and_u_kernel(
+    size_type k, size_type i, size_type size, size_type nrhs,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ m_values,
+    size_type m_stride, const ValueType *__restrict__ g_values,
+    size_type g_stride, ValueType *__restrict__ g_k_values,
+    size_type g_k_stride, ValueType *__restrict__ u_values, size_type u_stride,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / g_k_stride;
+    const auto rhs = tidx % g_k_stride;
+
+    if (row >= size || rhs >= nrhs) {
         return;
     }
 
-    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    if (!stop_status[rhs].has_stopped()) {
+        const auto fact = alpha[rhs] / m_values[i * m_stride + i * nrhs + rhs];
+        g_k_values[row * g_k_stride + rhs] -=
+            fact * g_values[row * g_stride + i * nrhs + rhs];
+        u_values[row * u_stride + k * nrhs + rhs] -=
+            fact * u_values[row * u_stride + i * nrhs + rhs];
+    }
+}
 
-    for (size_type i = 0; i < k; i++) {
-        __syncthreads();
-        ValueType alpha = zero<ValueType>();
-        for (size_type j = tidx; j < size; j += block_size) {
-            alpha +=
-                p_values[i * p_stride + j] * g_k_values[j * g_k_stride + rhs];
-        }
-        reduction_helper[tidx] = alpha;
 
-        __syncthreads();
-        reduce(group::this_thread_block(), reduction_helper,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
-        __syncthreads();
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void update_g_kernel(
+    size_type k, size_type size, size_type nrhs,
+    const ValueType *__restrict__ g_k_values, size_type g_k_stride,
+    ValueType *__restrict__ g_values, size_type g_stride,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / g_k_stride;
+    const auto rhs = tidx % nrhs;
 
-        alpha = reduction_helper[0] / m_values[i * m_stride + i * nrhs + rhs];
-
-        for (size_type j = tidx; j < size; j += block_size) {
-            g_k_values[j * g_k_stride + rhs] -=
-                alpha * g_values[j * g_stride + i * nrhs + rhs];
-            u_values[j * u_stride + k * nrhs + rhs] -=
-                alpha * u_values[j * u_stride + i * nrhs + rhs];
-        }
+    if (row >= size || rhs >= nrhs) {
+        return;
     }
 
-    for (size_type j = tidx; j < size; j += block_size) {
-        g_values[j * g_stride + k * nrhs + rhs] =
-            g_k_values[j * g_k_stride + rhs];
+    if (!stop_status[rhs].has_stopped()) {
+        g_values[row * g_stride + k * nrhs + rhs] =
+            g_k_values[row * g_k_stride + rhs];
     }
 }
 
@@ -324,7 +366,7 @@ __global__ __launch_bounds__(config::warp_size) void set_f_zeros(
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < nrhs) {
-        f_values[k * f_stride + k * nrhs + tidx] = zero<ValueType>();
+        f_values[k * f_stride + tidx] = zero<ValueType>();
     }
 }
 
