@@ -31,8 +31,10 @@ Some shortcuts
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<RealValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<ValueType, IndexType>}};}
@@ -99,7 +101,7 @@ Calculate initial residual by overwriting b
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
 \DoxyCodeLine{\textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
-\DoxyCodeLine{\textcolor{keyword}{auto} initres = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} initres = gko::initialize<real\_vec>(\{0.0\}, exec);}
 \DoxyCodeLine{A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(initres));}
 \end{DoxyCode}
@@ -110,7 +112,7 @@ copy b again
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{b-\/>copy\_from(host\_x.get());}
-\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{\textcolor{keyword}{const} RealValueType reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{\textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{    gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
 \DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
@@ -172,7 +174,7 @@ Calculate residual
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} res = gko::initialize<real\_vec>(\{0.0\}, exec);}
 \DoxyCodeLine{A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
 \DoxyCodeLine{}
@@ -200,16 +202,16 @@ This is the expected output\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{Initial residual norm sqrt(r\string^T r): }
-\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}{real}} general}
+\DoxyCodeLine{Initial residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}} general}
 \DoxyCodeLine{1 1}
 \DoxyCodeLine{194.679}
-\DoxyCodeLine{Final residual norm sqrt(r\string^T r): }
-\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}{real}} general}
+\DoxyCodeLine{Final residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}} general}
 \DoxyCodeLine{1 1}
-\DoxyCodeLine{2.8994e-\/11}
-\DoxyCodeLine{CG iteration count:     8}
-\DoxyCodeLine{CG execution time [ms]: 4.10581}
+\DoxyCodeLine{5.69384e-\/06}
+\DoxyCodeLine{CG iteration count:     5}
+\DoxyCodeLine{CG execution time [ms]: 2.04779}
 \end{DoxyCode}
 
 
@@ -266,8 +268,10 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<RealValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<ValueType, IndexType>}};}
@@ -303,12 +307,12 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} initres = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} initres = gko::initialize<real\_vec>(\{0.0\}, exec);}
 \DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(initres));}
 \DoxyCodeLine{}
 \DoxyCodeLine{    b-\/>copy\_from(host\_x.get());}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} RealValueType reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{    \textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{        gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
@@ -339,7 +343,7 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} toc = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{    time += std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic);}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<real\_vec>(\{0.0\}, exec);}
 \DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
 \DoxyCodeLine{}

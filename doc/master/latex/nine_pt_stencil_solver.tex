@@ -267,12 +267,20 @@ Figure out where to run the code
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
-\DoxyCodeLine{std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\DoxyCodeLine{std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    exec\_map\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                              \textcolor{keyword}{true});}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                             \textcolor{keyword}{true});}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \end{DoxyCode}
 
 
@@ -280,7 +288,7 @@ executor where Ginkgo will perform the computation
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string)();  \textcolor{comment}{// throws if not valid}}
 \end{DoxyCode}
 
 
@@ -288,7 +296,7 @@ executor where the application initialized the data
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec-\/>get\_master();}
 \end{DoxyCode}
 
 
@@ -470,7 +478,19 @@ The expected output of the relative error at K=10 should be
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{The average relative error is 1.45687e-\/13}
+\DoxyCodeLine{0.00150263 0.00676184 0.0210368 0.0488355 0.0946657 0.163035 0.258452 0.385425 0.54846 0.752066}
+\DoxyCodeLine{0.00676184 0.012021 0.026296 0.0540947 0.0999249 0.168295 0.263712 0.390684 0.553719 0.757325}
+\DoxyCodeLine{0.0210368 0.026296 0.040571 0.0683697 0.1142 0.18257 0.277987 0.404959 0.567994 0.7716}
+\DoxyCodeLine{0.0488354 0.0540947 0.0683697 0.0961683 0.141998 0.210368 0.305785 0.432757 0.595793 0.799399}
+\DoxyCodeLine{0.0946656 0.0999248 0.1142 0.141998 0.187829 0.256198 0.351615 0.478588 0.641623 0.845229}
+\DoxyCodeLine{0.163035 0.168295 0.182569 0.210368 0.256198 0.324568 0.419985 0.546957 0.709993 0.913599}
+\DoxyCodeLine{0.258452 0.263711 0.277987 0.305785 0.351615 0.419985 0.515402 0.642374 0.80541 1.00902}
+\DoxyCodeLine{0.385424 0.390684 0.404959 0.432757 0.478588 0.546957 0.642374 0.769346 0.932382 1.13599}
+\DoxyCodeLine{0.54846 0.553719 0.567994 0.595793 0.641623 0.709992 0.805409 0.932382 1.09542 1.29902}
+\DoxyCodeLine{0.752066 0.757325 0.7716 0.799399 0.845229 0.913599 1.00902 1.13599 1.29902 1.50263}
+\DoxyCodeLine{}
+\DoxyCodeLine{The average relative error is 1.4283e-\/07}
+\DoxyCodeLine{The runtime is 5.784994 ms}
 \end{DoxyCode}
 
 
@@ -696,14 +716,23 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} \&dp = discretization\_points;}
 \DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} dp\_2 = dp * dp;}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
-\DoxyCodeLine{    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{    std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{        exec\_map\{}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                                  \textcolor{keyword}{true});}
+\DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                                 \textcolor{keyword}{true});}
+\DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string)();  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec-\/>get\_master();}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} matrix = mtx::create(}

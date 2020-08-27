@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/synthesizer/containers.hpp (d278bb0ea) Source File</title>
+<title>Ginkgo: ginkgo/core/synthesizer/containers.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.3.0^0 branch based on master. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -109,7 +109,7 @@ $(function() {
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="preprocessor">#define GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_</span></div>
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/std_extensions.hpp&gt;</span></div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;type_traits&gt;</span></div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacegko.html">gko</a> {</div>
@@ -164,31 +164,30 @@ $(function() {
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;};</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="keyword">template</span> &lt;<span class="keywordtype">int</span> Start, <span class="keywordtype">int</span> End, <span class="keywordtype">int</span> Step&gt;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="keyword">struct </span>as_list_impl&lt;range&lt;Start, End, Step&gt;, xstd::enable_if_t&lt;(Start &lt; End)&gt;&gt; {</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="keyword">struct </span>as_list_impl&lt;range&lt;Start, End, Step&gt;, std::enable_if_t&lt;(Start &lt; End)&gt;&gt; {</div>
 <div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keyword">using</span> type = concatenate&lt;</div>
 <div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;        value_list&lt;int, Start&gt;,</div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;        <span class="keyword">typename</span> as_list_impl&lt;range&lt;Start + Step, End, Step&gt;&gt;::type&gt;;</div>
 <div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;};</div>
 <div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160; </div>
 <div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="keyword">template</span> &lt;<span class="keywordtype">int</span> Start, <span class="keywordtype">int</span> End, <span class="keywordtype">int</span> Step&gt;</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="keyword">struct </span>as_list_impl&lt;range&lt;Start, End, Step&gt;,</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;                    xstd::enable_if_t&lt;(Start &gt;= End)&gt;&gt; {</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;    <span class="keyword">using</span> type = value_list&lt;int&gt;;</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;};</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="keyword">struct </span>as_list_impl&lt;range&lt;Start, End, Step&gt;, std::enable_if_t&lt;(Start &gt;= End)&gt;&gt; {</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <span class="keyword">using</span> type = value_list&lt;int&gt;;</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;};</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160; </div>
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;}  <span class="comment">// namespace detail</span></div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;}  <span class="comment">// namespace detail</span></div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
 <div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160; </div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="keyword">using</span> as_list = <span class="keyword">typename</span> detail::as_list_impl&lt;T&gt;::type;</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="keyword">using</span> as_list = <span class="keyword">typename</span> detail::as_list_impl&lt;T&gt;::type;</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160; </div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;}  <span class="comment">// namespace syn</span></div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;}  <span class="comment">// namespace syn</span></div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
 <div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_</span></div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="astructgko_1_1syn_1_1type__list_html"><div class="ttname"><a href="structgko_1_1syn_1_1type__list.html">gko::syn::type_list</a></div><div class="ttdef"><b>Definition:</b> containers.hpp:54</div></div>
 <div class="ttc" id="astructgko_1_1syn_1_1value__list_html"><div class="ttname"><a href="structgko_1_1syn_1_1value__list.html">gko::syn::value_list</a></div><div class="ttdef"><b>Definition:</b> containers.hpp:50</div></div>

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.3.0^0 branch based on master. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -119,7 +119,7 @@ $(function() {
 <div class="line">        / **</div>
 <div class="line">         * Boolean set by the user to stop the iteration process</div>
 <div class="line">         * /</div>
-<div class="line">        std::add_pointer&lt;volatile bool&gt;::type <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(</div>
+<div class="line">        std::add_pointer&lt;volatile bool&gt;::type <a class="code" href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">GKO_FACTORY_PARAMETER_SCALAR</a>(</div>
 <div class="line">            stop_iteration_process, <span class="keyword">nullptr</span>);</div>
 <div class="line">    };</div>
 <div class="line">    GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);</div>
@@ -157,10 +157,12 @@ $(function() {
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
 <div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> IndexType = int;</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;ValueType&gt;</a>;</div>
 </div><!-- fragment --><p>Read Data</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
@@ -185,7 +187,7 @@ $(function() {
 </div><!-- fragment --><p>Calculate residual</p>
 <div class="fragment"><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
@@ -240,58 +242,58 @@ $(function() {
 <div class="line">.</div>
 <div class="line">.</div>
 <div class="line">.</div>
-<div class="line">[LOG] &gt;&gt;&gt; iteration 15331 completed with solver LinOp[<a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;double&gt;</a>,0x7f2f38003c10] with residual LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7f2f380048e0], solution LinOp[<a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> <span class="keyword">const</span>*,0] and residual_norm LinOp[<a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> <span class="keyword">const</span>*,0]</div>
-<div class="line">LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7f2f380048e0][</div>
-<div class="line">        6.21705e-164</div>
-<div class="line">        -1.18919e-164</div>
-<div class="line">        7.89129e-165</div>
-<div class="line">        -6.78013e-165</div>
-<div class="line">        -2.42405e-164</div>
-<div class="line">        -4.29503e-165</div>
-<div class="line">        6.16567e-166</div>
-<div class="line">        -3.34064e-164</div>
-<div class="line">        6.38335e-165</div>
-<div class="line">        7.86768e-165</div>
-<div class="line">        -1.80969e-165</div>
-<div class="line">        -4.17609e-166                   </div>
-<div class="line">        2.5395e-165</div>
-<div class="line">        -5.34283e-166</div>
-<div class="line">        -4.10476e-166</div>
-<div class="line">        -1.50132e-166</div>
-<div class="line">        -1.25732e-165</div>
-<div class="line">        -1.82819e-166</div>
-<div class="line">        -2.0927e-165</div>
-<div class="line">]        </div>
+<div class="line">.</div>
+<div class="line">[LOG] &gt;&gt;&gt; iteration 22516 completed with solver LinOp[<a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;double&gt;</a>,0x7fe6a4003710] with residual LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7fe6a40050b0], solution LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7fe6a40048e0] and residual_norm LinOp[<a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> <span class="keyword">const</span>*,0]</div>
+<div class="line">LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7fe6a40050b0][</div>
+<div class="line">    5.17803e-164</div>
+<div class="line">    -7.6865e-165</div>
+<div class="line">    -2.06149e-164</div>
+<div class="line">    -4.84737e-165</div>
+<div class="line">    -3.36597e-164</div>
+<div class="line">    2.22353e-164</div>
+<div class="line">    1.47594e-165</div>
+<div class="line">    -1.78592e-165</div>
+<div class="line">    -6.17274e-166</div>
+<div class="line">    -3.02681e-166</div>
+<div class="line">    7.82009e-166</div>
+<div class="line">    8.57102e-165</div>
+<div class="line">    -1.28879e-164</div>
+<div class="line">    -2.62076e-165</div>
+<div class="line">    2.55329e-165</div>
+<div class="line">    -5.95988e-166</div>
+<div class="line">    -5.79273e-166</div>
+<div class="line">    -5.20172e-166</div>
+<div class="line">    -6.79458e-166</div>
+<div class="line">]</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Typing &#39;stop&#39; stops the solver.</span></div>
-<div class="line"> </div>
 <div class="line">User input command <span class="stringliteral">&#39;stop&#39;</span> - The solver will stop</div>
 <div class="line"> </div>
-<div class="line">LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7f2f38004730][</div>
-<div class="line">        0.252218</div>
-<div class="line">        0.108645</div>
-<div class="line">        0.0662811</div>
-<div class="line">        0.0630433</div>
-<div class="line">        0.0384088</div>
-<div class="line">        0.0396536</div>
-<div class="line">        0.0402648</div>
-<div class="line">        0.0338935</div>
-<div class="line">        0.0193098</div>
-<div class="line">        0.0234653</div>
-<div class="line">        0.0211499</div>
-<div class="line">        0.0196413</div>
-<div class="line">        0.0199151</div>
-<div class="line">        0.0181674</div>
-<div class="line">        0.0162722</div>
-<div class="line">        0.0150714</div>
-<div class="line">        0.0107016</div>
-<div class="line">        0.0121141</div>
-<div class="line">        0.0123025</div>
+<div class="line">LinOp[<a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>,0x7fe6a40048e0][</div>
+<div class="line">    0.252218</div>
+<div class="line">    0.108645</div>
+<div class="line">    0.0662811</div>
+<div class="line">    0.0630433</div>
+<div class="line">    0.0384088</div>
+<div class="line">    0.0396536</div>
+<div class="line">    0.0402648</div>
+<div class="line">    0.0338935</div>
+<div class="line">    0.0193098</div>
+<div class="line">    0.0234653</div>
+<div class="line">    0.0211499</div>
+<div class="line">    0.0196413</div>
+<div class="line">    0.0199151</div>
+<div class="line">    0.0181674</div>
+<div class="line">    0.0162722</div>
+<div class="line">    0.0150714</div>
+<div class="line">    0.0107016</div>
+<div class="line">    0.0121141</div>
+<div class="line">    0.0123025</div>
 <div class="line">]</div>
 <div class="line"> </div>
 <div class="line">Solver stopped</div>
 <div class="line">Solution (x):</div>
-<div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real</a> general</div>
+<div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">real</a> general</div>
 <div class="line">19 1</div>
 <div class="line">0.252218</div>
 <div class="line">0.108645</div>
@@ -313,9 +315,9 @@ $(function() {
 <div class="line">0.0121141</div>
 <div class="line">0.0123025</div>
 <div class="line">Residual norm sqrt(r^T r):</div>
-<div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real</a> general</div>
+<div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">real</a> general</div>
 <div class="line">1 1</div>
-<div class="line">1.06135e-15</div>
+<div class="line">6.50306e-16</div>
 </div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
@@ -368,7 +370,7 @@ $(function() {
 <div class="line"><span class="keyword">public</span>:</div>
 <div class="line">    <a class="code" href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a>(parameters, Factory)</div>
 <div class="line">    {</div>
-<div class="line">        std::add_pointer&lt;volatile bool&gt;::type <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(</div>
+<div class="line">        std::add_pointer&lt;volatile bool&gt;::type <a class="code" href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">GKO_FACTORY_PARAMETER_SCALAR</a>(</div>
 <div class="line">            stop_iteration_process, <span class="keyword">nullptr</span>);</div>
 <div class="line">    };</div>
 <div class="line">    GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);</div>
@@ -405,10 +407,12 @@ $(function() {
 <div class="line">                std::shared_ptr&lt;gko::Executor&gt; exec)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> IndexType = int;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
@@ -433,7 +437,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
@@ -486,28 +490,29 @@ $(function() {
 <div class="ttc" id="anamespacegko_html_a3950fc3732811a8563484e5098c31531"><div class="ttname"><a href="namespacegko.html#a3950fc3732811a8563484e5098c31531">gko::uint8</a></div><div class="ttdeci">std::uint8_t uint8</div><div class="ttdoc">8-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:129</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html">gko::log::Stream</a></div><div class="ttdoc">Stream is a Logger which logs every event to a stream.</div><div class="ttdef"><b>Definition:</b> stream.hpp:59</div></div>
+<div class="ttc" id="anamespacegko_html_a85e29870bacc4e660be5acbbf742305e"><div class="ttname"><a href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">gko::real</a></div><div class="ttdeci">constexpr std::enable_if_t&lt;!is_complex_s&lt; T &gt;::value, T &gt; real(const T &amp;x)</div><div class="ttdoc">Returns the real part of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:661</div></div>
 <div class="ttc" id="aclassgko_1_1HipExecutor_html_abee0dc3dfc064c9edbdc02c2b3b11264"><div class="ttname"><a href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_aef0258494d14de0e56149b920c5173e5"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor::get_num_devices</a></div><div class="ttdeci">static int get_num_devices()</div><div class="ttdoc">Get the number of devices present on the system.</div></div>
 <div class="ttc" id="anamespacegko_html_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5"><div class="ttname"><a href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">gko::layout_type::array</a></div><div class="ttdoc">The matrix should be written as dense matrix in column-major order.</div></div>
-<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:135</div></div>
+<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:143</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_aa577135e082f9be20617e9d66209ca25"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1HipExecutor_html_a7b34cbd84692dafa2290e6630754aa97"><div class="ttname"><a href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor::get_num_devices</a></div><div class="ttdeci">static int get_num_devices()</div><div class="ttdoc">Get the number of devices present on the system.</div></div>
-<div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:869</div></div>
 <div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:846</div></div>
 <div class="ttc" id="aclassgko_1_1solver_1_1Bicgstab_html"><div class="ttname"><a href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab</a></div><div class="ttdoc">BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.</div><div class="ttdef"><b>Definition:</b> bicgstab.hpp:76</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga49d4c09c39f06b22bebbbfd1d8bfe450"><div class="ttname"><a href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">GKO_FACTORY_PARAMETER_SCALAR</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)</div><div class="ttdoc">Creates a scalar factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:939</div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
+<div class="ttc" id="anamespacegko_html_adfcb75c44f6b6c701989419c166f6e7e"><div class="ttname"><a href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex</a></div><div class="ttdeci">typename detail::remove_complex_impl&lt; T &gt;::type remove_complex</div><div class="ttdoc">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a compl...</div><div class="ttdef"><b>Definition:</b> math.hpp:175</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="aclassgko_1_1version__info_html_a6daeb8a087cfb57fa055526fc133d8eb"><div class="ttname"><a href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a></div><div class="ttdeci">static const version_info &amp; get()</div><div class="ttdoc">Returns an instance of version_info.</div><div class="ttdef"><b>Definition:</b> version.hpp:168</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:253</div></div>
 <div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array&lt; gko::stopping_status &gt;</a></div></div>
 <div class="ttc" id="anamespacegko_html_a3ce296f73db0ff398bdea6009a3a5c58"><div class="ttname"><a href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">gko::share</a></div><div class="ttdeci">detail::shared_type&lt; OwningPointer &gt; share(OwningPointer &amp;&amp;p)</div><div class="ttdoc">Marks the object pointed to by p as shared.</div><div class="ttdef"><b>Definition:</b> utils.hpp:210</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1Criterion_html"><div class="ttname"><a href="classgko_1_1stop_1_1Criterion.html">gko::stop::Criterion</a></div><div class="ttdoc">The Criterion class is a base class for all stopping criteria.</div><div class="ttdef"><b>Definition:</b> criterion.hpp:64</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:848</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:721</div></div>
-<div class="ttc" id="anamespacegko_html_abcf6f4649ad47679a4e7768156b6dd32"><div class="ttname"><a href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">gko::real</a></div><div class="ttdeci">constexpr xstd::enable_if_t&lt;!is_complex_s&lt; T &gt;::value, T &gt; real(const T &amp;x)</div><div class="ttdoc">Returns the real part of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:666</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:888</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:758</div></div>
 <div class="ttc" id="anamespacegko_html_a0059e27f8f4bc348ff65c1e60caf47c8"><div class="ttname"><a href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">gko::one</a></div><div class="ttdeci">constexpr T one()</div><div class="ttdoc">Returns the multiplicative identity for T.</div><div class="ttdef"><b>Definition:</b> math.hpp:570</div></div>
-<div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:569</div></div>
+<div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:570</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

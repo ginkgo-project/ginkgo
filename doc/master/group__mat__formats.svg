@@ -35,13 +35,13 @@
 <text text-anchor="middle" x="229" y="-128" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Coo</text>
 <text text-anchor="middle" x="229" y="-117" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr</text>
 <text text-anchor="middle" x="229" y="-106" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Dense</text>
-<text text-anchor="middle" x="229" y="-95" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Ell</text>
-<text text-anchor="middle" x="229" y="-84" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
-<text text-anchor="middle" x="229" y="-73" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Identity</text>
-<text text-anchor="middle" x="229" y="-62" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::IdentityFactory</text>
-<text text-anchor="middle" x="229" y="-51" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Permutation</text>
-<text text-anchor="middle" x="229" y="-40" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Sellp</text>
-<text text-anchor="middle" x="229" y="-29" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::SparsityCsr</text>
+<text text-anchor="middle" x="229" y="-95" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Diagonal</text>
+<text text-anchor="middle" x="229" y="-84" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Ell</text>
+<text text-anchor="middle" x="229" y="-73" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
+<text text-anchor="middle" x="229" y="-62" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Identity</text>
+<text text-anchor="middle" x="229" y="-51" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::IdentityFactory</text>
+<text text-anchor="middle" x="229" y="-40" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Permutation</text>
+<text text-anchor="middle" x="229" y="-29" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Sellp</text>
 <text text-anchor="middle" x="229" y="-18" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">...</text>
 </g>
 <!-- Node2&#45;&gt;Node1 -->

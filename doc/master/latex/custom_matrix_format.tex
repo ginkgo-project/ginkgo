@@ -280,6 +280,7 @@ Some shortcuts
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -308,12 +309,20 @@ Figure out where to run the code
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
-\DoxyCodeLine{std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\DoxyCodeLine{std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    exec\_map\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                              \textcolor{keyword}{true});}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                             \textcolor{keyword}{true});}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \end{DoxyCode}
 
 
@@ -321,7 +330,7 @@ executor where Ginkgo will perform the computation
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string)();  \textcolor{comment}{// throws if not valid}}
 \end{DoxyCode}
 
 
@@ -329,7 +338,7 @@ executor used by the application
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec-\/>get\_master();}
 \end{DoxyCode}
 
 
@@ -338,7 +347,7 @@ problem\+:
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{auto} correct\_u = [](ValueType x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
-\DoxyCodeLine{\textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType(6) * x; \};}
+\DoxyCodeLine{\textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType\{6\} * x; \};}
 \DoxyCodeLine{\textcolor{keyword}{auto} u0 = correct\_u(0);}
 \DoxyCodeLine{\textcolor{keyword}{auto} u1 = correct\_u(1);}
 \end{DoxyCode}
@@ -355,7 +364,7 @@ initialize vectors
 \DoxyCodeLine{    u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keyword}{const} ValueType reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{\textcolor{keyword}{const} RealValueType reduction\_factor\{1e-\/7\};}
 \end{DoxyCode}
 
 
@@ -592,6 +601,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -608,18 +618,26 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100u;}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
-\DoxyCodeLine{    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\DoxyCodeLine{    std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{        exec\_map\{}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                                  \textcolor{keyword}{true});}
+\DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
+\DoxyCodeLine{                                                 \textcolor{keyword}{true});}
+\DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string)();  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec-\/>get\_master();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} correct\_u = [](ValueType x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
-\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType(6) * x; \};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType\{6\} * x; \};}
 \DoxyCodeLine{    \textcolor{keyword}{auto} u0 = correct\_u(0);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} u1 = correct\_u(1);}
 \DoxyCodeLine{}
@@ -630,7 +648,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{        u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} ValueType reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} RealValueType reduction\_factor\{1e-\/7\};}
 \DoxyCodeLine{    cg::build()}
 \DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
 \DoxyCodeLine{                           .with\_max\_iters(discretization\_points)}

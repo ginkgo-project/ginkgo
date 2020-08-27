@@ -77,6 +77,8 @@ void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d
 \begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a626c07541641bcdfd9a7f61322a89cbe}{write}} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
 \begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a199565373adafb3c9a4e983810c582ea}{extract\+\_\+diagonal}} () const override
+\begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a9cd9c8b8dbf8b3c2c014f355faa61474}{get\+\_\+ell\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns the values of the ell part. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_af792e702c3650f4e77e8cb256250f21e}{get\+\_\+const\+\_\+ell\+\_\+values}} () const noexcept
@@ -246,6 +248,26 @@ Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th 
 \begin{DoxyNote}{Note}
 the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
 \end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a199565373adafb3c9a4e983810c582ea}\label{classgko_1_1matrix_1_1Hybrid_a199565373adafb3c9a4e983810c582ea}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!extract\_diagonal@{extract\_diagonal}}
+\index{extract\_diagonal@{extract\_diagonal}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{extract\_diagonal()}{extract\_diagonal()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::extract\+\_\+diagonal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Extracts the diagonal entries of the matrix into a vector. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em diag} & the vector into which the diagonal will be written \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}}.
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ab637e1576b6449407ee2b57ac203e0f7}\label{classgko_1_1matrix_1_1Hybrid_ab637e1576b6449407ee2b57ac203e0f7}} 
 \index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_coo\_col\_idxs@{get\_const\_coo\_col\_idxs}}
 \index{get\_const\_coo\_col\_idxs@{get\_const\_coo\_col\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
@@ -576,5 +598,5 @@ Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (32a629d5b)\item 
-ginkgo/core/matrix/hybrid.\+hpp (27fe64a0c)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp\item 
+ginkgo/core/matrix/hybrid.\+hpp\end{DoxyCompactItemize}

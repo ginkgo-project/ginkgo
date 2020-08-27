@@ -1,7 +1,5 @@
 <map id="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;::parameters_type" name="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;::parameters_type">
-<area shape="rect" id="node1" title=" " alt="" coords="816,44,993,100"/>
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title=" " alt="" coords="481,7,669,63"/>
-<area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="5,7,244,63"/>
-<area shape="rect" id="node4" title=" " alt="" coords="491,87,660,129"/>
-<area shape="rect" id="node5" title="STL class." alt="" coords="46,95,203,121"/>
+<area shape="rect" id="node1" title=" " alt="" coords="36,244,213,300"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title=" " alt="" coords="31,139,219,195"/>
+<area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="5,5,244,61"/>
 </map>

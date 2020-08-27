@@ -162,10 +162,12 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Convertible\+To$<$ Csr$<$ Value\+Type, int32 $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Convertible\+To$<$ Csr$<$ Value\+Type, int64 $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Convertible\+To$<$ Dense$<$ next\+\_\+precision$<$ Value\+Type $>$ $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
 \begin{DoxyCompactList}
@@ -185,6 +187,16 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::matrix\+::Ell$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Ell}}{}
 \item \contentsline{section}{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Hybrid}}{}
 \item \contentsline{section}{gko\+::matrix\+::Sellp$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Sellp}}{}
+\end{DoxyCompactList}
+\item \contentsline{section}{gko\+::Convertible\+To$<$ Diagonal$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+::Enable\+Polymorphic\+Assignment$<$ Diagonal$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnablePolymorphicAssignment}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+::Enable\+Lin\+Op$<$ Diagonal$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
+\end{DoxyCompactList}
+\end{DoxyCompactList}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Convertible\+To$<$ Ell$<$ next\+\_\+precision$<$ Value\+Type $>$, Index\+Type $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
 \begin{DoxyCompactList}
@@ -431,6 +443,15 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::stop\+::Criterion\+Args}{\pageref{structgko_1_1stop_1_1CriterionArgs}}{}
 \item \contentsline{section}{gko\+::matrix\+::Csr\+Builder$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1CsrBuilder}}{}
 \item \contentsline{section}{gko\+::default\+\_\+converter$<$ S, R $>$}{\pageref{structgko_1_1default__converter}}{}
+\item \contentsline{section}{gko\+::Diagonal\+Extractable$<$ Value\+Type $>$}{\pageref{classgko_1_1DiagonalExtractable}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+::matrix\+::Coo$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Coo}}{}
+\item \contentsline{section}{gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Csr}}{}
+\item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Ell$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Ell}}{}
+\item \contentsline{section}{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Hybrid}}{}
+\item \contentsline{section}{gko\+::matrix\+::Sellp$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Sellp}}{}
+\end{DoxyCompactList}
 \item \contentsline{section}{gko\+::dim$<$ Dimensionality, Dimension\+Type $>$}{\pageref{structgko_1_1dim}}{}
 \item \contentsline{section}{gko\+::dim$<$ 1u, Dimension\+Type $>$}{\pageref{structgko_1_1dim_3_011u_00_01DimensionType_01_4}}{}
 \item \contentsline{section}{gko\+::dim$<$ 2 $>$}{\pageref{structgko_1_1dim}}{}
@@ -488,6 +509,10 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Enable\+Create\+Method$<$ Dense$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnableCreateMethod}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\end{DoxyCompactList}
+\item \contentsline{section}{gko\+::Enable\+Create\+Method$<$ Diagonal$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnableCreateMethod}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Enable\+Create\+Method$<$ Ell$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableCreateMethod}}{}
 \begin{DoxyCompactList}
@@ -707,6 +732,9 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Enable\+Abstract\+Polymorphic\+Object$<$ Dense$<$ Value\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
 \item \contentsline{section}{gko\+::Enable\+Polymorphic\+Object$<$ Dense$<$ Value\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
 \item \contentsline{section}{gko\+::Enable\+Lin\+Op$<$ Dense$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
+\item \contentsline{section}{gko\+::Enable\+Abstract\+Polymorphic\+Object$<$ Diagonal$<$ Value\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
+\item \contentsline{section}{gko\+::Enable\+Polymorphic\+Object$<$ Diagonal$<$ Value\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
+\item \contentsline{section}{gko\+::Enable\+Lin\+Op$<$ Diagonal$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
 \item \contentsline{section}{gko\+::Enable\+Abstract\+Polymorphic\+Object$<$ Ell$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
 \item \contentsline{section}{gko\+::Enable\+Polymorphic\+Object$<$ Ell$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
 \item \contentsline{section}{gko\+::Enable\+Lin\+Op$<$ Ell$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
@@ -830,10 +858,12 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Readable\+From\+Matrix\+Data$<$ Value\+Type, int32 $>$}{\pageref{classgko_1_1ReadableFromMatrixData}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Readable\+From\+Matrix\+Data$<$ Value\+Type, int64 $>$}{\pageref{classgko_1_1ReadableFromMatrixData}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$}{\pageref{classgko_1_1accessor_1_1row__major}}{}
 \item \contentsline{section}{gko\+::span}{\pageref{structgko_1_1span}}{}
@@ -862,6 +892,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Composition$<$ Value\+Type $>$}{\pageref{classgko_1_1Composition}}{}
 \item \contentsline{section}{gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1Csr}}{}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \item \contentsline{section}{gko\+::matrix\+::Identity$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Identity}}{}
 \item \contentsline{section}{gko\+::matrix\+::Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1matrix_1_1SparsityCsr}}{}
 \item \contentsline{section}{gko\+::preconditioner\+::Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type $>$}{\pageref{classgko_1_1preconditioner_1_1Ilu}}{}
@@ -897,9 +928,11 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+::Writable\+To\+Matrix\+Data$<$ Value\+Type, int32 $>$}{\pageref{classgko_1_1WritableToMatrixData}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+::Writable\+To\+Matrix\+Data$<$ Value\+Type, int64 $>$}{\pageref{classgko_1_1WritableToMatrixData}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+::matrix\+::Dense$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Dense}}{}
+\item \contentsline{section}{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$}{\pageref{classgko_1_1matrix_1_1Diagonal}}{}
 \end{DoxyCompactList}
 \end{DoxyCompactList}
