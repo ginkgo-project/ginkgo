@@ -43,13 +43,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
-
+template <typename ValueIndexType>
 class Rcm : public ::testing::Test {
 protected:
-    using v_type = double;
-    using i_type = int;
+    using v_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using i_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
 
     Rcm()
@@ -58,22 +63,25 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<reorder_type::Factory> rcm_factory;
+    std::unique_ptr<typename reorder_type::Factory> rcm_factory;
 };
 
-TEST_F(Rcm, RcmFactoryKnowsItsExecutor)
+TYPED_TEST_CASE(Rcm, gko::test::ValueIndexTypes);
+
+TYPED_TEST(Rcm, RcmFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(rcm_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->rcm_factory->get_executor(), this->exec);
 }
 
-TEST_F(Rcm, CanBeCopied)
+TYPED_TEST(Rcm, CanBeCopied)
 {
+    using v_type = typename TestFixture::v_type;
     auto rcm =
-        rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
             3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
             this->exec));
     auto rcm_copy =
-        rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
             3, {{1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}},
             this->exec));
 
@@ -85,14 +93,15 @@ TEST_F(Rcm, CanBeCopied)
 }
 
 
-TEST_F(Rcm, CanBeMoved)
+TYPED_TEST(Rcm, CanBeMoved)
 {
+    using v_type = typename TestFixture::v_type;
     auto rcm =
-        rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
             3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
             this->exec));
     auto rcm_move =
-        rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
             3, {{1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}},
             this->exec));
 
@@ -104,10 +113,11 @@ TEST_F(Rcm, CanBeMoved)
 }
 
 
-TEST_F(Rcm, CanBeCloned)
+TYPED_TEST(Rcm, CanBeCloned)
 {
+    using v_type = typename TestFixture::v_type;
     auto rcm =
-        rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
             3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
             this->exec));
 
@@ -118,8 +128,11 @@ TEST_F(Rcm, CanBeCloned)
     ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[2], 0);
 }
 
-TEST_F(Rcm, HasSensibleDefaults)
+TYPED_TEST(Rcm, HasSensibleDefaults)
 {
+    using v_type = typename TestFixture::v_type;
+    using reorder_type = typename TestFixture::reorder_type;
+
     auto rcm = reorder_type::build()
                    .on(this->exec)
                    ->generate(gko::initialize<gko::matrix::Dense<v_type>>(
@@ -131,8 +144,10 @@ TEST_F(Rcm, HasSensibleDefaults)
               gko::reorder::starting_strategy::pseudo_peripheral);
 }
 
-TEST_F(Rcm, CanBeCreatedWithStartingStrategy)
+TYPED_TEST(Rcm, CanBeCreatedWithStartingStrategy)
 {
+    using v_type = typename TestFixture::v_type;
+    using reorder_type = typename TestFixture::reorder_type;
     auto rcm =
         reorder_type::build()
             .with_strategy(gko::reorder::starting_strategy::minimum_degree)
@@ -145,8 +160,10 @@ TEST_F(Rcm, CanBeCreatedWithStartingStrategy)
               gko::reorder::starting_strategy::minimum_degree);
 }
 
-TEST_F(Rcm, CanBeCreatedWithConstructInversePermutation)
+TYPED_TEST(Rcm, CanBeCreatedWithConstructInversePermutation)
 {
+    using v_type = typename TestFixture::v_type;
+    using reorder_type = typename TestFixture::reorder_type;
     auto rcm = reorder_type::build()
                    .with_construct_inverse_permutation(true)
                    .on(this->exec)
