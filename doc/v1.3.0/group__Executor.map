@@ -1,0 +1,7 @@
+<map id="Executors" name="Executors">
+<area shape="rect" id="node1" href="$group__exec__omp.html" title="A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo." alt="" coords="301,23,437,49"/>
+<area shape="rect" id="node2" href="$group__exec__cuda.html" title="A module dedicated to the implementation and usage of the CUDA executor in Ginkgo." alt="" coords="308,87,429,113"/>
+<area shape="rect" id="node3" title="A module dedicated to the implementation and usage of the executors in Ginkgo." alt="" coords="5,134,92,159"/>
+<area shape="rect" id="node4" href="$group__exec__hip.html" title="A module dedicated to the implementation and usage of the HIP executor in Ginkgo." alt="" coords="316,173,421,198"/>
+<area shape="rect" id="node5" href="$group__exec__ref.html" title="A module dedicated to the implementation and usage of the Reference executor in Ginkgo." alt="" coords="295,251,443,277"/>
+</map>

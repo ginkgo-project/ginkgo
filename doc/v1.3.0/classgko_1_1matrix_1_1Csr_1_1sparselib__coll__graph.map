@@ -1,0 +1,4 @@
+<map id="gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib" name="gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib">
+<area shape="rect" id="node1" title="sparselib is a strategy_type which uses the sparselib csr." alt="" coords="5,95,216,136"/>
+<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm." alt="" coords="5,5,216,47"/>
+</map>

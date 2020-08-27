@@ -1,0 +1,29 @@
+<map id="gko::matrix::Sellp&lt; ValueType, IndexType &gt;" name="gko::matrix::Sellp&lt; ValueType, IndexType &gt;">
+<area shape="rect" id="node1" title="SELL&#45;P is a matrix format similar to ELL format." alt="" coords="3099,259,3291,301"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2819,234,3025,275"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2280,423,2504,479"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1792,565,2025,621"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title=" " alt="" coords="1319,625,1410,652"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="728,625,961,666"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,515,453,571"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="711,481,979,537"/>
+<area shape="rect" id="node17" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="713,396,976,452"/>
+<area shape="rect" id="node8" title=" " alt="" coords="5,420,140,447"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1228,489,1501,530"/>
+<area shape="rect" id="node16" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1775,403,2043,445"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1781,297,2037,338"/>
+<area shape="rect" id="node12" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1287,331,1442,387"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="773,163,916,205"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1237,265,1493,306"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1291,199,1438,241"/>
+<area shape="rect" id="node22" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1527,143,1749,199"/>
+<area shape="rect" id="node23" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2067,34,2256,75"/>
+<area shape="rect" id="node24" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2528,91,2771,133"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1781,230,2037,271"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2288,234,2496,275"/>
+<area shape="rect" id="node20" href="$classgko_1_1EnableCreateMethod.html" title=" " alt="" coords="2795,299,3049,341"/>
+<area shape="rect" id="node21" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,..." alt="" coords="2297,503,2487,545"/>
+<area shape="rect" id="node25" href="$classgko_1_1DiagonalExtractable.html" title="The diagonal of a LinOp implementing this interface can be extracted." alt="" coords="2829,365,3015,406"/>
+<area shape="rect" id="node26" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure." alt="" coords="2813,430,3031,471"/>
+<area shape="rect" id="node27" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure." alt="" coords="2825,495,3019,537"/>
+</map>
