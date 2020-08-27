@@ -138,9 +138,9 @@ protected:
      */
     void validate_restrict_parameters(const LinOp *b, LinOp *x) const
     {
-        auto restirct_dim = gko::dim<2>(coarse_dim_, fine_dim_);
-        GKO_ASSERT_CONFORMANT(restirct_dim, b);
-        GKO_ASSERT_EQUAL_ROWS(restirct_dim, x);
+        auto restrict_dim = gko::dim<2>(coarse_dim_, fine_dim_);
+        GKO_ASSERT_CONFORMANT(restrict_dim, b);
+        GKO_ASSERT_EQUAL_ROWS(restrict_dim, x);
         GKO_ASSERT_EQUAL_COLS(b, x);
     }
 
@@ -198,7 +198,7 @@ protected:
     }
 
     /**
-     * Creates a coarse fine.
+     * Creates a RestrictProlong.
      *
      * @param exec  the executor where all the operations are performed
      */
@@ -221,8 +221,7 @@ public:
     std::unique_ptr<RestrictProlong> generate(
         std::shared_ptr<const LinOp> input) const
     {
-        auto generated = AbstractFactory::generate(input);
-        return generated;
+        return AbstractFactory::generate(input);
     }
 };
 

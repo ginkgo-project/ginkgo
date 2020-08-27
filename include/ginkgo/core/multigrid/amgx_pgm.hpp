@@ -55,7 +55,12 @@ namespace multigrid {
  * contains size = 2 version.
  *
  * AmgxPgm creates the aggreagate group according to the matrix value not the
- * structure.
+ * structure. AmgxPgm gives two steps (one-phase handshaking) to group the
+ * elements.
+ * 1: get the strongest neighbor of each unaggregated element.
+ * 2: group the elements whose strongest neighbor is each other.
+ * repeating until reaching the given conditions. After that, assigns the
+ * unaggregated elements to aggregated group or stay alone.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -108,7 +113,7 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The maximum number of iteration.
+         * The maximum number of iterations.
          */
         unsigned GKO_FACTORY_PARAMETER(max_iterations, 15u);
 
@@ -119,6 +124,10 @@ public:
 
         /**
          * Use the deterministic assign_to_exist_agg method or not.
+         *
+         * If the deterministic is true, always get the same aggregated group
+         * from the same matrix. Otherwise, the aggregated group might be
+         * differenet depending on the execution ordering.
          */
         bool GKO_FACTORY_PARAMETER(deterministic, false);
     };
