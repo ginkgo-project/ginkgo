@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
-#include <immintrin.h>
 #include <algorithm>
 #include <cstring>
 #include <iterator>
@@ -68,6 +67,12 @@ namespace omp {
  */
 namespace rcm {
 
+
+#if defined(__x86_64__) && (defined(__GNUG__) || defined(__clang__)))
+#define GKO_MM_PAUSE() asm("rep nop" :::);
+#else
+#define GKO_MM_PAUSE()  // No equivalent instruction.
+#endif
 
 template <typename IndexType>
 void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
@@ -177,7 +182,7 @@ struct UbfsLinearQueue {
                 }
 
                 // No measureable effect on performance.
-                _mm_pause();
+                GKO_MM_PAUSE();
             }
 
             // Recalculate the chunk size, now that all threads are finished.
@@ -582,7 +587,7 @@ gko::vector<IndexType> compute_level_offsets(
 /**
  * Helper macros for the helper function below.
  */
-#ifdef __GNUG__
+#if defined(__GNUG__) && defined(__x86_64__)
 // GCC can only be convinced to use cmovs here by inline asm.
 #define GKO_COMPARATOR(x, y)                                       \
     {                                                              \
@@ -699,7 +704,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp atomic read
                 written = perm[base_offset + read_offset];
                 while (written == std::numeric_limits<IndexType>::max()) {
-                    _mm_pause();
+                    GKO_MM_PAUSE();
 #pragma omp atomic read
                     written = perm[base_offset + read_offset];
                 }
@@ -890,4 +895,5 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
 }  // namespace kernels
 }  // namespace gko
 
+#undef GKO_MM_PAUSE
 #undef GKO_COMPARATOR
