@@ -94,7 +94,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>, ReorderingBase>,
-      public ConvertibleTo<Rcm<ValueType, IndexType>> {
+      public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Rcm, ReorderingBase>;
 
 public:
@@ -152,38 +152,6 @@ public:
     GKO_ENABLE_REORDERING_BASE_FACTORY(Rcm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    /**
-     * Copies this Rcm into another Rcm.
-     *
-     * @param result  the object used to emplace the result of the conversion
-     */
-    void convert_to(Rcm<ValueType, IndexType> *result) const
-    {
-        result->permutation_ =
-            PermutationMatrix::create(*this->permutation_.get());
-        result->inv_permutation_ =
-            !this->inv_permutation_
-                ? nullptr
-                : PermutationMatrix::create(*this->inv_permutation_.get());
-        result->degrees_ = std::unique_ptr<gko::Array<IndexType>>(
-            new gko::Array<IndexType>(*this->degrees_.get()));
-        result->adjacency_matrix_ =
-            std::make_shared<SparsityMatrix>(*this->adjacency_matrix_.get());
-        result->parameters_.strategy = this->parameters_.strategy;
-        result->parameters_.construct_inverse_permutation =
-            this->parameters_.construct_inverse_permutation;
-    }
-
-    /**
-     * Moves this Rcm into another Rcm.
-     *
-     * @param result  the object used to emplace the result of the conversion
-     */
-    void move_to(Rcm<ValueType, IndexType> *result)
-    {
-        *result = std::move(*this);
-    }
-
 protected:
     /**
      * Generates the permutation matrix and if required the inverse permutation
@@ -230,7 +198,7 @@ protected:
 private:
     std::shared_ptr<SparsityMatrix> adjacency_matrix_;
     std::shared_ptr<PermutationMatrix> permutation_;
-    std::unique_ptr<Array<IndexType>> degrees_;
+    std::shared_ptr<Array<IndexType>> degrees_;
     std::shared_ptr<PermutationMatrix> inv_permutation_;
 };
 
