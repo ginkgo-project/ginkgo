@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-
+#include "third_party/benchmark_wrappers.hpp"
 
 using etype = double;
 #ifdef GKO_SPGEMM_LONG
@@ -63,30 +63,74 @@ using itype = gko::int32;
 const auto benchmark_name = "spgemm";
 #endif
 using Mtx = gko::matrix::Csr<etype, itype>;
+using mat_data = gko::matrix_data<etype, itype>;
 
 const std::map<std::string,
-               const std::function<std::shared_ptr<Mtx::strategy_type>(
-                   std::shared_ptr<gko::Executor>)>>
-    strategy_map{{"onepass",
-                  [](std::shared_ptr<gko::Executor> exec) {
-                      // prevent double-free on executors/sparselib handles
-                      if (dynamic_cast<gko::HipExecutor *>(exec.get())) {
-                          return std::make_shared<Mtx::load_balance>(
-                              gko::as<gko::HipExecutor>(exec));
-                      }
-                      if (dynamic_cast<gko::CudaExecutor *>(exec.get())) {
-                          return std::make_shared<Mtx::load_balance>(
-                              gko::as<gko::CudaExecutor>(exec));
-                      }
-                      return std::make_shared<Mtx::load_balance>();
-                  }},
-                 {"twopass",
-                  [](std::shared_ptr<gko::Executor>) {
-                      return std::make_shared<Mtx::classical>();
-                  }},
-                 {"sparselib", [](std::shared_ptr<gko::Executor>) {
-                      return std::make_shared<Mtx::sparselib>();
-                  }}};
+               const std::function<std::shared_ptr<gko::LinOp>(
+                   std::shared_ptr<gko::Executor>, const mat_data &)>>
+    format_map{
+        {"multipass",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             // prevent double-free on executors/sparselib handles
+             std::shared_ptr<Mtx::strategy_type> strategy =
+                 dynamic_cast<gko::HipExecutor *>(exec.get())
+                     ? std::make_shared<Mtx::load_balance>(
+                           gko::as<gko::HipExecutor>(exec))
+                     : (dynamic_cast<gko::CudaExecutor *>(exec.get())
+                            ? std::make_shared<Mtx::load_balance>(
+                                  gko::as<gko::CudaExecutor>(exec))
+                            : std::make_shared<Mtx::load_balance>());
+             auto mtx =
+                 Mtx::create(exec, data.size, data.nonzeros.size(), strategy);
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+        {"twopass",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),
+                                    std::make_shared<Mtx::classical>());
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+#ifdef GKO_SPGEMM_HAS_NSPARSE
+        {"nsparse",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = gko::NSparseCsr<etype>::create(exec, data.size);
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+#endif
+#ifdef GKO_SPGEMM_HAS_ACSPGEMM
+        {"acspgemm",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = gko::AcCsr<etype>::create(exec, data.size);
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+#endif
+#ifdef GKO_SPGEMM_HAS_SPECK
+        {"speck",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = gko::SpeckCsr<etype>::create(exec, data.size);
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+#endif
+#ifdef GKO_SPGEMM_HAS_KOKKOS
+        {"kokkos",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = gko::KokkosCsr<etype>::create(exec, data.size);
+             mtx->read(data);
+             return gko::share(mtx);
+         }},
+#endif
+        {"sparselib",
+         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),
+                                    std::make_shared<Mtx::sparselib>());
+             mtx->read(data);
+             return gko::share(mtx);
+         }}};
 
 
 DEFINE_int32(rowlength, 10,
@@ -94,27 +138,53 @@ DEFINE_int32(rowlength, 10,
              "relevant for mode = <sparse|dense>");
 
 
-const std::map<std::string,
-               const std::function<std::shared_ptr<Mtx>(std::shared_ptr<Mtx>)>>
+std::shared_ptr<Mtx> get_csr_base(std::shared_ptr<gko::LinOp> op)
+{
+#ifdef GKO_SPGEMM_HAS_NSPARSE
+    if (dynamic_cast<gko::NSparseCsr<etype> *>(op.get())) {
+        return gko::as<gko::NSparseCsr<etype>>(op)->get_matrix();
+    }
+#endif
+#ifdef GKO_SPGEMM_HAS_ACSPGEMM
+    if (dynamic_cast<gko::AcCsr<etype> *>(op.get())) {
+        return gko::as<gko::AcCsr<etype>>(op)->get_matrix();
+    }
+#endif
+#ifdef GKO_SPGEMM_HAS_SPECK
+    if (dynamic_cast<gko::SpeckCsr<etype> *>(op.get())) {
+        return gko::as<gko::SpeckCsr<etype>>(op)->get_matrix();
+    }
+#endif
+#ifdef GKO_SPGEMM_HAS_KOKKOS
+    if (dynamic_cast<gko::KokkosCsr<etype> *>(op.get())) {
+        return gko::as<gko::KokkosCsr<etype>>(op)->get_matrix();
+    }
+#endif
+    return gko::as<Mtx>(op);
+}
+
+
+const std::map<std::string, const std::function<std::shared_ptr<Mtx>(
+                                std::shared_ptr<gko::LinOp>)>>
     mode_map{
         {"normal",
-         [](std::shared_ptr<Mtx> matrix) {
+         [](std::shared_ptr<gko::LinOp> matrix) {
              return matrix->get_size()[0] == matrix->get_size()[1]
-                        ? matrix
-                        : gko::as<Mtx>(matrix->transpose());
+                        ? get_csr_base(matrix)
+                        : gko::as<Mtx>(get_csr_base(matrix)->transpose());
          }},
         {"transposed",
-         [](std::shared_ptr<Mtx> matrix) {
-             return gko::as<Mtx>(matrix->transpose());
+         [](std::shared_ptr<gko::LinOp> matrix) {
+             return gko::as<Mtx>(get_csr_base(matrix)->transpose());
          }},
         {"sparse",
-         [](std::shared_ptr<Mtx> matrix) {
+         [](std::shared_ptr<gko::LinOp> matrix) {
              auto size = gko::transpose(matrix->get_size());
              // don't expect too much quality from this seed =)
              std::default_random_engine rng(
                  FLAGS_seed ^ (matrix->get_size()[0] << 24) ^
                  (matrix->get_size()[1] << 15) -
-                     matrix->get_num_stored_elements());
+                     get_csr_base(matrix)->get_num_stored_elements());
              std::uniform_real_distribution<etype> val_dist(-1.0, 1.0);
              gko::matrix_data<etype, itype> data{size, {}};
              data.nonzeros.reserve(size[0] * FLAGS_rowlength);
@@ -132,13 +202,13 @@ const std::map<std::string,
              mtx->read(data);
              return gko::share(std::move(mtx));
          }},
-        {"dense", [](std::shared_ptr<Mtx> matrix) {
+        {"dense", [](std::shared_ptr<gko::LinOp> matrix) {
              auto size = gko::dim<2>(matrix->get_size()[1], FLAGS_rowlength);
              // don't expect too much quality from this seed =)
              std::default_random_engine rng(
                  FLAGS_seed ^ (matrix->get_size()[0] << 24) ^
                  (matrix->get_size()[1] << 15) -
-                     matrix->get_num_stored_elements());
+                     get_csr_base(matrix)->get_num_stored_elements());
              std::uniform_real_distribution<etype> dist(-1.0, 1.0);
              gko::matrix_data<etype, itype> data{size, dist, rng};
              data.ensure_row_major_order();
@@ -159,8 +229,35 @@ DEFINE_string(
 
 
 DEFINE_string(
-    strategies, "onepass,twopass,sparselib",
-    "Comma-separated list of SpGEMM strategies: onepass, twopass, sparselib");
+    strategies,
+    "multipass,twopass,sparselib"
+#ifdef GKO_SPGEMM_HAS_NSPARSE
+    ",nsparse"
+#endif
+#ifdef GKO_SPGEMM_HAS_ACSPGEMM
+    ",acspgemm"
+#endif
+#ifdef GKO_SPGEMM_HAS_SPECK
+    ",speck"
+#endif
+#ifdef GKO_SPGEMM_HAS_KOKKOS
+    ",kokkos"
+#endif
+    ,
+    "Comma-separated list of SpGEMM strategies: multipass, twopass, sparselib"
+#ifdef GKO_SPGEMM_HAS_NSPARSE
+    ", nsparse"
+#endif
+#ifdef GKO_SPGEMM_HAS_ACSPGEMM
+    ", acspgemm"
+#endif
+#ifdef GKO_SPGEMM_HAS_SPECK
+    ", speck"
+#endif
+#ifdef GKO_SPGEMM_HAS_KOKKOS
+    ", kokkos"
+#endif
+);
 
 
 DEFINE_bool(compute_work, false, "Compute FLOP and nnz count of the SpGEMM");
@@ -267,9 +364,7 @@ void apply_spgemm(const char *strategy_name,
                           rapidjson::Value(FLAGS_mode.c_str(), allocator),
                           allocator);
 
-        auto mtx = gko::share(Mtx::create(exec));
-        mtx->read(data);
-        mtx->set_strategy(strategy_map.at(strategy_name)(exec));
+        auto mtx = format_map.at(strategy_name)(exec, data);
         auto mtx2 = mode_map.at(FLAGS_mode)(mtx);
         auto res = Mtx::create(
             exec, gko::dim<2>(mtx->get_size()[0], mtx2->get_size()[1]));
