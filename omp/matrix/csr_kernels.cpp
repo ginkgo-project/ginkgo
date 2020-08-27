@@ -785,9 +785,8 @@ void is_sorted_by_column_index(
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
     bool local_is_sorted = true;
-#pragma omp parallel for shared(local_is_sorted)
+#pragma omp parallel for reduction(&& : local_is_sorted)
     for (size_type i = 0; i < size[0]; ++i) {
-#pragma omp flush(local_is_sorted)
         // Skip comparison if any thread detects that it is not sorted
         if (local_is_sorted) {
             for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
@@ -803,6 +802,31 @@ void is_sorted_by_column_index(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto col_idxs = orig->get_const_col_idxs();
+    const auto values = orig->get_const_values();
+    const auto diag_size = diag->get_size()[0];
+    auto diag_values = diag->get_values();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < diag_size; ++row) {
+        for (size_type idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            if (col_idxs[idx] == row) {
+                diag_values[row] = values[idx];
+                break;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace csr

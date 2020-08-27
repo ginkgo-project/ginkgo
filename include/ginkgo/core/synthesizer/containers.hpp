@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
+#include <type_traits>
 
 
 namespace gko {
@@ -94,15 +94,14 @@ struct as_list_impl<type_list<Types...>> {
 };
 
 template <int Start, int End, int Step>
-struct as_list_impl<range<Start, End, Step>, xstd::enable_if_t<(Start < End)>> {
+struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start < End)>> {
     using type = concatenate<
         value_list<int, Start>,
         typename as_list_impl<range<Start + Step, End, Step>>::type>;
 };
 
 template <int Start, int End, int Step>
-struct as_list_impl<range<Start, End, Step>,
-                    xstd::enable_if_t<(Start >= End)>> {
+struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start >= End)>> {
     using type = value_list<int>;
 };
 

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -166,6 +167,24 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Diagonal<ValueType> *x,
+                     matrix::Dense<ValueType> *y)
+{
+    const auto size = y->get_size()[0];
+    const auto grid_dim = ceildiv(size, default_block_size);
+
+    kernel::add_scaled_diag<<<grid_dim, default_block_size>>>(
+        size, as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()),
+        y->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
@@ -378,18 +397,23 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
     auto grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
-        num_rows, slice_size, slice_num, stride_factor,
-        as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets));
+    if (grid_dim > 0) {
+        kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
+            num_rows, slice_size, slice_num, stride_factor,
+            as_cuda_type(nnz_per_row.get_const_data()),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets));
+    }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, slice_size, stride,
-        as_cuda_type(source->get_const_values()), as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets), as_cuda_type(col_idxs), as_cuda_type(vals));
+    if (grid_dim > 0) {
+        kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
+            num_rows, num_cols, slice_size, stride,
+            as_cuda_type(source->get_const_values()),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
+            as_cuda_type(col_idxs), as_cuda_type(vals));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -465,10 +489,12 @@ void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
     auto rows_per_block = ceildiv(default_block_size, config::warp_size);
     const size_t grid_x = ceildiv(source->get_size()[0], rows_per_block);
     const dim3 grid_size(grid_x, 1, 1);
-    kernel::count_nnz_per_row<<<grid_size, block_size>>>(
-        source->get_size()[0], source->get_size()[1], source->get_stride(),
-        as_cuda_type(source->get_const_values()),
-        as_cuda_type(result->get_data()));
+    if (grid_x > 0) {
+        kernel::count_nnz_per_row<<<grid_size, block_size>>>(
+            source->get_size()[0], source->get_size()[1], source->get_stride(),
+            as_cuda_type(source->get_const_values()),
+            as_cuda_type(result->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -482,6 +508,12 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows == 0) {
+        *result = 0;
+        return;
+    }
+
     const auto num_cols = source->get_size()[1];
     const auto slice_num = ceildiv(num_rows, slice_size);
 
@@ -653,6 +685,20 @@ void inverse_column_permute(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType>
+void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
+    kernel::extract_diagonal<<<grid_dim, default_block_size>>>(
+        orig->get_size()[0], as_cuda_type(orig->get_const_values()),
+        orig->get_stride(), as_cuda_type(diag->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace dense

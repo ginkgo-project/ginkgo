@@ -60,8 +60,16 @@ std::string available_format =
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
 #ifdef HAS_CUDA
-    ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
-    "cusp_hybrid"
+    ", cusp_csr, cusp_csrex, cusp_coo"
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+    ", cusp_csrmp, cusp_csrmm, cusp_ell, cusp_hybrid"
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+    ", cusp_gcsr, cusp_gcsr2, cusp_gcoo"
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
@@ -88,17 +96,23 @@ std::string format_description =
     "hybridminstorage: Hybrid uses the minimal storage to store the matrix."
 #ifdef HAS_CUDA
     "\n"
-    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
-    "partition.\n"
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
     "partition.\n"
-    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
     "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
-    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
+    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
-    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
-    !(defined(_WIN32) || defined(__CYGWIN__))
+    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n"
+    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
+    "partition.\n"
+#else  // CUDA_VERSION >= 11000
+    "cusp_csr: is an alias of cusp_gcsr.\n"
+    "cusp_coo: is an alias of cusp_gcoo.\n"
+#endif
+    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function."
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
     "\n"
     "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
     "algorithm.\n"
@@ -106,8 +120,8 @@ std::string format_description =
     "CUSPARSE_CSRMV_ALG2.\n"
     "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
     "algorithm.\n"
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
-        // !(defined(_WIN32) || defined(__CYGWIN__))
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     "\n"
@@ -187,20 +201,27 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
 #ifdef HAS_CUDA
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         {"cusp_csr", read_matrix_from_data<cusp_csr>},
         {"cusp_csrmp", read_matrix_from_data<cusp_csrmp>},
-        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
         {"cusp_csrmm", read_matrix_from_data<cusp_csrmm>},
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
-    !(defined(_WIN32) || defined(__CYGWIN__))
+#else // CUDA_VERSION >= 11000
+        // cusp_csr, cusp_coo use the generic ones from CUDA 11
+        {"cusp_csr", read_matrix_from_data<cusp_gcsr>},
+        {"cusp_coo", read_matrix_from_data<cusp_gcoo>},
+#endif
+        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
         {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
         {"cusp_gcsr2", read_matrix_from_data<cusp_gcsr2>},
         {"cusp_gcoo", read_matrix_from_data<cusp_gcoo>},
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
-        // !(defined(_WIN32) || defined(__CYGWIN__))
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
         {"hipsp_csr", read_matrix_from_data<hipsp_csr>},

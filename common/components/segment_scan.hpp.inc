@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * performs suffix sum. Works on the source array and returns whether the thread
  * is the first element of its segment with same `ind`.
  */
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <unsigned subwarp_size, typename ValueType, typename IndexType>
 __device__ __forceinline__ bool segment_scan(
     const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
     ValueType *__restrict__ val)

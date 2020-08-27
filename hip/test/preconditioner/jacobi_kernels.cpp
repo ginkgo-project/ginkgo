@@ -315,7 +315,7 @@ TEST_F(Jacobi, HipPreconditionerEquivalentToRefWithBlockSize64)
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
-#endif
+#endif  // GINKGO_HIP_PLATFORM_HCC
 
 
 TEST_F(Jacobi, HipPreconditionerEquivalentToRefWithDifferentBlockSize)
@@ -395,7 +395,7 @@ TEST_F(Jacobi, HipApplyEquivalentToRefWithBlockSize64)
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
-#endif
+#endif  // GINKGO_HIP_PLATFORM_HCC
 
 
 TEST_F(Jacobi, HipApplyEquivalentToRefWithDifferentBlockSize)

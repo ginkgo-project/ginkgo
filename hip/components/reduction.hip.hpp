@@ -34,12 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_
 
 
+#include <type_traits>
+
+
 #include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 #include "hip/base/types.hip.hpp"
@@ -74,11 +76,12 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 {
     auto block_results_val = source;
     size_type grid_dim = size;
+    auto block_results = Array<ValueType>(exec);
     if (size > default_block_size) {
         const auto n = ceildiv(size, default_block_size);
         grid_dim = (n <= default_block_size) ? n : default_block_size;
 
-        auto block_results = Array<ValueType>(exec, grid_dim);
+        block_results.resize_and_reset(grid_dim);
 
         hipLaunchKernelGGL(
             reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,

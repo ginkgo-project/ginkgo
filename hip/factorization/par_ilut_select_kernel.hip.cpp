@@ -123,7 +123,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         reinterpret_cast<AbsType *>(tmp1.get_data() + tmp_size_totals +
                                     tmp_size_partials + tmp_size_oracles);
 
-    sampleselect_count(values, size, tree, oracles, partial_counts,
+    sampleselect_count(exec, values, size, tree, oracles, partial_counts,
                        total_counts);
 
     // determine bucket with correct rank, use bucket-local rank
@@ -147,8 +147,8 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         const auto *tmp_in = tmp21;
         auto tmp_out = tmp22;
 
-        sampleselect_count(tmp_in, bucket.size, tree, oracles, partial_counts,
-                           total_counts);
+        sampleselect_count(exec, tmp_in, bucket.size, tree, oracles,
+                           partial_counts, total_counts);
         auto new_bucket = sampleselect_find_bucket(exec, total_counts, rank);
         sampleselect_filter(tmp_in, bucket.size, oracles, partial_counts,
                             bucket.idx, tmp_out);

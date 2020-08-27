@@ -132,19 +132,19 @@ public:
          * Criterion factories.
          */
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
          * Preconditioner factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             preconditioner, nullptr);
 
         /**
          * Already generated preconditioner. If one is provided, the factory
          * `preconditioner` will be ignored.
          */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_preconditioner, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bicgstab, parameters, Factory);

@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 #include "cuda/components/cooperative_groups.cuh"
@@ -101,7 +100,11 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
         exec->get_num_warps_per_sm() * config::warp_size / subwarp_size;
     size_type nwarps_in_cuda = exec->get_num_multiprocessor() * warps_per_sm;
     size_type multiple = 8;
-    if (nnz >= 2e6) {
+    if (nnz >= 2e8) {
+        multiple = 2048;
+    } else if (nnz >= 2e7) {
+        multiple = 512;
+    } else if (nnz >= 2e6) {
         multiple = 128;
     } else if (nnz >= 2e5) {
         multiple = 32;

@@ -6,6 +6,68 @@ commits. For a comprehensive list, use the following command:
 git log --first-parent
 ```
 
+## Version 1.3.0
+
+The Ginkgo team is proud to announce the new minor release of Ginkgo version
+1.3.0. This release brings CUDA 11 support, changes the default C++ standard to
+be C++14 instead of C++11, adds a new Diagonal matrix format and capacity for
+diagonal extraction, significantly improves the CMake configuration output
+format, adds the Ginkgo paper which got accepted into the Journal of Open Source
+Software (JOSS), and fixes multiple issues.
+
+Supported systems and requirements:
++ For all platforms, cmake 3.9+
++ Linux and MacOS
+  + gcc: 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + clang: 3.9+
+  + Intel compiler: 2017+
+  + Apple LLVM: 8.0+
+  + CUDA module: CUDA 9.0+
+  + HIP module: ROCm 2.8+
++ Windows
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + Microsoft Visual Studio: VS 2017 15.7+
+  + CUDA module: CUDA 9.0+, Microsoft Visual Studio
+  + OpenMP module: MinGW or Cygwin.
+
+
+The current known issues can be found in the [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
+
+
+### Additions
++ Add paper for Journal of Open Source Software (JOSS). [#479](https://github.com/ginkgo-project/ginkgo/pull/479)
++ Add a DiagonalExtractable interface. [#563](https://github.com/ginkgo-project/ginkgo/pull/563)
++ Add a new diagonal Matrix Format. [#580](https://github.com/ginkgo-project/ginkgo/pull/580)
++ Add Cuda11 support. [#603](https://github.com/ginkgo-project/ginkgo/pull/603)
++ Add information output after CMake configuration. [#610](https://github.com/ginkgo-project/ginkgo/pull/610)
++ Add a new preconditioner export example. [#595](https://github.com/ginkgo-project/ginkgo/pull/595)
++ Add a new cuda-memcheck CI job. [#592](https://github.com/ginkgo-project/ginkgo/pull/592)
+
+### Changes
++ Use unified memory in CUDA debug builds. [#621](https://github.com/ginkgo-project/ginkgo/pull/621)
++ Improve `BENCHMARKING.md` with more detailed info. [#619](https://github.com/ginkgo-project/ginkgo/pull/619)
++ Use C++14 standard instead of C++11. [#611](https://github.com/ginkgo-project/ginkgo/pull/611)
++ Update the Ampere sm information and CudaArchitectureSelector. [#588](https://github.com/ginkgo-project/ginkgo/pull/588)
+
+### Fixes
++ Fix documentation warnings and errors. [#624](https://github.com/ginkgo-project/ginkgo/pull/624)
++ Fix warnings for diagonal matrix format. [#622](https://github.com/ginkgo-project/ginkgo/pull/622)
++ Fix criterion factory parameters in CUDA. [#586](https://github.com/ginkgo-project/ginkgo/pull/586)
++ Fix the norm-type in the examples. [#612](https://github.com/ginkgo-project/ginkgo/pull/612)
++ Fix the WAW race in OpenMP is_sorted_by_column_index. [#617](https://github.com/ginkgo-project/ginkgo/pull/617)
++ Fix the example's exec_map by creating the executor only if requested. [#602](https://github.com/ginkgo-project/ginkgo/pull/602)
++ Fix some CMake warnings. [#614](https://github.com/ginkgo-project/ginkgo/pull/614)
++ Fix Windows building documentation. [#601](https://github.com/ginkgo-project/ginkgo/pull/601)
++ Warn when CXX and CUDA host compiler do not match. [#607](https://github.com/ginkgo-project/ginkgo/pull/607)
++ Fix reduce_add, prefix_sum, and doc-build. [#593](https://github.com/ginkgo-project/ginkgo/pull/593)
++ Fix find_library(cublas) issue on machines installing multiple cuda. [#591](https://github.com/ginkgo-project/ginkgo/pull/591)
++ Fix allocator in sellp read. [#589](https://github.com/ginkgo-project/ginkgo/pull/589)
++ Fix the CAS with HIP and NVIDIA backends. [#585](https://github.com/ginkgo-project/ginkgo/pull/585)
+
+### Deletions
++ Remove unused preconditioner parameter in LowerTrs. [#587](https://github.com/ginkgo-project/ginkgo/pull/587)
+
+
 ## Version 1.2.0
 
 The Ginkgo team is proud to announce the new minor release of Ginkgo version
@@ -23,10 +85,10 @@ Supported systems and requirements:
   + CUDA module: CUDA 9.0+
   + HIP module: ROCm 2.8+
 + Windows
-  + MinGW and CygWin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
   + Microsoft Visual Studio: VS 2017 15.7+
   + CUDA module: CUDA 9.0+, Microsoft Visual Studio
-  + OpenMP module: MinGW or CygWin.
+  + OpenMP module: MinGW or Cygwin.
 
 
 The current known issues can be found in the [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).

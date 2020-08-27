@@ -24,7 +24,7 @@ STRIP_FROM_INC_PATH    = @DIR_BASE@/include
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
-INPUT_FILTER           = @DIR_SCRIPT@/filter
+FILTER_PATTERNS        = *.cpp=@DIR_SCRIPT@/filter *.hpp=@DIR_SCRIPT@/filter *.cu*=@DIR_SCRIPT@/filter
 FILTER_SOURCE_FILES    = YES
 
 # Parsing options
@@ -55,9 +55,9 @@ MAX_INITIALIZER_LINES  = 30
 SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
-FILE_VERSION_FILTER    = "@DIR_SCRIPT@/doxygen_version_extract.sh @PROJECT_SOURCE_DIR@"
 CITE_BIB_FILES         =
 INHERIT_DOCS           = YES
+USE_MATHJAX            = NO
 
 BUILTIN_STL_SUPPORT    = YES
 
@@ -75,7 +75,7 @@ REFERENCES_LINK_SOURCE = YES
 SOURCE_TOOLTIPS        = YES
 VERBATIM_HEADERS       = YES
 # CLANG_ASSISTED_PARSING = NO
-# CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
+# CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++14
 
 # External references
 ALLEXTERNALS           = NO

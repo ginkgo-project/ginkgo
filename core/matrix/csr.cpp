@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -78,6 +79,8 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
+GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace csr
@@ -461,6 +464,21 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
     bool is_sorted;
     exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
     return is_sorted;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Csr<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(csr::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                   zero<ValueType>()));
+    exec->run(csr::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

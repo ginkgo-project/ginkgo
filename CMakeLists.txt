@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.2.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+# Use *_ROOT environment variables for find_package calls
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
+    cmake_policy(SET CMP0074 NEW)
+endif()
+
+# Let CAS handle the CUDA architecture flags (for now)
+# Windows still gives CMP0104 warning if putting it in cuda.
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+    cmake_policy(SET CMP0104 OLD)
+endif()
+
+project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -29,6 +40,8 @@ option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find 
 option(GINKGO_CHECK_CIRCULAR_DEPS
     "Enable compile-time checks detecting circular dependencies between libraries and non-self-sufficient headers."
     OFF)
+option(GINKGO_CONFIG_LOG_DETAILED
+    "Enable printing of detailed configuration log to screen in addition to the writing of files," OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -249,6 +262,8 @@ include(cmake/information_helpers.cmake)
 ginkgo_interface_information()
 ginkgo_git_information()
 
+include(cmake/get_info.cmake)
+
 if(GINKGO_BUILD_DOC)
     add_subdirectory(doc)
 endif()
@@ -292,3 +307,12 @@ set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")
 set(CPACK_PACKAGE_CONTACT "ginkgo.library@gmail.com")
 include(CPack)
+
+# And finally, print the configuration to screen:
+#
+if(GINKGO_CONFIG_LOG_DETAILED)
+    FILE(READ ${CMAKE_BINARY_DIR}/detailed.log GINKGO_LOG_SUMMARY)
+else()
+    FILE(READ ${CMAKE_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
+endif()
+MESSAGE("${GINKGO_LOG_SUMMARY}")

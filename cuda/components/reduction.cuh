@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 #include "cuda/base/config.hpp"
@@ -72,11 +74,12 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
 {
     auto block_results_val = source;
     size_type grid_dim = size;
+    auto block_results = Array<ValueType>(exec);
     if (size > default_block_size) {
         const auto n = ceildiv(size, default_block_size);
         grid_dim = (n <= default_block_size) ? n : default_block_size;
 
-        auto block_results = Array<ValueType>(exec, grid_dim);
+        block_results.resize_and_reset(grid_dim);
 
         reduce_add_array<<<grid_dim, default_block_size>>>(
             size, as_cuda_type(source), as_cuda_type(block_results.get_data()));

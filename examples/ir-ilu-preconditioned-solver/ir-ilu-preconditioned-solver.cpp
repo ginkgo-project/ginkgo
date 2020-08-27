@@ -44,9 +44,11 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using gmres = gko::solver::Gmres<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
@@ -125,7 +127,7 @@ int main(int argc, char *argv[])
     auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
 
     // Create stopping criteria for Gmres
-    const gko::remove_complex<ValueType> reduction_factor = 1e-12;
+    const RealValueType reduction_factor{1e-12};
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(1000u).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 

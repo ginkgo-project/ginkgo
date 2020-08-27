@@ -135,19 +135,19 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<typename l_solver_type::Factory> GKO_FACTORY_PARAMETER(
-            l_solver_factory, nullptr);
+        std::shared_ptr<typename l_solver_type::Factory>
+            GKO_FACTORY_PARAMETER_SCALAR(l_solver_factory, nullptr);
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
-            u_solver_factory, nullptr);
+        std::shared_ptr<typename u_solver_type::Factory>
+            GKO_FACTORY_PARAMETER_SCALAR(u_solver_factory, nullptr);
 
         /**
          * Factory for the factorization
          */
-        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             factorization_factory, nullptr);
     };
 
@@ -353,8 +353,8 @@ protected:
      * preconditioner.
      */
     template <typename SolverType>
-    static xstd::enable_if_t<has_with_criteria<SolverType>::value,
-                             std::unique_ptr<SolverType>>
+    static std::enable_if_t<has_with_criteria<SolverType>::value,
+                            std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
@@ -377,8 +377,8 @@ protected:
      * @copydoc generate_default_solver
      */
     template <typename SolverType>
-    static xstd::enable_if_t<!has_with_criteria<SolverType>::value,
-                             std::unique_ptr<SolverType>>
+    static std::enable_if_t<!has_with_criteria<SolverType>::value,
+                            std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {

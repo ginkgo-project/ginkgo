@@ -43,9 +43,11 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
@@ -75,7 +77,7 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     // Create solver factory
     auto solver_gen =
         cg::build()
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 

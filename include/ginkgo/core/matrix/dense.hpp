@@ -56,6 +56,9 @@ class Coo;
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType>
+class Diagonal;
+
 template <typename ValueType, typename IndexType>
 class Ell;
 
@@ -100,6 +103,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
               public ConvertibleTo<SparsityCsr<ValueType, int32>>,
               public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+              public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
@@ -113,6 +117,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
     friend class Hybrid<ValueType, int32>;
@@ -238,6 +243,7 @@ public:
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<int64> *inverse_permutation_indices) const override;
 
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

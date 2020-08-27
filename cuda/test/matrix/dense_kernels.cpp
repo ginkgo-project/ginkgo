@@ -43,10 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "cuda/test/utils.hpp"
 
@@ -235,6 +237,29 @@ TEST_F(Dense, MultipleVectorCudaAddScaledWithDifferentAlphaIsEquivalentToRef)
     dx->add_scaled(dalpha.get(), dy.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(532, 532);
+    gko::Array<Mtx::value_type> diag_values(ref, 532);
+    gko::kernels::reference::components::fill_array(ref, diag_values.get_data(),
+                                                    532, Mtx::value_type{2.0});
+    auto diag =
+        gko::matrix::Diagonal<Mtx::value_type>::create(ref, 532, diag_values);
+    alpha = gko::initialize<Mtx>({2.0}, ref);
+    auto dmat = Mtx::create(cuda);
+    dmat->copy_from(mat.get());
+    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(cuda);
+    ddiag->copy_from(diag.get());
+    dalpha = Mtx::create(cuda);
+    dalpha->copy_from(alpha.get());
+
+    mat->add_scaled(alpha.get(), diag.get());
+    dmat->add_scaled(dalpha.get(), ddiag.get());
+
+    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
 }
 
 
@@ -548,6 +573,17 @@ TEST_F(Dense, IsInverseColPermutable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
                         static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
+}
+
+
+TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = x->extract_diagonal();
+    auto ddiag = dx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 

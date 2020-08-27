@@ -2,6 +2,7 @@
 This is the expected output:
 
 @code{.cpp}
+
 Solution (x):
 %%MatrixMarket matrix array real general
 19 1
@@ -24,10 +25,10 @@ Solution (x):
 0.0107016
 0.0121141
 0.0123025
-Residual norm sqrt(r^T r): 
+Residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
-9.08137e-16
+4.82005e-08
 
 @endcode
 

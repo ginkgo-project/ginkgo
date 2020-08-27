@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <
     typename Group, typename ValueType, typename Operator,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ ValueType reduce(const Group &group,
                                             ValueType local_data,
                                             Operator reduce_op = Operator{})
@@ -69,7 +69,7 @@ __device__ __forceinline__ ValueType reduce(const Group &group,
  */
 template <
     typename Group, typename ValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ int choose_pivot(const Group &group,
                                             ValueType local_data,
                                             bool is_pivoted)
@@ -102,7 +102,7 @@ __device__ __forceinline__ int choose_pivot(const Group &group,
  */
 template <
     typename Group, typename ValueType, typename Operator,
-    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+    typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ void reduce(const Group &__restrict__ group,
                        ValueType *__restrict__ data,
                        Operator reduce_op = Operator{})

@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
-
-
 #include "cuda/components/cooperative_groups.cuh"
 
 

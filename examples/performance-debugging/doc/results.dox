@@ -2,86 +2,90 @@
 This is the expected standard output:
 
 @code{.cpp}
-Solution, maximum first ten entries:
+
+Solution, first ten entries:
 [
-        0
-        0
-        0
-        0
-        0
-        0
-        0
-        0
-        0
-        0
+	0.252218
+	0.108645
+	0.0662811
+	0.0630433
+	0.0384088
+	0.0396536
+	0.0402648
+	0.0338935
+	0.0193098
+	0.0234653
 ];
 The performance and residual data can be found in log.txt
+
 @endcode
 
 Here is a sample output in the file log.txt:
 @code{.cpp}
-Generate time (ns): 3596
-Apply time (ns): 253224
+
+Generate time (ns): 861
+Apply time (ns): 108144
 Residual_norm: 2.10788e-15
 Generate operations times (ns):
 Apply operations times (ns):
-        allocate: 40497
-        cg::initialize#8: 2306
-        cg::step_1#5: 29808
-        cg::step_2#7: 32354
-        copy: 16858
-        csr::advanced_spmv#5: 51669
-        csr::spmv#3: 46915
-        dense::compute_dot#3: 28548
-        dense::compute_norm2#2: 45677
-        free: 25109
-        residual_norm::residual_norm#9: 10617
+	allocate: 14991
+	cg::initialize#8: 872
+	cg::step_1#5: 7683
+	cg::step_2#7: 7756
+	copy: 7751
+	csr::advanced_spmv#5: 21819
+	csr::spmv#3: 20429
+	dense::compute_dot#3: 18043
+	dense::compute_norm2#2: 16726
+	free: 8857
+	residual_norm::residual_norm#9: 3614
 Recurrent Residual Norms:
 [
-        4.3589
-        2.30455
-        1.46771
-        0.984875
-        0.741833
-        0.513623
-        0.384165
-        0.316439
-        0.227709
-        0.170312
-        0.0973722
-        0.0616831
-        0.0454123
-        0.031953
-        0.0161606
-        0.00657015
-        0.00264367
-        0.000858809
-        0.000286461
-        1.64195e-15
+	4.3589
+	2.30455
+	1.46771
+	0.984875
+	0.741833
+	0.513623
+	0.384165
+	0.316439
+	0.227709
+	0.170312
+	0.0973722
+	0.0616831
+	0.0454123
+	0.031953
+	0.0161606
+	0.00657015
+	0.00264367
+	0.000858809
+	0.000286461
+	1.64195e-15
 ];
 True Residual Norms:
 [
-        4.3589
-        2.30455
-        1.46771
-        0.984875
-        0.741833
-        0.513623
-        0.384165
-        0.316439
-        0.227709
-        0.170312
-        0.0973722
-        0.0616831
-        0.0454123
-        0.031953
-        0.0161606
-        0.00657015
-        0.00264367
-        0.000858809
-        0.000286461
-        2.10788e-15
+	4.3589
+	2.30455
+	1.46771
+	0.984875
+	0.741833
+	0.513623
+	0.384165
+	0.316439
+	0.227709
+	0.170312
+	0.0973722
+	0.0616831
+	0.0454123
+	0.031953
+	0.0161606
+	0.00657015
+	0.00264367
+	0.000858809
+	0.000286461
+	2.10788e-15
 ];
+
 @endcode
 
 <h3> Comments about programming and debugging </h3>

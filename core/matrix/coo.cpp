@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -61,6 +62,8 @@ GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
+GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace coo
@@ -212,6 +215,21 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
         const auto val = tmp->values_.get_const_data()[i];
         data.nonzeros.emplace_back(row, col, val);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Coo<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(coo::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                   zero<ValueType>()));
+    exec->run(coo::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

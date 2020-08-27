@@ -59,9 +59,9 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
 
 #define GKO_BIND_ATOMIC_HELPER_STRUCTURE(CONVERTER_TYPE)                     \
     template <typename ValueType>                                            \
-    struct atomic_helper<ValueType,                                          \
-                         gko::xstd::enable_if_t<(sizeof(ValueType) ==        \
-                                                 sizeof(CONVERTER_TYPE))>> { \
+    struct atomic_helper<                                                    \
+        ValueType,                                                           \
+        std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> {   \
         __forceinline__ __device__ static ValueType atomic_add(              \
             ValueType *__restrict__ addr, ValueType val)                     \
         {                                                                    \
@@ -88,7 +88,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 #if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
 // CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
-#endif
+#endif  // !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
@@ -125,14 +125,16 @@ GKO_BIND_ATOMIC_ADD(float);
 // CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
 // capability 6.x and higher
 GKO_BIND_ATOMIC_ADD(double);
-#endif
+#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) ||
+        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
 
 #if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
       (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
 // CUDA 10.0 starts supporting 16-bit __half floating-point atomicAdd on devices
 // of compute capability 7.x and higher.
 GKO_BIND_ATOMIC_ADD(__half);
-#endif
+#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) ||
+        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
 
 #if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
       (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
@@ -142,7 +144,8 @@ GKO_BIND_ATOMIC_ADD(__half);
 // elements; the entire __half2 is not guaranteed to be atomic as a single
 // 32-bit access.
 GKO_BIND_ATOMIC_ADD(__half2);
-#endif
+#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) ||
+        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
 
 
 #endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&

@@ -56,7 +56,7 @@ public:
         /**
          * Boolean set by the user to stop the iteration process
          */
-        std::add_pointer<volatile bool>::type GKO_FACTORY_PARAMETER(
+        std::add_pointer<volatile bool>::type GKO_FACTORY_PARAMETER_SCALAR(
             stop_iteration_process, nullptr);
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
@@ -94,10 +94,12 @@ void run_solver(volatile bool *stop_iteration_process,
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using bicg = gko::solver::Bicgstab<ValueType>;
 
     // Read Data
@@ -126,7 +128,7 @@ void run_solver(volatile bool *stop_iteration_process,
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 

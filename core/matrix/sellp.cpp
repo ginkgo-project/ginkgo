@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -55,6 +56,8 @@ GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
+GKO_REGISTER_OPERATION(extract_diagonal, sellp::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace sellp
@@ -196,7 +199,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Allocate space for slice_cols.
     size_type slice_num =
         static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    vector<size_type> slice_lengths(slice_num, 0, {this->get_executor()});
+    vector<size_type> slice_lengths(slice_num, 0,
+                                    {this->get_executor()->get_master()});
 
     // Get the number of maximum columns for every slice.
     auto total_cols =
@@ -282,6 +286,21 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
             }
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Sellp<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(sellp::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                     zero<ValueType>()));
+    exec->run(sellp::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

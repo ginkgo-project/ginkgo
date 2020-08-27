@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -64,6 +65,12 @@ namespace kernels {
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::Dense<_type> *alpha,           \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
+
+#define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type)               \
+    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
+                         const matrix::Dense<_type> *alpha,           \
+                         const matrix::Diagonal<_type> *x,            \
+                         matrix::Dense<_type> *y)
 
 #define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
@@ -160,6 +167,11 @@ namespace kernels {
                                 const matrix::Dense<_vtype> *orig,           \
                                 matrix::Dense<_vtype> *column_permuted)
 
+#define GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL(_vtype)                    \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::Dense<_vtype> *orig,           \
+                          matrix::Diagonal<_vtype> *diag)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                       \
@@ -169,6 +181,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                              \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                         \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                    \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
     template <typename ValueType>                                           \
@@ -204,7 +218,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL(ValueType)
 
 
 namespace omp {

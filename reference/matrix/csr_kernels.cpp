@@ -623,7 +623,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
     IndexType max_nnz = 0;
 
     for (size_type i = 0; i < num_rows; i++) {
-        max_nnz = max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
+        max_nnz = std::max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
     }
 
     *result = max_nnz;
@@ -881,6 +881,30 @@ void is_sorted_by_column_index(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto col_idxs = orig->get_const_col_idxs();
+    const auto values = orig->get_const_values();
+    const auto diag_size = diag->get_size()[0];
+    auto diag_values = diag->get_values();
+
+    for (size_type row = 0; row < diag_size; ++row) {
+        for (size_type idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            if (col_idxs[idx] == row) {
+                diag_values[row] = values[idx];
+                break;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace csr

@@ -60,8 +60,8 @@ public:
         /**
          * Amount of seconds to wait (default value: 10 seconds)
          */
-        std::chrono::nanoseconds GKO_FACTORY_PARAMETER(time_limit,
-                                                       10000000000LL);
+        std::chrono::nanoseconds GKO_FACTORY_PARAMETER_SCALAR(time_limit,
+                                                              10000000000LL);
     };
     GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

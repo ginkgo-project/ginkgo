@@ -128,7 +128,8 @@ struct bitonic_warp {
 
     __forceinline__ __device__ static void merge(ValueType *els, bool reverse)
     {
-        auto tile = group::thread_block_tile<num_threads>{};
+        auto tile =
+            group::tiled_partition<num_threads>(group::this_thread_block());
         auto new_reverse = reverse != upper_half();
         for (auto i = 0; i < num_local; ++i) {
             auto other = tile.shfl_xor(els[i], num_threads / 2);

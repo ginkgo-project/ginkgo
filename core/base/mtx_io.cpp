@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <regex>
 #include <string>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -165,7 +166,7 @@ private:
 
     private:
         template <typename T>
-        static xstd::enable_if_t<is_complex_s<T>::value> write_entry_impl(
+        static std::enable_if_t<is_complex_s<T>::value> write_entry_impl(
             std::ostream &, const T &)
         {
             throw GKO_STREAM_ERROR(
@@ -173,7 +174,7 @@ private:
         }
 
         template <typename T>
-        static xstd::enable_if_t<!is_complex_s<T>::value> write_entry_impl(
+        static std::enable_if_t<!is_complex_s<T>::value> write_entry_impl(
             std::ostream &os, const T &value)
         {
             GKO_CHECK_STREAM(os << static_cast<double>(value),
@@ -214,7 +215,7 @@ private:
 
     private:
         template <typename T>
-        static xstd::enable_if_t<is_complex_s<T>::value, T> read_entry_impl(
+        static std::enable_if_t<is_complex_s<T>::value, T> read_entry_impl(
             std::istream &is)
         {
             using real_type = remove_complex<T>;
@@ -226,7 +227,7 @@ private:
         }
 
         template <typename T>
-        static xstd::enable_if_t<!is_complex_s<T>::value, T> read_entry_impl(
+        static std::enable_if_t<!is_complex_s<T>::value, T> read_entry_impl(
             std::istream &)
         {
             throw GKO_STREAM_ERROR(

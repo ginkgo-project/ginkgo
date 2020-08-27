@@ -73,6 +73,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Ell>;
@@ -106,6 +107,8 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns the values of the matrix.

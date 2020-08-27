@@ -22,6 +22,7 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
+  CONFIG_LOG: "ON"
   CXX_FLAGS: ""
   EXTRA_CMAKE_FLAGS: ""
 
@@ -59,6 +60,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
   dependencies: []
   except:
@@ -84,6 +86,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
@@ -199,7 +202,7 @@ build/cuda91/clang/all/release/shared:
 
 
 # cuda 9.2 and friends
-build/cuda92/gcc/all/release/shared:
+build/cuda92/gcc/all/release/debug:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
@@ -208,27 +211,6 @@ build/cuda92/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
-build/cuda92/clang/all/debug/static:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
-  variables:
-    <<: *default_variables
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
     variables:
@@ -357,26 +339,6 @@ build/cuda101/clang/all/release/static:
     - cuda
     - gpu
 
-build/cuda101/intel/cuda/debug/static:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
 # clang-cuda with cuda 10.1 and friends
 build/clang-cuda101/gcc/all/release/shared:
   <<: *default_build_with_test
@@ -405,6 +367,124 @@ build/clang-cuda101/clang/cuda/debug/static:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     CUDA_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+# cuda 10.2 and friends
+build/cuda102/gcc/all/debug/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Debug"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/cuda102/clang/all/release/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/cuda102/intel/cuda/debug/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
+  variables:
+    <<: *default_variables
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+# cuda 11.0 and friends
+build/cuda110/gcc/cuda/debug/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/cuda110/clang/cuda/release/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/cuda110/intel/cuda/debug/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
+  variables:
+    <<: *default_variables
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
@@ -839,6 +919,25 @@ undefinedsanitizer:
     - cuda
     - gpu
 
+cudamemcheck:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  before_script: *default_before_script
+  script:
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
+      -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+      - tags
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
 
 # Benchmark build
 .benchmark_before_script_template: &default_benchmark_before_script

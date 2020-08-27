@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -62,6 +63,7 @@ GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
@@ -82,6 +84,7 @@ GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
+GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
 
 
 }  // namespace dense
@@ -248,6 +251,14 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
+
+    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+        exec->run(dense::make_add_scaled_diag(
+            as<Dense<ValueType>>(alpha),
+            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+        return;
+    }
+
     exec->run(dense::make_add_scaled(as<Dense<ValueType>>(alpha),
                                      as<Dense<ValueType>>(b), this));
 }
@@ -726,6 +737,18 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
         inverse_permutation_indices, this, inverse_permute_cpy.get()));
 
     return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(dense::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

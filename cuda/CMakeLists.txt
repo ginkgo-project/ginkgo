@@ -29,7 +29,7 @@ include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-# This is required by some examples such as cmake_matrix_format
+# This is required by some examples such as custom_matrix_format
 # which need the correct CMAKE_CUDA_FLAGS to be set
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
@@ -53,8 +53,14 @@ else()
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 endif()
 
+# CUDA 10.1/10.2 put cublas, cublasLt, cudnn in /usr/lib/<arch>-linux-gnu/, but
+# others (<= 10.0 or >= 11) put them in cuda own directory
+# If the environment installs several cuda including 10.1/10.2, cmake will find
+# the 10.1/10.2 .so files when searching others cuda in the default path.
+# CMake already puts /usr/lib/<arch>-linux-gnu/ after cuda own directory in the
+# `CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES`, so we always put NO_DEFAULT_PATH here.
 find_library(CUBLAS cublas
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
@@ -80,6 +86,7 @@ target_sources(ginkgo_cuda
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
+    matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
     matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu
@@ -116,6 +123,25 @@ if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
 elseif(GINKGO_CUDA_DEFAULT_HOST_COMPILER)
     unset(CMAKE_CUDA_HOST_COMPILER CACHE)
 endif()
+
+if(CMAKE_CUDA_HOST_COMPILER AND NOT CMAKE_CXX_COMPILER STREQUAL CMAKE_CUDA_HOST_COMPILER)
+    message(WARNING "The CMake CXX compiler and CUDA host compiler do not match. "
+        "If you encounter any build error, especially while linking, try to use "
+        "the same compiler for both.\n"
+        "The CXX compiler is ${CMAKE_CXX_COMPILER} with version ${CMAKE_CXX_COMPILER_VERSION}.\n"
+        "The CUDA host compiler is ${CMAKE_CUDA_HOST_COMPILER}.")
+endif()
+
+if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND CMAKE_CUDA_COMPILER_VERSION
+    MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+    ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+    if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+        message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
+            "Consider using a different CUDA host compiler or CUDA version.")
+    endif()
+endif()
+
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)

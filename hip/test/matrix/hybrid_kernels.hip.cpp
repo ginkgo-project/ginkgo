@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/matrix/hybrid_kernels.hpp"
@@ -216,6 +217,17 @@ TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
     dmtx->move_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Hybrid, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 

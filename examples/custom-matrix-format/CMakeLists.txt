@@ -1,6 +1,6 @@
 if (GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
     enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     add_executable(custom-matrix-format
         custom-matrix-format.cpp

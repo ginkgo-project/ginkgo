@@ -34,13 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
+#include <type_traits>
+
+
 #include <cublas_v2.h>
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -196,8 +198,9 @@ constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 }
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
-    !(defined(_WIN32) || defined(__CYGWIN__))
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 template <typename T>
@@ -219,8 +222,8 @@ constexpr cusparseIndexType_t cusparse_index_type_impl<int64>()
 }
 
 
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
-        // !(defined(_WIN32) || defined(__CYGWIN__))
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 }  // namespace detail
@@ -241,8 +244,9 @@ constexpr cudaDataType_t cuda_data_type()
 }
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
-    !(defined(_WIN32) || defined(__CYGWIN__))
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
@@ -260,8 +264,8 @@ constexpr cusparseIndexType_t cusparse_index_type()
 }
 
 
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
-        // !(defined(_WIN32) || defined(__CYGWIN__))
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
@@ -281,7 +285,7 @@ using cuda_type = typename detail::cuda_type_impl<T>::type;
  * @return `val` reinterpreted to CUDA type
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     std::is_pointer<T>::value || std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {
@@ -293,7 +297,7 @@ as_cuda_type(T val)
  * @copydoc as_cuda_type()
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {

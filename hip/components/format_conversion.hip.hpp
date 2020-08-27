@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 #include "hip/components/cooperative_groups.hip.hpp"
@@ -105,7 +104,11 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                               subwarp_size;
 #if GINKGO_HIP_PLATFORM_NVCC
     size_type multiple = 8;
-    if (nnz >= 2e6) {
+    if (nnz >= 2e8) {
+        multiple = 2048;
+    } else if (nnz >= 2e7) {
+        multiple = 512;
+    } else if (nnz >= 2e6) {
         multiple = 128;
     } else if (nnz >= 2e5) {
         multiple = 32;

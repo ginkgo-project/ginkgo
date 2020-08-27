@@ -212,6 +212,24 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Asserts that _op1 can be applied to _op2 from the right.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2 from the right.
+ */
+#define GKO_ASSERT_REVERSE_CONFORMANT(_op1, _op2)                             \
+    if (::gko::detail::get_size(_op1)[0] !=                                   \
+        ::gko::detail::get_size(_op2)[1]) {                                   \
+        throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1,   \
+                                       ::gko::detail::get_size(_op1)[0],      \
+                                       ::gko::detail::get_size(_op1)[1],      \
+                                       #_op2,                                 \
+                                       ::gko::detail::get_size(_op2)[0],      \
+                                       ::gko::detail::get_size(_op2)[1],      \
+                                       "expected matching inner dimensions"); \
+    }
+
+
+/**
  * Asserts that `_op1` and `_op2` have the same number of rows.
  *
  * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of rows

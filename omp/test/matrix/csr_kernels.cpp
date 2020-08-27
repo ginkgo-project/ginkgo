@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -299,6 +300,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
                         static_cast<Mtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(static_cast<Mtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
@@ -311,6 +313,8 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
                         static_cast<ComplexMtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(
+        static_cast<ComplexMtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
@@ -531,6 +535,17 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.omp, 0);
+}
+
+
+TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 

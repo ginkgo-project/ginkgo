@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device_guard.hpp"
 
 
@@ -93,7 +93,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
                   << " in " << __func__ << ": " << cudaGetErrorName(error_code)
                   << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
-#endif
+#endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
     }
 }
@@ -103,7 +103,11 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
     cuda::device_guard g(this->get_device_id());
+#ifdef NDEBUG
     auto error_code = cudaMalloc(&dev_ptr, num_bytes);
+#else
+    auto error_code = cudaMallocManaged(&dev_ptr, num_bytes);
+#endif
     if (error_code != cudaErrorMemoryAllocation) {
         GKO_ASSERT_NO_CUDA_ERRORS(error_code);
     }
@@ -123,27 +127,27 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 }
 
 
-void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
+void CudaExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
-                                                 src_ptr, src->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 }
 
 
-void CudaExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
+void CudaExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
-                                                 src_ptr, src->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 #else
     GKO_NOT_SUPPORTED(this);

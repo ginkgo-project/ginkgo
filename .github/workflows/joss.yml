@@ -1,0 +1,35 @@
+name: JOSS-build
+
+on:
+  push:
+    paths:
+    - 'doc/joss/**'
+
+jobs:
+  joss-generate:
+    name: joss-pandoc 
+    runs-on: [ubuntu-latest] 
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup
+      run: sudo apt-get install texlive-xetex pandoc pandoc-citeproc
+    - name: info
+      run: |
+        pandoc -v
+    - name: build 
+      run: |
+        pushd .
+        mkdir build
+        cd build
+        mkdir doc
+        cd doc
+        cp -r ../../doc/joss ./
+        cd joss
+        pandoc paper.md -o paper.pdf --bibliography ./paper.bib --latex-engine=xelatex
+        popd
+    - uses: actions/upload-artifact@v1.0.0
+      with:
+        name: joss-paper
+        path: build/doc/joss/paper.pdf 
+

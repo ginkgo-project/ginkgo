@@ -58,7 +58,7 @@ public:
         /**
          * Maximum number of iterations
          */
-        size_type GKO_FACTORY_PARAMETER(max_iters, 0);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(max_iters, 0);
     };
     GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

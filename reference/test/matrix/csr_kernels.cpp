@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -1288,6 +1289,20 @@ TYPED_TEST(Csr, SortUnsortedMatrix)
     matrix->sort_by_column_index();
 
     GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
+}
+
+
+TYPED_TEST(Csr, ExtractsDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx3_unsorted->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 3);
+    ASSERT_EQ(diag->get_size()[1], 3);
+    ASSERT_EQ(diag->get_values()[0], T{0.});
+    ASSERT_EQ(diag->get_values()[1], T{1.});
+    ASSERT_EQ(diag->get_values()[2], T{3.});
 }
 
 

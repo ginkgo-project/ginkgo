@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -401,6 +402,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
                         static_cast<Mtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(static_cast<Mtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
@@ -482,18 +484,6 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConvertsEmptyToSellp)
-{
-    auto dempty_mtx = Mtx::create(hip);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
-
-    dempty_mtx->convert_to(dsellp_mtx.get());
-
-    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
-    ASSERT_FALSE(dsellp_mtx->get_size());
-}
-
-
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -561,6 +551,18 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(hip);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -625,7 +627,7 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 
 TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     bool is_sorted_hip{};
     bool is_sorted_ref{};
 
@@ -695,6 +697,17 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
     EXPECT_EQ("classical", classical_mtx_d->get_strategy()->get_name());
     ASSERT_NE(load_balance_mtx_d->get_strategy().get(),
               classical_mtx_d->get_strategy().get());
+}
+
+
+TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
 
 

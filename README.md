@@ -7,14 +7,14 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 
-[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
+[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
-[![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on sparse solution of linear systems. It is implemented using modern C++
-(you will need at least C++11 compliant compiler to build it), with GPU kernels
+(you will need at least C++14 compliant compiler to build it), with GPU kernels
 implemented in CUDA and HIP.
 
 
@@ -31,12 +31,12 @@ reflect the current state of the library.
 Prerequisites
 -------------
 
-### Linux and Mac OS 
+### Linux and Mac OS
 
 For Ginkgo core library:
 
 *   _cmake 3.9+_
-*   C++11 compliant compiler, one of:
+*   C++14 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _clang 3.9+_
     *   _Intel compiler 2017+_
@@ -69,7 +69,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 
 The prequirement needs to be verified
 *   _cmake 3.9+_
-*   C++11 compliant 64-bits compiler:
+*   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
@@ -87,6 +87,19 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_ or _Cygwin_
 
+Depending on the configuration settings, some manual work might be required. More details are availble in [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
+* Build Ginkgo as shared library:
+  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
+  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default.
+* Build Ginkgo with Debug mode:
+  Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
+  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
+  2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
+* Build Ginkgo in _MinGW_:
+  If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
+  [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
+  or compile ginkgo again might work.
+
 __NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
@@ -97,7 +110,7 @@ Quick Install
 
 ### Building Ginkgo
 
-To build Ginkgo, you can use the standard CMake procedure. 
+To build Ginkgo, you can use the standard CMake procedure.
 
 ```sh
 mkdir build; cd build
@@ -122,7 +135,7 @@ Ginkgo does comprehensive unit tests using Google Tests. These tests are enabled
 ### Running the benchmarks
 
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
-with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/). 
+with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/).
 
 More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
 
@@ -151,7 +164,7 @@ library design, relevant C++ information, and more.
 If you have any question, bug to report or would like to propose a new feature,
 feel free to [create an
 issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
-is to send an email to [Ginkgo's main email address](ginkgo.library@gmail.com)
+is to send an email to [Ginkgo's main email address](mailto:ginkgo.library@gmail.com)
 or to contact any of the main [contributors](contributors.txt).
 
 

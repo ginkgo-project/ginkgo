@@ -234,6 +234,7 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -252,21 +253,29 @@ int main(int argc, char *argv[])
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
 
     // Figure out where to run the code
-    const auto omp = gko::OmpExecutor::create();
-    std::map<std::string, std::shared_ptr<gko::Executor>> exec_map{
-        {"omp", omp},
-        {"cuda", gko::CudaExecutor::create(0, omp, true)},
-        {"hip", gko::HipExecutor::create(0, omp, true)},
-        {"reference", gko::ReferenceExecutor::create()}};
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation
-    const auto exec = exec_map.at(executor_string);  // throws if not valid
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
     // executor used by the application
-    const auto app_exec = exec_map["omp"];
+    const auto app_exec = exec->get_master();
 
     // problem:
     auto correct_u = [](ValueType x) { return x * x * x; };
-    auto f = [](ValueType x) { return ValueType(6) * x; };
+    auto f = [](ValueType x) { return ValueType{6} * x; };
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
@@ -278,7 +287,7 @@ int main(int argc, char *argv[])
         u->get_values()[i] = 0.0;
     }
 
-    const ValueType reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     // Generate solver and solve the system
     cg::build()
         .with_criteria(gko::stop::Iteration::build()

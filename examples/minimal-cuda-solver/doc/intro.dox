@@ -11,7 +11,7 @@ The easiest way to use the example data from the data/ folder is to concatenate
 the matrix, the right hand side and the initial solution (in that exact order),
 and pipe the result to the minimal_solver_cuda executable:
 
-@code{.cpp}cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda@endcode
+@code{.cpp}cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal-cuda-solver@endcode
 
 <h3> About the example </h3>
 

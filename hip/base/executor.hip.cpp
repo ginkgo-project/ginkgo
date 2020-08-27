@@ -93,7 +93,7 @@ void HipExecutor::raw_free(void *ptr) const noexcept
                   << " in " << __func__ << ": " << hipGetErrorName(error_code)
                   << ": " << hipGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
-#endif
+#endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
     }
 }
@@ -103,7 +103,11 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
+#if defined(NDEBUG) || (GINKGO_HIP_PLATFORM_HCC == 1)
     auto error_code = hipMalloc(&dev_ptr, num_bytes);
+#else
+    auto error_code = hipMallocManaged(&dev_ptr, num_bytes);
+#endif
     if (error_code != hipErrorMemoryAllocation) {
         GKO_ASSERT_NO_HIP_ERRORS(error_code);
     }
@@ -123,14 +127,14 @@ void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 }
 
 
-void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
+void HipExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_,
-                                               src_ptr, src->get_device_id(),
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
+                                               src_ptr, this->get_device_id(),
                                                num_bytes));
     }
 #else
@@ -139,13 +143,13 @@ void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 }
 
 
-void HipExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
+void HipExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_,
-                                               src_ptr, src->get_device_id(),
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
+                                               src_ptr, this->get_device_id(),
                                                num_bytes));
     }
 }

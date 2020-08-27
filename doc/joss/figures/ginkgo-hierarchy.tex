@@ -1,0 +1,468 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{tikz}
+\usepackage{scalefnt}
+\usepackage{xcolor}
+
+\usetikzlibrary{
+  positioning,
+  shapes,
+  shadows,
+  arrows,
+  fit,
+  calc
+}
+
+\definecolor{gkoorange}{HTML}{F7A71E}
+\definecolor{gkoyellow}{HTML}{FFCB05}
+\definecolor{gkodarkgrey}{HTML}{6D6E71}
+\definecolor{gkogrey}{HTML}{939598}
+\definecolor{gkolightgrey}{HTML}{D1D3D4}
+\definecolor{gkocomplbrown}{HTML}{AA6F0A}
+\definecolor{gkocompldarkblue}{HTML}{0053AA}
+\definecolor{gkocomplblue}{HTML}{1E88F7}
+
+\begin{document}
+\pgfdeclarelayer{foreground}
+\pgfdeclarelayer{background}
+\pgfsetlayers{background,main,foreground}
+\tikzstyle{abstract}=[rectangle, draw=black, rounded corners, fill=gkolightgrey,
+drop shadow, text centered, anchor=north, text=black, text width=4cm]
+\tikzstyle{myarrow}=[->, >=open triangle 90, thick]
+\tikzstyle{line}=[-, thick]
+
+\begin{tikzpicture}[node distance=1cm,
+  namespace/.style = {rectangle, draw=blue, thick, fill=#1, opacity=0.8, text width=5em,align=center, rounded corners, minimum height=2em},
+  header node/.style = {
+    font          = \strut\scalefont{1.1}\ttfamily,
+    text depth    = +0pt,
+    fill          = white,
+          % \begin{pgfonlayer}{foreground}
+            draw
+          % \end{pgfonlayer}
+          },
+  header/.style = {%
+    inner ysep = +1.2em,
+    append after command = {
+      \pgfextra{\let\TikZlastnode\tikzlastnode}
+      node [header node] (header-\TikZlastnode) at (\TikZlastnode.north) {#1}
+    }
+  }
+  ]
+    \node (po) [abstract, rectangle]
+        {
+            \textbf{PolymorphicObject}
+            % \nodepart{second}name
+        };
+    \node (AuxNode01) [below=of po] {};
+
+
+    \node (abstractf) [abstract, rectangle, below=of po]
+        {
+            \textbf{Abstract::Factory}
+        };
+    % criteria
+    \node (AuxNode03) [text width=0.5cm, below=of abstractf] {};
+
+    \node (iterationf) [abstract, rectangle, left=of AuxNode03, xshift=1cm]
+        {
+            \textbf{Iteration::Factory}
+        };
+    \node (timef) [abstract, rectangle, below=of iterationf]
+        {
+            \textbf{Time::Factory}
+        };
+    \node (resnormredf) [abstract, rectangle, below=of timef]
+        {
+            \textbf{ResidualNorm\\Reduction::Factory}
+        };
+    \node (relresnormf) [abstract, rectangle, below=of resnormredf]
+        {
+            \textbf{RelativeResidual\\Norm::Factory}
+        };
+    \node (absresnormf) [abstract, rectangle, below=of relresnormf]
+        {
+            \textbf{AbsoluteResidual\\Norm::Factory}
+        };
+    \node (combinedf) [abstract, rectangle, below=of absresnormf]
+        {
+            \textbf{Combined::Factory}
+        };
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkoyellow!70, header=stop, fit=(iterationf) (timef) (resnormredf) (relresnormf) (absresnormf) (combinedf)] {};
+    \end{pgfonlayer}
+    % solvers
+    \node (bicgf) [abstract, rectangle, right=of AuxNode03, xshift=-1cm]
+    {
+      \textbf{Bicg::Factory}
+    };
+    \node (bicgstabf) [abstract, rectangle, below=of bicgf]
+        {
+            \textbf{Bicgstab::Factory}
+        };
+    \node (cgf) [abstract, rectangle, below=of bicgstabf]
+        {
+            \textbf{Cg::Factory}
+        };
+    \node (cgsf) [abstract, rectangle, below=of cgf]
+        {
+            \textbf{Cgs::Factory}
+        };
+    \node (fcgf) [abstract, rectangle, below=of cgsf]
+        {
+            \textbf{Fcg::Factory}
+        };
+    \node (gmresf) [abstract, rectangle, below=of fcgf]
+        {
+            \textbf{Gmres::Factory}
+        };
+    \node (irf) [abstract, rectangle, below=of gmresf]
+        {
+          \textbf{Ir::Factory}
+        };
+    \node (ltrsf) [abstract, rectangle, below=of irf]
+        {
+          \textbf{LowerTrs::Factory}
+        };
+    \node (utrsf) [abstract, rectangle, below=of ltrsf]
+        {
+          \textbf{UpperTrs::Factory}
+        };
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkoorange, header=solver, fit=(bicgf) (bicgstabf) (cgf) (cgsf) (fcgf) (gmresf) (irf) (ltrsf) (utrsf)] {};
+    \end{pgfonlayer}
+    % preconditioners
+        \node (isaif) [abstract, rectangle, below=1.5cm of combinedf]
+        {
+            \textbf{Isai::Factory}
+        };
+       \node (jacobif) [abstract, rectangle, below=of isaif]
+        {
+            \textbf{Jacobi::Factory}
+        };
+        \node (parictf) [abstract, rectangle, below=of jacobif]
+        {
+          \textbf{Ilu$<$ParIct$>$::Factory}
+        };
+        \node (pariluf) [abstract, rectangle, below=of parictf]
+        {
+          \textbf{Ilu$<$ParIlu$>$::Factory}
+        };
+        \node (parilutf) [abstract, rectangle, below=of pariluf]
+        {
+          \textbf{Ilu$<$ParIlut$>$::Factory}
+        };
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkocomplbrown, header=preconditioner, fit=(isaif) (jacobif) (parictf) (pariluf) (parilutf)] {};
+    \end{pgfonlayer}
+
+
+    \node (linop) [abstract, rectangle, left=6cm of abstractf]
+        {
+            \textbf{LinOp}
+            % \nodepart{second}nil
+        };
+    % matrix
+    \node (AuxNode02) [text width=0.5cm, below=of linop] {};
+    \node (coo) [abstract, rectangle, left=of AuxNode02, xshift=1cm]
+        {
+            \textbf{Coo}
+        };
+    \node (csr) [abstract, rectangle, below=of coo]
+        {
+            \textbf{Csr}
+        };
+    \node (dense) [abstract, rectangle, below=of csr]
+        {
+            \textbf{Dense}
+        };
+    \node (diagonal) [abstract, rectangle, below=of dense]
+        {
+            \textbf{Diagonal}
+        };
+    \node (ell) [abstract, rectangle, below=of diagonal]
+        {
+            \textbf{Ell}
+        };
+    \node (hybrid) [abstract, rectangle, below=of ell]
+        {
+            \textbf{Hybrid}
+        };
+    \node (identity) [abstract, rectangle, below=of hybrid]
+        {
+          \textbf{Identity}
+        };
+    \node (permutation) [abstract, rectangle, below=of identity]
+        {
+          \textbf{Permutation}
+        };
+    \node (sellp) [abstract, rectangle, below=of permutation]
+        {
+            \textbf{Sellp}
+        };
+    \node (sparsitycsr) [abstract, rectangle, below=of sellp]
+        {
+          \textbf{SparsityCsr}
+        };
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkocomplblue, header=matrix, fit=(coo) (csr) (dense) (diagonal) (ell) (hybrid) (identity) (permutation) (sellp) (sparsitycsr)] {};
+    \end{pgfonlayer}
+    % solvers
+    \node (bicg) [abstract, rectangle, right=of AuxNode02, xshift=-1cm]
+    {
+      \textbf{Bicg}
+    };
+    \node (bicgstab) [abstract, rectangle, below=of bicg]
+        {
+            \textbf{Bicgstab}
+        };
+    \node (cgs) [abstract, rectangle, below=of bicgstab]
+        {
+            \textbf{Cgs}
+        };
+    \node (fcg) [abstract, rectangle, below=of cgs]
+        {
+            \textbf{Fcg}
+        };
+    \node (gmres) [abstract, rectangle, below=of fcg]
+        {
+            \textbf{Gmres}
+        };
+    \node (ir) [abstract, rectangle, below=of gmres]
+        {
+          \textbf{Ir}
+        };
+    \node (utrs) [abstract, rectangle, below=of ir]
+        {
+          \textbf{UpperTrs}
+        };
+    \node (ltrs) [abstract, rectangle, below=of utrs]
+        {
+          \textbf{LowerTrs}
+        };
+    \node (cg) [abstract, rectangle split, rectangle split parts=2, below=of ltrs]
+        {
+            \textbf{Cg}
+            \nodepart{second}
+            {\scalefont{0.9}
+            \begin{verbatim}
++ create_default()
++ clone()
++ copy_from()
++ clear()
++ apply()
++ convert_to()
++ move_to()
++ get_system_matrix()
++ get_preconditioner()
++ set_preconditioner()
++ get_parameters()
++ get_executor()
++ get_size()
++ add_logger()
++ remove_logger()
+            \end{verbatim}
+            }
+        };
+
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkoorange, header=solver, fit=(bicg) (bicgstab) (cg) (cgs) (fcg) (gmres) (utrs) (ltrs) (ir)] {};
+    \end{pgfonlayer}
+    % preconditioners
+    \node (isai) [abstract, rectangle, below=1.5cm of sparsitycsr]
+    {
+        \textbf{Isai}
+    };
+    \node (jacobi) [abstract, rectangle, below=of isai]
+        {
+            \textbf{Jacobi}
+        };
+    \node (parict) [abstract, rectangle, below=of jacobi]
+        {
+          \textbf{Ilu$<$ParIct$>$}
+        };
+    \node (parilu) [abstract, rectangle, below=of parict]
+        {
+          \textbf{Ilu$<$ParIlu$>$}
+        };
+    \node (parilut) [abstract, rectangle, below=of parilu]
+        {
+          \textbf{Ilu$<$ParIlut$>$}
+        };
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkocomplbrown, header=preconditioner, fit=(isai) (jacobi) (parict) (parilu) (parilut)] {};
+    \end{pgfonlayer}
+
+
+    \node (criterion) [abstract, rectangle, right=6cm of AuxNode01]
+        {
+            \textbf{Criterion}
+        };
+    % criteria
+    \node (combined) [abstract, rectangle, below=of criterion]
+        {
+            \textbf{Combined}
+        };
+    \node (iteration) [abstract, rectangle, below=of combined]
+        {
+            \textbf{Iteration}
+        };
+    \node (resnormred) [abstract, rectangle, below=of iteration]
+        {
+            \textbf{ResidualNorm\\Reduction}
+        };
+    \node (relresnorm) [abstract, rectangle, below=of resnormred]
+        {
+            \textbf{RelativeResidualNorm}
+        };
+    \node (absresnorm) [abstract, rectangle, below=of relresnorm]
+        {
+            \textbf{AbsoluteResidualNorm}
+        };
+    \node (time) [abstract, rectangle split, rectangle split parts=2, below=of absresnorm]
+        {
+            \textbf{Time}
+            \nodepart{second}
+            {\scalefont{0.9}
+            \begin{verbatim}
++ update()
++ check()
++ create_default()
++ clone()
++ copy_from()
++ clear()
++ get_parameters()
++ get_executor()
++ add_logger()
++ remove_logger()
+            \end{verbatim}
+            }
+        };
+
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkoyellow!70, header=stop, fit=(criterion) (combined) (resnormred) (relresnorm) (absresnorm) (iteration) (time)] {};
+    \end{pgfonlayer}
+
+    \node (exec) [abstract, rectangle, right=10cm of po]
+        {
+            \textbf{Executor}
+        };
+    \node (cuda) [abstract, rectangle, below=of exec]
+        {
+            \textbf{CudaExecutor}
+        };
+    \node (hip) [abstract, rectangle, below=of cuda]
+        {
+          \textbf{HipExecutor}
+        };
+    \node (omp) [abstract, rectangle, below=of hip]
+        {
+            \textbf{OmpExecutor}
+        };
+    \node (ref) [abstract, rectangle, below=of omp]
+        {
+            \textbf{ReferenceExecutor}
+        };
+
+    \node (log) [abstract, rectangle, below=2cm of ref]
+        {
+            \textbf{Logger}
+        };
+    \node (convergence) [abstract, rectangle, below=of log]
+        {
+            \textbf{Convergence}
+        };
+    \node (papi) [abstract, rectangle, below=of convergence]
+        {
+            \textbf{Papi}
+        };
+    \node (record) [abstract, rectangle, below=of papi]
+        {
+            \textbf{Record}
+        };
+    \node (stream) [abstract, rectangle, below=of record]
+        {
+            \textbf{Stream}
+        };
+
+    \begin{pgfonlayer}{background}
+    \node[namespace=gkocompldarkblue, header=log, fit=(log) (record) (stream)] {};
+    \end{pgfonlayer}
+
+
+    \draw[myarrow] (abstractf.north) -- ++(0.19,0.5,0.5) -| (po.south);
+    % solvers
+    \draw[myarrow] (bicgf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (bicgstabf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (cgf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (cgsf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (fcgf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (gmresf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (irf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (ltrsf.west) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (utrsf.west) -- ++(0,0) -| (abstractf.south);
+    % preconditioners
+    \draw[myarrow] (isaif.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (jacobif.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (parictf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (pariluf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (parilutf.east) -- ++(0,0) -| (abstractf.south);
+    % criteria
+    \draw[myarrow] (iterationf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (timef.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (resnormredf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (relresnormf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (absresnormf.east) -- ++(0,0) -| (abstractf.south);
+    \draw[myarrow] (combinedf.east) -- ++(0,0) -| (abstractf.south);
+
+
+    \draw[myarrow] (criterion.west) --  ++(-0.5,0) -- ++(0,0.6) -| (po.south);
+    %criteria
+    \draw[myarrow] (combined.west) -- ++(-0.5,0) -- ++(0,0.6) -| (criterion.south);
+    \draw[line] (iteration.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (time.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (resnormred.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (relresnorm.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+    \draw[line] (absresnorm.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] combined.west);
+
+    \draw[myarrow] (linop.north) -- ++(0.2,0.5,0.5) -| (po.south);
+    % matrix format
+    \draw[myarrow] (coo.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (csr.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (dense.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (diagonal.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (ell.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (hybrid.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (identity.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (permutation.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (sellp.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (sparsitycsr.east) -- ++(0,0) -| (linop.south);
+    % solvers
+    \draw[myarrow] (bicg.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (bicgstab.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (cg.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (cgs.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (fcg.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (gmres.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (ir.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (ltrs.west) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (utrs.west) -- ++(0,0) -| (linop.south);
+    % preconditioners
+    \draw[myarrow] (isai.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (jacobi.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (parict.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (parilu.east) -- ++(0,0) -| (linop.south);
+    \draw[myarrow] (parilut.east) -- ++(0,0) -| (linop.south);
+
+    \draw[myarrow] (convergence.west) -- ++(-0.5,0) -- ++(0,0.6) -| (log.south);
+    \draw[line] (papi.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] convergence.west);
+    \draw[line] (record.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] papi.west);
+    \draw[line] (stream.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] record.west);
+
+
+    \draw[myarrow] (cuda.west) -- ++(-0.5,0) -- ++(0,0.6) -| (exec.south);
+    \draw[line] (hip.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);
+    \draw[line] (omp.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);
+    \draw[line] (ref.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);
+
+\end{tikzpicture}
+\end{document}

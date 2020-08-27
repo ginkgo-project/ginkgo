@@ -229,7 +229,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
     const dim3 block_size(config::warp_size,
                           config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
         num_rows, num_cols, stride, as_cuda_type(result->get_values()));
@@ -244,6 +244,29 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto nnz = orig->get_num_stored_elements();
+    const auto diag_size = diag->get_size()[0];
+    const auto num_blocks = ceildiv(nnz, default_block_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_row_idxs = orig->get_const_row_idxs();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+    kernel::extract_diagonal<<<num_blocks, default_block_size>>>(
+        nnz, as_cuda_type(orig_values), as_cuda_type(orig_row_idxs),
+        as_cuda_type(orig_col_idxs), as_cuda_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace coo

@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/factorization/par_ilut_select_common.cuh"
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/atomic.cuh"
@@ -58,7 +59,8 @@ namespace par_ilut_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void sampleselect_count(const ValueType *values, IndexType size,
+void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
+                        const ValueType *values, IndexType size,
                         remove_complex<ValueType> *tree, unsigned char *oracles,
                         IndexType *partial_counts, IndexType *total_counts)
 {
@@ -77,13 +79,13 @@ void sampleselect_count(const ValueType *values, IndexType size,
     kernel::block_prefix_sum<<<bucket_count, default_block_size>>>(
         partial_counts, total_counts, num_blocks);
     // compute prefix sum over bucket counts
-    start_prefix_sum<bucket_count><<<1, bucket_count>>>(
-        bucket_count, total_counts, total_counts + bucket_count);
+    components::prefix_sum(exec, total_counts, bucket_count + 1);
 }
 
 
 #define DECLARE_SSSS_COUNT(ValueType, IndexType)                               \
-    void sampleselect_count(const ValueType *values, IndexType size,           \
+    void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,       \
+                            const ValueType *values, IndexType size,           \
                             remove_complex<ValueType> *tree,                   \
                             unsigned char *oracles, IndexType *partial_counts, \
                             IndexType *total_counts)
