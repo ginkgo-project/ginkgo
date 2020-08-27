@@ -82,7 +82,6 @@ TEST_F(Rcm, CanBeCopied)
     ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[0], 2);
     ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[1], 1);
     ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[2], 0);
-    ASSERT_NE(rcm->get_adjacency_matrix(), rcm_copy->get_adjacency_matrix());
 }
 
 
@@ -117,7 +116,6 @@ TEST_F(Rcm, CanBeCloned)
     ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[0], 2);
     ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[1], 1);
     ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[2], 0);
-    ASSERT_NE(rcm->get_adjacency_matrix(), rcm_clone->get_adjacency_matrix());
 }
 
 TEST_F(Rcm, HasSensibleDefaults)
