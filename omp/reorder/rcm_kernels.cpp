@@ -68,7 +68,7 @@ namespace omp {
 namespace rcm {
 
 
-#if defined(__x86_64__) && (defined(__GNUG__) || defined(__clang__)))
+#if defined(__x86_64__) && (defined(__GNUG__) || defined(__clang__))
 #define GKO_MM_PAUSE() asm("rep nop" :::);
 #else
 #define GKO_MM_PAUSE()  // No equivalent instruction.
