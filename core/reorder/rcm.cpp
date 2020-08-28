@@ -64,18 +64,20 @@ GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 
 template <typename ValueType, typename IndexType>
-void Rcm<ValueType, IndexType>::generate() const
+void Rcm<ValueType, IndexType>::generate(
+    std::unique_ptr<SparsityMatrix> adjacency_matrix) const
 {
-    const IndexType num_rows = adjacency_matrix_->get_size()[0];
+    const IndexType num_rows = adjacency_matrix->get_size()[0];
+    const auto mtx = adjacency_matrix.get();
     const auto exec = this->get_executor();
-    const auto mtx = adjacency_matrix_.get();
+    auto degrees = Array<IndexType>(exec, num_rows);
     // RCM is only valid for symmetric matrices. Need to add an expensive check
     // for symmetricity here ?
     exec->run(rcm::make_get_degree_of_nodes(num_rows, mtx->get_const_row_ptrs(),
-                                            degrees_->get_data()));
+                                            degrees.get_data()));
     exec->run(rcm::make_get_permutation(
         num_rows, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        degrees_->get_const_data(), permutation_->get_permutation(),
+        degrees.get_const_data(), permutation_->get_permutation(),
         inv_permutation_.get() ? inv_permutation_->get_permutation() : nullptr,
         parameters_.strategy));
 }

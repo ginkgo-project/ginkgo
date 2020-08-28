@@ -31,12 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/reorder/rcm_kernels.hpp"
-#include "core/base/allocator.hpp"
-#include "core/components/prefix_sum.hpp"
 
 
 #include <algorithm>
-#include <cstring>
 #include <iterator>
 #include <memory>
 #include <queue>
@@ -55,6 +52,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+
+#include "components/omp_mutex.hpp"
+#include "components/sort_small.hpp"
+#include "core/base/allocator.hpp"
+#include "core/components/prefix_sum.hpp"
 
 
 namespace gko {
@@ -79,12 +82,12 @@ namespace rcm {
 
 template <typename IndexType>
 void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
-                         const size_type num_vertices,
+                         const IndexType num_vertices,
                          const IndexType *const row_ptrs,
                          IndexType *const degrees)
 {
 #pragma omp parallel for
-    for (auto i = 0; i < num_vertices; ++i) {
+    for (IndexType i = 0; i < num_vertices; ++i) {
         degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
 }
@@ -92,34 +95,31 @@ void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
+// This constant controls how many nodes can be dequeued from the
+// UbfsLinearQueue at once at most. Increasing it reduces lock contention and
+// "unneccesary work", but disturbs queue ordering, generating extra work.
 constexpr auto chunk_bound = 512;
 
 
 template <typename IndexType>
 struct UbfsLinearQueue {
-    gko::vector<IndexType> arr;
+    vector<IndexType> arr;
     IndexType head;
     IndexType tail;
 
     // Those two are only there for safety, they are barely ever contended,
     // due to work chunking.
-    omp_lock_t read_lock;
-    omp_lock_t write_lock;
+    omp_mutex read_mutex;
+    omp_mutex write_mutex;
 
-    UbfsLinearQueue() {}
 
     UbfsLinearQueue(std::shared_ptr<const OmpExecutor> exec, size_type capacity)
-        : arr(gko::vector<IndexType>(capacity, exec)), head(0), tail(0)
-    {
-        omp_init_lock(&read_lock);
-        omp_init_lock(&write_lock);
-    }
-
-    ~UbfsLinearQueue()
-    {
-        omp_destroy_lock(&read_lock);
-        omp_destroy_lock(&write_lock);
-    }
+        : arr(vector<IndexType>(capacity, exec)),
+          head(0),
+          tail(0),
+          read_mutex(omp_lock_hint_uncontended),
+          write_mutex(omp_lock_hint_uncontended)
+    {}
 
     UbfsLinearQueue(UbfsLinearQueue &other) = delete;
     UbfsLinearQueue &operator=(const UbfsLinearQueue &other) = delete;
@@ -132,14 +132,12 @@ struct UbfsLinearQueue {
     {
         const auto data = &arr[0];
 
-        omp_set_lock(&write_lock);
+        std::lock_guard<omp_mutex> write_guard{write_mutex};
 
-        std::memcpy(&data[tail], chunk, n * sizeof(IndexType));
+        std::copy_n(chunk, n, &data[tail]);
 
         // Atomicity, order, and observability enforced by lock.
         tail += n;
-
-        omp_unset_lock(&write_lock);
     }
 
     /**
@@ -149,19 +147,20 @@ struct UbfsLinearQueue {
     IndexType chunk_size()
     {
         const auto available_nodes = tail - head;
-        return std::min((available_nodes + 1) / 2, (IndexType)chunk_bound);
+        return std::min<IndexType>((available_nodes + 1) / 2, chunk_bound);
     }
 
     /**
      * Returns a pointer to an exclusively owned chunk of length <= n/2.
-     * Blocks in case no nodes are available,
-     * until all other threads are finished processing.
-     * If (nullptr,0) is returned, the algorithm is done.
+     * Blocks in case no nodes are available and other threads are still
+     * working, as indicated by `threads_working`. That way, if (nullptr,0) is
+     * finally returned, after all threads stopped working and still no nodes
+     * are available, the algorithm is definitely done.
      */
     std::pair<IndexType *, IndexType> dequeue_chunk(int *threads_working)
     {
         const auto data = &arr[0];
-        omp_set_lock(&read_lock);
+        std::lock_guard<omp_mutex> read_guard{read_mutex};
 
         const auto n = chunk_size();
 
@@ -173,7 +172,6 @@ struct UbfsLinearQueue {
             const auto old_head = head;
             head += n;
 
-            omp_unset_lock(&read_lock);
             return std::make_pair(data + old_head, n);
         } else {
             // This "spinlock" is fine without cmpxchg, exclusive waiter-access
@@ -200,10 +198,8 @@ struct UbfsLinearQueue {
                 IndexType old_head = head;
                 head += n;
 
-                omp_unset_lock(&read_lock);
                 return std::make_pair(data + old_head, n);
             } else {
-                omp_unset_lock(&read_lock);
                 return std::make_pair(nullptr, 0);
             }
         }
@@ -211,12 +207,69 @@ struct UbfsLinearQueue {
 };
 
 
+template <typename IndexType>
+inline void reduce_neighbours_levels(const IndexType num_vertices,
+                                     const IndexType *const row_ptrs,
+                                     const IndexType *const col_idxs,
+                                     IndexType *const local_to_insert,
+                                     size_type *const local_to_insert_size,
+                                     IndexType *const levels,
+                                     const IndexType node)
+{
+    IndexType level;
+#pragma omp atomic read
+    level = levels[node];
+
+    const auto new_neighbour_level = level + 1;
+
+    // Go through neighbours.
+    const auto row_start = row_ptrs[node];
+    const auto row_end = row_ptrs[node + 1];
+
+    for (auto neighbour_i = row_start; neighbour_i < row_end; ++neighbour_i) {
+        const auto neighbour = col_idxs[neighbour_i];
+
+        // Immediately evaluated lambda expression,
+        // to enable continuing the outer loop.
+        const auto reduce_level_atomic = [&]() {
+            // Atomically check if we have lower new level,
+            // then set, implemented with cmpxchg.
+
+            IndexType old_neighbour_level;
+            do {
+#pragma omp atomic read
+                old_neighbour_level = levels[neighbour];
+
+                const auto is_new_smaller =
+                    new_neighbour_level < old_neighbour_level;
+
+                if (!is_new_smaller) {
+                    return true;
+                }
+
+            } while (!__atomic_compare_exchange_n(
+                &levels[neighbour], &old_neighbour_level, new_neighbour_level,
+                true, std::memory_order::memory_order_acq_rel,
+                std::memory_order::memory_order_acquire));
+            return false;
+        };
+
+        if (reduce_level_atomic()) {
+            continue;
+        }
+
+        local_to_insert[*local_to_insert_size] = neighbour;
+        ++(*local_to_insert_size);
+    }
+}
+
+
 /**
  * Performs an unordered breadth-first search,
  * thereby building a rooted level structure.
  */
 template <typename IndexType>
-void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
+void ubfs(std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
           const IndexType *const row_ptrs, const IndexType *const col_idxs,
           IndexType *const
               levels,  // Must be inf/max in all nodes connected to source
@@ -226,7 +279,7 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
 
     // This is an upper bound for how many nodes may be in the work set
     // at maximum at any time.
-    const auto work_bound = (size_type)max_threads * num_vertices;
+    const auto work_bound = static_cast<size_type>(max_threads) * num_vertices;
     UbfsLinearQueue<IndexType> q(exec, work_bound);
 
     // Start from the given start node.
@@ -240,8 +293,8 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
     {
         // This is an upper bound, as '.deque_chunk...' is upper bounded by
         // chunk_bound.
-        gko::vector<IndexType> local_to_insert(max_degree * chunk_bound, exec);
-        auto local_to_insert_size = 0;
+        vector<IndexType> local_to_insert(max_degree * chunk_bound, exec);
+        size_type local_to_insert_size = 0;
 
         while (true) {
             // Get some nodes from the locked q.
@@ -253,45 +306,16 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
             // If there are no nodes returned that also means there are no nodes
             // still in flight.
             if (chunk_size > 0) {
-                // For each node in the chunk.
-                for (auto chunk_i = 0; chunk_i < chunk_size; ++chunk_i) {
+                for (IndexType chunk_i = 0; chunk_i < chunk_size; ++chunk_i) {
                     const auto node = chunk[chunk_i];
 
-                    IndexType level;
-#pragma omp atomic read
-                    level = levels[node];
-
-                    const auto new_neighbour_level = level + 1;
-
-                    // Go through neighbours.
-                    const auto row_start = row_ptrs[node];
-                    const auto row_end = row_ptrs[node + 1];
-
-                    for (auto neighbour_i = row_start; neighbour_i < row_end;
-                         ++neighbour_i) {
-                        const auto neighbour = col_idxs[neighbour_i];
-
-                        IndexType old_neighbour_level;
-                        do {
-#pragma omp atomic read
-                            old_neighbour_level = levels[neighbour];
-
-                            const auto is_new_smaller =
-                                new_neighbour_level < old_neighbour_level;
-
-                            if (!is_new_smaller) {
-                                goto continue_outer;
-                            }
-                        } while (!__atomic_compare_exchange_n(
-                            &levels[neighbour], &old_neighbour_level,
-                            new_neighbour_level, true,
-                            std::memory_order::memory_order_acq_rel,
-                            std::memory_order::memory_order_acquire));
-
-                        local_to_insert[local_to_insert_size++] = neighbour;
-
-                    continue_outer:;
-                    }
+                    // For each node in the chunk, process all neighbours,
+                    // by reducing their level if a new shortest path was found,
+                    // in that case also writing the neighbour into
+                    // local_to_insert.
+                    reduce_neighbours_levels(
+                        num_vertices, row_ptrs, col_idxs, &local_to_insert[0],
+                        &local_to_insert_size, levels, node);
                 }
 
                 // Insert back to global work queue, done with this chunk.
@@ -316,7 +340,7 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
  */
 template <typename IndexType>
 std::pair<IndexType, IndexType> rls_contender_and_height(
-    std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
+    std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
     const IndexType *const row_ptrs, const IndexType *const col_idxs,
     const IndexType *const degrees,
     IndexType *const levels,  // Must be max/inf in all nodes connected to start
@@ -330,19 +354,19 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 
     // First local ...
     const auto num_threads = omp_get_max_threads();
-    gko::vector<IndexType> local_contenders(num_threads, exec);
-    gko::vector<IndexType> local_degrees(num_threads, exec);
-    gko::vector<IndexType> local_heights(num_threads, exec);
+    vector<IndexType> local_contenders(num_threads, exec);
+    vector<IndexType> local_degrees(num_threads, exec);
+    vector<IndexType> local_heights(num_threads, exec);
 
 #pragma omp parallel num_threads(num_threads)
     {
         const auto tid = omp_get_thread_num();
-        auto local_contender = 0;
-        auto local_degree = std::numeric_limits<IndexType>::max();
-        auto local_height = 0;
+        IndexType local_contender = 0;
+        IndexType local_degree = std::numeric_limits<IndexType>::max();
+        IndexType local_height = 0;
 
 #pragma omp for schedule(static)
-        for (auto i = 0; i < num_vertices; ++i) {
+        for (IndexType i = 0; i < num_vertices; ++i) {
             if (levels[i] > local_height) {
                 local_contender = i;
                 local_degree = degrees[i];
@@ -362,7 +386,7 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
     auto global_contender = local_contenders[0];
     auto global_degree = local_degrees[0];
     auto global_height = local_heights[0];
-    for (auto i = 1; i < num_threads; ++i) {
+    for (IndexType i = 1; i < num_threads; ++i) {
         if (local_heights[i] > global_height) {
             global_contender = local_contenders[i];
             global_degree = local_degrees[i];
@@ -383,28 +407,28 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
  */
 template <typename IndexType>
 std::pair<IndexType, IndexType> find_min_idx_and_max_val(
-    std::shared_ptr<const OmpExecutor> exec, const size_type num_vertices,
+    std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
     const IndexType *const row_ptrs, const IndexType *const col_idxs,
-    const IndexType *const degrees, gko::vector<IndexType> &levels,
+    const IndexType *const degrees, vector<IndexType> &levels,
     const uint8 *const previous_component,
     gko::reorder::starting_strategy strategy)
 {
     // First find local extrema.
     const auto num_threads = omp_get_max_threads();
-    gko::vector<std::pair<IndexType, IndexType>> local_min_vals_idxs(
-        num_threads, exec);
-    gko::vector<IndexType> local_max_vals(num_threads, exec);
+    vector<std::pair<IndexType, IndexType>> local_min_vals_idxs(num_threads,
+                                                                exec);
+    vector<IndexType> local_max_vals(num_threads, exec);
 
 #pragma omp parallel num_threads(num_threads)
     {
         const auto tid = omp_get_thread_num();
         auto local_min_val = std::numeric_limits<IndexType>::max();
-        auto local_min_idx = tid;
+        auto local_min_idx = IndexType{};
         auto local_max_val = std::numeric_limits<IndexType>::min();
-        auto local_max_idx = tid;
+        auto local_max_idx = IndexType{};
 
 #pragma omp for schedule(static)
-        for (auto i = 0; i < num_vertices; ++i) {
+        for (IndexType i = 0; i < num_vertices; ++i) {
             // If this level hasn't been discovered before.
             if (!previous_component[i]) {
                 if (degrees[i] < local_min_val) {
@@ -426,7 +450,7 @@ std::pair<IndexType, IndexType> find_min_idx_and_max_val(
     auto global_min_idx = local_min_vals_idxs[0].second;
     auto global_min_val = local_min_vals_idxs[0].first;
     auto global_max_val = local_max_vals[0];
-    for (auto i = 1; i < num_threads; ++i) {
+    for (IndexType i = 1; i < num_threads; ++i) {
         if (local_min_vals_idxs[i].first < global_min_val) {
             global_min_val = local_min_vals_idxs[i].first;
             global_min_idx = local_min_vals_idxs[i].second;
@@ -445,11 +469,11 @@ std::pair<IndexType, IndexType> find_min_idx_and_max_val(
  */
 template <typename IndexType>
 IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
-                          const size_type num_vertices,
+                          const IndexType num_vertices,
                           const IndexType *const row_ptrs,
                           const IndexType *const col_idxs,
                           const IndexType *const degrees,
-                          gko::vector<IndexType> &levels,
+                          vector<IndexType> &levels,
                           const uint8 *const previous_component,
                           const gko::reorder::starting_strategy strategy)
 {
@@ -470,8 +494,8 @@ IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
 
     // Intermediate storage.
     // We copy back to `levels` for the final pick.
-    gko::vector<IndexType> levels_clone(levels, exec);
-    gko::vector<IndexType> current_levels_clone(levels, exec);
+    vector<IndexType> levels_clone(levels, exec);
+    vector<IndexType> current_levels_clone(levels, exec);
 
     auto current = min_idx;
     const auto contender_and_height =
@@ -493,11 +517,11 @@ IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
             current_height = contender_height;
             current = current_contender;
             current_contender = contender_contender;
-            current_levels_clone = gko::vector<IndexType>(levels, exec);
+            current_levels_clone = vector<IndexType>(levels, exec);
             current_levels_clone.swap(levels_clone);
         } else {
-            std::memcpy(&levels[0], &current_levels_clone[0],
-                        num_vertices * sizeof(IndexType));
+            std::copy_n(current_levels_clone.begin(), num_vertices,
+                        levels.begin());
             return current;
         }
     }
@@ -508,37 +532,30 @@ IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
  * Counts how many nodes there are per level.
  */
 template <typename IndexType>
-gko::vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
-                                    const IndexType *const levels,
-                                    uint8 *const previous_component,
-                                    size_type num_vertices)
+vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
+                               const IndexType *const levels,
+                               uint8 *const previous_component,
+                               IndexType num_vertices)
 {
     const auto num_threads = omp_get_max_threads();
-
-    // This initialization is necessary due to nested custom allocator.
-    gko::vector<gko::vector<IndexType>> level_counts(exec);
-    for (auto i = 0; i < num_threads; ++i) {
-        level_counts.push_back(gko::vector<IndexType>(0, exec));
-    }
+    vector<vector<IndexType>> level_counts(num_threads, vector<IndexType>(exec),
+                                           exec);
 
 #pragma omp parallel num_threads(num_threads)
     {
         const auto tid = omp_get_thread_num();
         auto local_level_counts = &level_counts[tid];
 
-        auto current_size = 0;
-
 #pragma omp for schedule(static)
-        for (auto i = 0; i < num_vertices; ++i) {
+        for (IndexType i = 0; i < num_vertices; ++i) {
             const auto level = levels[i];
 
             // If not part of previous component and actually discovered in this
             // component.
             if (!previous_component[i] &&
                 level != std::numeric_limits<IndexType>::max()) {
-                if (level >= current_size) {
+                if (level >= local_level_counts->size()) {
                     local_level_counts->resize(level + 1);
-                    current_size = level + 1;
                 }
                 previous_component[i] = true;
                 ++(*local_level_counts)[level];
@@ -546,18 +563,19 @@ gko::vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
-    gko::vector<size_type> level_count_sizes(num_threads, exec);
+    vector<size_type> level_count_sizes(num_threads, exec);
     for (auto tid = 0; tid < num_threads; ++tid) {
         level_count_sizes[tid] = level_counts[tid].size();
     }
     const auto max_size =
         *std::max_element(level_count_sizes.begin(), level_count_sizes.end());
 
-    gko::vector<IndexType> final_level_counts(max_size + 1, exec);
+    vector<IndexType> final_level_counts(max_size + 1, exec);
     auto i = 0;
     while (true) {
         auto done = true;
-        for (auto tid = 0; tid < num_threads; ++tid) {
+        for (std::remove_const_t<decltype(num_threads)> tid = 0;
+             tid < num_threads; ++tid) {
             if (i < level_count_sizes[tid]) {
                 const auto count = level_counts[tid][i];
                 final_level_counts[i] += count;
@@ -580,9 +598,10 @@ gko::vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
  * as a prefix sum.
  */
 template <typename IndexType>
-gko::vector<IndexType> compute_level_offsets(
-    std::shared_ptr<const OmpExecutor> exec, const IndexType *const levels,
-    size_type num_vertices, uint8 *const previous_component)
+vector<IndexType> compute_level_offsets(std::shared_ptr<const OmpExecutor> exec,
+                                        const IndexType *const levels,
+                                        IndexType num_vertices,
+                                        uint8 *const previous_component)
 {
     auto counts = count_levels(exec, levels, previous_component, num_vertices);
     components::prefix_sum(exec, &counts[0], counts.size());
@@ -590,88 +609,16 @@ gko::vector<IndexType> compute_level_offsets(
 }
 
 
-/**
- * Helper macros for the helper function below.
- */
-#if defined(__GNUG__) && defined(__x86_64__)
-// GCC can only be convinced to use cmovs here by inline asm.
-#define GKO_COMPARATOR(x, y)                                       \
-    {                                                              \
-        IndexType tmp;                                             \
-        const auto degree_x = degrees[neighbours[x]];              \
-        const auto degree_y = degrees[neighbours[y]];              \
-        asm("mov %0, %2\n\t"                                       \
-            "cmp %4, %3\n\t"                                       \
-            "cmova %1, %0\n\t"                                     \
-            "cmova %2, %1\n\t"                                     \
-            : "+r"(neighbours[x]), "+r"(neighbours[y]), "=&r"(tmp) \
-            : "r"(degree_x), "r"(degree_y)                         \
-            : "cc");                                               \
-    }
-#else
-#define GKO_COMPARATOR(x, y)                                         \
-    {                                                                \
-        const auto degree_x = degrees[neighbours[x]];                \
-        const auto degree_y = degrees[neighbours[y]];                \
-        const auto should_swap = degree_x > degree_y;                \
-        const auto tmp = neighbours[x];                              \
-        neighbours[x] = should_swap ? neighbours[y] : neighbours[x]; \
-        neighbours[y] = should_swap ? tmp : neighbours[y];           \
-    }
-#endif
+// Signal value to wich the entire permutation is intialized.
+// Threads spin on this value, until it is replaced by another value,
+// written by another thread.
+constexpr auto perm_untouched = -1;
 
-
-/**
- * Helper fucntion for quickly sorting small vectors by degree.
- */
-template <typename IndexType>
-inline void sort_by_degree(IndexType *const neighbours, size_type count,
-                           const IndexType *const degrees)
-{
-    if (count < 2) {
-        return;
-    }
-
-    if (count == 2) {
-        GKO_COMPARATOR(0, 1);
-        return;
-    }
-
-    if (count == 3) {
-        GKO_COMPARATOR(0, 1);
-        GKO_COMPARATOR(0, 2);
-        GKO_COMPARATOR(1, 2);
-        return;
-    }
-
-    if (count == 4) {
-        GKO_COMPARATOR(0, 1);
-        GKO_COMPARATOR(2, 3);
-        GKO_COMPARATOR(0, 2);
-        GKO_COMPARATOR(1, 3);
-        GKO_COMPARATOR(1, 2);
-        return;
-    }
-
-    if (count < 16) {
-        int i, j;
-        for (i = 1; i < count; i++) {
-            int tmp = neighbours[i];
-            for (j = i; j >= 1 && degrees[tmp] < degrees[neighbours[j - 1]];
-                 --j) {
-                neighbours[j] = neighbours[j - 1];
-            }
-            neighbours[j] = tmp;
-        }
-        return;
-    }
-
-    std::sort(neighbours, neighbours + count,
-              [&](IndexType left, IndexType right) {
-                  return degrees[left] < degrees[right];
-              });
-}
-
+// Signal value which a thread writes to a level (as in the level of a node
+// becomes -1), to signal that it has been processed. This information is only
+// relevant local to the thread, since only a single thread is responsible for a
+// node.
+constexpr auto level_processed = -1;
 
 /**
  * Implements the last phase of urcm,
@@ -682,25 +629,26 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
                        const IndexType *const row_ptrs,
                        const IndexType *const col_idxs, IndexType *const levels,
                        const IndexType *const degrees,
-                       const gko::vector<IndexType> &offsets,
-                       IndexType *const perm, const std::size_t num_vertices,
+                       const vector<IndexType> &offsets, IndexType *const perm,
+                       const IndexType num_vertices,
                        const IndexType base_offset, const IndexType start)
 {
-    const auto offsets_size = offsets.size();
+    // There can not be more levels than nodes, therefore IndexType.
+    const IndexType num_levels = offsets.size() - 1;
     perm[base_offset] = start;
 
     const auto num_threads = omp_get_max_threads();
-#pragma omp parallel num_threads(num_threads) firstprivate(offsets_size)
+#pragma omp parallel num_threads(num_threads) firstprivate(num_levels)
     {
         const auto tid = omp_get_thread_num();
-        gko::vector<IndexType> valid_neighbours(0, exec);
+        vector<IndexType> valid_neighbours(0, exec);
 
         // Go through the levels assigned to this thread.
-        for (auto level = tid; level < offsets_size - 1; level += num_threads) {
+        for (IndexType level = tid; level < num_levels; level += num_threads) {
             const auto next_level_idx = offsets[level + 1];
             const auto level_idx = offsets[level];
             const auto level_len = next_level_idx - level_idx;
-            auto write_offset = 0;
+            IndexType write_offset = 0;
 
             // Go through one level.
             for (auto read_offset = level_idx; read_offset < next_level_idx;
@@ -709,7 +657,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
                 IndexType written;
 #pragma omp atomic read
                 written = perm[base_offset + read_offset];
-                while (written == std::numeric_limits<IndexType>::max()) {
+                while (written == perm_untouched) {
                     GKO_MM_PAUSE();
 #pragma omp atomic read
                     written = perm[base_offset + read_offset];
@@ -730,29 +678,30 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp atomic read
                     neighbour_level = levels[neighbour];
 
-                    // ::max() is not a valid value here (as ther cannot be
-                    // ::max() nodes), therefore can be used for signaling.
+                    // level_processed is not a valid value for a node,
+                    // implicitly filtered out here.
                     if (neighbour_level == write_level) {
 // Protect against writing the same node as neighbour of different nodes in the
 // previous level by the same thread.
 #pragma omp atomic write
-                        levels[neighbour] =
-                            std::numeric_limits<IndexType>::max();
-
+                        levels[neighbour] = level_processed;
                         valid_neighbours.push_back(neighbour);
                     }
                 }
 
-                // Sort neighbours.
-                const auto size = valid_neighbours.size();
-                sort_by_degree(&valid_neighbours[0], size, degrees);
+                // Sort neighbours. Can not be more than there are nodes.
+                const IndexType size = valid_neighbours.size();
+                sort_small(&valid_neighbours[0], size,
+                           [&](IndexType l, IndexType r) {
+                               return degrees[l] < degrees[r];
+                           });
 
                 // Write the processed neighbours.
                 const auto base_write_offset =
                     base_offset + next_level_idx + write_offset;
 
                 // Memcpy would be nice, but we need element-wise atomicity.
-                for (auto i = 0; i < size; ++i) {
+                for (IndexType i = 0; i < size; ++i) {
 #pragma omp atomic write
                     perm[base_write_offset + i] = valid_neighbours[i];
                 }
@@ -773,8 +722,8 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
                                 const IndexType *const row_ptrs,
                                 const IndexType *const col_idxs,
                                 const IndexType *const degrees,
-                                IndexType *const perm, size_type num_vertices,
-                                gko::vector<uint8> &previous_component)
+                                IndexType *const perm, IndexType num_vertices,
+                                vector<uint8> &previous_component)
 {
     struct IsolatedNodes {
         // Using a gko::vector here makes clang and gcc segfault,
@@ -791,7 +740,7 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp declare reduction(FindIsolated : IsolatedNodes : omp_out += omp_in)
     auto isolated = IsolatedNodes();
 #pragma omp parallel for reduction(FindIsolated : isolated)
-    for (auto i = 0; i < num_vertices; ++i) {
+    for (IndexType i = 0; i < num_vertices; ++i) {
         // No need to check for diagonal elements (only self-neighbouring) here,
         // those are already removed from the matrix.
         if (degrees[i] == 0) {
@@ -800,8 +749,7 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
-    std::memcpy(perm, &isolated.nodes[0],
-                isolated.nodes.size() * sizeof(IndexType));
+    std::copy_n(isolated.nodes.begin(), isolated.nodes.size(), perm);
     return isolated.nodes.size();
 }
 
@@ -811,7 +759,7 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
  */
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const OmpExecutor> exec,
-                     const size_type num_vertices,
+                     const IndexType num_vertices,
                      const IndexType *const row_ptrs,
                      const IndexType *const col_idxs,
                      const IndexType *const degrees, IndexType *const perm,
@@ -819,13 +767,13 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                      const gko::reorder::starting_strategy strategy)
 {
     // Initialize the perm to all "signal value".
-    std::fill(perm, perm + num_vertices, std::numeric_limits<IndexType>::max());
+    std::fill(perm, perm + num_vertices, perm_untouched);
 
     // For multiple components.
     IndexType base_offset = 0;
 
     // Stores for each node if it is part of an already discovered component.
-    gko::vector<uint8> previous_component(num_vertices, exec);
+    vector<uint8> previous_component(num_vertices, exec);
 
     // First handle all isolated nodes. That reduces complexity later on.
     base_offset +=
@@ -833,7 +781,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                               num_vertices, previous_component);
 
     // Stores the level structure. Initialized to all "infinity".
-    gko::vector<IndexType> levels(num_vertices, exec);
+    vector<IndexType> levels(num_vertices, exec);
     std::fill(levels.begin(), levels.end(),
               std::numeric_limits<IndexType>::max());
 
@@ -853,7 +801,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
 
         // Will contain 0 -- 1 -- level_count(2) + 1 -- level_count(2) +
         // level_count(3) + 1 -- ... -- total_sum
-        gko::vector<IndexType> offsets = compute_level_offsets(
+        vector<IndexType> offsets = compute_level_offsets(
             exec, &levels[0], num_vertices, &previous_component[0]);
 
 
@@ -876,10 +824,8 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
     }
 
 // Finally reverse the order.
-// Could in principle also be already written in reverse order, but ... just no.
-// This is ridiculoulsly fast anyway.
 #pragma omp parallel for schedule(static)
-    for (auto i = 0; i < num_vertices / 2; ++i) {
+    for (IndexType i = 0; i < num_vertices / 2; ++i) {
         const auto tmp = perm[i];
         perm[i] = perm[num_vertices - i - 1];
         perm[num_vertices - i - 1] = tmp;
@@ -887,7 +833,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
 
     if (inv_perm) {
 #pragma omp parallel for schedule(static)
-        for (auto i = 0; i < num_vertices; ++i) {
+        for (IndexType i = 0; i < num_vertices; ++i) {
             inv_perm[perm[i]] = i;
         }
     }

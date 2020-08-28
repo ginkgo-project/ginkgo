@@ -52,6 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/allocator.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -65,11 +68,11 @@ namespace rcm {
 
 template <typename IndexType>
 void get_degree_of_nodes(std::shared_ptr<const ReferenceExecutor> exec,
-                         const size_type num_vertices,
+                         const IndexType num_vertices,
                          const IndexType *const row_ptrs,
                          IndexType *const degrees)
 {
-    for (auto i = 0; i < num_vertices; ++i) {
+    for (IndexType i = 0; i < num_vertices; ++i) {
         degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
 }
@@ -78,43 +81,38 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
 /**
- * Computes a level structure rooted at `root`, returning the height of the
- * structure along with the index of the node of minimal degree in its last
- * level.
+ * Computes a level structure rooted at `root`, returning a node of minimal
+ * degree in its last level, along with the height of the structure.
  */
 template <typename IndexType>
 std::pair<IndexType, size_type> rls_contender_and_height(
-    std::shared_ptr<const ReferenceExecutor> exec, const size_type num_vertices,
+    std::shared_ptr<const ReferenceExecutor> exec, const IndexType num_vertices,
     const IndexType root, const IndexType *const row_ptrs,
     const IndexType *const col_idxs, const IndexType *const degrees)
 {
     // This could actually be allocated in the calling scope, then reused.
-    Array<bool> visited_local(exec, num_vertices);
-    auto visited_local_p = visited_local.get_data();
-    for (auto i = 0; i < num_vertices; ++i) {
-        visited_local_p[i] = false;
-    }
+    vector<bool> visited_local(num_vertices, false, exec);
 
-    // This stores the level structure, starting with the root node.
+    // This stores a reordering in bfs order, starting with the root node.
     Array<IndexType> rls(exec, num_vertices);
     auto rls_p = rls.get_data();
     rls_p[0] = root;
-    auto rls_offset = 1;
-    visited_local_p[root] = true;
+    IndexType rls_offset = 1;
+    visited_local[root] = true;
 
-    auto rls_index = 0;
+    IndexType rls_index = 0;
 
     // Used to compute the height.
     // Always count up the count of the next level,
     // while counting down the current levels count.
-    auto height = 0;
-    auto current_level_countdown = 1;
-    auto next_level_countup = 0;
+    IndexType height = 0;
+    IndexType current_level_countdown = 1;
+    IndexType next_level_countup = 0;
 
     // The last levels size is required to compute the contender.
-    auto last_level_size = 0;
+    IndexType last_level_size = 0;
 
-    // While there are still nodes who's neighbours haven't been inspected.
+    // While there are still nodes whose neighbours haven't been inspected.
     while (rls_index < rls_offset) {
         auto parent = rls_p[rls_index];
         --current_level_countdown;
@@ -127,8 +125,8 @@ std::pair<IndexType, size_type> rls_contender_and_height(
             auto neighbor = col_idxs[neighbor_idx];
 
             // If this is a new node, add it to the rls and mark it as visited.
-            if (!visited_local_p[neighbor]) {
-                visited_local_p[neighbor] = true;
+            if (!visited_local[neighbor]) {
+                visited_local[neighbor] = true;
                 ++next_level_countup;
                 rls_p[rls_offset] = neighbor;
                 ++rls_offset;
@@ -152,25 +150,20 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     // Choose the contender.
     // It's the node of minimum degree in the last level.
     auto rls_size = rls_offset;
-    auto min_degree = std::numeric_limits<IndexType>::max();
-    auto contender = rls_size - last_level_size;
-    for (auto i = rls_size - last_level_size; i < rls_size; ++i) {
-        if (degrees[rls_p[i]] < min_degree) {
-            contender = i;
-            min_degree = degrees[rls_p[i]];
-        }
-    }
+    auto contender = *std::min_element(
+        rls_p + rls_size - last_level_size, rls_p + rls_size,
+        [&](IndexType u, IndexType v) { return degrees[u] < degrees[v]; });
 
-    return std::pair<IndexType, size_type>(rls_p[contender], height);
+    return std::pair<IndexType, IndexType>(contender, height);
 }
 
 template <typename IndexType>
 IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
-                             const size_type num_vertices,
+                             const IndexType num_vertices,
                              const IndexType *const row_ptrs,
                              const IndexType *const col_idxs,
                              const IndexType *const degrees,
-                             const bool *const visited,
+                             const vector<bool> &visited,
                              const gko::reorder::starting_strategy strategy)
 {
     using strategies = gko::reorder::starting_strategy;
@@ -180,9 +173,9 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
                strategy == strategies::pseudo_peripheral);
 
     // There must always be at least one unvisited node left.
-    auto index_min_node = 0;
-    auto min_node_degree = std::numeric_limits<IndexType>::max();
-    for (auto i = 0; i < num_vertices; ++i) {
+    IndexType index_min_node = 0;
+    IndexType min_node_degree = std::numeric_limits<IndexType>::max();
+    for (IndexType i = 0; i < num_vertices; ++i) {
         if (!visited[i]) {
             if (degrees[i] < min_node_degree) {
                 index_min_node = i;
@@ -231,7 +224,7 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
  */
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
-                     const size_type num_vertices,
+                     const IndexType num_vertices,
                      const IndexType *const row_ptrs,
                      const IndexType *const col_idxs,
                      const IndexType *const degrees,
@@ -242,26 +235,22 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
     // Storing vertices left to proceess.
     Array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
-    auto head_offset = 0;
-    auto tail_offset = 0;
+    IndexType head_offset = 0;
+    IndexType tail_offset = 0;
 
     // Storing which vertices have already been visited.
-    Array<bool> visited(exec, num_vertices);
-    auto visited_p = visited.get_data();
-    for (auto i = 0; i < num_vertices; ++i) {
-        visited_p[i] = false;
-    }
+    vector<bool> visited(num_vertices, false, exec);
 
-    for (auto perm_index = 0; perm_index < num_vertices; ++perm_index) {
+    for (IndexType perm_index = 0; perm_index < num_vertices; ++perm_index) {
         // Get the next vertex to process.
-        auto next_vertex = 0;
+        IndexType next_vertex = 0;
         if (head_offset <= tail_offset) {
             // Choose a new starting vertex, new component needs to be
             // discovered.
             next_vertex = find_starting_node<IndexType>(
-                exec, num_vertices, row_ptrs, col_idxs, degrees, visited_p,
+                exec, num_vertices, row_ptrs, col_idxs, degrees, visited,
                 strategy);
-            visited_p[next_vertex] = true;
+            visited[next_vertex] = true;
         } else {
             next_vertex = linear_queue_p[tail_offset];
             ++tail_offset;
@@ -272,7 +261,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
         // if no, insert them to sort.
         auto prev_head_offset = head_offset;
 
-        // Is this code correct for getting next_vertexs neighbors?
+        // Get the next vertex neighbours.
         auto row_start = row_ptrs[next_vertex];
         auto row_end = row_ptrs[next_vertex + 1];
         for (auto neighbor_idx = row_start; neighbor_idx < row_end;
@@ -281,26 +270,24 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
 
             // If the neighbour hasn't been visited yet, add it to the queue and
             // mark it.
-            if (!visited_p[neighbor]) {
-                visited_p[neighbor] = true;
+            if (!visited[neighbor]) {
+                visited[neighbor] = true;
                 linear_queue_p[head_offset] = neighbor;
                 ++head_offset;
             }
         }
 
         // Sort all just-added neighbours by degree.
-        std::sort(linear_queue_p + prev_head_offset,
-                  linear_queue_p + head_offset,
-                  [&degrees](IndexType i, IndexType j) {
-                      return degrees[i] < degrees[j];
-                  });
+        std::sort(
+            linear_queue_p + prev_head_offset, linear_queue_p + head_offset,
+            [&](IndexType i, IndexType j) { return degrees[i] < degrees[j]; });
 
         // Write out the processed vertex.
         permutation[num_vertices - perm_index - 1] = next_vertex;
     }
 
     if (inv_permutation) {
-        for (auto i = 0; i < num_vertices; ++i) {
+        for (IndexType i = 0; i < num_vertices; ++i) {
             inv_permutation[permutation[i]] = i;
         }
     }

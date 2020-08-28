@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <cstring>
 #include <deque>
 #include <fstream>
 #include <memory>
@@ -45,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
 
@@ -209,9 +207,8 @@ protected:
 
         // Following checks for cm ordering, therefore create a reversed perm.
         auto perm = std::vector<i_type>(n);
-        std::memcpy(&perm[0],
-                    reorder->get_permutation()->get_const_permutation(),
-                    n * sizeof(i_type));
+        std::copy_n(reorder->get_permutation()->get_const_permutation(), n,
+                    perm.begin());
         for (auto i = 0; i < n / 2; ++i) {
             const auto tmp = perm[i];
             perm[i] = perm[n - i - 1];

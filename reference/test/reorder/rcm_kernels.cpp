@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
 
@@ -59,7 +58,6 @@ class Rcm : public ::testing::Test {
 protected:
     using v_type = double;
     using i_type = int;
-    using Mtx = gko::matrix::Dense<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using perm_type = gko::matrix::Permutation<i_type>;
@@ -99,54 +97,41 @@ protected:
     std::shared_ptr<CsrMtx> p_mtx_1;
     std::unique_ptr<reorder_type> reorder_op_1;
 
-    bool find_duplicates(i_type val, std::size_t index, const i_type *data,
-                         std::size_t length)
+    static bool is_permutation(const perm_type *input_perm)
     {
-        auto count = 0;
-        for (auto i = 0; i < length; ++i) {
-            if (i != index && val == data[i]) {
-                count++;
-            }
-        }
-        if (count == 0) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    void assert_correct_permutation(const perm_type *input_perm)
-    {
-        auto perm_data = input_perm->get_const_permutation();
-        auto perm_size = input_perm->get_permutation_size();
-
-        for (auto i = 0; i < perm_size; ++i) {
-            ASSERT_LT(perm_data[i], perm_size);
-            ASSERT_GE(perm_data[i], 0);
-            ASSERT_FALSE(
-                find_duplicates(perm_data[i], i, perm_data, perm_size));
-        }
+        const auto perm_size = input_perm->get_permutation_size();
+        auto perm_sorted = std::vector<i_type>(perm_size);
+        std::copy_n(input_perm->get_const_permutation(), perm_size,
+                    perm_sorted.begin());
+        std::sort(perm_sorted.begin(), perm_sorted.end());
+        auto identity = std::vector<i_type>(perm_size);
+        std::iota(identity.begin(), identity.end(), 0);
+        return identity == perm_sorted;
     }
 };
 
 TEST_F(Rcm, CreatesAPermutation)
 {
     auto p = reorder_op_0->get_permutation();
-    assert_correct_permutation(p.get());
+    ASSERT_PRED1(is_permutation, p.get());
+}
+
+TEST_F(Rcm, CreatesCorrectPermutation)
+{
+    std::vector<i_type> correct = {2, 3, 1, 0, 4};
+
+    auto p = reorder_op_0->get_permutation()->get_const_permutation();
+
+    ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
 
 TEST_F(Rcm, PermutesPerfectFullBand)
 {
-    auto p = reorder_op_1->get_permutation()->get_const_permutation();
-    // These perms are hand-crafted for the matrix given in the ctor.
-    // They are same graph renumbering, reversed.
-    std::vector<i_type> correct_0 = {2, 1, 6, 5, 3, 4, 0, 8, 7};
-    std::vector<i_type> correct_1 = {7, 8, 0, 4, 3, 5, 6, 1, 2};
+    std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
 
-    auto eq_0 = std::equal(p, p + correct_0.size(), correct_0.begin());
-    auto eq_1 = std::equal(p, p + correct_1.size(), correct_1.begin());
-    const auto incl_or = [](bool a, bool b) { return a || b; };
-    ASSERT_PRED2(incl_or, eq_0, eq_1);
+    auto p = reorder_op_1->get_permutation()->get_const_permutation();
+
+    ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
 
 }  // namespace
