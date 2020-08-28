@@ -118,6 +118,9 @@ struct UbfsLinearQueue {
         omp_destroy_lock(&write_lock);
     }
 
+    UbfsLinearQueue(UbfsLinearQueue &other) = delete;
+    UbfsLinearQueue &operator=(const UbfsLinearQueue &other) = delete;
+
     /**
      * Copies a chunk of nodes back into the work queue,
      * in a thread-safe manner.
