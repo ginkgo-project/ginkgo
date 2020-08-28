@@ -66,6 +66,7 @@ namespace multigrid {
  * @tparam IndexType  precision of matrix indexes
  *
  * @ingroup RestrictProlong
+ * @ingroup Multigrid
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
@@ -118,7 +119,8 @@ public:
         unsigned GKO_FACTORY_PARAMETER(max_iterations, 15u);
 
         /**
-         * The maximum ratio of unassigned number.
+         * The maximum ratio of unassigned number, which is valid in the
+         * interval 0.0 ~ 1.0.
          */
         double GKO_FACTORY_PARAMETER(max_unassigned_percentage, 0.05);
 
@@ -127,7 +129,7 @@ public:
          *
          * If the deterministic is true, always get the same aggregated group
          * from the same matrix. Otherwise, the aggregated group might be
-         * differenet depending on the execution ordering.
+         * different depending on the execution ordering.
          */
         bool GKO_FACTORY_PARAMETER(deterministic, false);
     };
@@ -150,6 +152,8 @@ protected:
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
     {
+        GKO_ASSERT(parameters_.max_unassigned_percentage <= 1.0);
+        GKO_ASSERT(parameters_.max_unassigned_percentage >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();

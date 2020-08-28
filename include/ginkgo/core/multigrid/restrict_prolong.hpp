@@ -50,11 +50,12 @@ namespace multigrid {
 /**
  * The RestrictProlong class can be used to construct restrict_apply and
  * prolong_applyadd. R is the restrict operator (fine level -> coarse
- * level) and P is prolong operator (coarse level -> fine level).
+ * level) and P is the prolong operator (coarse level -> fine level).
  * restrict_apply(b, x) -> x = R(b)
  * prolong_applyadd(b, x) -> x = P(b) + x
  *
  * @ingroup RestrictProlong
+ * @ingroup Multigrid
  */
 class RestrictProlong
     : public EnableAbstractPolymorphicObject<RestrictProlong> {
@@ -163,8 +164,7 @@ protected:
      * Implementers of RestrictProlong should override this function instead
      * of restrict_apply(const LinOp *, LinOp *).
      *
-     * Performs the operation x = restrict(b), where op is the restrict
-     * operator.
+     * Performs the operation x = restrict(b).
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
@@ -173,10 +173,9 @@ protected:
 
     /**
      * Implementers of RestrictProlong should override this function instead
-     * of prolong_apply(const LinOp *, LinOp *).
+     * of prolong_applyadd(const LinOp *, LinOp *).
      *
-     * Performs the operation x = prolong(b), where op is the prolong
-     * operator.
+     * Performs the operation x += prolong(b).
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
@@ -212,6 +211,18 @@ private:
     size_type coarse_dim_;
 };
 
+
+/**
+ * A RestrictProlongFactory represents a higher order mapping which transforms
+ * one linear operator into the behavior between multigrid level.
+ *
+ * A RestrictProlongFactory transforms a linear operator $F$ (fine level) to
+ * $R$ (restrict), $P$ (prolong), and $C=RFP$ (coarse level), which defines the
+ * mapping between fine level and coarse level. R: F -> C and P: C -> F.
+ *
+ * @ingroup RestrictProlong
+ * @ingroup Multigrid
+ */
 class RestrictProlongFactory
     : public AbstractFactory<RestrictProlong, std::shared_ptr<const LinOp>> {
 public:
@@ -226,23 +237,74 @@ public:
 };
 
 
-template <typename ConcreteFactory, typename ConcreteCriterion,
+/**
+ * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
+ * template parameters to enable a subclass of RestrictProlongFactory.
+ *
+ * @tparam ConcreteFactory  the concrete factory which is being implemented
+ *                          [CRTP parmeter]
+ * @tparam ConcreteRstrPrlg  the concrete RestrictProlong type which this
+ * factory produces, needs to have a constructor which takes a const
+ * ConcreteFactory *, and an std::shared_ptr<const LinOp> as parameters.
+ * @tparam ParametersType  a subclass of enable_parameters_type template which
+ *                         defines all of the parameters of the factory
+ * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
+ *                          hierarchy, has to be a subclass of
+ * RestrictProlongFactory
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteFactory, typename ConcreteRstrPrlg,
           typename ParametersType,
           typename PolymorphicBase = RestrictProlongFactory>
 using EnableDefaultRestrictProlongFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteCriterion, ParametersType,
+    EnableDefaultFactory<ConcreteFactory, ConcreteRstrPrlg, ParametersType,
                          PolymorphicBase>;
 
 
-template <typename ConcreteLinOp, typename PolymorphicBase = RestrictProlong>
+/**
+ * The EnableRestrictProlong mixin can be used to provide sensible default
+ * implementations of the majority of the RestrictProlong and PolymorphicObject
+ * interface.
+ *
+ * *
+ * The goal of the mixin is to facilitate the development of new
+ * RestrictProlong, by enabling the implementers to focus on the important parts
+ * of their operator, while the library takes care of generating the trivial
+ * utility functions. The mixin will provide default implementations for the
+ * entire PolymorphicObject interface, including a default implementation of
+ * `copy_from` between objects of the new LinOp type. It will also hide the
+ * default RestrictPrlong::restrict_apply() and
+ * RestrictPrlong::prolong_applyadd() methods with versions that preserve the
+ * static type of the object.
+ *
+ * Implementers of new RestrictProlong are required to specify only the
+ * following aspects:
+ *
+ * 1.  Creation of the RestrictProlong: This can be facilitated via
+ *     GKO_ENABLE_RESTRICT_PROLONG_FACTORY macro.
+ * 2.  Application of the RestrictProlong: Implementers have to override
+ *     RestrictPrlong::restrict_apply_impl() and
+ *     RestrictPrlong::prolong_applyadd_impl() virtual methods and use
+ *     set_coarse_fine() to set the generated results.
+ *
+ * @tparam ConcreteRstrPrlg  the concrete RestrictProlong which is being
+ *                           implemented [CRTP parameter]
+ * @tparam PolymorphicBase  parent of ConcreteRstrPrlg in the polymorphic
+ *                          hierarchy, has to be a subclass of RestrictProlong
+ *
+ * @ingroup RestrictProlong
+ * @ingroup Multigrid
+ */
+template <typename ConcreteRstrPrlg, typename PolymorphicBase = RestrictProlong>
 class EnableRestrictProlong
-    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteLinOp> {
+    : public EnablePolymorphicObject<ConcreteRstrPrlg, PolymorphicBase>,
+      public EnablePolymorphicAssignment<ConcreteRstrPrlg> {
 public:
-    using EnablePolymorphicObject<ConcreteLinOp,
+    using EnablePolymorphicObject<ConcreteRstrPrlg,
                                   PolymorphicBase>::EnablePolymorphicObject;
 
-    ConcreteLinOp *restrict_apply(const LinOp *b, LinOp *x)
+    ConcreteRstrPrlg *restrict_apply(const LinOp *b, LinOp *x)
     {
         this->validate_restrict_parameters(b, x);
         auto exec = this->get_executor();
@@ -251,7 +313,7 @@ public:
         return self();
     }
 
-    const ConcreteLinOp *restrict_apply(const LinOp *b, LinOp *x) const
+    const ConcreteRstrPrlg *restrict_apply(const LinOp *b, LinOp *x) const
     {
         this->validate_restrict_parameters(b, x);
         auto exec = this->get_executor();
@@ -260,7 +322,7 @@ public:
         return self();
     }
 
-    ConcreteLinOp *prolong_applyadd(const LinOp *b, LinOp *x)
+    ConcreteRstrPrlg *prolong_applyadd(const LinOp *b, LinOp *x)
     {
         this->validate_prolong_parameters(b, x);
         auto exec = this->get_executor();
@@ -269,7 +331,7 @@ public:
         return self();
     }
 
-    const ConcreteLinOp *prolong_applyadd(const LinOp *b, LinOp *x) const
+    const ConcreteRstrPrlg *prolong_applyadd(const LinOp *b, LinOp *x) const
     {
         this->validate_prolong_parameters(b, x);
         auto exec = this->get_executor();
@@ -279,7 +341,7 @@ public:
     }
 
 protected:
-    GKO_ENABLE_SELF(ConcreteLinOp);
+    GKO_ENABLE_SELF(ConcreteRstrPrlg);
 };
 
 
@@ -320,6 +382,7 @@ public:                                                                       \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
+
 
 }  // namespace multigrid
 }  // namespace gko
