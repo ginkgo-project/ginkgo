@@ -47,10 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include <iostream>
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "matrices/config.hpp"
 
 namespace {
 
@@ -68,57 +66,40 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           rcm_factory(reorder_type::build().on(exec)),
           // clang-format off
-          p_mtx(gko::initialize<CsrMtx>(
-                                        {{1.0, 2.0, 0.0, -1.3, 2.1},
-                                         {2.0, 5.0, 1.5, 0.0, 0.0},
-                                         {0.0, 1.5, 1.5, 1.1, 0.0},
-                                         {-1.3, 0.0, 1.1, 2.0, 0.0},
-                                         {2.1, 0.0, 0.0, 0.0, 1.0}},
-                                        exec)),
+          id3_mtx(gko::initialize<CsrMtx>(
+              {{1.0, 0.0, 0.0}, 
+              {0.0, 1.0, 0.0}, 
+              {0.0, 0.0, 1.0}}, exec)),
+          not_id3_mtx(gko::initialize<CsrMtx>(
+              {{1.0, 0.0, 1.0}, 
+              {0.0, 1.0, 0.0}, 
+              {1.0, 0.0, 1.0}}, exec)),
           // clang-format on
-          reorder_op(rcm_factory->generate(p_mtx))
+          reorder_op(rcm_factory->generate(id3_mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<CsrMtx> p_mtx;
+    std::shared_ptr<CsrMtx> id3_mtx;
+    std::shared_ptr<CsrMtx> not_id3_mtx;
     std::unique_ptr<typename reorder_type::Factory> rcm_factory;
     std::unique_ptr<reorder_type> reorder_op;
 };
 
 TYPED_TEST_CASE(Rcm, gko::test::ValueIndexTypes);
 
-TYPED_TEST(Rcm, FactoryCreatesCorrectReorderOp)
-{
-    using i_type = typename TestFixture::i_type;
-    using v_type = typename TestFixture::v_type;
-    auto adj_mtx = this->reorder_op->get_adjacency_matrix();
-    auto tmp = gko::matrix::SparsityCsr<v_type, i_type>::create(this->exec,
-                                                                this->p_mtx);
-    auto comp_mtx = tmp->to_adjacency_matrix();
-
-    ASSERT_NE(this->reorder_op->get_adjacency_matrix(), nullptr);
-    GKO_ASSERT_MTX_NEAR(adj_mtx.get(), comp_mtx.get(), 0);
-}
-
 TYPED_TEST(Rcm, CanBeCleared)
 {
     this->reorder_op->clear();
 
-    auto reorder_op_mtx = this->reorder_op->get_adjacency_matrix();
-    ASSERT_EQ(reorder_op_mtx, nullptr);
+    auto reorder_op_perm = this->reorder_op->get_permutation();
+    ASSERT_EQ(reorder_op_perm, nullptr);
 }
 
 TYPED_TEST(Rcm, CanBeCopied)
 {
     using v_type = typename TestFixture::v_type;
-    auto rcm =
-        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-            3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
-            this->exec));
-    auto rcm_copy =
-        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-            3, {{1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}},
-            this->exec));
+    auto rcm = this->rcm_factory->generate(this->id3_mtx);
+    auto rcm_copy = this->rcm_factory->generate(this->not_id3_mtx);
 
     rcm_copy->copy_from(rcm.get());
 
@@ -131,14 +112,8 @@ TYPED_TEST(Rcm, CanBeCopied)
 TYPED_TEST(Rcm, CanBeMoved)
 {
     using v_type = typename TestFixture::v_type;
-    auto rcm =
-        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-            3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
-            this->exec));
-    auto rcm_move =
-        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-            3, {{1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}},
-            this->exec));
+    auto rcm = this->rcm_factory->generate(this->id3_mtx);
+    auto rcm_move = this->rcm_factory->generate(this->not_id3_mtx);
 
     rcm->move_to(rcm_move.get());
 
@@ -151,10 +126,7 @@ TYPED_TEST(Rcm, CanBeMoved)
 TYPED_TEST(Rcm, CanBeCloned)
 {
     using v_type = typename TestFixture::v_type;
-    auto rcm =
-        this->rcm_factory->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-            3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
-            this->exec));
+    auto rcm = this->rcm_factory->generate(this->id3_mtx);
 
     auto rcm_clone = rcm->clone();
 
@@ -168,11 +140,7 @@ TYPED_TEST(Rcm, HasSensibleDefaults)
     using v_type = typename TestFixture::v_type;
     using reorder_type = typename TestFixture::reorder_type;
 
-    auto rcm = reorder_type::build()
-                   .on(this->exec)
-                   ->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-                       3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
-                       this->exec));
+    auto rcm = reorder_type::build().on(this->exec)->generate(this->id3_mtx);
 
     ASSERT_EQ(rcm->get_parameters().construct_inverse_permutation, false);
     ASSERT_EQ(rcm->get_parameters().strategy,
@@ -202,9 +170,7 @@ TYPED_TEST(Rcm, CanBeCreatedWithConstructInversePermutation)
     auto rcm = reorder_type::build()
                    .with_construct_inverse_permutation(true)
                    .on(this->exec)
-                   ->generate(gko::initialize<gko::matrix::Dense<v_type>>(
-                       3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
-                       this->exec));
+                   ->generate(this->id3_mtx);
 
     ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[0], 2);
     ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[1], 1);

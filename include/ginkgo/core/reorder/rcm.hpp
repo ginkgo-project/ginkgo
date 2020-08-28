@@ -102,17 +102,6 @@ public:
     using PermutationMatrix = matrix::Permutation<IndexType>;
 
     /**
-     * Gets the adjacency matrix representation of the system operator (input
-     * matrix) of the linear operator.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const SparsityMatrix> get_adjacency_matrix() const
-    {
-        return adjacency_matrix_;
-    }
-
-    /**
      * Gets the permutation (permutation matrix, output of the algorithm) of the
      * linear operator.
      *
@@ -157,7 +146,7 @@ protected:
      * Generates the permutation matrix and if required the inverse permutation
      * matrix.
      */
-    void generate() const;
+    void generate(std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
     explicit Rcm(std::shared_ptr<const Executor> exec)
         : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
@@ -168,22 +157,22 @@ protected:
           parameters_{factory->get_parameters()}
     {
         const auto exec = this->get_executor();
+        auto adjacency_matrix = SparsityMatrix::create(exec);
+        Array<IndexType> degrees;
+
         // The adjacency matrix has to be square.
         GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
-        if (!args.system_matrix->get_size()) {
-            adjacency_matrix_ = SparsityMatrix::create(exec);
-        } else {
+        if (args.system_matrix->get_size()) {
             auto tmp =
                 copy_and_convert_to<SparsityMatrix>(exec, args.system_matrix);
             // This function provided within the Sparsity matrix format removes
             // the diagonal elements and outputs an adjacency matrix.
-            adjacency_matrix_ = tmp->to_adjacency_matrix();
+            adjacency_matrix = tmp->to_adjacency_matrix();
         }
-        auto const dim = adjacency_matrix_->get_size();
-        degrees_ = std::unique_ptr<Array<IndexType>>(
-            new Array<IndexType>(exec, dim[0]));
+
+        auto const dim = adjacency_matrix->get_size();
         permutation_ = PermutationMatrix::create(exec, dim);
 
         // To make it explicit.
@@ -192,13 +181,11 @@ protected:
             inv_permutation_ = PermutationMatrix::create(exec, dim);
         }
 
-        this->generate();
+        this->generate(std::move(adjacency_matrix));
     }
 
 private:
-    std::shared_ptr<SparsityMatrix> adjacency_matrix_;
     std::shared_ptr<PermutationMatrix> permutation_;
-    std::shared_ptr<Array<IndexType>> degrees_;
     std::shared_ptr<PermutationMatrix> inv_permutation_;
 };
 
