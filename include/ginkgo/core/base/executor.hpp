@@ -512,6 +512,29 @@ public:
     }
 
     /**
+     * Runs one of the passed in functors, depending on the Executor type
+     * with a custom operation name.
+     *
+     * @tparam ClosureOmp  type of op_omp
+     * @tparam ClosureCuda  type of op_cuda
+     * @tparam ClosureHip  type of op_hip
+     *
+     * @param name  the name to be used for the underlying operation
+     * @param op_omp  functor to run in case of a OmpExecutor or
+     *                ReferenceExecutor
+     * @param op_cuda  functor to run in case of a CudaExecutor
+     * @param op_hip  functor to run in case of a HipExecutor
+     */
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
+    void run(std::string name, const ClosureOmp &op_omp,
+             const ClosureCuda &op_cuda, const ClosureHip &op_hip) const
+    {
+        NamedLambdaOperation<ClosureOmp, ClosureCuda, ClosureHip> op(
+            std::move(name), op_omp, op_cuda, op_hip);
+        this->run(op);
+    }
+
+    /**
      * Allocates memory in this Executor.
      *
      * @tparam T  datatype to allocate
@@ -872,8 +895,7 @@ private:
      *
      * The first object is called by the OmpExecutor, the second one by the
      * CudaExecutor and the last one by the HipExecutor. When run on the
-     * ReferenceExecutor, the implementation will launch the CPU reference
-     * version.
+     * ReferenceExecutor, the implementation will launch the OpenMP version.
      *
      * @tparam ClosureOmp  the type of the first functor
      * @tparam ClosureCuda  the type of the second functor
@@ -885,7 +907,7 @@ private:
     class LambdaOperation : public Operation {
     public:
         /**
-         * Creates an LambdaOperation object from two functors.
+         * Creates an LambdaOperation object from three functors.
          *
          * @param op_omp  a functor object which will be called by OmpExecutor
          *                and ReferenceExecutor
@@ -927,6 +949,47 @@ private:
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
         ClosureDpcpp op_dpcpp_;
+    };
+
+    /**
+     * The NamedLambdaOperation class wraps three functor objects into an
+     * Operation with a custom name.
+     *
+     * The first object is called by the OmpExecutor, the second one by the
+     * CudaExecutor and the last one by the HipExecutor. When run on the
+     * ReferenceExecutor, the implementation will launch the CPU reference
+     * version.
+     *
+     * @tparam ClosureOmp  the type of the first functor
+     * @tparam ClosureCuda  the type of the second functor
+     * @tparam ClosureHip  the type of the third functor
+     */
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
+    class NamedLambdaOperation
+        : public LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip> {
+    public:
+        /**
+         * Creates an NamedLambdaOperation object from three functors and a
+         * name.
+         *
+         * @param name  the name to be used for this operation
+         * @param op_omp  a functor object which will be called by OmpExecutor
+         *                and ReferenceExecutor
+         * @param op_cuda  a functor object which will be called by CudaExecutor
+         * @param op_hip  a functor object which will be called by HipExecutor
+         */
+        NamedLambdaOperation(std::string name, const ClosureOmp &op_omp,
+                             const ClosureCuda &op_cuda,
+                             const ClosureHip &op_hip)
+            : LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip>(
+                  op_omp, op_cuda, op_hip),
+              name_(std::move(name))
+        {}
+
+        const char *get_name() const noexcept override { return name_.c_str(); }
+
+    private:
+        std::string name_;
     };
 };
 
