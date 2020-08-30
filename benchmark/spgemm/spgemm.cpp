@@ -412,12 +412,17 @@ void apply_spgemm(const char *strategy_name,
         }
 
         // compute and write benchmark data
-        auto validation_result =
+        auto validation =
+            validate_spgemm(gko::lend(reference_solution), gko::lend(res));
+        res->sort_by_column_index();
+        auto sorted_validation =
             validate_spgemm(gko::lend(reference_solution), gko::lend(res));
         add_or_set_member(test_case[strategy_name], "correct",
-                          validation_result.first, allocator);
+                          sorted_validation.first, allocator);
         add_or_set_member(test_case[strategy_name], "error",
-                          validation_result.second, allocator);
+                          sorted_validation.second, allocator);
+        add_or_set_member(test_case[strategy_name], "sorted", validation.first,
+                          allocator);
         add_or_set_member(test_case[strategy_name], "completed", true,
                           allocator);
     } catch (const std::exception &e) {
