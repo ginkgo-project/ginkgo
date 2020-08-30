@@ -82,7 +82,7 @@ void SpeckCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // separately log the runtimes to eliminate allocation and init overheads
     this->get_executor()->run(
-        [] {},
+        "spgemm", [] {},
         [&] {
             spECK::MultiplyspECK<ValueType, 4, 1024,
                                  spECK_DYNAMIC_MEM_PER_BLOCK,

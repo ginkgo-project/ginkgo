@@ -36,7 +36,7 @@ if(GINKGO_SPGEMM_BUILD_ACSPGEMM)
         ACSpGEMM/source/dCSR.cpp
         ACSpGEMM/source/device/Multiply.cu)
     target_link_libraries(spgemm-wrapper-acspgemm ginkgo)
-    target_include_directories(spgemm-wrapper-acspgemm PRIVATE ACSpGEMM/include ACSpGEMM/externals/include)
+    target_include_directories(spgemm-wrapper-acspgemm PRIVATE ACSpGEMM/include ACSpGEMM/externals/include "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
         # CUDA 11 provides cub natively
         target_include_directories(spgemm-wrapper-acspgemm PRIVATE ACSpGEMM/include/external)
@@ -65,7 +65,7 @@ if (GINKGO_SPGEMM_BUILD_SPECK)
         spECK/source/dCSR.cpp
         spECK/source/GPU/Multiply.cu)
     target_link_libraries(spgemm-wrapper-speck ginkgo)
-    target_include_directories(spgemm-wrapper-speck PRIVATE spECK/include spECK/externals/include)
+    target_include_directories(spgemm-wrapper-speck PRIVATE spECK/include spECK/externals/include "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
         # CUDA 11 provides cub natively
         target_include_directories(spgemm-wrapper-speck PRIVATE spECK/include/external)

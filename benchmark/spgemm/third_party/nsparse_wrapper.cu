@@ -85,7 +85,9 @@ void NSparseCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     bin.set_max_bin(this_wrap.d_rpt, this_wrap.d_colids, b_wrap.d_rpt,
                     this_wrap.nrow, TS_S_P, TS_S_T);
 
-    hash_symbolic(this_wrap, b_wrap, x_wrap, bin);
+    this->get_executor()->run(
+        "symbolic", [] {},
+        [&] { hash_symbolic(this_wrap, b_wrap, x_wrap, bin); }, [] {});
 
     matrix::CsrBuilder<ValueType, int32> x_builder{x_csr};
     x_builder.get_col_idx_array().resize_and_reset(x_wrap.nnz);
@@ -96,7 +98,13 @@ void NSparseCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     bin.set_min_bin(this_wrap.nrow, TS_N_P, TS_N_T);
 
-    hash_numeric<int32, ValueType, true>(this_wrap, b_wrap, x_wrap, bin);
+    this->get_executor()->run(
+        "numeric", [] {},
+        [&] {
+            hash_numeric<int32, ValueType, true>(this_wrap, b_wrap, x_wrap,
+                                                 bin);
+        },
+        [] {});
 }
 
 

@@ -81,7 +81,7 @@ void AcCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // separately log the runtimes to eliminate allocation overheads
     this->get_executor()->run(
-        [] {},
+        "spgemm", [] {},
         [&] { ACSpGEMM::Multiply(this_wrap, b_wrap, x_wrap, traits, stats); },
         [] {});
 

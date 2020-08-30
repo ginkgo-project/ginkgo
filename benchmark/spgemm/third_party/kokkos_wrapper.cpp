@@ -113,9 +113,14 @@ void KokkosCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     val_view b_val_view{b_vals, b_nnz};
     int_out_view x_row_view{x_row_ptrs, m + 1};
 
-    KokkosSparse::Experimental::spgemm_symbolic(
-        &handle, m, k, n, this_row_view, this_col_view, false, b_row_view,
-        b_col_view, false, x_row_view);
+    this->get_executor()->run(
+        "symbolic", [] {},
+        [&] {
+            KokkosSparse::Experimental::spgemm_symbolic(
+                &handle, m, k, n, this_row_view, this_col_view, false,
+                b_row_view, b_col_view, false, x_row_view);
+        },
+        [] {});
 
     auto x_nnz =
         static_cast<size_type>(handle.get_spgemm_handle()->get_c_nnz());
@@ -126,10 +131,15 @@ void KokkosCsr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int_out_view x_col_view{x_csr->get_col_idxs(), x_nnz};
     val_out_view x_val_view{x_csr->get_values(), x_nnz};
 
-    KokkosSparse::Experimental::spgemm_numeric(
-        &handle, m, k, n, this_row_view, this_col_view, this_val_view, false,
-        b_row_view, b_col_view, b_val_view, false, x_row_view, x_col_view,
-        x_val_view);
+    this->get_executor()->run(
+        "numeric", [] {},
+        [&] {
+            KokkosSparse::Experimental::spgemm_numeric(
+                &handle, m, k, n, this_row_view, this_col_view, this_val_view,
+                false, b_row_view, b_col_view, b_val_view, false, x_row_view,
+                x_col_view, x_val_view);
+        },
+        [] {});
 
     handle.destroy_spgemm_handle();
 }
