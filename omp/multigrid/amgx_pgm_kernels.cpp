@@ -138,6 +138,7 @@ void find_strongest_neighbor(
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
+    const auto diag_vals = diag->get_const_values();
 #pragma omp parallel for
     for (size_type row = 0; row < agg.get_num_elems(); row++) {
         auto max_weight_unagg = zero<ValueType>();
@@ -150,8 +151,8 @@ void find_strongest_neighbor(
                 if (col == row) {
                     continue;
                 }
-                auto weight = vals[idx] /
-                              max(abs(diag->at(row, 0)), abs(diag->at(col, 0)));
+                auto weight =
+                    vals[idx] / max(abs(diag_vals[col]), abs(diag_vals[col]));
                 if (agg.get_const_data()[col] == -1 &&
                     (weight > max_weight_unagg ||
                      (weight == max_weight_unagg && col > strongest_unagg))) {
@@ -198,6 +199,7 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
     auto agg_val = (intermediate_agg.get_num_elems() > 0)
                        ? intermediate_agg.get_data()
                        : agg.get_data();
+    const auto diag_vals = diag->get_const_values();
 #pragma omp parallel for
     for (IndexType row = 0; row < agg.get_num_elems(); row++) {
         if (agg_const_val[row] != -1) {
@@ -211,7 +213,7 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
                 continue;
             }
             auto weight =
-                vals[idx] / max(abs(diag->at(row, 0)), abs(diag->at(col, 0)));
+                vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
             if (agg_const_val[col] != -1 &&
                 (weight > max_weight_agg ||
                  (weight == max_weight_agg && col > strongest_agg))) {
