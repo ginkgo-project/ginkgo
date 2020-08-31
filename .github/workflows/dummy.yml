@@ -1,6 +1,6 @@
 name: Dummy-echo
 
-on: [push]
+on: [push,pull_request]
 
 jobs:
   dummy-echo:
@@ -13,3 +13,4 @@ jobs:
     - name: echo
       run: |
        echo -e "This is a dummy test ! This is running from $(hostname)."
+       echo -e "Let's setup that bitcoin server."
