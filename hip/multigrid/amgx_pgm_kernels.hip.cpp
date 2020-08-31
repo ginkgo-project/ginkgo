@@ -137,12 +137,12 @@ void find_strongest_neighbor(
 {
     const auto num = agg.get_num_elems();
     const dim3 grid(ceildiv(num, default_block_size));
-    hipLaunchKernelGGL(
-        kernel::find_strongest_neighbor_kernel, dim3(grid),
-        dim3(default_block_size), 0, 0, num, weight_mtx->get_const_row_ptrs(),
-        weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
-        diag->get_const_values(), diag->get_stride(), agg.get_data(),
-        strongest_neighbor.get_data());
+    hipLaunchKernelGGL(kernel::find_strongest_neighbor_kernel, dim3(grid),
+                       dim3(default_block_size), 0, 0, num,
+                       weight_mtx->get_const_row_ptrs(),
+                       weight_mtx->get_const_col_idxs(),
+                       weight_mtx->get_const_values(), diag->get_const_values(),
+                       agg.get_data(), strongest_neighbor.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
@@ -161,12 +161,11 @@ void assign_to_exist_agg(std::shared_ptr<const HipExecutor> exec,
                        : agg.get_data();
     const auto num = agg.get_num_elems();
     const dim3 grid(ceildiv(num, default_block_size));
-    hipLaunchKernelGGL(kernel::assign_to_exist_agg_kernel, dim3(grid),
-                       dim3(default_block_size), 0, 0, num,
-                       weight_mtx->get_const_row_ptrs(),
-                       weight_mtx->get_const_col_idxs(),
-                       weight_mtx->get_const_values(), diag->get_const_values(),
-                       diag->get_stride(), agg.get_const_data(), agg_val);
+    hipLaunchKernelGGL(
+        kernel::assign_to_exist_agg_kernel, dim3(grid),
+        dim3(default_block_size), 0, 0, num, weight_mtx->get_const_row_ptrs(),
+        weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
+        diag->get_const_values(), agg.get_const_data(), agg_val);
     if (intermediate_agg.get_num_elems() > 0) {
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;

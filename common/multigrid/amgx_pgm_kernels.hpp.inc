@@ -150,8 +150,8 @@ __global__
         const size_type num, const IndexType *__restrict__ row_ptrs,
         const IndexType *__restrict__ col_idxs,
         const ValueType *__restrict__ weight_vals,
-        const ValueType *__restrict__ diag, const size_type diag_stride,
-        IndexType *__restrict__ agg, IndexType *__restrict__ strongest_neighbor)
+        const ValueType *__restrict__ diag, IndexType *__restrict__ agg,
+        IndexType *__restrict__ strongest_neighbor)
 {
     auto row = thread::get_thread_id_flat();
     if (row >= num) {
@@ -170,8 +170,7 @@ __global__
         if (col == row) {
             continue;
         }
-        auto weight = weight_vals[idx] / max(abs(diag[row * diag_stride]),
-                                             abs(diag[col * diag_stride]));
+        auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
         if (agg[col] == -1 &&
             (weight > max_weight_unagg ||
              (weight == max_weight_unagg && col > strongest_unagg))) {
@@ -207,7 +206,7 @@ __global__
         const size_type num, const IndexType *__restrict__ row_ptrs,
         const IndexType *__restrict__ col_idxs,
         const ValueType *__restrict__ weight_vals,
-        const ValueType *__restrict__ diag, const size_type diag_stride,
+        const ValueType *__restrict__ diag,
         const IndexType *__restrict__ agg_const_val,
         IndexType *__restrict__ agg_val)
 {
@@ -225,8 +224,7 @@ __global__
         if (col == row) {
             continue;
         }
-        auto weight = weight_vals[idx] / max(abs(diag[row * diag_stride]),
-                                             abs(diag[col * diag_stride]));
+        auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
         if (agg_const_val[col] != -1 &&
             (weight > max_weight_agg ||
              (weight == max_weight_agg && col > strongest_agg))) {

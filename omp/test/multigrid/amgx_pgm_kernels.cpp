@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -80,6 +81,7 @@ protected:
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Diag = gko::matrix::Diagonal<value_type>;
     AmgxPgm() : rand_engine(30) {}
 
     void SetUp()
@@ -127,7 +129,7 @@ protected:
         d_coarse_vector = Mtx::create(omp);
         d_fine_vector = Mtx::create(omp);
         d_weight_csr = Csr::create(omp);
-        d_weight_diag = Mtx::create(omp);
+        d_weight_diag = Diag::create(omp);
         d_agg = agg;
         d_unfinished_agg = unfinished_agg;
         d_strongest_neighbor = strongest_neighbor;
@@ -196,12 +198,12 @@ protected:
 
     std::unique_ptr<Mtx> coarse_vector;
     std::unique_ptr<Mtx> fine_vector;
-    std::unique_ptr<Mtx> weight_diag;
+    std::unique_ptr<Diag> weight_diag;
     std::unique_ptr<Csr> weight_csr;
 
     std::unique_ptr<Mtx> d_coarse_vector;
     std::unique_ptr<Mtx> d_fine_vector;
-    std::unique_ptr<Mtx> d_weight_diag;
+    std::unique_ptr<Diag> d_weight_diag;
     std::unique_ptr<Csr> d_weight_csr;
 
     gko::size_type n;
