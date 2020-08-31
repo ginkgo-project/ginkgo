@@ -1,0 +1,14 @@
+name: Dummy-echo
+
+on: [push]
+
+jobs:
+  dummy-echo:
+    strategy:
+      fail-fast: false
+    name: dummy-echo
+    runs-on: [self-hosted, cuda]
+    steps:
+    - name: echo
+      run: |
+       echo -e "This is a dummy test ! This is running from $(hostname)."
