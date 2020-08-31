@@ -6,7 +6,7 @@ jobs:
   dummy-echo:
     strategy:
       fail-fast: false
-    name: dummy-echo
+    name: Dummy-echo
     runs-on: [self-hosted, cuda]
 
     steps:
