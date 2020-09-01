@@ -23,11 +23,14 @@ The Ginkgo software itself was reviewed and has a paper published in the Journal
 of Open Source Software, which can be cited with the following reference:
 
 ```bibtex
-@article{Joss2020,
-  doi = {10.21105.joss.02260},
+@article{GinkgoJoss2020,
+  doi = {10.21105/joss.02260},
   url = {https://doi.org/10.21105/joss.02260},
   year = {2020},
   publisher = {The Open Journal},
+  volume = {5},
+  number = {52},
+  pages = {2260},
   author = {Hartwig Anzt and Terry Cojean and Yen-Chen Chen and Goran Flegar and Fritz G\"{o}bel and Thomas Gr\"{u}tzmacher and Pratik Nayak and Tobias Ribizel and Yu-Hsiang Tsai},
   title = {Ginkgo: A high performance numerical linear algebra library},
   journal = {Journal of Open Source Software}
@@ -68,7 +71,7 @@ series = {PASC ’19}
 }
 ```
 
-### On SpMV performance
+### On SpMV or solvers performance
 
 ``` bibtex
 @InProceedings{tsai2020amdspmv,
@@ -89,7 +92,6 @@ abstract="Efficiently processing sparse matrices is a central and performance-cr
 isbn="978-3-030-50743-5"
 }
 
-
 @article{anzt2020spmv,
 author = {Anzt, Hartwig and Cojean, Terry and Yen-Chen, Chen and Dongarra, Jack and Flegar, Goran and Nayak, Pratik and Tomov, Stanimire and Tsai, Yuhsiang M. and Wang, Weichung},
 title = {Load-Balancing Sparse Matrix Vector Product Kernels on GPUs},
@@ -107,5 +109,16 @@ month = mar,
 articleno = {2},
 numpages = {26},
 keywords = {irregular matrices, GPUs, Sparse Matrix Vector Product (SpMV)}
+}
+```
+
+```bibtex
+@misc{tsai2020evaluating,
+    title={Evaluating the Performance of NVIDIA's A100 Ampere GPU for Sparse Linear Algebra Computations},
+    author={Yuhsiang Mike Tsai and Terry Cojean and Hartwig Anzt},
+    year={2020},
+    eprint={2008.08478},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
 }
 ```
