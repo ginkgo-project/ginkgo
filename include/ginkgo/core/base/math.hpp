@@ -698,9 +698,20 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
  * @return x >= zero<T>() ? x : -x;
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
+GKO_INLINE
+    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    abs(const T &x)
 {
     return x >= zero<T>() ? x : -x;
+}
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+abs(const T &x)
+{
+    return sqrt(squared_norm(x));
 }
 
 
