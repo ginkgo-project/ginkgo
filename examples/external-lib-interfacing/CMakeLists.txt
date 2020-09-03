@@ -14,8 +14,9 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
+    set(run_target "external-lib-interfacing")
     add_executable(${PROJECT_NAME} "")
-    target_sources(${PROJECT_NAME} PRIVATE external-lib-interfacing.cpp)
+    target_sources(${PROJECT_NAME} PRIVATE ${run_target}.cpp)
     target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall)
     target_compile_definitions(${PROJECT_NAME} PRIVATE OMPI_SKIP_MPICXX)
 

@@ -123,9 +123,8 @@ int main(int argc, char *argv[])
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cout << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
                   << std::endl;
-        std::exit(-1);
     }
 
     // Get number of discretization points
@@ -185,7 +184,8 @@ int main(int argc, char *argv[])
         ->generate(clone(exec, matrix))  // copy the matrix to the executor
         ->apply(lend(rhs), lend(u));
 
-    print_solution<ValueType>(u0, u1, lend(u));
+    // Uncomment to print the solution
+    // print_solution<ValueType>(u0, u1, lend(u));
     std::cout << "The average relative error is "
               << calculate_error(discretization_points, lend(u), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(

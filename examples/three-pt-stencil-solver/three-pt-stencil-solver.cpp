@@ -233,9 +233,8 @@ int main(int argc, char *argv[])
     using IndexType = int;
 
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cout << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
                   << std::endl;
-        std::exit(-1);
     }
 
     const IndexType discretization_points =
@@ -267,7 +266,9 @@ int main(int argc, char *argv[])
                  col_idxs.data(), values.data(), rhs.data(), u.data(),
                  reduction_factor);
 
-    print_solution<ValueType, IndexType>(discretization_points, 0, 1, u.data());
+    // Uncomment to print the solution
+    // print_solution<ValueType, IndexType>(discretization_points, 0, 1,
+    // u.data());
     std::cout << "The average relative error is "
               << calculate_error(discretization_points, u.data(), correct_u) /
                      discretization_points
