@@ -295,10 +295,9 @@ void solve_system(const std::string &executor_string,
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cout << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
                   << " [stencil_alpha] [stencil_beta] [stencil_gamma]"
                   << std::endl;
-        std::exit(-1);
     }
     using ValueType = double;
     using IndexType = int;
@@ -354,7 +353,8 @@ int main(int argc, char *argv[])
                 .count()) *
         1e-6;
 
-    print_solution(dp, u.data());
+    // Uncomment to print the solution
+    // print_solution(dp, u.data());
     std::cout << "The average relative error is "
               << calculate_error(dp, u.data(), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(dp_2)

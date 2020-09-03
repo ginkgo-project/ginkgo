@@ -1,6 +1,4 @@
-add_executable(ilu-preconditioned-solver ilu-preconditioned-solver.cpp)
-target_link_libraries(ilu-preconditioned-solver ginkgo)
-target_include_directories(ilu-preconditioned-solver PRIVATE ${PROJECT_SOURCE_DIR})
+setup_example_target("ilu-preconditioned-solver")
 configure_file(data/A.mtx data/A.mtx COPYONLY)
 configure_file(data/b.mtx data/b.mtx COPYONLY)
 configure_file(data/x0.mtx data/x0.mtx COPYONLY)
