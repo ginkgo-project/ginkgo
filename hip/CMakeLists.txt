@@ -143,6 +143,7 @@ set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/version.hip.cpp
+    components/absolute_array.hip.cpp
     components/fill_array.hip.cpp
     components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp

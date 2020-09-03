@@ -70,6 +70,7 @@ target_sources(ginkgo_cuda
     base/exception.cpp
     base/executor.cpp
     base/version.cpp
+    components/absolute_array.cu
     components/fill_array.cu
     components/precision_conversion.cu
     components/prefix_sum.cu
