@@ -587,4 +587,26 @@ TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    x->turn_absolute();
+    dx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(x.get(), dx.get(), 1e-14);
+}
+
+
+TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_x = x->get_absolute();
+    auto dabs_x = dx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_x.get(), dabs_x.get(), 1e-14);
+}
+
+
 }  // namespace

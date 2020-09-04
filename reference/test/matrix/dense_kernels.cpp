@@ -2009,6 +2009,74 @@ TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
 }
 
 
+TYPED_TEST(Dense, InplaceAbsolute)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    this->mtx5->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(this->mtx5,
+                        l({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
+{
+    using T = typename TestFixture::value_type;
+    // mtx takes the left top corner 2 x 2 matrix
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    mtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(this->mtx5,
+                        l({{1.0, 1.0, -0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, OutplaceAbsolute)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto abs_mtx = this->mtx5->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx,
+                        l({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
+{
+    using T = typename TestFixture::value_type;
+    // mtx takes the left top corner 2 x 2 matrix
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto abs_mtx = mtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, l({{1.0, 1.0}, {2.0, 2.0}}),
+                        r<TypeParam>::value);
+    GKO_ASSERT_EQ(abs_mtx->get_stride(), 2);
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
@@ -2036,6 +2104,44 @@ TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
                         l({{T{1.0, -2.0}, T{-2.0, -1.5}, T{1.0, 0.0}},
                            {T{-1.0, -2.1}, T{4.5, 0.0}, T{0.0, -1.0}}}),
                         0.0);
+}
+
+
+TYPED_TEST(DenseComplex, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    mtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
 }
 
 
