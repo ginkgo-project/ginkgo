@@ -85,6 +85,8 @@ GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
 GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
+GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
+GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 
 
 }  // namespace dense
@@ -749,6 +751,30 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(dense::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::turn_absolute()
+{
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_inplace_absolute_dense(this));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::outplace_absolute_type>
+Dense<ValueType>::get_absolute() const
+{
+    auto exec = this->get_executor();
+
+    // do not inherit the stride
+    auto abs_dense = outplace_absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_outplace_absolute_dense(this, abs_dense.get()));
+
+    return abs_dense;
 }
 
 

@@ -110,7 +110,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public WritableToMatrixData<ValueType, int64>,
               public Transposable,
               public Permutable<int32>,
-              public Permutable<int64> {
+              public Permutable<int64>,
+              public EnableAbsoluteComputation<Dense<ValueType>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -126,6 +127,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Sellp<ValueType, int64>;
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
+    friend class Dense<make_complex<ValueType>>;
 
 public:
     using EnableLinOp<Dense>::convert_to;
@@ -136,6 +138,8 @@ public:
     using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Dense>::outplace_type;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
@@ -244,6 +248,10 @@ public:
         const Array<int64> *inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
