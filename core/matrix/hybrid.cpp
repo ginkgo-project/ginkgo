@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -60,6 +61,10 @@ GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
 GKO_REGISTER_OPERATION(extract_coo_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(extract_ell_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace hybrid
@@ -282,6 +287,34 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     exec->run(hybrid::make_extract_ell_diagonal(this->get_ell(), lend(diag)));
     exec->run(hybrid::make_extract_coo_diagonal(this->get_coo(), lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::turn_absolute()
+{
+    auto exec = this->get_executor();
+
+    exec->run(hybrid::make_inplace_absolute_array(
+        this->get_ell_values(), this->get_ell_num_stored_elements()));
+    exec->run(hybrid::make_inplace_absolute_array(
+        this->get_coo_values(), this->get_coo_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Hybrid<ValueType, IndexType>::outplace_absolute_type>
+Hybrid<ValueType, IndexType>::get_absolute() const
+{
+    auto exec = this->get_executor();
+
+    // use default strategy
+    auto abs_hybrid = outplace_absolute_type::create(exec, this->get_size());
+
+    abs_hybrid->ell_->copy_from(ell_->get_absolute());
+    abs_hybrid->coo_->copy_from(coo_->get_absolute());
+
+    return abs_hybrid;
 }
 
 

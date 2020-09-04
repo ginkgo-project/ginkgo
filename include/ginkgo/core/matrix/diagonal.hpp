@@ -72,11 +72,13 @@ class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
                  public WritableToMatrixData<ValueType, int32>,
                  public WritableToMatrixData<ValueType, int64>,
                  public ReadableFromMatrixData<ValueType, int32>,
-                 public ReadableFromMatrixData<ValueType, int64> {
+                 public ReadableFromMatrixData<ValueType, int64>,
+                 public EnableAbsoluteComputation<Diagonal<ValueType>> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Diagonal<make_complex<ValueType>>;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;
@@ -86,6 +88,8 @@ public:
     using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Diagonal>::outplace_type;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -98,6 +102,10 @@ public:
     void convert_to(Csr<ValueType, int64> *result) const override;
 
     void move_to(Csr<ValueType, int64> *result) override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

@@ -81,12 +81,14 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType> {
+            public WritableToMatrixData<ValueType, IndexType>,
+            public EnableAbsoluteComputation<Coo<ValueType, IndexType>> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
+    friend class Coo<make_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
@@ -95,6 +97,8 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Coo>::outplace_type;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 
@@ -116,6 +120,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Returns the values of the matrix.
