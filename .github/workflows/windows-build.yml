@@ -22,6 +22,9 @@ jobs:
       if: matrix.config.version == 'latest'
       run: |
         choco install cuda -y
+    - name: bigobj_env
+      run: |
+        echo "::set-env name=CXXFLAGS::/bigobj"
     - name: configure
       run: |
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
@@ -51,8 +54,7 @@ jobs:
       run: |
         echo "::set-env name=origin_path::$env:PATH"
         echo "::add-path::$pwd\build\windows_shared_library"
-    - name: debug_env
-      if: matrix.config.build_type == 'Debug'
+    - name: bigobj_env
       run: |
         echo "::set-env name=CXXFLAGS::/bigobj"
     - name: configure
