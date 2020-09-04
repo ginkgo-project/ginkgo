@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -621,6 +622,41 @@ public:
     virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
         const = 0;
 };
+
+
+/**
+ * The EnableAbsoluteComputation mixin implementing this interface can be
+ * computed. get_absolute gets a new LinOp which contains absolute values from a
+ * LinOp and the valuetype will be removed complex. turn_absolute applies
+ * absolute inplace, so it still keeps the valuetype of the class.
+ *
+ * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
+ *                        [CRTP parameter]
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteLinOp>
+class EnableAbsoluteComputation {
+public:
+    using outplace_type = remove_complex<ConcreteLinOp>;
+
+    virtual ~EnableAbsoluteComputation() = default;
+
+    /**
+     * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual std::unique_ptr<outplace_type> get_absolute() const = 0;
+
+    /**
+     * Turns the value
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual void turn_absolute() = 0;
+};
+
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
