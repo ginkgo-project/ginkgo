@@ -60,8 +60,8 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Csr<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
@@ -737,6 +737,50 @@ TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
     auto ddiag = dmtx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
+
+    mtx->turn_absolute();
+    dmtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
+
+    auto abs_mtx = mtx->get_absolute();
+    auto dabs_mtx = dmtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
+{
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
+
+    complex_mtx->turn_absolute();
+    complex_dmtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx.get(), complex_dmtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
+{
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
+
+    auto abs_mtx = complex_mtx->get_absolute();
+    auto dabs_mtx = complex_dmtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
 }
 
 

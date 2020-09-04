@@ -133,6 +133,27 @@ struct remove_complex_impl<std::complex<T>> {
 };
 
 
+/**
+ * Use the complex type if it is not complex.
+ *
+ * @tparam T  the type being made complex
+ */
+template <typename T>
+struct make_complex_impl {
+    using type = std::complex<T>;
+};
+
+/**
+ * Use the same type if it is complex type.
+ *
+ * @tparam T  the type being made complex
+ */
+template <typename T>
+struct make_complex_impl<std::complex<T>> {
+    using type = std::complex<T>;
+};
+
+
 template <typename T>
 struct is_complex_impl : public std::integral_constant<bool, false> {};
 
@@ -197,6 +218,31 @@ struct remove_complex_s<
     using type =
         typename detail::template_convertor<detail::remove_complex_impl,
                                             T>::type;
+};
+
+
+template <typename T, typename = void>
+struct make_complex_s {};
+
+/**
+ * Obtains a complex counterpart of a real type, and leaves the type
+ * unchanged if it is a complex type for complex/scalar type.
+ */
+template <typename T>
+struct make_complex_s<
+    T, xstd::void_t<std::enable_if_t<is_complex_or_scalar_impl<T>::value>>> {
+    using type = typename detail::make_complex_impl<T>::type;
+};
+
+/**
+ * Obtains a complex counterpart of a class with template parameters, which
+ * converts real parameters to complex parameters.
+ */
+template <typename T>
+struct make_complex_s<
+    T, xstd::void_t<std::enable_if_t<!is_complex_or_scalar_impl<T>::value>>> {
+    using type =
+        typename detail::template_convertor<detail::make_complex_impl, T>::type;
 };
 
 
@@ -291,6 +337,24 @@ using detail::remove_complex_s;
  */
 template <typename T>
 using remove_complex = typename remove_complex_s<T>::type;
+
+
+/**
+ * Removes the complex of complex/scalar type or the template parameter of class
+ * by accessing the `type` attribute of this struct.
+ *
+ * @tparam T  type to remove complex
+ */
+using detail::make_complex_s;
+
+/**
+ * Obtain the type which removed the complex of complex/scalar type or the
+ * template parameter of class by accessing the `type` attribute of this struct.
+ *
+ * @tparam T  type to remove complex
+ */
+template <typename T>
+using make_complex = typename make_complex_s<T>::type;
 
 
 namespace detail {

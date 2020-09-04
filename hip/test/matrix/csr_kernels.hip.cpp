@@ -60,8 +60,10 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Csr<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr() : mtx_size(532, 231), rand_engine(42) {}
 
@@ -114,6 +116,16 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    void set_up_apply_complex_data(
+        std::shared_ptr<ComplexMtx::strategy_type> strategy)
+    {
+        complex_mtx = ComplexMtx::create(ref, strategy);
+        complex_mtx->copy_from(
+            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
+        complex_dmtx = ComplexMtx::create(hip, strategy);
+        complex_dmtx->copy_from(complex_mtx.get());
+    }
+
     struct matrix_pair {
         std::unique_ptr<Mtx> ref;
         std::unique_ptr<Mtx> hip;
@@ -153,6 +165,7 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
@@ -160,6 +173,7 @@ protected:
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
@@ -708,6 +722,50 @@ TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
     auto ddiag = dmtx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    mtx->turn_absolute();
+    dmtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    auto abs_mtx = mtx->get_absolute();
+    auto dabs_mtx = dmtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
+{
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(hip));
+
+    complex_mtx->turn_absolute();
+    complex_dmtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx.get(), complex_dmtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
+{
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(hip));
+
+    auto abs_mtx = complex_mtx->get_absolute();
+    auto dabs_mtx = complex_dmtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
 }
 
 

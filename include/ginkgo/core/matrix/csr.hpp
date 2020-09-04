@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {
@@ -129,7 +130,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
-            public Permutable<IndexType> {
+            public Permutable<IndexType>,
+            public EnableAbsoluteComputation<Csr<ValueType, IndexType>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -139,12 +141,21 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
+    friend class Csr<make_complex<ValueType>, IndexType>;
+    // friend make_complex<Csr>;
+    //   error: can not recognize it is class correctly.
+    // friend class make_complex<Csr>;
+    //   error: using alias template specialization
+    // friend class make_complex_s<Csr<ValueType,IndexType>>::type;
+    //   error: can not recognize it is class correctly.
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Csr>::outplace_type;
 
     class automatical;
 
@@ -700,6 +711,10 @@ public:
         const Array<IndexType> *inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
