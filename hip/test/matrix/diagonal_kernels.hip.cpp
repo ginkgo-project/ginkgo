@@ -249,4 +249,26 @@ TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
 }
 
 
+TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->turn_absolute();
+    ddiag->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 1e-14);
+}
+
+
+TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_diag = diag->get_absolute();
+    auto dabs_diag = ddiag->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_diag.get(), dabs_diag.get(), 1e-14);
+}
+
+
 }  // namespace

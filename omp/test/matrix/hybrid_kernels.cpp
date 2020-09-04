@@ -230,4 +230,26 @@ TEST_F(Hybrid, ExtractDiagonalIsEquivalentToRef)
 }
 
 
+TEST_F(Hybrid, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->turn_absolute();
+    dmtx->turn_absolute();
+
+    GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
+}
+
+
+TEST_F(Hybrid, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_mtx = mtx->get_absolute();
+    auto dabs_mtx = dmtx->get_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
+}
+
+
 }  // namespace

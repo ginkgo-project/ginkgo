@@ -76,11 +76,14 @@ class Hybrid
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType> {
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<Hybrid<ValueType, IndexType>> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Hybrid<make_complex<ValueType>, IndexType>;
+
 
 public:
     using EnableLinOp<Hybrid>::convert_to;
@@ -91,6 +94,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Hybrid>::outplace_type;
+
 
     /**
      * strategy_type is to decide how to set the hybrid config. It
@@ -356,6 +362,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Returns the values of the ell part.

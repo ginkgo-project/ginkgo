@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
@@ -62,6 +63,10 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        ell::calculate_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace ell
@@ -248,6 +253,35 @@ Ell<ValueType, IndexType>::extract_diagonal() const
                                    zero<ValueType>()));
     exec->run(ell::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::turn_absolute()
+{
+    auto exec = this->get_executor();
+
+    exec->run(ell::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Ell<ValueType, IndexType>::outplace_absolute_type>
+Ell<ValueType, IndexType>::get_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_ell = outplace_absolute_type::create(
+        exec, this->get_size(), this->get_num_stored_elements_per_row(),
+        this->get_stride());
+
+    abs_ell->col_idxs_ = col_idxs_;
+    exec->run(ell::make_outplace_absolute_array(this->get_const_values(),
+                                                this->get_num_stored_elements(),
+                                                abs_ell->get_values()));
+
+    return abs_ell;
 }
 
 

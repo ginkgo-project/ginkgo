@@ -75,11 +75,13 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType> {
+            public WritableToMatrixData<ValueType, IndexType>,
+            public EnableAbsoluteComputation<Ell<ValueType, IndexType>> {
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Ell<make_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
@@ -88,6 +90,8 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using outplace_absolute_type =
+        typename EnableAbsoluteComputation<Ell>::outplace_type;
 
     friend class Ell<next_precision<ValueType>, IndexType>;
 
@@ -109,6 +113,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+
+    void turn_absolute() override;
 
     /**
      * Returns the values of the matrix.
