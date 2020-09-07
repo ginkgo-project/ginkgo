@@ -119,19 +119,76 @@ template <typename T>
 using to_integer = typename to_integer_impl<T>::type;
 
 
+template <typename T, typename Skip>
+using reduce_precision_skip =
+    typename std::conditional_t<std::is_same<reduce_precision<T>, Skip>::value,
+                                T, reduce_precision<T>>;
+
+
+namespace detail {
+
+
+template <typename T, typename Skip, int count>
+struct reduce_precision_skip_count_impl {
+    static_assert(count > 0,
+                  "The count variable must be larger or equal zero.");
+    using type = typename reduce_precision_skip_count_impl<
+        reduce_precision_skip<T, Skip>, Skip, count - 1>::type;
+};
+
+template <typename T, typename Skip>
+struct reduce_precision_skip_count_impl<T, Skip, 0> {
+    using type = T;
+};
+
+
+}  // namespace detail
+
+
+template <typename T, typename Skip, int count>
+using reduce_precision_skip_count =
+    typename detail::reduce_precision_skip_count_impl<T, Skip, count>::type;
+
+
+template <typename T, int count>
+using reduce_precision_count =
+    typename detail::reduce_precision_skip_count_impl<T, void, count>::type;
+
+
 template <typename ValueType>
 struct helper {
     template <typename Callable>
     static void call(Callable callable,
                      gko::solver::gmres_mixed_storage_precision st)
     {
-        callable(ValueType{});
+        switch (st) {
+        case gmres_mixed_storage_precision::reduce1:
+            callable(reduce_precision_count<ValueType, 1>{});
+            break;
+        case gmres_mixed_storage_precision::reduce2:
+            callable(reduce_precision_count<ValueType, 2>{});
+            break;
+        case gmres_mixed_storage_precision::integer:
+            callable(to_integer<ValueType>{});
+            break;
+        case gmres_mixed_storage_precision::ireduce1:
+            callable(to_integer<reduce_precision_count<ValueType, 1>>{});
+            break;
+        case gmres_mixed_storage_precision::ireduce2:
+            callable(to_integer<reduce_precision_count<ValueType, 2>>{});
+            break;
+        default:
+            callable(ValueType{});
+        }
     }
 };
 
-template <>
-struct helper<double> {
-    using ValueType = double;
+
+// helper for complex numbers
+template <typename T>
+struct helper<std::complex<T>> {
+    using ValueType = std::complex<T>;
+    using skip_type = std::complex<half>;
 
     template <typename Callable>
     static void call(Callable callable,
@@ -139,23 +196,15 @@ struct helper<double> {
     {
         switch (st) {
         case gmres_mixed_storage_precision::reduce1:
-            callable(reduce_precision<ValueType>{});
+            callable(reduce_precision_skip_count<ValueType, skip_type, 1>{});
             break;
         case gmres_mixed_storage_precision::reduce2:
-            callable(reduce_precision<reduce_precision<ValueType>>{});
+            callable(reduce_precision_skip_count<ValueType, skip_type, 2>{});
             break;
         case gmres_mixed_storage_precision::integer:
-            // check_for_complex();
-            callable(to_integer<ValueType>{});
-            break;
         case gmres_mixed_storage_precision::ireduce1:
-            // check_for_complex();
-            callable(to_integer<reduce_precision<ValueType>>{});
-            break;
         case gmres_mixed_storage_precision::ireduce2:
-            // check_for_complex();
-            callable(
-                to_integer<reduce_precision<reduce_precision<ValueType>>>{});
+            GKO_NOT_SUPPORTED(st);
             break;
         default:
             callable(ValueType{});
