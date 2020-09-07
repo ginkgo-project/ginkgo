@@ -291,7 +291,7 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::turn_absolute()
+void Hybrid<ValueType, IndexType>::apply_absolute()
 {
     auto exec = this->get_executor();
 

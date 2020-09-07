@@ -487,7 +487,7 @@ Csr<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::turn_absolute()
+void Csr<ValueType, IndexType>::apply_absolute()
 {
     auto exec = this->get_executor();
 

@@ -360,7 +360,7 @@ TYPED_TEST(Diagonal, InplaceAbsolute)
 {
     using value_type = typename TestFixture::value_type;
 
-    this->diag1->turn_absolute();
+    this->diag1->apply_absolute();
     auto values = this->diag1->get_values();
 
     EXPECT_EQ(values[0], value_type(2.0));
@@ -425,7 +425,7 @@ TYPED_TEST(DiagonalComplex, InplaceAbsolute)
     diag_values[1] = value_type{-3.0, 0.0};
     diag_values[2] = value_type{0.0, -1.5};
 
-    diag->turn_absolute();
+    diag->apply_absolute();
 
     EXPECT_EQ(diag_values[0], (value_type{5.0, 0.0}));
     EXPECT_EQ(diag_values[1], (value_type{3.0, 0.0}));

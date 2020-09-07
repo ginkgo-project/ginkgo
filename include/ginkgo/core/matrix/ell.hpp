@@ -116,7 +116,7 @@ public:
 
     std::unique_ptr<outplace_absolute_type> get_absolute() const override;
 
-    void turn_absolute() override;
+    void apply_absolute() override;
 
     /**
      * Returns the values of the matrix.

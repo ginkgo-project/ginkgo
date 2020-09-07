@@ -353,8 +353,8 @@ TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_matrix(32, 2);
 
-    mtx->turn_absolute();
-    dmtx->turn_absolute();
+    mtx->apply_absolute();
+    dmtx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
 }

@@ -2017,7 +2017,7 @@ TYPED_TEST(Dense, InplaceAbsolute)
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
-    this->mtx5->turn_absolute();
+    this->mtx5->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(this->mtx5,
                         l({{1.0, 1.0, 0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
@@ -2035,7 +2035,7 @@ TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
-    mtx->turn_absolute();
+    mtx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(this->mtx5,
                         l({{1.0, 1.0, -0.5}, {2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}),
@@ -2119,7 +2119,7 @@ TYPED_TEST(DenseComplex, InplaceAbsolute)
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
     // clang-format on
 
-    mtx->turn_absolute();
+    mtx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(
         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
