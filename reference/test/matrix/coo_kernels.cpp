@@ -540,7 +540,7 @@ TYPED_TEST(Coo, InplaceAbsolute)
     auto mtx = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
 
-    mtx->turn_absolute();
+    mtx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(
         mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
@@ -606,7 +606,7 @@ TYPED_TEST(CooComplex, InplaceAbsolute)
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
     // clang-format on
 
-    mtx->turn_absolute();
+    mtx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(
         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);

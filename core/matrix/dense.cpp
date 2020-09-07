@@ -755,7 +755,7 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::turn_absolute()
+void Dense<ValueType>::apply_absolute()
 {
     auto exec = this->get_executor();
 

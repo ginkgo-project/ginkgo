@@ -30,8 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <complex>
 #include <ginkgo/core/base/lin_op.hpp>
-
+#include <ginkgo/core/base/math.hpp>
 
 #include <gtest/gtest.h>
 
@@ -311,6 +312,105 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
     ASSERT_EQ(op->get_executor(), ref);
     ASSERT_EQ(op->get_parameters().value, 6);
     ASSERT_EQ(op->op_.get(), dummy.get());
+}
+
+
+template <typename Type>
+class DummyLinOpWithType
+    : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
+      public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
+      public gko::EnableAbsoluteComputation<DummyLinOpWithType<Type>> {
+public:
+    using outplace_absolute_type = gko::remove_complex<DummyLinOpWithType>;
+    DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)
+        : gko::EnableLinOp<DummyLinOpWithType>(exec)
+    {}
+
+    DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec,
+                       gko::dim<2> size, Type value)
+        : gko::EnableLinOp<DummyLinOpWithType>(exec, size), value_(value)
+    {}
+
+    void apply_absolute() override { value_ = gko::abs(value_); }
+
+    std::unique_ptr<outplace_absolute_type> get_absolute() const override
+    {
+        return std::make_unique<outplace_absolute_type>(
+            this->get_executor(), this->get_size(), gko::abs(value_));
+    }
+
+    Type get_value() const { return value_; }
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+
+private:
+    Type value_;
+};
+
+
+class EnableAbsoluteComputation : public ::testing::Test {
+protected:
+    using dummy_type = DummyLinOpWithType<std::complex<double>>;
+    EnableAbsoluteComputation()
+        : ref{gko::ReferenceExecutor::create()},
+          op{dummy_type::create(ref, gko::dim<2>{1, 1},
+                                std::complex<double>{-3.0, 4.0})}
+    {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<dummy_type> op;
+};
+
+
+TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnConcreteType)
+{
+    op->apply_absolute();
+
+    ASSERT_EQ(op->get_value(), std::complex<double>{5.0});
+}
+
+
+TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnConcreteType)
+{
+    auto abs_op = op->get_absolute();
+
+    ASSERT_EQ(typeid(abs_op),
+              typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));
+    ASSERT_EQ(abs_op->get_value(), 5.0);
+}
+
+
+TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnAbsoluteComputable)
+{
+    auto linop = gko::as<gko::LinOp>(op);
+
+    gko::as<gko::AbsoluteComputable>(linop)->apply_absolute();
+
+    ASSERT_EQ(gko::as<dummy_type>(linop)->get_value(),
+              std::complex<double>{5.0});
+}
+
+
+TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnAbsoluteComputable)
+{
+    auto abs_op = op->get_absolute();
+
+    ASSERT_EQ(typeid(abs_op),
+              typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));
+    ASSERT_EQ(abs_op->get_value(), 5.0);
+}
+
+
+TEST_F(EnableAbsoluteComputation, ThrowWithoutAbsoluteComputableInterface)
+{
+    std::shared_ptr<gko::LinOp> linop = DummyLinOp::create(ref);
+
+    ASSERT_THROW(gko::as<gko::AbsoluteComputable>(linop), gko::NotSupported);
 }
 
 

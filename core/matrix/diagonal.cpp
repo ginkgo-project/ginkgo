@@ -267,7 +267,7 @@ void Diagonal<ValueType>::write(mat_data32 &data) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::turn_absolute()
+void Diagonal<ValueType>::apply_absolute()
 {
     auto exec = this->get_executor();
 

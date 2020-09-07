@@ -706,8 +706,8 @@ TEST_F(Dense, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    x->turn_absolute();
-    dx->turn_absolute();
+    x->apply_absolute();
+    dx->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(x.get(), dx.get(), 1e-14);
 }

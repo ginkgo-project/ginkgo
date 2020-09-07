@@ -251,7 +251,7 @@ public:
 
     std::unique_ptr<outplace_absolute_type> get_absolute() const override;
 
-    void turn_absolute() override;
+    void apply_absolute() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

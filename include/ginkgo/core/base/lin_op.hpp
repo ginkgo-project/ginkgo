@@ -625,10 +625,31 @@ public:
 
 
 /**
- * The EnableAbsoluteComputation mixin implementing this interface can be
- * computed. get_absolute gets a new LinOp which contains absolute values from a
- * LinOp and the valuetype will be removed complex. turn_absolute applies
- * absolute inplace, so it still keeps the valuetype of the class.
+ * The AbsoluteComputable is an interface to allow get absolute from a LinOp.
+ * Use EnableAbsoluteComputation<ConcreteLinOp> to implement this interface.
+ */
+class AbsoluteComputable {
+public:
+    /**
+     * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute LinOp
+     */
+    virtual std::unique_ptr<LinOp> get_absolute_linop() const = 0;
+
+    /**
+     * Apply absolute on each element.
+     */
+    virtual void apply_absolute() = 0;
+};
+
+
+/**
+ * The EnableAbsoluteComputation mixin provides the default implementations of
+ * `get_absolute_linop` and the absolute interface. `get_absolute` gets a new
+ * remove_complex<ConcreteLinOp> which removes the complex value_type by
+ * applying outplace absolute. `apply_absolute` applies absolute inplace, so it
+ * still keeps the value_type of the class.
  *
  * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
  *                        [CRTP parameter]
@@ -636,11 +657,16 @@ public:
  * @ingroup LinOp
  */
 template <typename ConcreteLinOp>
-class EnableAbsoluteComputation {
+class EnableAbsoluteComputation : public AbsoluteComputable {
 public:
     using outplace_type = remove_complex<ConcreteLinOp>;
 
     virtual ~EnableAbsoluteComputation() = default;
+
+    std::unique_ptr<LinOp> get_absolute_linop() const override
+    {
+        return this->get_absolute();
+    }
 
     /**
      * Gets the absolute LinOp
@@ -648,13 +674,6 @@ public:
      * @return a pointer to the new absolute object
      */
     virtual std::unique_ptr<outplace_type> get_absolute() const = 0;
-
-    /**
-     * Turns the value
-     *
-     * @return a pointer to the new absolute object
-     */
-    virtual void turn_absolute() = 0;
 };
 
 

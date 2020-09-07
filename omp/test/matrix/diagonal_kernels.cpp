@@ -252,8 +252,8 @@ TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->turn_absolute();
-    ddiag->turn_absolute();
+    diag->apply_absolute();
+    ddiag->apply_absolute();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 1e-14);
 }

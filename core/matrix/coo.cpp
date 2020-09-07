@@ -239,7 +239,7 @@ Coo<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::turn_absolute()
+void Coo<ValueType, IndexType>::apply_absolute()
 {
     auto exec = this->get_executor();
 

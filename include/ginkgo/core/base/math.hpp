@@ -753,33 +753,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 
 
 /**
- * Returns the absolute value of the object.
- *
- * @tparam T  the type of the object
- *
- * @param x  the object
- *
- * @return x >= zero<T>() ? x : -x;
- */
-template <typename T>
-GKO_INLINE
-    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    abs(const T &x)
-{
-    return x >= zero<T>() ? x : -x;
-}
-
-
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
-                                                      remove_complex<T>>
-abs(const T &x)
-{
-    return sqrt(squared_norm(x));
-}
-
-
-/**
  * Returns the larger of the arguments.
  *
  * @tparam T  type of the arguments
@@ -899,6 +872,33 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
     -> decltype(real(conj(x) * x))
 {
     return real(conj(x) * x);
+}
+
+
+/**
+ * Returns the absolute value of the object.
+ *
+ * @tparam T  the type of the object
+ *
+ * @param x  the object
+ *
+ * @return x >= zero<T>() ? x : -x;
+ */
+template <typename T>
+GKO_INLINE
+    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    abs(const T &x)
+{
+    return x >= zero<T>() ? x : -x;
+}
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+abs(const T &x)
+{
+    return sqrt(squared_norm(x));
 }
 
 
