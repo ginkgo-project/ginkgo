@@ -116,6 +116,14 @@ TEST(CudaError, ReturnsCublasError)
 }
 
 
+void throws_curand_error() { throw GKO_CURAND_ERROR(0); }
+
+TEST(CudaError, ReturnsCurandError)
+{
+    ASSERT_THROW(throws_curand_error(), gko::CurandError);
+}
+
+
 void throws_cusparse_error() { throw GKO_CUSPARSE_ERROR(0); }
 
 TEST(CudaError, ReturnsCusparseError)

@@ -131,6 +131,9 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     bool one_changed{};
     Array<stopping_status> stop_status(exec, nrhs);
 
+    auto subspace_vectors_ =
+        Vector::create(exec, gko::dim<2>(subspace_dim_, problem_size));
+
     // Initialization
     // m = identity
     exec->run(

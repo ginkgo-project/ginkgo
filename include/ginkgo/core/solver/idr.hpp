@@ -196,21 +196,11 @@ protected:
 
         subspace_dim_ = parameters_.subspace_dim;
 
-        auto subspace_vectors_data = matrix_data<ValueType>(
-            gko::dim<2>(subspace_dim_, system_matrix_->get_size()[0]),
-            std::normal_distribution<>(0.0, 1.0), std::ranlux48(15));
-
-        subspace_vectors_ =
-            matrix::Dense<ValueType>::create(factory->get_executor());
-
-        subspace_vectors_->read(subspace_vectors_data);
-
         kappa_ = parameters_.kappa;
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<matrix::Dense<ValueType>> subspace_vectors_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type subspace_dim_;
     remove_complex<ValueType> kappa_;
