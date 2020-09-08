@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/components/fill_array.hpp"
+#include "hip/base/hipblas_bindings.hip.hpp"
+#include "hip/base/hiprand_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
@@ -60,6 +63,8 @@ namespace idr {
 
 
 constexpr int default_block_size = 512;
+constexpr int default_dot_dim = 32;
+constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "common/solver/idr_kernels.hpp.inc"
@@ -78,7 +83,7 @@ void initialize_m(matrix::Dense<ValueType> *m,
 
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
     hipLaunchKernelGGL(HIP_KERNEL_NAME(initialize_m_kernel), grid_dim,
-                       default_block_size, 0, 0 subspace_dim, nrhs,
+                       default_block_size, 0, 0, subspace_dim, nrhs,
                        as_hip_type(m->get_values()), m_stride,
                        as_hip_type(stop_status->get_data()));
 }
@@ -87,6 +92,10 @@ void initialize_m(matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
 {
+    hiprand::rand_vector(
+        1234ULL,
+        subspace_vectors->get_size()[0] * subspace_vectors->get_stride(), 0.5,
+        0.5, subspace_vectors->get_values());
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(
             orthonormalize_subspace_vectors_kernel<default_block_size>),
@@ -144,7 +153,7 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec, size_type k,
                 g_k->get_stride(), as_hip_type(alpha->get_values()),
                 as_hip_type(stop_status->get_const_data()));
         } else {
-            hipblas::dot(exec->get_hiplas_handle(), size, p_i, 1,
+            hipblas::dot(exec->get_hipblas_handle(), size, p_i, 1,
                          g_k->get_values(), g_k->get_stride(),
                          alpha->get_values());
         }
@@ -171,7 +180,7 @@ void update_g_and_u(std::shared_ptr<const HipExecutor> exec, size_type k,
 template <typename ValueType>
 void update_m(std::shared_ptr<const HipExecutor> exec, size_type k,
               const matrix::Dense<ValueType> *p,
-              const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *m,
+              const matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *m,
               const Array<stopping_status> *stop_status)
 {
     const auto size = g_k->get_size()[0];
@@ -241,7 +250,7 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
                 Array<stopping_status> *stop_status)
 {
     initialize_m(m, stop_status);
-    initialize_subspace_vectors(subspace_vectors);
+    orthonormalize_subspace_vectors(subspace_vectors);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);

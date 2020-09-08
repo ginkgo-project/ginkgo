@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <curand.h>
 #include <cusparse.h>
 
 

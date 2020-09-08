@@ -20,6 +20,22 @@ if(NOT DEFINED HIPBLAS_PATH)
     endif()
 endif()
 
+if(NOT DEFINED HIPRAND_PATH)
+    if(DEFINED ENV{HIPRAND_PATH})
+        set(HIPRAND_PATH $ENV{HIPRAND_PATH} CACHE PATH "Path to which HIPRAND has been installed")
+    else()
+        set(HIPRAND_PATH "${ROCM_PATH}/hiprand" CACHE PATH "Path to which HIPRAND has been installed")
+    endif()
+endif()
+
+if(NOT DEFINED ROCRAND_PATH)
+    if(DEFINED ENV{ROCRAND_PATH})
+        set(ROCRAND_PATH $ENV{ROCRAND_PATH} CACHE PATH "Path to which ROCRAND has been installed")
+    else()
+        set(ROCRAND_PATH "${ROCM_PATH}/rocrand" CACHE PATH "Path to which ROCRAND has been installed")
+    endif()
+endif()
+
 if(NOT DEFINED HIPSPARSE_PATH)
     if(DEFINED ENV{HIPSPARSE_PATH})
         set(HIPSPARSE_PATH $ENV{HIPSPARSE_PATH} CACHE PATH "Path to which HIPSPARSE has been installed")
@@ -120,7 +136,9 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
 list(APPEND CMAKE_PREFIX_PATH
     "${HIPBLAS_PATH}/lib/cmake"
+    "${HIPRAND_PATH}/lib/cmake"
     "${HIPSPARSE_PATH}/lib/cmake"
+    "${ROCRAND_PATH}/lib/cmake"
 )
 # Set CMAKE_MODULE_PATH and CMAKE_PREFIX_PATH as PARENT_SCOPE to easily find HIP again
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
@@ -135,7 +153,9 @@ set(HIP_HIPCC_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" CACHE STR
 
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
+find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
+find_package(rocrand REQUIRED)
 find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
     PATHS "${HIP_PATH}/../include"
     ENV HIP_THRUST_PATH)
@@ -273,7 +293,7 @@ elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     set(HIP_CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
 endif()
 
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 
 target_include_directories(ginkgo_hip
     PUBLIC
@@ -281,6 +301,7 @@ target_include_directories(ginkgo_hip
     PRIVATE
         ${GINKGO_HIP_THRUST_PATH}
         ${HIPBLAS_INCLUDE_DIRS}
+        ${HIPRAND_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
