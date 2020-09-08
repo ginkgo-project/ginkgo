@@ -148,6 +148,14 @@ TEST(HipError, ReturnsHipblasError)
 }
 
 
+void throws_hiprand_error() { throw GKO_HIPRAND_ERROR(0); }
+
+TEST(HipError, ReturnsHiprandError)
+{
+    ASSERT_THROW(throws_hiprand_error(), gko::HiprandError);
+}
+
+
 void throws_hipsparse_error() { throw GKO_HIPSPARSE_ERROR(0); }
 
 TEST(HipError, ReturnsHipsparseError)

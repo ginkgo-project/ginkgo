@@ -86,12 +86,13 @@ function(ginkgo_check_headers target)
     if (HIP_SOURCES)
         set_source_files_properties(${HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
         hip_add_library(${target}_headers_hip ${HIP_SOURCES}) # the compiler options get set by linking to ginkgo_hip
-        target_link_libraries(${target}_headers_hip PRIVATE ${target} roc::hipblas roc::hipsparse)
+        target_link_libraries(${target}_headers_hip PRIVATE ${target} roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
         target_include_directories(${target}_headers_hip
             PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}"
             "${GINKGO_HIP_THRUST_PATH}"
             "${HIPBLAS_INCLUDE_DIRS}"
+            "${HIPRAND_INCLUDE_DIRS}"
             "${HIPSPARSE_INCLUDE_DIRS}"
             "${ROCPRIM_INCLUDE_DIRS}")
     endif()
