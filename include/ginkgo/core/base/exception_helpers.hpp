@@ -393,6 +393,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a HiprandError.
+ *
+ * @param errcode  The error code returned from the HIPRAND routine.
+ */
+#define GKO_HIPRAND_ERROR(_errcode) \
+    ::gko::HiprandError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a HipsparseError.
  *
  * @param errcode  The error code returned from the HIPSPARSE routine.
@@ -425,6 +434,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         auto _errcode = _hipblas_call;              \
         if (_errcode != HIPBLAS_STATUS_SUCCESS) {   \
             throw GKO_HIPBLAS_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPRAND library call completed without errors.
+ *
+ * @param _hiprand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPRAND_ERRORS(_hiprand_call) \
+    do {                                            \
+        auto _errcode = _hiprand_call;              \
+        if (_errcode != HIPRAND_STATUS_SUCCESS) {   \
+            throw GKO_HIPRAND_ERROR(_errcode);      \
         }                                           \
     } while (false)
 

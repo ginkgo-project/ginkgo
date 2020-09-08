@@ -312,6 +312,29 @@ private:
 
 
 /**
+ * HiprandError is thrown when a hipRAND routine throws a non-zero error code.
+ */
+class HiprandError : public Error {
+public:
+    /**
+     * Initializes a hipRAND error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the hipRAND routine that failed
+     * @param error_code  The resulting hipRAND error code
+     */
+    HiprandError(const std::string &file, int line, const std::string &func,
+                 int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
  * HipsparseError is thrown when a hipSPARSE routine throws a non-zero error
  * code.
  */
