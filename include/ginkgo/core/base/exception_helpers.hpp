@@ -301,6 +301,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a CurandError.
+ *
+ * @param errcode  The error code returned from the cuRAND routine.
+ */
+#define GKO_CURAND_ERROR(_errcode) \
+    ::gko::CurandError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CusparseError.
  *
  * @param errcode  The error code returned from the cuSPARSE routine.
@@ -333,6 +342,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         auto _errcode = _cublas_call;             \
         if (_errcode != CUBLAS_STATUS_SUCCESS) {  \
             throw GKO_CUBLAS_ERROR(_errcode);     \
+        }                                         \
+    } while (false)
+
+
+/**
+ * Asserts that a cuRAND library call completed without errors.
+ *
+ * @param _curand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CURAND_ERRORS(_curand_call) \
+    do {                                          \
+        auto _errcode = _curand_call;             \
+        if (_errcode != CURAND_STATUS_SUCCESS) {  \
+            throw GKO_CURAND_ERROR(_errcode);     \
         }                                         \
     } while (false)
 

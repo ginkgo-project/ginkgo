@@ -111,6 +111,22 @@ void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
 }
 
 
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
+{
+    return dist(gen);
+}
+
+
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
+{
+    return ValueType(dist(gen), dist(gen));
+}
+
+
 }  // namespace
 
 
@@ -133,10 +149,17 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    // Orthonormalize P
+    // Initialize and Orthonormalize P
     const auto num_rows = subspace_vectors->get_size()[0];
     const auto num_cols = subspace_vectors->get_size()[1];
+    auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
+    auto gen = std::ranlux48(15);
     for (size_type row = 0; row < num_rows; row++) {
+        for (size_type col = 0; col < num_cols; col++) {
+            subspace_vectors->at(row, col) =
+                get_rand_value<ValueType>(dist, gen);
+        }
+
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
             for (size_type j = 0; j < num_cols; j++) {

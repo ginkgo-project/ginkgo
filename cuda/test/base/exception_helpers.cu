@@ -68,6 +68,18 @@ TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
 }
 
 
+TEST(AssertNoCurandErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_CURAND_ERRORS(1), gko::CurandError);
+}
+
+
+TEST(AssertNoCurandErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CURAND_ERRORS(CURAND_STATUS_SUCCESS));
+}
+
+
 TEST(AssertNoCusparseErrors, ThrowsOnError)
 {
     ASSERT_THROW(GKO_ASSERT_NO_CUSPARSE_ERRORS(1), gko::CusparseError);

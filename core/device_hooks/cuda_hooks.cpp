@@ -120,6 +120,12 @@ std::string CublasError::get_error(int64)
 }
 
 
+std::string CurandError::get_error(int64)
+{
+    return "ginkgo CUDA module is not compiled";
+}
+
+
 std::string CusparseError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";
