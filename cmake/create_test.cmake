@@ -44,6 +44,7 @@ function(ginkgo_create_test_cpp_cuda_header test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
+    set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"

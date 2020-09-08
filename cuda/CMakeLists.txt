@@ -1,5 +1,7 @@
 enable_language(CUDA)
-
+message("CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE}")
+message("CMAKE_CUDA_LINK_EXECUTABLE ${CMAKE_CUDA_LINK_EXECUTABLE}")
+message("CMAKE_CUDA_HOST_LINK_LAUNCHER ${CMAKE_CUDA_HOST_LINK_LAUNCHER}")
 # Needed because of a known issue with CUDA while linking statically.
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
 if (NOT BUILD_SHARED_LIBS)
