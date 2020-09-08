@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/curand_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
@@ -91,6 +92,10 @@ void initialize_m(matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
 {
+    curand::rand_vector(
+        1234ULL,
+        subspace_vectors->get_size()[0] * subspace_vectors->get_stride(), 0.5,
+        0.5, subspace_vectors->get_values());
     orthonormalize_subspace_vectors_kernel<default_block_size>
         <<<1, default_block_size>>>(
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
