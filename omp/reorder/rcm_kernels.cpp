@@ -117,8 +117,8 @@ struct UbfsLinearQueue {
         : arr(vector<IndexType>(capacity, exec)),
           head(0),
           tail(0),
-          read_mutex(omp_lock_hint_uncontended),
-          write_mutex(omp_lock_hint_uncontended)
+          read_mutex(),
+          write_mutex()
     {}
 
     UbfsLinearQueue(UbfsLinearQueue &other) = delete;

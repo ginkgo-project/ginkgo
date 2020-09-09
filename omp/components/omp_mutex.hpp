@@ -40,7 +40,6 @@ namespace omp {
 
 struct omp_mutex {
     omp_mutex() { omp_init_lock(&lock_); }
-    omp_mutex(omp_lock_hint_t hint) { omp_init_lock_with_hint(&lock_, hint); }
     ~omp_mutex() { omp_destroy_lock(&lock_); }
 
     omp_mutex(const omp_mutex &) = delete;
