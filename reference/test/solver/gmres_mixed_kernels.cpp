@@ -206,7 +206,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->precision() * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->precision());
 }
 
 
@@ -251,7 +251,7 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystems)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.0, 1.0}, I<T>{3.0, 1.0}, I<T>{2.0, 1.0}}),
-                        this->precision() * 1e1);
+                        this->precision());
 }
 
 
@@ -267,7 +267,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->precision() * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->precision());
 }
 
 
@@ -286,7 +286,7 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystemsUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.5, 1.0}, I<T>{5.0, 0.0}, I<T>{2.0, -1.0}}),
-                        this->precision() * 1e1);
+                        this->precision());
 }
 
 
@@ -303,7 +303,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
-                        this->precision() * 1e3);
+                        this->precision() * 1e1);
 }
 
 
@@ -320,7 +320,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem2)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision() * 1e3);
+                        this->precision() * 1e1);
 }
 
 
@@ -431,7 +431,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
-                        half_tol * 1e2);
+                        half_tol);
 }
 
 
@@ -463,7 +463,7 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision() * 1e3);
+                        this->precision() * 1e1);
 }
 
 
