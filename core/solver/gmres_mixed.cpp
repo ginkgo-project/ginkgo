@@ -225,7 +225,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
         using LowArray = Array<storage_type>;
-        // using KrylovAccessor = kernels::Accessor3d<storage_type, ValueType>;
+        // using KrylovAccessor = kernels::Accessor3d<storage_type,
+        // ValueType>;
         using Accessor3dHelper =
             kernels::Accessor3dHelper<ValueType, storage_type>;
 
@@ -336,7 +337,14 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto time_STEP1 = start - start;
 #endif
 #endif
-        bool stop_already_encountered{false};
+        Array<bool> stop_encountered_rhs(exec->get_master(),
+                                         dense_b->get_size()[1]);
+        Array<bool> fully_converged_rhs(exec->get_master(),
+                                        dense_b->get_size()[1]);
+        for (size_type i = 0; i < stop_encountered_rhs.get_num_elems(); ++i) {
+            stop_encountered_rhs.get_data()[i] = false;
+            fully_converged_rhs.get_data()[i] = false;
+        }
         bool perform_reset{false};
         decltype(krylov_dim_) forced_iterations{0};
         const decltype(forced_iterations) forced_limit{krylov_dim_ / 10};
@@ -350,47 +358,62 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             ++total_iter;
             this->template log<log::Logger::iteration_complete>(
                 this, total_iter, residual.get(), dense_x, residual_norm.get());
-            if (stop_already_encountered && forced_iterations < forced_limit) {
+            if (forced_iterations < forced_limit) {
                 ++forced_iterations;
-            } else if (stop_criterion->update()
-                           .num_iterations(total_iter)
-                           .residual(residual.get())
-                           .residual_norm(residual_norm.get())
-                           .solution(dense_x)
-                           .check(RelativeStoppingId, true, &stop_status,
-                                  &one_changed)) {
-                if (stop_already_encountered) {
-                    // forced_iterations = 0;
-                    break;
-                }
-                stop_already_encountered = true;
-                /*
-                std::cout << type_str << ": " << ++total_checks
-                          << ". check in iteration " << total_iter << "; "
-                          << forced_iterations << " / " << forced_limit <<
-                '\n';
-                */
-                Array<stopping_status> host_stop_status(
-                    this->get_executor()->get_master(), stop_status);
-                bool host_array_changed{false};
-                for (size_type i = 0; i < host_stop_status.get_num_elems();
-                     ++i) {
-                    auto local_status = host_stop_status.get_data() + i;
-                    // TODO: ignore all actually converged ones!
-                    if (local_status->has_converged()) {
-                        local_status->reset();
-                        host_array_changed = true;
+            } else {
+                bool all_changed = stop_criterion->update()
+                                       .num_iterations(total_iter)
+                                       .residual(residual.get())
+                                       .residual_norm(residual_norm.get())
+                                       .solution(dense_x)
+                                       .check(RelativeStoppingId, true,
+                                              &stop_status, &one_changed);
+                if (one_changed || all_changed) {
+                    /*
+                    std::cout << type_str << ": " << ++total_checks
+                              << ". check in iteration " << total_iter << ";
+                    "
+                              << forced_iterations << " / " << forced_limit
+                    <<
+                    '\n';
+                    */
+                    Array<stopping_status> host_stop_status(
+                        this->get_executor()->get_master(), stop_status);
+                    bool host_array_changed{false};
+                    for (size_type i = 0; i < host_stop_status.get_num_elems();
+                         ++i) {
+                        auto local_status = host_stop_status.get_data() + i;
+                        // TODO: ignore all actually converged ones!
+                        if (fully_converged_rhs.get_data()[i]) {
+                            continue;
+                        }
+                        if (local_status->has_converged()) {
+                            if (stop_encountered_rhs.get_data()[i]) {
+                                fully_converged_rhs.get_data()[i] = true;
+                            } else {
+                                stop_encountered_rhs.get_data()[i] = true;
+                                local_status->reset();
+                                host_array_changed = true;
+                            }
+                        }
+                    }
+                    if (host_array_changed) {
+                        perform_reset = true;
+                        stop_status = host_stop_status;
+                    } else {
+                        // Stop here can happen if all RHS are "fully_converged"
+                        // or if it was stopped for non-convergence reason
+                        // (like time or iteration)
+                        break;
+                    }
+
+                } else {
+                    for (size_type i = 0;
+                         i < stop_encountered_rhs.get_num_elems(); ++i) {
+                        stop_encountered_rhs.get_data()[i] = false;
                     }
                 }
-                if (host_array_changed) {
-                    perform_reset = true;
-                    stop_status = host_stop_status;
-                } else {
-                    break;
-                }
-            } else {
                 forced_iterations = 0;
-                stop_already_encountered = false;
             }
 
             if (perform_reset || restart_iter == krylov_dim_) {
@@ -399,7 +422,6 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 exec->synchronize();
                 auto t_aux_0 = std::chrono::steady_clock::now();
 #endif
-                //            std::cout << "RESTARTING" << std::endl;
                 num_restarts++;
                 // Restart
                 // use a view in case this is called earlier
@@ -584,38 +606,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 #endif
     };  // End of apply_lambda
 
-    auto check_for_complex = [storage_precision = storage_precision_]() {
-        if (is_complex_s<ValueType>::value) {
-            GKO_NOT_SUPPORTED(storage_precision);
-        }
-    };
     // Look which precision to use as the storage type
     helper<ValueType>::call(apply_templated, storage_precision_);
-    /*
-    switch (storage_precision_) {
-    case gmres_mixed_storage_precision::reduce1:
-        apply_templated(reduce_precision<ValueType>{});
-        break;
-    case gmres_mixed_storage_precision::reduce2:
-        apply_templated(reduce_precision<reduce_precision<ValueType>>{});
-        break;
-    case gmres_mixed_storage_precision::integer:
-        check_for_complex();
-        apply_templated(to_integer<ValueType>{});
-        break;
-    case gmres_mixed_storage_precision::ireduce1:
-        check_for_complex();
-        apply_templated(to_integer<reduce_precision<ValueType>>{});
-        break;
-    case gmres_mixed_storage_precision::ireduce2:
-        check_for_complex();
-        apply_templated(
-            to_integer<reduce_precision<reduce_precision<ValueType>>>{});
-        break;
-    default:
-        apply_templated(ValueType{});
-    }
-    */
 }
 
 
