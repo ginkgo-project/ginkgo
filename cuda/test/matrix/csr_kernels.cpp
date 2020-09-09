@@ -744,8 +744,8 @@ TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
 
-    mtx->apply_absolute();
-    dmtx->apply_absolute();
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
 }
@@ -755,8 +755,8 @@ TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
 
-    auto abs_mtx = mtx->get_absolute();
-    auto dabs_mtx = dmtx->get_absolute();
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
 }
@@ -766,8 +766,8 @@ TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
 {
     set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
 
-    complex_mtx->apply_absolute();
-    complex_dmtx->apply_absolute();
+    complex_mtx->compute_absolute_inplace();
+    complex_dmtx->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(complex_mtx.get(), complex_dmtx.get(), 1e-14);
 }
@@ -777,8 +777,8 @@ TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
 {
     set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
 
-    auto abs_mtx = complex_mtx->get_absolute();
-    auto dabs_mtx = complex_dmtx->get_absolute();
+    auto abs_mtx = complex_mtx->compute_absolute();
+    auto dabs_mtx = complex_dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
 }

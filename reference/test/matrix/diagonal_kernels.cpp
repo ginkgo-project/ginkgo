@@ -360,7 +360,7 @@ TYPED_TEST(Diagonal, InplaceAbsolute)
 {
     using value_type = typename TestFixture::value_type;
 
-    this->diag1->apply_absolute();
+    this->diag1->compute_absolute_inplace();
     auto values = this->diag1->get_values();
 
     EXPECT_EQ(values[0], value_type(2.0));
@@ -373,7 +373,7 @@ TYPED_TEST(Diagonal, OutplaceAbsolute)
     using value_type = typename TestFixture::value_type;
     using abs_type = gko::remove_complex<value_type>;
 
-    auto abs_diag = this->diag1->get_absolute();
+    auto abs_diag = this->diag1->compute_absolute();
     auto values = abs_diag->get_values();
 
     EXPECT_EQ(values[0], value_type(2.0));
@@ -425,7 +425,7 @@ TYPED_TEST(DiagonalComplex, InplaceAbsolute)
     diag_values[1] = value_type{-3.0, 0.0};
     diag_values[2] = value_type{0.0, -1.5};
 
-    diag->apply_absolute();
+    diag->compute_absolute_inplace();
 
     EXPECT_EQ(diag_values[0], (value_type{5.0, 0.0}));
     EXPECT_EQ(diag_values[1], (value_type{3.0, 0.0}));
@@ -446,7 +446,7 @@ TYPED_TEST(DiagonalComplex, OutplaceAbsolute)
     diag_values[1] = value_type{-3.0, 0.0};
     diag_values[2] = value_type{0.0, -1.5};
 
-    auto abs_diag = diag->get_absolute();
+    auto abs_diag = diag->compute_absolute();
     auto abs_values = abs_diag->get_values();
 
     EXPECT_EQ(abs_values[0], (value_type{5.0}));

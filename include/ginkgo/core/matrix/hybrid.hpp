@@ -363,9 +363,9 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
 
-    void apply_absolute() override;
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the ell part.

@@ -103,9 +103,9 @@ public:
 
     void move_to(Csr<ValueType, int64> *result) override;
 
-    std::unique_ptr<outplace_absolute_type> get_absolute() const override;
+    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
 
-    void apply_absolute() override;
+    void compute_absolute_inplace() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

@@ -487,7 +487,7 @@ Csr<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply_absolute()
+void Csr<ValueType, IndexType>::compute_absolute_inplace()
 {
     auto exec = this->get_executor();
 
@@ -498,7 +498,7 @@ void Csr<ValueType, IndexType>::apply_absolute()
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Csr<ValueType, IndexType>::outplace_absolute_type>
-Csr<ValueType, IndexType>::get_absolute() const
+Csr<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 

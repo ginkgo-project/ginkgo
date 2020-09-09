@@ -239,7 +239,7 @@ Coo<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_absolute()
+void Coo<ValueType, IndexType>::compute_absolute_inplace()
 {
     auto exec = this->get_executor();
 
@@ -250,7 +250,7 @@ void Coo<ValueType, IndexType>::apply_absolute()
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Coo<ValueType, IndexType>::outplace_absolute_type>
-Coo<ValueType, IndexType>::get_absolute() const
+Coo<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 

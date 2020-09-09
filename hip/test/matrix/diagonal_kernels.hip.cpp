@@ -253,8 +253,8 @@ TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->apply_absolute();
-    ddiag->apply_absolute();
+    diag->compute_absolute_inplace();
+    ddiag->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 1e-14);
 }
@@ -264,8 +264,8 @@ TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto abs_diag = diag->get_absolute();
-    auto dabs_diag = ddiag->get_absolute();
+    auto abs_diag = diag->compute_absolute();
+    auto dabs_diag = ddiag->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_diag.get(), dabs_diag.get(), 1e-14);
 }
