@@ -72,7 +72,7 @@ namespace rcm {
 
 
 #ifdef __x86_64__
-#if defined(__GNUG__) || defined(__clang__)
+#if (defined(__GNUG__) || defined(__clang__)) && !defined(__INTEL_COMPILER)
 #include <immintrin.h>
 #endif
 #define GKO_MM_PAUSE() _mm_pause()
