@@ -193,7 +193,7 @@ __device__ void spgemm_multiway_merge_short(
     auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
     auto b_val = (use_val && b_idx < b_end) ? b_vals[b_idx] : zero<ValueType>();
     auto b_remaining = last_subwarp ? last_subwarp_size : subwarp_size;
-    do {
+    while (warp.any(b_col < sentinel)) {
         // compute the minimum column
         auto min_col = b_col;
 #pragma unroll
@@ -246,7 +246,7 @@ __device__ void spgemm_multiway_merge_short(
                 }
             }
         }
-    } while (warp.any(b_col < sentinel));
+    }
 }
 
 
@@ -312,7 +312,7 @@ __device__ void spgemm_multiway_merge_medium(
     }
 
     auto min_col = reduce(warp, b_col, min_op);
-    do {
+    while (min_col < sentinel) {
         // find all minimal heap elements
         auto min_mask = warp.ballot(b_col == min_col);
         auto cur_val = (b_col == min_col && use_val) ? a_val * b_vals[b_idx]
@@ -350,7 +350,7 @@ __device__ void spgemm_multiway_merge_medium(
             acc.output_column(min_col);
         }
         min_col = new_min_col;
-    } while (min_col < sentinel);
+    }
 }
 
 
@@ -482,7 +482,7 @@ __device__ void spgemm_multiway_merge_large(
     }
 
     auto min_col = reduce(warp, b_col, min_op);
-    do {
+    while (min_col < sentinel) {
         // find all heap tops that are minimal
         auto min_mask = warp.ballot(b_col == min_col);
         // compute current product
@@ -557,7 +557,7 @@ __device__ void spgemm_multiway_merge_large(
             acc.output_column(min_col);
         }
         min_col = new_min_col;
-    } while (min_col < sentinel);
+    }
 }
 
 
