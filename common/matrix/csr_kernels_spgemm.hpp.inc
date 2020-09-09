@@ -34,6 +34,15 @@ constexpr auto spgemm_block_size = 64;
 constexpr auto spgemm_child_count = 4;
 
 
+__device__ int bitmask_select(config::lane_mask_type mask, int rank)
+{
+    return synchronous_fixed_binary_search<config::warp_size>([&](int pos) {
+        return popcnt(mask & (~config::lane_mask_type{} >>
+                              (config::warp_size - pos - 1)));
+    });
+}
+
+
 template <typename ValueType, typename IndexType>
 struct memory_row_accessor {
     __device__ memory_row_accessor(const ValueType *val, const IndexType *idx,
