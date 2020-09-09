@@ -291,7 +291,7 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_absolute()
+void Hybrid<ValueType, IndexType>::compute_absolute_inplace()
 {
     auto exec = this->get_executor();
 
@@ -304,15 +304,15 @@ void Hybrid<ValueType, IndexType>::apply_absolute()
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Hybrid<ValueType, IndexType>::outplace_absolute_type>
-Hybrid<ValueType, IndexType>::get_absolute() const
+Hybrid<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
     // use default strategy
     auto abs_hybrid = outplace_absolute_type::create(exec, this->get_size());
 
-    abs_hybrid->ell_->copy_from(ell_->get_absolute());
-    abs_hybrid->coo_->copy_from(coo_->get_absolute());
+    abs_hybrid->ell_->copy_from(ell_->compute_absolute());
+    abs_hybrid->coo_->copy_from(coo_->compute_absolute());
 
     return abs_hybrid;
 }

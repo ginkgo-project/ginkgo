@@ -267,7 +267,7 @@ void Diagonal<ValueType>::write(mat_data32 &data) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_absolute()
+void Diagonal<ValueType>::compute_absolute_inplace()
 {
     auto exec = this->get_executor();
 
@@ -278,7 +278,7 @@ void Diagonal<ValueType>::apply_absolute()
 
 template <typename ValueType>
 std::unique_ptr<typename Diagonal<ValueType>::outplace_absolute_type>
-Diagonal<ValueType>::get_absolute() const
+Diagonal<ValueType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 

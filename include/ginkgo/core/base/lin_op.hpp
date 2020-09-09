@@ -635,21 +635,21 @@ public:
      *
      * @return a pointer to the new absolute LinOp
      */
-    virtual std::unique_ptr<LinOp> get_absolute_linop() const = 0;
+    virtual std::unique_ptr<LinOp> compute_absolute_linop() const = 0;
 
     /**
-     * Apply absolute on each element.
+     * Compute absolute inplace on each element.
      */
-    virtual void apply_absolute() = 0;
+    virtual void compute_absolute_inplace() = 0;
 };
 
 
 /**
  * The EnableAbsoluteComputation mixin provides the default implementations of
- * `get_absolute_linop` and the absolute interface. `get_absolute` gets a new
- * remove_complex<ConcreteLinOp> which removes the complex value_type by
- * applying outplace absolute. `apply_absolute` applies absolute inplace, so it
- * still keeps the value_type of the class.
+ * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
+ * a new remove_complex<ConcreteLinOp> which removes the complex value_type by
+ * applying outplace absolute. `compute_absolute_inplace` applies absolute
+ * inplace, so it still keeps the value_type of the class.
  *
  * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
  *                        [CRTP parameter]
@@ -663,17 +663,17 @@ public:
 
     virtual ~EnableAbsoluteComputation() = default;
 
-    std::unique_ptr<LinOp> get_absolute_linop() const override
+    std::unique_ptr<LinOp> compute_absolute_linop() const override
     {
-        return this->get_absolute();
+        return this->compute_absolute();
     }
 
     /**
-     * Gets the absolute LinOp
+     * Gets the absolute ConcreteLinOp
      *
      * @return a pointer to the new absolute object
      */
-    virtual std::unique_ptr<outplace_type> get_absolute() const = 0;
+    virtual std::unique_ptr<outplace_type> compute_absolute() const = 0;
 };
 
 

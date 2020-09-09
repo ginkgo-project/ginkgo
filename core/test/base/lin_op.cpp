@@ -331,9 +331,9 @@ public:
         : gko::EnableLinOp<DummyLinOpWithType>(exec, size), value_(value)
     {}
 
-    void apply_absolute() override { value_ = gko::abs(value_); }
+    void compute_absolute_inplace() override { value_ = gko::abs(value_); }
 
-    std::unique_ptr<outplace_absolute_type> get_absolute() const override
+    std::unique_ptr<outplace_absolute_type> compute_absolute() const override
     {
         return std::make_unique<outplace_absolute_type>(
             this->get_executor(), this->get_size(), gko::abs(value_));
@@ -369,7 +369,7 @@ protected:
 
 TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnConcreteType)
 {
-    op->apply_absolute();
+    op->compute_absolute_inplace();
 
     ASSERT_EQ(op->get_value(), std::complex<double>{5.0});
 }
@@ -377,7 +377,7 @@ TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnConcreteType)
 
 TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnConcreteType)
 {
-    auto abs_op = op->get_absolute();
+    auto abs_op = op->compute_absolute();
 
     ASSERT_EQ(typeid(abs_op),
               typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));
@@ -389,7 +389,7 @@ TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnAbsoluteComputable)
 {
     auto linop = gko::as<gko::LinOp>(op);
 
-    gko::as<gko::AbsoluteComputable>(linop)->apply_absolute();
+    gko::as<gko::AbsoluteComputable>(linop)->compute_absolute_inplace();
 
     ASSERT_EQ(gko::as<dummy_type>(linop)->get_value(),
               std::complex<double>{5.0});
@@ -398,7 +398,7 @@ TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnAbsoluteComputable)
 
 TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnAbsoluteComputable)
 {
-    auto abs_op = op->get_absolute();
+    auto abs_op = op->compute_absolute();
 
     ASSERT_EQ(typeid(abs_op),
               typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));

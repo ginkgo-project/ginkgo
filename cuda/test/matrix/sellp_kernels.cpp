@@ -354,8 +354,8 @@ TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_matrix(32, 2);
 
-    mtx->apply_absolute();
-    dmtx->apply_absolute();
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
 }
@@ -365,8 +365,8 @@ TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_matrix(32, 2);
 
-    auto abs_mtx = mtx->get_absolute();
-    auto dabs_mtx = dmtx->get_absolute();
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
 }
