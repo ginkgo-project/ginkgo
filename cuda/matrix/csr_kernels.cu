@@ -804,7 +804,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(heapv), c_col_idxs, as_cuda_type(c_vals));
         }
     }
-}  // namespace csr
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 

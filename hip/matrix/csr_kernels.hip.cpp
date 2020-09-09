@@ -534,42 +534,209 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             GKO_NOT_IMPLEMENTED;
         }
     } else {
-        // temporary storage for heaps
-        Array<IndexType> heap_indices{exec, a->get_num_stored_elements() * 3};
-        Array<ValueType> heap_values{exec, a->get_num_stored_elements()};
-        auto heapi = heap_indices.get_data();
-        auto heapv = heap_values.get_data();
         auto num_rows = a->get_size()[0];
-        auto num_cols = a->get_size()[1];
+        constexpr auto spgemm_warps_per_block =
+            spgemm_block_size / config::warp_size;
+        auto num_blocks = ceildiv(num_rows, spgemm_warps_per_block);
 
-        auto num_blocks =
-            ceildiv(num_rows, spgemm_block_size / config::warp_size);
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto a_vals = a->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto b_vals = b->get_const_values();
-        auto c_row_ptrs = c->get_row_ptrs();
-        hipLaunchKernelGGL(spgemm_count, num_blocks, spgemm_block_size, 0, 0,
-                           num_rows, a_row_ptrs, a_col_idxs, b_row_ptrs,
-                           b_col_idxs, heapi, c_row_ptrs);
+        if (a->get_strategy()->get_name() == "load_balance") {
+            size_type max_nnz{};
+            calculate_max_nnz_per_row(exec, a, &max_nnz);
+            constexpr auto merge_size = 32;
+            if (max_nnz <= merge_size) {
+                hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_count_short),
+                                   num_blocks, spgemm_block_size, 0, 0,
+                                   num_rows, a_row_ptrs, a_col_idxs, b_row_ptrs,
+                                   b_col_idxs, c_row_ptrs);
 
-        components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+                components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
-        auto c_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(c_row_ptrs + num_rows));
+                auto c_nnz = static_cast<size_type>(
+                    exec->copy_val_to_host(c_row_ptrs + num_rows));
 
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
+                c_col_idxs_array.resize_and_reset(c_nnz);
+                c_vals_array.resize_and_reset(c_nnz);
+                auto c_col_idxs = c_col_idxs_array.get_data();
+                auto c_vals = c_vals_array.get_data();
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_kernel), num_blocks,
-                           spgemm_block_size, 0, 0, num_rows, a_row_ptrs,
-                           a_col_idxs, as_hip_type(a_vals), b_row_ptrs,
-                           b_col_idxs, as_hip_type(b_vals), c_row_ptrs, heapi,
-                           as_hip_type(heapv), c_col_idxs, as_hip_type(c_vals));
+                hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_kernel_short),
+                                   num_blocks, spgemm_block_size, 0, 0,
+                                   num_rows, a_row_ptrs, a_col_idxs,
+                                   as_hip_type(a_vals), b_row_ptrs, b_col_idxs,
+                                   as_hip_type(b_vals), c_row_ptrs, c_col_idxs,
+                                   as_hip_type(c_vals));
+            } else {
+                // first "unravel" the matrix into a taller matrix
+                // with at most merge_size entries per row
+                Array<IndexType> merge_count_array{exec, num_rows + 1};
+                auto merge_counts = merge_count_array.get_data();
+
+                // determine how many "tall" rows belong to each row
+                hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_merge_counts),
+                                   num_blocks, spgemm_block_size, 0, 0,
+                                   a->get_const_row_ptrs(), num_rows,
+                                   merge_size, merge_counts);
+
+                components::prefix_sum(exec, merge_counts, num_rows + 1);
+
+                auto tall_num_rows = static_cast<size_type>(
+                    exec->copy_val_to_host(merge_counts + num_rows));
+                auto tall_num_blocks =
+                    ceildiv(tall_num_rows, spgemm_warps_per_block);
+
+                Array<IndexType> in_row_ptr_array{exec, tall_num_rows + 1};
+                // TODO: use 64 bit row ptr indices for the intermediate output
+                Array<IndexType> out_row_ptr_array{exec, tall_num_rows + 1};
+
+                // build the row pointers of the "tall" matrix
+                hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_tall_row_ptrs),
+                                   tall_num_blocks, spgemm_block_size, 0, 0,
+                                   a->get_const_row_ptrs(), merge_counts,
+                                   num_rows, merge_size,
+                                   in_row_ptr_array.get_data());
+
+                // compute tallA * B
+                hipLaunchKernelGGL(
+                    HIP_KERNEL_NAME(spgemm_count_short), tall_num_blocks,
+                    spgemm_block_size, 0, 0, tall_num_rows,
+                    in_row_ptr_array.get_const_data(), a_col_idxs, b_row_ptrs,
+                    b_col_idxs, out_row_ptr_array.get_data());
+
+                components::prefix_sum(exec, out_row_ptr_array.get_data(),
+                                       tall_num_rows + 1);
+
+                auto out_nnz = static_cast<size_type>(exec->copy_val_to_host(
+                    out_row_ptr_array.get_const_data() + tall_num_rows));
+
+                Array<IndexType> out_col_idx_array{exec, out_nnz};
+                Array<ValueType> out_value_array{exec, out_nnz};
+
+                hipLaunchKernelGGL(
+                    HIP_KERNEL_NAME(spgemm_kernel_short), tall_num_blocks,
+                    spgemm_block_size, 0, 0, tall_num_rows,
+                    in_row_ptr_array.get_const_data(), a_col_idxs,
+                    as_hip_type(a_vals), b_row_ptrs, b_col_idxs,
+                    as_hip_type(b_vals), out_row_ptr_array.get_const_data(),
+                    out_col_idx_array.get_data(),
+                    as_hip_type(out_value_array.get_data()));
+
+                /**
+                 * Iteratively merge rows from tallA * B using small-and-wide
+                 * merge matrices
+                 *
+                 *   C = M_{num_passes - 1} * ... * M_1 * tallA * B
+                 *
+                 *   M_i = |1 1 1               ...|
+                 *         |      1 1           ...|
+                 *         |          1 1 1 1   ...|
+                 *         ...
+                 * These matrices are completely determined by their row ptrs.
+                 */
+                Array<IndexType> new_merge_count_array{exec, num_rows + 1};
+                Array<IndexType> in_col_idx_array{exec};
+                Array<ValueType> in_value_array{exec};
+                auto new_merge_counts = new_merge_count_array.get_data();
+                std::swap(new_merge_counts, merge_counts);
+
+                while (tall_num_rows > num_rows) {
+                    // swap output/input
+                    std::swap(new_merge_counts, merge_counts);
+                    in_row_ptr_array = std::move(out_row_ptr_array);
+                    in_col_idx_array = std::move(out_col_idx_array);
+                    in_value_array = std::move(out_value_array);
+
+                    hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_merge_counts),
+                                       num_blocks, spgemm_block_size, 0, 0,
+                                       merge_counts, num_rows, merge_size,
+                                       new_merge_counts);
+
+                    components::prefix_sum(exec, new_merge_counts,
+                                           num_rows + 1);
+
+                    auto flat_num_rows = static_cast<size_type>(
+                        exec->copy_val_to_host(new_merge_counts + num_rows));
+                    auto flat_num_blocks =
+                        ceildiv(flat_num_rows, spgemm_warps_per_block);
+
+                    Array<IndexType> merge_row_ptr_array{exec,
+                                                         flat_num_rows + 1};
+
+                    // build the row pointers of the merge matrix
+                    hipLaunchKernelGGL(
+                        HIP_KERNEL_NAME(spgemm_tall_row_ptrs), num_blocks,
+                        spgemm_block_size, 0, 0, merge_counts, new_merge_counts,
+                        num_rows, merge_size, merge_row_ptr_array.get_data());
+
+                    if (flat_num_rows == num_rows) {
+                        out_row_ptr_array = Array<IndexType>::view(
+                            exec, num_rows + 1, c_row_ptrs);
+                    } else {
+                        out_row_ptr_array.resize_and_reset(flat_num_rows + 1);
+                    }
+
+                    // compute row ptrs of partial merge M_i * ...
+                    hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_count_merge),
+                                       flat_num_rows, spgemm_block_size, 0, 0,
+                                       flat_num_rows,
+                                       merge_row_ptr_array.get_const_data(),
+                                       in_row_ptr_array.get_const_data(),
+                                       in_col_idx_array.get_const_data(),
+                                       out_row_ptr_array.get_data());
+
+                    components::prefix_sum(exec, out_row_ptr_array.get_data(),
+                                           flat_num_rows + 1);
+
+                    out_nnz = static_cast<size_type>(exec->copy_val_to_host(
+                        out_row_ptr_array.get_const_data() + flat_num_rows));
+                    out_col_idx_array.resize_and_reset(out_nnz);
+                    out_value_array.resize_and_reset(out_nnz);
+
+                    hipLaunchKernelGGL(
+                        HIP_KERNEL_NAME(spgemm_kernel_merge), flat_num_blocks,
+                        spgemm_block_size, 0, 0, flat_num_rows,
+                        merge_row_ptr_array.get_const_data(),
+                        in_row_ptr_array.get_const_data(),
+                        in_col_idx_array.get_const_data(),
+                        as_hip_type(in_value_array.get_const_data()),
+                        out_row_ptr_array.get_const_data(),
+                        out_col_idx_array.get_data(),
+                        as_hip_type(out_value_array.get_data()));
+
+                    tall_num_rows = flat_num_rows;
+                    tall_num_blocks = flat_num_blocks;
+                }
+                c_col_idxs_array = std::move(out_col_idx_array);
+                c_vals_array = std::move(out_value_array);
+            }
+        } else {
+            // temporary storage for heaps
+            Array<IndexType> heap_indices{exec,
+                                          a->get_num_stored_elements() * 3};
+            Array<ValueType> heap_values{exec, a->get_num_stored_elements()};
+            auto heapi = heap_indices.get_data();
+            auto heapv = heap_values.get_data();
+
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_count), num_blocks,
+                               spgemm_block_size, 0, 0, num_rows, a_row_ptrs,
+                               a_col_idxs, b_row_ptrs, b_col_idxs, heapi,
+                               c_row_ptrs);
+
+            components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+            auto c_nnz = static_cast<size_type>(
+                exec->copy_val_to_host(c_row_ptrs + num_rows));
+
+            c_col_idxs_array.resize_and_reset(c_nnz);
+            c_vals_array.resize_and_reset(c_nnz);
+            auto c_col_idxs = c_col_idxs_array.get_data();
+            auto c_vals = c_vals_array.get_data();
+
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(spgemm_kernel), num_blocks, spgemm_block_size,
+                0, 0, num_rows, a_row_ptrs, a_col_idxs, as_hip_type(a_vals),
+                b_row_ptrs, b_col_idxs, as_hip_type(b_vals), c_row_ptrs, heapi,
+                as_hip_type(heapv), c_col_idxs, as_hip_type(c_vals));
+        }
     }
 }
 
