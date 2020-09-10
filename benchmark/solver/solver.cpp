@@ -262,54 +262,66 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"gmres_mixed_double",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, double>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::keep)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
         {"gmres_mixed_float",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, float>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::reduce1)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
         {"gmres_mixed_half",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, gko::half>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::reduce2)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
         {"gmres_mixed_int64",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, gko::int64>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::integer)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
         {"gmres_mixed_int32",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, gko::int32>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::ireduce1)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
         {"gmres_mixed_int16",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::GmresMixed<double, gko::int16>::build()
+             return gko::solver::GmresMixed<double>::build()
+                 .with_storage_precision(
+                     gko::solver::gmres_mixed_storage_precision::ireduce2)
                  .with_criteria(create_criterion(exec))
-                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_krylov_dim(FLAGS_gmres_restart)
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
