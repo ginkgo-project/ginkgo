@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -60,9 +61,11 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>>,
-                 public Transposable {
+class Identity
+    : public EnableLinOp<Identity<ValueType>>,
+      public EnableCreateMethod<Identity<ValueType>>,
+      public EnableDenseLinOpResultFactory<Identity<ValueType>, ValueType>,
+      public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
     friend class EnableCreateMethod<Identity>;
 

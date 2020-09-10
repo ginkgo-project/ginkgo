@@ -152,30 +152,12 @@ public:
      *
      * @return this
      */
-    LinOp *apply(const LinOp *b, LinOp *x)
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
-        return this;
-    }
+    LinOp *apply(const LinOp *b, LinOp *x);
 
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp *apply(const LinOp *b, LinOp *x) const
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
-        return this;
-    }
+    const LinOp *apply(const LinOp *b, LinOp *x) const;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -188,39 +170,27 @@ public:
      * @return this
      */
     LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                 LinOp *x)
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
-        return this;
-    }
+                 LinOp *x);
 
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
     const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                       LinOp *x) const
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
-        return this;
-    }
+                       LinOp *x) const;
+
+    /**
+     * Applies a linear operator to a vector (or a sequence of vectors) and
+     * returns the result.
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     * This is equivalent to calling LinOp::apply(const LinOp*, LinOp*) with the
+     * result from LinOp::create_result(const LinOp*).
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     *
+     * @return the output vector(s) where the result is stored
+     */
+    std::unique_ptr<LinOp> apply_result(const LinOp *b) const;
 
     /**
      * Returns the size of the operator.
@@ -236,7 +206,7 @@ public:
      * @return true if the linear operator uses the data given in x as
      *         an initial guess. Returns false otherwise.
      */
-    virtual bool apply_uses_initial_guess() const { return false; }
+    virtual bool apply_uses_initial_guess() const;
 
 protected:
     /**
@@ -246,16 +216,14 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2> &size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
-    {}
+                   const dim<2> &size = dim<2>{});
 
     /**
      * Sets the size of the operator.
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2> &value) noexcept { size_ = value; }
+    void set_size(const dim<2> &value) noexcept;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -287,12 +255,7 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp *b, const LinOp *x) const
-    {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
-    }
+    void validate_application_parameters(const LinOp *b, const LinOp *x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -305,12 +268,7 @@ protected:
      */
     void validate_application_parameters(const LinOp *alpha, const LinOp *b,
                                          const LinOp *beta,
-                                         const LinOp *x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
-    }
+                                         const LinOp *x) const;
 
 private:
     dim<2> size_{};
@@ -376,15 +334,7 @@ class LinOpFactory
 public:
     using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
-    {
-        this->template log<log::Logger::linop_factory_generate_started>(
-            this, input.get());
-        auto generated = AbstractFactory::generate(input);
-        this->template log<log::Logger::linop_factory_generate_completed>(
-            this, input.get(), generated.get());
-        return generated;
-    }
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
 };
 
 
@@ -621,6 +571,19 @@ public:
     virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
         const = 0;
 };
+
+
+/**
+ * Abstract type used to construct the result of a
+ * LinOp::apply(const LinOp*, LinOp*) call.
+ */
+class LinOpResultFactory {
+public:
+    virtual ~LinOpResultFactory() {}
+
+    virtual std::unique_ptr<LinOp> create_result(const LinOp *b) const = 0;
+};
+
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations

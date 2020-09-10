@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -52,9 +53,11 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Combination : public EnableLinOp<Combination<ValueType>>,
-                    public EnableCreateMethod<Combination<ValueType>>,
-                    public Transposable {
+class Combination
+    : public EnableLinOp<Combination<ValueType>>,
+      public EnableCreateMethod<Combination<ValueType>>,
+      public EnableDenseLinOpResultFactory<Combination<ValueType>, ValueType>,
+      public Transposable {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
 

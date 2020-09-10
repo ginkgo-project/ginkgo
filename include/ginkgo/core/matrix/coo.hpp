@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -76,6 +77,8 @@ class CooBuilder;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableCreateMethod<Coo<ValueType, IndexType>>,
+            public EnableDenseLinOpResultFactory<Coo<ValueType, IndexType>,
+                                                 ValueType>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,

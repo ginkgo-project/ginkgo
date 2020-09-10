@@ -70,6 +70,7 @@ constexpr size_type default_krylov_dim = 100u;
  */
 template <typename ValueType = default_precision>
 class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public EnableDenseLinOpResultFactory<Gmres<ValueType>, ValueType>,
               public Preconditionable,
               public Transposable {
     friend class EnableLinOp<Gmres>;

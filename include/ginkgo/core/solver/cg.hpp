@@ -70,6 +70,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Cg : public EnableLinOp<Cg<ValueType>>,
+           public EnableDenseLinOpResultFactory<Cg<ValueType>, ValueType>,
            public Preconditionable,
            public Transposable {
     friend class EnableLinOp<Cg>;

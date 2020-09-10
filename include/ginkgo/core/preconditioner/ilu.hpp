@@ -112,6 +112,9 @@ template <typename LSolverType = solver::LowerTrs<>,
           typename IndexType = int32>
 class Ilu : public EnableLinOp<
                 Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
+            public EnableDenseLinOpResultFactory<
+                Ilu<LSolverType, USolverType, ReverseApply, IndexType>,
+                typename LSolverType::value_type>,
             public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;

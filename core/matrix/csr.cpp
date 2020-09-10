@@ -352,6 +352,27 @@ void Csr<ValueType, IndexType>::write(mat_data &data) const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::create_result(
+    const LinOp *b) const
+{
+    GKO_ASSERT_CONFORMANT(this, b);
+    auto result_size = dim<2>{this->get_size()[0], b->get_size()[1]};
+    // SpGEMM/SpGEAM returns Csr
+    if (dynamic_cast<const Csr<ValueType, IndexType> *>(b) ||
+        dynamic_cast<const Identity<ValueType> *>(b)) {
+        return Csr<ValueType, IndexType>::create(
+            this->get_executor(), result_size, 0, this->get_strategy());
+    }
+    // Dense returns Dense
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        return matrix::create_dense_result<ValueType>(this, b);
+    }
+    // Everything else is unsupported
+    GKO_NOT_SUPPORTED(b);
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();

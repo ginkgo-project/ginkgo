@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -71,6 +72,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class SparsityCsr
     : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
       public EnableCreateMethod<SparsityCsr<ValueType, IndexType>>,
+      public EnableDenseLinOpResultFactory<SparsityCsr<ValueType, IndexType>,
+                                           ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType>,
       public Transposable {

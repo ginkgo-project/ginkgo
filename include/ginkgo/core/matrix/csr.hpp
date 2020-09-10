@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -118,6 +119,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableCreateMethod<Csr<ValueType, IndexType>>,
+            public LinOpResultFactory,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
@@ -682,6 +684,8 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<LinOp> create_result(const LinOp *b) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

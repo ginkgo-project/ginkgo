@@ -94,8 +94,11 @@ enum struct isai_type { lower, upper };
  * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
-             public Transposable {
+class Isai
+    : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
+      public EnableDenseLinOpResultFactory<Isai<IsaiType, ValueType, IndexType>,
+                                           ValueType>,
+      public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
     friend class Isai<IsaiType == isai_type::lower ? isai_type::upper

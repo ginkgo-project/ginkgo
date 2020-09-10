@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 
@@ -71,6 +72,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
     : public EnableLinOp<Hybrid<ValueType, IndexType>>,
       public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
+      public EnableDenseLinOpResultFactory<Hybrid<ValueType, IndexType>,
+                                           ValueType>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,

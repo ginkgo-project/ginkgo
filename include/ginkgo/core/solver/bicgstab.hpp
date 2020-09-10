@@ -73,9 +73,11 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
-                 public Preconditionable,
-                 public Transposable {
+class Bicgstab
+    : public EnableLinOp<Bicgstab<ValueType>>,
+      public EnableDenseLinOpResultFactory<Bicgstab<ValueType>, ValueType>,
+      public Preconditionable,
+      public Transposable {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 

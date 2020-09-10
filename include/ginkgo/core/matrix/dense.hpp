@@ -47,6 +47,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+/**
+ * Mixin class implementing LinOpResultFactory to return a Dense LinOp.
+ *
+ * @tparam Base  The CRTP base class derived from LinOp
+ * @tparam ValueType  The value type of the result LinOp
+ */
+template <typename Base, typename ValueType>
+class EnableDenseLinOpResultFactory : public LinOpResultFactory {
+public:
+    /**
+     * Creates a LinOp `x` of the correct type and dimensions to store `op(b)`.
+     * The result of this method can then be used in calls to
+     * apply(const LinOp* b, LinOp* x).
+     *
+     * @param b  the LinOp onto which this LinOp will be applied
+     * @return the newly created LinOp. If apply_uses_initial_guess() is
+     *         `false`, the result may contain uninitialized data, so it should
+     *         not be used in advanced apply calls
+     *         apply(const LinOp*, const LinOp*, const LinOp*, LinOp*)
+     *         without prior initialization.
+     */
+    std::unique_ptr<LinOp> create_result(const LinOp *b) const override;
+};
+
+
 namespace matrix {
 
 
@@ -90,6 +117,7 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
               public EnableCreateMethod<Dense<ValueType>>,
+              public EnableDenseLinOpResultFactory<Dense<ValueType>, ValueType>,
               public ConvertibleTo<Dense<next_precision<ValueType>>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
@@ -549,7 +577,26 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
-};  // namespace matrix
+};
+
+
+/**
+ * Creates and initializes a Dense matrix to contain the product A*b.
+ * This is an auxiliary function to be used by LinOpResultFactory.
+ *
+ * @tparam ValueType  the value type used for the result of the product `A*b`
+ *
+ * @param A  the first LinOp
+ * @param b  the second LinOp
+ *
+ * @return a newly created Dense<ValueType> LinOp on the same executor as A.
+ *         It has the dimensions of A*b and is uninitialized by default,
+ *         unless A->apply_uses_initial_guess() is `true`, where it is
+ *         initialized with the value of b (if A is square) or
+ *         zero (if A is rectangular).
+ */
+template <typename ValueType>
+std::unique_ptr<LinOp> create_dense_result(const LinOp *A, const LinOp *b);
 
 
 }  // namespace matrix
@@ -704,6 +751,17 @@ std::unique_ptr<Matrix> initialize(
     return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
                               std::move(exec),
                               std::forward<TArgs>(create_args)...);
+}
+
+
+template <typename Base, typename ValueType>
+std::unique_ptr<LinOp>
+EnableDenseLinOpResultFactory<Base, ValueType>::create_result(
+    const LinOp *b) const
+{
+    auto this_linop = static_cast<const Base *>(this);
+    GKO_ASSERT_CONFORMANT(this_linop, b);
+    return matrix::create_dense_result<ValueType>(this_linop, b);
 }
 
 
