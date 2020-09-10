@@ -134,13 +134,15 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 template <typename SolverType, typename = void>
-struct has_factory_parameter_criteria : std::false_type {};
+struct has_factory_parameter_criteria : std::false_type {
+};
 
 template <typename SolverType>
 struct has_factory_parameter_criteria<
     SolverType, gko::xstd::void_t<decltype(SolverType::build().with_criteria(
                     std::shared_ptr<const gko::stop::CriterionFactory>{}))>>
-    : std::true_type {};
+    : std::true_type {
+};
 
 
 template <typename SolverType, typename BuildType, typename ExecutorType>
@@ -165,13 +167,15 @@ add_criteria(BuildType build, ExecutorType exec)
 
 
 template <typename SolverType, typename = void>
-struct has_factory_parameter_krylov_dim : std::false_type {};
+struct has_factory_parameter_krylov_dim : std::false_type {
+};
 
 template <typename SolverType>
 struct has_factory_parameter_krylov_dim<
     SolverType,
     gko::xstd::void_t<decltype(SolverType::build().with_krylov_dim(0u))>>
-    : std::true_type {};
+    : std::true_type {
+};
 
 
 template <typename SolverType, typename BuildType>
@@ -191,6 +195,15 @@ add_krylov_dim(BuildType build)
 }
 
 
+template <typename SolverType, typename BuildType>
+BuildType add_gmres_storage_precision(
+    BuildType build,
+    gko::solver::gmres_mixed_storage_precision storage_precision)
+{
+    return build.with_storage_precision(storage_precision);
+}
+
+
 // solver mapping
 template <typename SolverType>
 std::unique_ptr<gko::LinOpFactory> create_solver(
@@ -200,6 +213,22 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
     auto with_criteria = add_criteria<SolverType>(SolverType::build(), exec);
     auto with_krylov_dim = add_krylov_dim<SolverType>(with_criteria);
     return with_krylov_dim.with_preconditioner(give(precond)).on(exec);
+}
+
+
+// solver mapping specifically for gmres_mixed (to add storage precision)
+template <typename SolverType,
+          gko::solver::gmres_mixed_storage_precision storage_precision>
+std::unique_ptr<gko::LinOpFactory> create_solver_gmres_mixed(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOpFactory> precond)
+{
+    auto with_criteria = add_criteria<SolverType>(SolverType::build(), exec);
+    auto with_krylov_dim = add_krylov_dim<SolverType>(with_criteria);
+    auto with_gmres_storage_precision = add_gmres_storage_precision<SolverType>(
+        with_criteria, storage_precision);
+    return with_gmres_storage_precision.with_preconditioner(give(precond))
+        .on(exec);
 }
 
 
@@ -213,17 +242,29 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"fcg", create_solver<gko::solver::Fcg<>>},
                    {"gmres", create_solver<gko::solver::Gmres<>>},
                    {"gmres_mixed_double",
-                    create_solver<gko::solver::GmresMixed<double, double>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::keep>},
                    {"gmres_mixed_int64",
-                    create_solver<gko::solver::GmresMixed<double, gko::int64>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::integer>},
                    {"gmres_mixed_float",
-                    create_solver<gko::solver::GmresMixed<double, float>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::reduce1>},
                    {"gmres_mixed_int32",
-                    create_solver<gko::solver::GmresMixed<double, gko::int32>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::ireduce1>},
                    {"gmres_mixed_half",
-                    create_solver<gko::solver::GmresMixed<double, gko::half>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::reduce2>},
                    {"gmres_mixed_int16",
-                    create_solver<gko::solver::GmresMixed<double, gko::int16>>},
+                    create_solver_gmres_mixed<
+                        gko::solver::GmresMixed<double>,
+                        gko::solver::gmres_mixed_storage_precision::ireduce2>},
                    {"overhead", create_solver<gko::Overhead<>>}};
 
 
