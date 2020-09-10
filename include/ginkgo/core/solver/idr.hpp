@@ -133,32 +133,34 @@ public:
          * Criterion factories.
          */
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
          * Preconditioner factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             preconditioner, nullptr);
 
         /**
          * Already generated preconditioner. If one is provided, the factory
          * `preconditioner` will be ignored.
          */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_preconditioner, nullptr);
 
         /**
          * Dimension of the subspace S. Determines how many intermediate
          * residuals are computed in each iteration.
          */
-        size_type GKO_FACTORY_PARAMETER(subspace_dim, 2u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim, 2u);
 
         /**
          * Threshold to determine if Av_n and v_n are too close to being
          * perpendicular.
+         * This is considered to be the case if
+         * |(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER(kappa, 0.7);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
 
         /**
          * If set to true, the vectors spanning the subspace S are chosen
@@ -169,7 +171,7 @@ public:
          *
          * The default behaviour is to choose the subspace vectors randomly.
          */
-        bool GKO_FACTORY_PARAMETER(deterministic, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
