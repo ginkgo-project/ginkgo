@@ -159,6 +159,17 @@ public:
          * perpendicular.
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(kappa, 0.7);
+
+        /**
+         * If set to true, the vectors spanning the subspace S are chosen
+         * deterministically. This is mostly needed for testing purposes.
+         *
+         * Note: If 'deterministic' is set to true, the subspace vectors are
+         * generated in serial on the CPU, which can be very slow.
+         *
+         * The default behaviour is to choose the subspace vectors randomly.
+         */
+        bool GKO_FACTORY_PARAMETER(deterministic, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -197,6 +208,8 @@ protected:
         subspace_dim_ = parameters_.subspace_dim;
 
         kappa_ = parameters_.kappa;
+
+        deterministic_ = parameters_.deterministic;
     }
 
 private:
@@ -204,6 +217,7 @@ private:
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type subspace_dim_;
     remove_complex<ValueType> kappa_;
+    bool deterministic_;
 };
 
 

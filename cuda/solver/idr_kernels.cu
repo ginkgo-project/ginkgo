@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
+#include <time.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -90,12 +93,26 @@ void initialize_m(matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
+void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
+                                 bool deterministic)
+{
+    if (deterministic) {
+        auto subspace_vectors_data = matrix_data<ValueType>(
+            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
+            std::ranlux48(15));
+        subspace_vectors->read(subspace_vectors_data);
+    } else {
+        curand::rand_vector(
+            time(NULL),
+            subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
+            0.0, 1.0, subspace_vectors->get_values());
+    }
+}
+
+
+template <typename ValueType>
 void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
 {
-    curand::rand_vector(
-        1234ULL,
-        subspace_vectors->get_size()[0] * subspace_vectors->get_stride(), 0.5,
-        0.5, subspace_vectors->get_values());
     orthonormalize_subspace_vectors_kernel<default_block_size>
         <<<1, default_block_size>>>(
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
@@ -237,10 +254,11 @@ void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
 template <typename ValueType>
 void initialize(std::shared_ptr<const CudaExecutor> exec,
                 matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors,
+                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
                 Array<stopping_status> *stop_status)
 {
     initialize_m(m, stop_status);
+    initialize_subspace_vectors(subspace_vectors, deterministic);
     orthonormalize_subspace_vectors(subspace_vectors);
 }
 
