@@ -50,7 +50,7 @@ namespace idr {
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::Dense<_type> *m,                     \
                     matrix::Dense<_type> *subspace_vectors,      \
-                    Array<stopping_status> *stop_status)
+                    bool deterministic, Array<stopping_status> *stop_status)
 
 
 #define GKO_DECLARE_IDR_STEP_1_KERNEL(_type)                                 \

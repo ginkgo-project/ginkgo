@@ -136,8 +136,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // Initialization
     // m = identity
-    exec->run(
-        idr::make_initialize(m.get(), subspace_vectors_.get(), &stop_status));
+    exec->run(idr::make_initialize(m.get(), subspace_vectors_.get(),
+                                   deterministic_, &stop_status));
 
     // omega = 1
     exec->run(

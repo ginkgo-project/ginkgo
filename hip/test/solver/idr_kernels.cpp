@@ -74,6 +74,7 @@ protected:
         d_mtx->copy_from(mtx.get());
         hip_idr_factory =
             Solver::build()
+                .with_deterministic(true)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(hip),
                     gko::stop::ResidualNormReduction<>::build()
@@ -83,6 +84,7 @@ protected:
 
         ref_idr_factory =
             Solver::build()
+                .with_deterministic(true)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(ref),
                     gko::stop::ResidualNormReduction<>::build()
@@ -221,9 +223,9 @@ TEST_F(Idr, HipIdrInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::idr::initialize(ref, m.get(), p.get(),
+    gko::kernels::reference::idr::initialize(ref, m.get(), p.get(), true,
                                              stop_status.get());
-    gko::kernels::hip::idr::initialize(hip, d_m.get(), d_p.get(),
+    gko::kernels::hip::idr::initialize(hip, d_m.get(), d_p.get(), true,
                                        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);

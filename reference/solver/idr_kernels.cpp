@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
+#include <time.h>
 #include <algorithm>
 #include <random>
 
@@ -133,7 +134,7 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors,
+                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
                 Array<stopping_status> *stop_status)
 {
     // Initialize M
@@ -153,7 +154,8 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_rows = subspace_vectors->get_size()[0];
     const auto num_cols = subspace_vectors->get_size()[1];
     auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
-    auto gen = std::ranlux48(15);
+    auto seed = deterministic ? 15 : time(NULL);
+    auto gen = std::ranlux48(seed);
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             subspace_vectors->at(row, col) =
