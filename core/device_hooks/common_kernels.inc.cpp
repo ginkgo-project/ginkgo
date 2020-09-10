@@ -465,7 +465,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
 }  // namespace bicgstab
 
 
-// TODO (script:idr): adapt this block as needed
 namespace idr {
 
 template <typename ValueType>
