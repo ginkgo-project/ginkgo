@@ -80,7 +80,7 @@ protected:
         static constexpr nc_value_type value =
             std::is_same<rc_type, double>::value
                 ? 1e-14
-                : std::is_same<rc_type, float>::value ? 1e-7 : 1e-3;
+                : std::is_same<rc_type, float>::value ? 1e-6 : 1e-3;
     };
 
     GmresMixed()
@@ -303,7 +303,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
-                        this->precision() * 1e1);
+                        this->precision());
 }
 
 
@@ -320,7 +320,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem2)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision() * 1e1);
+                        this->precision());
 }
 
 
@@ -463,7 +463,7 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision() * 1e1);
+                        this->precision());
 }
 
 
