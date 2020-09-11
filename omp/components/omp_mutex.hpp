@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_
+#define GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_
+
+
 #include <omp.h>
 
 
@@ -37,7 +41,12 @@ namespace gko {
 namespace kernels {
 namespace omp {
 
-
+/**
+ * Wrapper class for the OpenMP mutex omp_lock_t.
+ *
+ * Fulfills the BasicLockable requirement, which means it can be used with
+ * std::lock_guard<omp_mutex>, making RAII possible.
+ */
 struct omp_mutex {
     omp_mutex() { omp_init_lock(&lock_); }
     ~omp_mutex() { omp_destroy_lock(&lock_); }
@@ -59,3 +68,6 @@ private:
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_

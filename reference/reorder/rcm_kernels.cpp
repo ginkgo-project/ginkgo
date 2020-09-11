@@ -220,7 +220,7 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 /**
- * Comutes a rcm reording using a naive sequential algorithm.
+ * Computes a RCM reordering using a naive sequential algorithm.
  */
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,

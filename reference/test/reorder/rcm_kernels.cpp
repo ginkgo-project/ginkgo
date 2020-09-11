@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils/assertions.hpp"
-#include "matrices/config.hpp"
 
 
 namespace {
@@ -110,11 +109,14 @@ protected:
     }
 };
 
+
 TEST_F(Rcm, CreatesAPermutation)
 {
     auto p = reorder_op_0->get_permutation();
+    
     ASSERT_PRED1(is_permutation, p.get());
 }
+
 
 TEST_F(Rcm, CreatesCorrectPermutation)
 {
@@ -125,6 +127,7 @@ TEST_F(Rcm, CreatesCorrectPermutation)
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
 
+
 TEST_F(Rcm, PermutesPerfectFullBand)
 {
     std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
@@ -133,5 +136,6 @@ TEST_F(Rcm, PermutesPerfectFullBand)
 
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
+
 
 }  // namespace
