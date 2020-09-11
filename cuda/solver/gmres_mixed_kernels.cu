@@ -38,11 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/accessors.hpp"
 #include "core/components/fill_array.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
@@ -92,36 +93,26 @@ constexpr int default_update_dim = 32;
 
 
 // Specialization, so the Accessor can use the same function as regular pointers
-template <typename Type1, typename Type2>
-ReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
-    ReducedStorage3d<Type1, Type2> acc)
+template <int dim, typename Type1, typename Type2>
+GKO_INLINE auto as_cuda_accessor(
+    const range<accessor::reduced_row_major<dim, Type1, Type2>> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
-            acc.get_stride1()};
+    return range<
+        accessor::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
+        acc.get_accessor().get_size(), as_cuda_type(acc.get_accessor().get_stored_data()),
+        acc.get_accessor().get_stride());
 }
 
-template <typename Type1, typename Type2>
-ScaledReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
-    ScaledReducedStorage3d<Type1, Type2> acc)
+template <int dim, typename Type1, typename Type2, size_type mask>
+GKO_INLINE auto as_cuda_accessor(
+    const range<accessor::scaled_reduced_row_major<dim, Type1, Type2, mask>> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
-            acc.get_stride1(), as_cuda_type(acc.get_scale())};
-}
-
-template <typename Type1, typename Type2>
-ConstReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
-    const ConstReducedStorage3d<Type1, Type2> &acc)
-{
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
-            acc.get_stride1()};
-}
-
-template <typename Type1, typename Type2>
-ConstScaledReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>>
-as_cuda_accessor(const ConstScaledReducedStorage3d<Type1, Type2> &acc)
-{
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
-            acc.get_stride1(), as_cuda_type(acc.get_scale())};
+    return range<accessor::scaled_reduced_row_major<dim, cuda_type<Type1>,
+                                                    cuda_type<Type2>, mask>>(
+        acc.get_accessor().get_size(), as_cuda_type(acc.get_accessor().get_stored_data()),
+        acc.get_accessor().get_storage_stride(),
+        as_cuda_type(acc.get_accessor().get_scalar()),
+        acc.get_accessor().get_scalar_stride());
 }
 
 
@@ -176,9 +167,10 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
-    const dim3 grid_dim_1(ceildiv((krylov_dim + 1) * krylov_bases.get_stride0(),
-                                  default_block_size),
-                          1, 1);
+    const auto krylov_stride =
+        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+    const dim3 grid_dim_1(
+        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
@@ -204,7 +196,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
     // exec->synchronize();
 
-    // helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+    // helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scalar(
     //     krylov_bases, col_idx, arnoldi_norm->at(2, j) / residual_norm->at(0,
     //     j));
     /* */
@@ -221,8 +213,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     /* */
     // std::cout << "Before initialize_2_2_kernel" << '\n';
     const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_bases.get_stride1(), default_block_size), 1,
-        1);
+        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
@@ -279,10 +270,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                                       iter + 1);
     const dim3 block_size_iters_single(singledot_block_size);
     size_type numReorth;
-
-    ReducedStorage3d<ValueType, ValueType> next_krylov_accessor{
-        next_krylov_basis->get_values(), stride_next_krylov,
-        stride_next_krylov};
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());

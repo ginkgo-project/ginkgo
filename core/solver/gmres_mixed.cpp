@@ -241,6 +241,12 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto dense_b = as<const Vector>(b);
         auto dense_x = as<Vector>(x);
         auto residual = Vector::create_with_config_of(dense_b);
+        /* The dimensions {x, y, z} explained for the krylov_bases:
+         * - x: selects the krylov vector (which has krylov_dim + 1 vectors)
+         * - y: selects the (row-)element of said krylov vector
+         * - z: selects which column-element of said krylov vector should be
+         *      used
+         */
         const dim<3> krylov_bases_dim{krylov_dim_ + 1,
                                       system_matrix_->get_size()[1],
                                       dense_b->get_size()[1]};
@@ -250,10 +256,10 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // const size_type krylov_bases_stride = krylov_bases_dim[1];
         // LowArray krylov_bases(exec, krylov_bases_dim[0] *
         // krylov_bases_stride); KrylovAccessor
-        // krylov_bases_accessor(krylov_bases.get_data(),
+        // krylov_bases_range(krylov_bases.get_data(),
         //                                     krylov_bases_stride);
         Accessor3dHelper helper(exec, krylov_bases_dim);
-        auto krylov_bases_accessor = helper.get_accessor();
+        auto krylov_bases_range = helper.get_range();
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
@@ -307,7 +313,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // std::cout << "Before initializate_2" << std::endl;
         exec->run(gmres_mixed::make_initialize_2(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
-            arnoldi_norm.get(), krylov_bases_accessor, next_krylov_basis.get(),
+            arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
             &final_iter_nums, krylov_dim_));
         // residual_norm = norm(residual)
         // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -431,8 +437,9 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
                 exec->run(gmres_mixed::make_step_2(
                     residual_norm_collection.get(),
-                    krylov_bases_accessor.to_const(), hessenberg_view.get(),
-                    y.get(), before_preconditioner.get(), &final_iter_nums));
+                    krylov_bases_range.get_accessor().to_const(),
+                    hessenberg_view.get(), y.get(), before_preconditioner.get(),
+                    &final_iter_nums));
                 // Solve upper triangular.
                 // y = hessenberg \ residual_norm_collection
 
@@ -449,7 +456,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 exec->run(gmres_mixed::make_initialize_2(
                     residual.get(), residual_norm.get(),
                     residual_norm_collection.get(), arnoldi_norm.get(),
-                    krylov_bases_accessor, next_krylov_basis.get(),
+                    krylov_bases_range, next_krylov_basis.get(),
                     &final_iter_nums, krylov_dim_));
                 // residual_norm = norm(residual)
                 // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -496,7 +503,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec->run(gmres_mixed::make_step_1(
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                 residual_norm.get(), residual_norm_collection.get(),
-                krylov_bases_accessor, hessenberg_iter.get(), buffer_iter.get(),
+                krylov_bases_range, hessenberg_iter.get(), buffer_iter.get(),
                 b_norm.get(), arnoldi_norm.get(), restart_iter,
                 &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
                 &num_reorth_steps, &num_reorth_vectors));
@@ -544,7 +551,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{0, dense_b->get_size()[1] * (restart_iter)});
 
         exec->run(gmres_mixed::make_step_2(
-            residual_norm_collection.get(), krylov_bases_accessor.to_const(),
+            residual_norm_collection.get(),
+            krylov_bases_range.get_accessor().to_const(),
             hessenberg_small.get(), y.get(), before_preconditioner.get(),
             &final_iter_nums));
         // Solve upper triangular.

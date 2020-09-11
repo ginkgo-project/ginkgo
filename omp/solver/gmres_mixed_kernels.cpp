@@ -199,7 +199,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
-        helper_functions_accessor<Accessor3d>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         // reorthogonalization
@@ -416,7 +416,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         }
         residual_norm->at(0, j) = sqrt(res_norm);
         arnoldi_norm->at(2, j) = res_inf;
-        helper_functions_accessor<Accessor3d>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -432,7 +432,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             auto value = residual->at(i, j) / residual_norm->at(0, j);
-            krylov_bases({0}, i, j) = value;
+            krylov_bases(0, i, j) = value;
             next_krylov_basis->at(i, j) = value;
         }
         final_iter_nums->get_data()[j] = 0;
@@ -441,7 +441,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<Accessor3d>::write_scale(
+            helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<remove_complex<ValueType>>());
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {

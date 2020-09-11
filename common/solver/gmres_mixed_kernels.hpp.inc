@@ -88,18 +88,20 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     size_type stride_residual_nc)
 {
     const auto global_id = thread::get_thread_id_flat();
+    const auto krylov_stride =
+        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
     // krylov indices
-    const auto krylov_idx = global_id / krylov_bases.get_stride0();
-    const auto reminder = global_id % krylov_bases.get_stride0();
-    const auto krylov_row = reminder / krylov_bases.get_stride1();
-    const auto rhs = reminder % krylov_bases.get_stride1();
+    const auto krylov_idx = global_id / krylov_stride[0];
+    const auto reminder = global_id % krylov_stride[0];
+    const auto krylov_row = reminder / krylov_stride[1];
+    const auto rhs = reminder % krylov_stride[1];
 
     // residual_norm indices (separated for better coalesced access)
     const auto residual_row = global_id / stride_residual_nc;
     const auto residual_col = global_id % stride_residual_nc;
 
     if (krylov_idx < krylov_dim + 1 && krylov_row < num_rows && rhs < num_rhs) {
-        krylov_bases.at(krylov_idx, krylov_row, rhs) = zero<ValueType>();
+        krylov_bases(krylov_idx, krylov_row, rhs) = zero<ValueType>();
     }
 
     if (residual_row < krylov_dim + 1 && residual_col < num_rhs) {
@@ -120,8 +122,10 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type *__restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / krylov_bases.get_stride1();
-    const auto col_idx = global_id % krylov_bases.get_stride1();
+    const auto krylov_stride =
+        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+    const auto row_idx = global_id / krylov_stride[1];
+    const auto col_idx = global_id % krylov_stride[1];
 
     if (global_id < num_rhs) {
         residual_norm_collection[global_id] = residual_norm[global_id];
@@ -131,7 +135,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     if (row_idx < num_rows && col_idx < num_rhs) {
         auto value = residual[row_idx * stride_residual + col_idx] /
                      residual_norm[col_idx];
-        krylov_bases.at({0}, row_idx, col_idx) = value;
+        krylov_bases(0, row_idx, col_idx) = value;
         next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
@@ -399,7 +403,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -448,7 +452,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
                  i += default_dot_dim) {
                 const auto next_krylov_idx = i * stride_next_krylov + col_idx;
                 local_res += next_krylov_basis[next_krylov_idx] *
-                             krylov_bases.at(k, i, col_idx);
+                             krylov_bases(k, i, col_idx);
             }
         }
         reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -501,7 +505,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -580,7 +584,7 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel_num_iters_2(
         for (size_type i = start_row; i < end_row; i += blockDim.y) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
@@ -635,7 +639,7 @@ __global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
         for (size_type i = start_row; i < end_row; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
@@ -672,8 +676,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] *
-            krylov_bases.at(k, row_idx, col_idx);
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
     }
 }
 
@@ -704,14 +707,14 @@ __global__
 
             next_krylov_basis[next_krylov_idx] -=
                 hessenberg_iter[hessenberg_idx] *
-                krylov_bases.at(k, row_idx, col_idx);
+                krylov_bases(k, row_idx, col_idx);
         }
     }
 }
 
 
-// Must be called with at least `num_vectors * krylov_bases.get_stride0()`
-// threads in total.
+// Must be called with at least `num_vectors *
+// krylov_bases.get_accessor().get_stride()[0]` threads in total.
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_0(
@@ -725,18 +728,20 @@ __global__
     // CAREFUL: krylov_bases changes might not be done properly since this
     //          kernel is currently not used!
     const auto global_id = thread::get_thread_id_flat();
-    const auto k = global_id / krylov_bases.get_stride0();
-    const auto reminder = global_id / krylov_bases.get_stride0();
-    const auto row_idx = reminder / krylov_bases.get_stride1();
-    const auto col_idx = reminder % krylov_bases.get_stride1();
+    const auto krylov_stride =
+        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+    const auto k = global_id / krylov_stride[0];
+    const auto reminder = global_id / krylov_stride[0];
+    const auto row_idx = reminder / krylov_stride[1];
+    const auto col_idx = reminder % krylov_stride[1];
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
-        auto value = hessenberg_iter[hessenberg_idx] *
-                     krylov_bases.at(k, row_idx, col_idx);
+        auto value =
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
         atomic_add(next_krylov_basis + next_krylov_idx, -value);
     }
 }
@@ -771,7 +776,7 @@ __global__
                 const auto hessenberg_idx = i * stride_hessenberg + col_idx;
 
                 value += hessenberg_iter[hessenberg_idx] *
-                         krylov_bases.at(i, row_idx, col_idx);
+                         krylov_bases(i, row_idx, col_idx);
             }
             reduction_helper[tidx] = value;
 
@@ -799,7 +804,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -838,7 +843,7 @@ __global__
                     const auto hessenberg_idx = i * stride_hessenberg + col_idx;
 
                     value += hessenberg_iter[hessenberg_idx] *
-                             krylov_bases.at(i, j, col_idx);
+                             krylov_bases(i, j, col_idx);
                 }
                 reduction_helper[k * block_size + tidx] = value;
             }
@@ -880,7 +885,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -923,7 +928,7 @@ __global__
                 for (size_type j = row_idx, k = 0;
                      j < num_rows && k < num_blocks; j++, k++) {
                     reduction_helper[k * block_size + tidx] +=
-                        hessenberg_val * krylov_bases.at(i, j, col_idx);
+                        hessenberg_val * krylov_bases(i, j, col_idx);
                 }
             }
 
@@ -966,7 +971,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -1009,7 +1014,7 @@ __global__
                 for (size_type j = row_idx, k = 0;
                      j < num_rows && k < num_blocks; j++, k++) {
                     reduction_helper[k * block_size + tidx] +=
-                        hessenberg_val * krylov_bases.at(i, j, col_idx);
+                        hessenberg_val * krylov_bases(i, j, col_idx);
                 }
             }
             multireduce(
@@ -1043,7 +1048,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -1077,8 +1082,7 @@ __global__
         const auto reorth_idx = col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] *
-            krylov_bases.at(k, row_idx, col_idx);
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
         if (row_idx == 0) {
             if (squared_norm(hessenberg_iter[hessenberg_idx]) >
                 (0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
@@ -1114,7 +1118,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         const auto buffer_idx = k * stride_buffer + col_idx;
         next_krylov_basis[next_krylov_idx] -=
-            buffer_iter[buffer_idx] * krylov_bases.at(k, row_idx, col_idx);
+            buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
         if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
             hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
         }
@@ -1149,7 +1153,7 @@ __global__
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             next_krylov_basis[next_krylov_idx] -=
-                buffer_iter[buffer_idx] * krylov_bases.at(k, row_idx, col_idx);
+                buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                 hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
             }
@@ -1187,8 +1191,8 @@ __global__
                 const auto hessenberg_idx = i * stride_hessenberg + col_idx;
                 const auto buffer_idx = i * stride_buffer + col_idx;
 
-                value += buffer_iter[buffer_idx] *
-                         krylov_bases.at(i, row_idx, col_idx);
+                value +=
+                    buffer_iter[buffer_idx] * krylov_bases(i, row_idx, col_idx);
                 if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                     hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
                 }
@@ -1221,8 +1225,7 @@ __global__
                 const auto hessenberg_idx = k * stride_hessenberg + col_idx;
                 const auto buffer_idx = k * stride_buffer + col_idx;
                 next_krylov_basis[next_krylov_idx] -=
-                    buffer_iter[buffer_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
                 if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                     hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
                 }
@@ -1300,7 +1303,7 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
         // printf("(%d) num1 = %10.5e , num2 = %10.5e\n", cod_idx, num1, num2);
         // printf("%d - %d - %d - %d\n", stride_norm, iter, col_idx,
         //        stride_norm * iter + col_idx);
-        helper_functions_accessor<Accessor3d>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter, col_idx, num2 / num12);
         // krylov_bases, num_cols * (iter + 1) + col_idx, num2 / num12);
         // krylov_bases, col_idx, num2 / num12);
@@ -1320,19 +1323,21 @@ __global__ __launch_bounds__(block_size) void set_scale_kernel(
     static_assert(!is_complex_s<RealValueType>::value,
                   "ValueType must not be complex!");
     const auto global_id = thread::get_thread_id_flat();
-    const auto blk_idx = global_id / krylov_bases.get_stride1();
-    const auto col_idx = global_id % krylov_bases.get_stride1();
+    const auto krylov_stride =
+        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+    const auto blk_idx = global_id / krylov_stride[1];
+    const auto col_idx = global_id % krylov_stride[1];
 
     if (blk_idx < num_blocks && col_idx < num_rhs) {
         if (blk_idx == 0) {
             const auto num1 = residual_norm[col_idx];
             const auto num2 = arnoldi_inf[col_idx];
             // printf("num1 = %10.5e , num2 = %10.5e\n", num1, num2);
-            helper_functions_accessor<Accessor3d>::write_scale(
+            helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, {0}, col_idx, num2 / num1);
         } else {
             const auto num = one<RealValueType>();
-            helper_functions_accessor<Accessor3d>::write_scale(
+            helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, blk_idx, col_idx, num);
         }
     }
@@ -1405,7 +1410,7 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
             next_krylov_basis[next_krylov_idx] / hessenberg;
 
         next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        krylov_bases.at(iter + 1, row_idx, col_idx) = next_krylov_value;
+        krylov_bases(iter + 1, row_idx, col_idx) = next_krylov_value;
     }
 }
 
@@ -1581,8 +1586,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     if (row_id < num_rows && col_id < num_cols) {
         ValueType temp = zero<ValueType>();
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
-            temp +=
-                krylov_bases.at(j, row_id, col_id) * y[j * stride_y + col_id];
+            temp += krylov_bases(j, row_id, col_id) * y[j * stride_y + col_id];
         }
         before_preconditioner[global_id] = temp;
     }

@@ -61,9 +61,9 @@ protected:
     using storage_type = float;
     using index_type = int;
     using size_type = gko::size_type;
-    using Accessor3d = gko::kernels::ReducedStorage3d<value_type, storage_type>;
-    using Accessor3dHelper =
+    using Range3dHelper =
         gko::kernels::Accessor3dHelper<value_type, storage_type>;
+    using Range3d = typename Range3dHelper::Range;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 
@@ -91,9 +91,9 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
-    Accessor3dHelper generate_krylov_helper(gko::dim<3> size)
+    Range3dHelper generate_krylov_helper(gko::dim<3> size)
     {
-        auto helper = Accessor3dHelper{ref, size};
+        auto helper = Range3dHelper{ref, size};
         auto &bases = helper.get_bases();
         const auto num_rows = size[0] * size[1];
         const auto num_cols = size[2];
@@ -105,12 +105,12 @@ protected:
         std::copy_n(temp_krylov_bases->get_const_values(),
                     bases.get_num_elems(), bases.get_data());
         // Only useful when the Accessor actually has a scale
-        auto accessor = helper.get_accessor();
+        auto range = helper.get_range();
         auto dist = std::normal_distribution<value_type>(-1, 1);
         for (size_type k = 0; k < size[0]; ++k) {
             for (size_type i = 0; i < size[2]; ++i) {
-                gko::kernels::helper_functions_accessor<
-                    Accessor3d>::write_scale(accessor, k, i, dist(rand_engine));
+                gko::kernels::helper_functions_accessor<Range3d>::write_scalar(
+                    range, k, i, dist(rand_engine));
             }
         }
         return helper;
@@ -128,8 +128,7 @@ protected:
         arnoldi_norm = gen_mtx(3, n);
         gko::dim<3> krylov_bases_dim(gko::solver::default_krylov_dim_mixed + 1,
                                      m, n);
-        acc_helper = generate_krylov_helper(krylov_bases_dim);
-        krylov_bases_accessor = acc_helper.get_accessor();
+        range_helper = generate_krylov_helper(krylov_bases_dim);
 
         next_krylov_basis = gen_mtx(m, n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim_mixed + 1,
@@ -174,9 +173,8 @@ protected:
         d_b_norm->copy_from(b_norm.get());
         d_arnoldi_norm = Mtx::create(cuda);
         d_arnoldi_norm->copy_from(arnoldi_norm.get());
-        d_acc_helper = Accessor3dHelper{cuda, {}};
-        d_acc_helper = acc_helper;
-        d_krylov_bases_accessor = d_acc_helper.get_accessor();
+        d_range_helper = Range3dHelper{cuda, {}};
+        d_range_helper = range_helper;
         d_next_krylov_basis = Mtx::create(cuda);
         d_next_krylov_basis->copy_from(next_krylov_basis.get());
         d_hessenberg = Mtx::create(cuda);
@@ -212,8 +210,8 @@ protected:
     void assert_krylov_bases_near()
     {
         gko::Array<storage_type> d_to_host{ref};
-        auto &krylov_bases = acc_helper.get_bases();
-        d_to_host = d_acc_helper.get_bases();
+        auto &krylov_bases = range_helper.get_bases();
+        d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
         using std::abs;
         for (gko::size_type i = 0; i < krylov_bases.get_num_elems(); ++i) {
@@ -234,8 +232,7 @@ protected:
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> arnoldi_norm;
-    Accessor3dHelper acc_helper;
-    Accessor3d krylov_bases_accessor;
+    Range3dHelper range_helper;
     std::unique_ptr<Mtx> next_krylov_basis;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
@@ -256,8 +253,7 @@ protected:
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_arnoldi_norm;
-    Accessor3dHelper d_acc_helper;
-    Accessor3d d_krylov_bases_accessor;
+    Range3dHelper d_range_helper;
     std::unique_ptr<Mtx> d_next_krylov_basis;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
@@ -302,12 +298,12 @@ TEST_F(GmresMixed, CudaGmresMixedInitialize2IsEquivalentToRef)
     gko::kernels::reference::gmres_mixed::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), arnoldi_norm.get(),
-        krylov_bases_accessor, next_krylov_basis.get(), final_iter_nums.get(),
-        gko::solver::default_krylov_dim_mixed);
+        range_helper.get_range(), next_krylov_basis.get(),
+        final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
     gko::kernels::cuda::gmres_mixed::initialize_2(
         cuda, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_arnoldi_norm.get(),
-        d_krylov_bases_accessor, d_next_krylov_basis.get(),
+        d_range_helper.get_range(), d_next_krylov_basis.get(),
         d_final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
@@ -328,17 +324,17 @@ TEST_F(GmresMixed, CudaGmresMixedStep1IsEquivalentToRef)
     gko::kernels::reference::gmres_mixed::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(),
-        krylov_bases_accessor, hessenberg_iter.get(), buffer_iter.get(),
+        range_helper.get_range(), hessenberg_iter.get(), buffer_iter.get(),
         b_norm.get(), arnoldi_norm.get(), iter, final_iter_nums.get(),
         stop_status.get(), reorth_status.get(), num_reorth.get(),
         &num_reorth_steps, &num_reorth_vectors);
     gko::kernels::cuda::gmres_mixed::step_1(
         cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
-        d_krylov_bases_accessor, d_hessenberg_iter.get(), d_buffer_iter.get(),
-        d_b_norm.get(), d_arnoldi_norm.get(), iter, d_final_iter_nums.get(),
-        d_stop_status.get(), d_reorth_status.get(), d_num_reorth.get(),
-        &num_reorth_steps, &num_reorth_vectors);
+        d_range_helper.get_range(), d_hessenberg_iter.get(),
+        d_buffer_iter.get(), d_b_norm.get(), d_arnoldi_norm.get(), iter,
+        d_final_iter_nums.get(), d_stop_status.get(), d_reorth_status.get(),
+        d_num_reorth.get(), &num_reorth_steps, &num_reorth_vectors);
 
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
@@ -357,13 +353,14 @@ TEST_F(GmresMixed, CudaGmresMixedStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres_mixed::step_2(
-        ref, residual_norm_collection.get(), krylov_bases_accessor.to_const(),
-        hessenberg.get(), y.get(), before_preconditioner.get(),
-        final_iter_nums.get());
+        ref, residual_norm_collection.get(),
+        range_helper.get_range().get_accessor().to_const(), hessenberg.get(),
+        y.get(), before_preconditioner.get(), final_iter_nums.get());
     gko::kernels::cuda::gmres_mixed::step_2(
         cuda, d_residual_norm_collection.get(),
-        d_krylov_bases_accessor.to_const(), d_hessenberg.get(), d_y.get(),
-        d_before_preconditioner.get(), d_final_iter_nums.get());
+        d_range_helper.get_range().get_accessor().to_const(),
+        d_hessenberg.get(), d_y.get(), d_before_preconditioner.get(),
+        d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);

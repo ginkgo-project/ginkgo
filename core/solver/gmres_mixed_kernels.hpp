@@ -36,15 +36,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/accessors.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/solver/gmres_mixed_accessor.hpp"
 
 
+// TODO Find way around using it!
+#define GKO_UNPACK(...) __VA_ARGS__
 /**
  * Instantiates a template for each value type with each lower precision type
  * supported by Ginkgo for GmresMixed.
@@ -56,70 +60,107 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                     (precisions supported by Ginkgo), and
  *                2. the second the value type of the reduced precision.
  */
-// #if defined(__CUDACC__) || defined(__HIPCC__)
-// #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro) \
-//     template _macro(double, half);                  \
-//     template _macro(double, float);                 \
-//     template _macro(double, double)
-// #else
-#define GKO_UNPACK(...) __VA_ARGS__
-
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                     \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, double>));    \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, float>));     \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, half>));      \
-    template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int64>));       \
-    template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int32>));       \
-    template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int16>));       \
-    template _macro(float, GKO_UNPACK(ReducedStorage3d<float, float>));       \
-    template _macro(float, GKO_UNPACK(ReducedStorage3d<float, half>));        \
-    template _macro(float, GKO_UNPACK(ScaledReducedStorage3d<float, int32>)); \
-    template _macro(float, GKO_UNPACK(ScaledReducedStorage3d<float, int16>)); \
-    template _macro(                                                          \
-        std::complex<double>,                                                 \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<double>, std::complex<double>>));   \
-    template _macro(                                                          \
-        std::complex<double>,                                                 \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<double>, std::complex<float>>));    \
-    template _macro(                                                          \
-        std::complex<float>,                                                  \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<float>, std::complex<float>>))
+#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                      \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, double, double>>));    \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, double, float>>));     \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, double, half>>));      \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int64,  \
+                                                            0b101>>));         \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int32,  \
+                                                            0b101>>));         \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int16,  \
+                                                            0b101>>));         \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, float, float>>));      \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, float, half>>));       \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            range<                                                             \
+                accessor::scaled_reduced_row_major<3, float, int32, 0b101>>)); \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            range<                                                             \
+                accessor::scaled_reduced_row_major<3, float, int16, 0b101>>)); \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<double>,  \
+                                                     std::complex<double>>>)); \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<double>,  \
+                                                     std::complex<float>>>));  \
+    template _macro(                                                           \
+        std::complex<float>,                                                   \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<float>,   \
+                                                     std::complex<float>>>))
 
 #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(_macro)                \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, double, const double>>));     \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, double, const float>>));      \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, double, const half>>));       \
     template _macro(double,                                                    \
-                    GKO_UNPACK(ConstReducedStorage3d<double, double>));        \
-    template _macro(double, GKO_UNPACK(ConstReducedStorage3d<double, float>)); \
-    template _macro(double, GKO_UNPACK(ConstReducedStorage3d<double, half>));  \
+                    GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
+                                   3, double, const int64, 0b101>>));          \
     template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int64>));   \
+                    GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
+                                   3, double, const int32, 0b101>>));          \
     template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int32>));   \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int16>));   \
-    template _macro(float, GKO_UNPACK(ConstReducedStorage3d<float, float>));   \
-    template _macro(float, GKO_UNPACK(ConstReducedStorage3d<float, half>));    \
+                    GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
+                                   3, double, const int16, 0b101>>));          \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, float, const float>>));       \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(range<accessor::reduced_row_major<3, float, const half>>)); \
     template _macro(float,                                                     \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<float, int32>));    \
+                    GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
+                                   3, float, const int32, 0b101>>));           \
     template _macro(float,                                                     \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<float, int16>));    \
-    template _macro(std::complex<double>,                                      \
-                    GKO_UNPACK(ConstReducedStorage3d<std::complex<double>,     \
-                                                     std::complex<double>>));  \
-    template _macro(std::complex<double>,                                      \
-                    GKO_UNPACK(ConstReducedStorage3d<std::complex<double>,     \
-                                                     std::complex<float>>));   \
+                    GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
+                                   3, float, const int16, 0b101>>));           \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, std::complex<double>,         \
+                                              const std::complex<double>>>));  \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, std::complex<double>,         \
+                                              const std::complex<float>>>));   \
     template _macro(                                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
-            ConstReducedStorage3d<std::complex<float>, std::complex<float>>))
-// #endif
-// #undef GKO_UNPACK
+            range<accessor::reduced_row_major<3, std::complex<float>,          \
+                                              const std::complex<float>>>))
 
 
 namespace gko {
@@ -137,25 +178,25 @@ namespace gmres_mixed {
         size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _accessor)      \
+#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _range)         \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec,          \
                       const matrix::Dense<_type1> *residual,                \
                       matrix::Dense<remove_complex<_type1>> *residual_norm, \
                       matrix::Dense<_type1> *residual_norm_collection,      \
                       matrix::Dense<remove_complex<_type1>> *arnoldi_norm,  \
-                      _accessor krylov_bases,                               \
+                      _range krylov_bases,                                  \
                       matrix::Dense<_type1> *next_krylov_basis,             \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _accessor)              \
+#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _range)                 \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         matrix::Dense<_type1> *next_krylov_basis,                             \
         matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
         matrix::Dense<remove_complex<_type1>> *residual_norm,                 \
-        matrix::Dense<_type1> *residual_norm_collection,                      \
-        _accessor krylov_bases, matrix::Dense<_type1> *hessenberg_iter,       \
+        matrix::Dense<_type1> *residual_norm_collection, _range krylov_bases, \
+        matrix::Dense<_type1> *hessenberg_iter,                               \
         matrix::Dense<_type1> *buffer_iter,                                   \
         const matrix::Dense<remove_complex<_type1>> *b_norm,                  \
         matrix::Dense<remove_complex<_type1>> *arnoldi_norm, size_type iter,  \
@@ -165,13 +206,12 @@ namespace gmres_mixed {
         int *num_reorth_steps, int *num_reorth_vectors)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _accessor)       \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,           \
-                const matrix::Dense<_type1> *residual_norm_collection, \
-                _accessor krylov_bases,                                \
-                const matrix::Dense<_type1> *hessenberg,               \
-                matrix::Dense<_type1> *y,                              \
-                matrix::Dense<_type1> *before_preconditioner,          \
+#define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _range)                 \
+    void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
+                const matrix::Dense<_type1> *residual_norm_collection,        \
+                _range krylov_bases, const matrix::Dense<_type1> *hessenberg, \
+                matrix::Dense<_type1> *y,                                     \
+                matrix::Dense<_type1> *before_preconditioner,                 \
                 const Array<size_type> *final_iter_nums)
 
 
