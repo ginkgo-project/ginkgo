@@ -534,7 +534,7 @@ __global__ __launch_bounds__(default_block_size) void outplace_absolute_dense(
     auto row = tidx / num_cols;
     auto col = tidx % num_cols;
     if (row < num_rows) {
-        out[row * stride_out + col] = abs(in[row * stride_out + col]);
+        out[row * stride_out + col] = abs(in[row * stride_in + col]);
     }
 }
 
