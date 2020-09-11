@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
@@ -44,6 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/extended_float.hpp"
 #include "core/solver/gmres_mixed_accessor.hpp"
 
+
+/**
+ * Encapsules all arguments in one macro, so a comma inside an argument (e.g.
+ * std::tuple<int, float>) still works as an argument and is not considered as
+ * multiple arguments.
+ */
+#define GKO_UNPACK(...) __VA_ARGS__
 
 /**
  * Instantiates a template for each value type with each lower precision type
@@ -56,70 +64,78 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                     (precisions supported by Ginkgo), and
  *                2. the second the value type of the reduced precision.
  */
-// #if defined(__CUDACC__) || defined(__HIPCC__)
-// #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro) \
-//     template _macro(double, half);                  \
-//     template _macro(double, float);                 \
-//     template _macro(double, double)
-// #else
-#define GKO_UNPACK(...) __VA_ARGS__
-
 #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                     \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, double>));    \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, float>));     \
-    template _macro(double, GKO_UNPACK(ReducedStorage3d<double, half>));      \
     template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int64>));       \
+                    GKO_UNPACK(accessor::ReducedStorage3d<double, double>));  \
     template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int32>));       \
+                    GKO_UNPACK(accessor::ReducedStorage3d<double, float>));   \
     template _macro(double,                                                   \
-                    GKO_UNPACK(ScaledReducedStorage3d<double, int16>));       \
-    template _macro(float, GKO_UNPACK(ReducedStorage3d<float, float>));       \
-    template _macro(float, GKO_UNPACK(ReducedStorage3d<float, half>));        \
-    template _macro(float, GKO_UNPACK(ScaledReducedStorage3d<float, int32>)); \
-    template _macro(float, GKO_UNPACK(ScaledReducedStorage3d<float, int16>)); \
+                    GKO_UNPACK(accessor::ReducedStorage3d<double, half>));    \
+    template _macro(                                                          \
+        double, GKO_UNPACK(accessor::ScaledReducedStorage3d<double, int64>)); \
+    template _macro(                                                          \
+        double, GKO_UNPACK(accessor::ScaledReducedStorage3d<double, int32>)); \
+    template _macro(                                                          \
+        double, GKO_UNPACK(accessor::ScaledReducedStorage3d<double, int16>)); \
+    template _macro(float,                                                    \
+                    GKO_UNPACK(accessor::ReducedStorage3d<float, float>));    \
+    template _macro(float,                                                    \
+                    GKO_UNPACK(accessor::ReducedStorage3d<float, half>));     \
+    template _macro(                                                          \
+        float, GKO_UNPACK(accessor::ScaledReducedStorage3d<float, int32>));   \
+    template _macro(                                                          \
+        float, GKO_UNPACK(accessor::ScaledReducedStorage3d<float, int16>));   \
     template _macro(                                                          \
         std::complex<double>,                                                 \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<double>, std::complex<double>>));   \
+        GKO_UNPACK(accessor::ReducedStorage3d<std::complex<double>,           \
+                                              std::complex<double>>));        \
     template _macro(                                                          \
         std::complex<double>,                                                 \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<double>, std::complex<float>>));    \
+        GKO_UNPACK(accessor::ReducedStorage3d<std::complex<double>,           \
+                                              std::complex<float>>));         \
     template _macro(                                                          \
         std::complex<float>,                                                  \
-        GKO_UNPACK(                                                           \
-            ReducedStorage3d<std::complex<float>, std::complex<float>>))
+        GKO_UNPACK(accessor::ReducedStorage3d<std::complex<float>,            \
+                                              std::complex<float>>))
 
 #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(_macro)                \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(ConstReducedStorage3d<double, double>));        \
-    template _macro(double, GKO_UNPACK(ConstReducedStorage3d<double, float>)); \
-    template _macro(double, GKO_UNPACK(ConstReducedStorage3d<double, half>));  \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int64>));   \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int32>));   \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<double, int16>));   \
-    template _macro(float, GKO_UNPACK(ConstReducedStorage3d<float, float>));   \
-    template _macro(float, GKO_UNPACK(ConstReducedStorage3d<float, half>));    \
+    template _macro(                                                           \
+        double, GKO_UNPACK(accessor::ConstReducedStorage3d<double, double>));  \
+    template _macro(                                                           \
+        double, GKO_UNPACK(accessor::ConstReducedStorage3d<double, float>));   \
+    template _macro(                                                           \
+        double, GKO_UNPACK(accessor::ConstReducedStorage3d<double, half>));    \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(accessor::ConstScaledReducedStorage3d<double, int64>));     \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(accessor::ConstScaledReducedStorage3d<double, int32>));     \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(accessor::ConstScaledReducedStorage3d<double, int16>));     \
+    template _macro(                                                           \
+        float, GKO_UNPACK(accessor::ConstReducedStorage3d<float, float>));     \
     template _macro(float,                                                     \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<float, int32>));    \
-    template _macro(float,                                                     \
-                    GKO_UNPACK(ConstScaledReducedStorage3d<float, int16>));    \
-    template _macro(std::complex<double>,                                      \
-                    GKO_UNPACK(ConstReducedStorage3d<std::complex<double>,     \
-                                                     std::complex<double>>));  \
-    template _macro(std::complex<double>,                                      \
-                    GKO_UNPACK(ConstReducedStorage3d<std::complex<double>,     \
-                                                     std::complex<float>>));   \
+                    GKO_UNPACK(accessor::ConstReducedStorage3d<float, half>)); \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(accessor::ConstScaledReducedStorage3d<float, int32>));      \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(accessor::ConstScaledReducedStorage3d<float, int16>));      \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(accessor::ConstReducedStorage3d<std::complex<double>,       \
+                                                   std::complex<double>>));    \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(accessor::ConstReducedStorage3d<std::complex<double>,       \
+                                                   std::complex<float>>));     \
     template _macro(                                                           \
         std::complex<float>,                                                   \
-        GKO_UNPACK(                                                            \
-            ConstReducedStorage3d<std::complex<float>, std::complex<float>>))
-// #endif
-// #undef GKO_UNPACK
+        GKO_UNPACK(accessor::ConstReducedStorage3d<std::complex<float>,        \
+                                                   std::complex<float>>))
 
 
 namespace gko {

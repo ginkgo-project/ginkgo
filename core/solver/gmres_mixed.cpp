@@ -241,6 +241,12 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto dense_b = as<const Vector>(b);
         auto dense_x = as<Vector>(x);
         auto residual = Vector::create_with_config_of(dense_b);
+        /* The dimensions {x, y, z} explained for the krylov_bases:
+         * - x: selects the krylov vector (which has krylov_dim + 1 vectors)
+         * - y: selects the (row-)element of said krylov vector
+         * - z: selects which column-element of said krylov vector should be
+         *      used
+         */
         const dim<3> krylov_bases_dim{krylov_dim_ + 1,
                                       system_matrix_->get_size()[1],
                                       dense_b->get_size()[1]};

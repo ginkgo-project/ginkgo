@@ -63,9 +63,9 @@ protected:
     using storage_type = float;
     using index_type = int;
     using size_type = gko::size_type;
-    using Accessor3d = gko::kernels::ReducedStorage3d<value_type, storage_type>;
     using Accessor3dHelper =
         gko::kernels::Accessor3dHelper<value_type, storage_type>;
+    using Accessor3d = typename Accessor3dHelper::Accessor;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 
