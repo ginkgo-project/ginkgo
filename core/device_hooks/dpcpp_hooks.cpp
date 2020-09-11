@@ -65,6 +65,15 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
     GKO_NOT_COMPILED(dpcpp);
 
 
+bool OmpExecutor::verify_memory_to(
+    const DpcppExecutor *dest_exec) const override
+{
+    // Dummy check
+    auto dev_type = dest_exec->get_device_type();
+    return dev_type == "cpu" || dev_type == "host";
+}
+
+
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
@@ -111,6 +120,29 @@ int DpcppExecutor::get_num_devices(std::string) { return 0; }
 
 
 void DpcppExecutor::set_device_property() {}
+
+
+bool DpcppExecutor::verify_memory_to(
+    const OmpExecutor *dest_exec) const override
+{
+    // Dummy check
+    return device_type_ == "cpu" || device_type_ == "host";
+}
+
+bool DpcppExecutor::verify_memory_to(
+    const ReferenceExecutor *dest_exec) const override
+{
+    // Dummy check
+    return device_type_ == "cpu" || device_type_ == "host";
+}
+
+bool DpcppExecutor::verify_memory_to(
+    const DpcppExecutor *dest_exec) const override
+{
+    // Dummy check
+    return dest_exec->get_device_type() == device_type_ &&
+           dest_exec->get_device_id() == device_id_;
+}
 
 
 }  // namespace gko

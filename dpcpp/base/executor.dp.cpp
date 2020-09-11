@@ -76,6 +76,15 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
 }
 
 
+bool OmpExecutor::verify_memory_to(
+    const DpcppExecutor *dest_exec) const override
+{
+    auto device = detail::get_devices(
+        dest_exec->getdevice_type())[dest_exec->get_device_id()];
+    return device.is_host() || device.is_cpu();
+}
+
+
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type)
 {
@@ -147,6 +156,33 @@ void DpcppExecutor::run(const Operation &op) const
 int DpcppExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();
+}
+
+
+bool DpcppExecutor::verify_memory_to(
+    const OmpExecutor *dest_exec) const override
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+
+    return device.is_host() || device.is_cpu();
+}
+
+bool DpcppExecutor::verify_memory_to(
+    const ReferenceExecutor *dest_exec) const override
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    return device.is_host() || device.is_cpu();
+}
+
+bool DpcppExecutor::verify_memory_to(
+    const DpcppExecutor *dest_exec) const override
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    auto other_device = detail::get_devices(
+        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    return device.get_info<cl::sycl::info::device::device_type>() ==
+               other_device.get_info<cl::sycl::info::device::device_type>() &&
+           device.get() == other_device.get();
 }
 
 
