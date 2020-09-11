@@ -95,6 +95,9 @@ void HipExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
     GKO_NOT_COMPILED(hip);
 
 
+bool HipExecutor::verify_memory_to(const CudaExecutor *) const { return false; }
+
+
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 

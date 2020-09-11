@@ -57,6 +57,7 @@ const std::vector<sycl::device> get_devices(std::string device_type)
         {"accelerator", sycl::info::device_type::accelerator},
         {"all", sycl::info::device_type::all},
         {"cpu", sycl::info::device_type::cpu},
+        {"host", sycl::info::device_type::host},
         {"gpu", sycl::info::device_type::gpu}};
     std::for_each(device_type.begin(), device_type.end(),
                   [](char &c) { c = std::tolower(c); });
@@ -73,6 +74,14 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
     if (num_bytes > 0) {
         dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
     }
+}
+
+
+bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(
+        dest_exec->getdevice_type())[dest_exec->get_device_id()];
+    return device.is_host() || device.is_cpu();
 }
 
 
@@ -150,6 +159,30 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 }
 
 
+bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+
+    return device.is_host() || device.is_cpu();
+}
+
+bool DpcppExecutor::verify_memory_to(const ReferenceExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    return device.is_host() || device.is_cpu();
+}
+
+bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    auto other_device = detail::get_devices(
+        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    return device.get_info<cl::sycl::info::device::device_type>() ==
+               other_device.get_info<cl::sycl::info::device::device_type>() &&
+           device.get() == other_device.get();
+}
+
+
 namespace detail {
 
 
@@ -181,8 +214,10 @@ void DpcppExecutor::set_device_property()
     for (std::size_t i = 0; i < 3; i++) {
         max_workitem_sizes_.push_back(max_workitem_sizes[i]);
     }
-    max_workgroup_size_ =
-        device.get_info<sycl::info::device::max_work_group_size>();
+    if (!device.is_host()) {
+        max_workgroup_size_ =
+            device.get_info<sycl::info::device::max_work_group_size>();
+    }
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.
