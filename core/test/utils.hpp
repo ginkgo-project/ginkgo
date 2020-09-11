@@ -69,6 +69,8 @@ using ValueAndIndexTypes =
     ::testing::Types<float, double, std::complex<float>, std::complex<double>,
                      gko::int32, gko::int64, gko::size_type>;
 
+using RealValueAndIndexTypes =
+    ::testing::Types<float, double, gko::int32, gko::int64, gko::size_type>;
 
 using ValueIndexTypes = ::testing::Types<
     std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
