@@ -68,7 +68,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                          size_type iter, const stopping_status *stop_status)
 {
     static_assert(
-        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        std::is_same<ValueType,
+                     typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
@@ -151,7 +152,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
             // nrmN = norm(next_krylov_basis)
         }
-        helper_functions_accessor<Accessor3d>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         hessenberg_iter->at(iter + 1, i) = arnoldi_norm->at(1, i);
@@ -281,8 +282,9 @@ void calculate_qy(ConstAccessor3d krylov_bases,
                   const size_type *final_iter_nums)
 {
     static_assert(
-        std::is_same<ValueType,
-                     typename ConstAccessor3d::arithmetic_type>::value,
+        std::is_same<
+            ValueType,
+            typename ConstAccessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
         for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
@@ -342,7 +344,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     static_assert(
-        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        std::is_same<ValueType,
+                     typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -356,7 +359,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                     : abs(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
-        helper_functions_accessor<Accessor3d>::write_scale(
+        helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -368,7 +371,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            krylov_bases({0}, i, j) =
+            krylov_bases(0, i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
             next_krylov_basis->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
@@ -378,7 +381,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<Accessor3d>::write_scale(
+            helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<remove_complex<ValueType>>());
             for (size_type i = 0; i < residual->get_size()[0]; ++i) {
                 krylov_bases(k, i, j) = zero<ValueType>();
@@ -410,7 +413,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             int *num_reorth_steps, int *num_reorth_vectors)
 {
     static_assert(
-        std::is_same<ValueType, typename Accessor3d::arithmetic_type>::value,
+        std::is_same<ValueType,
+                     typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
         final_iter_nums->get_data()[i] +=
