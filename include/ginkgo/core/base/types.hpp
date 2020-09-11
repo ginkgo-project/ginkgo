@@ -52,9 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
+#define GKO_RESTRICT __restrict__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
+#define GKO_RESTRICT
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
