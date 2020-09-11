@@ -87,6 +87,7 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 
+
 }  // namespace csr
 
 

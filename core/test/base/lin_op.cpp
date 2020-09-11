@@ -30,11 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <complex>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/math.hpp>
+
+
+#include <complex>
+
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace {

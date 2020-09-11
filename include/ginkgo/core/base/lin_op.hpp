@@ -625,8 +625,9 @@ public:
 
 
 /**
- * The AbsoluteComputable is an interface to allow get absolute from a LinOp.
- * Use EnableAbsoluteComputation<ConcreteLinOp> to implement this interface.
+ * The AbsoluteComputable is an interface that allows to get the component wise
+ * absolute of a LinOp. Use EnableAbsoluteComputation<ConcreteLinOp> to
+ * implement this interface.
  */
 class AbsoluteComputable {
 public:

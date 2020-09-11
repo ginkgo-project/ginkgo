@@ -78,7 +78,7 @@ protected:
 TYPED_TEST_CASE(AbsoluteArray, gko::test::ValueTypes);
 
 
-TYPED_TEST(AbsoluteArray, InplaceEqualsReference)
+TYPED_TEST(AbsoluteArray, InplaceEqualsExpected)
 {
     using T = typename TestFixture::value_type;
     gko::kernels::reference::components::inplace_absolute_array(
@@ -87,7 +87,7 @@ TYPED_TEST(AbsoluteArray, InplaceEqualsReference)
 }
 
 
-TYPED_TEST(AbsoluteArray, OutplaceEqualsReference)
+TYPED_TEST(AbsoluteArray, OutplaceEqualsExpected)
 {
     using T = typename TestFixture::value_type;
     using AbsT = typename TestFixture::abs_type;
