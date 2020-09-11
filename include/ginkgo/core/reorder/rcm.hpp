@@ -100,6 +100,8 @@ class Rcm
 public:
     using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;
     using PermutationMatrix = matrix::Permutation<IndexType>;
+    using value_type = ValueType;
+    using index_type = IndexType;
 
     /**
      * Gets the permutation (permutation matrix, output of the algorithm) of the
@@ -129,13 +131,13 @@ public:
          * If this parameter is set then an inverse permutation matrix is also
          * constructed along with the normal permutation matrix.
          */
-        bool GKO_FACTORY_PARAMETER(construct_inverse_permutation, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(construct_inverse_permutation, false);
 
         /**
          * This parameter controls the strategy used to determine a starting
          * vertex.
          */
-        starting_strategy GKO_FACTORY_PARAMETER(
+        starting_strategy GKO_FACTORY_PARAMETER_SCALAR(
             strategy, starting_strategy::pseudo_peripheral);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Rcm, parameters, Factory);

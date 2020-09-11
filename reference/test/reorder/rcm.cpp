@@ -50,7 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 
+
 namespace {
+
 
 template <typename ValueIndexType>
 class Rcm : public ::testing::Test {
@@ -87,17 +89,19 @@ protected:
 
 TYPED_TEST_CASE(Rcm, gko::test::ValueIndexTypes);
 
+
 TYPED_TEST(Rcm, CanBeCleared)
 {
     this->reorder_op->clear();
 
     auto reorder_op_perm = this->reorder_op->get_permutation();
+
     ASSERT_EQ(reorder_op_perm, nullptr);
 }
 
+
 TYPED_TEST(Rcm, CanBeCopied)
 {
-    using v_type = typename TestFixture::v_type;
     auto rcm = this->rcm_factory->generate(this->id3_mtx);
     auto rcm_copy = this->rcm_factory->generate(this->not_id3_mtx);
 
@@ -111,7 +115,6 @@ TYPED_TEST(Rcm, CanBeCopied)
 
 TYPED_TEST(Rcm, CanBeMoved)
 {
-    using v_type = typename TestFixture::v_type;
     auto rcm = this->rcm_factory->generate(this->id3_mtx);
     auto rcm_move = this->rcm_factory->generate(this->not_id3_mtx);
 
@@ -125,7 +128,6 @@ TYPED_TEST(Rcm, CanBeMoved)
 
 TYPED_TEST(Rcm, CanBeCloned)
 {
-    using v_type = typename TestFixture::v_type;
     auto rcm = this->rcm_factory->generate(this->id3_mtx);
 
     auto rcm_clone = rcm->clone();
@@ -135,9 +137,9 @@ TYPED_TEST(Rcm, CanBeCloned)
     ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[2], 0);
 }
 
+
 TYPED_TEST(Rcm, HasSensibleDefaults)
 {
-    using v_type = typename TestFixture::v_type;
     using reorder_type = typename TestFixture::reorder_type;
 
     auto rcm = reorder_type::build().on(this->exec)->generate(this->id3_mtx);
@@ -146,6 +148,7 @@ TYPED_TEST(Rcm, HasSensibleDefaults)
     ASSERT_EQ(rcm->get_parameters().strategy,
               gko::reorder::starting_strategy::pseudo_peripheral);
 }
+
 
 TYPED_TEST(Rcm, CanBeCreatedWithStartingStrategy)
 {
@@ -163,9 +166,9 @@ TYPED_TEST(Rcm, CanBeCreatedWithStartingStrategy)
               gko::reorder::starting_strategy::minimum_degree);
 }
 
+
 TYPED_TEST(Rcm, CanBeCreatedWithConstructInversePermutation)
 {
-    using v_type = typename TestFixture::v_type;
     using reorder_type = typename TestFixture::reorder_type;
     auto rcm = reorder_type::build()
                    .with_construct_inverse_permutation(true)
@@ -177,5 +180,6 @@ TYPED_TEST(Rcm, CanBeCreatedWithConstructInversePermutation)
     ASSERT_EQ(rcm->get_inverse_permutation()->get_const_permutation()[2], 0);
     ASSERT_EQ(rcm->get_parameters().construct_inverse_permutation, true);
 }
+
 
 }  // namespace

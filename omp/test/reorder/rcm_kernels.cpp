@@ -47,10 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/permutation.hpp>
 
 
-#include <iostream>
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
+
 
 namespace {
 
@@ -118,7 +118,7 @@ protected:
 
         const auto n = reorder->get_permutation()->get_permutation_size();
         auto degrees = std::vector<i_type>(n);
-        for (auto i = 0; i < n; ++i) {
+        for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
@@ -126,7 +126,7 @@ protected:
         switch (reorder->get_parameters().strategy) {
         case strategy::minimum_degree: {
             auto min_degree = std::numeric_limits<i_type>::max();
-            for (auto i = 0; i < n; ++i) {
+            for (gko::size_type i = 0; i < n; ++i) {
                 if (!already_visited[i] && degrees[i] < min_degree) {
                     min_degree = degrees[i];
                 }
@@ -149,7 +149,7 @@ protected:
 
             std::vector<i_type> reference_contenders(0);
             auto current_height = std::numeric_limits<i_type>::min();
-            for (auto i = 0; i < n; ++i) {
+            for (gko::size_type i = 0; i < n; ++i) {
                 if (reference_current_levels[i] !=
                         std::numeric_limits<i_type>::max() &&
                     reference_current_levels[i] >= current_height) {
@@ -163,7 +163,7 @@ protected:
 
             std::vector<std::vector<i_type>> reference_contenders_levels(
                 reference_contenders.size());
-            for (auto i = 0; i < reference_contenders.size(); ++i) {
+            for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
                 std::vector<i_type> reference_contender_levels(n);
                 std::fill(reference_contender_levels.begin(),
                           reference_contender_levels.end(),
@@ -173,9 +173,9 @@ protected:
                 reference_contenders_levels[i] = reference_contender_levels;
             }
 
-            for (auto i = 0; i < reference_contenders.size(); ++i) {
+            for (gko::size_type i = 0; i < reference_contenders.size(); ++i) {
                 auto contender_height = std::numeric_limits<i_type>::min();
-                for (auto j = 0; j < n; ++j) {
+                for (gko::size_type j = 0; j < n; ++j) {
                     if (reference_contenders_levels[i][j] !=
                             std::numeric_limits<i_type>::max() &&
                         reference_contenders_levels[i][j] > contender_height) {
@@ -187,7 +187,6 @@ protected:
                 }
             }
             return false;
-            break;
         }
         }
         return true;
@@ -200,7 +199,7 @@ protected:
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
         auto degrees = std::vector<i_type>(n);
-        for (auto i = 0; i < n; ++i) {
+        for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
                 mtx->get_const_row_ptrs()[i + 1] - mtx->get_const_row_ptrs()[i];
         }
@@ -209,7 +208,7 @@ protected:
         auto perm = std::vector<i_type>(n);
         std::copy_n(reorder->get_permutation()->get_const_permutation(), n,
                     perm.begin());
-        for (auto i = 0; i < n / 2; ++i) {
+        for (gko::size_type i = 0; i < n / 2; ++i) {
             const auto tmp = perm[i];
             perm[i] = perm[n - i - 1];
             perm[n - i - 1] = tmp;
@@ -217,7 +216,7 @@ protected:
 
         // Now check for cm ordering.
 
-        auto base_offset = 0;
+        gko::size_type base_offset = 0;
         std::vector<bool> already_visited(n);
         while (base_offset != n) {
             // Assert valid start node.
@@ -233,9 +232,9 @@ protected:
                       std::numeric_limits<i_type>::max());
             ubfs_reference(mtx, &levels[0], perm[base_offset]);
 
-            auto current_level = 0;
+            i_type current_level = 0;
             const auto previous_base_offset = base_offset;
-            for (auto i = 0; i < n; ++i) {
+            for (gko::size_type i = 0; i < n; ++i) {
                 const auto node = perm[i];
                 if (levels[node] != std::numeric_limits<i_type>::max() &&
                     !already_visited[node]) {
@@ -327,8 +326,7 @@ TEST_F(Rcm, OmpPermutationIsRcmOrdered)
     auto perm = d_reorder_op->get_permutation();
 
     // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
-    const auto d_reorder_op_shared =
-        std::shared_ptr<reorder_type>(d_reorder_op.release());
+    auto d_reorder_op_shared = gko::share(d_reorder_op);
     ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op_shared);
 }
 
