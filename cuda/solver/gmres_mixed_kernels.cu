@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array.hpp"
 #include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
@@ -235,7 +234,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     const auto stride_buffer = buffer_iter->get_stride();
     const auto stride_arnoldi = arnoldi_norm->get_stride();
     const auto dim_size = next_krylov_basis->get_size();
-    auto cublas_handle = exec->get_cublas_handle();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
     const dim3 grid_size_num_iters(
