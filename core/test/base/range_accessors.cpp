@@ -67,6 +67,23 @@ TEST_F(RowMajorAccessor, CanAccessData)
 }
 
 
+TEST_F(RowMajorAccessor, CanWriteData)
+{
+    r(0, 0) = 4;
+
+    EXPECT_EQ(r(0, 0), 4);
+}
+
+
+TEST_F(RowMajorAccessor, CanWriteDataToConst)
+{
+    const row_major_int_range cr = r;
+    cr(0, 0) = 4;
+
+    EXPECT_EQ(cr(0, 0), 4);
+}
+
+
 TEST_F(RowMajorAccessor, CanCreateSubrange)
 {
     auto subr = r(span{1, 3}, span{0, 2});
@@ -119,6 +136,77 @@ TEST_F(RowMajorAccessor, CanAssignSubranges)
     EXPECT_EQ(data[7], 6);
     EXPECT_EQ(data[8], -3);
 }
+
+
+class ReducedStorage3d : public ::testing::Test {
+protected:
+    using span = gko::span;
+    using ar_type = double;
+    using st_type = double;
+
+    using accessor = gko::accessor::ReducedStorage3d<ar_type, st_type>;
+
+    using reduced_storage = gko::range<accessor>;
+
+    // clang-format off
+    double data[8]{
+        1.0, 2.1,
+        -1.2, 3.3,
+        4.4, -2.5,
+        5.6, 6.7
+    };
+    //clang-format on
+    reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}};
+};
+
+
+TEST_F(ReducedStorage3d, CanReadData)
+{
+    EXPECT_EQ(static_cast<ar_type>(r(0, 0, 0)), 1.0);
+    EXPECT_EQ(static_cast<ar_type>(r(0, 0, 1)), 2.1);
+    EXPECT_EQ(static_cast<ar_type>(r(0, 1, 0)), -1.2);
+    EXPECT_EQ(static_cast<ar_type>(r(0, 1, 1)), 3.3);
+    EXPECT_EQ(static_cast<ar_type>(r(1, 0, 0)), 4.4);
+    EXPECT_EQ(static_cast<ar_type>(r(1, 0, 1)), -2.5);
+    EXPECT_EQ(static_cast<ar_type>(r(1, 1, 0)), 5.6);
+    EXPECT_EQ(static_cast<ar_type>(r(1, 1, 1)), 6.7);
+}
+
+
+TEST_F(ReducedStorage3d, CanWriteData)
+{
+    r(0, 0, 0) = 2.0;
+
+    EXPECT_EQ(r(0, 0, 0), 2.0);
+}
+
+
+TEST_F(ReducedStorage3d, CanCreateSubrange)
+{
+    auto subr = r(span{1, 2}, span{0, 2}, span{0, 1});
+
+    EXPECT_EQ(static_cast<ar_type>(subr(0, 0, 0)), 4.4);
+    EXPECT_EQ(static_cast<ar_type>(subr(0, 1, 0)), 5.6);
+}
+
+
+TEST_F(ReducedStorage3d, CanCreateRowVector)
+{
+    auto subr = r(0, 0, span{0, 2});
+
+    EXPECT_EQ(subr(0, 0, 0), 1.0);
+    EXPECT_EQ(subr(0, 0, 1), 2.1);
+}
+
+
+TEST_F(ReducedStorage3d, CanCreateColumnVector)
+{
+    auto subr = r(span{0, 2}, 0, 0);
+
+    EXPECT_EQ(subr(0, 0, 0), 1.0);
+    EXPECT_EQ(subr(1, 0, 0), 4.4);
+}
+
 
 
 }  // namespace
