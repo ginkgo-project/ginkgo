@@ -63,7 +63,7 @@ protected:
     using size_type = gko::size_type;
     using Accessor3dHelper =
         gko::kernels::Accessor3dHelper<value_type, storage_type>;
-    using Accessor3d = typename Accessor3dHelper::Accessor;
+    using Accessor3d = typename Accessor3dHelper::accessor;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 

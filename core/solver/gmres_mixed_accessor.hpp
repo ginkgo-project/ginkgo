@@ -61,20 +61,25 @@ namespace detail {
 
 
 template <typename Accessor>
-struct is_3d_scaled_accessor : public std::false_type {};
+struct is_3d_scaled_accessor : public std::false_type {
+};
 
 template <typename... Args>
 struct is_3d_scaled_accessor<accessor::ScaledReducedStorage3d<Args...>>
-    : public std::true_type {};
+    : public std::true_type {
+};
 
 template <typename StorageType, bool = std::is_integral<StorageType>::value>
-struct helper_require_scale {};
+struct helper_require_scale {
+};
 
 template <typename StorageType>
-struct helper_require_scale<StorageType, false> : public std::false_type {};
+struct helper_require_scale<StorageType, false> : public std::false_type {
+};
 
 template <typename StorageType>
-struct helper_require_scale<StorageType, true> : public std::true_type {};
+struct helper_require_scale<StorageType, true> : public std::true_type {
+};
 
 
 }  // namespace detail
@@ -82,13 +87,14 @@ struct helper_require_scale<StorageType, true> : public std::true_type {};
 
 template <typename ValueType, typename StorageType,
           bool = detail::helper_require_scale<StorageType>::value>
-class Accessor3dHelper {};
+class Accessor3dHelper {
+};
 
 
 template <typename ValueType, typename StorageType>
 class Accessor3dHelper<ValueType, StorageType, true> {
 public:
-    using Accessor = accessor::ScaledReducedStorage3d<ValueType, StorageType>;
+    using accessor = accessor::ScaledReducedStorage3d<ValueType, StorageType>;
 
     Accessor3dHelper() = default;
 
@@ -107,11 +113,9 @@ public:
         scale_ = h_scale;
     }
 
-    Accessor get_accessor()
+    accessor get_accessor()
     {
-        const auto stride0 = krylov_dim_[1] * krylov_dim_[2];
-        const auto stride1 = krylov_dim_[2];
-        return {bases_.get_data(), stride0, stride1, scale_.get_data()};
+        return {bases_.get_data(), krylov_dim_, scale_.get_data()};
     }
 
     gko::Array<StorageType> &get_bases() { return bases_; }
@@ -126,7 +130,7 @@ private:
 template <typename ValueType, typename StorageType>
 class Accessor3dHelper<ValueType, StorageType, false> {
 public:
-    using Accessor = accessor::ReducedStorage3d<ValueType, StorageType>;
+    using accessor = accessor::ReducedStorage3d<ValueType, StorageType>;
 
     Accessor3dHelper() = default;
 
@@ -136,12 +140,7 @@ public:
                  krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]}
     {}
 
-    Accessor get_accessor()
-    {
-        const auto stride0 = krylov_dim_[1] * krylov_dim_[2];
-        const auto stride1 = krylov_dim_[2];
-        return {bases_.get_data(), stride0, stride1};
-    }
+    accessor get_accessor() { return {bases_.get_data(), krylov_dim_}; }
 
     gko::Array<StorageType> &get_bases() { return bases_; }
 
@@ -154,7 +153,8 @@ private:
 
 template <typename Accessor3d,
           bool = detail::is_3d_scaled_accessor<Accessor3d>::value>
-struct helper_functions_accessor {};
+struct helper_functions_accessor {
+};
 
 // Accessors having a scale
 template <typename Accessor3d>

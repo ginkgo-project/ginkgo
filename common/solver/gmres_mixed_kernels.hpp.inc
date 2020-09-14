@@ -99,7 +99,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     const auto residual_col = global_id % stride_residual_nc;
 
     if (krylov_idx < krylov_dim + 1 && krylov_row < num_rows && rhs < num_rhs) {
-        krylov_bases.at(krylov_idx, krylov_row, rhs) = zero<ValueType>();
+        krylov_bases(krylov_idx, krylov_row, rhs) = zero<ValueType>();
     }
 
     if (residual_row < krylov_dim + 1 && residual_col < num_rhs) {
@@ -131,7 +131,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     if (row_idx < num_rows && col_idx < num_rhs) {
         auto value = residual[row_idx * stride_residual + col_idx] /
                      residual_norm[col_idx];
-        krylov_bases.at({0}, row_idx, col_idx) = value;
+        krylov_bases({0}, row_idx, col_idx) = value;
         next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
@@ -399,7 +399,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -448,7 +448,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
                  i += default_dot_dim) {
                 const auto next_krylov_idx = i * stride_next_krylov + col_idx;
                 local_res += next_krylov_basis[next_krylov_idx] *
-                             krylov_bases.at(k, i, col_idx);
+                             krylov_bases(k, i, col_idx);
             }
         }
         reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -501,7 +501,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -580,7 +580,7 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel_num_iters_2(
         for (size_type i = start_row; i < end_row; i += blockDim.y) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
@@ -635,7 +635,7 @@ __global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
         for (size_type i = start_row; i < end_row; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases.at(k, i, col_idx);
+                         krylov_bases(k, i, col_idx);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
@@ -672,8 +672,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] *
-            krylov_bases.at(k, row_idx, col_idx);
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
     }
 }
 
@@ -704,7 +703,7 @@ __global__
 
             next_krylov_basis[next_krylov_idx] -=
                 hessenberg_iter[hessenberg_idx] *
-                krylov_bases.at(k, row_idx, col_idx);
+                krylov_bases(k, row_idx, col_idx);
         }
     }
 }
@@ -735,8 +734,8 @@ __global__
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
-        auto value = hessenberg_iter[hessenberg_idx] *
-                     krylov_bases.at(k, row_idx, col_idx);
+        auto value =
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
         atomic_add(next_krylov_basis + next_krylov_idx, -value);
     }
 }
@@ -771,7 +770,7 @@ __global__
                 const auto hessenberg_idx = i * stride_hessenberg + col_idx;
 
                 value += hessenberg_iter[hessenberg_idx] *
-                         krylov_bases.at(i, row_idx, col_idx);
+                         krylov_bases(i, row_idx, col_idx);
             }
             reduction_helper[tidx] = value;
 
@@ -799,7 +798,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -838,7 +837,7 @@ __global__
                     const auto hessenberg_idx = i * stride_hessenberg + col_idx;
 
                     value += hessenberg_iter[hessenberg_idx] *
-                             krylov_bases.at(i, j, col_idx);
+                             krylov_bases(i, j, col_idx);
                 }
                 reduction_helper[k * block_size + tidx] = value;
             }
@@ -880,7 +879,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -923,7 +922,7 @@ __global__
                 for (size_type j = row_idx, k = 0;
                      j < num_rows && k < num_blocks; j++, k++) {
                     reduction_helper[k * block_size + tidx] +=
-                        hessenberg_val * krylov_bases.at(i, j, col_idx);
+                        hessenberg_val * krylov_bases(i, j, col_idx);
                 }
             }
 
@@ -966,7 +965,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -1009,7 +1008,7 @@ __global__
                 for (size_type j = row_idx, k = 0;
                      j < num_rows && k < num_blocks; j++, k++) {
                     reduction_helper[k * block_size + tidx] +=
-                        hessenberg_val * krylov_bases.at(i, j, col_idx);
+                        hessenberg_val * krylov_bases(i, j, col_idx);
                 }
             }
             multireduce(
@@ -1043,7 +1042,7 @@ __global__
 
                 next_krylov_basis[next_krylov_idx] -=
                     hessenberg_iter[hessenberg_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    krylov_bases(k, row_idx, col_idx);
             }
         }
     }
@@ -1077,8 +1076,7 @@ __global__
         const auto reorth_idx = col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] *
-            krylov_bases.at(k, row_idx, col_idx);
+            hessenberg_iter[hessenberg_idx] * krylov_bases(k, row_idx, col_idx);
         if (row_idx == 0) {
             if (squared_norm(hessenberg_iter[hessenberg_idx]) >
                 (0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
@@ -1114,7 +1112,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         const auto buffer_idx = k * stride_buffer + col_idx;
         next_krylov_basis[next_krylov_idx] -=
-            buffer_iter[buffer_idx] * krylov_bases.at(k, row_idx, col_idx);
+            buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
         if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
             hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
         }
@@ -1149,7 +1147,7 @@ __global__
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             next_krylov_basis[next_krylov_idx] -=
-                buffer_iter[buffer_idx] * krylov_bases.at(k, row_idx, col_idx);
+                buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                 hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
             }
@@ -1187,8 +1185,8 @@ __global__
                 const auto hessenberg_idx = i * stride_hessenberg + col_idx;
                 const auto buffer_idx = i * stride_buffer + col_idx;
 
-                value += buffer_iter[buffer_idx] *
-                         krylov_bases.at(i, row_idx, col_idx);
+                value +=
+                    buffer_iter[buffer_idx] * krylov_bases(i, row_idx, col_idx);
                 if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                     hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
                 }
@@ -1221,8 +1219,7 @@ __global__
                 const auto hessenberg_idx = k * stride_hessenberg + col_idx;
                 const auto buffer_idx = k * stride_buffer + col_idx;
                 next_krylov_basis[next_krylov_idx] -=
-                    buffer_iter[buffer_idx] *
-                    krylov_bases.at(k, row_idx, col_idx);
+                    buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
                 if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                     hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
                 }
@@ -1405,7 +1402,7 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
             next_krylov_basis[next_krylov_idx] / hessenberg;
 
         next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        krylov_bases.at(iter + 1, row_idx, col_idx) = next_krylov_value;
+        krylov_bases(iter + 1, row_idx, col_idx) = next_krylov_value;
     }
 }
 
@@ -1581,8 +1578,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     if (row_id < num_rows && col_id < num_cols) {
         ValueType temp = zero<ValueType>();
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
-            temp +=
-                krylov_bases.at(j, row_id, col_id) * y[j * stride_y + col_id];
+            temp += krylov_bases(j, row_id, col_id) * y[j * stride_y + col_id];
         }
         before_preconditioner[global_id] = temp;
     }

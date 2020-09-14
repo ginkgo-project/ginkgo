@@ -96,7 +96,7 @@ template <typename Type1, typename Type2>
 GKO_INLINE accessor::ReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>>
 as_cuda_accessor(accessor::ReducedStorage3d<Type1, Type2> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
+    return {as_cuda_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
             acc.get_stride1()};
 }
 
@@ -104,7 +104,7 @@ template <typename Type1, typename Type2>
 GKO_INLINE accessor::ScaledReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>>
 as_cuda_accessor(accessor::ScaledReducedStorage3d<Type1, Type2> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
+    return {as_cuda_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
 }
 
@@ -112,7 +112,7 @@ template <typename Type1, typename Type2>
 GKO_INLINE accessor::ConstReducedStorage3d<cuda_type<Type1>, cuda_type<Type2>>
 as_cuda_accessor(const accessor::ConstReducedStorage3d<Type1, Type2> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
+    return {as_cuda_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
             acc.get_stride1()};
 }
 
@@ -121,7 +121,7 @@ GKO_INLINE accessor::ConstScaledReducedStorage3d<cuda_type<Type1>,
                                                  cuda_type<Type2>>
 as_cuda_accessor(const accessor::ConstScaledReducedStorage3d<Type1, Type2> &acc)
 {
-    return {as_cuda_type(acc.get_storage()), acc.get_stride0(),
+    return {as_cuda_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
             acc.get_stride1(), as_cuda_type(acc.get_scale())};
 }
 
@@ -282,7 +282,9 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     size_type numReorth;
 
     accessor::ReducedStorage3d<ValueType, ValueType> next_krylov_accessor{
-        next_krylov_basis->get_values(), stride_next_krylov,
+        next_krylov_basis->get_values(),
+        {1, dim_size[0], dim_size[1]},
+        stride_next_krylov,
         stride_next_krylov};
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
@@ -335,10 +337,10 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     }
-    // */
-    // exec->synchronize();
-    // write(std::cout, hessenberg_iter);
-    /* */
+        // */
+        // exec->synchronize();
+        // write(std::cout, hessenberg_iter);
+        /* */
 #ifdef TIMING
     exec->synchronize();
     auto time_1 = std::chrono::steady_clock::now() - start_1;
