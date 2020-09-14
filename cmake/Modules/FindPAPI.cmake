@@ -70,7 +70,7 @@ if(PAPI_INCLUDE_DIR)
         # find the components
         enable_language(C)
         foreach(component IN LISTS PAPI_FIND_COMPONENTS)
-            file(WRITE "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
+            file(WRITE "${PROJECT_BINARY_DIR}/papi_${component}_detect.c"
                 "
                 #include <papi.h>
                 int main() {
@@ -85,8 +85,8 @@ if(PAPI_INCLUDE_DIR)
                 )
             try_run(PAPI_${component}_FOUND
                 gko_result_unused
-                "${CMAKE_BINARY_DIR}"
-                "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
+                "${PROJECT_BINARY_DIR}"
+                "${PROJECT_BINARY_DIR}/papi_${component}_detect.c"
                 LINK_LIBRARIES ${PAPI_LIBRARY}
                 )
 
