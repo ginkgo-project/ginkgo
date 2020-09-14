@@ -39,7 +39,7 @@ endfunction()
 # generates the documentation named <name> with the additional
 # config file <in> in <pdf/html> format
 function(ginkgo_doc_gen name in pdf mainpage-in)
-    set(DIR_BASE "${CMAKE_SOURCE_DIR}")
+    set(DIR_BASE "${PROJECT_SOURCE_DIR}")
     set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
     set(DIR_SCRIPT "${DOC_BASE}/scripts")
     set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
@@ -53,7 +53,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         "${DOC_BASE}/headers/"
         )
     list(APPEND doxygen_base_input
-        ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
+        ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
         ${DIR_BASE}/include
         ${MAINPAGE}
         )
@@ -77,7 +77,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${DIR_BASE}/include/ginkgo/**/*.hpp
         )
     list(APPEND doxygen_depend
-        ${CMAKE_BINARY_DIR}/include/ginkgo/config.hpp
+        ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
         )
     if(GINKGO_DOC_GENERATE_EXAMPLES)
         list(APPEND doxygen_depend

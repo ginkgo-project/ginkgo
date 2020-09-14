@@ -125,7 +125,7 @@ if(GINKGO_WITH_IWYU)
     find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -311,8 +311,8 @@ include(CPack)
 # And finally, print the configuration to screen:
 #
 if(GINKGO_CONFIG_LOG_DETAILED)
-    FILE(READ ${CMAKE_BINARY_DIR}/detailed.log GINKGO_LOG_SUMMARY)
+    FILE(READ ${PROJECT_BINARY_DIR}/detailed.log GINKGO_LOG_SUMMARY)
 else()
-    FILE(READ ${CMAKE_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
+    FILE(READ ${PROJECT_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
 endif()
 MESSAGE("${GINKGO_LOG_SUMMARY}")

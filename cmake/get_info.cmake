@@ -1,5 +1,5 @@
-SET(detailed_log "${CMAKE_BINARY_DIR}/detailed.log")
-SET(minimal_log  "${CMAKE_BINARY_DIR}/minimal.log")
+SET(detailed_log "${PROJECT_BINARY_DIR}/detailed.log")
+SET(minimal_log  "${PROJECT_BINARY_DIR}/minimal.log")
 FILE(REMOVE ${detailed_log} ${minimal_log})
 
 MACRO(_both)
@@ -89,7 +89,7 @@ set(log_types "detailed_log;minimal_log")
 foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "Ginkgo configuration:")
     set(print_var
-        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX;CMAKE_SOURCE_DIR;CMAKE_BINARY_DIR"
+        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX;PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR"
         )
     foreach(var ${print_var})
         ginkgo_print_variable(${${log_type}} ${var} )
