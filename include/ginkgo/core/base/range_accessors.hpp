@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -198,6 +199,45 @@ public:
 namespace detail {
 
 
+// tests if the cast operator to `ValueType` is present
+template <typename Ref, typename ValueType, typename = xstd::void_t<>>
+struct has_cast_operator : std::false_type {};
+
+template <typename Ref, typename ValueType>
+struct has_cast_operator<
+    Ref, ValueType,
+    xstd::void_t<decltype(std::declval<Ref>().operator ValueType())>>
+    : std::true_type {};
+
+/**
+ * @internal
+ * converts `ref` to ValueType while prefering the operator overload from
+ * class `Ref`
+ * This function is only needed for CUDA TOOLKIT < 11 because thrust::complex
+ * has a constructor call
+ * `template<T> complex(const T &other) : real(other), imag()`, which is always
+ * preferred over the overloaded `operator value_type()`.
+ * This function uses the overloaded operator when available, otherwise simply
+ * calls `static_cast`.
+ */
+template <typename ValueType, typename Ref>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
+    has_cast_operator<Ref, ValueType>::value, ValueType>
+to_value_type(const Ref &ref)
+{
+    return ref.operator ValueType();
+}
+
+template <typename ValueType, typename Ref>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
+    !has_cast_operator<Ref, ValueType>::value, ValueType>
+to_value_type(const Ref &ref)
+{
+    static_assert(std::is_same<ValueType, void>::value,
+                  "This should not be used here!");
+    return static_cast<ValueType>(ref);
+}
+
 /**
  * This is a mixin which defines the binary operators for *, /, +, - for the
  * Reference class, the unary operator -, and the assignment operators
@@ -209,24 +249,25 @@ namespace detail {
  */
 template <typename Reference, typename ArithmeticType>
 struct enable_reference {
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
-#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)            \
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type _oper( \
-        const Reference &ref1, const Reference &ref2)                 \
-    {                                                                 \
-        return static_cast<arithmetic_type>(ref1)                     \
-            _op static_cast<arithmetic_type>(ref2);                   \
-    }                                                                 \
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type _oper( \
-        const Reference &ref, const arithmetic_type &a)               \
-    {                                                                 \
-        return static_cast<arithmetic_type>(ref) _op a;               \
-    }                                                                 \
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type _oper( \
-        const arithmetic_type &a, const Reference &ref)               \
-    {                                                                 \
-        return a _op static_cast<arithmetic_type>(ref);               \
+
+#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)  \
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
+        const Reference &ref1, const Reference &ref2)       \
+    {                                                       \
+        return to_value_type<arithmetic_type>(ref1)         \
+            _op to_value_type<arithmetic_type>(ref2);       \
+    }                                                       \
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
+        const Reference &ref, const arithmetic_type &a)     \
+    {                                                       \
+        return to_value_type<arithmetic_type>(ref) _op a;   \
+    }                                                       \
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
+        const arithmetic_type &a, const Reference &ref)     \
+    {                                                       \
+        return a _op to_value_type<arithmetic_type>(ref);   \
     }
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator*, *)
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator/, /)
@@ -234,17 +275,17 @@ struct enable_reference {
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator-, -)
 #undef GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
-#define GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)           \
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type _oper(    \
-        Reference &&ref1, const Reference &ref2)                         \
-    {                                                                    \
-        return std::move(ref1) = static_cast<arithmetic_type>(ref1)      \
-                   _op static_cast<arithmetic_type>(ref2);               \
-    }                                                                    \
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type _oper(    \
-        Reference &&ref, const arithmetic_type &a)                       \
-    {                                                                    \
-        return std::move(ref) = static_cast<arithmetic_type>(ref) _op a; \
+#define GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)             \
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper(                \
+        Reference &&ref1, const Reference &ref2)                           \
+    {                                                                      \
+        return std::move(ref1) = to_value_type<arithmetic_type>(ref1)      \
+                   _op to_value_type<arithmetic_type>(ref2);               \
+    }                                                                      \
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper(                \
+        Reference &&ref, const arithmetic_type &a)                         \
+    {                                                                      \
+        return std::move(ref) = to_value_type<arithmetic_type>(ref) _op a; \
     }
 
     GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator*=, *)
@@ -255,10 +296,10 @@ struct enable_reference {
 
     // TODO test if comparison operators need to be overloaded as well
 
-    friend GKO_ATTRIBUTES constexpr GKO_INLINE arithmetic_type
+    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type
     operator-(const Reference &ref)
     {
-        return -static_cast<arithmetic_type>(ref);
+        return -to_value_type<arithmetic_type>(ref);
     }
 };
 
@@ -281,7 +322,7 @@ class ReducedStorageReference
           ReducedStorageReference<ArithmeticType, StorageType>,
           ArithmeticType> {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     // Allow move construction, so perfect forwarding is possible
     ReducedStorageReference(ReducedStorageReference &&) = default;
@@ -325,7 +366,7 @@ class ReducedStorageReference<ArithmeticType, const StorageType>
           ReducedStorageReference<ArithmeticType, const StorageType>,
           ArithmeticType> {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = const StorageType;
     // Allow move construction, so perfect forwarding is possible
     ReducedStorageReference(ReducedStorageReference &&) = default;
@@ -363,7 +404,7 @@ class ScaledReducedStorageReference
           ScaledReducedStorageReference<ArithmeticType, StorageType>,
           ArithmeticType> {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
 
     // Allow move construction, so perfect forwarding is possible
@@ -411,7 +452,7 @@ class ScaledReducedStorageReference<ArithmeticType, const StorageType>
           ScaledReducedStorageReference<ArithmeticType, const StorageType>,
           ArithmeticType> {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = const StorageType;
 
     // Allow move construction, so perfect forwarding is possible
@@ -459,12 +500,12 @@ private:
 template <typename ArithmeticType, typename StorageType>
 class ReducedStorage3d {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     using const_accessor =
         ReducedStorage3d<arithmetic_type, const storage_type>;
     static constexpr size_type dimensionality{3};
-    static constexpr bool is_const{std::is_const<StorageType>::value};
+    static constexpr bool is_const{std::is_const<storage_type>::value};
 
 protected:
     using reference =
@@ -643,10 +684,10 @@ class ScaledReducedStorage3d
     : public detail::enable_scale_write<
           ScaledReducedStorage3d<ArithmeticType, StorageType>, ArithmeticType> {
 public:
-    using arithmetic_type = ArithmeticType;
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     static constexpr size_type dimensionality{3};
-    static constexpr bool is_const{std::is_const<StorageType>::value};
+    static constexpr bool is_const{std::is_const<storage_type>::value};
     using scale_type =
         std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
 
@@ -657,7 +698,7 @@ public:
 
 protected:
     using reference =
-        detail::reference::ScaledReducedStorageReference<ArithmeticType,
+        detail::reference::ScaledReducedStorageReference<arithmetic_type,
                                                          StorageType>;
 
 public:
