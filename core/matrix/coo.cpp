@@ -249,13 +249,13 @@ void Coo<ValueType, IndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<typename Coo<ValueType, IndexType>::outplace_absolute_type>
+std::unique_ptr<typename Coo<ValueType, IndexType>::absolute_type>
 Coo<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto abs_coo = outplace_absolute_type::create(
-        exec, this->get_size(), this->get_num_stored_elements());
+    auto abs_coo = absolute_type::create(exec, this->get_size(),
+                                         this->get_num_stored_elements());
 
     abs_coo->col_idxs_ = col_idxs_;
     abs_coo->row_idxs_ = row_idxs_;

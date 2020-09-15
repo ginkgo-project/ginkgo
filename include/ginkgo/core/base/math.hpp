@@ -139,7 +139,7 @@ struct remove_complex_impl<std::complex<T>> {
  * @tparam T  the type being made complex
  */
 template <typename T>
-struct make_complex_impl {
+struct add_complex_impl {
     using type = std::complex<T>;
 };
 
@@ -149,7 +149,7 @@ struct make_complex_impl {
  * @tparam T  the type being made complex
  */
 template <typename T>
-struct make_complex_impl<std::complex<T>> {
+struct add_complex_impl<std::complex<T>> {
     using type = std::complex<T>;
 };
 
@@ -222,16 +222,16 @@ struct remove_complex_s<
 
 
 template <typename T, typename = void>
-struct make_complex_s {};
+struct add_complex_s {};
 
 /**
  * Obtains a complex counterpart of a real type, and leaves the type
  * unchanged if it is a complex type for complex/scalar type.
  */
 template <typename T>
-struct make_complex_s<
+struct add_complex_s<
     T, xstd::void_t<std::enable_if_t<is_complex_or_scalar_impl<T>::value>>> {
-    using type = typename detail::make_complex_impl<T>::type;
+    using type = typename detail::add_complex_impl<T>::type;
 };
 
 /**
@@ -239,10 +239,10 @@ struct make_complex_s<
  * converts real parameters to complex parameters.
  */
 template <typename T>
-struct make_complex_s<
+struct add_complex_s<
     T, xstd::void_t<std::enable_if_t<!is_complex_or_scalar_impl<T>::value>>> {
     using type =
-        typename detail::template_convertor<detail::make_complex_impl, T>::type;
+        typename detail::template_convertor<detail::add_complex_impl, T>::type;
 };
 
 
@@ -345,7 +345,7 @@ using remove_complex = typename remove_complex_s<T>::type;
  *
  * @tparam T  type to remove complex
  */
-using detail::make_complex_s;
+using detail::add_complex_s;
 
 /**
  * Obtain the type which removed the complex of complex/scalar type or the
@@ -354,7 +354,41 @@ using detail::make_complex_s;
  * @tparam T  type to remove complex
  */
 template <typename T>
-using make_complex = typename make_complex_s<T>::type;
+using add_complex = typename add_complex_s<T>::type;
+
+
+/**
+ * to_real_s is alias of remove_complex_s
+ *
+ * @tparam T  type to real
+ */
+template <typename T>
+using to_real_s = remove_complex_s<T>;
+
+/**
+ * to_real is alias of remove_complex
+ *
+ * @tparam T  type to real
+ */
+template <typename T>
+using to_real = remove_complex<T>;
+
+
+/**
+ * to_complex_s is alias of add_complex_s
+ *
+ * @tparam T  type to complex
+ */
+template <typename T>
+using to_complex_s = add_complex_s<T>;
+
+/**
+ * to_complex is alias of add_complex
+ *
+ * @tparam T  type to complex
+ */
+template <typename T>
+using to_complex = add_complex<T>;
 
 
 namespace detail {

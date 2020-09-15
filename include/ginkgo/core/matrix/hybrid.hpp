@@ -82,7 +82,7 @@ class Hybrid
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Hybrid<make_complex<ValueType>, IndexType>;
+    friend class Hybrid<add_complex<ValueType>, IndexType>;
 
 
 public:
@@ -94,7 +94,7 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Hybrid>::outplace_type;
 
 
@@ -363,7 +363,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

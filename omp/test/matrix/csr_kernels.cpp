@@ -556,7 +556,7 @@ TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx.get(), dmtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
 }
 
 
@@ -567,7 +567,7 @@ TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
 
@@ -578,7 +578,7 @@ TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
     complex_mtx->compute_absolute_inplace();
     complex_dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(complex_mtx.get(), complex_dmtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(complex_mtx, complex_dmtx, 1e-14);
 }
 
 
@@ -589,7 +589,7 @@ TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
     auto abs_mtx = complex_mtx->compute_absolute();
     auto dabs_mtx = complex_dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx.get(), dabs_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
 

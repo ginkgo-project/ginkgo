@@ -320,12 +320,12 @@ void Sellp<ValueType, IndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<typename Sellp<ValueType, IndexType>::outplace_absolute_type>
+std::unique_ptr<typename Sellp<ValueType, IndexType>::absolute_type>
 Sellp<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto abs_sellp = outplace_absolute_type::create(
+    auto abs_sellp = absolute_type::create(
         exec, this->get_size(), this->get_slice_size(),
         this->get_stride_factor(), this->get_total_cols());
 

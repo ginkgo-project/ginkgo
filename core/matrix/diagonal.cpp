@@ -277,13 +277,12 @@ void Diagonal<ValueType>::compute_absolute_inplace()
 
 
 template <typename ValueType>
-std::unique_ptr<typename Diagonal<ValueType>::outplace_absolute_type>
+std::unique_ptr<typename Diagonal<ValueType>::absolute_type>
 Diagonal<ValueType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto abs_diagonal =
-        outplace_absolute_type::create(exec, this->get_size()[0]);
+    auto abs_diagonal = absolute_type::create(exec, this->get_size()[0]);
 
     exec->run(diagonal::make_outplace_absolute_array(
         this->get_const_values(), this->get_size()[0],

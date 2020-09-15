@@ -81,7 +81,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Ell<make_complex<ValueType>, IndexType>;
+    friend class Ell<add_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
@@ -90,7 +90,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Ell>::outplace_type;
 
     friend class Ell<next_precision<ValueType>, IndexType>;
@@ -114,7 +114,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

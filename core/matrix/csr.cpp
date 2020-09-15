@@ -498,13 +498,13 @@ void Csr<ValueType, IndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<typename Csr<ValueType, IndexType>::outplace_absolute_type>
+std::unique_ptr<typename Csr<ValueType, IndexType>::absolute_type>
 Csr<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto abs_csr = outplace_absolute_type::create(
-        exec, this->get_size(), this->get_num_stored_elements());
+    auto abs_csr = absolute_type::create(exec, this->get_size(),
+                                         this->get_num_stored_elements());
 
     abs_csr->col_idxs_ = col_idxs_;
     abs_csr->row_ptrs_ = row_ptrs_;
