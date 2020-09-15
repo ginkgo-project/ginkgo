@@ -161,6 +161,9 @@ public:
     /**
      * Copies data from another accessor
      *
+     * @warning Do not use this function since it is not optimized for a
+     * specific executor. It will always be performed sequentially.
+     *
      * @tparam OtherAccessor  type of the other accessor
      *
      * @param other  other accessor
@@ -311,6 +314,37 @@ private:
     storage_type *const GKO_RESTRICT ptr_;
 };
 
+// Specialization for const storage_type to prevent `operator=`
+template <typename ArithmeticType, typename StorageType>
+class ReducedStorageReference<ArithmeticType, const StorageType>
+    : public detail::enable_reference<
+          ReducedStorageReference<ArithmeticType, const StorageType>,
+          ArithmeticType> {
+public:
+    using arithmetic_type = ArithmeticType;
+    using storage_type = const StorageType;
+    // Allow move construction, so perfect forwarding is possible
+    ReducedStorageReference(ReducedStorageReference &&) = default;
+
+    ReducedStorageReference() = delete;
+    // Forbid copy construction and move assignment
+    ReducedStorageReference(const ReducedStorageReference &) = delete;
+    ReducedStorageReference &operator=(ReducedStorageReference &&) = delete;
+
+    GKO_ATTRIBUTES ReducedStorageReference(storage_type *const GKO_RESTRICT ptr)
+        : ptr_{ptr}
+    {}
+    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    {
+        const storage_type *const GKO_RESTRICT r_ptr = ptr_;
+        return static_cast<arithmetic_type>(*r_ptr);
+    }
+
+private:
+    storage_type *const GKO_RESTRICT ptr_;
+};
+
+
 /**
  * Reference class for a different storage than arithmetic type. The conversion
  * between both formats is done with a simple static_cast followed by a
@@ -360,6 +394,41 @@ private:
     const arithmetic_type scale_;
 };
 
+// Specialization for constant storage_type (no `operator=`)
+template <typename ArithmeticType, typename StorageType>
+class ScaledReducedStorageReference<ArithmeticType, const StorageType>
+    : public detail::enable_reference<
+          ScaledReducedStorageReference<ArithmeticType, const StorageType>,
+          ArithmeticType> {
+public:
+    using arithmetic_type = ArithmeticType;
+    using storage_type = const StorageType;
+
+    // Allow move construction, so perfect forwarding is possible
+    ScaledReducedStorageReference(ScaledReducedStorageReference &&) = default;
+
+    ScaledReducedStorageReference() = delete;
+    // Forbid copy construction and move assignment
+    ScaledReducedStorageReference(const ScaledReducedStorageReference &) =
+        delete;
+    ScaledReducedStorageReference &operator=(ScaledReducedStorageReference &&) =
+        delete;
+
+    GKO_ATTRIBUTES ScaledReducedStorageReference(
+        storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
+        : ptr_{ptr}, scale_{scale}
+    {}
+    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    {
+        const storage_type *const GKO_RESTRICT r_ptr = ptr_;
+        return static_cast<arithmetic_type>(*r_ptr) * scale_;
+    }
+
+private:
+    storage_type *const GKO_RESTRICT ptr_;
+    const arithmetic_type scale_;
+};
+
 
 }  // namespace reference
 }  // namespace detail
@@ -381,13 +450,14 @@ public:
     using arithmetic_type = ArithmeticType;
     using storage_type = StorageType;
     using const_accessor = ConstReducedStorage3d;
-    static_assert(!std::is_const<storage_type>::value,
-                  "StorageType must not be const!");
+    //    static_assert(!std::is_const<storage_type>::value,
+    //                  "StorageType must not be const!");
     static constexpr size_type dimensionality{3};
 
 protected:
     using reference =
         detail::reference::ReducedStorageReference<ArithmeticType, StorageType>;
+    // using j;
 
 public:
     /**
@@ -503,6 +573,7 @@ public:
     using storage_type = StorageType;
     using const_accessor = ConstReducedStorage3d<arithmetic_type, storage_type>;
     static constexpr size_type dimensionality = const_accessor::dimensionality;
+    static constexpr bool is_const = std::is_const<storage_type>::value;
 
 protected:
     using reference = typename const_accessor::reference;
@@ -527,6 +598,10 @@ public:
                 this->stride_[1]};
     }
 
+    /**
+     * @warning Do not use this function since it is not optimized for a
+     *          specific executor. It will always be performed sequentially.
+     */
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other)
     {
@@ -564,12 +639,48 @@ public:
 
     // Makes sure the operator() const function is visible
     using const_accessor::operator();
-    GKO_ATTRIBUTES GKO_INLINE reference operator()(size_type x, size_type y,
-                                                   size_type z)
+    GKO_ATTRIBUTES GKO_INLINE
+        std::conditional_t<is_const, arithmetic_type, reference>
+        operator()(size_type x, size_type y, size_type z)
     {
-        return {this->storage_ + const_accessor::compute_index(x, y, z)};
+        return reference{this->storage_ +
+                         const_accessor::compute_index(x, y, z)};
     }
 };
+
+
+namespace detail {
+
+
+template <typename Accessor, typename ScaleType, bool is_const>
+struct enable_scale_write {
+    using scale_type = ScaleType;
+
+    /**
+     * Reads the scale value at the given indices.
+     */
+    GKO_ATTRIBUTES GKO_INLINE constexpr scale_type set_scale(
+        size_type x, size_type z, scale_type value) const
+    {
+        scale_type *GKO_RESTRICT rest_scale = self()->scale_;
+        return rest_scale[self()->compute_scale_index(x, z)] = value;
+    }
+
+private:
+    GKO_ATTRIBUTES GKO_INLINE constexpr const Accessor *self() const
+    {
+        return static_cast<const Accessor *>(this);
+    }
+};
+
+// In case of a const type, do not provide a write function
+template <typename Accessor, typename ScaleType>
+struct enable_scale_write<Accessor, ScaleType, true> {
+    using scale_type = ScaleType;
+};
+
+
+}  // namespace detail
 
 
 /**
@@ -585,13 +696,20 @@ public:
  * The accessor uses row-major access.
  */
 template <typename ArithmeticType, typename StorageType>
-class ConstScaledReducedStorage3d {
+class ConstScaledReducedStorage3d
+    : public detail::enable_scale_write<
+          ConstScaledReducedStorage3d<ArithmeticType, StorageType>,
+          ArithmeticType, std::is_const<StorageType>::value> {
 public:
     using arithmetic_type = ArithmeticType;
     using storage_type = StorageType;
+    using scale_type = arithmetic_type;
+    // Allow access to both `scale_` and `compute_scale_index()`
+    friend detail::enable_scale_write<ConstScaledReducedStorage3d, scale_type,
+                                      std::is_const<storage_type>::value>;
     using const_accessor = ConstScaledReducedStorage3d;
-    static_assert(!std::is_const<storage_type>::value,
-                  "StorageType must not be const!");
+    //    static_assert(!std::is_const<storage_type>::value,
+    //                  "StorageType must not be const!");
     static constexpr size_type dimensionality{3};
 
 protected:
@@ -628,17 +746,19 @@ public:
           scale_{const_cast<arithmetic_type *>(scale)}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE const_accessor to_const() const { return *this; }
+    GKO_ATTRIBUTES GKO_INLINE constexpr const_accessor to_const() const
+    {
+        return *this;
+    }
 
     /**
      * Reads the scale value at the given indices.
      */
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type read_scale(size_type x,
-                                                         size_type z) const
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type read_scale(
+        size_type x, size_type z) const
     {
         const arithmetic_type *GKO_RESTRICT rest_scale = scale_;
-        return GKO_ASSERT(x < size_[0]), GKO_ASSERT(z < size_[2]),
-               rest_scale[x * stride_[1] + z];
+        return rest_scale[compute_scale_index(x, z)];
     }
 
     GKO_ATTRIBUTES GKO_INLINE arithmetic_type operator()(size_type x,
@@ -654,6 +774,11 @@ public:
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
+
+    /**
+     * @warning Do not use this function since it is not optimized for a
+     * specific executor. It will always be performed sequentially.
+     */
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other)
     {
@@ -707,7 +832,7 @@ public:
         return storage_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE const arithmetic_type *get_scale() const
+    GKO_ATTRIBUTES GKO_INLINE arithmetic_type *get_scale() const
     {
         return this->scale_;
     }
@@ -723,6 +848,13 @@ protected:
     {
         return GKO_ASSERT(x < size_[0]), GKO_ASSERT(y < size_[1]),
                GKO_ASSERT(z < size_[2]), x * stride_[0] + y * stride_[1] + z;
+    }
+
+    GKO_ATTRIBUTES constexpr GKO_INLINE size_type
+    compute_scale_index(size_type x, size_type z) const
+    {
+        return GKO_ASSERT(x < size_[0]), GKO_ASSERT(z < size_[2]),
+               x * stride_[1] + z;
     }
 
     storage_type *storage_;
@@ -741,6 +873,7 @@ public:
     using const_accessor =
         ConstScaledReducedStorage3d<arithmetic_type, storage_type>;
     static constexpr size_type dimensionality = const_accessor::dimensionality;
+    static constexpr bool is_const = std::is_const<storage_type>::value;
 
 protected:
     using reference = typename const_accessor::reference;
@@ -770,13 +903,18 @@ public:
 
     // Makes sure the operator() const function is visible
     using const_accessor::operator();
-    GKO_ATTRIBUTES GKO_INLINE reference operator()(size_type x, size_type y,
-                                                   size_type z)
+    GKO_ATTRIBUTES GKO_INLINE
+        std::conditional_t<is_const, arithmetic_type, reference>
+        operator()(size_type x, size_type y, size_type z)
     {
-        return {this->storage_ + this->compute_index(x, y, z),
-                this->read_scale(x, z)};
+        return reference{this->storage_ + this->compute_index(x, y, z),
+                         this->read_scale(x, z)};
     }
 
+    /**
+     * @warning Do not use this function since it is not optimized for a
+     * specific executor. It will always be performed sequentially.
+     */
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other)
     {
@@ -813,17 +951,6 @@ public:
                    this->stride_[0], this->stride_[1], this->scale_);
     }
 
-    /**
-     * Writes the given value at the given index for a scale.
-     */
-    GKO_ATTRIBUTES GKO_INLINE void set_scale(size_type x, size_type z,
-                                             arithmetic_type val)
-    {
-        GKO_ASSERT(x < this->size_[0] && z < this->size_[2]);
-        arithmetic_type *GKO_RESTRICT rest_scale = this->scale_;
-        rest_scale[x * this->stride_[1] + z] = val;
-    }
-
     using const_accessor::get_storage;
     GKO_ATTRIBUTES GKO_INLINE storage_type *get_storage()
     {
@@ -831,10 +958,6 @@ public:
     }
 
     using const_accessor::get_scale;
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type *get_scale()
-    {
-        return this->scale_;
-    }
 };
 
 
