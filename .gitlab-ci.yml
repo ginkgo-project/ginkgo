@@ -686,7 +686,6 @@ subdir-build:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
-    EXTRA_CMAKE_FLAGS: "-DGINKGO_BUILD_DOC=ON"
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
   only:
     variables:
