@@ -54,7 +54,7 @@ protected:
         3, 4, -2,
         5, 6, -3
     };
-    //clang-format on
+    // clang-format on
     row_major_int_range r{data, 3u, 2u, 3u};
 };
 
@@ -148,7 +148,8 @@ protected:
     using st_type = double;
 
     using accessor = gko::accessor::ReducedStorage3d<ar_type, st_type>;
-    using const_accessor = gko::accessor::ReducedStorage3d<ar_type, const st_type>;
+    using const_accessor =
+        gko::accessor::ReducedStorage3d<ar_type, const st_type>;
 
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
@@ -160,32 +161,10 @@ protected:
         4.4, -2.5,
         5.6, 6.7
     };
-    //clang-format on
+    // clang-format on
     reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}};
     const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}};
 };
-
-
-TEST_F(ReducedStorage3d, CanUseConst)
-{
-    EXPECT_EQ(cr(0, 0, 0), 1.0);
-    EXPECT_EQ(cr(0, 0, 1), 2.1);
-    EXPECT_EQ(cr(0, 1, 0), -1.2);
-    EXPECT_EQ(cr(0, 1, 1), 3.3);
-    EXPECT_EQ(cr(1, 0, 0), 4.4);
-    EXPECT_EQ(cr(1, 0, 1), -2.5);
-    EXPECT_EQ(cr(1, 1, 0), 5.6);
-    EXPECT_EQ(cr(1, 1, 1), 6.7);
-
-    r(0, 1, 0) = cr(0, 0, 0);
-    EXPECT_EQ(r(0, 1, 0), 1.0);
-
-    auto subr = cr(span{0, 2}, 0, 0);
-    //cr(0, 0, 0) = 2.0;
-
-    EXPECT_EQ(subr(0, 0, 0), 1.0);
-    EXPECT_EQ(subr(1, 0, 0), 4.4);
-}
 
 
 TEST_F(ReducedStorage3d, CanReadData)
@@ -198,14 +177,42 @@ TEST_F(ReducedStorage3d, CanReadData)
     EXPECT_EQ(r(1, 0, 1), -2.5);
     EXPECT_EQ(r(1, 1, 0), 5.6);
     EXPECT_EQ(r(1, 1, 1), 6.7);
+    // Const should read the exact same values!
+    EXPECT_EQ(cr(0, 0, 0), 1.0);
+    EXPECT_EQ(cr(0, 0, 1), 2.1);
+    EXPECT_EQ(cr(0, 1, 0), -1.2);
+    EXPECT_EQ(cr(0, 1, 1), 3.3);
+    EXPECT_EQ(cr(1, 0, 0), 4.4);
+    EXPECT_EQ(cr(1, 0, 1), -2.5);
+    EXPECT_EQ(cr(1, 1, 0), 5.6);
+    EXPECT_EQ(cr(1, 1, 1), 6.7);
+}
+
+
+TEST_F(ReducedStorage3d, ToConstWorking)
+{
+    auto cr2 = r->to_const();
+
+    // static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
+    // "Types must be equal!");
+    EXPECT_EQ(cr2(0, 0, 0), 1.0);
+    EXPECT_EQ(cr2(0, 0, 1), 2.1);
+    EXPECT_EQ(cr2(0, 1, 0), -1.2);
+    EXPECT_EQ(cr2(0, 1, 1), 3.3);
+    EXPECT_EQ(cr2(1, 0, 0), 4.4);
+    EXPECT_EQ(cr2(1, 0, 1), -2.5);
+    EXPECT_EQ(cr2(1, 1, 0), 5.6);
+    EXPECT_EQ(cr2(1, 1, 1), 6.7);
 }
 
 
 TEST_F(ReducedStorage3d, CanWriteData)
 {
     r(0, 0, 0) = 2.0;
+    r(0, 1, 0) = 100.0;
 
     EXPECT_EQ(r(0, 0, 0), 2.0);
+    EXPECT_EQ(r(0, 1, 0), 100.0);
 }
 
 
@@ -243,7 +250,8 @@ protected:
     using st_type = gko::int32;
 
     using accessor = gko::accessor::ScaledReducedStorage3d<ar_type, st_type>;
-    using const_accessor = gko::accessor::ScaledReducedStorage3d<ar_type, const st_type>;
+    using const_accessor =
+        gko::accessor::ScaledReducedStorage3d<ar_type, const st_type>;
 
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
@@ -259,7 +267,7 @@ protected:
         1., 1.,
         1., 1.
     };
-    //clang-format on
+    // clang-format on
     reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}, scale};
     const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}, scale};
 };
@@ -281,7 +289,7 @@ TEST_F(ScaledReducedStorage3d, CanUseConst)
     EXPECT_EQ(subr(0, 0, 0), 1.0);
     EXPECT_EQ(subr(1, 0, 0), 55.);
 
-    //cr(0, 0, 0) = 2.0;
+    // cr(0, 0, 0) = 2.0;
     r->set_scale(0, 0, 2.);
     EXPECT_EQ(r(0, 0, 0), 2.);
 }
