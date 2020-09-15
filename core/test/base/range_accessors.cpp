@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <iostream>
+
+
 namespace {
 
 
@@ -145,11 +148,13 @@ protected:
     using st_type = double;
 
     using accessor = gko::accessor::ReducedStorage3d<ar_type, st_type>;
+    using const_accessor = gko::accessor::ReducedStorage3d<ar_type, const st_type>;
 
     using reduced_storage = gko::range<accessor>;
+    using const_reduced_storage = gko::range<const_accessor>;
 
     // clang-format off
-    double data[8]{
+    st_type data[8]{
         1.0, 2.1,
         -1.2, 3.3,
         4.4, -2.5,
@@ -157,19 +162,42 @@ protected:
     };
     //clang-format on
     reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}};
+    const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}};
 };
+
+
+TEST_F(ReducedStorage3d, CanUseConst)
+{
+    EXPECT_EQ(cr(0, 0, 0), 1.0);
+    EXPECT_EQ(cr(0, 0, 1), 2.1);
+    EXPECT_EQ(cr(0, 1, 0), -1.2);
+    EXPECT_EQ(cr(0, 1, 1), 3.3);
+    EXPECT_EQ(cr(1, 0, 0), 4.4);
+    EXPECT_EQ(cr(1, 0, 1), -2.5);
+    EXPECT_EQ(cr(1, 1, 0), 5.6);
+    EXPECT_EQ(cr(1, 1, 1), 6.7);
+
+    r(0, 1, 0) = cr(0, 0, 0);
+    EXPECT_EQ(r(0, 1, 0), 1.0);
+
+    auto subr = cr(span{0, 2}, 0, 0);
+    //cr(0, 0, 0) = 2.0;
+
+    EXPECT_EQ(subr(0, 0, 0), 1.0);
+    EXPECT_EQ(subr(1, 0, 0), 4.4);
+}
 
 
 TEST_F(ReducedStorage3d, CanReadData)
 {
-    EXPECT_EQ(static_cast<ar_type>(r(0, 0, 0)), 1.0);
-    EXPECT_EQ(static_cast<ar_type>(r(0, 0, 1)), 2.1);
-    EXPECT_EQ(static_cast<ar_type>(r(0, 1, 0)), -1.2);
-    EXPECT_EQ(static_cast<ar_type>(r(0, 1, 1)), 3.3);
-    EXPECT_EQ(static_cast<ar_type>(r(1, 0, 0)), 4.4);
-    EXPECT_EQ(static_cast<ar_type>(r(1, 0, 1)), -2.5);
-    EXPECT_EQ(static_cast<ar_type>(r(1, 1, 0)), 5.6);
-    EXPECT_EQ(static_cast<ar_type>(r(1, 1, 1)), 6.7);
+    EXPECT_EQ(r(0, 0, 0), 1.0);
+    EXPECT_EQ(r(0, 0, 1), 2.1);
+    EXPECT_EQ(r(0, 1, 0), -1.2);
+    EXPECT_EQ(r(0, 1, 1), 3.3);
+    EXPECT_EQ(r(1, 0, 0), 4.4);
+    EXPECT_EQ(r(1, 0, 1), -2.5);
+    EXPECT_EQ(r(1, 1, 0), 5.6);
+    EXPECT_EQ(r(1, 1, 1), 6.7);
 }
 
 
@@ -185,8 +213,8 @@ TEST_F(ReducedStorage3d, CanCreateSubrange)
 {
     auto subr = r(span{1, 2}, span{0, 2}, span{0, 1});
 
-    EXPECT_EQ(static_cast<ar_type>(subr(0, 0, 0)), 4.4);
-    EXPECT_EQ(static_cast<ar_type>(subr(0, 1, 0)), 5.6);
+    EXPECT_EQ(subr(0, 0, 0), 4.4);
+    EXPECT_EQ(subr(0, 1, 0), 5.6);
 }
 
 
@@ -207,6 +235,56 @@ TEST_F(ReducedStorage3d, CanCreateColumnVector)
     EXPECT_EQ(subr(1, 0, 0), 4.4);
 }
 
+
+class ScaledReducedStorage3d : public ::testing::Test {
+protected:
+    using span = gko::span;
+    using ar_type = double;
+    using st_type = gko::int32;
+
+    using accessor = gko::accessor::ScaledReducedStorage3d<ar_type, st_type>;
+    using const_accessor = gko::accessor::ScaledReducedStorage3d<ar_type, const st_type>;
+
+    using reduced_storage = gko::range<accessor>;
+    using const_reduced_storage = gko::range<const_accessor>;
+
+    // clang-format off
+    st_type data[8]{
+        1, 2,
+        -3, 4,
+        55, 6,
+        -777, 8
+    };
+    ar_type scale[4]{
+        1., 1.,
+        1., 1.
+    };
+    //clang-format on
+    reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}, scale};
+    const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}, scale};
+};
+
+
+TEST_F(ScaledReducedStorage3d, CanUseConst)
+{
+    EXPECT_EQ(cr(0, 0, 0), 1.);
+    EXPECT_EQ(cr(0, 0, 1), 2.);
+    EXPECT_EQ(cr(0, 1, 0), -3.);
+    EXPECT_EQ(cr(0, 1, 1), 4.);
+    EXPECT_EQ(cr(1, 0, 0), 55.);
+    EXPECT_EQ(cr(1, 0, 1), 6.);
+    EXPECT_EQ(cr(1, 1, 0), -777.);
+    EXPECT_EQ(cr(1, 1, 1), 8.);
+
+    auto subr = cr(span{0, 2}, 0, 0);
+
+    EXPECT_EQ(subr(0, 0, 0), 1.0);
+    EXPECT_EQ(subr(1, 0, 0), 55.);
+
+    //cr(0, 0, 0) = 2.0;
+    r->set_scale(0, 0, 2.);
+    EXPECT_EQ(r(0, 0, 0), 2.);
+}
 
 
 }  // namespace
