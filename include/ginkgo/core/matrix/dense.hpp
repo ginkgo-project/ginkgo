@@ -127,7 +127,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Sellp<ValueType, int64>;
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
-    friend class Dense<make_complex<ValueType>>;
+    friend class Dense<add_complex<ValueType>>;
 
 public:
     using EnableLinOp<Dense>::convert_to;
@@ -138,7 +138,7 @@ public:
     using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Dense>::outplace_type;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
@@ -249,7 +249,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

@@ -141,12 +141,12 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
-    friend class Csr<make_complex<ValueType>, IndexType>;
-    // friend make_complex<Csr>;
+    friend class Csr<add_complex<ValueType>, IndexType>;
+    // friend add_complex<Csr>;
     //   error: can not recognize it is class correctly.
-    // friend class make_complex<Csr>;
+    // friend class add_complex<Csr>;
     //   error: using alias template specialization
-    // friend class make_complex_s<Csr<ValueType,IndexType>>::type;
+    // friend class add_complex_s<Csr<ValueType,IndexType>>::type;
     //   error: can not recognize it is class correctly.
 
 public:
@@ -154,7 +154,7 @@ public:
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Csr>::outplace_type;
 
     class automatical;
@@ -712,7 +712,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

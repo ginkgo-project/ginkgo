@@ -267,12 +267,12 @@ void Ell<ValueType, IndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<typename Ell<ValueType, IndexType>::outplace_absolute_type>
+std::unique_ptr<typename Ell<ValueType, IndexType>::absolute_type>
 Ell<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto abs_ell = outplace_absolute_type::create(
+    auto abs_ell = absolute_type::create(
         exec, this->get_size(), this->get_num_stored_elements_per_row(),
         this->get_stride());
 

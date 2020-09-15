@@ -88,7 +88,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
-    friend class Coo<make_complex<ValueType>, IndexType>;
+    friend class Coo<add_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
@@ -97,7 +97,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Coo>::outplace_type;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
@@ -121,7 +121,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

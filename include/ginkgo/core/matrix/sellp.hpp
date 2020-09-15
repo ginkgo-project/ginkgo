@@ -78,7 +78,7 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Sellp<make_complex<ValueType>, IndexType>;
+    friend class Sellp<add_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Sellp>::convert_to;
@@ -87,7 +87,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Sellp>::outplace_type;
 
     friend class Sellp<next_precision<ValueType>, IndexType>;
@@ -111,7 +111,7 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

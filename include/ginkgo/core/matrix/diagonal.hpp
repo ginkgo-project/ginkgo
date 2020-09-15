@@ -78,7 +78,7 @@ class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
-    friend class Diagonal<make_complex<ValueType>>;
+    friend class Diagonal<add_complex<ValueType>>;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;
@@ -88,7 +88,7 @@ public:
     using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using outplace_absolute_type =
+    using absolute_type =
         typename EnableAbsoluteComputation<Diagonal>::outplace_type;
 
     std::unique_ptr<LinOp> transpose() const override;
@@ -103,7 +103,7 @@ public:
 
     void move_to(Csr<ValueType, int64> *result) override;
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
 

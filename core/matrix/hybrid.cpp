@@ -303,13 +303,13 @@ void Hybrid<ValueType, IndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<typename Hybrid<ValueType, IndexType>::outplace_absolute_type>
+std::unique_ptr<typename Hybrid<ValueType, IndexType>::absolute_type>
 Hybrid<ValueType, IndexType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
     // use default strategy
-    auto abs_hybrid = outplace_absolute_type::create(exec, this->get_size());
+    auto abs_hybrid = absolute_type::create(exec, this->get_size());
 
     abs_hybrid->ell_->copy_from(ell_->compute_absolute());
     abs_hybrid->coo_->copy_from(coo_->compute_absolute());

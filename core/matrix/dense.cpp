@@ -764,13 +764,13 @@ void Dense<ValueType>::compute_absolute_inplace()
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::outplace_absolute_type>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
 Dense<ValueType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
     // do not inherit the stride
-    auto abs_dense = outplace_absolute_type::create(exec, this->get_size());
+    auto abs_dense = absolute_type::create(exec, this->get_size());
 
     exec->run(dense::make_outplace_absolute_dense(this, abs_dense.get()));
 

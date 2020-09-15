@@ -326,7 +326,7 @@ class DummyLinOpWithType
       public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
       public gko::EnableAbsoluteComputation<DummyLinOpWithType<Type>> {
 public:
-    using outplace_absolute_type = gko::remove_complex<DummyLinOpWithType>;
+    using absolute_type = gko::remove_complex<DummyLinOpWithType>;
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithType>(exec)
     {}
@@ -338,9 +338,9 @@ public:
 
     void compute_absolute_inplace() override { value_ = gko::abs(value_); }
 
-    std::unique_ptr<outplace_absolute_type> compute_absolute() const override
+    std::unique_ptr<absolute_type> compute_absolute() const override
     {
-        return std::make_unique<outplace_absolute_type>(
+        return std::make_unique<absolute_type>(
             this->get_executor(), this->get_size(), gko::abs(value_));
     }
 
