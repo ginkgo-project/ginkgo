@@ -338,18 +338,9 @@ public:
      * @return a value on position `(dimensions...)`.
      */
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES constexpr auto operator()(DimensionTypes &&... dimensions)
-        const -> decltype(std::declval<const accessor>()(
+    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
+        -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
-    {
-        static_assert(sizeof...(dimensions) <= dimensionality,
-                      "Too many dimensions in range call");
-        return accessor_(std::forward<DimensionTypes>(dimensions)...);
-    }
-
-    template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) -> decltype(
-        std::declval<accessor>()(std::forward<DimensionTypes>(dimensions)...))
     {
         static_assert(sizeof...(dimensions) <= dimensionality,
                       "Too many dimensions in range call");

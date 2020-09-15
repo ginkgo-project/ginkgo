@@ -291,21 +291,25 @@ public:
     ReducedStorageReference(const ReducedStorageReference &) = delete;
     ReducedStorageReference &operator=(ReducedStorageReference &&) = delete;
 
-    GKO_ATTRIBUTES ReducedStorageReference(storage_type *const GKO_RESTRICT ptr)
+    GKO_ATTRIBUTES constexpr ReducedStorageReference(
+        storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
-    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    ~ReducedStorageReference() = default;
+
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
     }
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type operator=(arithmetic_type val) &&
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return *r_ptr = static_cast<storage_type>(val);
     }
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type
-    operator=(const ReducedStorageReference &ref) &&
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        const ReducedStorageReference &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -331,10 +335,13 @@ public:
     ReducedStorageReference(const ReducedStorageReference &) = delete;
     ReducedStorageReference &operator=(ReducedStorageReference &&) = delete;
 
-    GKO_ATTRIBUTES ReducedStorageReference(storage_type *const GKO_RESTRICT ptr)
+    GKO_ATTRIBUTES constexpr ReducedStorageReference(
+        storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
-    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    ~ReducedStorageReference() = default;
+
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
@@ -369,22 +376,25 @@ public:
     ScaledReducedStorageReference &operator=(ScaledReducedStorageReference &&) =
         delete;
 
-    GKO_ATTRIBUTES ScaledReducedStorageReference(
+    GKO_ATTRIBUTES constexpr ScaledReducedStorageReference(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
         : ptr_{ptr}, scale_{scale}
     {}
-    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    ~ScaledReducedStorageReference() = default;
+
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scale_;
     }
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type operator=(arithmetic_type val) &&
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return *r_ptr = static_cast<storage_type>(val / scale_), val;
     }
-    GKO_ATTRIBUTES GKO_INLINE arithmetic_type
-    operator=(const ScaledReducedStorageReference &ref) &&
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        const ScaledReducedStorageReference &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -414,11 +424,13 @@ public:
     ScaledReducedStorageReference &operator=(ScaledReducedStorageReference &&) =
         delete;
 
-    GKO_ATTRIBUTES ScaledReducedStorageReference(
+    GKO_ATTRIBUTES constexpr ScaledReducedStorageReference(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
         : ptr_{ptr}, scale_{scale}
     {}
-    GKO_ATTRIBUTES GKO_INLINE operator arithmetic_type() const
+    ~ScaledReducedStorageReference() = default;
+
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scale_;
@@ -484,13 +496,13 @@ public:
         : ReducedStorage3d{nullptr, {0, 0, 0}}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE const_accessor to_const() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr const_accessor to_const() const
     {
         return {storage_, size_, stride_[0], stride_[1]};
     }
 
     // Functions required by the `range` interface:
-    GKO_ATTRIBUTES GKO_INLINE dim<dimensionality> length(
+    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> length(
         size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
@@ -512,9 +524,9 @@ public:
             }
         }
     }
-    GKO_ATTRIBUTES GKO_INLINE
-        std::conditional_t<is_const, arithmetic_type, reference>
-        operator()(size_type x, size_type y, size_type z) const
+    GKO_ATTRIBUTES GKO_INLINE constexpr std::conditional_t<
+        is_const, arithmetic_type, reference>
+    operator()(size_type x, size_type y, size_type z) const
     {
         return reference{this->storage_ + compute_index(x, y, z)};
     }
@@ -536,25 +548,26 @@ public:
                    stride_[0], stride_[1]);
     }
 
-    GKO_ATTRIBUTES GKO_INLINE dim<dimensionality> get_size() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> get_size() const
     {
         return size_;
     }
-    GKO_ATTRIBUTES GKO_INLINE size_type get_stride0() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride0() const
     {
         return stride_[0];
     }
-    GKO_ATTRIBUTES GKO_INLINE size_type get_stride1() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride1() const
     {
         return stride_[1];
     }
 
-    GKO_ATTRIBUTES GKO_INLINE storage_type *get_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_storage() const
     {
         return storage_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE const storage_type *get_const_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr const storage_type *get_const_storage()
+        const
     {
         return storage_;
     }
@@ -688,7 +701,7 @@ public:
     }
 
     // Functions required by the `range` interface:
-    GKO_ATTRIBUTES GKO_INLINE dim<dimensionality> length(
+    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> length(
         size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
@@ -716,9 +729,9 @@ public:
             }
         }
     }
-    GKO_ATTRIBUTES GKO_INLINE
-        std::conditional_t<is_const, arithmetic_type, reference>
-        operator()(size_type x, size_type y, size_type z) const
+    GKO_ATTRIBUTES GKO_INLINE constexpr std::conditional_t<
+        is_const, arithmetic_type, reference>
+    operator()(size_type x, size_type y, size_type z) const
     {
         return reference{this->storage_ + this->compute_index(x, y, z),
                          this->read_scale(x, z)};
@@ -742,35 +755,37 @@ public:
                    this->stride_[0], this->stride_[1], this->scale_);
     }
 
-    GKO_ATTRIBUTES GKO_INLINE dim<dimensionality> get_size() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> get_size() const
     {
         return size_;
     }
-    GKO_ATTRIBUTES GKO_INLINE size_type get_stride0() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride0() const
     {
         return stride_[0];
     }
-    GKO_ATTRIBUTES GKO_INLINE size_type get_stride1() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride1() const
     {
         return stride_[1];
     }
 
-    GKO_ATTRIBUTES GKO_INLINE storage_type *get_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_storage() const
     {
         return storage_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE const storage_type *get_const_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr const storage_type *get_const_storage()
+        const
     {
         return storage_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE scale_type *get_scale() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr scale_type *get_scale() const
     {
         return this->scale_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE const scale_type *get_const_scale() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr const scale_type *get_const_scale()
+        const
     {
         return this->scale_;
     }
