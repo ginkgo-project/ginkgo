@@ -91,23 +91,6 @@ as_hip_accessor(accessor::ScaledReducedStorage3d<Type1, Type2> &acc)
             acc.get_stride1(), as_hip_type(acc.get_scale())};
 }
 
-template <typename Type1, typename Type2>
-GKO_INLINE accessor::ConstReducedStorage3d<hip_type<Type1>, hip_type<Type2>>
-as_hip_accessor(const accessor::ConstReducedStorage3d<Type1, Type2> &acc)
-{
-    return {as_hip_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
-            acc.get_stride1()};
-}
-
-template <typename Type1, typename Type2>
-GKO_INLINE accessor::ConstScaledReducedStorage3d<hip_type<Type1>,
-                                                 hip_type<Type2>>
-as_hip_accessor(const accessor::ConstScaledReducedStorage3d<Type1, Type2> &acc)
-{
-    return {as_hip_type(acc.get_storage()), acc.get_size(), acc.get_stride0(),
-            acc.get_stride1(), as_hip_type(acc.get_scale())};
-}
-
 
 template <typename ValueType>
 void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
