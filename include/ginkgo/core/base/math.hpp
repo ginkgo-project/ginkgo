@@ -201,6 +201,8 @@ struct remove_complex_s {};
 /**
  * Obtains a real counterpart of a std::complex type, and leaves the type
  * unchanged if it is not a complex type for complex/scalar type.
+ *
+ * @tparam T  complex or scalar type
  */
 template <typename T>
 struct remove_complex_s<
@@ -211,6 +213,8 @@ struct remove_complex_s<
 /**
  * Obtains a real counterpart of a class with template parameters, which
  * converts complex parameters to real parameters.
+ *
+ * @tparam T  class with template parameters
  */
 template <typename T>
 struct remove_complex_s<
@@ -227,6 +231,8 @@ struct add_complex_s {};
 /**
  * Obtains a complex counterpart of a real type, and leaves the type
  * unchanged if it is a complex type for complex/scalar type.
+ *
+ * @tparam T  complex or scalar type
  */
 template <typename T>
 struct add_complex_s<
@@ -237,6 +243,8 @@ struct add_complex_s<
 /**
  * Obtains a complex counterpart of a class with template parameters, which
  * converts real parameters to complex parameters.
+ *
+ * @tparam T  class with template parameters
  */
 template <typename T>
 struct add_complex_s<
@@ -334,24 +342,35 @@ using detail::remove_complex_s;
  * template parameter of class by accessing the `type` attribute of this struct.
  *
  * @tparam T  type to remove complex
+ *
+ * @note remove_complex<class> can not be used in friend class declaration.
  */
 template <typename T>
 using remove_complex = typename remove_complex_s<T>::type;
 
 
 /**
- * Removes the complex of complex/scalar type or the template parameter of class
+ * Add the complex of complex/scalar type or the template parameter of class
  * by accessing the `type` attribute of this struct.
  *
- * @tparam T  type to remove complex
+ * @tparam T  type to add complex
  */
 using detail::add_complex_s;
 
 /**
- * Obtain the type which removed the complex of complex/scalar type or the
+ * Obtain the type which adds the complex of complex/scalar type or the
  * template parameter of class by accessing the `type` attribute of this struct.
  *
- * @tparam T  type to remove complex
+ * @tparam T  type to add complex
+ *
+ * @note add_complex<class> can not be used in friend class declaration.
+ *       the followings are the error message from different combination.
+ *       friend add_complex<Csr>;
+ *         error: can not recognize it is class correctly.
+ *       friend class add_complex<Csr>;
+ *         error: using alias template specialization
+ *       friend class add_complex_s<Csr<ValueType,IndexType>>::type;
+ *         error: can not recognize it is class correctly.
  */
 template <typename T>
 using add_complex = typename add_complex_s<T>::type;

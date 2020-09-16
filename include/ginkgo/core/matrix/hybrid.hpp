@@ -218,6 +218,13 @@ public:
             return num_columns_;
         }
 
+        /**
+         * Get the number of columns limit
+         *
+         * @return the number of columns limit
+         */
+        auto get_num_columns() const { return num_columns_; }
+
     private:
         size_type num_columns_;
     };
@@ -260,6 +267,13 @@ public:
             }
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percent() const { return percent_; }
+
     private:
         float percent_;
     };
@@ -288,6 +302,20 @@ public:
                             static_cast<size_type>(num_rows * ratio_));
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percent() const { return strategy_.get_percent(); }
+
+        /**
+         * Get the ratio setting
+         *
+         * @retrun ratio
+         */
+        auto get_ratio() const { return ratio_; }
+
     private:
         imbalance_limit strategy_;
         float ratio_;
@@ -315,6 +343,13 @@ public:
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
+
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percent() { return strategy_.get_percent(); }
 
     private:
         imbalance_limit strategy_;
@@ -579,6 +614,50 @@ public:
     std::shared_ptr<strategy_type> get_strategy() const noexcept
     {
         return strategy_;
+    }
+
+    /**
+     * Returns the current strategy allowed in given hybrid format
+     *
+     * @tparam HybType  hybrid type
+     *
+     * @return the strategy
+     */
+    template <typename HybType>
+    std::shared_ptr<typename HybType::strategy_type> get_strategy() const
+    {
+        std::shared_ptr<typename HybType::strategy_type> strategy;
+        if (std::dynamic_pointer_cast<automatic>(strategy_)) {
+            strategy = std::make_shared<typename HybType::automatic>();
+        } else if (auto temp = std::dynamic_pointer_cast<minimal_storage_limit>(
+                       strategy_)) {
+            // minimal_storage_limit is related to ValueType and IndexType size.
+            if (sizeof(value_type) == sizeof(typename HybType::value_type) &&
+                sizeof(index_type) == sizeof(typename HybType::index_type)) {
+                strategy =
+                    std::make_shared<typename HybType::minimal_storage_limit>();
+            } else {
+                strategy = std::make_shared<typename HybType::imbalance_limit>(
+                    temp->get_percent());
+            }
+        } else if (auto temp =
+                       std::dynamic_pointer_cast<imbalance_bounded_limit>(
+                           strategy_)) {
+            strategy =
+                std::make_shared<typename HybType::imbalance_bounded_limit>(
+                    temp->get_percent(), temp->get_ratio());
+        } else if (auto temp =
+                       std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
+            strategy = std::make_shared<typename HybType::imbalance_limit>(
+                temp->get_percent());
+        } else if (auto temp =
+                       std::dynamic_pointer_cast<column_limit>(strategy_)) {
+            strategy = std::make_shared<typename HybType::column_limit>(
+                temp->get_num_columns());
+        } else {
+            GKO_NOT_SUPPORTED(strategy_);
+        }
+        return strategy;
     }
 
     /**

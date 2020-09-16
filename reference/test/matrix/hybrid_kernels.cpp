@@ -673,12 +673,17 @@ TYPED_TEST(Hybrid, OutplaceAbsolute)
 {
     using Mtx = typename TestFixture::Mtx;
     auto mtx = gko::initialize<Mtx>(
-        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
+        std::make_shared<typename Mtx::column_limit>(2));
 
     auto abs_mtx = mtx->compute_absolute();
+    auto abs_strategy =
+        gko::as<typename gko::remove_complex<Mtx>::column_limit>(
+            abs_mtx->get_strategy());
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
 }
 
 
@@ -705,13 +710,17 @@ TYPED_TEST(HybridComplex, OutplaceAbsolute)
     auto mtx = gko::initialize<Mtx>(
         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec, std::make_shared<typename Mtx::column_limit>(2));
     // clang-format on
 
     auto abs_mtx = mtx->compute_absolute();
+    auto abs_strategy =
+        gko::as<typename gko::remove_complex<Mtx>::column_limit>(
+            abs_mtx->get_strategy());
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
 }
 
 
