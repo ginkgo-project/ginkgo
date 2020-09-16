@@ -1,4 +1,4 @@
-include(${CMAKE_SOURCE_DIR}/cmake/create_test.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/create_test.cmake)
 
 add_subdirectory(base)
 add_subdirectory(components)
