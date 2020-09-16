@@ -142,12 +142,6 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<add_complex<ValueType>, IndexType>;
-    // friend add_complex<Csr>;
-    //   error: can not recognize it is class correctly.
-    // friend class add_complex<Csr>;
-    //   error: using alias template specialization
-    // friend class add_complex_s<Csr<ValueType,IndexType>>::type;
-    //   error: can not recognize it is class correctly.
 
 public:
     using value_type = ValueType;
