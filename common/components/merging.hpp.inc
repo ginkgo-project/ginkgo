@@ -51,6 +51,8 @@ struct merge_result {
     int a_advance;
     /** The number of elements from b that have been merged in total. */
     int b_advance;
+    /** Mask indicating a_val < b_val. */
+    config::lane_mask_type a_less_b_mask;
 };
 
 }  // namespace detail
@@ -70,7 +72,6 @@ struct merge_result {
  *
  * @param a      the element from the first range
  * @param b      the element from the second range
- * @param size   the number of elements in the output range
  * @param group  the cooperative group that executes the merge
  * @return  a structure containing the merge result distributed over the group.
  */
@@ -104,10 +105,11 @@ __forceinline__ __device__ detail::merge_result<ValueType> group_merge_step(
     auto a_val = group.shfl(a, a_idx);
     auto b_val = group.shfl(b, b_idx);
     auto cmp = a_val < b_val;
-    auto a_advance = popcnt(group.ballot(cmp));
-    auto b_advance = int(group.size()) - a_advance;
+    auto a_less_b_mask = group.ballot(cmp);
+    auto a_advance = popcnt(a_less_b_mask);
+    auto b_advance = group_size - a_advance;
 
-    return {a_val, b_val, a_idx, b_idx, a_advance, b_advance};
+    return {a_val, b_val, a_idx, b_idx, a_advance, b_advance, a_less_b_mask};
 }
 
 

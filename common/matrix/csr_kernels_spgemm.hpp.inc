@@ -750,6 +750,156 @@ __device__ void merge_2way(AAccessor a,
 }
 
 
+template <int N, typename IndexType, typename AAccessor>
+__device__ IndexType count_merge_nway(AAccessor a,
+                                      const IndexType *__restrict__ b_row_ptrs,
+                                      const IndexType *__restrict__ b_cols)
+{
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    IndexType a_cols[N];
+    IndexType b_begins[N];
+    IndexType b_ends[N];
+    static_assert(N > 2, "N <= 2");
+    static_assert(N < 32, "N >= 32");
+    uint32 remaining_mask{};
+#pragma unroll
+    for (int i = 0; i < N; ++i) {
+        a_cols[i] = a.col(i);
+        b_begins[i] = b_row_ptrs[a_cols[i]];
+        b_ends[i] = b_row_ptrs[a_cols[i] + 1];
+        remaining_mask |= uint32(b_begins[i] < b_ends[i]) << i;
+    }
+    // the last column from the previous iteration
+    IndexType last_col{-1};
+    const auto lane = static_cast<IndexType>(warp.thread_rank());
+
+    IndexType c_nnz{};
+    while (remaining_mask) {
+        config::lane_mask_type advance_masks[N - 1];
+        auto col =
+            checked_load(b_cols, b_begins[0] + lane, b_ends[0], sentinel);
+#pragma unroll
+        for (int i = 1; i < N; ++i) {
+            auto new_col =
+                checked_load(b_cols, b_begins[i] + lane, b_ends[i], sentinel);
+            auto merge_result =
+                group_merge_step<config::warp_size>(new_col, col, warp);
+            advance_masks[i - 1] = merge_result.a_less_b_mask;
+            col = min(merge_result.a_val, merge_result.b_val);
+        }
+        auto prev_col = warp.shfl_up(col, 1);
+        if (lane == 0) {
+            prev_col = last_col;
+        }
+        last_col = warp.shfl(col, config::warp_size - 1);
+        c_nnz += popcnt(warp.ballot(col != prev_col && col != sentinel));
+        // advance indices by the number of consumed elements
+        auto rest_advance = config::warp_size;
+#pragma unroll
+        for (int i = N - 1; i > 0; --i) {
+            auto local_advance =
+                popcnt(advance_masks[i - 1] & prefix_mask(rest_advance));
+            rest_advance -= local_advance;
+            b_begins[i] += local_advance;
+            remaining_mask &= ~(uint32(b_begins[i] >= b_ends[i]) << i);
+        }
+        b_begins[0] += rest_advance;
+        remaining_mask &= ~uint32(b_begins[0] >= b_ends[0]);
+    }
+    return c_nnz;
+}
+
+
+template <int N, typename ValueType, typename IndexType, typename AAccessor>
+__device__ void merge_nway(AAccessor a,
+                           const IndexType *__restrict__ b_row_ptrs,
+                           const IndexType *__restrict__ b_cols,
+                           const ValueType *__restrict__ b_vals, IndexType c_nz,
+                           IndexType *__restrict__ c_cols,
+                           ValueType *__restrict__ c_vals)
+{
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    IndexType a_cols[N];
+    ValueType a_vals[N];
+    IndexType b_begins[N];
+    IndexType b_ends[N];
+    static_assert(N > 2, "N <= 2");
+    static_assert(N < 32, "N >= 32");
+    uint32 remaining_mask{};
+#pragma unroll
+    for (int i = 0; i < N; ++i) {
+        a_cols[i] = a.col(i);
+        a_vals[i] = a.val(i);
+        b_begins[i] = b_row_ptrs[a_cols[i]];
+        b_ends[i] = b_row_ptrs[a_cols[i] + 1];
+        remaining_mask |= uint32(b_begins[i] < b_ends[i]) << i;
+    }
+    // the last column from the previous iteration
+    IndexType last_col{-1};
+    const auto lane = static_cast<IndexType>(warp.thread_rank());
+
+    while (remaining_mask) {
+        config::lane_mask_type advance_masks[N - 1];
+        auto col =
+            checked_load(b_cols, b_begins[0] + lane, b_ends[0], sentinel);
+        auto val = a_vals[0] * checked_load(b_vals, b_begins[0] + lane,
+                                            b_ends[0], zero<ValueType>());
+#pragma unroll
+        for (int i = 1; i < N; ++i) {
+            auto new_col =
+                checked_load(b_cols, b_begins[i] + lane, b_ends[i], sentinel);
+            auto new_val =
+                a_vals[i] * checked_load(b_vals, b_begins[i] + lane, b_ends[i],
+                                         zero<ValueType>());
+            auto merge_result =
+                group_merge_step<config::warp_size>(new_col, col, warp);
+            advance_masks[i - 1] = merge_result.a_less_b_mask;
+            col = min(merge_result.a_val, merge_result.b_val);
+            new_val = warp.shfl(new_val, merge_result.a_idx);
+            val = warp.shfl(val, merge_result.b_idx);
+            auto leq_scale = merge_result.a_val <= merge_result.b_val
+                                 ? one<ValueType>()
+                                 : zero<ValueType>();
+            auto geq_scale = merge_result.a_val >= merge_result.b_val
+                                 ? one<ValueType>()
+                                 : zero<ValueType>();
+            val = geq_scale * val + leq_scale * new_val;
+        }
+        auto prev_col = warp.shfl_up(col, 1);
+        if (lane == 0) {
+            prev_col = last_col;
+        }
+        last_col = warp.shfl(col, config::warp_size - 1);
+        auto output = col != prev_col && col != sentinel;
+        auto output_mask = warp.ballot(output);
+        if (output) {
+            auto c_idx = c_nz + popcnt(output_mask & prefix_mask(lane));
+            c_cols[c_idx] = col;
+            c_vals[c_idx] = val;
+        }
+        c_nz += popcnt(warp.ballot(col != prev_col && col != sentinel));
+        // advance indices by the number of consumed elements
+        auto rest_advance = config::warp_size;
+#pragma unroll
+        for (int i = N - 1; i > 0; --i) {
+            auto local_advance =
+                popcnt(advance_masks[i - 1] & prefix_mask(rest_advance));
+            rest_advance -= local_advance;
+            b_begins[i] += local_advance;
+            remaining_mask &= ~(uint32(b_begins[i] >= b_ends[i]) << i);
+        }
+        b_begins[0] += rest_advance;
+        remaining_mask &= ~uint32(b_begins[0] >= b_ends[0]);
+    }
+}
+
+
 template <typename IndexType>
 __global__ __launch_bounds__(spgemm_block_size) void spgemm_count(
     size_type num_rows, const IndexType *__restrict__ a_row_ptrs,
@@ -813,6 +963,18 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_count_short(
         counter.count_ = b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
     } else if (a_size == 2) {
         counter.count_ = count_merge_2way(a, b_row_ptrs, b_cols);
+    } else if (a_size == 3) {
+        counter.count_ = count_merge_nway<3>(a, b_row_ptrs, b_cols);
+    } else if (a_size == 4) {
+        counter.count_ = count_merge_nway<4>(a, b_row_ptrs, b_cols);
+    } else if (a_size == 5) {
+        counter.count_ = count_merge_nway<5>(a, b_row_ptrs, b_cols);
+    } else if (a_size == 6) {
+        counter.count_ = count_merge_nway<6>(a, b_row_ptrs, b_cols);
+    } else if (a_size == 7) {
+        counter.count_ = count_merge_nway<7>(a, b_row_ptrs, b_cols);
+    } else if (a_size == 8) {
+        counter.count_ = count_merge_nway<8>(a, b_row_ptrs, b_cols);
     } else {
         spgemm_multiway_merge_dispatch_short(a, b_row_ptrs, b_cols, null_val,
                                              counter);
@@ -925,6 +1087,18 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel_short(
         copy_row(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
     } else if (a_size == 2) {
         merge_2way(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 3) {
+        merge_nway<3>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 4) {
+        merge_nway<4>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 5) {
+        merge_nway<5>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 6) {
+        merge_nway<6>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 7) {
+        merge_nway<7>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else if (a_size == 8) {
+        merge_nway<8>(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
     } else {
         spgemm_multiway_merge_dispatch_short(a, b_row_ptrs, b_cols, b_vals,
                                              acc);
