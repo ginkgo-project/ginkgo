@@ -131,7 +131,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
             public Permutable<IndexType>,
-            public EnableAbsoluteComputation<Csr<ValueType, IndexType>> {
+            public EnableAbsoluteComputation<
+                remove_complex<Csr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -148,8 +149,7 @@ public:
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Csr>::outplace_type;
+    using absolute_type = remove_complex<Csr>;
 
     class automatical;
 

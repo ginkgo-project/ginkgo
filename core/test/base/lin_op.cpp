@@ -325,7 +325,8 @@ template <typename Type>
 class DummyLinOpWithType
     : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
       public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
-      public gko::EnableAbsoluteComputation<DummyLinOpWithType<Type>> {
+      public gko::EnableAbsoluteComputation<
+          gko::remove_complex<DummyLinOpWithType<Type>>> {
 public:
     using absolute_type = gko::remove_complex<DummyLinOpWithType>;
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)

@@ -77,7 +77,8 @@ class Hybrid
       public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType>,
-      public EnableAbsoluteComputation<Hybrid<ValueType, IndexType>> {
+      public EnableAbsoluteComputation<
+          remove_complex<Hybrid<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
@@ -94,8 +95,7 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Hybrid>::outplace_type;
+    using absolute_type = remove_complex<Hybrid>;
 
 
     /**

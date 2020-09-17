@@ -88,30 +88,31 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense : public EnableLinOp<Dense<ValueType>>,
-              public EnableCreateMethod<Dense<ValueType>>,
-              public ConvertibleTo<Dense<next_precision<ValueType>>>,
-              public ConvertibleTo<Coo<ValueType, int32>>,
-              public ConvertibleTo<Coo<ValueType, int64>>,
-              public ConvertibleTo<Csr<ValueType, int32>>,
-              public ConvertibleTo<Csr<ValueType, int64>>,
-              public ConvertibleTo<Ell<ValueType, int32>>,
-              public ConvertibleTo<Ell<ValueType, int64>>,
-              public ConvertibleTo<Hybrid<ValueType, int32>>,
-              public ConvertibleTo<Hybrid<ValueType, int64>>,
-              public ConvertibleTo<Sellp<ValueType, int32>>,
-              public ConvertibleTo<Sellp<ValueType, int64>>,
-              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, int32>,
-              public ReadableFromMatrixData<ValueType, int64>,
-              public WritableToMatrixData<ValueType, int32>,
-              public WritableToMatrixData<ValueType, int64>,
-              public Transposable,
-              public Permutable<int32>,
-              public Permutable<int64>,
-              public EnableAbsoluteComputation<Dense<ValueType>> {
+class Dense
+    : public EnableLinOp<Dense<ValueType>>,
+      public EnableCreateMethod<Dense<ValueType>>,
+      public ConvertibleTo<Dense<next_precision<ValueType>>>,
+      public ConvertibleTo<Coo<ValueType, int32>>,
+      public ConvertibleTo<Coo<ValueType, int64>>,
+      public ConvertibleTo<Csr<ValueType, int32>>,
+      public ConvertibleTo<Csr<ValueType, int64>>,
+      public ConvertibleTo<Ell<ValueType, int32>>,
+      public ConvertibleTo<Ell<ValueType, int64>>,
+      public ConvertibleTo<Hybrid<ValueType, int32>>,
+      public ConvertibleTo<Hybrid<ValueType, int64>>,
+      public ConvertibleTo<Sellp<ValueType, int32>>,
+      public ConvertibleTo<Sellp<ValueType, int64>>,
+      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, int32>,
+      public ReadableFromMatrixData<ValueType, int64>,
+      public WritableToMatrixData<ValueType, int32>,
+      public WritableToMatrixData<ValueType, int64>,
+      public Transposable,
+      public Permutable<int32>,
+      public Permutable<int64>,
+      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -138,8 +139,7 @@ public:
     using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Dense>::outplace_type;
+    using absolute_type = remove_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
