@@ -83,7 +83,7 @@ class Hybrid
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Hybrid<add_complex<ValueType>, IndexType>;
+    friend class Hybrid<to_complex<ValueType>, IndexType>;
 
 
 public:

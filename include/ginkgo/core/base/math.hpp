@@ -139,7 +139,7 @@ struct remove_complex_impl<std::complex<T>> {
  * @tparam T  the type being made complex
  */
 template <typename T>
-struct add_complex_impl {
+struct to_complex_impl {
     using type = std::complex<T>;
 };
 
@@ -149,7 +149,7 @@ struct add_complex_impl {
  * @tparam T  the type being made complex
  */
 template <typename T>
-struct add_complex_impl<std::complex<T>> {
+struct to_complex_impl<std::complex<T>> {
     using type = std::complex<T>;
 };
 
@@ -226,7 +226,7 @@ struct remove_complex_s<
 
 
 template <typename T, typename = void>
-struct add_complex_s {};
+struct to_complex_s {};
 
 /**
  * Obtains a complex counterpart of a real type, and leaves the type
@@ -235,9 +235,9 @@ struct add_complex_s {};
  * @tparam T  complex or scalar type
  */
 template <typename T>
-struct add_complex_s<
+struct to_complex_s<
     T, xstd::void_t<std::enable_if_t<is_complex_or_scalar_impl<T>::value>>> {
-    using type = typename detail::add_complex_impl<T>::type;
+    using type = typename detail::to_complex_impl<T>::type;
 };
 
 /**
@@ -247,10 +247,10 @@ struct add_complex_s<
  * @tparam T  class with template parameters
  */
 template <typename T>
-struct add_complex_s<
+struct to_complex_s<
     T, xstd::void_t<std::enable_if_t<!is_complex_or_scalar_impl<T>::value>>> {
     using type =
-        typename detail::template_convertor<detail::add_complex_impl, T>::type;
+        typename detail::template_convertor<detail::to_complex_impl, T>::type;
 };
 
 
@@ -353,27 +353,27 @@ using remove_complex = typename remove_complex_s<T>::type;
  * Add the complex of complex/scalar type or the template parameter of class
  * by accessing the `type` attribute of this struct.
  *
- * @tparam T  type to add complex
+ * @tparam T  type to complex_type
  */
-using detail::add_complex_s;
+using detail::to_complex_s;
 
 /**
  * Obtain the type which adds the complex of complex/scalar type or the
  * template parameter of class by accessing the `type` attribute of this struct.
  *
- * @tparam T  type to add complex
+ * @tparam T  type to complex_type
  *
- * @note add_complex<class> can not be used in friend class declaration.
+ * @note to_complex<class> can not be used in friend class declaration.
  *       the followings are the error message from different combination.
- *       friend add_complex<Csr>;
+ *       friend to_complex<Csr>;
  *         error: can not recognize it is class correctly.
- *       friend class add_complex<Csr>;
+ *       friend class to_complex<Csr>;
  *         error: using alias template specialization
- *       friend class add_complex_s<Csr<ValueType,IndexType>>::type;
+ *       friend class to_complex_s<Csr<ValueType,IndexType>>::type;
  *         error: can not recognize it is class correctly.
  */
 template <typename T>
-using add_complex = typename add_complex_s<T>::type;
+using to_complex = typename to_complex_s<T>::type;
 
 
 /**
@@ -391,23 +391,6 @@ using to_real_s = remove_complex_s<T>;
  */
 template <typename T>
 using to_real = remove_complex<T>;
-
-
-/**
- * to_complex_s is alias of add_complex_s
- *
- * @tparam T  type to complex
- */
-template <typename T>
-using to_complex_s = add_complex_s<T>;
-
-/**
- * to_complex is alias of add_complex
- *
- * @tparam T  type to complex
- */
-template <typename T>
-using to_complex = add_complex<T>;
 
 
 namespace detail {

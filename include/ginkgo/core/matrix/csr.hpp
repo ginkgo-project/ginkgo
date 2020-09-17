@@ -142,7 +142,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
-    friend class Csr<add_complex<ValueType>, IndexType>;
+    friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
     using value_type = ValueType;

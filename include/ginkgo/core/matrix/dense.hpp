@@ -128,7 +128,7 @@ class Dense
     friend class Sellp<ValueType, int64>;
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
-    friend class Dense<add_complex<ValueType>>;
+    friend class Dense<to_complex<ValueType>>;
 
 public:
     using EnableLinOp<Dense>::convert_to;

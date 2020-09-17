@@ -89,7 +89,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
-    friend class Coo<add_complex<ValueType>, IndexType>;
+    friend class Coo<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;

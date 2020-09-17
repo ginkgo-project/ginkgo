@@ -82,7 +82,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Ell<add_complex<ValueType>, IndexType>;
+    friend class Ell<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
