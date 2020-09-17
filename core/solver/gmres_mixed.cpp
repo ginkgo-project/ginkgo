@@ -443,8 +443,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 // Solve upper triangular.
                 // y = hessenberg \ residual_norm_collection
 
-                get_preconditioner()->apply(before_preconditioner.get(),
-                                            after_preconditioner.get());
+                this->get_preconditioner()->apply(before_preconditioner.get(),
+                                                  after_preconditioner.get());
                 dense_x->add_scaled(one_op.get(), after_preconditioner.get());
                 // Solve x
                 // x = x + get_preconditioner() * krylov_bases * y
@@ -470,8 +470,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 #endif
             }
 
-            get_preconditioner()->apply(next_krylov_basis.get(),
-                                        preconditioned_vector.get());
+            this->get_preconditioner()->apply(next_krylov_basis.get(),
+                                              preconditioned_vector.get());
             // preconditioned_vector = get_preconditioner() *
             // next_krylov_basis
 
@@ -566,8 +566,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->synchronize();
         auto t_aux_4 = std::chrono::steady_clock::now();
 #endif
-        get_preconditioner()->apply(before_preconditioner.get(),
-                                    after_preconditioner.get());
+        this->get_preconditioner()->apply(before_preconditioner.get(),
+                                          after_preconditioner.get());
         dense_x->add_scaled(one_op.get(), after_preconditioner.get());
 #ifdef TIMING_STEPS
         exec->synchronize();
