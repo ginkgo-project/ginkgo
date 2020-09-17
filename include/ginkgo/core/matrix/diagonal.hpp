@@ -79,7 +79,7 @@ class Diagonal
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
-    friend class Diagonal<add_complex<ValueType>>;
+    friend class Diagonal<to_complex<ValueType>>;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;

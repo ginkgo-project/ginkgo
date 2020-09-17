@@ -79,7 +79,7 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
-    friend class Sellp<add_complex<ValueType>, IndexType>;
+    friend class Sellp<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Sellp>::convert_to;
