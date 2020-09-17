@@ -626,7 +626,7 @@ public:
 
 /**
  * The AbsoluteComputable is an interface that allows to get the component wise
- * absolute of a LinOp. Use EnableAbsoluteComputation<ConcreteLinOp> to
+ * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
  * implement this interface.
  */
 class AbsoluteComputable {
@@ -648,19 +648,18 @@ public:
 /**
  * The EnableAbsoluteComputation mixin provides the default implementations of
  * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
- * a new remove_complex<ConcreteLinOp> which removes the complex value_type by
- * applying outplace absolute. `compute_absolute_inplace` applies absolute
+ * a new AbsoluteLinOp. `compute_absolute_inplace` applies absolute
  * inplace, so it still keeps the value_type of the class.
  *
- * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
+ * @tparam AbsoluteLinOp  the absolute LinOp which is being returned
  *                        [CRTP parameter]
  *
  * @ingroup LinOp
  */
-template <typename ConcreteLinOp>
+template <typename AbsoluteLinOp>
 class EnableAbsoluteComputation : public AbsoluteComputable {
 public:
-    using outplace_type = remove_complex<ConcreteLinOp>;
+    using absolute_type = AbsoluteLinOp;
 
     virtual ~EnableAbsoluteComputation() = default;
 
@@ -670,11 +669,11 @@ public:
     }
 
     /**
-     * Gets the absolute ConcreteLinOp
+     * Gets the AbsoluteLinOp
      *
      * @return a pointer to the new absolute object
      */
-    virtual std::unique_ptr<outplace_type> compute_absolute() const = 0;
+    virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
 };
 
 

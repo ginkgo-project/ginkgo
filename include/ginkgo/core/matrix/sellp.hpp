@@ -73,7 +73,8 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, IndexType>,
               public WritableToMatrixData<ValueType, IndexType>,
-              public EnableAbsoluteComputation<Sellp<ValueType, IndexType>> {
+              public EnableAbsoluteComputation<
+                  remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
@@ -87,8 +88,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Sellp>::outplace_type;
+    using absolute_type = remove_complex<Sellp>;
 
     friend class Sellp<next_precision<ValueType>, IndexType>;
 

@@ -82,7 +82,8 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
-            public EnableAbsoluteComputation<Coo<ValueType, IndexType>> {
+            public EnableAbsoluteComputation<
+                remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
@@ -97,8 +98,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Coo>::outplace_type;
+    using absolute_type = remove_complex<Coo>;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 

@@ -76,7 +76,8 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
-            public EnableAbsoluteComputation<Ell<ValueType, IndexType>> {
+            public EnableAbsoluteComputation<
+                remove_complex<Ell<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
@@ -90,8 +91,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using absolute_type =
-        typename EnableAbsoluteComputation<Ell>::outplace_type;
+    using absolute_type = remove_complex<Ell>;
 
     friend class Ell<next_precision<ValueType>, IndexType>;
 
