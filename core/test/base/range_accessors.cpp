@@ -147,9 +147,9 @@ protected:
     using ar_type = double;
     using st_type = double;
 
-    using accessor = gko::accessor::ReducedStorage3d<ar_type, st_type>;
+    using accessor = gko::accessor::reduced_row_major<3, ar_type, st_type>;
     using const_accessor =
-        gko::accessor::ReducedStorage3d<ar_type, const st_type>;
+        gko::accessor::reduced_row_major<3, ar_type, const st_type>;
 
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
@@ -249,9 +249,10 @@ protected:
     using ar_type = double;
     using st_type = gko::int32;
 
-    using accessor = gko::accessor::ScaledReducedStorage3d<ar_type, st_type>;
+    using accessor =
+        gko::accessor::scaled_reduced_row_major<3, ar_type, st_type>;
     using const_accessor =
-        gko::accessor::ScaledReducedStorage3d<ar_type, const st_type>;
+        gko::accessor::scaled_reduced_row_major<3, ar_type, const st_type>;
 
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
@@ -268,8 +269,8 @@ protected:
         1., 1.
     };
     // clang-format on
-    reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}, scale};
-    const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}, scale};
+    reduced_storage r{data, scale, gko::dim<3>{2u, 2u, 2u}};
+    const_reduced_storage cr{data, scale, gko::dim<3>{2u, 2u, 2u}};
 };
 
 
@@ -290,7 +291,7 @@ TEST_F(ScaledReducedStorage3d, CanUseConst)
     EXPECT_EQ(subr(1, 0, 0), 55.);
 
     // cr(0, 0, 0) = 2.0;
-    r->set_scale(0, 0, 2.);
+    r->write_scale(0, 0, 2.);
     EXPECT_EQ(r(0, 0, 0), 2.);
 }
 
