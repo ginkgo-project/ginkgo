@@ -100,88 +100,179 @@ __device__ void copy_row(AAccessor a, const IndexType *__restrict__ b_row_ptrs,
 
 
 template <typename IndexType, typename AAccessor>
-__device__ IndexType count_merge_2way(AAccessor a,
-                                      const IndexType *__restrict__ b_row_ptrs,
-                                      const IndexType *__restrict__ b_cols)
+__device__ IndexType count_dense(AAccessor a, IndexType a_size,
+                                 IndexType c_first_col,
+                                 const IndexType *__restrict__ b_row_ptrs,
+                                 const IndexType *__restrict__ b_cols)
 {
-    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
     const auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
-    const auto a_col1 = a.col(0);
-    const auto a_col2 = a.col(1);
-    const auto b_begin1 = b_row_ptrs[a_col1];
-    const auto b_begin2 = b_row_ptrs[a_col2];
-    const auto b_size1 = b_row_ptrs[a_col1 + 1] - b_begin1;
-    const auto b_size2 = b_row_ptrs[a_col2 + 1] - b_begin2;
-    IndexType nnz{};
-    group_merge<config::warp_size>(
-        b_cols + b_begin1, b_size1, b_cols + b_begin2, b_size2, warp,
-        [&](IndexType, IndexType b_col1, IndexType, IndexType b_col2, IndexType,
-            bool valid) {
-            nnz += popcnt(warp.ballot(b_col1 != b_col2 && valid));
-            return true;
+    const auto lane = static_cast<IndexType>(warp.thread_rank());
+
+    constexpr auto num_blocks = 32;
+    constexpr auto accumulator_size = 32 * num_blocks;
+    constexpr auto num_warps = spgemm_block_size / config::warp_size;
+    const auto warp_idx = threadIdx.x / config::warp_size;
+    __shared__ uint32 sh_sparsity[num_blocks * num_warps];
+
+    auto local_sparsity = sh_sparsity + (warp_idx * num_blocks);
+    // vector: ith thread stores begin/end of ith row
+    IndexType b_begin{};
+    IndexType b_end{};
+    // vector: beginning of next dense block column in ith row
+    auto b_next_col = sentinel;
+    // scalar: non-zero counter for row in C
+    IndexType c_nnz{};
+    if (lane < a_size) {
+        auto a_col = a.col(lane);
+        b_begin = b_row_ptrs[a_col];
+        b_end = b_row_ptrs[a_col + 1];
+    }
+    while (warp.any(b_begin < b_end)) {
+        // empty local accumulator
+        for (int i = lane; i < num_blocks; i += config::warp_size) {
+            local_sparsity[i] = 0;
+        }
+        warp.sync();
+        for (IndexType i = 0; i < a_size; ++i) {
+            config::lane_mask_type success_mask{};
+            IndexType b_col{};
+            // load entries from the ith row until we exceed the accumulator
+            do {
+                auto b_cur_begin = warp.shfl(b_begin, i);
+                auto b_cur_end = warp.shfl(b_end, i);
+                b_col = checked_load(b_cols, b_cur_begin + lane, b_cur_end,
+                                     sentinel);
+                auto rel_col = b_col - c_first_col;
+                auto mask = uint32{1} << (rel_col % 32);
+                auto idx = rel_col / 32;
+                if (rel_col < accumulator_size) {
+                    atomicOr(local_sparsity + idx, mask);
+                }
+                success_mask = warp.ballot(rel_col < accumulator_size);
+                b_cur_begin += popcnt(success_mask);
+                if (lane == i) {
+                    b_begin = b_cur_begin;
+                }
+            } while (success_mask == ~config::lane_mask_type{});
+            // capture the first column exceeding the accumulator
+            auto new_next_col = warp.shfl(b_col, popcnt(success_mask));
+            if (lane == i) {
+                b_next_col = new_next_col;
+            }
+        }
+        // find the beginning column of the next dense accumulator block
+        c_first_col = reduce(warp, b_next_col, [](IndexType a, IndexType b) {
+            return min(a, b);
         });
-    return nnz;
+        c_nnz += reduce(
+            warp, popcnt(lane < num_blocks ? local_sparsity[lane] : uint32{}),
+            [](IndexType a, IndexType b) { return a + b; });
+    }
+    return c_nnz;
 }
 
 
 template <typename ValueType, typename IndexType, typename AAccessor>
-__device__ void merge_2way(AAccessor a,
-                           const IndexType *__restrict__ b_row_ptrs,
-                           const IndexType *__restrict__ b_cols,
-                           const ValueType *__restrict__ b_vals, IndexType c_nz,
-                           IndexType *__restrict__ c_cols,
-                           ValueType *__restrict__ c_vals)
+__device__ void merge_dense(AAccessor a, IndexType a_size,
+                            IndexType c_first_col,
+                            const IndexType *__restrict__ b_row_ptrs,
+                            const IndexType *__restrict__ b_cols,
+                            const ValueType *__restrict__ b_vals,
+                            IndexType c_nz, IndexType *__restrict__ c_cols,
+                            ValueType *__restrict__ c_vals)
 {
-    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
     const auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
-    const auto a_col1 = a.col(0);
-    const auto a_col2 = a.col(1);
-    const auto a_val1 = a.val(0);
-    const auto a_val2 = a.val(1);
-    const auto b_begin1 = b_row_ptrs[a_col1];
-    const auto b_begin2 = b_row_ptrs[a_col2];
-    const auto b_size1 = b_row_ptrs[a_col1 + 1] - b_begin1;
-    const auto b_size2 = b_row_ptrs[a_col2 + 1] - b_begin2;
-    bool skip_first = false;
     const auto lane = static_cast<IndexType>(warp.thread_rank());
-    const auto lanemask_eq = config::lane_mask_type{1} << lane;
-    const auto lanemask_lt = lanemask_eq - 1;
-    group_merge<config::warp_size>(
-        b_cols + b_begin1, b_size1, b_cols + b_begin2, b_size2, warp,
-        [&](IndexType b_nz1, IndexType b_col1, IndexType b_nz2,
-            IndexType b_col2, IndexType, bool valid) {
-            auto c_col = min(b_col1, b_col2);
-            auto valid_mask = warp.ballot(valid);
-            auto equal_mask = warp.ballot(b_col1 == b_col2) & valid_mask;
-            // check if the elements in the previous merge step are
-            // equal
-            auto prev_equal_mask = equal_mask << 1 | skip_first;
-            // store the highest bit for the next group_merge_step
-            skip_first = bool(equal_mask >> (config::warp_size - 1));
-            auto prev_equal = bool(prev_equal_mask & lanemask_eq);
-            // only output an entry if the previous cols weren't equal.
-            // if they were equal, they were both handled in the
-            // previous step
-            if (valid && !prev_equal) {
-                auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
-                c_cols[c_nz + c_ofs] = c_col;
-                auto b_val1 = b_col1 <= b_col2 ? b_vals[b_nz1 + b_begin1]
-                                               : zero<ValueType>();
-                auto b_val2 = b_col2 <= b_col1 ? b_vals[b_nz2 + b_begin2]
-                                               : zero<ValueType>();
-                c_vals[c_nz + c_ofs] = a_val1 * b_val1 + a_val2 * b_val2;
+    const auto lane_prefix_mask = (config::lane_mask_type{1} << lane) - 1;
+
+    constexpr auto num_blocks = 4;
+    constexpr auto accumulator_size = 32 * num_blocks;
+    constexpr auto num_warps = spgemm_block_size / config::warp_size;
+    const auto warp_idx = threadIdx.x / config::warp_size;
+    __shared__ uint32 sh_sparsity[num_blocks * num_warps];
+    __shared__ UninitializedArray<ValueType, accumulator_size * num_warps>
+        sh_accumulator;
+
+    auto local_sparsity = sh_sparsity + (warp_idx * num_blocks);
+    auto local_accumulator = &sh_accumulator[warp_idx * accumulator_size];
+    // vector: ith thread stores begin/end/scale of ith row
+    IndexType b_begin{};
+    IndexType b_end{};
+    ValueType a_val{};
+    // vector: beginning of next dense block column in ith row
+    auto b_next_col = sentinel;
+    if (lane < a_size) {
+        auto a_col = a.col(lane);
+        a_val = a.val(lane);
+        b_begin = b_row_ptrs[a_col];
+        b_end = b_row_ptrs[a_col + 1];
+    }
+    while (warp.any(b_begin < b_end)) {
+        // zero local accumulator
+        for (int i = lane; i < num_blocks; i += config::warp_size) {
+            local_sparsity[i] = 0;
+        }
+        for (int i = lane; i < accumulator_size; i += config::warp_size) {
+            local_accumulator[i] = zero<ValueType>();
+        }
+        warp.sync();
+        for (IndexType i = 0; i < a_size; ++i) {
+            config::lane_mask_type success_mask{};
+            IndexType b_col{};
+            // load entries from the ith row until we exceed the accumulator
+            do {
+                auto b_cur_begin = warp.shfl(b_begin, i);
+                auto b_cur_end = warp.shfl(b_end, i);
+                auto a_cur_val = warp.shfl(a_val, i);
+                b_col = checked_load(b_cols, b_cur_begin + lane, b_cur_end,
+                                     sentinel);
+                auto b_val = checked_load(b_vals, b_cur_begin + lane, b_cur_end,
+                                          zero<ValueType>());
+                auto rel_col = b_col - c_first_col;
+                auto mask = uint32{1} << (rel_col % 32);
+                auto idx = rel_col / 32;
+                if (rel_col < accumulator_size) {
+                    atomicOr(local_sparsity + idx, mask);
+                    // no atomicity necessary since columns are disjoint
+                    local_accumulator[rel_col] += a_cur_val * b_val;
+                }
+                success_mask = warp.ballot(rel_col < accumulator_size);
+                b_cur_begin += popcnt(success_mask);
+                if (lane == i) {
+                    b_begin = b_cur_begin;
+                }
+            } while (success_mask == ~config::lane_mask_type{});
+            // capture the first column exceeding the accumulator
+            auto new_next_col = warp.shfl(b_col, popcnt(success_mask));
+            if (lane == i) {
+                b_next_col = new_next_col;
             }
-            // advance by the number of merged elements
-            c_nz += popcnt(~prev_equal_mask & valid_mask);
-            return true;
+        }
+        warp.sync();
+        // store the contents of the dense accumulator
+        for (int block = 0; block < num_blocks; ++block) {
+            auto sparsity = local_sparsity[block];
+            auto c_ofs = popcnt(sparsity & lane_prefix_mask);
+            if ((sparsity >> lane) & 1) {
+                c_cols[c_nz + c_ofs] = c_first_col + block * 32 + lane;
+                c_vals[c_nz + c_ofs] = local_accumulator[block * 32 + lane];
+            }
+            c_nz += popcnt(sparsity);
+        }
+        // find the beginning column of the next dense accumulator block
+        c_first_col = reduce(warp, b_next_col, [](IndexType a, IndexType b) {
+            return min(a, b);
         });
+    }
 }
 
 
 template <typename IndexType, typename AAccessor>
-__device__ IndexType count_merge_nway(AAccessor a, int a_size,
+__device__ IndexType count_merge_nway(AAccessor a, IndexType a_size,
                                       const IndexType *__restrict__ b_row_ptrs,
                                       const IndexType *__restrict__ b_cols)
 {
@@ -243,7 +334,7 @@ __device__ IndexType count_merge_nway(AAccessor a, int a_size,
 
 
 template <typename ValueType, typename IndexType, typename AAccessor>
-__device__ void merge_nway(AAccessor a, int a_size,
+__device__ void merge_nway(AAccessor a, IndexType a_size,
                            const IndexType *__restrict__ b_row_ptrs,
                            const IndexType *__restrict__ b_cols,
                            const ValueType *__restrict__ b_vals, IndexType c_nz,
@@ -307,7 +398,8 @@ __device__ void merge_nway(AAccessor a, int a_size,
             prev_col = last_col;
             // take care of the case when a column value was only partially
             // computed within an iteration.
-            // this can only happen once to each col since we merge <= 32 rows
+            // this can only happen once to each col since we merge <= 32
+            // rows
             if (prev_col == col) {
                 // why is this not necessary?
                 // c_vals[c_nz - 1] += val;
@@ -339,6 +431,45 @@ __device__ void merge_nway(AAccessor a, int a_size,
 }
 
 
+template <typename IndexType, typename AAccessor>
+__device__ IndexType spgemm_count_dispatch(
+    AAccessor a, IndexType a_size, const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_cols)
+{
+    if (a_size == 0) {
+        return IndexType{};
+    } else if (a_size == 1) {
+        auto a_col = a.col(0);
+        return b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
+    } else {
+        // count = count_merge_nway(a, a_size, b_row_ptrs, b_cols);
+        return count_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols);
+    }
+}
+
+
+template <typename ValueType, typename IndexType, typename AAccessor>
+__device__ void spgemm_merge_dispatch(AAccessor a, IndexType a_size,
+                                      const IndexType *__restrict__ b_row_ptrs,
+                                      const IndexType *__restrict__ b_cols,
+                                      const ValueType *__restrict__ b_vals,
+                                      IndexType c_nz,
+                                      IndexType *__restrict__ c_cols,
+                                      ValueType *__restrict__ c_vals)
+{
+    if (a_size == 0) {
+        // do nothing
+    } else if (a_size == 1) {
+        copy_row(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+    } else {
+        // merge_nway(a, a_size, b_row_ptrs, b_cols, b_vals, c_nz, c_cols,
+        // c_vals);
+        merge_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols, b_vals, c_nz,
+                    c_cols, c_vals);
+    }
+}
+
+
 template <typename IndexType>
 __global__ __launch_bounds__(spgemm_block_size) void spgemm_count_short(
     size_type num_rows, const IndexType *__restrict__ a_row_ptrs,
@@ -357,17 +488,7 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_count_short(
     const auto a_size = a_end - a_begin;
     auto null_val = static_cast<float *>(nullptr);
     memory_row_accessor<float, IndexType> a{null_val, a_cols, a_begin, a_size};
-    IndexType count{};
-    if (a_size == 0) {
-        // do nothing
-    } else if (a_size == 1) {
-        auto a_col = a.col(0);
-        count = b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
-    } else if (a_size == 2) {
-        count = count_merge_2way(a, b_row_ptrs, b_cols);
-    } else {
-        count = count_merge_nway(a, a_size, b_row_ptrs, b_cols);
-    }
+    auto count = spgemm_count_dispatch(a, a_size, b_row_ptrs, b_cols);
     if (write) {
         c_nnz[row] = count;
     }
@@ -389,19 +510,8 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_count_merge(
     const auto a_begin = a_row_ptrs[row];
     const auto a_end = a_row_ptrs[row + 1];
     const auto a_size = a_end - a_begin;
-    auto null_val = static_cast<float *>(nullptr);
     merge_row_accessor<float, IndexType> a{a_begin, a_size};
-    IndexType count{};
-    if (a_size == 0) {
-        // do nothing
-    } else if (a_size == 1) {
-        auto a_col = a.col(0);
-        count = b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
-    } else if (a_size == 2) {
-        count = count_merge_2way(a, b_row_ptrs, b_cols);
-    } else {
-        count = count_merge_nway(a, a_size, b_row_ptrs, b_cols);
-    }
+    auto count = spgemm_count_dispatch(a, a_size, b_row_ptrs, b_cols);
     if (write) {
         c_nnz[row] = count;
     }
@@ -422,23 +532,13 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel_short(
         return;
     }
 
-    const auto write = threadIdx.x % config::warp_size == 0;
     const auto a_begin = a_row_ptrs[row];
     const auto a_end = a_row_ptrs[row + 1];
     const auto a_size = a_end - a_begin;
     memory_row_accessor<ValueType, IndexType> a{a_vals, a_cols, a_begin,
                                                 a_size};
-
-    IndexType c_nz = c_row_ptrs[row];
-    if (a_size == 0) {
-        // do nothing
-    } else if (a_size == 1) {
-        copy_row(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    } else if (a_size == 2) {
-        merge_2way(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    } else {
-        merge_nway(a, a_size, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    }
+    spgemm_merge_dispatch(a, a_size, b_row_ptrs, b_cols, b_vals,
+                          c_row_ptrs[row], c_cols, c_vals);
 }
 
 
@@ -455,22 +555,12 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel_merge(
         return;
     }
 
-    const auto write = threadIdx.x % config::warp_size == 0;
     const auto a_begin = a_row_ptrs[row];
     const auto a_end = a_row_ptrs[row + 1];
     const auto a_size = a_end - a_begin;
     merge_row_accessor<ValueType, IndexType> a{a_begin, a_size};
-
-    IndexType c_nz = c_row_ptrs[row];
-    if (a_size == 0) {
-        // do nothing
-    } else if (a_size == 1) {
-        copy_row(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    } else if (a_size == 2) {
-        merge_2way(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    } else {
-        merge_nway(a, a_size, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
-    }
+    spgemm_merge_dispatch(a, a_size, b_row_ptrs, b_cols, b_vals,
+                          c_row_ptrs[row], c_cols, c_vals);
 }
 
 
