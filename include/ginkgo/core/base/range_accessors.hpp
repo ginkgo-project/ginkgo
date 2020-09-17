@@ -47,6 +47,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+// CUDA TOOLKIT < 11 does not support constexpr in combination with
+// thrust::complex, which is why constexpr is only present in later versions
+#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
+    (__CUDACC_VER_MAJOR__ < 11)
+
+#define GKO_ENABLE_REFERENCE_CONSTEXPR
+
+#else
+
+#define GKO_ENABLE_REFERENCE_CONSTEXPR constexpr
+
+#endif
+
+
 namespace gko {
 /**
  * @brief The accessor namespace.
@@ -69,7 +83,8 @@ namespace accessor {
  *          2-dimensional ranges.
  *
  * @tparam ValueType  type of values this accessor returns
- * @tparam Dimensionality  number of dimensions of this accessor (has to be 2)
+ * @tparam Dimensionality  number of dimensions of this accessor (has to be
+ * 2)
  */
 template <typename ValueType, size_type Dimensionality>
 class row_major {
@@ -102,8 +117,8 @@ protected:
      * @param num_row  number of rows of the accessor
      * @param num_cols  number of columns of the accessor
      * @param stride  distance (in elements) between starting positions of
-     *                consecutive rows (i.e. `data + i * stride` points to the
-     *                `i`-th row)
+     *                consecutive rows (i.e. `data + i * stride` points to
+     * the `i`-th row)
      */
     GKO_ATTRIBUTES constexpr explicit row_major(data_type data,
                                                 size_type num_rows,
@@ -201,66 +216,39 @@ namespace detail {
 
 // tests if the cast operator to `ValueType` is present
 template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_cast_operator : std::false_type {
-};
+struct has_cast_operator : std::false_type {};
 
 template <typename Ref, typename ValueType>
 struct has_cast_operator<
     Ref, ValueType,
-    xstd::void_t<decltype(std::declval<Ref>().operator ValueType())>>
-    : std::true_type {
-};
-
-template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_to_arithmetic_member : std::false_type {
-};
-
-template <typename Ref, typename ValueType>
-struct has_to_arithmetic_member<
-    Ref, ValueType, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic())>>
-    : std::true_type {
-};
+    xstd::void_t<decltype(std::declval<Ref>().Ref::operator ValueType())>>
+    : std::true_type {};
 
 /**
  * @internal
- * converts `ref` to ValueType while preferring the operator overload, followed
- * by the function call `to_arithmetic()` from class `Ref` before falling back
- * to a simple `static_cast<ValueType>`.
+ * converts `ref` to ValueType while preferring the cast operator overload
+ * from class `Ref` before falling back to a simple
+ * `static_cast<ValueType>`.
  *
- * This function is only needed for CUDA TOOLKIT < 11 because thrust::complex
- * has a constructor call:
- * `template<T> complex(const T &other) : real(other), imag()`, which is always
- * preferred over the overloaded `operator value_type()`.
- * Additionally, these Toolkit versions seem to not recognize the cast operator
- * overload, meaning a function `to_arithmetic`
- * This function uses the overloaded operator when available, otherwise simply
- * calls `static_cast`.
+ * This function is only needed for CUDA TOOLKIT < 11 because
+ * thrust::complex has a constructor call: `template<T> complex(const T
+ * &other) : real(other), imag()`, which is always preferred over the
+ * overloaded `operator value_type()`.
  */
 template <typename ValueType, typename Ref>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
     has_cast_operator<Ref, ValueType>::value, ValueType>
 to_value_type(const Ref &ref)
 {
-    return ref.to_arithmetic();
+    return ref.Ref::operator ValueType();
 }
 
 template <typename ValueType, typename Ref>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
-    !has_cast_operator<Ref, ValueType>::value &&
-        has_to_arithmetic_member<Ref, ValueType>::value,
-    ValueType>
+    !has_cast_operator<Ref, ValueType>::value, ValueType>
 to_value_type(const Ref &ref)
 {
-    return ref.operator ValueType();
-}
-
-template <typename ValueType, typename Ref>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
-    !has_cast_operator<Ref, ValueType>::value &&
-        !has_to_arithmetic_member<Ref, ValueType>::value,
-    ValueType>
-to_value_type(const Ref &ref)
-{
+    // TODO  remove
     static_assert(std::is_same<ValueType, void>::value,
                   "This should not be used here!");
     return static_cast<ValueType>(ref);
@@ -270,21 +258,15 @@ to_value_type(const Ref &ref)
  * This is a mixin which defines the binary operators for *, /, +, - for the
  * Reference class, the unary operator -, and the assignment operators
  * *=, /=, +=, -=
- * All assignment operators expect an rvalue reference (Reference &&) for the
- * Reference class in order to prevent copying the Reference object.
+ * All assignment operators expect an rvalue reference (Reference &&) for
+ * the Reference class in order to prevent copying the Reference object.
  *
  * @tparam Reference  The reference class this mixin provides operator
- * overloads for. The reference class needs to overload either the cast operator
- * to ValueType, or a `to_arithmetic()` function, returning the translated
- * ValueType value (recommended is to provide both!).
+ * overloads for. The reference class needs to overload the cast operator
+ * to ValueType
  *
- * @tparam ArithmeticType  arithmetic type the Reference class is supposed to
- *                         represent.
- *
- * @note  For CUDA Toolkit < 11, the cast operator is not recognized properly,
- *        which is why a function `to_arithmetic()` needs to be provided by the
- *        Reference class, which does the exact same (returning the referenced
- *        value).
+ * @tparam ArithmeticType  arithmetic type the Reference class is supposed
+ * to represent.
  *
  * @warning  This struct should only be used by reference classes.
  */
@@ -293,22 +275,25 @@ struct enable_reference {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
 
-#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)  \
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
-        const Reference &ref1, const Reference &ref2)       \
-    {                                                       \
-        return to_value_type<arithmetic_type>(ref1)         \
-            _op to_value_type<arithmetic_type>(ref2);       \
-    }                                                       \
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
-        const Reference &ref, const arithmetic_type &a)     \
-    {                                                       \
-        return to_value_type<arithmetic_type>(ref) _op a;   \
-    }                                                       \
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper( \
-        const arithmetic_type &a, const Reference &ref)     \
-    {                                                       \
-        return a _op to_value_type<arithmetic_type>(ref);   \
+#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)          \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
+        arithmetic_type                                             \
+        _oper(const Reference &ref1, const Reference &ref2)         \
+    {                                                               \
+        return to_value_type<arithmetic_type>(ref1)                 \
+            _op to_value_type<arithmetic_type>(ref2);               \
+    }                                                               \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
+        arithmetic_type                                             \
+        _oper(const Reference &ref, const arithmetic_type &a)       \
+    {                                                               \
+        return to_value_type<arithmetic_type>(ref) _op a;           \
+    }                                                               \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
+        arithmetic_type                                             \
+        _oper(const arithmetic_type &a, const Reference &ref)       \
+    {                                                               \
+        return a _op to_value_type<arithmetic_type>(ref);           \
     }
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator*, *)
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator/, /)
@@ -317,14 +302,16 @@ struct enable_reference {
 #undef GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
 #define GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)             \
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper(                \
-        Reference &&ref1, const Reference &ref2)                           \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR        \
+        arithmetic_type                                                    \
+        _oper(Reference &&ref1, const Reference &ref2)                     \
     {                                                                      \
         return std::move(ref1) = to_value_type<arithmetic_type>(ref1)      \
                    _op to_value_type<arithmetic_type>(ref2);               \
     }                                                                      \
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type _oper(                \
-        Reference &&ref, const arithmetic_type &a)                         \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR        \
+        arithmetic_type                                                    \
+        _oper(Reference &&ref, const arithmetic_type &a)                   \
     {                                                                      \
         return std::move(ref) = to_value_type<arithmetic_type>(ref) _op a; \
     }
@@ -337,8 +324,9 @@ struct enable_reference {
 
     // TODO test if comparison operators need to be overloaded as well
 
-    friend GKO_ATTRIBUTES GKO_INLINE arithmetic_type
-    operator-(const Reference &ref)
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR
+        arithmetic_type
+        operator-(const Reference &ref)
     {
         return -to_value_type<arithmetic_type>(ref);
     }
@@ -354,12 +342,19 @@ namespace reference {
 
 
 /**
- * Reference class for a different storage than arithmetic type. The conversion
- * between both formats is done with a simple static_cast.
+ * Reference class for a different storage than arithmetic type. The
+ * conversion between both formats is done with a simple static_cast.
  *
  * Copying this reference is disabled, but move construction is possible to
  * allow for an additional layer (like gko::range).
- * The assignment operator only works for an rvalue reference (&&)
+ * The assignment operator only works for an rvalue reference (&&) to
+ * prevent accidental copying the reference and working on a reference.
+ *
+ * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
+ * the type which is used for input and output of this class.
+ *
+ * @tparam StorageType  Type actually used as a storage, which is converted
+ * to ArithmeticType before usage
  */
 template <typename ArithmeticType, typename StorageType>
 class ReducedStorageReference
@@ -369,8 +364,8 @@ class ReducedStorageReference
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    // Allow move construction, so perfect forwarding is possible (required for
-    // `range` support)
+    // Allow move construction, so perfect forwarding is possible (required
+    // for `range` support)
     ReducedStorageReference(ReducedStorageReference &&) = default;
 
     ReducedStorageReference() = delete;
@@ -384,14 +379,10 @@ public:
     {}
     ~ReducedStorageReference() = default;
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type to_arithmetic() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
-    }
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
-    {
-        return to_arithmetic();
     }
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         arithmetic_type val) &&
@@ -432,14 +423,10 @@ public:
     {}
     ~ReducedStorageReference() = default;
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type to_arithmetic() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
-    }
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
-    {
-        return to_arithmetic();
     }
 
 private:
@@ -448,9 +435,22 @@ private:
 
 
 /**
- * Reference class for a different storage than arithmetic type. The conversion
- * between both formats is done with a simple static_cast followed by a
- * multiplication with a scale.
+ * Reference class for a different storage than arithmetic type with the
+ * addition of a scaling factor. The conversion between both formats is done
+ * with a static_cast to the ArithmeticType, followed by a multiplication
+ * of the scale (when reading; for writing, the new value is divided by the
+ * scale before casting to the StorageType).
+ *
+ * Copying this reference is disabled, but move construction is possible to
+ * allow for an additional layer (like gko::range).
+ * The assignment operator only works for an rvalue reference (&&) to
+ * prevent accidental copying the reference and working on a reference.
+ *
+ * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
+ * the type which is used for input and output of this class.
+ *
+ * @tparam StorageType  Type actually used as a storage, which is converted
+ * to ArithmeticType before usage
  */
 template <typename ArithmeticType, typename StorageType>
 class ScaledReducedStorageReference
@@ -477,14 +477,10 @@ public:
     {}
     ~ScaledReducedStorageReference() = default;
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type to_arithmetic() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scale_;
-    }
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
-    {
-        return to_arithmetic();
     }
 
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
@@ -530,14 +526,10 @@ public:
     {}
     ~ScaledReducedStorageReference() = default;
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type to_arithmetic() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scale_;
-    }
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
-    {
-        return to_arithmetic();
     }
 
 
@@ -583,8 +575,8 @@ public:
      *
      * @internal
      * const_cast needed, so ReducedStorage3d(ac.get_storage(), ...)
-     * works. Also, storage_ is never accessed in a non-const fashion in this
-     * class, so it is not invalid or UB code.
+     * works. Also, storage_ is never accessed in a non-const fashion in
+     * this class, so it is not invalid or UB code.
      */
     GKO_ATTRIBUTES constexpr ReducedStorage3d(storage_type *storage,
                                               gko::dim<dimensionality> size,
@@ -736,8 +728,8 @@ private:
  *
  * The ScaledReducedStorage3d class hides the underlying storage format and
  * provides a simple interface for accessing a one dimensional storage.
- * Additionally, this accessor posesses a scale array, which is used for each
- * read and write operation to do a proper conversion.
+ * Additionally, this accessor posesses a scale array, which is used for
+ * each read and write operation to do a proper conversion.
  *
  * This class only manages the accesses, however, and not the memory itself.
  *
