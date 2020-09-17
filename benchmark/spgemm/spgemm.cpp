@@ -68,69 +68,62 @@ using mat_data = gko::matrix_data<etype, itype>;
 const std::map<std::string,
                const std::function<std::shared_ptr<gko::LinOp>(
                    std::shared_ptr<gko::Executor>, const mat_data &)>>
-    format_map{
-        {"multipass",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             // prevent double-free on executors/sparselib handles
-             std::shared_ptr<Mtx::strategy_type> strategy =
-                 dynamic_cast<gko::HipExecutor *>(exec.get())
-                     ? std::make_shared<Mtx::load_balance>(
-                           gko::as<gko::HipExecutor>(exec))
-                     : (dynamic_cast<gko::CudaExecutor *>(exec.get())
+    format_map{{"multipass",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    // prevent double-free on executors/sparselib handles
+                    std::shared_ptr<Mtx::strategy_type> strategy =
+                        dynamic_cast<gko::HipExecutor *>(exec.get())
                             ? std::make_shared<Mtx::load_balance>(
-                                  gko::as<gko::CudaExecutor>(exec))
-                            : std::make_shared<Mtx::load_balance>());
-             auto mtx =
-                 Mtx::create(exec, data.size, data.nonzeros.size(), strategy);
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
-        {"twopass",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),
-                                    std::make_shared<Mtx::classical>());
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
+                                  gko::as<gko::HipExecutor>(exec))
+                            : (dynamic_cast<gko::CudaExecutor *>(exec.get())
+                                   ? std::make_shared<Mtx::load_balance>(
+                                         gko::as<gko::CudaExecutor>(exec))
+                                   : std::make_shared<Mtx::load_balance>());
+                    auto mtx = Mtx::create(exec, data.size,
+                                           data.nonzeros.size(), strategy);
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }},
 #ifdef GKO_SPGEMM_HAS_NSPARSE
-        {"nsparse",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = gko::NSparseCsr<etype>::create(exec, data.size);
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
+               {"nsparse",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    auto mtx = gko::NSparseCsr<etype>::create(exec, data.size);
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }},
 #endif
 #ifdef GKO_SPGEMM_HAS_ACSPGEMM
-        {"acspgemm",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = gko::AcCsr<etype>::create(exec, data.size);
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
+               {"acspgemm",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    auto mtx = gko::AcCsr<etype>::create(exec, data.size);
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }},
 #endif
 #ifdef GKO_SPGEMM_HAS_SPECK
-        {"speck",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = gko::SpeckCsr<etype>::create(exec, data.size);
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
+               {"speck",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    auto mtx = gko::SpeckCsr<etype>::create(exec, data.size);
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }},
 #endif
 #ifdef GKO_SPGEMM_HAS_KOKKOS
-        {"kokkos",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = gko::KokkosCsr<etype>::create(exec, data.size);
-             mtx->read(data);
-             return gko::share(mtx);
-         }},
+               {"kokkos",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    auto mtx = gko::KokkosCsr<etype>::create(exec, data.size);
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }},
 #endif
-        {"sparselib",
-         [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
-             auto mtx = Mtx::create(exec, data.size, data.nonzeros.size(),
+               {"sparselib",
+                [](std::shared_ptr<gko::Executor> exec, const mat_data &data) {
+                    auto mtx =
+                        Mtx::create(exec, data.size, data.nonzeros.size(),
                                     std::make_shared<Mtx::sparselib>());
-             mtx->read(data);
-             return gko::share(mtx);
-         }}};
+                    mtx->read(data);
+                    return gko::share(mtx);
+                }}};
 
 
 DEFINE_int32(rowlength, 10,
@@ -228,34 +221,33 @@ DEFINE_string(
     "'dense' sparse matrix with -rowlength columns and non-zeros per row");
 
 
-DEFINE_string(
-    strategies,
-    "multipass,twopass,sparselib"
+DEFINE_string(strategies,
+              "multipass,sparselib"
 #ifdef GKO_SPGEMM_HAS_NSPARSE
-    ",nsparse"
+              ",nsparse"
 #endif
 #ifdef GKO_SPGEMM_HAS_ACSPGEMM
-    ",acspgemm"
+              ",acspgemm"
 #endif
 #ifdef GKO_SPGEMM_HAS_SPECK
-    ",speck"
+              ",speck"
 #endif
 #ifdef GKO_SPGEMM_HAS_KOKKOS
-    ",kokkos"
+              ",kokkos"
 #endif
-    ,
-    "Comma-separated list of SpGEMM strategies: multipass, twopass, sparselib"
+              ,
+              "Comma-separated list of SpGEMM strategies: multipass, sparselib"
 #ifdef GKO_SPGEMM_HAS_NSPARSE
-    ", nsparse"
+              ", nsparse"
 #endif
 #ifdef GKO_SPGEMM_HAS_ACSPGEMM
-    ", acspgemm"
+              ", acspgemm"
 #endif
 #ifdef GKO_SPGEMM_HAS_SPECK
-    ", speck"
+              ", speck"
 #endif
 #ifdef GKO_SPGEMM_HAS_KOKKOS
-    ", kokkos"
+              ", kokkos"
 #endif
 );
 

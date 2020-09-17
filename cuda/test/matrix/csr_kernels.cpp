@@ -436,7 +436,7 @@ TEST_F(Csr, SimpleApplySparselibToCsrMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplyClassicalToCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
     auto trans = mtx->transpose();
@@ -451,22 +451,7 @@ TEST_F(Csr, SimpleApplyClassicalToCsrMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplyLoadBalanceToCsrMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(std::make_shared<Mtx::load_balance>());
-    auto trans = mtx->transpose();
-    auto d_trans = dmtx->transpose();
-
-    mtx->apply(trans.get(), square_mtx.get());
-    dmtx->apply(d_trans.get(), square_dmtx.get());
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
-    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
-}
-
-
-TEST_F(Csr, SimpleApplyClassicalToSparseCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
     auto mtx2 =
@@ -483,33 +468,19 @@ TEST_F(Csr, SimpleApplyClassicalToSparseCsrMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplyLoadBalanceToSparseCsrMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(std::make_shared<Mtx::load_balance>());
-    auto mtx2 =
-        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
-    auto dmtx2 = Mtx::create(cuda, mtx2->get_size());
-    dmtx2->copy_from(mtx2.get());
-
-    mtx->apply(mtx2.get(), square_mtx.get());
-    dmtx->apply(dmtx2.get(), square_dmtx.get());
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
-    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
-}
-
-
-TEST_F(Csr, SimpleApplyClassicalToEmptyCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto mtx1 = gen_mtx<Mtx>(mtx->get_size()[0], mtx->get_size()[1], 0, 10);
     auto mtx2 =
-        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
+        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
+    auto dmtx1 = Mtx::create(cuda, mtx1->get_size());
     auto dmtx2 = Mtx::create(cuda, mtx2->get_size());
+    dmtx1->copy_from(mtx1.get());
     dmtx2->copy_from(mtx2.get());
 
-    mtx->apply(mtx2.get(), square_mtx.get());
-    dmtx->apply(dmtx2.get(), square_dmtx.get());
+    mtx1->apply(mtx2.get(), square_mtx.get());
+    dmtx1->apply(dmtx2.get(), square_dmtx.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
@@ -517,9 +488,9 @@ TEST_F(Csr, SimpleApplyClassicalToEmptyCsrMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplyLoadBalanceToEmptyCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>());
+    set_up_apply_data(std::make_shared<Mtx::classical>());
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
     auto dmtx2 = Mtx::create(cuda, mtx2->get_size());
