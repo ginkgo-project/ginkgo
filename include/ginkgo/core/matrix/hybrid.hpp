@@ -624,41 +624,7 @@ public:
      * @return the strategy
      */
     template <typename HybType>
-    std::shared_ptr<typename HybType::strategy_type> get_strategy() const
-    {
-        std::shared_ptr<typename HybType::strategy_type> strategy;
-        if (std::dynamic_pointer_cast<automatic>(strategy_)) {
-            strategy = std::make_shared<typename HybType::automatic>();
-        } else if (auto temp = std::dynamic_pointer_cast<minimal_storage_limit>(
-                       strategy_)) {
-            // minimal_storage_limit is related to ValueType and IndexType size.
-            if (sizeof(value_type) == sizeof(typename HybType::value_type) &&
-                sizeof(index_type) == sizeof(typename HybType::index_type)) {
-                strategy =
-                    std::make_shared<typename HybType::minimal_storage_limit>();
-            } else {
-                strategy = std::make_shared<typename HybType::imbalance_limit>(
-                    temp->get_percent());
-            }
-        } else if (auto temp =
-                       std::dynamic_pointer_cast<imbalance_bounded_limit>(
-                           strategy_)) {
-            strategy =
-                std::make_shared<typename HybType::imbalance_bounded_limit>(
-                    temp->get_percent(), temp->get_ratio());
-        } else if (auto temp =
-                       std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
-            strategy = std::make_shared<typename HybType::imbalance_limit>(
-                temp->get_percent());
-        } else if (auto temp =
-                       std::dynamic_pointer_cast<column_limit>(strategy_)) {
-            strategy = std::make_shared<typename HybType::column_limit>(
-                temp->get_num_columns());
-        } else {
-            GKO_NOT_SUPPORTED(strategy_);
-        }
-        return strategy;
-    }
+    std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
     /**
      * Copies data from another Hybrid.
@@ -776,6 +742,48 @@ private:
     std::shared_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
 };
+
+
+template <typename ValueType, typename IndexType>
+template <typename HybType>
+std::shared_ptr<typename HybType::strategy_type>
+Hybrid<ValueType, IndexType>::get_strategy() const
+{
+    static_assert(
+        std::is_same<HybType, Hybrid<typename HybType::value_type,
+                                     typename HybType::index_type>>::value,
+        "The given `HybType` type must be of type `matrix::Hybrid`!");
+
+    std::shared_ptr<typename HybType::strategy_type> strategy;
+    if (std::dynamic_pointer_cast<automatic>(strategy_)) {
+        strategy = std::make_shared<typename HybType::automatic>();
+    } else if (auto temp = std::dynamic_pointer_cast<minimal_storage_limit>(
+                   strategy_)) {
+        // minimal_storage_limit is related to ValueType and IndexType size.
+        if (sizeof(value_type) == sizeof(typename HybType::value_type) &&
+            sizeof(index_type) == sizeof(typename HybType::index_type)) {
+            strategy =
+                std::make_shared<typename HybType::minimal_storage_limit>();
+        } else {
+            strategy = std::make_shared<typename HybType::imbalance_limit>(
+                temp->get_percent());
+        }
+    } else if (auto temp = std::dynamic_pointer_cast<imbalance_bounded_limit>(
+                   strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_bounded_limit>(
+            temp->get_percent(), temp->get_ratio());
+    } else if (auto temp =
+                   std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_limit>(
+            temp->get_percent());
+    } else if (auto temp = std::dynamic_pointer_cast<column_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::column_limit>(
+            temp->get_num_columns());
+    } else {
+        GKO_NOT_SUPPORTED(strategy_);
+    }
+    return strategy;
+}
 
 
 }  // namespace matrix
