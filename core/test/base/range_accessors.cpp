@@ -36,7 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <iostream>
+#include <tuple>
+
+
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace {
@@ -75,15 +79,6 @@ TEST_F(RowMajorAccessor, CanWriteData)
     r(0, 0) = 4;
 
     EXPECT_EQ(r(0, 0), 4);
-}
-
-
-TEST_F(RowMajorAccessor, CanWriteDataToConst)
-{
-    const row_major_int_range cr = r;
-    cr(0, 0) = 4;
-
-    EXPECT_EQ(cr(0, 0), 4);
 }
 
 
@@ -155,37 +150,68 @@ protected:
     using const_reduced_storage = gko::range<const_accessor>;
 
     // clang-format off
-    st_type data[8]{
-        1.0, 2.1,
-        -1.2, 3.3,
-        4.4, -2.5,
-        5.6, 6.7
+    st_type data[4 * 3 * 2]{
+        // 0, y, z
+        1.0, 2.01,
+        -1.02, 3.03,
+        4.04, -2.05,
+        // 1, y, z
+        5.06, 6.07,
+        2.08, 3.09,
+        -1.1, -9.11,
+        // 2, y, z
+        -2.12, 2.13,
+        0.14, 15.15,
+        -9.16, 8.17,
+        // 3, y, z
+        7.18, -6.19,
+        5.2, -4.21,
+        3.22, -2.23
     };
     // clang-format on
-    reduced_storage r{data, gko::dim<3>{2u, 2u, 2u}};
-    const_reduced_storage cr{data, gko::dim<3>{2u, 2u, 2u}};
+    reduced_storage r{data, gko::dim<3>{4u, 3u, 2u}};
+    const_reduced_storage cr{data, gko::dim<3>{4u, 3u, 2u}};
+
+    template <typename Accessor>
+    static void check_accessor_correctness(const Accessor &a,
+                                           std::tuple<int, int, int> ignore = {
+                                               99, 99, 99})
+    {
+        using t = std::tuple<int, int, int>;
+        // clang-format off
+        if (ignore != t{0, 0, 0}) { EXPECT_EQ(a(0, 0, 0), 1.0);     }
+        if (ignore != t{0, 0, 1}) { EXPECT_EQ(a(0, 0, 1), 2.01);    }
+        if (ignore != t{0, 1, 0}) { EXPECT_EQ(a(0, 1, 0), -1.02);   }
+        if (ignore != t{0, 1, 1}) { EXPECT_EQ(a(0, 1, 1), 3.03);    }
+        if (ignore != t{0, 2, 0}) { EXPECT_EQ(a(0, 2, 0), 4.04);    }
+        if (ignore != t{0, 2, 1}) { EXPECT_EQ(a(0, 2, 1), -2.05);   }
+        if (ignore != t{1, 0, 0}) { EXPECT_EQ(a(1, 0, 0), 5.06);    }
+        if (ignore != t{1, 0, 1}) { EXPECT_EQ(a(1, 0, 1), 6.07);    }
+        if (ignore != t{1, 1, 0}) { EXPECT_EQ(a(1, 1, 0), 2.08);    }
+        if (ignore != t{1, 1, 1}) { EXPECT_EQ(a(1, 1, 1), 3.09);    }
+        if (ignore != t{1, 2, 0}) { EXPECT_EQ(a(1, 2, 0), -1.1);    }
+        if (ignore != t{1, 2, 1}) { EXPECT_EQ(a(1, 2, 1), -9.11);   }
+        if (ignore != t{2, 0, 0}) { EXPECT_EQ(a(2, 0, 0), -2.12);   }
+        if (ignore != t{2, 0, 1}) { EXPECT_EQ(a(2, 0, 1), 2.13);    }
+        if (ignore != t{2, 1, 0}) { EXPECT_EQ(a(2, 1, 0), 0.14);    }
+        if (ignore != t{2, 1, 1}) { EXPECT_EQ(a(2, 1, 1), 15.15);   }
+        if (ignore != t{2, 2, 0}) { EXPECT_EQ(a(2, 2, 0), -9.16);   }
+        if (ignore != t{2, 2, 1}) { EXPECT_EQ(a(2, 2, 1), 8.17);    }
+        if (ignore != t{3, 0, 0}) { EXPECT_EQ(a(3, 0, 0), 7.18);    }
+        if (ignore != t{3, 0, 1}) { EXPECT_EQ(a(3, 0, 1), -6.19);   }
+        if (ignore != t{3, 1, 0}) { EXPECT_EQ(a(3, 1, 0), 5.2);     }
+        if (ignore != t{3, 1, 1}) { EXPECT_EQ(a(3, 1, 1), -4.21);   }
+        if (ignore != t{3, 2, 0}) { EXPECT_EQ(a(3, 2, 0), 3.22);    }
+        if (ignore != t{3, 2, 1}) { EXPECT_EQ(a(3, 2, 1), -2.23);   }
+        // clang-format on
+    }
 };
 
 
 TEST_F(ReducedStorage3d, CanReadData)
 {
-    EXPECT_EQ(r(0, 0, 0), 1.0);
-    EXPECT_EQ(r(0, 0, 1), 2.1);
-    EXPECT_EQ(r(0, 1, 0), -1.2);
-    EXPECT_EQ(r(0, 1, 1), 3.3);
-    EXPECT_EQ(r(1, 0, 0), 4.4);
-    EXPECT_EQ(r(1, 0, 1), -2.5);
-    EXPECT_EQ(r(1, 1, 0), 5.6);
-    EXPECT_EQ(r(1, 1, 1), 6.7);
-    // Const should read the exact same values!
-    EXPECT_EQ(cr(0, 0, 0), 1.0);
-    EXPECT_EQ(cr(0, 0, 1), 2.1);
-    EXPECT_EQ(cr(0, 1, 0), -1.2);
-    EXPECT_EQ(cr(0, 1, 1), 3.3);
-    EXPECT_EQ(cr(1, 0, 0), 4.4);
-    EXPECT_EQ(cr(1, 0, 1), -2.5);
-    EXPECT_EQ(cr(1, 1, 0), 5.6);
-    EXPECT_EQ(cr(1, 1, 1), 6.7);
+    check_accessor_correctness(r);
+    check_accessor_correctness(cr);
 }
 
 
@@ -193,53 +219,40 @@ TEST_F(ReducedStorage3d, ToConstWorking)
 {
     auto cr2 = r->to_const();
 
-    // static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
-    // "Types must be equal!");
-    EXPECT_EQ(cr2(0, 0, 0), 1.0);
-    EXPECT_EQ(cr2(0, 0, 1), 2.1);
-    EXPECT_EQ(cr2(0, 1, 0), -1.2);
-    EXPECT_EQ(cr2(0, 1, 1), 3.3);
-    EXPECT_EQ(cr2(1, 0, 0), 4.4);
-    EXPECT_EQ(cr2(1, 0, 1), -2.5);
-    EXPECT_EQ(cr2(1, 1, 0), 5.6);
-    EXPECT_EQ(cr2(1, 1, 1), 6.7);
+    static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
+                  "Types must be equal!");
+    check_accessor_correctness(cr2);
 }
 
 
 TEST_F(ReducedStorage3d, CanWriteData)
 {
-    r(0, 0, 0) = 2.0;
     r(0, 1, 0) = 100.0;
 
-    EXPECT_EQ(r(0, 0, 0), 2.0);
+    check_accessor_correctness(r, {0, 1, 0});
     EXPECT_EQ(r(0, 1, 0), 100.0);
 }
 
 
 TEST_F(ReducedStorage3d, CanCreateSubrange)
 {
-    auto subr = r(span{1, 2}, span{0, 2}, span{0, 1});
+    auto subr = r(span{1, 3}, span{0, 2}, 0);
 
-    EXPECT_EQ(subr(0, 0, 0), 4.4);
-    EXPECT_EQ(subr(0, 1, 0), 5.6);
+    EXPECT_EQ(subr(0, 0, 0), 5.06);
+    EXPECT_EQ(subr(0, 1, 0), 2.08);
+    EXPECT_EQ(subr(1, 0, 0), -2.12);
+    EXPECT_EQ(subr(1, 1, 0), 0.14);
 }
 
 
-TEST_F(ReducedStorage3d, CanCreateRowVector)
+TEST_F(ReducedStorage3d, CanCreateSubrange2)
 {
-    auto subr = r(0, 0, span{0, 2});
+    auto subr = r(span{1, 3}, span{0, 2}, span{0, 1});
 
-    EXPECT_EQ(subr(0, 0, 0), 1.0);
-    EXPECT_EQ(subr(0, 0, 1), 2.1);
-}
-
-
-TEST_F(ReducedStorage3d, CanCreateColumnVector)
-{
-    auto subr = r(span{0, 2}, 0, 0);
-
-    EXPECT_EQ(subr(0, 0, 0), 1.0);
-    EXPECT_EQ(subr(1, 0, 0), 4.4);
+    EXPECT_EQ(subr(0, 0, 0), 5.06);
+    EXPECT_EQ(subr(0, 1, 0), 2.08);
+    EXPECT_EQ(subr(1, 0, 0), -2.12);
+    EXPECT_EQ(subr(1, 1, 0), 0.14);
 }
 
 

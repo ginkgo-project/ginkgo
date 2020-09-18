@@ -338,8 +338,8 @@ public:
      * @return a value on position `(dimensions...)`.
      */
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(DimensionTypes &&... dimensions) const
-        -> decltype(std::declval<accessor>()(
+    GKO_ATTRIBUTES constexpr auto operator()(DimensionTypes &&... dimensions)
+        const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
         static_assert(sizeof...(dimensions) <= dimensionality,
@@ -469,7 +469,8 @@ struct implement_unary_operation {
 
 template <operation_kind Kind, typename FirstOperand, typename SecondOperand,
           typename Operation>
-struct implement_binary_operation {};
+struct implement_binary_operation {
+};
 
 template <typename FirstAccessor, typename SecondAccessor, typename Operation>
 struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
