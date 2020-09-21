@@ -1,0 +1,224 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2020, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_CORE_BASE_MATRIX_ASSEMBLY_DATA_HPP_
+#define GKO_CORE_BASE_MATRIX_ASSEMBLY_DATA_HPP_
+
+
+#include <algorithm>
+#include <iterator>
+#include <numeric>
+#include <tuple>
+#include <unordered_map>
+
+
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
+
+
+namespace gko {
+
+
+namespace detail {
+
+
+/**
+ * Type used to store indices used as keys in the unordered_map storing
+ * the nonzeros.
+ */
+template <typename IndexType>
+struct symbolic_nonzero {
+    using index_type = IndexType;
+    symbolic_nonzero() = default;
+
+    symbolic_nonzero(index_type r, index_type c) noexcept : row(r), column(c) {}
+
+    bool operator==(symbolic_nonzero other) const noexcept
+    {
+        return std::tie(this->row, this->column) ==
+               std::tie(other.row, other.column);
+    }
+
+    bool operator!=(symbolic_nonzero other) const noexcept
+    {
+        return !(*this == other);
+    }
+
+    index_type row;
+    index_type column;
+};
+
+
+template <typename IndexType>
+struct symbolic_nonzero_hash {
+    explicit symbolic_nonzero_hash(size_type num_cols) noexcept
+        : num_cols_{num_cols}
+    {}
+
+    std::size_t operator()(symbolic_nonzero<IndexType> nnz) const noexcept
+    {
+        return nnz.row * num_cols_ + nnz.column;
+    }
+
+    std::size_t num_cols_;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * This structure is used as an intermediate type to assemble a sparse matrix.
+ *
+ * The matrix is stored as a set of nonzero elements, where each element is
+ * a triple of the form (row_index, column_index, value).
+ *
+ * New values can be added by using the matrix_assembly_data::add_entry or
+ * matrix_assembly_data::add_entries functions.
+ *
+ * @tparam ValueType  type of matrix values stored in the structure
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+class matrix_assembly_data {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    explicit matrix_assembly_data(dim<2> size)
+        : size_{size},
+          nonzeros_(0, detail::symbolic_nonzero_hash<index_type>(size_[1]))
+    {}
+
+    /**
+     * Sets the matrix value at (row, col).
+     * If there is an existing value, it will be replaced by the sum of the
+     * existing and new value otherwise it will be.
+     */
+    void add_value(index_type row, index_type col, value_type val)
+    {
+        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        nonzeros_[ind] += val;
+    }
+
+    /**
+     * Sets the matrix value at (row, col).
+     * If there is an existing value, it will be overwritten by the new value.
+     */
+    void set_value(index_type row, index_type col, value_type val)
+    {
+        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        nonzeros_[ind] = val;
+    }
+
+    /**
+     * Gets the matrix value at (row, col).
+     * Returns zero if it doesn't exist.
+     */
+    value_type get_value(index_type row, index_type col)
+    {
+        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        auto it = nonzeros_.find(ind);
+        if (it == nonzeros_.end()) {
+            return zero<value_type>();
+        } else {
+            return it->second;
+        }
+    }
+
+    /**
+     * Returns true iff the matrix has an entry at (row, col).
+     */
+    bool contains(index_type row, index_type col)
+    {
+        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        auto it = nonzeros_.find(ind);
+        return it != nonzeros_.end();
+    }
+
+    /** Returns the size of the matrix being assembled. */
+    dim<2> get_size() const noexcept { return size_; }
+
+    /** Returns the number of non-zeros in the (partially) assembled matrix. */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return nonzeros_.size();
+    }
+
+    /**
+     * Returns a matrix_data instance containing the assembled non-zeros in
+     * row-major order to be used by all matrix formats.
+     */
+    matrix_data<ValueType, IndexType> get_ordered_data() const
+    {
+        using output_type = matrix_data<ValueType, IndexType>;
+        using nonzero_type = typename output_type::nonzero_type;
+        using entry_type =
+            std::pair<detail::symbolic_nonzero<index_type>, value_type>;
+        output_type data{size_};
+        data.nonzeros.reserve(nonzeros_.size());
+        std::transform(nonzeros_.begin(), nonzeros_.end(),
+                       std::back_inserter(data.nonzeros), [](entry_type entry) {
+                           return nonzero_type{entry.first.row,
+                                               entry.first.column,
+                                               entry.second};
+                       });
+        data.ensure_row_major_order();
+        return data;
+    }
+
+private:
+    /**
+     * Size of the matrix.
+     */
+    dim<2> size_;
+
+    /**
+     * An unordered map storing the non-zeros of the matrix.
+     *
+     * The keys of the elements in the map are the row index and the column
+     * index of a matrix element, and its value is the value at that
+     * position.
+     */
+    std::unordered_map<detail::symbolic_nonzero<index_type>, value_type,
+                       detail::symbolic_nonzero_hash<index_type>>
+        nonzeros_;
+};
+
+
+}  // namespace gko
+
+
+#endif  // GKO_CORE_BASE_MATRIX_ASSEMBLY_DATA_HPP_
