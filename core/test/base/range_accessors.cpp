@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
@@ -141,6 +144,7 @@ protected:
     using span = gko::span;
     using ar_type = double;
     using st_type = double;
+    static constexpr ar_type delta{::r<st_type>::value};
 
     using accessor = gko::accessor::reduced_row_major<3, ar_type, st_type>;
     using const_accessor =
@@ -173,10 +177,12 @@ protected:
     const_reduced_storage cr{data, gko::dim<3>{4u, 3u, 2u}};
 
     template <typename Accessor>
-    static void check_accessor_correctness(const Accessor &a,
-                                           std::tuple<int, int, int> ignore = {
-                                               99, 99, 99})
+    static void check_accessor_correctness(
+        const Accessor &a,
+        std::tuple<int, int, int> ignore = std::tuple<int, int, int>(99, 99,
+                                                                     99))
     {
+        // Test for equality is fine here since they should not be modified
         using t = std::tuple<int, int, int>;
         // clang-format off
         if (ignore != t{0, 0, 0}) { EXPECT_EQ(a(0, 0, 0), 1.0);     }
@@ -227,10 +233,114 @@ TEST_F(ReducedStorage3d, ToConstWorking)
 
 TEST_F(ReducedStorage3d, CanWriteData)
 {
-    r(0, 1, 0) = 100.0;
+    r(0, 1, 0) = 100.2;
 
     check_accessor_correctness(r, {0, 1, 0});
-    EXPECT_EQ(r(0, 1, 0), 100.0);
+    EXPECT_EQ(r(0, 1, 0), 100.2);
+}
+
+
+TEST_F(ReducedStorage3d, Addition)
+{
+    const ar_type expected = 10.2 + 2.01;
+
+    auto result = r(0, 0, 1) + 10.2;
+    r(0, 0, 1) += 10.2;
+
+    check_accessor_correctness(r, {0, 0, 1});
+    EXPECT_NEAR(r(0, 0, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Addition2)
+{
+    const ar_type expected = 2.01 + -1.02;
+
+    auto result = r(0, 0, 1) + r(0, 1, 0);
+    r(0, 0, 1) += r(0, 1, 0);
+
+    check_accessor_correctness(r, {0, 0, 1});
+    EXPECT_NEAR(r(0, 0, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Subtraction)
+{
+    const ar_type expected = -2.23 - 1;
+
+    auto result = r(3, 2, 1) - 1.;
+    r(3, 2, 1) -= 1;
+
+    check_accessor_correctness(r, {3, 2, 1});
+    EXPECT_NEAR(r(3, 2, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Subtraction2)
+{
+    const ar_type expected = 3.22 - -2.23;
+
+    auto result = cr(3, 2, 0) - r(3, 2, 1);
+    r(3, 2, 0) -= r(3, 2, 1);
+
+    check_accessor_correctness(r, {3, 2, 0});
+    EXPECT_NEAR(r(3, 2, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Multiplication)
+{
+    const ar_type expected = 1 * 2;
+
+    auto result = r(0, 0, 0) * 2.;
+    r(0, 0, 0) *= 2;
+
+    check_accessor_correctness(r, {0, 0, 0});
+    EXPECT_NEAR(r(0, 0, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Multiplication2)
+{
+    const ar_type expected = 2.01 * 3.03;
+
+    auto result = r(0, 0, 1) * cr(0, 1, 1);
+    r(0, 0, 1) *= r(0, 1, 1);
+
+    check_accessor_correctness(r, {0, 0, 1});
+    EXPECT_NEAR(r(0, 0, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Division)
+{
+    const ar_type expected = 2.01 / 2.0;
+
+    auto result = cr(0, 0, 1) / 2.;
+    r(0, 0, 1) /= 2.;
+
+    check_accessor_correctness(r, {0, 0, 1});
+    EXPECT_NEAR(r(0, 0, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Division2)
+{
+    const ar_type expected = 5.06 / 4.04;
+
+    auto result = r(1, 0, 0) / cr(0, 2, 0);
+    r(1, 0, 0) /= r(0, 2, 0);
+
+    check_accessor_correctness(r, {1, 0, 0});
+    EXPECT_NEAR(r(1, 0, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
 }
 
 
@@ -247,7 +357,7 @@ TEST_F(ReducedStorage3d, CanCreateSubrange)
 
 TEST_F(ReducedStorage3d, CanCreateSubrange2)
 {
-    auto subr = r(span{1, 3}, span{0, 2}, span{0, 1});
+    auto subr = cr(span{1, 3}, span{0, 2}, span{0, 1});
 
     EXPECT_EQ(subr(0, 0, 0), 5.06);
     EXPECT_EQ(subr(0, 1, 0), 2.08);
@@ -262,6 +372,8 @@ protected:
     using ar_type = double;
     using st_type = gko::int32;
 
+    static constexpr ar_type delta{::r<ar_type>::value};
+
     using accessor =
         gko::accessor::scaled_reduced_row_major<3, ar_type, st_type>;
     using const_accessor =
@@ -272,40 +384,178 @@ protected:
 
     // clang-format off
     st_type data[8]{
-        1, 2,
-        -3, 4,
-        55, 6,
-        -777, 8
+        10, 11,
+        -12, 13,
+        14, -115,
+        6, 77
     };
-    ar_type scale[4]{
-        1., 1.,
-        1., 1.
+    ar_type scale[2]{
+        1., 2.,
     };
     // clang-format on
-    reduced_storage r{data, scale, gko::dim<3>{2u, 2u, 2u}};
-    const_reduced_storage cr{data, scale, gko::dim<3>{2u, 2u, 2u}};
+    reduced_storage r{data, scale, gko::dim<3>{1u, 4u, 2u}};
+    const_reduced_storage cr{data, scale, gko::dim<3>{1u, 4u, 2u}};
+
+    template <typename Accessor>
+    static void check_accessor_correctness(
+        const Accessor &a,
+        std::tuple<int, int, int> ignore = std::tuple<int, int, int>(99, 99,
+                                                                     99))
+    {
+        // Test for equality is fine here since they should not be modified
+        using t = std::tuple<int, int, int>;
+        // clang-format off
+        if (ignore != t{0, 0, 0}) { EXPECT_EQ(a(0, 0, 0), 10.);   }
+        if (ignore != t{0, 0, 1}) { EXPECT_EQ(a(0, 0, 1), 22.);   }
+        if (ignore != t{0, 1, 0}) { EXPECT_EQ(a(0, 1, 0), -12.);  }
+        if (ignore != t{0, 1, 1}) { EXPECT_EQ(a(0, 1, 1), 26.);   }
+        if (ignore != t{0, 2, 0}) { EXPECT_EQ(a(0, 2, 0), 14.);   }
+        if (ignore != t{0, 2, 1}) { EXPECT_EQ(a(0, 2, 1), -230.); }
+        if (ignore != t{0, 3, 0}) { EXPECT_EQ(a(0, 3, 0), 6.);    }
+        if (ignore != t{0, 3, 1}) { EXPECT_EQ(a(0, 3, 1), 154.);  }
+        // clang-format on
+    }
 };
 
 
-TEST_F(ScaledReducedStorage3d, CanUseConst)
+TEST_F(ScaledReducedStorage3d, CanRead)
 {
-    EXPECT_EQ(cr(0, 0, 0), 1.);
-    EXPECT_EQ(cr(0, 0, 1), 2.);
-    EXPECT_EQ(cr(0, 1, 0), -3.);
-    EXPECT_EQ(cr(0, 1, 1), 4.);
-    EXPECT_EQ(cr(1, 0, 0), 55.);
-    EXPECT_EQ(cr(1, 0, 1), 6.);
-    EXPECT_EQ(cr(1, 1, 0), -777.);
-    EXPECT_EQ(cr(1, 1, 1), 8.);
+    check_accessor_correctness(cr);
+    check_accessor_correctness(r);
+}
 
-    auto subr = cr(span{0, 2}, 0, 0);
+TEST_F(ScaledReducedStorage3d, Subrange)
+{
+    auto subr = cr(0, gko::span{0, 2}, 1);
 
-    EXPECT_EQ(subr(0, 0, 0), 1.0);
-    EXPECT_EQ(subr(1, 0, 0), 55.);
+    EXPECT_EQ(subr(0, 0, 0), 22.);
+    EXPECT_EQ(subr(0, 1, 0), 26.);
+}
 
-    // cr(0, 0, 0) = 2.0;
-    r->write_scale(0, 0, 2.);
-    EXPECT_EQ(r(0, 0, 0), 2.);
+
+TEST_F(ScaledReducedStorage3d, CanWriteScale)
+{
+    r->write_scale(0, 0, 10.);
+
+    EXPECT_EQ(r(0, 0, 0), 100.);
+    EXPECT_EQ(r(0, 0, 1), 22.);
+    EXPECT_EQ(r(0, 1, 0), -120.);
+    EXPECT_EQ(r(0, 1, 1), 26.);
+    EXPECT_EQ(r(0, 2, 0), 140.);
+    EXPECT_EQ(r(0, 2, 1), -230.);
+    EXPECT_EQ(r(0, 3, 0), 60.);
+    EXPECT_EQ(r(0, 3, 1), 154.);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CanReadScale)
+{
+    EXPECT_EQ(r->read_scale(0, 0), 1.);
+    EXPECT_EQ(r->read_scale(0, 1), 2.);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Addition)
+{
+    const ar_type expected = 10. + 3.;
+
+    const auto result = cr(0, 0, 0) + 3.;
+    r(0, 0, 0) += 3.;
+
+    check_accessor_correctness(r, {0, 0, 0});
+    EXPECT_NEAR(r(0, 0, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Addition2)
+{
+    const ar_type expected = 10. + 22.;
+
+    const auto result = cr(0, 0, 0) + r(0, 0, 1);
+    r(0, 0, 0) += cr(0, 0, 1);
+
+    check_accessor_correctness(r, {0, 0, 0});
+    EXPECT_NEAR(r(0, 0, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Subtraction)
+{
+    const ar_type expected = 22. - 2.;
+
+    const auto result = cr(0, 0, 1) - 2.;
+    r(0, 0, 1) -= 2.;
+
+    check_accessor_correctness(r, {0, 0, 1});
+    EXPECT_NEAR(r(0, 0, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Subtraction2)
+{
+    const ar_type expected = -12. - 26.;
+
+    const auto result = cr(0, 1, 0) - r(0, 1, 1);
+    r(0, 1, 0) -= r(0, 1, 1);
+
+    check_accessor_correctness(r, {0, 1, 0});
+    EXPECT_NEAR(r(0, 1, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Multiplication)
+{
+    const ar_type expected = 26. * 3.;
+
+    const auto result = cr(0, 1, 1) * 3.;
+    r(0, 1, 1) *= 3.;
+
+    check_accessor_correctness(r, {0, 1, 1});
+    EXPECT_NEAR(r(0, 1, 1), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Multiplication2)
+{
+    const ar_type expected = 14. * 10.;
+
+    const auto result = r(0, 2, 0) * r(0, 0, 0);
+    r(0, 2, 0) *= r(0, 0, 0);
+
+    check_accessor_correctness(r, {0, 2, 0});
+    EXPECT_NEAR(r(0, 2, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Division)
+{
+    const ar_type expected = 10. / 2.;
+
+    const auto result = cr(0, 0, 0) / 2.;
+    r(0, 0, 0) /= 2.;
+
+    check_accessor_correctness(r, {0, 0, 0});
+    EXPECT_NEAR(r(0, 0, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, Division2)
+{
+    const ar_type expected = -12. / 6.;
+
+    const auto result = r(0, 1, 0) / r(0, 3, 0);
+    r(0, 1, 0) /= r(0, 3, 0);
+
+    check_accessor_correctness(r, {0, 1, 0});
+    EXPECT_NEAR(r(0, 1, 0), expected, delta);
+    EXPECT_NEAR(result, expected, delta);
 }
 
 
