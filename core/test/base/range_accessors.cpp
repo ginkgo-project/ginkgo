@@ -156,8 +156,10 @@ protected:
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
 
+    const gko::dim<3> size{4u, 3u, 2u};
+    static constexpr gko::size_type data_elements{4 * 3 * 2};
     // clang-format off
-    st_type data[4 * 3 * 2]{
+    st_type data[data_elements] {
         // 0, y, z
         1.0, 2.01,
         -1.02, 3.03,
@@ -176,8 +178,8 @@ protected:
         3.22, -2.23
     };
     // clang-format on
-    reduced_storage r{data, gko::dim<3>{4u, 3u, 2u}};
-    const_reduced_storage cr{data, gko::dim<3>{4u, 3u, 2u}};
+    reduced_storage r{data, size};
+    const_reduced_storage cr{data, size};
 
     template <typename Accessor>
     static void check_accessor_correctness(
@@ -214,10 +216,58 @@ protected:
 };
 
 
+TEST_F(ReducedStorage3d, CorrectLengths)
+{
+    EXPECT_EQ(r.length(0), size[0]);
+    EXPECT_EQ(r.length(1), size[1]);
+    EXPECT_EQ(r.length(2), size[2]);
+    EXPECT_EQ(r.length(3), 1);
+    EXPECT_EQ(r->get_size(), size);
+}
+
+
+TEST_F(ReducedStorage3d, CorrectStride)
+{
+    EXPECT_EQ(r->get_stride()[0], size[1] * size[2]);
+    EXPECT_EQ(r->get_stride().at(0), size[1] * size[2]);
+    EXPECT_EQ(r->get_stride()[1], size[2]);
+    EXPECT_EQ(r->get_stride().at(1), size[2]);
+}
+
+
+TEST_F(ReducedStorage3d, CorrectStorage)
+{
+    EXPECT_EQ(r->get_storage(), data);
+    EXPECT_EQ(r->get_const_storage(), data);
+}
+
+
 TEST_F(ReducedStorage3d, CanReadData)
 {
     check_accessor_correctness(r);
     check_accessor_correctness(cr);
+}
+
+
+TEST_F(ReducedStorage3d, CopyFrom)
+{
+    st_type data2[data_elements];
+    reduced_storage cpy(data2, size);
+
+    // Do not use this in regular code since the implementation is slow
+    cpy = r;
+
+    check_accessor_correctness(cpy);
+}
+
+
+TEST_F(ReducedStorage3d, CanImplicitlyConvertToConst)
+{
+    const_reduced_storage const_rs = r->to_const();
+    const_reduced_storage const_rs2 = cr;
+
+    check_accessor_correctness(const_rs);
+    check_accessor_correctness(const_rs2);
 }
 
 
@@ -237,6 +287,24 @@ TEST_F(ReducedStorage3d, CanWriteData)
 
     check_accessor_correctness(r, t(0, 1, 0));
     EXPECT_EQ(r(0, 1, 0), 100.2);
+}
+
+
+TEST_F(ReducedStorage3d, Assignment)
+{
+    r(0, 0, 1) = 10.2;
+
+    check_accessor_correctness(r, t(0, 0, 1));
+    EXPECT_NEAR(r(0, 0, 1), 10.2, delta);
+}
+
+
+TEST_F(ReducedStorage3d, Assignment2)
+{
+    r(0, 0, 1) = r(0, 1, 0);
+
+    check_accessor_correctness(r, t(0, 0, 1));
+    EXPECT_NEAR(r(0, 0, 1), -1.02, delta);
 }
 
 
@@ -384,6 +452,9 @@ protected:
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
 
+    const gko::dim<3> size{1u, 4u, 2u};
+    static constexpr gko::size_type data_elements{8};
+    static constexpr gko::size_type scale_elements{8};
     // clang-format off
     st_type data[8]{
         10, 11,
@@ -391,12 +462,12 @@ protected:
         14, -115,
         6, 77
     };
-    ar_type scale[2]{
+    ar_type scale[scale_elements]{
         1., 2.,
     };
     // clang-format on
-    reduced_storage r{data, scale, gko::dim<3>{1u, 4u, 2u}};
-    const_reduced_storage cr{data, scale, gko::dim<3>{1u, 4u, 2u}};
+    reduced_storage r{data, scale, size};
+    const_reduced_storage cr{data, scale, size};
 
     template <typename Accessor>
     static void check_accessor_correctness(
@@ -417,6 +488,79 @@ protected:
         // clang-format on
     }
 };
+
+
+TEST_F(ScaledReducedStorage3d, CorrectLengths)
+{
+    EXPECT_EQ(r.length(0), size[0]);
+    EXPECT_EQ(r.length(1), size[1]);
+    EXPECT_EQ(r.length(2), size[2]);
+    EXPECT_EQ(r.length(3), 1);
+    EXPECT_EQ(r->get_size(), size);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CorrectStride)
+{
+    EXPECT_EQ(r->get_stride()[0], size[1] * size[2]);
+    EXPECT_EQ(r->get_stride().at(0), size[1] * size[2]);
+    EXPECT_EQ(r->get_stride()[1], size[2]);
+    EXPECT_EQ(r->get_stride().at(1), size[2]);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CorrectStorage)
+{
+    EXPECT_EQ(r->get_storage(), data);
+    EXPECT_EQ(r->get_const_storage(), data);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CorrectScale)
+{
+    EXPECT_EQ(r->get_scale(), scale);
+    EXPECT_EQ(r->get_const_scale(), scale);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CanReadData)
+{
+    check_accessor_correctness(r);
+    check_accessor_correctness(cr);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CopyFrom)
+{
+    st_type data2[data_elements];
+    ar_type scale2[scale_elements];
+    reduced_storage cpy(data2, scale2, size);
+
+    // Do not use this in regular code since the implementation is slow
+    cpy = r;
+
+    check_accessor_correctness(cpy);
+}
+
+
+TEST_F(ScaledReducedStorage3d, CanImplicitlyConvertToConst)
+{
+    const_reduced_storage const_rs = r->to_const();
+    const_reduced_storage const_rs2 = cr;
+
+    check_accessor_correctness(const_rs);
+    check_accessor_correctness(const_rs2);
+}
+
+
+TEST_F(ScaledReducedStorage3d, ToConstWorking)
+{
+    auto cr2 = r->to_const();
+
+    static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
+                  "Types must be equal!");
+    check_accessor_correctness(cr2);
+}
 
 
 TEST_F(ScaledReducedStorage3d, CanRead)

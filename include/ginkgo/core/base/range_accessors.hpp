@@ -379,9 +379,8 @@ public:
 
     reduced_storage() = delete;
     ~reduced_storage() = default;
-    // Forbid copy construction and move assignment
+    // Forbid copy construction
     reduced_storage(const reduced_storage &) = delete;
-    reduced_storage &operator=(reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr reduced_storage(
         storage_type *const GKO_RESTRICT ptr)
@@ -401,6 +400,11 @@ public:
     }
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         const reduced_storage &ref) &&
+    {
+        return std::move(*this) = static_cast<arithmetic_type>(ref);
+    }
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        reduced_storage &&ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -473,9 +477,8 @@ public:
 
     scaled_reduced_storage() = delete;
     ~scaled_reduced_storage() = default;
-    // Forbid copy construction and move assignment
+    // Forbid copy construction
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
-    scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr scaled_reduced_storage(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
@@ -496,6 +499,11 @@ public:
     }
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         const scaled_reduced_storage &ref) &&
+    {
+        return std::move(*this) = static_cast<arithmetic_type>(ref);
+    }
+    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
+        scaled_reduced_storage &&ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -641,7 +649,7 @@ public:
      *
      * @returns  length in dimension `dimension`
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> length(
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type length(
         size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
@@ -658,7 +666,7 @@ public:
      * @param other  other accessor
      */
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other)
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
         for (size_type i = 0; i < size_[0]; ++i) {
             for (size_type j = 0; j < size_[1]; ++j) {
@@ -724,23 +732,15 @@ public:
     }
 
     /**
-     * Returns the stride for the first index
+     * Returns a pointer to a stride array of size dimensionality - 1
      *
-     * @returns the stride for the first index
+     * @returns returns a pointer to a stride array of size dimensionality - 1
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride0() const
+    GKO_ATTRIBUTES
+    GKO_INLINE constexpr const std::array<const size_type, dimensionality - 1>
+        &get_stride() const
     {
-        return stride_[0];
-    }
-
-    /**
-     * Returns the stride for the second index
-     *
-     * @returns the stride for the second index
-     */
-    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride1() const
-    {
-        return stride_[1];
+        return stride_;
     }
 
     /**
@@ -773,8 +773,8 @@ protected:
     }
 
     storage_type *storage_;
-    dim<dimensionality> size_;
-    size_type stride_[2];  // std::array leads to conflicts on devices
+    const dim<dimensionality> size_;
+    const std::array<const size_type, dimensionality - 1> stride_;
 };
 
 
@@ -957,7 +957,7 @@ public:
      *
      * @returns length in dimension `dimension`
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr dim<dimensionality> length(
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type length(
         size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
@@ -974,18 +974,18 @@ public:
      * @param other  other accessor
      */
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other)
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
+        for (size_type i = 0; i < this->size_[0]; ++i) {
+            for (size_type k = 0; k < this->size_[2]; ++k) {
+                this->write_scale(i, k, other.read_scale(i, k));
+            }
+        }
         for (size_type i = 0; i < this->size_[0]; ++i) {
             for (size_type j = 0; j < this->size_[1]; ++j) {
                 for (size_type k = 0; k < this->size_[2]; ++k) {
                     (*this)(i, j, k) = other(i, j, k);
                 }
-            }
-        }
-        for (size_type i = 0; i < this->size_[0]; ++i) {
-            for (size_type k = 0; k < this->size_[2]; ++k) {
-                this->write_scale(i, k, other.read_scale(i, k));
             }
         }
     }
@@ -1049,23 +1049,15 @@ public:
     }
 
     /**
-     * Returns the stride for the first index
+     * Returns a pointer to a stride array of size dimensionality - 1
      *
-     * @returns the stride for the first index
+     * @returns returns a pointer to a stride array of size dimensionality - 1
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride0() const
+    GKO_ATTRIBUTES
+    GKO_INLINE constexpr const std::array<const size_type, dimensionality - 1>
+        &get_stride() const
     {
-        return stride_[0];
-    }
-
-    /**
-     * Returns the stride for the second index
-     *
-     * @returns the stride for the second index
-     */
-    GKO_ATTRIBUTES GKO_INLINE constexpr size_type get_stride1() const
-    {
-        return stride_[1];
+        return stride_;
     }
 
     /**
@@ -1127,9 +1119,8 @@ protected:
 
     storage_type *storage_;
     scale_type *scale_;
-    dim<dimensionality> size_;
-    // std::array leads to conflicts on devices
-    size_type stride_[dimensionality - 1];
+    const dim<dimensionality> size_;
+    const std::array<const size_type, dimensionality - 1> stride_;
 };
 
 
