@@ -9,6 +9,7 @@ target_sources(ginkgo
     base/composition.cpp
     base/executor.cpp
     base/mtx_io.cpp
+    base/global_constant.cpp
     base/perturbation.cpp
     base/version.cpp
     factorization/ilu.cpp
