@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
