@@ -30,23 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/global_constant.hpp>
+#include "core/base/global_constant.hpp"
 
 
 namespace gko {
 
 
 template <>
-detail::executor_storage<CudaExecutor, double, 64, OmpExecutor>
+detail::device_executor_storage<CudaExecutor, 64, double>
     global_constant<double>::cuda_storage;
 template <>
-detail::executor_storage<OmpExecutor, double, 1, OmpExecutor>
+detail::host_executor_storage<OmpExecutor, double>
     global_constant<double>::omp_storage;
 template <>
-detail::executor_storage<ReferenceExecutor, double, 1, ReferenceExecutor>
+detail::host_executor_storage<ReferenceExecutor, double>
     global_constant<double>::ref_storage;
 template <>
-detail::executor_storage<HipExecutor, double, 64, OmpExecutor>
+detail::device_executor_storage<HipExecutor, 64, double>
     global_constant<double>::hip_storage;
 
 

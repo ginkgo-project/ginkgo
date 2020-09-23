@@ -44,45 +44,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace detail {
-template <typename ExecutorType, typename ValueType, int max_devices,
-          typename HostExecutorType>
-class executor_storage {
+
+template <typename ExecutorType, typename ValueType>
+class host_executor_storage {
 public:
     using StorageType = matrix::Dense<ValueType>;
-    executor_storage() : host(HostExecutorType::create()) {}
-
+    host_executor_storage() : executor_(ExecutorType::create()) {}
     std::shared_ptr<const StorageType> get(
-        std::shared_ptr<const ExecutorType> exec, int device_id)
+        std::shared_ptr<const ExecutorType> exec)
     {
-        assert(device_id <= max_devices);
-        assert(exec != exec->get_master());
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        if (!storage[device_id]) {
-            // check executor
-            if (!executor[device_id]) {
-                if (exec == exec->get_master()) {
-                    if (typeid(ExecutorType) == typeid(HostExecutorType)) {
-                        executor[device_id] = host;
-                    } else {
-                        // host memory executor does not need device_id;
-                        executor[device_id] = ExecutorType::create();
-                    }
-                } else {
-                    executor[device_id] = ExecutorType::create(device_id);
-                }
-            }
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (!storage_) {
             // create the storage
-            storage[device_id] =
-                StorageType::create(executor[device_id], {ValueType(1)});
+            storage_ = initialize<StorageType>({ValueType(1)}, executor_);
         }
-        return storage[device_id];
+        return storage_;
     }
 
 private:
-    std::shared_ptr<const StorageType> storage[max_devices];
-    std::shared_ptr<const ExecutorType> executor[max_devices];
-    std::shared_ptr<const HostExecutorType> host;
-    std::mutex mutex[max_devices];
+    std::shared_ptr<const StorageType> storage_;
+    std::shared_ptr<const ExecutorType> executor_;
+    std::mutex mutex_;
+};
+
+
+template <typename ExecutorType, int max_devices, typename ValueType>
+class device_executor_storage {
+public:
+    using StorageType = matrix::Dense<ValueType>;
+    using HostExecutorType = OmpExecutor;
+    device_executor_storage() : host_(HostExecutorType::create()) {}
+    std::shared_ptr<const StorageType> get(
+        std::shared_ptr<const ExecutorType> exec)
+    {
+        auto device_id = exec->get_device_id();
+        std::lock_guard<std::mutex> guard(mutex_[device_id]);
+        if (!storage_[device_id]) {
+            // check executor
+            if (!executor_[device_id]) {
+                executor_[device_id] = ExecutorType::create(device_id, host_);
+            }
+            // create the storage
+            storage_[device_id] =
+                initialize<StorageType>({ValueType(1)}, executor_[device_id]);
+        }
+        return storage_[device_id];
+    }
+
+private:
+    std::shared_ptr<const StorageType> storage_[max_devices];
+    std::shared_ptr<const ExecutorType> executor_[max_devices];
+    std::shared_ptr<HostExecutorType> host_;
+    std::mutex mutex_[max_devices];
 };
 }  // namespace detail
 
@@ -92,30 +105,30 @@ public:
     using vec = matrix::Dense<ValueType>;
     static std::shared_ptr<const vec> one(std::shared_ptr<const Executor> exec)
     {
+        std::shared_ptr<const vec> storage;
         if (auto concrete_exec =
                 std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
-            ref_storage.get(concrete_exec, 0);
+            storage = ref_storage.get(concrete_exec);
         } else if (auto concrete_exec =
                        std::dynamic_pointer_cast<const OmpExecutor>(exec)) {
-            omp_storage.get(concrete_exec, 0);
+            storage = omp_storage.get(concrete_exec);
         } else if (auto concrete_exec =
                        std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
-            cuda_storage.get(concrete_exec, concrete_exec->get_device_id());
+            storage = cuda_storage.get(concrete_exec);
         } else if (auto concrete_exec =
                        std::dynamic_pointer_cast<const HipExecutor>(exec)) {
-            hip_storage.get(concrete_exec, concrete_exec->get_device_id());
+            storage = hip_storage.get(concrete_exec);
         }
+        return storage;
     }
 
 private:
-    static detail::executor_storage<CudaExecutor, ValueType, 64, OmpExecutor>
-        cuda_storage;
-    static detail::executor_storage<OmpExecutor, ValueType, 1, OmpExecutor>
-        omp_storage;
-    static detail::executor_storage<ReferenceExecutor, ValueType, 1,
-                                    ReferenceExecutor>
+    static detail::host_executor_storage<ReferenceExecutor, ValueType>
         ref_storage;
-    static detail::executor_storage<HipExecutor, ValueType, 64, OmpExecutor>
+    static detail::host_executor_storage<OmpExecutor, ValueType> omp_storage;
+    static detail::device_executor_storage<CudaExecutor, 64, ValueType>
+        cuda_storage;
+    static detail::device_executor_storage<HipExecutor, 64, ValueType>
         hip_storage;
 };
 
