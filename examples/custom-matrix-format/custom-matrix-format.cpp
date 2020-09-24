@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     using cg = gko::solver::Cg<ValueType>;
 
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cerr << "Usage: executable DISCRETIZATION_POINTS [executor]"
                   << std::endl;
         std::exit(-1);
     }

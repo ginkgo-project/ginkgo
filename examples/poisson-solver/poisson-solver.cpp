@@ -122,8 +122,11 @@ int main(int argc, char *argv[])
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cout << "Usage: executable DISCRETIZATION_POINTS [executor]"
                   << std::endl;
     }
 

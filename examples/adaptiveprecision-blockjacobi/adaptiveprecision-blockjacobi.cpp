@@ -135,9 +135,9 @@ int main(int argc, char *argv[])
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
-    std::cout << "Initial residual norm sqrt(r^T r): \n";
+    std::cout << "Initial residual norm sqrt(r^T r):\n";
     write(std::cout, lend(initres));
-    std::cout << "Final residual norm sqrt(r^T r): \n";
+    std::cout << "Final residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
 
     // Print solver statistics

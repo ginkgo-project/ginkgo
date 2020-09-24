@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
                gko::CudaExecutor::get_num_devices() > 0) {
         exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
-        print_usage(argv[0]);
+        print_usage("executable");
     }
 
     // Read the input matrix file directory
