@@ -232,8 +232,11 @@ int main(int argc, char *argv[])
     using ValueType = double;
     using IndexType = int;
 
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+        std::cout << "Usage: executable DISCRETIZATION_POINTS [executor]"
                   << std::endl;
     }
 

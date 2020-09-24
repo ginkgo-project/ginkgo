@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
+        std::cerr << "Usage: executable [executor]" << std::endl;
         std::exit(-1);
     }
 
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     ilu_gmres->apply(gko::lend(b), gko::lend(x));
 
     // Print solution
-    std::cout << "Solution (x): \n";
+    std::cout << "Solution (x):\n";
     write(std::cout, gko::lend(x));
 
     // Calculate residual
@@ -126,6 +126,6 @@ int main(int argc, char *argv[])
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 
-    std::cout << "Residual norm sqrt(r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r):\n";
     write(std::cout, gko::lend(res));
 }
