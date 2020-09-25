@@ -272,7 +272,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percent() const { return percent_; }
+        auto get_percentage() const { return percent_; }
 
     private:
         float percent_;
@@ -307,7 +307,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percent() const { return strategy_.get_percent(); }
+        auto get_percentage() const { return strategy_.get_percentage(); }
 
         /**
          * Get the ratio setting
@@ -349,7 +349,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percent() { return strategy_.get_percent(); }
+        auto get_percentage() { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
@@ -766,16 +766,16 @@ Hybrid<ValueType, IndexType>::get_strategy() const
                 std::make_shared<typename HybType::minimal_storage_limit>();
         } else {
             strategy = std::make_shared<typename HybType::imbalance_limit>(
-                temp->get_percent());
+                temp->get_percentage());
         }
     } else if (auto temp = std::dynamic_pointer_cast<imbalance_bounded_limit>(
                    strategy_)) {
         strategy = std::make_shared<typename HybType::imbalance_bounded_limit>(
-            temp->get_percent(), temp->get_ratio());
+            temp->get_percentage(), temp->get_ratio());
     } else if (auto temp =
                    std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
         strategy = std::make_shared<typename HybType::imbalance_limit>(
-            temp->get_percent());
+            temp->get_percentage());
     } else if (auto temp = std::dynamic_pointer_cast<column_limit>(strategy_)) {
         strategy = std::make_shared<typename HybType::column_limit>(
             temp->get_num_columns());

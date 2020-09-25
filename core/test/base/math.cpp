@@ -143,7 +143,9 @@ TEST(RemoveComplexClass, Float)
 {
     using origin = DummyClass<float, int>;
     using expect = DummyClass<float, int>;
+
     bool check = std::is_same<expect, gko::remove_complex<origin>>::value;
+
     ASSERT_TRUE(check);
 }
 
@@ -152,7 +154,9 @@ TEST(RemoveComplexClass, Double)
 {
     using origin = DummyClass<double, int>;
     using expect = DummyClass<double, int>;
+
     bool check = std::is_same<expect, gko::remove_complex<origin>>::value;
+
     ASSERT_TRUE(check);
 }
 
@@ -161,7 +165,9 @@ TEST(RemoveComplexClass, FloatComplex)
 {
     using origin = DummyClass<std::complex<float>, int>;
     using expect = DummyClass<float, int>;
+
     bool check = std::is_same<expect, gko::remove_complex<origin>>::value;
+
     ASSERT_TRUE(check);
 }
 
@@ -170,7 +176,9 @@ TEST(RemoveComplexClass, DoubleComplex)
 {
     using origin = DummyClass<std::complex<double>, int>;
     using expect = DummyClass<double, int>;
+
     bool check = std::is_same<expect, gko::remove_complex<origin>>::value;
+
     ASSERT_TRUE(check);
 }
 

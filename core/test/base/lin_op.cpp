@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <complex>
 #include <memory>
+#include <type_traits>
 
 
 #include <gtest/gtest.h>
@@ -386,8 +387,10 @@ TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnConcreteType)
 {
     auto abs_op = op->compute_absolute();
 
-    ASSERT_EQ(typeid(abs_op),
-              typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));
+    static_assert(
+        std::is_same<decltype(abs_op),
+                     std::unique_ptr<gko::remove_complex<dummy_type>>>::value,
+        "Types must match.");
     ASSERT_EQ(abs_op->get_value(), 5.0);
 }
 
@@ -407,8 +410,10 @@ TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnAbsoluteComputable)
 {
     auto abs_op = op->compute_absolute();
 
-    ASSERT_EQ(typeid(abs_op),
-              typeid(std::unique_ptr<gko::remove_complex<dummy_type>>));
+    static_assert(
+        std::is_same<decltype(abs_op),
+                     std::unique_ptr<gko::remove_complex<dummy_type>>>::value,
+        "Types must match.");
     ASSERT_EQ(abs_op->get_value(), 5.0);
 }
 

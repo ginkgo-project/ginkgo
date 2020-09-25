@@ -395,7 +395,6 @@ TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
 {
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
-
     auto exec = gko::ReferenceExecutor::create();
     auto diag = Diag::create(exec, 3);
     auto diag_values = diag->get_values();
@@ -406,6 +405,7 @@ TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
     auto trans = diag->conj_transpose();
     auto trans_as_diagonal = static_cast<Diag *>(trans.get());
     auto trans_values = trans_as_diagonal->get_values();
+
     EXPECT_EQ(trans->get_size(), gko::dim<2>(3));
     EXPECT_EQ(trans_values[0], (value_type{1.0, -2.0}));
     EXPECT_EQ(trans_values[1], (value_type{3.0, 0.0}));
@@ -417,7 +417,6 @@ TYPED_TEST(DiagonalComplex, InplaceAbsolute)
 {
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
-
     auto exec = gko::ReferenceExecutor::create();
     auto diag = Diag::create(exec, 3);
     auto diag_values = diag->get_values();
@@ -438,7 +437,6 @@ TYPED_TEST(DiagonalComplex, OutplaceAbsolute)
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
     using abs_type = gko::remove_complex<value_type>;
-
     auto exec = gko::ReferenceExecutor::create();
     auto diag = Diag::create(exec, 3);
     auto diag_values = diag->get_values();
