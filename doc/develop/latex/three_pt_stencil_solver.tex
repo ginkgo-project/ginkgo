@@ -144,16 +144,16 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType discretization\_points,}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType discretization\_points,}
 \DoxyCodeLine{                                               \textcolor{keyword}{const} ValueType *u,}
 \DoxyCodeLine{                                               Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (discretization\_points + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} ValueType xi = ValueType(i + 1) * h;}
-\DoxyCodeLine{        error += \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{        error += \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -162,7 +162,7 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 \DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
 \DoxyCodeLine{                  IndexType discretization\_points, IndexType *row\_ptrs,}
 \DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
-\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor)}
 \DoxyCodeLine{\{}
 \end{DoxyCode}
 
@@ -331,7 +331,7 @@ solution
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{std::vector<ValueType> u(discretization\_points, 0.0);}
-\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{}
 \DoxyCodeLine{generate\_stencil\_matrix(discretization\_points, row\_ptrs.data(),}
 \DoxyCodeLine{                        col\_idxs.data(), values.data());}
@@ -522,16 +522,16 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType discretization\_points,}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType discretization\_points,}
 \DoxyCodeLine{                                               \textcolor{keyword}{const} ValueType *u,}
 \DoxyCodeLine{                                               Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (discretization\_points + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} ValueType xi = ValueType(i + 1) * h;}
-\DoxyCodeLine{        error += \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{        error += \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -540,7 +540,7 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
 \DoxyCodeLine{                  IndexType discretization\_points, IndexType *row\_ptrs,}
 \DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
-\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
@@ -621,7 +621,7 @@ This is the expected output\+:
 \DoxyCodeLine{    std::vector<ValueType> values(3 * discretization\_points -\/ 2);}
 \DoxyCodeLine{    std::vector<ValueType> rhs(discretization\_points);}
 \DoxyCodeLine{    std::vector<ValueType> u(discretization\_points, 0.0);}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    generate\_stencil\_matrix(discretization\_points, row\_ptrs.data(),}
 \DoxyCodeLine{                            col\_idxs.data(), values.data());}

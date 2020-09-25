@@ -73,7 +73,7 @@ utilities for computing norms and residuals
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = b-\/>get\_executor();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b\_norm = gko::initialize<real\_vec<ValueType>>(\{0.0\}, exec);}
@@ -83,7 +83,7 @@ utilities for computing norms and residuals
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
 \DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix, \textcolor{keyword}{const} vec<ValueType> *b,}
 \DoxyCodeLine{    \textcolor{keyword}{const} vec<ValueType> *x)}
 \DoxyCodeLine{\{}
@@ -432,7 +432,7 @@ Pick a residual norm reduction value
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
 \end{DoxyCode}
 
 
@@ -967,7 +967,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = b-\/>get\_executor();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b\_norm = gko::initialize<real\_vec<ValueType>>(\{0.0\}, exec);}
@@ -977,7 +977,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
 \DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix, \textcolor{keyword}{const} vec<ValueType> *b,}
 \DoxyCodeLine{    \textcolor{keyword}{const} vec<ValueType> *x)}
 \DoxyCodeLine{\{}
@@ -1218,7 +1218,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} solver = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} preconditioner = \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko::matrix::IdentityFactory<ValueType>}};}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} of\_name = \textcolor{stringliteral}{"log.txt"};}
 \DoxyCodeLine{}
 \DoxyCodeLine{}

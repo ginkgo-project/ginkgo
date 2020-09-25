@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/190600934 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/194469452 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -108,6 +108,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>mat_data</b> = <a cl
 <tr class="memitem:a61214ecfce8de48207d1e291beb81c61"><td class="memItemLeft" align="right" valign="top"><a id="a61214ecfce8de48207d1e291beb81c61"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>mat_data32</b> = <a class="el" href="structgko_1_1matrix__data.html">gko::matrix_data</a>&lt; ValueType, <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt;</td></tr>
 <tr class="separator:a61214ecfce8de48207d1e291beb81c61"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7982c70b98f1f7de90f15f72e5f728b5"><td class="memItemLeft" align="right" valign="top"><a id="a7982c70b98f1f7de90f15f72e5f728b5"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>absolute_type</b> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;</td></tr>
+<tr class="separator:a7982c70b98f1f7de90f15f72e5f728b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67dd271e69cd4ca2942f4cf236fb328e"><td class="memItemLeft" align="right" valign="top"><a id="a67dd271e69cd4ca2942f4cf236fb328e"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>row_major_range</b> = <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, 2 &gt; &gt;</td></tr>
 <tr class="separator:a67dd271e69cd4ca2942f4cf236fb328e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -203,6 +206,10 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = Val
 <tr class="memitem:a27148f638a4e26ac30852c513ffc0a02 inherit pub_types_classgko_1_1WritableToMatrixData"><td class="memItemLeft" align="right" valign="top"><a id="a27148f638a4e26ac30852c513ffc0a02"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>index_type</b> = <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a></td></tr>
 <tr class="separator:a27148f638a4e26ac30852c513ffc0a02 inherit pub_types_classgko_1_1WritableToMatrixData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classgko_1_1EnableAbsoluteComputation"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnableAbsoluteComputation')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnableAbsoluteComputation.html">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Dense&lt; ValueType &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:ad6616d45bfad753eafabfb916006e5d7 inherit pub_types_classgko_1_1EnableAbsoluteComputation"><td class="memItemLeft" align="right" valign="top"><a id="ad6616d45bfad753eafabfb916006e5d7"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>absolute_type</b> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; Dense&lt; ValueType &gt; &gt;</td></tr>
+<tr class="separator:ad6616d45bfad753eafabfb916006e5d7 inherit pub_types_classgko_1_1EnableAbsoluteComputation"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -329,6 +336,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>write</b> (<a class="
 <tr class="memitem:a533aa6d9c41c38e0b9353b0e0ef255a1"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Diagonal.html">Diagonal</a>&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a533aa6d9c41c38e0b9353b0e0ef255a1">extract_diagonal</a> () const override</td></tr>
 <tr class="memdesc:a533aa6d9c41c38e0b9353b0e0ef255a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extracts the diagonal entries of the matrix into a vector.  <a href="classgko_1_1matrix_1_1Dense.html#a533aa6d9c41c38e0b9353b0e0ef255a1">More...</a><br /></td></tr>
 <tr class="separator:a533aa6d9c41c38e0b9353b0e0ef255a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0cac589a24090e4fe9a2b31f85830c95"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; absolute_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a0cac589a24090e4fe9a2b31f85830c95">compute_absolute</a> () const override</td></tr>
+<tr class="memdesc:a0cac589a24090e4fe9a2b31f85830c95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the AbsoluteLinOp.  <a href="classgko_1_1matrix_1_1Dense.html#a0cac589a24090e4fe9a2b31f85830c95">More...</a><br /></td></tr>
+<tr class="separator:a0cac589a24090e4fe9a2b31f85830c95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac86f11554ae7cd5814852d6e1a0b9d4d"><td class="memItemLeft" align="right" valign="top"><a id="ac86f11554ae7cd5814852d6e1a0b9d4d"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#ac86f11554ae7cd5814852d6e1a0b9d4d">compute_absolute_inplace</a> () override</td></tr>
+<tr class="memdesc:ac86f11554ae7cd5814852d6e1a0b9d4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute absolute inplace on each element. <br /></td></tr>
+<tr class="separator:ac86f11554ae7cd5814852d6e1a0b9d4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a pointer to the array of values of the matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">More...</a><br /></td></tr>
 <tr class="separator:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -596,6 +610,10 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <tr class="memitem:a96036c3a4bf4c67fa93002808b8b14e2 inherit pub_methods_classgko_1_1WritableToMatrixData"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">write</a> (<a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; &amp;data) const=0</td></tr>
 <tr class="memdesc:a96036c3a4bf4c67fa93002808b8b14e2 inherit pub_methods_classgko_1_1WritableToMatrixData"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a matrix_data structure.  <a href="classgko_1_1WritableToMatrixData.html#a96036c3a4bf4c67fa93002808b8b14e2">More...</a><br /></td></tr>
 <tr class="separator:a96036c3a4bf4c67fa93002808b8b14e2 inherit pub_methods_classgko_1_1WritableToMatrixData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classgko_1_1EnableAbsoluteComputation"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbsoluteComputation')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbsoluteComputation.html">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Dense&lt; ValueType &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>compute_absolute_linop</b> () const override</td></tr>
+<tr class="memdesc:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the absolute LinOp.  <a href="classgko_1_1EnableAbsoluteComputation.html#a0ee550ae62b77d04329ab4dbce077d4f">More...</a><br /></td></tr>
+<tr class="separator:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -654,6 +672,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>SparsityCsr&lt; Valu
 <tr class="memitem:af1bdb11fa29d77ea4be1ef85d31ab6ec"><td class="memItemLeft" align="right" valign="top"><a id="af1bdb11fa29d77ea4be1ef85d31ab6ec"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>SparsityCsr&lt; ValueType, int64 &gt;</b></td></tr>
 <tr class="separator:af1bdb11fa29d77ea4be1ef85d31ab6ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6671ddb996a2a810738a6ddb29fbe83b"><td class="memItemLeft" align="right" valign="top"><a id="a6671ddb996a2a810738a6ddb29fbe83b"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>Dense&lt; to_complex&lt; ValueType &gt; &gt;</b></td></tr>
+<tr class="separator:a6671ddb996a2a810738a6ddb29fbe83b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a71966cce97f4ae0c0ab266cb24430413"><td class="memItemLeft" align="right" valign="top"><a id="a71966cce97f4ae0c0ab266cb24430413"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>Dense&lt; next_precision&lt; ValueType &gt; &gt;</b></td></tr>
 <tr class="separator:a71966cce97f4ae0c0ab266cb24430413"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -978,6 +999,38 @@ template&lt;typename ValueType = default_precision&gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new column permuted object </dd></dl>
 
 <p>Implements <a class="el" href="classgko_1_1Permutable.html#a271cdd29fcb10275a348902f1b0926f7">gko::Permutable&lt; int64 &gt;</a>.</p>
+
+</div>
+</div>
+<a id="a0cac589a24090e4fe9a2b31f85830c95"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0cac589a24090e4fe9a2b31f85830c95">&#9670;&nbsp;</a></span>compute_absolute()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;absolute_type&gt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::compute_absolute </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Gets the AbsoluteLinOp. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new absolute object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1EnableAbsoluteComputation.html#ac30ab2b34bfa3e28e3324cb46f5f030a">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Dense&lt; ValueType &gt; &gt; &gt;</a>.</p>
 
 </div>
 </div>

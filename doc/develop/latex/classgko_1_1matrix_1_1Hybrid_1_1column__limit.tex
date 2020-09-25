@@ -25,7 +25,9 @@ Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>
 \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ac686f3f99034bffd091bd934bd1cf9f9}{column\+\_\+limit}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+column=0)
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_afb410def66106b711ac094fd31d48aba}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
-\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ae950e0c9f6be62fe23400cbe2f5e9cfb}{get\+\_\+num\+\_\+columns}} () const
+\begin{DoxyCompactList}\small\item\em Get the number of columns limit. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -77,6 +79,20 @@ the number of stored elements per row of the ell part
 
 Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ae950e0c9f6be62fe23400cbe2f5e9cfb}\label{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ae950e0c9f6be62fe23400cbe2f5e9cfb}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}!get\_num\_columns@{get\_num\_columns}}
+\index{get\_num\_columns@{get\_num\_columns}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}}
+\doxysubsubsection{\texorpdfstring{get\_num\_columns()}{get\_num\_columns()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit\+::get\+\_\+num\+\_\+columns (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the number of columns limit. 
+
+\begin{DoxyReturn}{Returns}
+the number of columns limit 
+\end{DoxyReturn}
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}

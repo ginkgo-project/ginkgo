@@ -1,0 +1,4 @@
+<map id="gko::EnableAbsoluteComputation&lt; AbsoluteLinOp &gt;" name="gko::EnableAbsoluteComputation&lt; AbsoluteLinOp &gt;">
+<area shape="rect" id="node1" title="The EnableAbsoluteComputation mixin provides the default implementations of compute_absolute_linop an..." alt="" coords="5,80,244,121"/>
+<area shape="rect" id="node2" href="$classgko_1_1AbsoluteComputable.html" title="The AbsoluteComputable is an interface that allows to get the component wise absolute of a LinOp." alt="" coords="29,5,220,32"/>
+</map>

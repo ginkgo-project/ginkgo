@@ -26,7 +26,9 @@ Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>
 \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_ac7851b3c053f239e98e197cc2ef81f1e}{minimal\+\_\+storage\+\_\+limit}} ()
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit}{minimal\+\_\+storage\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_a381273c294099363637e40cb536fa63a}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
-\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_a57595cf6ad873dbd75d73cccdfeb71a6}{get\+\_\+percentage}} ()
+\begin{DoxyCompactList}\small\item\em Get the percent setting. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -64,6 +66,21 @@ Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0c
 
 
 References gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_a57595cf6ad873dbd75d73cccdfeb71a6}\label{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_a57595cf6ad873dbd75d73cccdfeb71a6}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::minimal\_storage\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::minimal\_storage\_limit}!get\_percentage@{get\_percentage}}
+\index{get\_percentage@{get\_percentage}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::minimal\_storage\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::minimal\_storage\_limit}}
+\doxysubsubsection{\texorpdfstring{get\_percentage()}{get\_percentage()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::minimal\+\_\+storage\+\_\+limit\+::get\+\_\+percentage (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the percent setting. 
+
+@retrun percent 
+
+References gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::get\+\_\+percentage().
 
 
 

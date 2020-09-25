@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/190600934 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/194469452 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -129,6 +129,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>coo_type</b> = <a cl
 <tr class="memitem:aa1309bf2e1e389e5dcfadb5cf3dfb77f"><td class="memItemLeft" align="right" valign="top"><a id="aa1309bf2e1e389e5dcfadb5cf3dfb77f"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>ell_type</b> = <a class="el" href="classgko_1_1matrix_1_1Ell.html">Ell</a>&lt; ValueType, IndexType &gt;</td></tr>
 <tr class="separator:aa1309bf2e1e389e5dcfadb5cf3dfb77f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91241bb3f6b280599f843bc9584c81cc"><td class="memItemLeft" align="right" valign="top"><a id="a91241bb3f6b280599f843bc9584c81cc"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>absolute_type</b> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">Hybrid</a> &gt;</td></tr>
+<tr class="separator:a91241bb3f6b280599f843bc9584c81cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1EnablePolymorphicAssignment"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnablePolymorphicAssignment')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; Hybrid&lt; ValueType, IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a2e92aa4e8262a8f6625330b76a24deeb inherit pub_types_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top"><a id="a2e92aa4e8262a8f6625330b76a24deeb"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Hybrid&lt; ValueType, IndexType &gt;</td></tr>
@@ -167,6 +170,10 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = Val
 <tr class="memitem:a27148f638a4e26ac30852c513ffc0a02 inherit pub_types_classgko_1_1WritableToMatrixData"><td class="memItemLeft" align="right" valign="top"><a id="a27148f638a4e26ac30852c513ffc0a02"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>index_type</b> = IndexType</td></tr>
 <tr class="separator:a27148f638a4e26ac30852c513ffc0a02 inherit pub_types_classgko_1_1WritableToMatrixData"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classgko_1_1EnableAbsoluteComputation"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnableAbsoluteComputation')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnableAbsoluteComputation.html">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Hybrid&lt; ValueType, IndexType &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:ad6616d45bfad753eafabfb916006e5d7 inherit pub_types_classgko_1_1EnableAbsoluteComputation"><td class="memItemLeft" align="right" valign="top"><a id="ad6616d45bfad753eafabfb916006e5d7"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>absolute_type</b> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; Hybrid&lt; ValueType, IndexType &gt; &gt;</td></tr>
+<tr class="separator:ad6616d45bfad753eafabfb916006e5d7 inherit pub_types_classgko_1_1EnableAbsoluteComputation"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -197,6 +204,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a199565373adafb3c9a4e983810c582ea"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Diagonal.html">Diagonal</a>&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a199565373adafb3c9a4e983810c582ea">extract_diagonal</a> () const override</td></tr>
 <tr class="memdesc:a199565373adafb3c9a4e983810c582ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extracts the diagonal entries of the matrix into a vector.  <a href="classgko_1_1matrix_1_1Hybrid.html#a199565373adafb3c9a4e983810c582ea">More...</a><br /></td></tr>
 <tr class="separator:a199565373adafb3c9a4e983810c582ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dcd3d86122716694fd0682d64701a1a"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; absolute_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a4dcd3d86122716694fd0682d64701a1a">compute_absolute</a> () const override</td></tr>
+<tr class="memdesc:a4dcd3d86122716694fd0682d64701a1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the AbsoluteLinOp.  <a href="classgko_1_1matrix_1_1Hybrid.html#a4dcd3d86122716694fd0682d64701a1a">More...</a><br /></td></tr>
+<tr class="separator:a4dcd3d86122716694fd0682d64701a1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaee1f64830637ca6753380f317525d2a"><td class="memItemLeft" align="right" valign="top"><a id="aaee1f64830637ca6753380f317525d2a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#aaee1f64830637ca6753380f317525d2a">compute_absolute_inplace</a> () override</td></tr>
+<tr class="memdesc:aaee1f64830637ca6753380f317525d2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute absolute inplace on each element. <br /></td></tr>
+<tr class="separator:aaee1f64830637ca6753380f317525d2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a9cd9c8b8dbf8b3c2c014f355faa61474">get_ell_values</a> () noexcept</td></tr>
 <tr class="memdesc:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the values of the ell part.  <a href="classgko_1_1matrix_1_1Hybrid.html#a9cd9c8b8dbf8b3c2c014f355faa61474">More...</a><br /></td></tr>
 <tr class="separator:a9cd9c8b8dbf8b3c2c014f355faa61474"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -260,9 +274,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a00e86ba08ecfc46dbc9b74b800d10a8d">get_num_stored_elements</a> () const noexcept</td></tr>
 <tr class="memdesc:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the matrix.  <a href="classgko_1_1matrix_1_1Hybrid.html#a00e86ba08ecfc46dbc9b74b800d10a8d">More...</a><br /></td></tr>
 <tr class="separator:a00e86ba08ecfc46dbc9b74b800d10a8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8be764050176291d35e7b4dee1b6e1bc"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a8be764050176291d35e7b4dee1b6e1bc">get_strategy</a> () const noexcept</td></tr>
-<tr class="memdesc:a8be764050176291d35e7b4dee1b6e1bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the strategy.  <a href="classgko_1_1matrix_1_1Hybrid.html#a8be764050176291d35e7b4dee1b6e1bc">More...</a><br /></td></tr>
-<tr class="separator:a8be764050176291d35e7b4dee1b6e1bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9a1eabe0a4ca0a6ae0b922b65c938286"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a9a1eabe0a4ca0a6ae0b922b65c938286">get_strategy</a> () const noexcept</td></tr>
+<tr class="memdesc:a9a1eabe0a4ca0a6ae0b922b65c938286"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the strategy.  <a href="classgko_1_1matrix_1_1Hybrid.html#a9a1eabe0a4ca0a6ae0b922b65c938286">More...</a><br /></td></tr>
+<tr class="separator:a9a1eabe0a4ca0a6ae0b922b65c938286"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49f2e04153b44a60e4e9cb1afe1a635b"><td class="memTemplParams" colspan="2">template&lt;typename HybType &gt; </td></tr>
+<tr class="memitem:a49f2e04153b44a60e4e9cb1afe1a635b"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; typename HybType::strategy_type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a49f2e04153b44a60e4e9cb1afe1a635b">get_strategy</a> () const</td></tr>
+<tr class="memdesc:a49f2e04153b44a60e4e9cb1afe1a635b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current strategy allowed in given hybrid format.  <a href="classgko_1_1matrix_1_1Hybrid.html#a49f2e04153b44a60e4e9cb1afe1a635b">More...</a><br /></td></tr>
+<tr class="separator:a49f2e04153b44a60e4e9cb1afe1a635b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a401af55be629372e3114b67df6fc4d04"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html">Hybrid</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html#a401af55be629372e3114b67df6fc4d04">operator=</a> (const <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">Hybrid</a> &amp;other)</td></tr>
 <tr class="memdesc:a401af55be629372e3114b67df6fc4d04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copies data from another <a class="el" href="classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format.">Hybrid</a>.  <a href="classgko_1_1matrix_1_1Hybrid.html#a401af55be629372e3114b67df6fc4d04">More...</a><br /></td></tr>
 <tr class="separator:a401af55be629372e3114b67df6fc4d04"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -405,6 +423,10 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <tr class="memitem:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1ConvertibleTo.html#ab9047c7c49e0f83c79b54c0034d6197b">move_to</a> (result_type *result)=0</td></tr>
 <tr class="memdesc:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the implementer to an object of type result_type by moving data from this object.  <a href="classgko_1_1ConvertibleTo.html#ab9047c7c49e0f83c79b54c0034d6197b">More...</a><br /></td></tr>
 <tr class="separator:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classgko_1_1EnableAbsoluteComputation"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbsoluteComputation')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbsoluteComputation.html">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Hybrid&lt; ValueType, IndexType &gt; &gt; &gt;</a></td></tr>
+<tr class="memitem:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>compute_absolute_linop</b> () const override</td></tr>
+<tr class="memdesc:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the absolute LinOp.  <a href="classgko_1_1EnableAbsoluteComputation.html#a0ee550ae62b77d04329ab4dbce077d4f">More...</a><br /></td></tr>
+<tr class="separator:a0ee550ae62b77d04329ab4dbce077d4f inherit pub_methods_classgko_1_1EnableAbsoluteComputation"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
 Friends</h2></td></tr>
@@ -420,6 +442,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>Dense&lt; ValueType 
 <tr class="memitem:a3962faf971a3df6ff4c9226c61fb24cc"><td class="memItemLeft" align="right" valign="top"><a id="a3962faf971a3df6ff4c9226c61fb24cc"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>Csr&lt; ValueType, IndexType &gt;</b></td></tr>
 <tr class="separator:a3962faf971a3df6ff4c9226c61fb24cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4658c260e7b12fd89d6d4c2b3d633cb5"><td class="memItemLeft" align="right" valign="top"><a id="a4658c260e7b12fd89d6d4c2b3d633cb5"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>Hybrid&lt; to_complex&lt; ValueType &gt;, IndexType &gt;</b></td></tr>
+<tr class="separator:a4658c260e7b12fd89d6d4c2b3d633cb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a33a2e84dbc49505df306c892f1b812e3"><td class="memItemLeft" align="right" valign="top"><a id="a33a2e84dbc49505df306c892f1b812e3"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>Hybrid&lt; next_precision&lt; ValueType &gt;, IndexType &gt;</b></td></tr>
 <tr class="separator:a33a2e84dbc49505df306c892f1b812e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -445,6 +470,38 @@ class gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a4dcd3d86122716694fd0682d64701a1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4dcd3d86122716694fd0682d64701a1a">&#9670;&nbsp;</a></span>compute_absolute()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;absolute_type&gt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::compute_absolute </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Gets the AbsoluteLinOp. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new absolute object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1EnableAbsoluteComputation.html#ac30ab2b34bfa3e28e3324cb46f5f030a">gko::EnableAbsoluteComputation&lt; remove_complex&lt; Hybrid&lt; ValueType, IndexType &gt; &gt; &gt;</a>.</p>
+
+</div>
+</div>
 <a id="a3a2d9b00dd8b2333b05a97d968dfabff"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3a2d9b00dd8b2333b05a97d968dfabff">&#9670;&nbsp;</a></span>ell_col_at() <span class="overload">[1/2]</span></h2>
 
@@ -1189,8 +1246,38 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 </div>
 </div>
-<a id="a8be764050176291d35e7b4dee1b6e1bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8be764050176291d35e7b4dee1b6e1bc">&#9670;&nbsp;</a></span>get_strategy()</h2>
+<a id="a49f2e04153b44a60e4e9cb1afe1a635b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49f2e04153b44a60e4e9cb1afe1a635b">&#9670;&nbsp;</a></span>get_strategy() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<div class="memtemplate">
+template&lt;typename HybType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;typename HybType::strategy_type&gt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_strategy </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns the current strategy allowed in given hybrid format. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">HybType</td><td>hybrid type</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the strategy </dd></dl>
+
+</div>
+</div>
+<a id="a9a1eabe0a4ca0a6ae0b922b65c938286"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9a1eabe0a4ca0a6ae0b922b65c938286">&#9670;&nbsp;</a></span>get_strategy() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1201,7 +1288,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::shared_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html">strategy_type</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_strategy </td>
+          <td class="memname">std::shared_ptr&lt; typename HybType::strategy_type &gt; <a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::get_strategy </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>

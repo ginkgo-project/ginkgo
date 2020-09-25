@@ -37,6 +37,9 @@ using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{gk
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a61214ecfce8de48207d1e291beb81c61}\label{classgko_1_1matrix_1_1Dense_a61214ecfce8de48207d1e291beb81c61}} 
 using {\bfseries mat\+\_\+data32} = \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$
 \item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7982c70b98f1f7de90f15f72e5f728b5}\label{classgko_1_1matrix_1_1Dense_a7982c70b98f1f7de90f15f72e5f728b5}} 
+using {\bfseries absolute\+\_\+type} = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$
+\item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}\label{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}} 
 using {\bfseries row\+\_\+major\+\_\+range} = \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}}$<$ Value\+Type, 2 $>$ $>$
 \end{DoxyCompactItemize}
@@ -155,6 +158,11 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}{extract\+\_\+diagonal}} () const override
 \begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a0cac589a24090e4fe9a2b31f85830c95}{compute\+\_\+absolute}} () const override
+\begin{DoxyCompactList}\small\item\em Gets the Absolute\+Lin\+Op. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}\label{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}} 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}{compute\+\_\+absolute\+\_\+inplace}} () override
+\begin{DoxyCompactList}\small\item\em Compute absolute inplace on each element. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\+\_\+const\+\_\+values}} () const noexcept
@@ -236,6 +244,9 @@ class {\bfseries Sparsity\+Csr$<$ Value\+Type, int32 $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af1bdb11fa29d77ea4be1ef85d31ab6ec}\label{classgko_1_1matrix_1_1Dense_af1bdb11fa29d77ea4be1ef85d31ab6ec}} 
 class {\bfseries Sparsity\+Csr$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a6671ddb996a2a810738a6ddb29fbe83b}\label{classgko_1_1matrix_1_1Dense_a6671ddb996a2a810738a6ddb29fbe83b}} 
+class {\bfseries Dense$<$ to\+\_\+complex$<$ Value\+Type $>$ $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a71966cce97f4ae0c0ab266cb24430413}\label{classgko_1_1matrix_1_1Dense_a71966cce97f4ae0c0ab266cb24430413}} 
 class {\bfseries Dense$<$ next\+\_\+precision$<$ Value\+Type $>$ $>$}
@@ -432,6 +443,24 @@ a pointer to the new column permuted object
 
 
 Implements \mbox{\hyperlink{classgko_1_1Permutable_a271cdd29fcb10275a348902f1b0926f7}{gko\+::\+Permutable$<$ int64 $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a0cac589a24090e4fe9a2b31f85830c95}\label{classgko_1_1matrix_1_1Dense_a0cac589a24090e4fe9a2b31f85830c95}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!compute\_absolute@{compute\_absolute}}
+\index{compute\_absolute@{compute\_absolute}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute()}{compute\_absolute()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$absolute\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::compute\+\_\+absolute (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Gets the Absolute\+Lin\+Op. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Dense$<$ Value\+Type $>$ $>$ $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_acb568ff44addb095b82bbd2fbe704761}\label{classgko_1_1matrix_1_1Dense_acb568ff44addb095b82bbd2fbe704761}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!compute\_dot@{compute\_dot}}

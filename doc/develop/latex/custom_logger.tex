@@ -107,7 +107,7 @@ Utility function which computes the norm of a Ginkgo \mbox{\hyperlink{classgko_1
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_norm(}
 \DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *b)}
 \DoxyCodeLine{\{}
 \end{DoxyCode}
@@ -154,7 +154,7 @@ Custom logger class which intercepts the residual norm scalar and solution vecto
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
 \DoxyCodeLine{\textcolor{keyword}{struct }ResidualLogger : \mbox{\hyperlink{classgko_1_1log_1_1Logger}{gko::log::Logger}} \{}
-\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -420,7 +420,7 @@ Use some shortcuts. In Ginkgo, vectors are seen as a \mbox{\hyperlink{classgko_1
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
-\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<RealValueType>}};}
@@ -693,7 +693,7 @@ The following is the expected result\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} compute\_norm(}
 \DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *b)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = b-\/>\mbox{\hyperlink{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}{get\_executor}}();}
@@ -706,7 +706,7 @@ The following is the expected result\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
 \DoxyCodeLine{\textcolor{keyword}{struct }ResidualLogger : \mbox{\hyperlink{classgko_1_1log_1_1Logger}{gko::log::Logger}} \{}
-\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keywordtype}{void} \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}()\textcolor{keyword}{ const}}
 \DoxyCodeLine{\textcolor{keyword}{    }\{}
 \DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"Recurrent vs true residual norm:"} << std::endl;}
@@ -781,7 +781,7 @@ The following is the expected result\+:
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
-\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<RealValueType>}};}

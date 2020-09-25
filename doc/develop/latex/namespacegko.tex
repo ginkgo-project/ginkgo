@@ -31,6 +31,8 @@ The Ginkgo namespace.
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
+class \mbox{\hyperlink{classgko_1_1AbsoluteComputable}{Absolute\+Computable}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1AbsoluteComputable}{Absolute\+Computable}} is an interface that allows to get the component wise absolute of a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}} is a generic interface template that enables easy implementation of the abstract factory design pattern. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1AllocationError}{Allocation\+Error}}
@@ -73,6 +75,8 @@ class \mbox{\hyperlink{classgko_1_1DimensionMismatch}{Dimension\+Mismatch}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1DimensionMismatch}{Dimension\+Mismatch}} is thrown if an operation is being applied to Lin\+Ops of incompatible size. \end{DoxyCompactList}\item 
 struct \mbox{\hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type}} mixin is used to create a base implementation of the factory parameters structure. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{Enable\+Absolute\+Computation}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{Enable\+Absolute\+Computation}} mixin provides the default implementations of {\ttfamily compute\+\_\+absolute\+\_\+linop} and the absolute interface. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1EnableAbstractPolymorphicObject}{Enable\+Abstract\+Polymorphic\+Object}}
 \begin{DoxyCompactList}\small\item\em This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new abstract object. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1EnableCreateMethod}{Enable\+Create\+Method}}
@@ -166,11 +170,16 @@ class \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{Writable\+To\+Matrix\+D
 \item 
 {\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Lin\+Op , typename Parameters\+Type , typename Polymorphic\+Base  = Lin\+Op\+Factory$>$ }\\using \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{Enable\+Default\+Lin\+Op\+Factory}} = \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}}$<$ Concrete\+Factory, Concrete\+Lin\+Op, Parameters\+Type, Polymorphic\+Base $>$
 \begin{DoxyCompactList}\small\item\em This is an alias for the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin, which correctly sets the template parameters to enable a subclass of \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}\label{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}} 
-{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}} = typename detail\+::remove\+\_\+complex\+\_\+impl$<$ T $>$\+::type
-\begin{DoxyCompactList}\small\item\em Obtains a real counterpart of a std\+::complex type, and leaves the type unchanged if it is not a complex type. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}} = detail\+::is\+\_\+complex\+\_\+impl$<$ T $>$
 \begin{DoxyCompactList}\small\item\em Allows to check if T is a complex value during compile time by accessing the {\ttfamily value} attribute of this struct. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_a7a3f195040a356643b3e8659554c7a48}{is\+\_\+complex\+\_\+or\+\_\+scalar\+\_\+s}} = detail\+::is\+\_\+complex\+\_\+or\+\_\+scalar\+\_\+impl$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Allows to check if T is a complex or scalar value during compile time by accessing the {\ttfamily value} attribute of this struct. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}} = typename detail\+::remove\+\_\+complex\+\_\+s$<$ T $>$\+::type
+\begin{DoxyCompactList}\small\item\em Obtain the type which removed the complex of complex/scalar type or the template parameter of class by accessing the {\ttfamily type} attribute of this struct. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{to\+\_\+complex}} = typename detail\+::to\+\_\+complex\+\_\+s$<$ T $>$\+::type
+\begin{DoxyCompactList}\small\item\em Obtain the type which adds the complex of complex/scalar type or the template parameter of class by accessing the {\ttfamily type} attribute of this struct. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_ace1eb45b2e5273be609ca5746089d18d}{to\+\_\+real}} = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em to\+\_\+real is alias of remove\+\_\+complex \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}\label{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}} 
 {\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}{next\+\_\+precision}} = typename detail\+::next\+\_\+precision\+\_\+impl$<$ T $>$\+::type
 \begin{DoxyCompactList}\small\item\em Obtains the next type in the singly-\/linked precision list. \end{DoxyCompactList}\item 
@@ -244,6 +253,8 @@ enum \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}{layout\+\_
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{structgko_1_1dim}{dim$<$2$>$}} object with its dimensions swapped. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_a9b3e79911bb6145d7ba865dbe436b915}{is\+\_\+complex}} ()
 \begin{DoxyCompactList}\small\item\em Checks if T is a complex type. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_a6881ebae53e15cb88342c0540d953f59}{is\+\_\+complex\+\_\+or\+\_\+scalar}} ()
+\begin{DoxyCompactList}\small\item\em Checks if T is a complex/scalar type. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr \mbox{\hyperlink{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}{reduce\+\_\+precision}}$<$ T $>$ \mbox{\hyperlink{namespacegko_a5f9c197f1db98fdc874f8907978ad114}{round\+\_\+down}} (T val)
 \begin{DoxyCompactList}\small\item\em Reduces the precision of the input parameter. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr \mbox{\hyperlink{namespacegko_a373c2b4782d95e675d7e91a75bab101d}{increase\+\_\+precision}}$<$ T $>$ \mbox{\hyperlink{namespacegko_ad45d1c855f31d2f8c1d3d799f2cf21c6}{round\+\_\+up}} (T val)
@@ -258,8 +269,6 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 \begin{DoxyCompactList}\small\item\em Returns the multiplicative identity for T. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_ab4f16ecf0a759f46259cf9518f1e4568}{one}} (const T \&)
 \begin{DoxyCompactList}\small\item\em Returns the multiplicative identity for T. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}} (const T \&x)
-\begin{DoxyCompactList}\small\item\em Returns the absolute value of the object. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_af1812df45c6ec07780d579a12b64c753}{max}} (const T \&x, const T \&y)
 \begin{DoxyCompactList}\small\item\em Returns the larger of the arguments. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_aaaf8487194bcb40b528969c187a413a0}{min}} (const T \&x, const T \&y)
@@ -267,12 +276,12 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 {\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}} (const T \&x)
 \begin{DoxyCompactList}\small\item\em Returns the real part of the object. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_a11e23f11f738d46497b5d7fe562f128a}\label{namespacegko_a11e23f11f738d46497b5d7fe562f128a}} 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries real} (const T \&x)
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries real} (const T \&x)
 \item 
 {\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_a0ac423659071783d3b7f8a66ea480f49}{imag}} (const T \&)
 \begin{DoxyCompactList}\small\item\em Returns the imaginary part of the object. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_a41050e9c27c6da9af7a758b03316e403}\label{namespacegko_a41050e9c27c6da9af7a758b03316e403}} 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries imag} (const T \&x)
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries imag} (const T \&x)
 \item 
 {\footnotesize template$<$typename T $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}{conj}} (const T \&x)
 \begin{DoxyCompactList}\small\item\em Returns the conjugate of an object. \end{DoxyCompactList}\item 
@@ -281,6 +290,11 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 \item 
 {\footnotesize template$<$typename T $>$ }\\constexpr auto \mbox{\hyperlink{namespacegko_abbb55709b10d707b2cbef803832aa834}{squared\+\_\+norm}} (const T \&x) -\/$>$ decltype(\mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}}(\mbox{\hyperlink{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}{conj}}(x) $\ast$x))
 \begin{DoxyCompactList}\small\item\em Returns the squared norm of the object. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}} (const T \&x)
+\begin{DoxyCompactList}\small\item\em Returns the absolute value of the object. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespacegko_ac677f1a4d6794c15b200b4a6cc5b1bbd}\label{namespacegko_ac677f1a4d6794c15b200b4a6cc5b1bbd}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries abs} (const T \&x)
+\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{namespacegko_a4eea40e4123a3fdb60fcd92f902c6d6d}{get\+\_\+significant\+\_\+bit}} (const T \&n, \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} hint=0u) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the position of the most significant bit of the number. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_ad39645fe8148a8a812a9528865a77600}{get\+\_\+superior\+\_\+power}} (const T \&base, const T \&limit, const T \&hint=T\{1\}) noexcept
@@ -685,6 +699,24 @@ constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\
 The Ginkgo namespace. 
 
 \doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{namespacegko_a7a3f195040a356643b3e8659554c7a48}\label{namespacegko_a7a3f195040a356643b3e8659554c7a48}} 
+\index{gko@{gko}!is\_complex\_or\_scalar\_s@{is\_complex\_or\_scalar\_s}}
+\index{is\_complex\_or\_scalar\_s@{is\_complex\_or\_scalar\_s}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{is\_complex\_or\_scalar\_s}{is\_complex\_or\_scalar\_s}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+using \mbox{\hyperlink{namespacegko_a7a3f195040a356643b3e8659554c7a48}{gko\+::is\+\_\+complex\+\_\+or\+\_\+scalar\+\_\+s}} = typedef detail\+::is\+\_\+complex\+\_\+or\+\_\+scalar\+\_\+impl$<$T$>$}
+
+
+
+Allows to check if T is a complex or scalar value during compile time by accessing the {\ttfamily value} attribute of this struct. 
+
+If {\ttfamily value} is {\ttfamily true}, T is a complex/scalar type, if it is {\ttfamily false}, T is not a complex/scalar type.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to check \\
+\hline
+\end{DoxyTemplParams}
 \mbox{\Hypertarget{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}\label{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}} 
 \index{gko@{gko}!is\_complex\_s@{is\_complex\_s}}
 \index{is\_complex\_s@{is\_complex\_s}!gko@{gko}}
@@ -701,6 +733,60 @@ If {\ttfamily value} is {\ttfamily true}, T is a complex type, if it is {\ttfami
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em T} & type to check \\
+\hline
+\end{DoxyTemplParams}
+\mbox{\Hypertarget{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}\label{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}} 
+\index{gko@{gko}!remove\_complex@{remove\_complex}}
+\index{remove\_complex@{remove\_complex}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{remove\_complex}{remove\_complex}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+using \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko\+::remove\+\_\+complex}} = typedef typename detail\+::remove\+\_\+complex\+\_\+s$<$T$>$\+::type}
+
+
+
+Obtain the type which removed the complex of complex/scalar type or the template parameter of class by accessing the {\ttfamily type} attribute of this struct. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to remove complex\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyNote}{Note}
+remove\+\_\+complex$<$class$>$ can not be used in friend class declaration. 
+\end{DoxyNote}
+\mbox{\Hypertarget{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}\label{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}} 
+\index{gko@{gko}!to\_complex@{to\_complex}}
+\index{to\_complex@{to\_complex}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{to\_complex}{to\_complex}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+using \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{gko\+::to\+\_\+complex}} = typedef typename detail\+::to\+\_\+complex\+\_\+s$<$T$>$\+::type}
+
+
+
+Obtain the type which adds the complex of complex/scalar type or the template parameter of class by accessing the {\ttfamily type} attribute of this struct. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to complex\+\_\+type\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyNote}{Note}
+to\+\_\+complex$<$class$>$ can not be used in friend class declaration. the followings are the error message from different combination. friend to\+\_\+complex$<$\+Csr$>$; error\+: can not recognize it is class correctly. friend class to\+\_\+complex$<$\+Csr$>$; error\+: using alias template specialization friend class to\+\_\+complex\+\_\+s$<$Csr$<$\+Value\+Type,\+Index\+Type$>$$>$\+::type; error\+: can not recognize it is class correctly. 
+\end{DoxyNote}
+\mbox{\Hypertarget{namespacegko_ace1eb45b2e5273be609ca5746089d18d}\label{namespacegko_ace1eb45b2e5273be609ca5746089d18d}} 
+\index{gko@{gko}!to\_real@{to\_real}}
+\index{to\_real@{to\_real}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{to\_real}{to\_real}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+using \mbox{\hyperlink{namespacegko_ace1eb45b2e5273be609ca5746089d18d}{gko\+::to\+\_\+real}} = typedef \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$T$>$}
+
+
+
+to\+\_\+real is alias of remove\+\_\+complex 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to real \\
 \hline
 \end{DoxyTemplParams}
 
@@ -729,12 +815,12 @@ coordinate&The matrix should be written as a sparse matrix in coordinate format.
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}\label{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}} 
+\mbox{\Hypertarget{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}\label{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}} 
 \index{gko@{gko}!abs@{abs}}
 \index{abs@{abs}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{abs()}{abs()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr T gko\+::abs (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::abs (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
 
 
 
@@ -1250,6 +1336,25 @@ Checks if T is a complex type.
 \end{DoxyTemplParams}
 \begin{DoxyReturn}{Returns}
 {\ttfamily true} if T is a complex type, {\ttfamily false} otherwise 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a6881ebae53e15cb88342c0540d953f59}\label{namespacegko_a6881ebae53e15cb88342c0540d953f59}} 
+\index{gko@{gko}!is\_complex\_or\_scalar@{is\_complex\_or\_scalar}}
+\index{is\_complex\_or\_scalar@{is\_complex\_or\_scalar}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{is\_complex\_or\_scalar()}{is\_complex\_or\_scalar()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr bool gko\+::is\+\_\+complex\+\_\+or\+\_\+scalar (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+
+
+
+Checks if T is a complex/scalar type. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type to check\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyReturn}{Returns}
+{\ttfamily true} if T is a complex/scalar type, {\ttfamily false} otherwise 
 \end{DoxyReturn}
 \mbox{\Hypertarget{namespacegko_a58498d28d199c188555a48fda471f103}\label{namespacegko_a58498d28d199c188555a48fda471f103}} 
 \index{gko@{gko}!is\_finite@{is\_finite}}

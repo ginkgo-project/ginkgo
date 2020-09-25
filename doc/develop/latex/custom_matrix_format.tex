@@ -264,7 +264,7 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
 \DoxyCodeLine{        error +=}
-\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -280,7 +280,7 @@ Some shortcuts
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
-\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -592,7 +592,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
 \DoxyCodeLine{        error +=}
-\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -601,7 +601,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
-\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}

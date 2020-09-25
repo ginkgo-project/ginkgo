@@ -50,6 +50,9 @@ using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a4aeffed616fb42844161bd176f588785}\label{classgko_1_1matrix_1_1Csr_a4aeffed616fb42844161bd176f588785}} 
 using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a6e535707a953fc66bbc22e52f044682a}\label{classgko_1_1matrix_1_1Csr_a6e535707a953fc66bbc22e52f044682a}} 
+using {\bfseries absolute\+\_\+type} = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}} $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
@@ -120,6 +123,11 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the inverse permuted object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a0eac89f0f2fed5da01c009b6b529043e}{extract\+\_\+diagonal}} () const override
 \begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a14ee18194aeed1e6110934e05b5838d0}{compute\+\_\+absolute}} () const override
+\begin{DoxyCompactList}\small\item\em Gets the Absolute\+Lin\+Op. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ab4cc1ed324551291d385d317e75ad256}\label{classgko_1_1matrix_1_1Csr_ab4cc1ed324551291d385d317e75ad256}} 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ab4cc1ed324551291d385d317e75ad256}{compute\+\_\+absolute\+\_\+inplace}} () override
+\begin{DoxyCompactList}\small\item\em Compute absolute inplace on each element. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}\label{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}} 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ac817665ebedfc099180a785d813db8ef}{sort\+\_\+by\+\_\+column\+\_\+index}} ()
 \begin{DoxyCompactList}\small\item\em Sorts all (value, col\+\_\+idx) pairs in each row by column index. \end{DoxyCompactList}\item 
@@ -179,6 +187,9 @@ class {\bfseries Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a2525e707ed335481ff58d5917213de8e}\label{classgko_1_1matrix_1_1Csr_a2525e707ed335481ff58d5917213de8e}} 
 class {\bfseries Csr\+Builder$<$ Value\+Type, Index\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_aac51cfd57c6d3d565c558531f39f3943}\label{classgko_1_1matrix_1_1Csr_aac51cfd57c6d3d565c558531f39f3943}} 
+class {\bfseries Csr$<$ to\+\_\+complex$<$ Value\+Type $>$, Index\+Type $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a04da9bd59b36eaeea2d29de371db98c7}\label{classgko_1_1matrix_1_1Csr_a04da9bd59b36eaeea2d29de371db98c7}} 
 class {\bfseries Csr$<$ next\+\_\+precision$<$ Value\+Type $>$, Index\+Type $>$}
@@ -248,6 +259,24 @@ a pointer to the new column permuted object
 
 
 Implements \mbox{\hyperlink{classgko_1_1Permutable_a271cdd29fcb10275a348902f1b0926f7}{gko\+::\+Permutable$<$ Index\+Type $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a14ee18194aeed1e6110934e05b5838d0}\label{classgko_1_1matrix_1_1Csr_a14ee18194aeed1e6110934e05b5838d0}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!compute\_absolute@{compute\_absolute}}
+\index{compute\_absolute@{compute\_absolute}!gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute()}{compute\_absolute()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$absolute\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::compute\+\_\+absolute (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Gets the Absolute\+Lin\+Op. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Csr$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}\label{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}} 
 \index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!conj\_transpose@{conj\_transpose}}

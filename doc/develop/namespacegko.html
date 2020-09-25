@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/190600934 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/194469452 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -115,6 +115,9 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1AbsoluteComputable.html">AbsoluteComputable</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1AbsoluteComputable.html" title="The AbsoluteComputable is an interface that allows to get the component wise absolute of a LinOp.">AbsoluteComputable</a> is an interface that allows to get the component wise absolute of a <a class="el" href="classgko_1_1LinOp.html">LinOp</a>.  <a href="classgko_1_1AbsoluteComputable.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ...">AbstractFactory</a> is a generic interface template that enables easy implementation of the abstract factory design pattern.  <a href="classgko_1_1AbstractFactory.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -175,6 +178,9 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1enable__parameters__type.html">enable_parameters_type</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">enable_parameters_type</a> mixin is used to create a base implementation of the factory parameters structure.  <a href="structgko_1_1enable__parameters__type.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1EnableAbsoluteComputation.html">EnableAbsoluteComputation</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1EnableAbsoluteComputation.html" title="The EnableAbsoluteComputation mixin provides the default implementations of compute_absolute_linop an...">EnableAbsoluteComputation</a> mixin provides the default implementations of <code>compute_absolute_linop</code> and the absolute interface.  <a href="classgko_1_1EnableAbsoluteComputation.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">EnableAbstractPolymorphicObject</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This mixin inherits from (a subclass of) <a class="el" href="classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...">PolymorphicObject</a> and provides a base implementation of a new abstract object.  <a href="classgko_1_1EnableAbstractPolymorphicObject.html#details">More...</a><br /></td></tr>
@@ -311,15 +317,26 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga24628d477cba68b31cea690572c51912"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="group__LinOp.html#ga24628d477cba68b31cea690572c51912">EnableDefaultLinOpFactory</a> = <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt; ConcreteFactory, ConcreteLinOp, ParametersType, PolymorphicBase &gt;</td></tr>
 <tr class="memdesc:ga24628d477cba68b31cea690572c51912"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory.">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of <a class="el" href="classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another.">LinOpFactory</a>.  <a href="group__LinOp.html#ga24628d477cba68b31cea690572c51912">More...</a><br /></td></tr>
 <tr class="separator:ga24628d477cba68b31cea690572c51912"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adfcb75c44f6b6c701989419c166f6e7e"><td class="memTemplParams" colspan="2"><a id="adfcb75c44f6b6c701989419c166f6e7e"></a>
-template&lt;typename T &gt; </td></tr>
-<tr class="memitem:adfcb75c44f6b6c701989419c166f6e7e"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a> = typename detail::remove_complex_impl&lt; T &gt;::type</td></tr>
-<tr class="memdesc:adfcb75c44f6b6c701989419c166f6e7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a complex type. <br /></td></tr>
-<tr class="separator:adfcb75c44f6b6c701989419c166f6e7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeede19206954d5c8ebd04c95cf63bb88"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:aeede19206954d5c8ebd04c95cf63bb88"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a> = detail::is_complex_impl&lt; T &gt;</td></tr>
 <tr class="memdesc:aeede19206954d5c8ebd04c95cf63bb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to check if T is a complex value during compile time by accessing the <code>value</code> attribute of this struct.  <a href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">More...</a><br /></td></tr>
 <tr class="separator:aeede19206954d5c8ebd04c95cf63bb88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7a3f195040a356643b3e8659554c7a48"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a7a3f195040a356643b3e8659554c7a48"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a7a3f195040a356643b3e8659554c7a48">is_complex_or_scalar_s</a> = detail::is_complex_or_scalar_impl&lt; T &gt;</td></tr>
+<tr class="memdesc:a7a3f195040a356643b3e8659554c7a48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to check if T is a complex or scalar value during compile time by accessing the <code>value</code> attribute of this struct.  <a href="namespacegko.html#a7a3f195040a356643b3e8659554c7a48">More...</a><br /></td></tr>
+<tr class="separator:a7a3f195040a356643b3e8659554c7a48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd46d554050c4ae90e84ea4fcd9a41f3"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:afd46d554050c4ae90e84ea4fcd9a41f3"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a> = typename detail::remove_complex_s&lt; T &gt;::type</td></tr>
+<tr class="memdesc:afd46d554050c4ae90e84ea4fcd9a41f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the type which removed the complex of complex/scalar type or the template parameter of class by accessing the <code>type</code> attribute of this struct.  <a href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">More...</a><br /></td></tr>
+<tr class="separator:afd46d554050c4ae90e84ea4fcd9a41f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc281c8ff5bfa4fd6f25afcce466b1af"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:acc281c8ff5bfa4fd6f25afcce466b1af"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">to_complex</a> = typename detail::to_complex_s&lt; T &gt;::type</td></tr>
+<tr class="memdesc:acc281c8ff5bfa4fd6f25afcce466b1af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the type which adds the complex of complex/scalar type or the template parameter of class by accessing the <code>type</code> attribute of this struct.  <a href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">More...</a><br /></td></tr>
+<tr class="separator:acc281c8ff5bfa4fd6f25afcce466b1af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace1eb45b2e5273be609ca5746089d18d"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ace1eb45b2e5273be609ca5746089d18d"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ace1eb45b2e5273be609ca5746089d18d">to_real</a> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; T &gt;</td></tr>
+<tr class="memdesc:ace1eb45b2e5273be609ca5746089d18d"><td class="mdescLeft">&#160;</td><td class="mdescRight">to_real is alias of remove_complex  <a href="namespacegko.html#ace1eb45b2e5273be609ca5746089d18d">More...</a><br /></td></tr>
+<tr class="separator:ace1eb45b2e5273be609ca5746089d18d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6362f751c7753cf4fa0a4771d56e8ede"><td class="memTemplParams" colspan="2"><a id="a6362f751c7753cf4fa0a4771d56e8ede"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a6362f751c7753cf4fa0a4771d56e8ede"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a6362f751c7753cf4fa0a4771d56e8ede">next_precision</a> = typename detail::next_precision_impl&lt; T &gt;::type</td></tr>
@@ -422,6 +439,10 @@ Functions</h2></td></tr>
 <tr class="memitem:a9b3e79911bb6145d7ba865dbe436b915"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a9b3e79911bb6145d7ba865dbe436b915">is_complex</a> ()</td></tr>
 <tr class="memdesc:a9b3e79911bb6145d7ba865dbe436b915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if T is a complex type.  <a href="namespacegko.html#a9b3e79911bb6145d7ba865dbe436b915">More...</a><br /></td></tr>
 <tr class="separator:a9b3e79911bb6145d7ba865dbe436b915"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6881ebae53e15cb88342c0540d953f59"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a6881ebae53e15cb88342c0540d953f59"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a6881ebae53e15cb88342c0540d953f59">is_complex_or_scalar</a> ()</td></tr>
+<tr class="memdesc:a6881ebae53e15cb88342c0540d953f59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if T is a complex/scalar type.  <a href="namespacegko.html#a6881ebae53e15cb88342c0540d953f59">More...</a><br /></td></tr>
+<tr class="separator:a6881ebae53e15cb88342c0540d953f59"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5f9c197f1db98fdc874f8907978ad114"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a5f9c197f1db98fdc874f8907978ad114"><td class="memTemplItemLeft" align="right" valign="top">constexpr <a class="el" href="namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2">reduce_precision</a>&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a5f9c197f1db98fdc874f8907978ad114">round_down</a> (T val)</td></tr>
 <tr class="memdesc:a5f9c197f1db98fdc874f8907978ad114"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reduces the precision of the input parameter.  <a href="namespacegko.html#a5f9c197f1db98fdc874f8907978ad114">More...</a><br /></td></tr>
@@ -449,10 +470,6 @@ Functions</h2></td></tr>
 <tr class="memitem:ab4f16ecf0a759f46259cf9518f1e4568"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab4f16ecf0a759f46259cf9518f1e4568">one</a> (const T &amp;)</td></tr>
 <tr class="memdesc:ab4f16ecf0a759f46259cf9518f1e4568"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the multiplicative identity for T.  <a href="namespacegko.html#ab4f16ecf0a759f46259cf9518f1e4568">More...</a><br /></td></tr>
 <tr class="separator:ab4f16ecf0a759f46259cf9518f1e4568"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57797fc0a00fd4b7ff34ca4bfc84bc51"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a57797fc0a00fd4b7ff34ca4bfc84bc51"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a> (const T &amp;x)</td></tr>
-<tr class="memdesc:a57797fc0a00fd4b7ff34ca4bfc84bc51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the absolute value of the object.  <a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">More...</a><br /></td></tr>
-<tr class="separator:a57797fc0a00fd4b7ff34ca4bfc84bc51"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af1812df45c6ec07780d579a12b64c753"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:af1812df45c6ec07780d579a12b64c753"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#af1812df45c6ec07780d579a12b64c753">max</a> (const T &amp;x, const T &amp;y)</td></tr>
 <tr class="memdesc:af1812df45c6ec07780d579a12b64c753"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the larger of the arguments.  <a href="namespacegko.html#af1812df45c6ec07780d579a12b64c753">More...</a><br /></td></tr>
@@ -467,7 +484,7 @@ Functions</h2></td></tr>
 <tr class="separator:a85e29870bacc4e660be5acbbf742305e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11e23f11f738d46497b5d7fe562f128a"><td class="memTemplParams" colspan="2"><a id="a11e23f11f738d46497b5d7fe562f128a"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a11e23f11f738d46497b5d7fe562f128a"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>real</b> (const T &amp;x)</td></tr>
+<tr class="memitem:a11e23f11f738d46497b5d7fe562f128a"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>real</b> (const T &amp;x)</td></tr>
 <tr class="separator:a11e23f11f738d46497b5d7fe562f128a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ac423659071783d3b7f8a66ea480f49"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a0ac423659071783d3b7f8a66ea480f49"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0ac423659071783d3b7f8a66ea480f49">imag</a> (const T &amp;)</td></tr>
@@ -475,7 +492,7 @@ template&lt;typename T &gt; </td></tr>
 <tr class="separator:a0ac423659071783d3b7f8a66ea480f49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41050e9c27c6da9af7a758b03316e403"><td class="memTemplParams" colspan="2"><a id="a41050e9c27c6da9af7a758b03316e403"></a>
 template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a41050e9c27c6da9af7a758b03316e403"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>imag</b> (const T &amp;x)</td></tr>
+<tr class="memitem:a41050e9c27c6da9af7a758b03316e403"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>imag</b> (const T &amp;x)</td></tr>
 <tr class="separator:a41050e9c27c6da9af7a758b03316e403"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab0fb2f831ecd3f5549a59e4845bd7110"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ab0fb2f831ecd3f5549a59e4845bd7110"><td class="memTemplItemLeft" align="right" valign="top">std::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab0fb2f831ecd3f5549a59e4845bd7110">conj</a> (const T &amp;x)</td></tr>
@@ -489,6 +506,14 @@ template&lt;typename T &gt; </td></tr>
 <tr class="memitem:abbb55709b10d707b2cbef803832aa834"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#abbb55709b10d707b2cbef803832aa834">squared_norm</a> (const T &amp;x) -&gt; decltype(<a class="el" href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">real</a>(<a class="el" href="namespacegko.html#ab0fb2f831ecd3f5549a59e4845bd7110">conj</a>(x) *x))</td></tr>
 <tr class="memdesc:abbb55709b10d707b2cbef803832aa834"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the squared norm of the object.  <a href="namespacegko.html#abbb55709b10d707b2cbef803832aa834">More...</a><br /></td></tr>
 <tr class="separator:abbb55709b10d707b2cbef803832aa834"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adeb470aaf293d7c5548392b2f451e8e4"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:adeb470aaf293d7c5548392b2f451e8e4"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#adeb470aaf293d7c5548392b2f451e8e4">abs</a> (const T &amp;x)</td></tr>
+<tr class="memdesc:adeb470aaf293d7c5548392b2f451e8e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the absolute value of the object.  <a href="namespacegko.html#adeb470aaf293d7c5548392b2f451e8e4">More...</a><br /></td></tr>
+<tr class="separator:adeb470aaf293d7c5548392b2f451e8e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac677f1a4d6794c15b200b4a6cc5b1bbd"><td class="memTemplParams" colspan="2"><a id="ac677f1a4d6794c15b200b4a6cc5b1bbd"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ac677f1a4d6794c15b200b4a6cc5b1bbd"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>abs</b> (const T &amp;x)</td></tr>
+<tr class="separator:ac677f1a4d6794c15b200b4a6cc5b1bbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4eea40e4123a3fdb60fcd92f902c6d6d"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a4eea40e4123a3fdb60fcd92f902c6d6d"><td class="memTemplItemLeft" align="right" valign="top">constexpr <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a> (const T &amp;n, <a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> hint=0u) noexcept</td></tr>
 <tr class="memdesc:a4eea40e4123a3fdb60fcd92f902c6d6d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the position of the most significant bit of the number.  <a href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">More...</a><br /></td></tr>
@@ -1049,6 +1074,31 @@ constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The Ginkgo namespace. </p>
 </div><h2 class="groupheader">Typedef Documentation</h2>
+<a id="a7a3f195040a356643b3e8659554c7a48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7a3f195040a356643b3e8659554c7a48">&#9670;&nbsp;</a></span>is_complex_or_scalar_s</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko.html#a7a3f195040a356643b3e8659554c7a48">gko::is_complex_or_scalar_s</a> = typedef detail::is_complex_or_scalar_impl&lt;T&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Allows to check if T is a complex or scalar value during compile time by accessing the <code>value</code> attribute of this struct. </p>
+<p>If <code>value</code> is <code>true</code>, T is a complex/scalar type, if it is <code>false</code>, T is not a complex/scalar type.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to check </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aeede19206954d5c8ebd04c95cf63bb88"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aeede19206954d5c8ebd04c95cf63bb88">&#9670;&nbsp;</a></span>is_complex_s</h2>
 
@@ -1068,6 +1118,80 @@ template&lt;typename T &gt; </div>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">T</td><td>type to check </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="afd46d554050c4ae90e84ea4fcd9a41f3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd46d554050c4ae90e84ea4fcd9a41f3">&#9670;&nbsp;</a></span>remove_complex</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">gko::remove_complex</a> = typedef typename detail::remove_complex_s&lt;T&gt;::type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Obtain the type which removed the complex of complex/scalar type or the template parameter of class by accessing the <code>type</code> attribute of this struct. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to remove complex</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>remove_complex&lt;class&gt; can not be used in friend class declaration. </dd></dl>
+
+</div>
+</div>
+<a id="acc281c8ff5bfa4fd6f25afcce466b1af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acc281c8ff5bfa4fd6f25afcce466b1af">&#9670;&nbsp;</a></span>to_complex</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">gko::to_complex</a> = typedef typename detail::to_complex_s&lt;T&gt;::type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Obtain the type which adds the complex of complex/scalar type or the template parameter of class by accessing the <code>type</code> attribute of this struct. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to complex_type</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>to_complex&lt;class&gt; can not be used in friend class declaration. the followings are the error message from different combination. friend to_complex&lt;Csr&gt;; error: can not recognize it is class correctly. friend class to_complex&lt;Csr&gt;; error: using alias template specialization friend class to_complex_s&lt;Csr&lt;ValueType,IndexType&gt;&gt;::type; error: can not recognize it is class correctly. </dd></dl>
+
+</div>
+</div>
+<a id="ace1eb45b2e5273be609ca5746089d18d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace1eb45b2e5273be609ca5746089d18d">&#9670;&nbsp;</a></span>to_real</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko.html#ace1eb45b2e5273be609ca5746089d18d">gko::to_real</a> = typedef <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt;T&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>to_real is alias of remove_complex </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to real </td></tr>
   </table>
   </dd>
 </dl>
@@ -1106,8 +1230,8 @@ template&lt;typename T &gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a57797fc0a00fd4b7ff34ca4bfc84bc51"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a57797fc0a00fd4b7ff34ca4bfc84bc51">&#9670;&nbsp;</a></span>abs()</h2>
+<a id="adeb470aaf293d7c5548392b2f451e8e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adeb470aaf293d7c5548392b2f451e8e4">&#9670;&nbsp;</a></span>abs()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1118,7 +1242,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr T gko::abs </td>
+          <td class="memname">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, T&gt; gko::abs </td>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"><em>x</em></td><td>)</td>
@@ -1996,6 +2120,42 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
+<a id="a6881ebae53e15cb88342c0540d953f59"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6881ebae53e15cb88342c0540d953f59">&#9670;&nbsp;</a></span>is_complex_or_scalar()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool gko::is_complex_or_scalar </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if T is a complex/scalar type. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type to check</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if T is a complex/scalar type, <code>false</code> otherwise </dd></dl>
+
+</div>
+</div>
 <a id="a58498d28d199c188555a48fda471f103"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a58498d28d199c188555a48fda471f103">&#9670;&nbsp;</a></span>is_finite() <span class="overload">[1/2]</span></h2>
 
@@ -2037,7 +2197,7 @@ template&lt;typename T &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the value is finite, meaning it are neither +/- infinity nor NaN. </dd></dl>
 
-<p class="reference">References <a class="el" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs()</a>.</p>
+<p class="reference">References <a class="el" href="namespacegko.html#adeb470aaf293d7c5548392b2f451e8e4">abs()</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="namespacegko.html#a737d84b498f462463fa40846e22aec6d">is_finite()</a>.</p>
 

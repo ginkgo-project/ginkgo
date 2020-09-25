@@ -26,7 +26,11 @@ Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>
 \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae190bc4cfbf6f570e93d9b885093cbb1}{imbalance\+\_\+bounded\+\_\+limit}} (float percent=0.\+8, float ratio=0.\+0001)
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit}{imbalance\+\_\+bounded\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae68c0d740e1424f5cdb3be5919a856b8}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
-\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_a3a4041e90455648ae2da9e6f6ced6ea1}{get\+\_\+percentage}} () const
+\begin{DoxyCompactList}\small\item\em Get the percent setting. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae63efeeecdb8ad40616a73f9e757f2b8}{get\+\_\+ratio}} () const
+\begin{DoxyCompactList}\small\item\em Get the ratio setting. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -69,7 +73,33 @@ References gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalanc
 
 Referenced by gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::automatic\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row().
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_a3a4041e90455648ae2da9e6f6ced6ea1}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_a3a4041e90455648ae2da9e6f6ced6ea1}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit}!get\_percentage@{get\_percentage}}
+\index{get\_percentage@{get\_percentage}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit}}
+\doxysubsubsection{\texorpdfstring{get\_percentage()}{get\_percentage()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+bounded\+\_\+limit\+::get\+\_\+percentage (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
+
+
+Get the percent setting. 
+
+@retrun percent 
+
+References gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::get\+\_\+percentage().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae63efeeecdb8ad40616a73f9e757f2b8}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae63efeeecdb8ad40616a73f9e757f2b8}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit}!get\_ratio@{get\_ratio}}
+\index{get\_ratio@{get\_ratio}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_bounded\_limit}}
+\doxysubsubsection{\texorpdfstring{get\_ratio()}{get\_ratio()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+auto \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+bounded\+\_\+limit\+::get\+\_\+ratio (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the ratio setting. 
+
+@retrun ratio 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 

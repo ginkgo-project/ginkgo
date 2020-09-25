@@ -1,0 +1,49 @@
+\hypertarget{classgko_1_1AbsoluteComputable}{}\doxysection{gko\+::Absolute\+Computable Class Reference}
+\label{classgko_1_1AbsoluteComputable}\index{gko::AbsoluteComputable@{gko::AbsoluteComputable}}
+
+
+The \mbox{\hyperlink{classgko_1_1AbsoluteComputable}{Absolute\+Computable}} is an interface that allows to get the component wise absolute of a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1AbsoluteComputable_a518e50b2b1d88a35acbe4ab25b9fea02}{compute\+\_\+absolute\+\_\+linop}} () const =0
+\begin{DoxyCompactList}\small\item\em Gets the absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1AbsoluteComputable_a09c6acf477a3457b2b2dc0618b406da2}\label{classgko_1_1AbsoluteComputable_a09c6acf477a3457b2b2dc0618b406da2}} 
+virtual void \mbox{\hyperlink{classgko_1_1AbsoluteComputable_a09c6acf477a3457b2b2dc0618b406da2}{compute\+\_\+absolute\+\_\+inplace}} ()=0
+\begin{DoxyCompactList}\small\item\em Compute absolute inplace on each element. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The \mbox{\hyperlink{classgko_1_1AbsoluteComputable}{Absolute\+Computable}} is an interface that allows to get the component wise absolute of a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+Use Enable\+Absolute\+Computation$<$\+Absolute\+Lin\+Op$>$ to implement this interface. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1AbsoluteComputable_a518e50b2b1d88a35acbe4ab25b9fea02}\label{classgko_1_1AbsoluteComputable_a518e50b2b1d88a35acbe4ab25b9fea02}} 
+\index{gko::AbsoluteComputable@{gko::AbsoluteComputable}!compute\_absolute\_linop@{compute\_absolute\_linop}}
+\index{compute\_absolute\_linop@{compute\_absolute\_linop}!gko::AbsoluteComputable@{gko::AbsoluteComputable}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute\_linop()}{compute\_absolute\_linop()}}
+{\footnotesize\ttfamily virtual std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ gko\+::\+Absolute\+Computable\+::compute\+\_\+absolute\+\_\+linop (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Gets the absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ Absolute\+Lin\+Op $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Hybrid$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Sellp$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Dense$<$ Value\+Type $>$ $>$ $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Coo$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Diagonal$<$ Value\+Type $>$ $>$ $>$}}, \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Csr$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}, and \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Ell$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp\end{DoxyCompactItemize}

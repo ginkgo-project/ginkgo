@@ -49,7 +49,7 @@ Some shortcuts
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} precision = std::complex<double>;}
-\DoxyCodeLine{\textcolor{keyword}{using} real\_precision = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<precision>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} real\_precision = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<precision>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<precision>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<real\_precision>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<precision>}};}
@@ -224,7 +224,7 @@ $\vert$$\vert$\+Ax -\/ gx$\vert$$\vert$ $<$ tol $\ast$ g
 \DoxyCodeLine{        tmp-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
 \DoxyCodeLine{        \textcolor{keyword}{auto} res\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec-\/>get\_master(), norm)-\/>get\_values()[0];}
 \DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;}
-\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(g\_val)) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(g\_val)) \{}
 \DoxyCodeLine{            \textcolor{keywordflow}{break};}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{    \}}
@@ -314,7 +314,7 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} precision = std::complex<double>;}
-\DoxyCodeLine{    \textcolor{keyword}{using} real\_precision = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<precision>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} real\_precision = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<precision>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<precision>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} real\_vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<real\_precision>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<precision>}};}
@@ -409,7 +409,7 @@ This is the expected output\+:
 \DoxyCodeLine{        tmp-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
 \DoxyCodeLine{        \textcolor{keyword}{auto} res\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec-\/>get\_master(), norm)-\/>get\_values()[0];}
 \DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;}
-\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(g\_val)) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(g\_val)) \{}
 \DoxyCodeLine{            \textcolor{keywordflow}{break};}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{    \}}

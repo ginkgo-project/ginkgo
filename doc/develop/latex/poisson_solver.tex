@@ -109,17 +109,17 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(}
 \DoxyCodeLine{    \textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *u,}
 \DoxyCodeLine{    Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / static\_cast<ValueType>(discretization\_points + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = static\_cast<ValueType>(i + 1) * h;}
 \DoxyCodeLine{        error +=}
-\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -222,7 +222,7 @@ initialize matrix and vectors
 \DoxyCodeLine{    u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \end{DoxyCode}
 
 
@@ -245,7 +245,7 @@ Generate solver and solve the system
 \DoxyCodeLine{    print\_solution<ValueType>(u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(discretization\_points, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u), correct\_u) /}
-\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(}
 \DoxyCodeLine{                         discretization\_points)}
 \DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{\}}
@@ -382,17 +382,17 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(}
 \DoxyCodeLine{    \textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *u,}
 \DoxyCodeLine{    Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / static\_cast<ValueType>(discretization\_points + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = static\_cast<ValueType>(i + 1) * h;}
 \DoxyCodeLine{        error +=}
-\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
 \DoxyCodeLine{\}}
@@ -451,7 +451,7 @@ This is the expected output\+:
 \DoxyCodeLine{        u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{    cg::build()}
 \DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
 \DoxyCodeLine{                           .with\_max\_iters(discretization\_points)}
@@ -467,7 +467,7 @@ This is the expected output\+:
 \DoxyCodeLine{    print\_solution<ValueType>(u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(discretization\_points, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u), correct\_u) /}
-\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(}
 \DoxyCodeLine{                         discretization\_points)}
 \DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{\}}

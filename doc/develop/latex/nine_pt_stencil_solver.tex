@@ -221,18 +221,18 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
 \DoxyCodeLine{                                               Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (dp + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType j = 0; j < dp; ++j) \{}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(j + 1) * h;}
 \DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType i = 0; i < dp; ++i) \{}
 \DoxyCodeLine{            \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(i + 1) * h;}
 \DoxyCodeLine{            error +=}
-\DoxyCodeLine{                \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[i * dp + j] -\/ correct\_u(xi, yi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi, yi));}
+\DoxyCodeLine{                \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u[i * dp + j] -\/ correct\_u(xi, yi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi, yi));}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
@@ -243,7 +243,7 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 \DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
 \DoxyCodeLine{                  \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points, IndexType *row\_ptrs,}
 \DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
-\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor)}
 \DoxyCodeLine{\{}
 \end{DoxyCode}
 
@@ -449,7 +449,7 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),}
@@ -465,7 +465,7 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
 \DoxyCodeLine{    print\_solution(dp, u.data());}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
-\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_2)}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_2)}
 \DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
 \DoxyCodeLine{              << std::endl;}
@@ -683,18 +683,18 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
-\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
 \DoxyCodeLine{                                               Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (dp + 1);}
-\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType j = 0; j < dp; ++j) \{}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(j + 1) * h;}
 \DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType i = 0; i < dp; ++i) \{}
 \DoxyCodeLine{            \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(i + 1) * h;}
 \DoxyCodeLine{            error +=}
-\DoxyCodeLine{                \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[i * dp + j] -\/ correct\_u(xi, yi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi, yi));}
+\DoxyCodeLine{                \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(u[i * dp + j] -\/ correct\_u(xi, yi)) / \mbox{\hyperlink{namespacegko_adeb470aaf293d7c5548392b2f451e8e4}{abs}}(correct\_u(xi, yi));}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
@@ -705,7 +705,7 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
 \DoxyCodeLine{                  \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points, IndexType *row\_ptrs,}
 \DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
-\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
@@ -804,7 +804,7 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{                            coefs.data());}
 \DoxyCodeLine{    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),}
@@ -820,7 +820,7 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{    print\_solution(dp, u.data());}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
-\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_2)}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_2)}
 \DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
 \DoxyCodeLine{              << std::endl;}

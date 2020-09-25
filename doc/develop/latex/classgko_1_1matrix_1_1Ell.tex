@@ -30,6 +30,9 @@ using {\bfseries index\+\_\+type} = Index\+Type
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a993ff3d650fa2f2c72777b856531163a}\label{classgko_1_1matrix_1_1Ell_a993ff3d650fa2f2c72777b856531163a}} 
 using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_acd351481953bc4482110d5cfe3de43ac}\label{classgko_1_1matrix_1_1Ell_acd351481953bc4482110d5cfe3de43ac}} 
+using {\bfseries absolute\+\_\+type} = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}} $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
@@ -58,6 +61,11 @@ void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee94
 \begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}{extract\+\_\+diagonal}} () const override
 \begin{DoxyCompactList}\small\item\em Extracts the diagonal entries of the matrix into a vector. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a8274458a31460ce87bf8c8a52786bff8}{compute\+\_\+absolute}} () const override
+\begin{DoxyCompactList}\small\item\em Gets the Absolute\+Lin\+Op. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a53f95a9a1b58e2ccff2f0806a675cf08}\label{classgko_1_1matrix_1_1Ell_a53f95a9a1b58e2ccff2f0806a675cf08}} 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a53f95a9a1b58e2ccff2f0806a675cf08}{compute\+\_\+absolute\+\_\+inplace}} () override
+\begin{DoxyCompactList}\small\item\em Compute absolute inplace on each element. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a4028e9629a7d96a7a483e6ea4a686a1d}{get\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a5bc4d3c67b328b353409e76eb9f70803}{get\+\_\+const\+\_\+values}} () const noexcept
@@ -94,6 +102,9 @@ class {\bfseries Dense$<$ Value\+Type $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a3962faf971a3df6ff4c9226c61fb24cc}\label{classgko_1_1matrix_1_1Ell_a3962faf971a3df6ff4c9226c61fb24cc}} 
 class {\bfseries Csr$<$ Value\+Type, Index\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_ae0bf3149d3593c18eab41e41353060ca}\label{classgko_1_1matrix_1_1Ell_ae0bf3149d3593c18eab41e41353060ca}} 
+class {\bfseries Ell$<$ to\+\_\+complex$<$ Value\+Type $>$, Index\+Type $>$}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a89acd0bfc3d7c2054773d8e306a60ced}\label{classgko_1_1matrix_1_1Ell_a89acd0bfc3d7c2054773d8e306a60ced}} 
 class {\bfseries Ell$<$ next\+\_\+precision$<$ Value\+Type $>$, Index\+Type $>$}
@@ -168,6 +179,24 @@ the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{E
 
 
 References gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a8274458a31460ce87bf8c8a52786bff8}\label{classgko_1_1matrix_1_1Ell_a8274458a31460ce87bf8c8a52786bff8}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!compute\_absolute@{compute\_absolute}}
+\index{compute\_absolute@{compute\_absolute}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute()}{compute\_absolute()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::unique\+\_\+ptr$<$absolute\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::compute\+\_\+absolute (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Gets the Absolute\+Lin\+Op. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}{gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Ell$<$ Value\+Type, Index\+Type $>$ $>$ $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}\label{classgko_1_1matrix_1_1Ell_a2c247f0fdadbf1a87045256c56bd8071}} 
 \index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!extract\_diagonal@{extract\_diagonal}}
