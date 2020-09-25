@@ -170,28 +170,28 @@ struct is_complex_or_scalar_impl<std::complex<T>> : std::is_scalar<T> {};
 
 
 /**
- * template_convertor is converting the template parameters of a class by
- * convertor<type>.
+ * template_converter is converting the template parameters of a class by
+ * converter<type>.
  *
- * @tparam  convertor<type> which convert one type to another type
+ * @tparam  converter<type> which convert one type to another type
  * @tparam  T  type
  */
-template <template <typename> class convertor, typename T>
-struct template_convertor {};
+template <template <typename> class converter, typename T>
+struct template_converter {};
 
 /**
- * template_convertor is converting the template parameters of a class by
- * convertor<type>. Converting class<T1, T2, ...> to class<convertor<T1>,
- * convertor<T2>, convertor<...>>.
+ * template_converter is converting the template parameters of a class by
+ * converter<type>. Converting class<T1, T2, ...> to class<converter<T1>,
+ * converter<T2>, converter<...>>.
  *
- * @tparam  convertor<type> which convert one type to another type
+ * @tparam  converter<type> which convert one type to another type
  * @tparam  template <...> T  class template base
  * @tparam  ...Rest  the template parameter of T
  */
-template <template <typename> class convertor, template <typename...> class T,
+template <template <typename> class converter, template <typename...> class T,
           typename... Rest>
-struct template_convertor<convertor, T<Rest...>> {
-    using type = T<typename convertor<Rest>::type...>;
+struct template_converter<converter, T<Rest...>> {
+    using type = T<typename converter<Rest>::type...>;
 };
 
 
@@ -205,8 +205,8 @@ struct remove_complex_s {};
  * @tparam T  complex or scalar type
  */
 template <typename T>
-struct remove_complex_s<
-    T, xstd::void_t<std::enable_if_t<is_complex_or_scalar_impl<T>::value>>> {
+struct remove_complex_s<T,
+                        std::enable_if_t<is_complex_or_scalar_impl<T>::value>> {
     using type = typename detail::remove_complex_impl<T>::type;
 };
 
@@ -218,9 +218,9 @@ struct remove_complex_s<
  */
 template <typename T>
 struct remove_complex_s<
-    T, xstd::void_t<std::enable_if_t<!is_complex_or_scalar_impl<T>::value>>> {
+    T, std::enable_if_t<!is_complex_or_scalar_impl<T>::value>> {
     using type =
-        typename detail::template_convertor<detail::remove_complex_impl,
+        typename detail::template_converter<detail::remove_complex_impl,
                                             T>::type;
 };
 
@@ -235,8 +235,7 @@ struct to_complex_s {};
  * @tparam T  complex or scalar type
  */
 template <typename T>
-struct to_complex_s<
-    T, xstd::void_t<std::enable_if_t<is_complex_or_scalar_impl<T>::value>>> {
+struct to_complex_s<T, std::enable_if_t<is_complex_or_scalar_impl<T>::value>> {
     using type = typename detail::to_complex_impl<T>::type;
 };
 
@@ -247,10 +246,9 @@ struct to_complex_s<
  * @tparam T  class with template parameters
  */
 template <typename T>
-struct to_complex_s<
-    T, xstd::void_t<std::enable_if_t<!is_complex_or_scalar_impl<T>::value>>> {
+struct to_complex_s<T, std::enable_if_t<!is_complex_or_scalar_impl<T>::value>> {
     using type =
-        typename detail::template_convertor<detail::to_complex_impl, T>::type;
+        typename detail::template_converter<detail::to_complex_impl, T>::type;
 };
 
 
@@ -330,14 +328,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex_or_scalar()
 
 
 /**
- * Removes the complex of complex/scalar type or the template parameter of class
- * by accessing the `type` attribute of this struct.
- *
- * @tparam T  type to remove complex
- */
-using detail::remove_complex_s;
-
-/**
  * Obtain the type which removed the complex of complex/scalar type or the
  * template parameter of class by accessing the `type` attribute of this struct.
  *
@@ -346,16 +336,8 @@ using detail::remove_complex_s;
  * @note remove_complex<class> can not be used in friend class declaration.
  */
 template <typename T>
-using remove_complex = typename remove_complex_s<T>::type;
+using remove_complex = typename detail::remove_complex_s<T>::type;
 
-
-/**
- * Add the complex of complex/scalar type or the template parameter of class
- * by accessing the `type` attribute of this struct.
- *
- * @tparam T  type to complex_type
- */
-using detail::to_complex_s;
 
 /**
  * Obtain the type which adds the complex of complex/scalar type or the
@@ -373,16 +355,8 @@ using detail::to_complex_s;
  *         error: can not recognize it is class correctly.
  */
 template <typename T>
-using to_complex = typename to_complex_s<T>::type;
+using to_complex = typename detail::to_complex_s<T>::type;
 
-
-/**
- * to_real_s is alias of remove_complex_s
- *
- * @tparam T  type to real
- */
-template <typename T>
-using to_real_s = remove_complex_s<T>;
 
 /**
  * to_real is alias of remove_complex

@@ -1726,9 +1726,10 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
-    auto row_permute = this->mtx5->row_permute(&permute_idxs);
 
+    auto row_permute = this->mtx5->row_permute(&permute_idxs);
     auto row_permute_dense = static_cast<Mtx *>(row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_dense,
                         l({{-2.0, 2.0, 4.5},
@@ -1747,9 +1748,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
-    auto row_permute = this->mtx4->row_permute(&permute_idxs);
 
+    auto row_permute = this->mtx4->row_permute(&permute_idxs);
     auto row_permute_dense = static_cast<Mtx *>(row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_dense,
                         l({{0.0, 5.0, 0.0},
@@ -1768,9 +1770,10 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
-    auto c_permute = this->mtx5->column_permute(&permute_idxs);
 
+    auto c_permute = this->mtx5->column_permute(&permute_idxs);
     auto c_permute_dense = static_cast<Mtx *>(c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_dense,
                         l({{-1.0, -0.5, 1.0}, {2.0, 4.5, -2.0}, {3.4, 1.2, 2.1}}), r<TypeParam>::value);
@@ -1787,9 +1790,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
-    auto c_permute = this->mtx4->column_permute(&permute_idxs);
 
+    auto c_permute = this->mtx4->column_permute(&permute_idxs);
     auto c_permute_dense = static_cast<Mtx *>(c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_dense,
                         l({{3.0, 2.0, 1.0},
@@ -1809,11 +1813,12 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_row_permute =
         this->mtx5->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_dense =
         static_cast<Mtx *>(inverse_row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_dense,
                         l({{2.1, 3.4, 1.2},
@@ -1832,11 +1837,12 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 0}};
+
     auto inverse_row_permute =
         this->mtx4->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_dense =
         static_cast<Mtx *>(inverse_row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_dense,
                         l({{0.0, 5.0, 0.0},
@@ -1855,10 +1861,11 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_c_permute =
         this->mtx5->inverse_column_permute(&inverse_permute_idxs);
-
     auto inverse_c_permute_dense = static_cast<Mtx *>(inverse_c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_dense,
                         l({{-0.5, 1.0, -1.0},
@@ -1877,10 +1884,11 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_c_permute =
         this->mtx4->inverse_column_permute(&inverse_permute_idxs);
-
     auto inverse_c_permute_dense = static_cast<Mtx *>(inverse_c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_dense,
                         l({{2.0, 1.0, 3.0},
@@ -1899,9 +1907,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable64)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
-    auto row_permute = this->mtx4->row_permute(&permute_idxs);
 
+    auto row_permute = this->mtx4->row_permute(&permute_idxs);
     auto row_permute_dense = static_cast<Mtx *>(row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_dense,
                         l({{0.0, 5.0, 0.0},
@@ -1919,9 +1928,10 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable64)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
-    auto c_permute = this->mtx4->column_permute(&permute_idxs);
 
+    auto c_permute = this->mtx4->column_permute(&permute_idxs);
     auto c_permute_dense = static_cast<Mtx *>(c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_dense,
                         l({{3.0, 2.0, 1.0},
@@ -1940,11 +1950,12 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable64)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 0}};
+
     auto inverse_row_permute =
         this->mtx4->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_dense =
         static_cast<Mtx *>(inverse_row_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_dense,
                         l({{0.0, 5.0, 0.0},
@@ -1962,10 +1973,11 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int64> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_c_permute =
         this->mtx4->inverse_column_permute(&inverse_permute_idxs);
-
     auto inverse_c_permute_dense = static_cast<Mtx *>(inverse_c_permute.get());
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_dense,
                         l({{2.0, 1.0, 3.0},
@@ -1978,6 +1990,7 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 {
     using T = typename TestFixture::value_type;
+
     // clang-format off
     // {1.0, -1.0, -0.5},
     // {-2.0, 2.0, 4.5},
@@ -1996,6 +2009,7 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
 {
     using T = typename TestFixture::value_type;
+
     // clang-format off
     // {1.0, 3.0, 2.0},
     // {0.0, 5.0, 0.0}
@@ -2017,6 +2031,7 @@ TYPED_TEST(Dense, InplaceAbsolute)
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
+
     this->mtx5->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(this->mtx5,
@@ -2028,13 +2043,14 @@ TYPED_TEST(Dense, InplaceAbsolute)
 TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // mtx takes the left top corner 2 x 2 matrix
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
     // clang-format off
     // {1.0, -1.0, -0.5},
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
+    // mtx takes the left top corner 2 x 2 matrix
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+
     mtx->compute_absolute_inplace();
 
     GKO_ASSERT_MTX_NEAR(this->mtx5,
@@ -2051,6 +2067,7 @@ TYPED_TEST(Dense, OutplaceAbsolute)
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
+
     auto abs_mtx = this->mtx5->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx,
@@ -2062,13 +2079,14 @@ TYPED_TEST(Dense, OutplaceAbsolute)
 TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // mtx takes the left top corner 2 x 2 matrix
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
     // clang-format off
     // {1.0, -1.0, -0.5},
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
+    // mtx takes the left top corner 2 x 2 matrix
+    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+
     auto abs_mtx = mtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, l({{1.0, 1.0}, {2.0, 2.0}}),
@@ -2097,6 +2115,7 @@ TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
                                        {T{-2.0, 1.5}, T{4.5, 0.0}},
                                        {T{1.0, 0.0}, T{0.0, 1.0}}},
                                       exec);
+
     auto trans = mtx->conj_transpose();
     auto trans_as_dense = static_cast<Dense *>(trans.get());
 

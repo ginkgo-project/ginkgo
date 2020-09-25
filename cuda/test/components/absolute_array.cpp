@@ -85,6 +85,7 @@ TEST_F(AbsoluteArray, InplaceEqualsReference)
         exec, dvals.get_data(), total_size);
     gko::kernels::reference::components::inplace_absolute_array(
         ref, vals.get_data(), total_size);
+
     GKO_ASSERT_ARRAY_EQ(vals, dvals);
 }
 
@@ -95,6 +96,7 @@ TEST_F(AbsoluteArray, InplaceComplexEqualsReference)
         exec, dcomplex_vals.get_data(), total_size);
     gko::kernels::reference::components::inplace_absolute_array(
         ref, complex_vals.get_data(), total_size);
+
     GKO_ASSERT_ARRAY_EQ(complex_vals, dcomplex_vals);
 }
 
@@ -108,6 +110,7 @@ TEST_F(AbsoluteArray, OutplaceEqualsReference)
         exec, dvals.get_const_data(), total_size, dabs_vals.get_data());
     gko::kernels::reference::components::outplace_absolute_array(
         ref, vals.get_const_data(), total_size, abs_vals.get_data());
+
     GKO_ASSERT_ARRAY_EQ(abs_vals, dabs_vals);
 }
 
@@ -121,6 +124,7 @@ TEST_F(AbsoluteArray, OutplaceComplexEqualsReference)
         exec, dcomplex_vals.get_const_data(), total_size, dabs_vals.get_data());
     gko::kernels::reference::components::outplace_absolute_array(
         ref, complex_vals.get_const_data(), total_size, abs_vals.get_data());
+
     GKO_ASSERT_ARRAY_EQ(abs_vals, dabs_vals);
 }
 

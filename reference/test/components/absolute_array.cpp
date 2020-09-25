@@ -81,8 +81,10 @@ TYPED_TEST_CASE(AbsoluteArray, gko::test::ValueTypes);
 TYPED_TEST(AbsoluteArray, InplaceEqualsExpected)
 {
     using T = typename TestFixture::value_type;
+
     gko::kernels::reference::components::inplace_absolute_array(
         this->ref, this->vals.get_data(), this->total_size);
+
     GKO_ASSERT_ARRAY_EQ(this->vals, this->inplace_expected);
 }
 
@@ -92,9 +94,11 @@ TYPED_TEST(AbsoluteArray, OutplaceEqualsExpected)
     using T = typename TestFixture::value_type;
     using AbsT = typename TestFixture::abs_type;
     gko::Array<AbsT> abs_vals(this->ref, this->total_size);
+
     gko::kernels::reference::components::outplace_absolute_array(
         this->ref, this->vals.get_const_data(), this->total_size,
         abs_vals.get_data());
+
     GKO_ASSERT_ARRAY_EQ(abs_vals, this->outplace_expected);
 }
 

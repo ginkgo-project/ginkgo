@@ -339,8 +339,8 @@ TYPED_TEST(Hybrid, GetCorrectImbalanceLimit)
     auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
     auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
 
-    EXPECT_EQ(mtx_stra->get_percent(), 0.4f);
-    EXPECT_EQ(mtx2_stra->get_percent(), 0.4f);
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4f);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4f);
 }
 
 
@@ -355,9 +355,9 @@ TYPED_TEST(Hybrid, GetCorrectImbalanceBoundedLimit)
     auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
     auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
 
-    EXPECT_EQ(mtx_stra->get_percent(), 0.4f);
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4f);
     EXPECT_EQ(mtx_stra->get_ratio(), 0.1f);
-    EXPECT_EQ(mtx2_stra->get_percent(), 0.4f);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4f);
     EXPECT_EQ(mtx2_stra->get_ratio(), 0.1f);
 }
 
@@ -375,7 +375,7 @@ TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithDifferentHybType)
     auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
     auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
 
-    EXPECT_EQ(mtx2_stra->get_percent(), mtx_stra->get_percent());
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
 }
 
 
@@ -390,7 +390,7 @@ TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithSameHybType)
     auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
     auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
 
-    EXPECT_EQ(mtx2_stra->get_percent(), mtx_stra->get_percent());
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
 }
 
 
