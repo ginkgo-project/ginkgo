@@ -30,38 +30,53 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// We need this struct, because otherwise we would call a __host__ function in a
-// __device__ function (even though it is constexpr)
-template <typename T>
-struct device_numeric_limits {
-    static constexpr auto inf = std::numeric_limits<T>::infinity();
-    static constexpr auto max = std::numeric_limits<T>::max();
-    static constexpr auto min = std::numeric_limits<T>::min();
-};
+#include "core/components/absolute_array.hpp"
 
 
-namespace detail {
+#include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
+namespace gko {
+namespace kernels {
+namespace cuda {
+namespace components {
 
 
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
+constexpr int default_block_size = 512;
 
 
-template <typename T>
-struct is_complex_or_scalar_impl<thrust::complex<T>> : std::is_scalar<T> {};
+#include "common/components/absolute_array.hpp.inc"
 
 
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
+template <typename ValueType>
+void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
+                            ValueType *data, size_type n)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    kernel::inplace_absolute_array_kernel<<<grid_size, block_size, 0, 0>>>(
+        n, as_cuda_type(data));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
-}  // namespace detail
+template <typename ValueType>
+void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
+                             const ValueType *in, size_type n,
+                             remove_complex<ValueType> *out)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    kernel::outplace_absolute_array_kernel<<<grid_size, block_size, 0, 0>>>(
+        n, as_cuda_type(in), as_cuda_type(out));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
+
+
+}  // namespace components
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko

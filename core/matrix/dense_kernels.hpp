@@ -172,6 +172,17 @@ namespace kernels {
                           const matrix::Dense<_vtype> *orig,           \
                           matrix::Diagonal<_vtype> *diag)
 
+#define GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL(_vtype)                    \
+    void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec, \
+                                matrix::Dense<_vtype> *source)
+
+#define GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL(_vtype) \
+    void outplace_absolute_dense(                          \
+        std::shared_ptr<const DefaultExecutor> exec,       \
+        const matrix::Dense<_vtype> *source,               \
+        matrix::Dense<remove_complex<_vtype>> *result)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                       \
@@ -220,7 +231,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType>                                           \
-    GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL(ValueType)
+    GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL(ValueType);                         \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                   \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL(ValueType)
 
 
 namespace omp {

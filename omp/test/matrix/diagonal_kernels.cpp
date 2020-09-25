@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <vector>
 
+
 #include <gtest/gtest.h>
 
 
@@ -245,6 +246,28 @@ TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
     auto dtrans_diag = static_cast<ComplexDiag *>(dtrans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_diag, dtrans_diag, 0);
+}
+
+
+TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->compute_absolute_inplace();
+    ddiag->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 1e-14);
+}
+
+
+TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_diag = diag->compute_absolute();
+    auto dabs_diag = ddiag->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_diag, dabs_diag, 1e-14);
 }
 
 

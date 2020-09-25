@@ -64,19 +64,22 @@ class Dense;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
-                 public EnableCreateMethod<Diagonal<ValueType>>,
-                 public ConvertibleTo<Csr<ValueType, int32>>,
-                 public ConvertibleTo<Csr<ValueType, int64>>,
-                 public Transposable,
-                 public WritableToMatrixData<ValueType, int32>,
-                 public WritableToMatrixData<ValueType, int64>,
-                 public ReadableFromMatrixData<ValueType, int32>,
-                 public ReadableFromMatrixData<ValueType, int64> {
+class Diagonal
+    : public EnableLinOp<Diagonal<ValueType>>,
+      public EnableCreateMethod<Diagonal<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, int32>>,
+      public ConvertibleTo<Csr<ValueType, int64>>,
+      public Transposable,
+      public WritableToMatrixData<ValueType, int32>,
+      public WritableToMatrixData<ValueType, int64>,
+      public ReadableFromMatrixData<ValueType, int32>,
+      public ReadableFromMatrixData<ValueType, int64>,
+      public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Diagonal<to_complex<ValueType>>;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;
@@ -86,6 +89,7 @@ public:
     using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using absolute_type = remove_complex<Diagonal>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -98,6 +102,10 @@ public:
     void convert_to(Csr<ValueType, int64> *result) const override;
 
     void move_to(Csr<ValueType, int64> *result) override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

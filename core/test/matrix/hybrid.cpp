@@ -42,6 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename T>
+struct change_index_s {
+    using type = gko::int32;
+};
+
+template <>
+struct change_index_s<gko::int32> {
+    using type = gko::int64;
+};
+
+
+template <typename T>
+using change_index = typename change_index_s<T>::type;
+
+
 template <typename ValueIndexType>
 class Hybrid : public ::testing::Test {
 protected:
@@ -294,6 +309,104 @@ TYPED_TEST(Hybrid, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectColumnLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::column_limit;
+    using strategy2 = typename Mtx2::column_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(2));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_num_columns(), 2);
+    EXPECT_EQ(mtx2_stra->get_num_columns(), 2);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectImbalanceLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::imbalance_limit;
+    using strategy2 = typename Mtx2::imbalance_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(0.4));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4f);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4f);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectImbalanceBoundedLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::imbalance_bounded_limit;
+    using strategy2 = typename Mtx2::imbalance_bounded_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(0.4, 0.1));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4f);
+    EXPECT_EQ(mtx_stra->get_ratio(), 0.1f);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4f);
+    EXPECT_EQ(mtx2_stra->get_ratio(), 0.1f);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithDifferentHybType)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx2 = gko::matrix::Hybrid<value_type, change_index<index_type>>;
+    using strategy = typename Mtx::minimal_storage_limit;
+    using strategy2 = typename Mtx2::imbalance_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithSameHybType)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = Mtx;
+    using strategy = typename Mtx::minimal_storage_limit;
+    using strategy2 = typename Mtx2::minimal_storage_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectAutomatic)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx2 = Mtx;
+    using strategy = typename Mtx::automatic;
+    using strategy2 = typename Mtx2::automatic;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+
+    ASSERT_NO_THROW(gko::as<strategy2>(mtx->template get_strategy<Mtx2>()));
 }
 
 

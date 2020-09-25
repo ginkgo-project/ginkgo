@@ -30,38 +30,43 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// We need this struct, because otherwise we would call a __host__ function in a
-// __device__ function (even though it is constexpr)
-template <typename T>
-struct device_numeric_limits {
-    static constexpr auto inf = std::numeric_limits<T>::infinity();
-    static constexpr auto max = std::numeric_limits<T>::max();
-    static constexpr auto min = std::numeric_limits<T>::min();
-};
+#include "core/components/absolute_array.hpp"
 
 
-namespace detail {
+namespace gko {
+namespace kernels {
+namespace omp {
+namespace components {
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
+template <typename ValueType>
+void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
+                            ValueType *data, size_type n)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < n; ++i) {
+        data[i] = abs(data[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
+template <typename ValueType>
+void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
+                             const ValueType *in, size_type n,
+                             remove_complex<ValueType> *out)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < n; ++i) {
+        out[i] = abs(in[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
-template <typename T>
-struct is_complex_or_scalar_impl<thrust::complex<T>> : std::is_scalar<T> {};
-
-
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
-
-
-}  // namespace detail
+}  // namespace components
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko

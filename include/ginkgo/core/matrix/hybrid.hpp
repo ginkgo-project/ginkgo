@@ -76,11 +76,15 @@ class Hybrid
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType> {
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Hybrid<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Hybrid<to_complex<ValueType>, IndexType>;
+
 
 public:
     using EnableLinOp<Hybrid>::convert_to;
@@ -91,6 +95,8 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
+    using absolute_type = remove_complex<Hybrid>;
+
 
     /**
      * strategy_type is to decide how to set the hybrid config. It
@@ -212,6 +218,13 @@ public:
             return num_columns_;
         }
 
+        /**
+         * Get the number of columns limit
+         *
+         * @return the number of columns limit
+         */
+        auto get_num_columns() const { return num_columns_; }
+
     private:
         size_type num_columns_;
     };
@@ -254,6 +267,13 @@ public:
             }
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() const { return percent_; }
+
     private:
         float percent_;
     };
@@ -282,6 +302,20 @@ public:
                             static_cast<size_type>(num_rows * ratio_));
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() const { return strategy_.get_percentage(); }
+
+        /**
+         * Get the ratio setting
+         *
+         * @retrun ratio
+         */
+        auto get_ratio() const { return ratio_; }
+
     private:
         imbalance_limit strategy_;
         float ratio_;
@@ -309,6 +343,13 @@ public:
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
+
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
@@ -356,6 +397,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the ell part.
@@ -572,6 +617,16 @@ public:
     }
 
     /**
+     * Returns the current strategy allowed in given hybrid format
+     *
+     * @tparam HybType  hybrid type
+     *
+     * @return the strategy
+     */
+    template <typename HybType>
+    std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
+
+    /**
      * Copies data from another Hybrid.
      *
      * @param other  the Hybrid to copy from
@@ -687,6 +742,48 @@ private:
     std::shared_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
 };
+
+
+template <typename ValueType, typename IndexType>
+template <typename HybType>
+std::shared_ptr<typename HybType::strategy_type>
+Hybrid<ValueType, IndexType>::get_strategy() const
+{
+    static_assert(
+        std::is_same<HybType, Hybrid<typename HybType::value_type,
+                                     typename HybType::index_type>>::value,
+        "The given `HybType` type must be of type `matrix::Hybrid`!");
+
+    std::shared_ptr<typename HybType::strategy_type> strategy;
+    if (std::dynamic_pointer_cast<automatic>(strategy_)) {
+        strategy = std::make_shared<typename HybType::automatic>();
+    } else if (auto temp = std::dynamic_pointer_cast<minimal_storage_limit>(
+                   strategy_)) {
+        // minimal_storage_limit is related to ValueType and IndexType size.
+        if (sizeof(value_type) == sizeof(typename HybType::value_type) &&
+            sizeof(index_type) == sizeof(typename HybType::index_type)) {
+            strategy =
+                std::make_shared<typename HybType::minimal_storage_limit>();
+        } else {
+            strategy = std::make_shared<typename HybType::imbalance_limit>(
+                temp->get_percentage());
+        }
+    } else if (auto temp = std::dynamic_pointer_cast<imbalance_bounded_limit>(
+                   strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_bounded_limit>(
+            temp->get_percentage(), temp->get_ratio());
+    } else if (auto temp =
+                   std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_limit>(
+            temp->get_percentage());
+    } else if (auto temp = std::dynamic_pointer_cast<column_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::column_limit>(
+            temp->get_num_columns());
+    } else {
+        GKO_NOT_SUPPORTED(strategy_);
+    }
+    return strategy;
+}
 
 
 }  // namespace matrix

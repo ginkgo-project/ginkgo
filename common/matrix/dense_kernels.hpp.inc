@@ -510,4 +510,33 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void inplace_absolute_dense(
+    size_type num_rows, size_type num_cols, ValueType *__restrict__ data,
+    size_type stride)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    auto row = tidx / num_cols;
+    auto col = tidx % num_cols;
+    if (row < num_rows) {
+        data[row * stride + col] = abs(data[row * stride + col]);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void outplace_absolute_dense(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
+    size_type stride_in, remove_complex<ValueType> *__restrict__ out,
+    size_type stride_out)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    auto row = tidx / num_cols;
+    auto col = tidx % num_cols;
+    if (row < num_rows) {
+        out[row * stride_out + col] = abs(in[row * stride_in + col]);
+    }
+}
+
+
 }  // namespace kernel

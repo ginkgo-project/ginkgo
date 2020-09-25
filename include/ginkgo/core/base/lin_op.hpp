@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -621,6 +622,60 @@ public:
     virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
         const = 0;
 };
+
+
+/**
+ * The AbsoluteComputable is an interface that allows to get the component wise
+ * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
+ * implement this interface.
+ */
+class AbsoluteComputable {
+public:
+    /**
+     * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute LinOp
+     */
+    virtual std::unique_ptr<LinOp> compute_absolute_linop() const = 0;
+
+    /**
+     * Compute absolute inplace on each element.
+     */
+    virtual void compute_absolute_inplace() = 0;
+};
+
+
+/**
+ * The EnableAbsoluteComputation mixin provides the default implementations of
+ * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
+ * a new AbsoluteLinOp. `compute_absolute_inplace` applies absolute
+ * inplace, so it still keeps the value_type of the class.
+ *
+ * @tparam AbsoluteLinOp  the absolute LinOp which is being returned
+ *                        [CRTP parameter]
+ *
+ * @ingroup LinOp
+ */
+template <typename AbsoluteLinOp>
+class EnableAbsoluteComputation : public AbsoluteComputable {
+public:
+    using absolute_type = AbsoluteLinOp;
+
+    virtual ~EnableAbsoluteComputation() = default;
+
+    std::unique_ptr<LinOp> compute_absolute_linop() const override
+    {
+        return this->compute_absolute();
+    }
+
+    /**
+     * Gets the AbsoluteLinOp
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
+};
+
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations

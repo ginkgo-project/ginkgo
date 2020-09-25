@@ -30,38 +30,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// We need this struct, because otherwise we would call a __host__ function in a
-// __device__ function (even though it is constexpr)
-template <typename T>
-struct device_numeric_limits {
-    static constexpr auto inf = std::numeric_limits<T>::infinity();
-    static constexpr auto max = std::numeric_limits<T>::max();
-    static constexpr auto min = std::numeric_limits<T>::min();
-};
+namespace kernel {
 
 
-namespace detail {
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void inplace_absolute_array_kernel(
+        const size_type n, ValueType *__restrict__ array)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < n) {
+        array[tidx] = abs(array[tidx]);
+    }
+}
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void outplace_absolute_array_kernel(
+        const size_type n, const ValueType *__restrict__ in,
+        remove_complex<ValueType> *__restrict__ out)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < n) {
+        out[tidx] = abs(in[tidx]);
+    }
+}
 
 
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
-
-
-template <typename T>
-struct is_complex_or_scalar_impl<thrust::complex<T>> : std::is_scalar<T> {};
-
-
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
-
-
-}  // namespace detail
+}  // namespace kernel

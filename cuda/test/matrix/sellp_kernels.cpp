@@ -350,4 +350,26 @@ TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
 }
 
 
+TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_matrix(32, 2);
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+}
+
+
 }  // namespace

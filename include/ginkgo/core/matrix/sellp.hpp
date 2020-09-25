@@ -72,11 +72,14 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType> {
+              public WritableToMatrixData<ValueType, IndexType>,
+              public EnableAbsoluteComputation<
+                  remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Sellp<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Sellp>::convert_to;
@@ -85,6 +88,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using absolute_type = remove_complex<Sellp>;
 
     friend class Sellp<next_precision<ValueType>, IndexType>;
 
@@ -106,6 +110,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.

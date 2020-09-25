@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
@@ -52,6 +53,10 @@ GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
 GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
 GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace diagonal
@@ -258,6 +263,32 @@ template <typename ValueType>
 void Diagonal<ValueType>::write(mat_data32 &data) const
 {
     write_impl(this, data);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(diagonal::make_inplace_absolute_array(this->get_values(),
+                                                    this->get_size()[0]));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Diagonal<ValueType>::absolute_type>
+Diagonal<ValueType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_diagonal = absolute_type::create(exec, this->get_size()[0]);
+
+    exec->run(diagonal::make_outplace_absolute_array(
+        this->get_const_values(), this->get_size()[0],
+        abs_diagonal->get_values()));
+
+    return abs_diagonal;
 }
 
 
