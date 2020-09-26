@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/base/global_constant.hpp"
 #include "core/solver/bicg_kernels.hpp"
 
 
@@ -116,7 +117,8 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto exec = this->get_executor();
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    // auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto one_op = global_constant<ValueType>::one(exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto dense_b = as<const Vector>(b);

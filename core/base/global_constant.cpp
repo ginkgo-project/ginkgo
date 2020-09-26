@@ -33,21 +33,41 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/global_constant.hpp"
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 namespace gko {
 
 
-template <>
-detail::device_executor_storage<CudaExecutor, 64, double>
-    global_constant<double>::cuda_storage;
-template <>
-detail::host_executor_storage<OmpExecutor, double>
-    global_constant<double>::omp_storage;
-template <>
-detail::host_executor_storage<ReferenceExecutor, double>
-    global_constant<double>::ref_storage;
-template <>
-detail::device_executor_storage<HipExecutor, 64, double>
-    global_constant<double>::hip_storage;
+template <typename T>
+detail::device_executor_storage<CudaExecutor, 64, T>
+    global_constant<T>::cuda_storage;
+
+
+template <typename T>
+detail::host_executor_storage<OmpExecutor, T> global_constant<T>::omp_storage;
+
+
+template <typename T>
+detail::host_executor_storage<ReferenceExecutor, T>
+    global_constant<T>::ref_storage;
+
+
+template <typename T>
+detail::device_executor_storage<HipExecutor, 64, T>
+    global_constant<T>::hip_storage;
+
+
+template <typename T>
+bool global_constant<T>::register_deleter = false;
+
+
+template <typename T>
+std::mutex global_constant<T>::mutex;
+
+
+#define GKO_DECLARE_GLOBAL_CONSTANT(_type) class global_constant<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GLOBAL_CONSTANT);
 
 
 }  // namespace gko
