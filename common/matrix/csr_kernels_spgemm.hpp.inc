@@ -34,6 +34,15 @@ constexpr auto spgemm_block_size = 64;
 constexpr auto spgemm_child_count = 4;
 
 
+// find the position of the rank'th 1 bit in mask (0-based)
+__forceinline__ __device__ int bitmask_select(config::lane_mask_type mask,
+                                              int rank)
+{
+    return synchronous_fixed_binary_search<config::warp_size>(
+        [&](int i) { return popcnt(mask & prefix_mask(i + 1)) >= rank + 1; });
+}
+
+
 template <typename ValueType, typename IndexType>
 struct memory_row_accessor {
     __device__ memory_row_accessor(const ValueType *val, const IndexType *idx,
@@ -289,12 +298,11 @@ __device__ IndexType count_merge_nway(AAccessor a, IndexType a_size,
         b_begin = b_row_ptrs[a_col];
         b_end = b_row_ptrs[a_col + 1];
     }
-    // the last column from the previous iteration
-    IndexType last_col{-1};
 
     IndexType c_nnz{};
     while (warp.any(b_begin < b_end)) {
-        config::lane_mask_type advance_mask;
+        config::lane_mask_type new_advance_mask{};
+        config::lane_mask_type old_advance_mask{};
         auto b_cur_begin = warp.shfl(b_begin, 0);
         auto b_cur_end = warp.shfl(b_end, 0);
         auto col =
@@ -304,25 +312,49 @@ __device__ IndexType count_merge_nway(AAccessor a, IndexType a_size,
                                         warp.shfl(b_end, i), sentinel);
             auto merge_result =
                 group_merge_step<config::warp_size>(new_col, col, warp);
-            if (lane == i) {
-                advance_mask = merge_result.a_less_b_mask;
+            if (max(merge_result.a_val, merge_result.b_val) == sentinel - 1) {
+                // spread poison
+                merge_result.a_val = sentinel - 1;
+                merge_result.b_val = sentinel - 1;
             }
+            auto mismatch_mask =
+                warp.ballot(merge_result.a_val != merge_result.b_val);
             col = min(merge_result.a_val, merge_result.b_val);
+            // 1 bit for every new column index
+            auto new_column_mask = (mismatch_mask << 1) | 1;
+            auto new_column_count = popcnt(new_column_mask);
+            auto compressed_idx = bitmask_select(new_column_mask, lane);
+            auto new_le_old_mask = merge_result.a_less_b_mask | ~mismatch_mask;
+            auto new_ge_old_mask = ~merge_result.a_less_b_mask | ~mismatch_mask;
+            // compress column indices to remove duplicates
+            col = warp.shfl(col, compressed_idx);
+            // "poison" the remaining entries
+            if (lane >= new_column_count) {
+                col = sentinel - 1;
+            }
+            // compress new_?e_old_mask and store
+            auto compressed_new_advance =
+                warp.ballot(((new_le_old_mask >> compressed_idx) & 1) &&
+                            lane < new_column_count && col != sentinel - 1);
+            auto compressed_old_advance =
+                warp.ballot(((new_ge_old_mask >> compressed_idx) & 1) &&
+                            lane < new_column_count && col != sentinel - 1);
+            if (lane == i) {
+                new_advance_mask = compressed_new_advance;
+                old_advance_mask = compressed_old_advance;
+            }
         }
-        auto prev_col = warp.shfl_up(col, 1);
-        if (lane == 0) {
-            prev_col = last_col;
-        }
-        last_col = warp.shfl(col, config::warp_size - 1);
-        c_nnz += popcnt(warp.ballot(col != prev_col && col != sentinel));
+        c_nnz += popcnt(warp.ballot(col < sentinel - 1));
         // advance indices by the number of consumed elements
         auto rest_advance = config::warp_size;
         for (int i = a_size - 1; i > 0; --i) {
-            auto local_advance =
-                popcnt(warp.shfl(advance_mask, i) & prefix_mask(rest_advance));
-            rest_advance -= local_advance;
+            auto cur_prefix_mask = prefix_mask(rest_advance);
+            auto local_new_advance =
+                popcnt(warp.shfl(new_advance_mask, i) & cur_prefix_mask);
+            rest_advance =
+                popcnt(warp.shfl(old_advance_mask, i) & cur_prefix_mask);
             if (lane == i) {
-                b_begin += local_advance;
+                b_begin += local_new_advance;
             }
         }
         if (lane == 0) {
@@ -356,11 +388,10 @@ __device__ void merge_nway(AAccessor a, IndexType a_size,
         b_begin = b_row_ptrs[a_col];
         b_end = b_row_ptrs[a_col + 1];
     }
-    // the last column from the previous iteration
-    IndexType last_col{-1};
 
     while (warp.any(b_begin < b_end)) {
-        config::lane_mask_type advance_mask{};
+        config::lane_mask_type new_advance_mask{};
+        config::lane_mask_type old_advance_mask{};
         auto b_cur_begin = warp.shfl(b_begin, 0);
         auto b_cur_end = warp.shfl(b_end, 0);
         auto a_cur_val = warp.shfl(a_val, 0);
@@ -379,9 +410,13 @@ __device__ void merge_nway(AAccessor a, IndexType a_size,
                                          zero<ValueType>());
             auto merge_result =
                 group_merge_step<config::warp_size>(new_col, col, warp);
-            if (lane == i) {
-                advance_mask = merge_result.a_less_b_mask;
+            if (max(merge_result.a_val, merge_result.b_val) == sentinel - 1) {
+                // spread poison
+                merge_result.a_val = sentinel - 1;
+                merge_result.b_val = sentinel - 1;
             }
+            auto mismatch_mask =
+                warp.ballot(merge_result.a_val != merge_result.b_val);
             col = min(merge_result.a_val, merge_result.b_val);
             new_val = warp.shfl(new_val, merge_result.a_idx);
             val = warp.shfl(val, merge_result.b_idx);
@@ -392,36 +427,49 @@ __device__ void merge_nway(AAccessor a, IndexType a_size,
                                  ? one<ValueType>()
                                  : zero<ValueType>();
             val = geq_scale * val + leq_scale * new_val;
-        }
-        auto prev_col = warp.shfl_up(col, 1);
-        if (lane == 0) {
-            prev_col = last_col;
-            // take care of the case when a column value was only partially
-            // computed within an iteration.
-            // this can only happen once to each col since we merge <= 32
-            // rows
-            if (prev_col == col) {
-                // why is this not necessary?
-                // c_vals[c_nz - 1] += val;
+            // 1 bit for every new column index
+            auto new_column_mask = (mismatch_mask << 1) | 1;
+            auto new_column_count = popcnt(new_column_mask);
+            auto compressed_idx = bitmask_select(new_column_mask, lane);
+            auto new_le_old_mask = merge_result.a_less_b_mask | ~mismatch_mask;
+            auto new_ge_old_mask = ~merge_result.a_less_b_mask | ~mismatch_mask;
+            // compress column indices to remove duplicates
+            col = warp.shfl(col, compressed_idx);
+            val = warp.shfl(val, compressed_idx);
+            // "poison" the remaining entries
+            if (lane >= new_column_count) {
+                col = sentinel - 1;
+            }
+            // compress new_?e_old_mask and store
+            auto compressed_new_advance =
+                warp.ballot(((new_le_old_mask >> compressed_idx) & 1) &&
+                            lane < new_column_count && col != sentinel - 1);
+            auto compressed_old_advance =
+                warp.ballot(((new_ge_old_mask >> compressed_idx) & 1) &&
+                            lane < new_column_count && col != sentinel - 1);
+            if (lane == i) {
+                new_advance_mask = compressed_new_advance;
+                old_advance_mask = compressed_old_advance;
             }
         }
-        last_col = warp.shfl(col, config::warp_size - 1);
-        auto output = col != prev_col && col != sentinel;
+        auto output = col < sentinel - 1;
         auto output_mask = warp.ballot(output);
         if (output) {
             auto c_idx = c_nz + popcnt(output_mask & prefix_mask(lane));
             c_cols[c_idx] = col;
             c_vals[c_idx] = val;
         }
-        c_nz += popcnt(warp.ballot(col != prev_col && col != sentinel));
+        c_nz += popcnt(output_mask);
         // advance indices by the number of consumed elements
         auto rest_advance = config::warp_size;
         for (int i = a_size - 1; i > 0; --i) {
-            auto local_advance =
-                popcnt(warp.shfl(advance_mask, i) & prefix_mask(rest_advance));
-            rest_advance -= local_advance;
+            auto cur_prefix_mask = prefix_mask(rest_advance);
+            auto local_new_advance =
+                popcnt(warp.shfl(new_advance_mask, i) & cur_prefix_mask);
+            rest_advance =
+                popcnt(warp.shfl(old_advance_mask, i) & cur_prefix_mask);
             if (lane == i) {
-                b_begin += local_advance;
+                b_begin += local_new_advance;
             }
         }
         if (lane == 0) {
@@ -442,8 +490,8 @@ __device__ IndexType spgemm_count_dispatch(
         auto a_col = a.col(0);
         return b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
     } else {
-        // count = count_merge_nway(a, a_size, b_row_ptrs, b_cols);
-        return count_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols);
+        return count_merge_nway(a, a_size, b_row_ptrs, b_cols);
+        // return count_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols);
     }
 }
 
@@ -462,10 +510,9 @@ __device__ void spgemm_merge_dispatch(AAccessor a, IndexType a_size,
     } else if (a_size == 1) {
         copy_row(a, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
     } else {
-        // merge_nway(a, a_size, b_row_ptrs, b_cols, b_vals, c_nz, c_cols,
-        // c_vals);
-        merge_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols, b_vals, c_nz,
-                    c_cols, c_vals);
+        merge_nway(a, a_size, b_row_ptrs, b_cols, b_vals, c_nz, c_cols, c_vals);
+        // merge_dense(a, a_size, IndexType{}, b_row_ptrs, b_cols, b_vals, c_nz,
+        //            c_cols, c_vals);
     }
 }
 
