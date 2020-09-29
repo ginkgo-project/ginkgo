@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
     long unsigned num_iters = 1000000;
     if (argc > 2) {
-        print_usage_and_exit("executable");
+        print_usage_and_exit(argv[0]);
     }
     if (argc == 2) {
         num_iters = std::atol(argv[1]);
