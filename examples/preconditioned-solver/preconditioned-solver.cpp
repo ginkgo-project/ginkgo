@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
-        std::cerr << "Usage: executable [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
 
