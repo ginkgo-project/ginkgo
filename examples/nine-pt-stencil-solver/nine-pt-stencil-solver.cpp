@@ -296,12 +296,6 @@ int main(int argc, char *argv[])
 {
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
-
-    if (argc < 2) {
-        std::cout << "Usage: executable DISCRETIZATION_POINTS [executor]"
-                  << " [stencil_alpha] [stencil_beta] [stencil_gamma]"
-                  << std::endl;
-    }
     using ValueType = double;
     using IndexType = int;
 
@@ -314,7 +308,7 @@ int main(int argc, char *argv[])
     // clang-format off
     std::array<ValueType, 9> coefs{
         gamma_c, beta_c, gamma_c,
-	      beta_c, alpha_c, beta_c,
+	    beta_c, alpha_c, beta_c,
         gamma_c, beta_c, gamma_c};
     // clang-format on
 
