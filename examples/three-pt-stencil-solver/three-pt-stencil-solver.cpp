@@ -235,11 +235,6 @@ int main(int argc, char *argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    if (argc < 2) {
-        std::cout << "Usage: executable DISCRETIZATION_POINTS [executor]"
-                  << std::endl;
-    }
-
     const IndexType discretization_points =
         argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";

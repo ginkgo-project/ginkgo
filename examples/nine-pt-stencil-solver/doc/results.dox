@@ -3,7 +3,6 @@ The expected output should be
 
 @code{.cpp}
 
-Usage: executable DISCRETIZATION_POINTS [executor] [stencil_alpha] [stencil_beta] [stencil_gamma]
 The average relative error is 6.35715e-06
 The runtime is 167.320520 ms
 
