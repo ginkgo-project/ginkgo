@@ -220,36 +220,35 @@ DEFINE_string(
     "random values, at most -rowlength non-zeros per row\ndense: B is a "
     "'dense' sparse matrix with -rowlength columns and non-zeros per row");
 
+// workaround as #ifdefs are disallowed inside string literals in some compilers
+#ifdef GKO_SPGEMM_HAS_NSPARSE
+#define GKO_SPGEMM_STRATEGY_NSPARSE ",nsparse"
+#else
+#define GKO_SPGEMM_STRATEGY_NSPARSE ""
+#endif
+#ifdef GKO_SPGEMM_HAS_ACSPGEMM
+#define GKO_SPGEMM_STRATEGY_ACSPGEMM ",acspgemm"
+#else
+#define GKO_SPGEMM_STRATEGY_ACSPGEMM ""
+#endif
+#ifdef GKO_SPGEMM_HAS_SPECK
+#define GKO_SPGEMM_STRATEGY_SPECK ",speck"
+#else
+#define GKO_SPGEMM_STRATEGY_SPECK ""
+#endif
+#ifdef GKO_SPGEMM_HAS_KOKKOS
+#define GKO_SPGEMM_STRATEGY_KOKKOS ",kokkos"
+#else
+#define GKO_SPGEMM_STRATEGY_KOKKOS ""
+#endif
+#define GKO_SPGEMM_STRATEGY_STR                                \
+    "multipass,sparselib" GKO_SPGEMM_STRATEGY_NSPARSE          \
+        GKO_SPGEMM_STRATEGY_ACSPGEMM GKO_SPGEMM_STRATEGY_SPECK \
+            GKO_SPGEMM_STRATEGY_KOKKOS
 
-DEFINE_string(strategies,
-              "multipass,sparselib"
-#ifdef GKO_SPGEMM_HAS_NSPARSE
-              ",nsparse"
-#endif
-#ifdef GKO_SPGEMM_HAS_ACSPGEMM
-              ",acspgemm"
-#endif
-#ifdef GKO_SPGEMM_HAS_SPECK
-              ",speck"
-#endif
-#ifdef GKO_SPGEMM_HAS_KOKKOS
-              ",kokkos"
-#endif
-              ,
-              "Comma-separated list of SpGEMM strategies: multipass, sparselib"
-#ifdef GKO_SPGEMM_HAS_NSPARSE
-              ", nsparse"
-#endif
-#ifdef GKO_SPGEMM_HAS_ACSPGEMM
-              ", acspgemm"
-#endif
-#ifdef GKO_SPGEMM_HAS_SPECK
-              ", speck"
-#endif
-#ifdef GKO_SPGEMM_HAS_KOKKOS
-              ", kokkos"
-#endif
-);
+DEFINE_string(strategies, GKO_SPGEMM_STRATEGY_STR,
+              "Comma-separated list of SpGEMM strategies: "
+              "multipass,sparselib" GKO_SPGEMM_STRATEGY_STR);
 
 
 DEFINE_bool(compute_work, false, "Compute FLOP and nnz count of the SpGEMM");
