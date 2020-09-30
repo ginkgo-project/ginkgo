@@ -83,12 +83,13 @@ endif()
 
 # To build with Kokkos, you need to set CMAKE_CXX_COMPILER=/path/to/kokkos/bin/nvcc_wrapper
 if (GINKGO_SPGEMM_BUILD_KOKKOS)
-    set(Kokkos_ENABLE_CUDA ON)
-    set(Kokkos_ARCH_VOLTA70 ON)
-    set(Kokkos_ENABLE_CUDA_LAMBDA ON)
-    set(Kokkos_CXX_STANDARD 14)
+    set(Kokkos_ENABLE_CUDA ON CACHE BOOL "")
+    set(Kokkos_ARCH_VOLTA70 ON CACHE BOOL "")
+    set(Kokkos_ENABLE_CUDA_LAMBDA ON CACHE "")
+    set(Kokkos_CXX_STANDARD 14 CACHE ON "")
+    
     add_subdirectory(kokkos)
-    set(KokkosKernels_REQUIRE_DEVICES CUDA)
+    set(KokkosKernels_REQUIRE_DEVICES CUDA CACHE ON "")
     add_subdirectory(kokkos-kernels)
     add_library(spgemm-wrapper-kokkos kokkos_wrapper.cpp)
     target_link_libraries(spgemm-wrapper-kokkos ginkgo Kokkos::kokkoskernels)
