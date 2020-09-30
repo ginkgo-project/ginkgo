@@ -229,13 +229,15 @@ namespace detail {
 
 // tests if the cast operator to `ValueType` is present
 template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_cast_operator : std::false_type {};
+struct has_cast_operator : std::false_type {
+};
 
 template <typename Ref, typename ValueType>
 struct has_cast_operator<
     Ref, ValueType,
     xstd::void_t<decltype(std::declval<Ref>().Ref::operator ValueType())>>
-    : std::true_type {};
+    : std::true_type {
+};
 
 /**
  * @internal
@@ -428,6 +430,7 @@ public:
     ~reduced_storage() = default;
     // Forbid copy construction and move assignment
     reduced_storage(const reduced_storage &) = delete;
+    // TODO  Implement this operator and call `operator=(const &)`
     reduced_storage &operator=(reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr reduced_storage(
@@ -530,6 +533,7 @@ public:
     ~scaled_reduced_storage() = default;
     // Forbid copy construction and move assignment
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
+    // TODO  Implement this operator and call `operator=(const &)`
     scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr scaled_reduced_storage(
