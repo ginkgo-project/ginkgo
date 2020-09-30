@@ -4,7 +4,6 @@ option(GINKGO_RUN_EXAMPLES " Compile run and validation targets for the examples
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
     custom-logger
-    ginkgo-overhead
     ginkgo-ranges
     ilu-preconditioned-solver
     ir-ilu-preconditioned-solver
@@ -21,6 +20,7 @@ set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-matrix-format
     custom-stopping-criterion
+    ginkgo-overhead
     minimal-cuda-solver
     papi-logging
     performance-debugging
@@ -37,14 +37,16 @@ endforeach()
 
 if(GINKGO_RUN_EXAMPLES)
     foreach(example ${EXAMPLES_LIST})
+        set(example_path "${CMAKE_CURRENT_BINARY_DIR}/${example}")
+        file(WRITE ${example_path}/target-wrapper.sh "${example_path}/${example} \$\{EX_ARG\}")
         add_custom_target("run-${example}"
-            COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${example}/${example} > ${CMAKE_CURRENT_BINARY_DIR}/${example}/${example}.out
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${example})
-        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${example}/diff-command "#!/bin/bash
-diff <(sed -n '7,$p' ${CMAKE_CURRENT_BINARY_DIR}/${example}/${example}.out | sed -E 's/([0-9]+.)//g') <(sed -n '6,$p' ${CMAKE_SOURCE_DIR}/examples/${example}/doc/results.dox | head -n -4 | sed -E 's/([0-9]+.)//g')")
+            COMMAND chmod +x ${example_path}/target-wrapper.sh && ${example_path}/target-wrapper.sh > ${example_path}/${example}.out
+            WORKING_DIRECTORY ${example_path})
+        file(WRITE ${example_path}/diff-command "#!/bin/bash
+diff <(sed -n '7,$p' ${example_path}/${example}.out | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g') <(sed -n '6,$p' ${CMAKE_SOURCE_DIR}/examples/${example}/doc/results.dox | head -n -4 | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g')")
         add_custom_target("validate-${example}"
-            COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/${example}/diff-command && ${CMAKE_CURRENT_BINARY_DIR}/${example}/diff-command
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${example})
+            COMMAND chmod +x ${example_path}/diff-command && ${example_path}/diff-command
+            WORKING_DIRECTORY ${example_path})
     endforeach()
 
     add_custom_target(run_all_examples)

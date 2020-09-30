@@ -125,15 +125,16 @@ int main(int argc, char *argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    if (argc < 2) {
-        std::cout << "Usage: executable DISCRETIZATION_POINTS [executor]"
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0] << " [executor] [DISCRETIZATION_POINTS]"
                   << std::endl;
+        std::exit(-1);
     }
 
     // Get number of discretization points
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
-        argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
+        argc >= 3 ? std::atoi(argv[2]) : 100;
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
 
     // Uncomment to print the solution
     // print_solution<ValueType>(u0, u1, lend(u));
-    std::cout << "The average relative error is "
+    std::cout << "Solve complete.\nThe average relative error is "
               << calculate_error(discretization_points, lend(u), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(
                          discretization_points)

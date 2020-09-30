@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 
 
@@ -57,23 +58,31 @@ int main(int argc, char *argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    // Figure out where to run the code and how many block-Jacobi sweeps to use
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
-    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "hip" &&
-               gko::HipExecutor::get_num_devices() > 0) {
-        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
-    } else {
-        std::cerr << "Usage: " << argv[0] << " [executor] [sweeps]" << std::endl;
+    // Figure out where to run the code
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
-    unsigned int sweeps = (argc == 3) ? atoi(argv[2]) : 5u;
+
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const unsigned int sweeps = argc == 3 ? std::atoi(argv[2]) : 5u;
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
