@@ -294,13 +294,21 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
-    // Print version information
-    std::cout << gko::version_info::get() << std::endl;
     using ValueType = double;
     using IndexType = int;
 
-    const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
+    if (argc == 2 && std::string(argv[1]) == "--help") {
+        std::cerr << "Usage: " << argv[0] << " [executor] [DISCRETIZATION_POINTS] [alpha] [beta] [gamma]"
+                  << std::endl;
+        std::exit(-1);
+    }
+
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const IndexType discretization_points =
+        argc >= 3 ? std::atoi(argv[2]) : 100;
     const ValueType alpha_c = argc >= 4 ? std::atof(argv[3]) : default_alpha;
     const ValueType beta_c = argc >= 5 ? std::atof(argv[4]) : default_beta;
     const ValueType gamma_c = argc >= 6 ? std::atof(argv[5]) : default_gamma;
