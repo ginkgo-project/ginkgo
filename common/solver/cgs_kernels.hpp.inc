@@ -107,6 +107,8 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         return;
     }
     if (gamma[col] != zero<ValueType>()) {
+        // FIXME: This part is extremely inefficient since all threads want to
+        //        write here!
         alpha[col] = rho[col] / gamma[col];
         q[tidx] = u[tidx] - alpha[col] * v_hat[tidx];
         t[tidx] = u[tidx] + q[tidx];
