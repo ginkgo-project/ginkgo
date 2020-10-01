@@ -88,6 +88,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 // Read: (4 * n + 2 * nnz) * ValueType  + 2 * nnz * IndexType
 // + loops * ((15 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
 // Write: (5 * n + 2) * ValueType + loops * ((5 * n + 2) * ValueType)
+// FLOPs: 2*nnz + n + loops * (2*nnz + 12*n - 2)
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -129,6 +130,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
+    // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
@@ -138,10 +140,12 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         // Read: n * ValueType
         // Write: n * ValueType
+        // FLOPs: ignored
         get_preconditioner()->apply(r.get(), z.get());
 
         // Read: 2 * n * ValueType
         // Write: ValueType
+        // FLOPs: n + (n-1)
         r->compute_dot(z.get(), rho.get());
 
         ++iter;
@@ -156,6 +160,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
         // Read: 4 * n * ValueType
         // Write: n * ValueType
+        // FLOPs: 3*n (includes n rho / prev_rho computations)
         exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
                                   &stop_status));
         // tmp = rho / prev_rho
@@ -163,12 +168,15 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         // Read: (2 * ValueType + 2 * IndexType)*nnz
         // Write: n * ValueType
+        // FLOPs: 2*nnz
         system_matrix_->apply(p.get(), q.get());
         // Read: 2 * n * ValueType
         // Write: ValueType
+        // FLOPs: n + (n-1)
         p->compute_dot(q.get(), beta.get());
         // Read: 6 * n * ValueType
         // Write: 2 * n * ValueType
+        // FLOPS: 5 * n (includes n rho / beta computations)
         exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
                                   beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta

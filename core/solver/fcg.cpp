@@ -85,6 +85,9 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 // Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
 // + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
 // Write: (6 * n + 3) * ValueType + loops * ((6 * n + 3) * ValueType)
+// FLOPs: 2*nnz + 5*n - 2 + loops * (2*nnz + 15*n - 3)
+//        Note: the 2 reductions in the loop (before the `++iter`) have been
+//              added to the setup as well for FLOPs computation
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -131,6 +134,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
+    // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
@@ -140,12 +144,15 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         // Read: n * ValueType
         // Write: n * ValueType
+        // FLOPs: ignored
         get_preconditioner()->apply(r.get(), z.get());
         // Read: 2 * n * ValueType
         // Write: ValueType
+        // FLOPs: n + n-1
         r->compute_dot(z.get(), rho.get());
         // Read: 2 * n * ValueType
         // Write: ValueType
+        // FLOPs: n + n-1
         t->compute_dot(z.get(), rho_t.get());
 
         ++iter;
@@ -161,18 +168,22 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         // Read: 4 * n * ValueType
         // Write: n * ValueType
+        // FLOPs: 3*n (incl. n times `tmp` computation)
         exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
                                    prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         // Read: (2 * ValueType + 2 * IndexType)*nnz
         // Write: n * ValueType
+        // FLOPs: 2*nnz
         system_matrix_->apply(p.get(), q.get());
         // Read: 2 * n * ValueType
         // Write: ValueType
+        // FLOPs: n + n-1
         p->compute_dot(q.get(), beta.get());
         // Read: 6 * n * ValueType
         // Write: 3 * n * ValueType
+        // FLOPs: 6*n (incl. n times `tmp` computation)
         exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
                                    beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
