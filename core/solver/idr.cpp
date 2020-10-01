@@ -1,22 +1,17 @@
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
-
 1. Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
-
 2. Redistributions in binary form must reproduce the above copyright
 notice, this list of conditions and the following disclaimer in the
 documentation and/or other materials provided with the distribution.
-
 3. Neither the name of the copyright holder nor the names of its
 contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
-
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
 IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
@@ -85,7 +80,8 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
 }
 
-
+// s is subspace vector size
+// FLOPS: 2*nnz + n + loops *(2 * n * s + s(s-1)(2s-1)/2 - 2ns(s-1) + 5s(s-1)/2 + s*(s^2 + 5n + 2 nnz  + 4ns - 3s +  1) + 2 * nnz + 8n + 3)
 template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -145,6 +141,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // residual = b - Ax
     residual->copy_from(dense_b);
+    // FLOPS: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
 
@@ -173,11 +170,13 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-
+        // FLOPS: 2 * n * s
         subspace_vectors_->apply(residual.get(), f.get());
         // f = P^H * residual
-
+        // TOTAL FLOPS: s(s-1)(2s-1)/2 - 2ns(s-1) + 5s(s-1)/2 + s*(s^2 + 5n + 2 nnz  + 4ns - 3s +  1)
+        // For each k FLOPS: s^2 - s + s - k + n + 2n(s-k) + 2 nnz + 3k(k+1) + (s - k) * (n + n - 1) +  1 + 4n + 2 * (k - s)
         for (size_type k = 0; k < subspace_dim_; k++) {
+            // FLOPS: s^2 - s + (s - k)
             exec->run(idr::make_step_1(k, m.get(), f.get(), residual.get(),
                                        g.get(), c.get(), v.get(),
                                        &stop_status));
@@ -186,6 +185,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             get_preconditioner()->apply(v.get(), helper.get());
 
+            // FLOPS: n + 2n(s-k)
             exec->run(idr::make_step_2(k, omega.get(), helper.get(), c.get(),
                                        u.get(), &stop_status));
             // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
@@ -193,6 +193,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
 
+            // FLOPS: 2 * nnz
             system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
 
@@ -200,14 +201,17 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        helper.get(), u.get(), m.get(), f.get(),
                                        alpha.get(), residual.get(), dense_x,
                                        &stop_status));
+            // FLOPS: 3k(k+1)
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
             //     g_k -= alpha * g_i
             //     u_k -= alpha * u_i
             // end for
+            // FLOPS (s - k) * (n + n - 1)
             // for i = k to s do
             //     m_i,k = p^H_i * g_k
             // end for
+            // FLOPS: 1 + 4n + 2 * (k - s)
             // beta = f_k / m_k,k
             // residual -= beta * g_k
             // dense_x += beta * u_k
@@ -215,16 +219,19 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         get_preconditioner()->apply(residual.get(), helper.get());
+        // FLOPS: 2 * nnz
         system_matrix_->apply(helper.get(), t.get());
-
+        // FLOPS: n + n - 1
         t->compute_dot(residual.get(), omega.get());
         // t->compute_norm2(t_norm.get());
+        // FLOPS: n + n - 1
         t->compute_dot(t.get(), tht.get());
+        // FLOPS: n + n - 1
         residual->compute_norm2(residual_norm.get());
-
+        // FLOPS: 6
         exec->run(idr::make_compute_omega(
             kappa_, tht.get(), residual_norm.get(), omega.get(), &stop_status));
-
+        // FLOPS: 2n
         t->scale(neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
         dense_x->add_scaled(omega.get(), helper.get());
