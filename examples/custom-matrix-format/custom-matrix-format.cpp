@@ -241,18 +241,15 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
 
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << std::endl;
+    // Figure out where to run the code
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
 
-    // Get number of discretization points
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
-        argc >= 2 ? std::atoi(argv[1]) : 100u;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
-
-    // Figure out where to run the code
+        argc >= 3 ? std::atoi(argv[2]) : 100u;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -303,8 +300,8 @@ int main(int argc, char *argv[])
                                                     -1, 2, -1))
         ->apply(lend(rhs), lend(u));
 
-    print_solution(u0, u1, lend(u));
-    std::cout << "The average relative error is "
+    std::cout << "\nSolve complete."
+              << "\nThe average relative error is "
               << calculate_error(discretization_points, lend(u), correct_u) /
                      discretization_points
               << std::endl;

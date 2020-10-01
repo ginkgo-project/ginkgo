@@ -1,4 +1,5 @@
-add_executable(ir-ilu-preconditioned-solver ir-ilu-preconditioned-solver.cpp)
-target_link_libraries(ir-ilu-preconditioned-solver ginkgo)
-target_include_directories(ir-ilu-preconditioned-solver PRIVATE ${PROJECT_SOURCE_DIR})
+set(target_name "ir-ilu-preconditioned-solver")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
 configure_file(data/A.mtx data/A.mtx COPYONLY)

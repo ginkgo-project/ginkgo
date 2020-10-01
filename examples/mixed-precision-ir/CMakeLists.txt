@@ -1,4 +1,5 @@
-add_executable(mixed-precision-ir mixed-precision-ir.cpp)
-target_link_libraries(mixed-precision-ir ginkgo)
-target_include_directories(mixed-precision-ir PRIVATE ${PROJECT_SOURCE_DIR})
+set(target_name "mixed-precision-ir")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
 configure_file(data/A.mtx data/A.mtx COPYONLY)

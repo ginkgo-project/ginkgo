@@ -22,6 +22,7 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
+  RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
   EXTRA_CMAKE_FLAGS: ""
@@ -61,6 +62,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
   dependencies: []
@@ -88,11 +90,33 @@ stages:
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
     - ninja test_install
+    - |
+      if [ "${RUN_EXAMPLES}" == "ON" ]; then
+         export EX_ARG="reference"
+         ninja run_all_examples
+         ninja validate_all_examples
+         if [ "{BUILD_OMP}" == "ON" ]; then
+            export EX_ARG="omp"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+        if [ "{BUILD_CUDA}" == "ON" ]; then
+            export EX_ARG="cuda"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+        if [ "{BUILD_HIP}" == "ON" ]; then
+            export EX_ARG="hip"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+      fi
   dependencies: []
   except:
       - schedules
@@ -122,6 +146,7 @@ sync:
 
 
 # Build jobs
+# Job with example runs.
 build/cuda90/gcc/all/debug/shared:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda90-gnu5-llvm39
@@ -131,6 +156,7 @@ build/cuda90/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
   only:
     variables:
@@ -507,6 +533,7 @@ build/amd/gcc/hip/debug/shared:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
   only:
     variables:

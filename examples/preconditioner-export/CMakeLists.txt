@@ -1,4 +1,5 @@
-add_executable(preconditioner-export preconditioner-export.cpp)
-target_link_libraries(preconditioner-export ginkgo)
-target_include_directories(preconditioner-export PRIVATE ${PROJECT_SOURCE_DIR})
+set(target_name "preconditioner-export")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
 configure_file(data/A.mtx data/A.mtx COPYONLY)

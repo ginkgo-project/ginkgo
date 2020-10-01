@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 {
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
-        std::cerr << "Usage: " << argv[0]
+        std::cerr << "Usage: executable"
                   << " <reference|omp|cuda|hip> [<matrix-file>] "
                      "[<jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-"
                      "isai] [<preconditioner args>]\n";

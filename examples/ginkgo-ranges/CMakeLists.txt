@@ -1,3 +1,4 @@
-add_executable(ginkgo-ranges ginkgo-ranges.cpp)
-target_link_libraries(ginkgo-ranges ginkgo)
-target_include_directories(ginkgo-ranges PRIVATE ${PROJECT_SOURCE_DIR})
+set(target_name "ginkgo-ranges")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})

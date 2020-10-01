@@ -232,15 +232,18 @@ int main(int argc, char *argv[])
     using ValueType = double;
     using IndexType = int;
 
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
+    if (argc == 2 && std::string(argv[1]) == "--help") {
+        std::cerr << "Usage: " << argv[0] << " [executor] [DISCRETIZATION_POINTS]"
                   << std::endl;
         std::exit(-1);
     }
 
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const IndexType discretization_points =
-        argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
+        argc >= 3 ? std::atoi(argv[2]) : 100;
 
     // problem:
     auto correct_u = [](ValueType x) { return x * x * x; };
@@ -267,7 +270,9 @@ int main(int argc, char *argv[])
                  col_idxs.data(), values.data(), rhs.data(), u.data(),
                  reduction_factor);
 
-    print_solution<ValueType, IndexType>(discretization_points, 0, 1, u.data());
+    // Uncomment to print the solution
+    // print_solution<ValueType, IndexType>(discretization_points, 0, 1,
+    // u.data());
     std::cout << "The average relative error is "
               << calculate_error(discretization_points, u.data(), correct_u) /
                      discretization_points

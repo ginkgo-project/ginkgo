@@ -1,4 +1,5 @@
-add_executable(iterative-refinement iterative-refinement.cpp)
-target_link_libraries(iterative-refinement ginkgo)
-target_include_directories(iterative-refinement PRIVATE ${PROJECT_SOURCE_DIR})
+set(target_name "iterative-refinement")
+add_executable(${target_name} ${target_name}.cpp)
+target_link_libraries(${target_name} Ginkgo::ginkgo)
+target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
 configure_file(data/A.mtx data/A.mtx COPYONLY)
