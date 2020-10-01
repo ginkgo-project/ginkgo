@@ -104,6 +104,7 @@ __global__
 }
 
 
+// FLOPs: #rhs * (2n - 1)
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
@@ -178,6 +179,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 }
 
 
+// FLOPs: #rhs * (2n + n-1 + 1) = #rhs * (3n)
 // Must be called with at least `num_cols` blocks, each with `block_size`
 // threads. `block_size` must be a power of 2.
 template <int block_size, typename ValueType>
@@ -219,6 +221,7 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 }
 
 
+// FLOPs: num_rows
 // Must be called with at least `num_rows * stride_krylov` threads in
 // total.
 template <int block_size, typename ValueType>
@@ -286,6 +289,7 @@ __device__ void calculate_residual_norm_kernel(
 }
 
 
+// FLOPs: num_cols * (7 * iter + 16)
 // Must be called with at least `num_cols` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
@@ -344,6 +348,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
 }
 
 
+// FLOPs: num_rhs * (final_i_nums[col] * (final_i_nums[col] + 1) / 2)
 // Must be called with at least `num_rhs` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
@@ -377,6 +382,7 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
 }
 
 
+// FLOPs: num_rows * final_i_nums[c] * 3
 // Must be called with at least `stride_preconditioner * num_rows` threads in
 // total.
 template <size_type block_size, typename ValueType>

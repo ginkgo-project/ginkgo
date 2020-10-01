@@ -61,30 +61,37 @@ GKO_REGISTER_OPERATION(step_2, gmres::step_2);
 
 
 }  // namespace gmres
+
+
 // r = loops%krylov
 // k = krylov
 // Read: 5*ValueType*n + nnz*(2*IndexType + 2*ValueType) + ValueType*(2*n + 1) +
-// loops_k * (ValueType + 2*IndexType*nnz + (5*ValueType*k)/2 + 10*ValueType*n + 2*ValueType*nnz + (ValueType*k^2)/2 + ValueType*k*n) +
-// loops * (ValueType*(2*n + 3*r + (4*n + 1)*(r + 1) + 4) + ValueType*n + nnz*(2*IndexType + 2*ValueType) + 8) +
-// (ValueType*(8*n + 5*r + 2*n*r + r^2))/2
-// Write: 3*ValueType + 2*ValueType*k + 3*ValueType*n + 8 +
-// loops_k * (2*ValueType + ValueType*k + 6*ValueType*n + 8) +
-// loops * (2*ValueType*n + ValueType*(n + r + (n + 1)*(r + 1) + 7) + 8) +
-// ValueType*(3*n + r)
+// loops_k * (ValueType + 2*IndexType*nnz + (5*ValueType*k)/2 + 10*ValueType*n +
+// 2*ValueType*nnz + (ValueType*k^2)/2 + ValueType*k*n) + loops *
+// (ValueType*(2*n + 3*r + (4*n + 1)*(r + 1) + 4) + ValueType*n +
+// nnz*(2*IndexType + 2*ValueType) + 8) + (ValueType*(8*n + 5*r + 2*n*r +
+// r^2))/2 Write: 3*ValueType + 2*ValueType*k + 3*ValueType*n + 8 + loops_k *
+// (2*ValueType + ValueType*k + 6*ValueType*n + 8) + loops * (2*ValueType*n +
+// ValueType*(n + r + (n + 1)*(r + 1) + 7) + 8) + ValueType*(3*n + r)
 
 // Notes: loops * r should be loops_k*(0 + 1 + ... + k - 1) + 0 + 1 + ... + r-1
 //        = floor(loops/k) * (k - 1) * k / 2 + (r - 1) * r/ 2 (loops_r)
 // Notes: loops_k is the floor(loops/k) i.e. how many does restart step activate
 // Refined:
-// Read: (11 * n + 2 * nnz + 5/2 * r + n * r + r^2/2 + 1) * ValueType + 2 * nnz * IndexType
-// + floor(loops/k) * ((1 + 5/2 * k + 10 * n + 2 * nnz + k^2/2 + k * n) * ValueType + 2 * nnz * IndexType)
+// Read: (11 * n + 2 * nnz + 5/2 * r + n * r + r^2/2 + 1) * ValueType + 2 * nnz
+// * IndexType
+// + floor(loops/k) * ((1 + 5/2 * k + 10 * n + 2 * nnz + k^2/2 + k * n) *
+// ValueType + 2 * nnz * IndexType)
 // + loops * ((7 * n + 5 + 2 * nnz) * ValueType + 2 * nnz * IndexType + 8)
 // + loops_r * ((4 * n + 4) * ValueType)
 // Write: (6 * n + r + 2 * k + 3) * ValueType + 8
 // + floor(loops/k) * ((k + 6 * n + 2) * ValueType + 8)
 // + loops * ((4 * n + 8) * ValueType + 8)
 // + loops_r * ((n + 2) * ValueType)
-
+// FLOPs: 3*n + 2*nnz + 5*n
+//          + loops_k * (k * ((k+1) / 2 + 3*n) + 6*n + 2*nnz)
+//          + loops * (2*nnz + r * (4*n + 6) + 8*n + 15)
+//          + r * ((r+1) / 2 + 3*n) + n
 template <typename ValueType>
 std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
 {
@@ -157,6 +164,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // Initialization
     // Read: 2 * n * ValueType
     // Write: (2 * k + n + 1) * ValueType
+    // FLOPs: 3n
     exec->run(gmres::make_initialize_1(dense_b, residual.get(),
                                        givens_sin.get(), givens_cos.get(),
                                        &stop_status, krylov_dim_));
@@ -166,11 +174,13 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // givens_sin = givens_cos = 0
     // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
+    // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
     // residual = residual - Ax
     // Read: (2 * n + 1) * ValueType
     // Write: (2 + n) * ValueType + 8
+    // FLOPs: 4n
     exec->run(gmres::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
         krylov_bases.get(), &final_iter_nums, krylov_dim_));
@@ -210,6 +220,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // Restart
             // Read: ((k + 1) * k /2 )* ValueType + k * ValueType + (k + n * k) * ValueType
             // Write: k * ValueType + n * ValueType
+            // FLOPs: k * ((k+1) / 2 + 3*n)
             exec->run(gmres::make_step_2(residual_norm_collection.get(),
                                          krylov_bases.get(), hessenberg.get(),
                                          y.get(), before_preconditioner.get(),
@@ -221,10 +232,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             // Read: n * ValueType
             // Write: n * ValueType
+            // FLOPs: ignored
             get_preconditioner()->apply(before_preconditioner.get(),
                                         after_preconditioner.get());
             // Read: 3 * n * ValueType
             // Write: n * ValueType
+            // FLOPs: n
             dense_x->add_scaled(one_op.get(), after_preconditioner.get());
             // Solve x
             // x = x + get_preconditioner() * before_preconditioner
@@ -234,11 +247,13 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // residual = dense_b
             // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
             // Write: n * ValueType
+            // FLOPs: 2*nnz + n
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                   residual.get());
             // residual = residual - Ax
             // Read: (2 * n + 1) * ValueType
             // Write: (2 + n) * ValueType + 8
+            // FLOPs: 4*n
             exec->run(gmres::make_initialize_2(
                 residual.get(), residual_norm.get(),
                 residual_norm_collection.get(), krylov_bases.get(),
@@ -261,6 +276,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{0, dense_b->get_size()[1]});
         // Read: n * ValueType
         // Write: n * ValueType
+        // FLOPs: ignored
         get_preconditioner()->apply(this_krylov.get(),
                                     preconditioned_vector.get());
         // preconditioned_vector = get_preconditioner() * this_krylov
@@ -275,10 +291,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Start of arnoldi
         // Read: (2 * ValueType + 2 * IndexType)*nnz
         // Write: n * ValueType
+        // FLOPs: 2*nnz
         system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
         // next_krylov = A * preconditioned_vector
         // Read: (2*n + 3*r + (4*n + 1)*(r + 1) + 4) * ValueType + 8
         // Write: (n + r + (n + 1)*(r + 1) + 7) * ValueType + 8
+        // FLOPs: r * (4*n + 6) + 8*n + 15
         exec->run(gmres::make_step_1(
             dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
@@ -345,6 +363,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // Read: ((r + 1) * r /2 )* ValueType + r * ValueType + (r + n * r) * ValueType
     // Write: r * ValueType + n * ValueType
+    // FLOPs: r * ((r+1) / 2 + 3*n)
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
@@ -355,10 +374,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // before_preconditioner = krylov_bases * y
     // Read: n * ValueType
     // Write: n * ValueType
+    // FLOPs: ignored
     get_preconditioner()->apply(before_preconditioner.get(),
                                 after_preconditioner.get());
     // Read: 3 * n * ValueType
     // Write: n * ValueType
+    // FLOPs: n
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
     // Solve x
     // x = x + get_preconditioner() * before_preconditioner

@@ -75,6 +75,7 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 #include "common/solver/gmres_kernels.hpp.inc"
 
 
+// FLOPs (#rhs == 1): 3n
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *b,
@@ -101,6 +102,7 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
+// FLOPs (#rhs == 1): 4n
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
@@ -134,6 +136,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
+// FLOPs: (iter+1) * (4n - 1) + 4n = iter * (4n - 1) + 8n - 1
 template <typename ValueType>
 void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
@@ -150,6 +153,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     auto next_krylov_basis =
         krylov_bases->get_values() +
         (iter + 1) * num_rows * hessenberg_iter->get_size()[1];
+    // FLOPs this loop: (iter+1) * (2n - 1 + 2n)
     for (size_type k = 0; k < iter + 1; ++k) {
         const auto k_krylov_bases =
             krylov_bases->get_const_values() +
@@ -205,6 +209,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
+// FLOPs: num_cols * (7*iter + 16)
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
@@ -259,6 +264,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, size_type num_rows,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 
+// FLOPs: Sum(c=0; c<n_cols): final_iter_nums[c] * (final_iter_nums[c] + 1) / 2
 template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType> *residual_norm_collection,
@@ -282,6 +288,7 @@ void solve_upper_triangular(
 }
 
 
+// FLOPs: sum(c=0, c < num_cols): num_rows * 3 * final_i_nums[c]
 template <typename ValueType>
 void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
                   const matrix::Dense<ValueType> *y,
@@ -289,6 +296,8 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
                   const Array<size_type> *final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
+    // FIXME why is there a difference between num_cols and num_rhs???
+    //       Pretty sure num_cols should be num_rhs, and the latter not needed.
     const auto num_cols = krylov_bases->get_size()[1];
     const auto num_rhs = before_preconditioner->get_size()[1];
     const auto stride_before_preconditioner =
