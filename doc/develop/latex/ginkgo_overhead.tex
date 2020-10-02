@@ -20,8 +20,7 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
-\DoxyCodeLine{\{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
@@ -88,8 +87,8 @@ This is the expected output\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{Running 1000000 iterations of the CG solver took a total of 1.62987 seconds.}
-\DoxyCodeLine{    Average library overhead:     1629.87 [nanoseconds / iteration]}
+\DoxyCodeLine{Running 1000000 iterations of the CG solver took a total of 1.60337 seconds.}
+\DoxyCodeLine{    Average library overhead:     1603.37 [nanoseconds / iteration]}
 \end{DoxyCode}
 
 
@@ -141,8 +140,7 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
-\DoxyCodeLine{\{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}

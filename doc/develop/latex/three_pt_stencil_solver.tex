@@ -284,16 +284,24 @@ Solve system
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2) \{}
-\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
-\DoxyCodeLine{                  << std::endl;}
-\DoxyCodeLine{        std::exit(-\/1);}
-\DoxyCodeLine{    \}}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"-\/-\/help"}) \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} IndexType discretization\_points =}
-\DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100;}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 2 ? argv[1] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{\textcolor{keyword}{const} IndexType discretization\_points =}
+\DoxyCodeLine{    argc >= 3 ? std::atoi(argv[2]) : 100;}
 \end{DoxyCode}
 
 
@@ -342,13 +350,18 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{    generate\_rhs(discretization\_points, f, u0, u1, rhs.data());}
+\DoxyCodeLine{generate\_rhs(discretization\_points, f, u0, u1, rhs.data());}
 \DoxyCodeLine{}
-\DoxyCodeLine{    solve\_system(executor\_string, discretization\_points, row\_ptrs.data(),}
-\DoxyCodeLine{                 col\_idxs.data(), values.data(), rhs.data(), u.data(),}
-\DoxyCodeLine{                 reduction\_factor);}
-\DoxyCodeLine{}
-\DoxyCodeLine{    print\_solution<ValueType, IndexType>(discretization\_points, 0, 1, u.data());}
+\DoxyCodeLine{solve\_system(executor\_string, discretization\_points, row\_ptrs.data(),}
+\DoxyCodeLine{             col\_idxs.data(), values.data(), rhs.data(), u.data(),}
+\DoxyCodeLine{             reduction\_factor);}
+\end{DoxyCode}
+
+
+Uncomment to print the solution print\+\_\+solution$<$\+Value\+Type, Index\+Type$>$(discretization\+\_\+points, 0, 1, u.\+data());
+
+
+\begin{DoxyCode}{0}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(discretization\_points, u.data(), correct\_u) /}
 \DoxyCodeLine{                     discretization\_points}
@@ -362,29 +375,7 @@ This is the expected output\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{0}
-\DoxyCodeLine{0.00010798}
-\DoxyCodeLine{0.000863838}
-\DoxyCodeLine{0.00291545}
-\DoxyCodeLine{0.0069107}
-\DoxyCodeLine{0.0134975}
-\DoxyCodeLine{0.0233236}
-\DoxyCodeLine{0.037037}
-\DoxyCodeLine{0.0552856}
-\DoxyCodeLine{0.0787172}
-\DoxyCodeLine{0.10798}
-\DoxyCodeLine{0.143721}
-\DoxyCodeLine{0.186589}
-\DoxyCodeLine{0.237231}
-\DoxyCodeLine{0.296296}
-\DoxyCodeLine{0.364431}
-\DoxyCodeLine{0.442285}
-\DoxyCodeLine{0.530504}
-\DoxyCodeLine{0.629738}
-\DoxyCodeLine{0.740633}
-\DoxyCodeLine{0.863838}
-\DoxyCodeLine{1}
-\DoxyCodeLine{The average relative error is 1.87318e-\/15}
+\DoxyCodeLine{The average relative error is 2.52236e-\/11}
 \end{DoxyCode}
 
 
@@ -601,15 +592,17 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2) \{}
-\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"-\/-\/help"}) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"}}
 \DoxyCodeLine{                  << std::endl;}
 \DoxyCodeLine{        std::exit(-\/1);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 2 ? argv[1] : \textcolor{stringliteral}{"reference"};}
 \DoxyCodeLine{    \textcolor{keyword}{const} IndexType discretization\_points =}
-\DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100;}
-\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{        argc >= 3 ? std::atoi(argv[2]) : 100;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} correct\_u = [](ValueType x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
 \DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType(6) * x; \};}
@@ -631,7 +624,6 @@ This is the expected output\+:
 \DoxyCodeLine{                 col\_idxs.data(), values.data(), rhs.data(), u.data(),}
 \DoxyCodeLine{                 reduction\_factor);}
 \DoxyCodeLine{}
-\DoxyCodeLine{    print\_solution<ValueType, IndexType>(discretization\_points, 0, 1, u.data());}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
 \DoxyCodeLine{              << calculate\_error(discretization\_points, u.data(), correct\_u) /}
 \DoxyCodeLine{                     discretization\_points}

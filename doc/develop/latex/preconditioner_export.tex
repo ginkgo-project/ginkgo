@@ -70,7 +70,7 @@ print usage message
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
-\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
 \DoxyCodeLine{              << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
 \DoxyCodeLine{                 \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
 \DoxyCodeLine{                 \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}
@@ -431,7 +431,7 @@ When specifying an executor\+:
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
-\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
 \DoxyCodeLine{                  << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
 \DoxyCodeLine{                     \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
 \DoxyCodeLine{                     \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}

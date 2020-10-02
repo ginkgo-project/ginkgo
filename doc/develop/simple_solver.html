@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/194469452 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/197088394 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -114,6 +114,8 @@ $(function() {
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;fstream&gt;</span></div>
 </div><!-- fragment --><p>Add the C++ iostream header to output information to the console.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+</div><!-- fragment --><p>Add the STL map header for the executor selection</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;map&gt;</span></div>
 </div><!-- fragment --><p>Add the string manipulation header to handle strings.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;string&gt;</span></div>
 <div class="line"> </div>
@@ -132,23 +134,30 @@ $(function() {
 <div class="fragment"><div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 </div><!-- fragment --><p>Print the ginkgo version information.</p>
 <div class="fragment"><div class="line">std::cout &lt;&lt; <a class="code" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a>() &lt;&lt; std::endl;</div>
-</div><!-- fragment --><p><a class="anchor" id="Wheredoyouwanttorunyoursolver"></a> </p><h3>Where do you want to run your solver ?</h3>
-<p>The <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">gko::Executor</a> class is one of the cornerstones of Ginkgo. Currently, we have support for an <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">gko::OmpExecutor</a>, which uses OpenMP multi-threading in most of its kernels, a <a class="el" href="classgko_1_1ReferenceExecutor.html" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...">gko::ReferenceExecutor</a>, a single threaded specialization of the OpenMP executor and a <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">gko::CudaExecutor</a> which runs the code on a NVIDIA GPU if available. </p><dl class="section note"><dt>Note</dt><dd>With the help of C++, you see that you only ever need to change the executor and all the other functions/ routines within Ginkgo should automatically work and run on the executor with any other changes.</dd></dl>
-<div class="fragment"><div class="line">std::shared_ptr&lt;gko::Executor&gt; exec;</div>
-<div class="line"><span class="keywordflow">if</span> (argc == 1 || std::string(argv[1]) == <span class="stringliteral">&quot;reference&quot;</span>) {</div>
-<div class="line">    exec = gko::ReferenceExecutor::create();</div>
-<div class="line">} <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;omp&quot;</span>) {</div>
-<div class="line">    exec = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
-<div class="line">} <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;cuda&quot;</span> &amp;&amp;</div>
-<div class="line">           <a class="code" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor::get_num_devices</a>() &gt; 0) {</div>
-<div class="line">    exec = <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(), <span class="keyword">true</span>);</div>
-<div class="line">} <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;hip&quot;</span> &amp;&amp;</div>
-<div class="line">           <a class="code" href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor::get_num_devices</a>() &gt; 0) {</div>
-<div class="line">    exec = <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(), <span class="keyword">true</span>);</div>
-<div class="line">} <span class="keywordflow">else</span> {</div>
-<div class="line">    std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; [executor]&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">if</span> (argc == 2 &amp;&amp; (std::string(argv[1]) == <span class="stringliteral">&quot;--help&quot;</span>)) {</div>
+<div class="line">    std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; [executor] &quot;</span> &lt;&lt; std::endl;</div>
 <div class="line">    std::exit(-1);</div>
 <div class="line">}</div>
+</div><!-- fragment --><p><a class="anchor" id="Wheredoyouwanttorunyoursolver"></a> </p><h3>Where do you want to run your solver ?</h3>
+<p>The <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">gko::Executor</a> class is one of the cornerstones of Ginkgo. Currently, we have support for an <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">gko::OmpExecutor</a>, which uses OpenMP multi-threading in most of its kernels, a <a class="el" href="classgko_1_1ReferenceExecutor.html" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...">gko::ReferenceExecutor</a>, a single threaded specialization of the OpenMP executor and a <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">gko::CudaExecutor</a> which runs the code on a NVIDIA GPU if available. </p><dl class="section note"><dt>Note</dt><dd>With the help of C++, you see that you only ever need to change the executor and all the other functions/ routines within Ginkgo should automatically work and run on the executor with any other changes.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> executor_string = argc &gt;= 2 ? argv[1] : <span class="stringliteral">&quot;reference&quot;</span>;</div>
+<div class="line">std::map&lt;std::string, std::function&lt;std::shared_ptr&lt;gko::Executor&gt;()&gt;&gt;</div>
+<div class="line">    exec_map{</div>
+<div class="line">        {<span class="stringliteral">&quot;omp&quot;</span>, [] { <span class="keywordflow">return</span> <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(); }},</div>
+<div class="line">        {<span class="stringliteral">&quot;cuda&quot;</span>,</div>
+<div class="line">         [] {</div>
+<div class="line">             <span class="keywordflow">return</span> <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(),</div>
+<div class="line">                                              <span class="keyword">true</span>);</div>
+<div class="line">         }},</div>
+<div class="line">        {<span class="stringliteral">&quot;hip&quot;</span>,</div>
+<div class="line">         [] {</div>
+<div class="line">             <span class="keywordflow">return</span> <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(),</div>
+<div class="line">                                             <span class="keyword">true</span>);</div>
+<div class="line">         }},</div>
+<div class="line">        {<span class="stringliteral">&quot;reference&quot;</span>, [] { <span class="keywordflow">return</span> gko::ReferenceExecutor::create(); }}};</div>
+</div><!-- fragment --><p>executor where Ginkgo will perform the computation</p>
+<div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string)();  <span class="comment">// throws if not valid</span></div>
 </div><!-- fragment --><p><a class="anchor" id="Readingyourdataandtransfertotheproperdevice"></a> </p><h3>Reading your data and transfer to the proper device.</h3>
 <p>Read the matrix, right hand side and the initial solution using the read function. </p><dl class="section note"><dt>Note</dt><dd>Ginkgo uses C++ smart pointers to automatically manage memory. To this end, we use our own object ownership transfer functions that under the hood call the required smart pointer functions to manage object ownership. The <a class="el" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58" title="Marks the object pointed to by p as shared.">gko::share</a> , <a class="el" href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167" title="Marks that the object pointed to by p can be given to the callee.">gko::give</a> and <a class="el" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3" title="Returns a non-owning (plain) pointer to the object pointed to by p.">gko::lend</a> are the functions that you would need to use.</dd></dl>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
@@ -170,7 +179,7 @@ $(function() {
 </div><!-- fragment --><p>Finally, solve the system. The solver, being a <a class="el" href="classgko_1_1LinOp.html">gko::LinOp</a>, can be applied to a right hand side, b to obtain the solution, x.</p>
 <div class="fragment"><div class="line">solver-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 </div><!-- fragment --><p>Print the solution to the command line.</p>
-<div class="fragment"><div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;Solution (x): \n&quot;</span>;</div>
+<div class="fragment"><div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;Solution (x):\n&quot;</span>;</div>
 <div class="line"><a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 </div><!-- fragment --><p>To measure if your solution has actually converged, you can measure the error of the solution. one, neg_one are objects that represent the numbers which allow for a uniform interface when computing on any device. To compute the residual, all you need to do is call the apply method, which in this case is an spmv and equivalent to the LAPACK z_spmv routine. Finally, you compute the euclidean 2-norm with the compute_norm2 function.</p>
 <div class="fragment"><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
@@ -179,7 +188,7 @@ $(function() {
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
-<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r): \n&quot;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r):\n&quot;</span>;</div>
 <div class="line">    <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line">}</div>
 </div><!-- fragment --><p> <a class="anchor" id="Results"></a></p><h1>Results</h1>
@@ -249,6 +258,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;fstream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;map&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;string&gt;</span></div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -264,21 +274,28 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    std::cout &lt;&lt; <a class="code" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a>() &lt;&lt; std::endl;</div>
 <div class="line"> </div>
-<div class="line">    std::shared_ptr&lt;gko::Executor&gt; exec;</div>
-<div class="line">    <span class="keywordflow">if</span> (argc == 1 || std::string(argv[1]) == <span class="stringliteral">&quot;reference&quot;</span>) {</div>
-<div class="line">        exec = gko::ReferenceExecutor::create();</div>
-<div class="line">    } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;omp&quot;</span>) {</div>
-<div class="line">        exec = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
-<div class="line">    } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;cuda&quot;</span> &amp;&amp;</div>
-<div class="line">               <a class="code" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor::get_num_devices</a>() &gt; 0) {</div>
-<div class="line">        exec = <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(), <span class="keyword">true</span>);</div>
-<div class="line">    } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (argc == 2 &amp;&amp; std::string(argv[1]) == <span class="stringliteral">&quot;hip&quot;</span> &amp;&amp;</div>
-<div class="line">               <a class="code" href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor::get_num_devices</a>() &gt; 0) {</div>
-<div class="line">        exec = <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(), <span class="keyword">true</span>);</div>
-<div class="line">    } <span class="keywordflow">else</span> {</div>
-<div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; [executor]&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line">    <span class="keywordflow">if</span> (argc == 2 &amp;&amp; (std::string(argv[1]) == <span class="stringliteral">&quot;--help&quot;</span>)) {</div>
+<div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; [executor] &quot;</span> &lt;&lt; std::endl;</div>
 <div class="line">        std::exit(-1);</div>
 <div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> executor_string = argc &gt;= 2 ? argv[1] : <span class="stringliteral">&quot;reference&quot;</span>;</div>
+<div class="line">    std::map&lt;std::string, std::function&lt;std::shared_ptr&lt;gko::Executor&gt;()&gt;&gt;</div>
+<div class="line">        exec_map{</div>
+<div class="line">            {<span class="stringliteral">&quot;omp&quot;</span>, [] { <span class="keywordflow">return</span> <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(); }},</div>
+<div class="line">            {<span class="stringliteral">&quot;cuda&quot;</span>,</div>
+<div class="line">             [] {</div>
+<div class="line">                 <span class="keywordflow">return</span> <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(),</div>
+<div class="line">                                                  <span class="keyword">true</span>);</div>
+<div class="line">             }},</div>
+<div class="line">            {<span class="stringliteral">&quot;hip&quot;</span>,</div>
+<div class="line">             [] {</div>
+<div class="line">                 <span class="keywordflow">return</span> <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>(),</div>
+<div class="line">                                                 <span class="keyword">true</span>);</div>
+<div class="line">             }},</div>
+<div class="line">            {<span class="stringliteral">&quot;reference&quot;</span>, [] { <span class="keywordflow">return</span> gko::ReferenceExecutor::create(); }}};</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string)();  <span class="comment">// throws if not valid</span></div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line">    <span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
@@ -297,7 +314,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    solver-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 <div class="line"> </div>
-<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Solution (x): \n&quot;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Solution (x):\n&quot;</span>;</div>
 <div class="line">    <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
@@ -306,7 +323,7 @@ $(function() {
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
-<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r): \n&quot;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r):\n&quot;</span>;</div>
 <div class="line">    <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->
@@ -314,11 +331,9 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
 <div class="ttc" id="anamespacegko_html_a85e29870bacc4e660be5acbbf742305e"><div class="ttname"><a href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">gko::real</a></div><div class="ttdeci">constexpr std::enable_if_t&lt;!is_complex_s&lt; T &gt;::value, T &gt; real(const T &amp;x)</div><div class="ttdoc">Returns the real part of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:812</div></div>
 <div class="ttc" id="aclassgko_1_1HipExecutor_html_abee0dc3dfc064c9edbdc02c2b3b11264"><div class="ttname"><a href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
-<div class="ttc" id="aclassgko_1_1CudaExecutor_html_aef0258494d14de0e56149b920c5173e5"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor::get_num_devices</a></div><div class="ttdeci">static int get_num_devices()</div><div class="ttdoc">Get the number of devices present on the system.</div></div>
 <div class="ttc" id="anamespacegko_html_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5"><div class="ttname"><a href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">gko::layout_type::array</a></div><div class="ttdoc">The matrix should be written as dense matrix in column-major order.</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_aa577135e082f9be20617e9d66209ca25"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
-<div class="ttc" id="aclassgko_1_1HipExecutor_html_a7b34cbd84692dafa2290e6630754aa97"><div class="ttname"><a href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor::get_num_devices</a></div><div class="ttdeci">static int get_num_devices()</div><div class="ttdoc">Get the number of devices present on the system.</div></div>
 <div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:846</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm.hpp:112</div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
