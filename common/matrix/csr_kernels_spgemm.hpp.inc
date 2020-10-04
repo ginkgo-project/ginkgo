@@ -649,3 +649,70 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_tall_row_ptrs(
         tall_row_ptrs[out_idx] = end;
     }
 }
+
+
+template <int subwarp_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void spgemm_analysis(
+    const IndexType *__restrict__ a_row_ptrs, size_type num_rows,
+    const IndexType *__restrict__ a_cols,
+    const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_cols, IndexType *__restrict__ min_cols,
+    IndexType *__restrict__ max_cols, IndexType *__restrict__ max_nnzs,
+    IndexType *__restrict__ sum_nnzs, IndexType *__restrict__ tmp_max_nnz,
+    IndexType *__restrict__ tmp_sum_nnz)
+{
+    constexpr auto subwarp_count = default_block_size / subwarp_size;
+    __shared__ IndexType total_sum_nnz[subwarp_count];
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    auto thread_block = group::this_thread_block();
+    auto subwarp = group::tiled_partition<subwarp_size>(thread_block);
+    const auto lane = subwarp.thread_rank();
+    const auto subwarp_id = threadIdx.x / subwarp_size;
+    auto min_op = [](IndexType a, IndexType b) { return min(a, b); };
+    auto max_op = [](IndexType a, IndexType b) { return max(a, b); };
+    auto sum_op = [](IndexType a, IndexType b) { return a + b; };
+
+    if (lane == 0) {
+        total_max_nnz[subwarp_id] = 0;
+        total_sum_nnz[subwarp_id] = 0;
+    }
+    if (row < num_rows) {
+        auto a_begin = a_row_ptrs[row];
+        auto a_end = a_row_ptrs[row + 1];
+        constexpr auto sentinel = device_numeric_limits<IndexType>::max();
+        IndexType min_col{sentinel};
+        IndexType max_col{};
+        IndexType max_nnz{};
+        IndexType sum_nnz{};
+        for (auto a_nz = a_begin + lane; a_nz < a_end; a += subwarp_size) {
+            auto a_col = a_cols[a_nz];
+            auto b_begin = b_row_ptrs[a_col];
+            auto b_end = b_row_ptrs[a_col + 1];
+            auto b_size = b_end - b_begin;
+            min_col = min(min_col, b_size > 0 ? b_col[b_begin] : sentinel);
+            max_col = max(max_col, b_size > 0 ? b_col[b_end - 1] : IndexType{});
+            max_nnz = max(max_nnz, b_size);
+            sum_nnz += b_size;
+        }
+        min_col = reduce(subwarp, min_col, min_op);
+        max_col = reduce(subwarp, max_col, max_op);
+        max_nnz = reduce(subwarp, max_nnz, max_op);
+        sum_nnz = reduce(subwarp, sum_nnz, sum_op);
+        if (lane == 0) {
+            min_cols[row] = min_col;
+            max_cols[row] = max_col;
+            max_nnzs[row] = max_nnz;
+            sum_nnzs[row] = sum_nnz;
+            total_sum_nnz[subwarp_id] = max_nnz;
+        }
+    }
+    block.sync();
+    if (threadIdx.x >= config::warp_size) {
+        return;
+    }
+    auto warp = group::tiled_partition<config::warp_size>(thread_block);
+    static_assert(subwarp_count <= config::warp_size, "block too big");
+    auto warp_lane = warp.thread_rank();
+    tmp_max_nnz[blockIdx.x] = reduce(warp, total_sum_nnz[warp_lane], max_op);
+    tmp_sum_nnz[blockIdx.x] = reduce(warp, total_sum_nnz[warp_lane], sum_op);
+}
