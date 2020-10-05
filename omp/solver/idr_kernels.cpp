@@ -33,11 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
+#include <time.h>
 #include <algorithm>
+#include <iostream>
 #include <random>
 
+
 #include <omp.h>
-#include <time.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -138,12 +140,27 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const OmpExecutor> exec,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType> *dense_b,
+                const matrix::Dense<ValueType> *dense_x,
+                matrix::Dense<to_complex<ValueType>> *complex_b,
+                matrix::Dense<to_complex<ValueType>> *complex_x,
+                matrix::Dense<to_complex<ValueType>> *m,
+                matrix::Dense<to_complex<ValueType>> *subspace_vectors,
+                bool deterministic, Array<stopping_status> *stop_status)
 {
-#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(add:to_complex<ValueType> : omp_out = omp_out + omp_in)
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
+
+    // Initialize complex b and x
+#pragma omp parallel for
+    for (size_type row = 0; row < dense_b->get_size()[0]; row++) {
+        for (size_type rhs = 0; rhs < nrhs; rhs++) {
+            complex_x->at(row, rhs) =
+                to_complex<ValueType>{dense_x->at(row, rhs)};
+            complex_b->at(row, rhs) =
+                to_complex<ValueType>{dense_b->at(row, rhs)};
+        }
+    }
 
     // Initialize M
 #pragma omp parallel for
@@ -154,8 +171,9 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < m->get_size()[0]; row++) {
         for (size_type col = 0; col < m->get_size()[1]; col++) {
-            m->at(row, col) =
-                (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
+            m->at(row, col) = (row == col / nrhs)
+                                  ? one<to_complex<ValueType>>()
+                                  : zero<to_complex<ValueType>>();
         }
     }
 
@@ -172,7 +190,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
         }
 
         for (size_type i = 0; i < row; i++) {
-            auto dot = zero<ValueType>();
+            auto dot = zero<to_complex<ValueType>>();
 #pragma omp parallel for reduction(add : dot)
             for (size_type j = 0; j < num_cols; j++) {
                 dot += subspace_vectors->at(row, j) *
@@ -338,6 +356,26 @@ void compute_omega(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
+
+
+template <typename ValueType>
+void finalize(std::shared_ptr<const OmpExecutor> exec,
+              const matrix::Dense<to_complex<ValueType>> *complex_x,
+              matrix::Dense<ValueType> *dense_x)
+{
+    if (is_complex<ValueType>()) {
+        dense_x->copy_from(complex_x);
+    } else {
+#pragma omp parallel for
+        for (size_type row = 0; row < dense_x->get_size()[0]; row++) {
+            for (size_type rhs = 0; rhs < dense_x->get_size()[1]; rhs++) {
+                dense_x->at(row, rhs) = real(complex_x->at(row, rhs));
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_FINALIZE_KERNEL);
 
 
 }  // namespace idr

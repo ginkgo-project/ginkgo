@@ -33,10 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
-#include <random>
-
-
 #include <time.h>
+#include <random>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -102,8 +100,10 @@ void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
             std::ranlux48(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
+        auto gen =
+            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
         curand::rand_vector(
-            time(NULL),
+            gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
             0.0, 1.0, subspace_vectors->get_values());
     }
@@ -223,7 +223,8 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, size_type k,
 
 
 template <typename ValueType>
-void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
+void update_x_r_and_f(std::shared_ptr<const CudaExecutor> exec, size_type k,
+                      const matrix::Dense<ValueType> *m,
                       const matrix::Dense<ValueType> *g,
                       const matrix::Dense<ValueType> *u,
                       matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *r,
@@ -243,8 +244,8 @@ void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
         as_cuda_type(r->get_values()), r->get_stride(),
         as_cuda_type(x->get_values()), x->get_stride(),
         as_cuda_type(stop_status->get_const_data()));
-    set_f_zeros<<<ceildiv(nrhs, config::warp_size), config::warp_size>>>(
-        k, nrhs, as_cuda_type(f->get_values()), f->get_stride());
+    components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
+                           zero<ValueType>());
 }
 
 
@@ -280,8 +281,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, const size_type k,
     const auto subspace_dim = m->get_size()[0];
     const auto nrhs = m->get_size()[1] / subspace_dim;
 
-    const auto grid_dim =
-        ceildiv(v->get_stride() * num_rows, default_block_size);
+    const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_1_kernel<<<grid_dim, default_block_size>>>(
         k, num_rows, subspace_dim, nrhs,
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
@@ -305,8 +305,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type k,
     const auto nrhs = preconditioned_vector->get_size()[1];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 
-    const auto grid_dim =
-        ceildiv(u->get_stride() * num_rows, default_block_size);
+    const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_2_kernel<<<grid_dim, default_block_size>>>(
         k, num_rows, subspace_dim, nrhs,
         as_cuda_type(omega->get_const_values()),
@@ -331,7 +330,7 @@ void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type k,
 {
     update_g_and_u(exec, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, k, p, g_k, m, stop_status);
-    update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
+    update_x_r_and_f(exec, k, m, g, u, f, residual, x, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);

@@ -33,11 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
+#include <time.h>
 #include <random>
 
 
 #include <hip/hip_runtime.h>
-#include <time.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -103,8 +103,10 @@ void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
             std::ranlux48(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
+        auto gen =
+            hiprand::rand_generator(time(NULL), HIPRAND_RNG_PSEUDO_DEFAULT);
         hiprand::rand_vector(
-            time(NULL),
+            gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
             0.0, 1.0, subspace_vectors->get_values());
     }
@@ -230,7 +232,8 @@ void update_m(std::shared_ptr<const HipExecutor> exec, size_type k,
 
 
 template <typename ValueType>
-void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
+void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec, size_type k,
+                      const matrix::Dense<ValueType> *m,
                       const matrix::Dense<ValueType> *g,
                       const matrix::Dense<ValueType> *u,
                       matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *r,
@@ -251,10 +254,8 @@ void update_x_r_and_f(size_type k, const matrix::Dense<ValueType> *m,
                        as_hip_type(r->get_values()), r->get_stride(),
                        as_hip_type(x->get_values()), x->get_stride(),
                        as_hip_type(stop_status->get_const_data()));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(set_f_zeros),
-                       ceildiv(nrhs, config::warp_size), config::warp_size, 0,
-                       0, k, nrhs, as_hip_type(f->get_values()),
-                       f->get_stride());
+    components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
+                           zero<ValueType>());
 }
 
 
@@ -340,7 +341,7 @@ void step_3(std::shared_ptr<const HipExecutor> exec, const size_type k,
 {
     update_g_and_u(exec, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, k, p, g_k, m, stop_status);
-    update_x_r_and_f(k, m, g, u, f, residual, x, stop_status);
+    update_x_r_and_f(exec, k, m, g, u, f, residual, x, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);

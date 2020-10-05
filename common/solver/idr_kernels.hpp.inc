@@ -147,10 +147,10 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row = global_id / v_stride;
-    const auto col = global_id % v_stride;
+    const auto row = global_id / nrhs;
+    const auto col = global_id % nrhs;
 
-    if (row >= num_rows || col >= nrhs) {
+    if (row >= num_rows) {
         return;
     }
 
@@ -175,10 +175,10 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row = global_id / u_stride;
-    const auto col = global_id % u_stride;
+    const auto row = global_id / nrhs;
+    const auto col = global_id % nrhs;
 
-    if (row >= num_rows || col >= nrhs) {
+    if (row >= num_rows) {
         return;
     }
 
@@ -317,18 +317,6 @@ __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
             f_values[row * f_stride + col] -=
                 beta * m_values[row * m_stride + k * nrhs + col];
         }
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(config::warp_size) void set_f_zeros(
-    size_type k, size_type nrhs, ValueType *__restrict__ f_values,
-    size_type f_stride)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < nrhs) {
-        f_values[k * f_stride + tidx] = zero<ValueType>();
     }
 }
 

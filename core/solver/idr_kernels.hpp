@@ -46,10 +46,14 @@ namespace kernels {
 namespace idr {
 
 
-#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                 \
-    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
-                    matrix::Dense<_type> *m,                     \
-                    matrix::Dense<_type> *subspace_vectors,      \
+#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                        \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec,        \
+                    const matrix::Dense<_type> *dense_b,                \
+                    const matrix::Dense<_type> *dense_x,                \
+                    matrix::Dense<to_complex<_type>> *complex_b,        \
+                    matrix::Dense<to_complex<_type>> *complex_x,        \
+                    matrix::Dense<to_complex<_type>> *m,                \
+                    matrix::Dense<to_complex<_type>> *subspace_vectors, \
                     bool deterministic, Array<stopping_status> *stop_status)
 
 
@@ -89,17 +93,25 @@ namespace idr {
         const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES              \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)
+#define GKO_DECLARE_IDR_FINALIZE_KERNEL(_type)                       \
+    void finalize(std::shared_ptr<const DefaultExecutor> exec,       \
+                  const matrix::Dense<to_complex<_type>> *complex_x, \
+                  matrix::Dense<_type> *dense_x)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                 \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType);    \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);        \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);        \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);        \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType); \
+    template <typename ValueType>                    \
+    GKO_DECLARE_IDR_FINALIZE_KERNEL(ValueType)
 
 
 }  // namespace idr
