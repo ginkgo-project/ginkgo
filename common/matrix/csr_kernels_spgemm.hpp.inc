@@ -658,11 +658,11 @@ __global__ __launch_bounds__(default_block_size) void spgemm_analysis(
     const IndexType *__restrict__ b_row_ptrs,
     const IndexType *__restrict__ b_cols, IndexType *__restrict__ min_cols,
     IndexType *__restrict__ max_cols, IndexType *__restrict__ max_nnzs,
-    IndexType *__restrict__ sum_nnzs, IndexType *__restrict__ tmp_max_nnz,
-    IndexType *__restrict__ tmp_sum_nnz)
+    IndexType *__restrict__ sum_nnzs, IndexType *__restrict__ total_max_ops,
+    int64 *__restrict__ total_sum_ops)
 {
     constexpr auto subwarp_count = default_block_size / subwarp_size;
-    __shared__ IndexType total_sum_nnz[subwarp_count];
+    __shared__ IndexType local_sum_nnz[subwarp_count];
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     auto thread_block = group::this_thread_block();
     auto subwarp = group::tiled_partition<subwarp_size>(thread_block);
@@ -671,10 +671,10 @@ __global__ __launch_bounds__(default_block_size) void spgemm_analysis(
     auto min_op = [](IndexType a, IndexType b) { return min(a, b); };
     auto max_op = [](IndexType a, IndexType b) { return max(a, b); };
     auto sum_op = [](IndexType a, IndexType b) { return a + b; };
+    auto long_sum_op = [](uint64 a, uint64 b) { return a + b; };
 
     if (lane == 0) {
-        total_max_nnz[subwarp_id] = 0;
-        total_sum_nnz[subwarp_id] = 0;
+        local_sum_nnz[subwarp_id] = 0;
     }
     if (row < num_rows) {
         auto a_begin = a_row_ptrs[row];
@@ -684,13 +684,14 @@ __global__ __launch_bounds__(default_block_size) void spgemm_analysis(
         IndexType max_col{};
         IndexType max_nnz{};
         IndexType sum_nnz{};
-        for (auto a_nz = a_begin + lane; a_nz < a_end; a += subwarp_size) {
+        for (auto a_nz = a_begin + lane; a_nz < a_end; a_nz += subwarp_size) {
             auto a_col = a_cols[a_nz];
             auto b_begin = b_row_ptrs[a_col];
             auto b_end = b_row_ptrs[a_col + 1];
             auto b_size = b_end - b_begin;
-            min_col = min(min_col, b_size > 0 ? b_col[b_begin] : sentinel);
-            max_col = max(max_col, b_size > 0 ? b_col[b_end - 1] : IndexType{});
+            min_col = min(min_col, b_size > 0 ? b_cols[b_begin] : sentinel);
+            max_col =
+                max(max_col, b_size > 0 ? b_cols[b_end - 1] : IndexType{});
             max_nnz = max(max_nnz, b_size);
             sum_nnz += b_size;
         }
@@ -703,16 +704,22 @@ __global__ __launch_bounds__(default_block_size) void spgemm_analysis(
             max_cols[row] = max_col;
             max_nnzs[row] = max_nnz;
             sum_nnzs[row] = sum_nnz;
-            total_sum_nnz[subwarp_id] = max_nnz;
+            local_sum_nnz[subwarp_id] = sum_nnz;
         }
     }
-    block.sync();
+    thread_block.sync();
     if (threadIdx.x >= config::warp_size) {
         return;
     }
     auto warp = group::tiled_partition<config::warp_size>(thread_block);
     static_assert(subwarp_count <= config::warp_size, "block too big");
     auto warp_lane = warp.thread_rank();
-    tmp_max_nnz[blockIdx.x] = reduce(warp, total_sum_nnz[warp_lane], max_op);
-    tmp_sum_nnz[blockIdx.x] = reduce(warp, total_sum_nnz[warp_lane], sum_op);
+    // 64bit atomics are only defined for unsigned types
+    using unsigned_type = std::make_unsigned<IndexType>::type;
+    auto block_max_nnz = static_cast<unsigned_type>(
+        reduce(warp, local_sum_nnz[warp_lane], max_op));
+    auto block_sum_nnz = reduce(
+        warp, static_cast<uint64>(local_sum_nnz[warp_lane]), long_sum_op);
+    atomic_max(reinterpret_cast<unsigned_type *>(total_max_ops), block_max_nnz);
+    atomic_add(reinterpret_cast<uint64 *>(total_sum_ops), block_sum_nnz);
 }
