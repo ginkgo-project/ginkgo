@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "cuda/components/searching.cuh"
 constexpr auto spgemm_block_size = 64;
 constexpr auto spgemm_child_count = 4;
 
@@ -144,15 +145,33 @@ __device__ IndexType count_dense(AAccessor a, IndexType a_size,
             local_sparsity[i] = 0;
         }
         warp.sync();
-        for (IndexType i = 0; i < a_size; ++i) {
-            config::lane_mask_type success_mask{};
-            IndexType b_col{};
-            // load entries from the ith row until we exceed the accumulator
-            do {
-                auto b_cur_begin = warp.shfl(b_begin, i);
-                auto b_cur_end = warp.shfl(b_end, i);
-                b_col = checked_load(b_cols, b_cur_begin + lane, b_cur_end,
-                                     sentinel);
+
+        auto b_size = b_end - b_begin;
+        // compute prefix sum over b_size
+        IndexType b_size_ofs{};
+        IndexType b_size_total{};
+        subwarp_prefix_sum<false>(b_size, b_size_ofs, b_size_total, warp);
+        if (b_size_total / a_size < config::warp_size / 2) {
+            // if the warp would be less than half utilized: load balance
+            // process all b_size_total entries, one warp at a time
+            for (IndexType count_done{}; count_done < b_size_total;
+                 count_done += config::warp_size) {
+                const auto work_i = lane + count_done;
+                const auto src_idx =
+                    synchronous_fixed_binary_search<config::warp_size>(
+                        [&](int i) {
+                            return warp.shfl(b_size_ofs, i) >= work_i;
+                        });
+                const auto local_begin = warp.shfl(b_begin, src_idx);
+                const auto local_end = warp.shfl(b_end, src_idx);
+                const auto local_ofs = warp.shfl(b_size_ofs, src_idx);
+                const auto local_idx = local_begin + (work_i - local_ofs);
+                const auto b_col =
+                    checked_load(b_cols, local_idx, local_end, sentinel);
+                // make sure idle threads are idle
+                if (src_idx == config::warp_size) {
+                    b_col = sentinel;
+                }
                 auto rel_col = b_col - c_first_col;
                 auto mask = uint32{1} << (rel_col % 32);
                 auto idx = rel_col / 32;
@@ -160,15 +179,35 @@ __device__ IndexType count_dense(AAccessor a, IndexType a_size,
                     atomicOr(local_sparsity + idx, mask);
                 }
                 success_mask = warp.ballot(rel_col < accumulator_size);
-                b_cur_begin += popcnt(success_mask);
+            }
+        } else {
+            // otherwise use the full warp for each row
+            for (IndexType i = 0; i < a_size; ++i) {
+                config::lane_mask_type success_mask{};
+                IndexType b_col{};
+                // load entries from the ith row until we exceed the accumulator
+                do {
+                    auto b_cur_begin = warp.shfl(b_begin, i);
+                    auto b_cur_end = warp.shfl(b_end, i);
+                    b_col = checked_load(b_cols, b_cur_begin + lane, b_cur_end,
+                                         sentinel);
+                    auto rel_col = b_col - c_first_col;
+                    auto mask = uint32{1} << (rel_col % 32);
+                    auto idx = rel_col / 32;
+                    if (rel_col < accumulator_size) {
+                        atomicOr(local_sparsity + idx, mask);
+                    }
+                    success_mask = warp.ballot(rel_col < accumulator_size);
+                    b_cur_begin += popcnt(success_mask);
+                    if (lane == i) {
+                        b_begin = b_cur_begin;
+                    }
+                } while (success_mask == ~config::lane_mask_type{});
+                // capture the first column exceeding the accumulator
+                auto new_next_col = warp.shfl(b_col, popcnt(success_mask));
                 if (lane == i) {
-                    b_begin = b_cur_begin;
+                    b_next_col = new_next_col;
                 }
-            } while (success_mask == ~config::lane_mask_type{});
-            // capture the first column exceeding the accumulator
-            auto new_next_col = warp.shfl(b_col, popcnt(success_mask));
-            if (lane == i) {
-                b_next_col = new_next_col;
             }
         }
         // find the beginning column of the next dense accumulator block
