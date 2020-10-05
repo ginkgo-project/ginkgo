@@ -526,12 +526,19 @@ public:
      * @param op_hip  functor to run in case of a HipExecutor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
-    void run(std::string name, const ClosureOmp &op_omp,
-             const ClosureCuda &op_cuda, const ClosureHip &op_hip) const
+    void run_named(std::string name, const ClosureOmp &op_omp,
+                   const ClosureCuda &op_cuda, const ClosureHip &op_hip) const
     {
         NamedLambdaOperation<ClosureOmp, ClosureCuda, ClosureHip> op(
             std::move(name), op_omp, op_cuda, op_hip);
         this->run(op);
+    }
+
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
+    void run(std::string name, const ClosureOmp &op_omp,
+             const ClosureCuda &op_cuda, const ClosureHip &op_hip) const
+    {
+        this->run_named(name, op_omp, op_cuda, op_hip);
     }
 
     /**
