@@ -225,12 +225,12 @@ private:
 class CurandError : public Error {
 public:
     /**
-     * Initializes a cuBLAS error.
+     * Initializes a cuRAND error.
      *
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
-     * @param func  The name of the cuBLAS routine that failed
-     * @param error_code  The resulting cuBLAS error code
+     * @param func  The name of the cuRAND routine that failed
+     * @param error_code  The resulting cuRAND error code
      */
     CurandError(const std::string &file, int line, const std::string &func,
                 int64 error_code)

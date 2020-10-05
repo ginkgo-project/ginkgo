@@ -219,7 +219,7 @@ protected:
 };
 
 
-TEST_F(Idr, HipIdrInitializeIsEquivalentToRef)
+TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 {
     initialize_data();
 
@@ -233,7 +233,7 @@ TEST_F(Idr, HipIdrInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrStep1IsEquivalentToRef)
+TEST_F(Idr, IdrStep1IsEquivalentToRef)
 {
     initialize_data();
 
@@ -250,7 +250,7 @@ TEST_F(Idr, HipIdrStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrStep2IsEquivalentToRef)
+TEST_F(Idr, IdrStep2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -264,7 +264,7 @@ TEST_F(Idr, HipIdrStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrStep3IsEquivalentToRef)
+TEST_F(Idr, IdrStep3IsEquivalentToRef)
 {
     initialize_data();
 
@@ -285,7 +285,7 @@ TEST_F(Idr, HipIdrStep3IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrComputeOmegaIsEquivalentToRef)
+TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 {
     initialize_data();
 
@@ -301,7 +301,7 @@ TEST_F(Idr, HipIdrComputeOmegaIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrApplyOneRHSIsEquivalentToRef)
+TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
@@ -322,7 +322,7 @@ TEST_F(Idr, HipIdrApplyOneRHSIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, HipIdrApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Idr, IdrApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;

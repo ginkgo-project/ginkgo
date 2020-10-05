@@ -215,6 +215,39 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
 
 }  // namespace
 
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> interpret_as_real(
+    matrix::Dense<to_complex<ValueType>> *source)
+{
+    auto exec = source->get_executor();
+    auto rows = source->get_size()[0];
+    auto cols = 2 * source->get_size()[1];
+    auto stride = 2 * source->get_stride();
+    return matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{rows, cols},
+        gko::Array<ValueType>::view(
+            exec, rows * stride,
+            reinterpret_cast<ValueType *>(source->get_values())),
+        stride);
+}
+
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> interpret_as_real(
+    const matrix::Dense<to_complex<ValueType>> *source)
+{
+    auto exec = source->get_executor();
+    auto rows = source->get_size()[0];
+    auto cols = 2 * source->get_size()[1];
+    auto stride = 2 * source->get_stride();
+    return matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{rows, cols},
+        gko::Array<ValueType>::view(
+            exec, rows * stride,
+            const_cast<ValueType *>(
+                reinterpret_cast<ValueType *>(source->get_const_values()))),
+        stride);
+}
+
 
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const

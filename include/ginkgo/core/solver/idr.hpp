@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 /**
- * @brief The ginkgo Solve namespace.
+ * @brief The ginkgo Solver namespace.
  *
  * @ingroup solvers
  */
@@ -61,13 +61,17 @@ namespace solver {
 
 /**
  * IDR(s) is an efficient method for solving large nonsymmetric systems of
- * linear equations.
+ * linear equations. The implemented version is the one presented in the
+ * paper "Algorithm 913: An elegant IDR(s) variant that efficiently exploits
+ * biorthogonality properties" by M. B. Van Gijzen and P. Sonneveld.
  *
  * The method is based on the induced dimension reduction theorem which
  * provides a way to construct subsequent residuals that lie in a sequence
- * of shrinking subspaces.
+ * of shrinking subspaces. These subspaces are spanned by s vectors which are
+ * first generated randomly and then orthonormalized. They are stored in
+ * a dense matrix.
  *
- * @tparam ValueType precision of the elements of the system matrix.
+ * @tparam ValueType  precision of the elements of the system matrix.
  *
  * @ingroup idr
  * @ingroup solvers
@@ -206,11 +210,8 @@ protected:
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
-
         subspace_dim_ = parameters_.subspace_dim;
-
         kappa_ = parameters_.kappa;
-
         deterministic_ = parameters_.deterministic;
     }
 

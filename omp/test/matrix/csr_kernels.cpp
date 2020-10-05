@@ -67,7 +67,7 @@ protected:
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
-    Csr() : mtx_size(532, 231), rand_engine(42) {}
+    Csr() : mtx_size(53, 23), rand_engine(42) {}
 
     void SetUp()
     {

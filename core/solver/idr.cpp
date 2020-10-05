@@ -39,10 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
+
 #include "core/components/fill_array.hpp"
 #include "core/solver/idr_kernels.hpp"
-
-#include <iostream>
 
 namespace gko {
 namespace solver {
@@ -54,6 +53,7 @@ GKO_REGISTER_OPERATION(step_1, idr::step_1);
 GKO_REGISTER_OPERATION(step_2, idr::step_2);
 GKO_REGISTER_OPERATION(step_3, idr::step_3);
 GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
+GKO_REGISTER_OPERATION(finalize, idr::finalize);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
@@ -85,31 +85,59 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
 }
 
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> interpret_as_value_type(
+    matrix::Dense<to_complex<ValueType>> *source)
+{
+    auto exec = source->get_executor();
+    auto rows = source->get_size()[0];
+    auto cols = is_complex<ValueType>() ? source->get_size()[1]
+                                        : 2 * source->get_size()[1];
+    auto stride = is_complex<ValueType>() ? source->get_stride()
+                                          : 2 * source->get_stride();
+    return matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{rows, cols},
+        gko::Array<ValueType>::view(
+            exec, rows * stride,
+            reinterpret_cast<ValueType *>(source->get_values())),
+        stride);
+}
+
 
 template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexType = to_complex<ValueType>;
+    using Vector = matrix::Dense<ComplexType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    bool complex = true;
 
     auto exec = this->get_executor();
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto one_op =
+        initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+    auto neg_one_op =
+        initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
+    auto complex_neg_one_op =
+        initialize<Vector>({-one<to_complex<ValueType>>()}, exec);
 
-    auto dense_b = as<Vector>(b);
-    auto dense_x = as<Vector>(x);
+    auto dense_b = as<matrix::Dense<ValueType>>(b);
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+    auto complex_b = Vector::create(exec, dense_b->get_size());
+    auto complex_x = Vector::create(exec, dense_x->get_size());
+
 
     constexpr uint8 RelativeStoppingId{1};
 
     const auto problem_size = system_matrix_->get_size()[0];
-    const auto nrhs = dense_b->get_size()[1];
+    const auto nrhs = complex_b->get_size()[1];
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto v = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-    auto helper = Vector::create_with_config_of(dense_b);
+    auto residual = Vector::create_with_config_of(complex_b.get());
+    auto v = Vector::create_with_config_of(complex_b.get());
+    auto t = Vector::create_with_config_of(complex_b.get());
+    auto helper = Vector::create_with_config_of(complex_b.get());
 
     auto m =
         Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
@@ -131,50 +159,55 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     bool one_changed{};
     Array<stopping_status> stop_status(exec, nrhs);
 
-    auto subspace_vectors_ =
+    // The dense matrix containing the randomly generated subspace vectors.
+    // Stored in column major order and complex conjugated. So, if the
+    // matrix containing the subspace vectors in row major order is called P,
+    // subspace_vectors actually contains P^H.
+    auto subspace_vectors =
         Vector::create(exec, gko::dim<2>(subspace_dim_, problem_size));
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(m.get(), subspace_vectors_.get(),
-                                   deterministic_, &stop_status));
+    exec->run(idr::make_initialize(
+        dense_b, dense_x, complex_b.get(), complex_x.get(), m.get(),
+        subspace_vectors.get(), deterministic_, &stop_status));
 
     // omega = 1
     exec->run(
-        idr::make_fill_array(omega->get_values(), nrhs, one<ValueType>()));
+        idr::make_fill_array(omega->get_values(), nrhs, one<ComplexType>()));
 
     // residual = b - Ax
-    residual->copy_from(dense_b);
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
+    residual->copy_from(complex_b.get());
+    system_matrix_->apply(neg_one_op.get(), complex_x.get(), one_op.get(),
                           residual.get());
 
     // g = u = 0
     exec->run(idr::make_fill_array(
-        g->get_values(), problem_size * g->get_stride(), zero<ValueType>()));
+        g->get_values(), problem_size * g->get_stride(), zero<ComplexType>()));
     exec->run(idr::make_fill_array(
-        u->get_values(), problem_size * u->get_stride(), zero<ValueType>()));
+        u->get_values(), problem_size * u->get_stride(), zero<ComplexType>()));
 
 
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, residual.get());
+    /*auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_, std::shared_ptr<const LinOp>(complex_b.get(), [](const
+       LinOp *) {}), complex_x.get(), residual.get());*/
 
     int total_iter = -1;
 
-    while (true) {
+    while (total_iter < 3) {
         ++total_iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual.get(), dense_x);
+        /*this->template log<log::Logger::iteration_complete>(
+            this, total_iter, residual.get(), complex_x.get());
 
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual.get())
-                .solution(dense_x)
+                .solution(complex_x.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
-        }
+        }*/
 
-        subspace_vectors_->apply(residual.get(), f.get());
+        subspace_vectors->apply(residual.get(), f.get());
         // f = P^H * residual
 
         for (size_type k = 0; k < subspace_dim_; k++) {
@@ -184,7 +217,9 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - c_k * g_k - ... - c_s * g_s
 
-            get_preconditioner()->apply(v.get(), helper.get());
+            get_preconditioner()->apply(
+                interpret_as_value_type<ValueType>(v.get()).get(),
+                interpret_as_value_type<ValueType>(helper.get()).get());
 
             exec->run(idr::make_step_2(k, omega.get(), helper.get(), c.get(),
                                        u.get(), &stop_status));
@@ -196,10 +231,10 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
 
-            exec->run(idr::make_step_3(k, subspace_vectors_.get(), g.get(),
+            exec->run(idr::make_step_3(k, subspace_vectors.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
-                                       alpha.get(), residual.get(), dense_x,
-                                       &stop_status));
+                                       alpha.get(), residual.get(),
+                                       complex_x.get(), &stop_status));
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
             //     g_k -= alpha * g_i
@@ -214,7 +249,9 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
         }
 
-        get_preconditioner()->apply(residual.get(), helper.get());
+        get_preconditioner()->apply(
+            interpret_as_value_type<ValueType>(residual.get()).get(),
+            interpret_as_value_type<ValueType>(helper.get()).get());
         system_matrix_->apply(helper.get(), t.get());
 
         t->compute_dot(residual.get(), omega.get());
@@ -225,9 +262,9 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(idr::make_compute_omega(
             kappa_, tht.get(), residual_norm.get(), omega.get(), &stop_status));
 
-        t->scale(neg_one_op.get());
+        t->scale(complex_neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
-        dense_x->add_scaled(omega.get(), helper.get());
+        complex_x.get()->add_scaled(omega.get(), helper.get());
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
@@ -237,6 +274,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // residual -= omega * t
         // dense_x += omega * v
     }
+    exec->run(idr::make_finalize(complex_x.get(), dense_x));
 }
 
 

@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-
+#include <iostream>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -68,6 +68,9 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
     *one_changed = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
+            std::cout << "ORIG TAU: " << orig_tau->at(i)
+                      << ", TAU: " << tau->at(i)
+                      << ", TOLERANCE: " << rel_residual_goal << "\n";
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }

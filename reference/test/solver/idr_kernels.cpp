@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/idr.hpp>
 
 
+#include <iostream>
+
+
 #include <gtest/gtest.h>
 
-#include <iostream>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -144,7 +146,6 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-
     GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), half_tol);
 }
 
@@ -164,7 +165,6 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsUsingAdvancedApply)
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
-
 
     GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}),
                         half_tol);
@@ -200,7 +200,6 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
     auto resnorm = gko::matrix::Dense<gko::remove_complex<value_type>>::create(
         this->exec, gko::dim<2>{1, 1});
     locmtx->apply(neg_one_op.get(), x.get(), one_op.get(), b.get());
-    b->compute_norm2(resnorm.get());
 
     GKO_ASSERT_MTX_NEAR(
         x,

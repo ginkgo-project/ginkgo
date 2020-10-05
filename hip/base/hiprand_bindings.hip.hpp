@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_HIPRAND_BINDINGS_HPP_
-#define GKO_CUDA_BASE_HIPRAND_BINDINGS_HPP_
+#ifndef GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
+#define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
 #include <hiprand.h>
@@ -47,16 +47,11 @@ namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The HIPSPARSE namespace.
+ * @brief The HIPRAND namespace.
  *
  * @ingroup hiprand
  */
 namespace hiprand {
-/**
- * @brief The detail namespace.
- *
- * @ingroup detail
- */
 
 
 template <typename ValueType>
@@ -75,14 +70,21 @@ template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
 
+inline hiprandGenerator_t rand_generator(int64 seed,
+                                         hiprandRngType generator_type)
+{
+    hiprandGenerator_t gen;
+    hiprandCreateGenerator(&gen, generator_type);
+    hiprandSetPseudoRandomGeneratorSeed(gen, seed);
+    return gen;
+}
+
+
 #define GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, HiprandName)               \
-    inline void rand_vector(int seed, int n, remove_complex<ValueType> mean, \
-                            remove_complex<ValueType> stddev,                \
-                            ValueType *values)                               \
+    inline void rand_vector(                                                 \
+        hiprandGenerator_t &gen, int n, remove_complex<ValueType> mean,      \
+        remove_complex<ValueType> stddev, ValueType *values)                 \
     {                                                                        \
-        hiprandGenerator_t gen;                                              \
-        hiprandCreateGenerator(&gen, HIPRAND_RNG_PSEUDO_DEFAULT);            \
-        hiprandSetPseudoRandomGeneratorSeed(gen, seed);                      \
         n = is_complex<ValueType>() ? 2 * n : n;                             \
         GKO_ASSERT_NO_HIPRAND_ERRORS(HiprandName(                            \
             gen, reinterpret_cast<remove_complex<ValueType> *>(values), n,   \
@@ -108,4 +110,4 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<double>,
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_HIPSPARSE_BINDINGS_HPP_
+#endif  // GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_

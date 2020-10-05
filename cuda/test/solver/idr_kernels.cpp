@@ -219,7 +219,7 @@ protected:
 };
 
 
-TEST_F(Idr, CudaIdrInitializeIsEquivalentToRef)
+TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 {
     initialize_data();
 
@@ -233,7 +233,7 @@ TEST_F(Idr, CudaIdrInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrStep1IsEquivalentToRef)
+TEST_F(Idr, IdrStep1IsEquivalentToRef)
 {
     initialize_data();
 
@@ -250,7 +250,7 @@ TEST_F(Idr, CudaIdrStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrStep2IsEquivalentToRef)
+TEST_F(Idr, IdrStep2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -264,7 +264,7 @@ TEST_F(Idr, CudaIdrStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrStep3IsEquivalentToRef)
+TEST_F(Idr, IdrStep3IsEquivalentToRef)
 {
     initialize_data();
 
@@ -285,7 +285,7 @@ TEST_F(Idr, CudaIdrStep3IsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrComputeOmegaIsEquivalentToRef)
+TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 {
     initialize_data();
 
@@ -301,7 +301,7 @@ TEST_F(Idr, CudaIdrComputeOmegaIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrApplyOneRHSIsEquivalentToRef)
+TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
@@ -322,7 +322,7 @@ TEST_F(Idr, CudaIdrApplyOneRHSIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, CudaIdrApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Idr, IdrApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;

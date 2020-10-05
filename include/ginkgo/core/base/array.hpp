@@ -289,6 +289,25 @@ public:
     }
 
     /**
+     * Creates an Array from existing memory.
+     *
+     * The Array does not take ownership of the memory, and will not deallocate
+     * it once it goes out of scope. This array type cannot use the function
+     * `resize_and_reset` since it does not own the data it should resize.
+     *
+     * @param exec  executor where `data` is located
+     * @param num_elems  number of elements in `data`
+     * @param data  chunk of memory used to create the array
+     *
+     * @return an Array constructed from `data`
+     */
+    static Array view(std::shared_ptr<const Executor> exec, size_type num_elems,
+                      const value_type *data)
+    {
+        return Array{exec, num_elems, data, view_deleter{}};
+    }
+
+    /**
      * Copies data from another array or view. In the case of an array target,
      * the array is resized to match the source's size. In the case of a view
      * target, if the dimensions are not compatible a gko::OutOfBoundsError is
