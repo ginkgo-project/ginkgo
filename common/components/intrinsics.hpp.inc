@@ -81,3 +81,13 @@ __forceinline__ __device__ int clz(uint32 mask) { return __clz(mask); }
 
 /** @copydoc clz */
 __forceinline__ __device__ int clz(uint64 mask) { return __clzll(mask); }
+
+
+/**
+ * @internal
+ * Returns the rounded-up binary logarithm of i.
+ */
+__forceinline__ __device__ int log2(uint32 i) { return 32 - clz(i - 1); }
+
+/** @copydoc log2 */
+__forceinline__ __device__ int log2(uint64 i) { return 64 - clz(i - 1); }
