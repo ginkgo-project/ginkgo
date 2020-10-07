@@ -102,6 +102,7 @@ add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
 add_subdirectory(solver)
+add_subdirectory(spgeam)
 add_subdirectory(spgemm)
 add_subdirectory(spmv)
 
