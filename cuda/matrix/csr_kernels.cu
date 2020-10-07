@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/merging.cuh"
+#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"

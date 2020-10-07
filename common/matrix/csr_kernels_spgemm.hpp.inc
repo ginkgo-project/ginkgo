@@ -178,7 +178,7 @@ __device__ IndexType count_dense(AAccessor a, IndexType a_size,
                 if (rel_col < accumulator_size) {
                     atomicOr(local_sparsity + idx, mask);
                 }
-                success_mask = warp.ballot(rel_col < accumulator_size);
+                // success_mask = warp.ballot(rel_col < accumulator_size);
             }
         } else {
             // otherwise use the full warp for each row
@@ -754,7 +754,7 @@ __global__ __launch_bounds__(default_block_size) void spgemm_analysis(
     static_assert(subwarp_count <= config::warp_size, "block too big");
     auto warp_lane = warp.thread_rank();
     // 64bit atomics are only defined for unsigned types
-    using unsigned_type = std::make_unsigned<IndexType>::type;
+    using unsigned_type = typename std::make_unsigned<IndexType>::type;
     auto block_max_nnz = static_cast<unsigned_type>(
         reduce(warp, local_sum_nnz[warp_lane], max_op));
     auto block_sum_nnz = reduce(
