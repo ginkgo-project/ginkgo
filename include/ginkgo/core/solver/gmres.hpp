@@ -191,7 +191,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
+                this->get_executor(), this->get_size()));
         }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;

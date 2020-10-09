@@ -226,7 +226,7 @@ protected:
             solver_ = parameters_.solver->generate(system_matrix_);
         } else {
             solver_ = matrix::Identity<ValueType>::create(this->get_executor(),
-                                                          this->get_size()[0]);
+                                                          this->get_size());
         }
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
