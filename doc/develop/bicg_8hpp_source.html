@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/197088394 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/200546238 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -193,32 +193,33 @@ $(function() {
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;          parameters_{factory-&gt;<a class="code" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">get_parameters</a>()},</div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;          system_matrix_{std::move(system_matrix)}</div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;    {</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>) {</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>,</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;                                        <span class="keyword">this</span>);</div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>);</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#a76eeea5d02b18de6c38d32110dd00646">preconditioner</a>) {</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;                parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#a76eeea5d02b18de6c38d32110dd00646">preconditioner</a>-&gt;generate(system_matrix_));</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(matrix::Identity&lt;ValueType&gt;::create(</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;                this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(), this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0]));</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;        }</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;        stop_criterion_factory_ =</div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;            <a class="code" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">stop::combine</a>(std::move(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#af67683ce30171665a0d3a2c4bcaabe86">criteria</a>));</div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;    }</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160; </div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;    std::shared_ptr&lt;const LinOp&gt; system_matrix_{};</div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;    std::shared_ptr&lt;const stop::CriterionFactory&gt; stop_criterion_factory_{};</div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;};</div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160; </div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>) {</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>,</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;                                        <span class="keyword">this</span>);</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">generated_preconditioner</a>);</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#a76eeea5d02b18de6c38d32110dd00646">preconditioner</a>) {</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;                parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#a76eeea5d02b18de6c38d32110dd00646">preconditioner</a>-&gt;generate(system_matrix_));</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;        } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;            <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(matrix::Identity&lt;ValueType&gt;::create(</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;                this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(), this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()));</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;        }</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;        stop_criterion_factory_ =</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;            <a class="code" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">stop::combine</a>(std::move(parameters_.<a class="code" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#af67683ce30171665a0d3a2c4bcaabe86">criteria</a>));</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    }</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;    std::shared_ptr&lt;const LinOp&gt; system_matrix_{};</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;    std::shared_ptr&lt;const stop::CriterionFactory&gt; stop_criterion_factory_{};</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;};</div>
 <div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160; </div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;}  <span class="comment">// namespace solver</span></div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160; </div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;}  <span class="comment">// namespace solver</span></div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;}  <span class="comment">// namespace gko</span></div>
 <div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SOLVER_BICG_HPP_</span></div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SOLVER_BICG_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1solver_1_1Bicg_html"><div class="ttname"><a href="classgko_1_1solver_1_1Bicg.html">gko::solver::Bicg</a></div><div class="ttdoc">BICG or the Biconjugate gradient method is a Krylov subspace solver.</div><div class="ttdef"><b>Definition:</b> bicg.hpp:71</div></div>
 <div class="ttc" id="aclassgko_1_1solver_1_1Bicg_html_aab3709991ffebeeb2edcd39c32426fab"><div class="ttname"><a href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg::get_system_matrix</a></div><div class="ttdeci">std::shared_ptr&lt; const LinOp &gt; get_system_matrix() const</div><div class="ttdoc">Gets the system operator (matrix) of the linear system.</div><div class="ttdef"><b>Definition:</b> bicg.hpp:86</div></div>

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/197088394 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/200546238 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -199,38 +199,39 @@ $(function() {
 <div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;          parameters_{factory-&gt;<a class="code" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">get_parameters</a>()},</div>
 <div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;          system_matrix_{std::move(system_matrix)}</div>
 <div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;    {</div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a815bee91294da4c35a9216638743bf16">generated_solver</a>) {</div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;            solver_ = parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a815bee91294da4c35a9216638743bf16">generated_solver</a>;</div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;            GKO_ASSERT_EQUAL_DIMENSIONS(solver_, <span class="keyword">this</span>);</div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82">solver</a>) {</div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;            solver_ = parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82">solver</a>-&gt;generate(system_matrix_);</div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;            solver_ = matrix::Identity&lt;ValueType&gt;::create(this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(),</div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;                                                          this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0]);</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;        }</div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        relaxation_factor_ = gko::initialize&lt;matrix::Dense&lt;ValueType&gt;&gt;(</div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;            {parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#adde5da5ddad690e275111ea316757707">relaxation_factor</a>}, this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;        stop_criterion_factory_ =</div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;            <a class="code" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">stop::combine</a>(std::move(parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#af0f31d5343e290f7974cd780c7be27cc">criteria</a>));</div>
-<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;    }</div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160; </div>
-<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;    std::shared_ptr&lt;const LinOp&gt; system_matrix_{};</div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;    std::shared_ptr&lt;const LinOp&gt; solver_{};</div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;    std::shared_ptr&lt;const stop::CriterionFactory&gt; stop_criterion_factory_{};</div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;    std::shared_ptr&lt;const matrix::Dense&lt;ValueType&gt;&gt; relaxation_factor_{};</div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;};</div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160; </div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a815bee91294da4c35a9216638743bf16">generated_solver</a>) {</div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;            solver_ = parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a815bee91294da4c35a9216638743bf16">generated_solver</a>;</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;            GKO_ASSERT_EQUAL_DIMENSIONS(solver_, <span class="keyword">this</span>);</div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82">solver</a>) {</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;            solver_ = parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82">solver</a>-&gt;generate(system_matrix_);</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;        } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;            solver_ = matrix::Identity&lt;ValueType&gt;::create(this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(),</div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;                                                          this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>());</div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        }</div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;        relaxation_factor_ = gko::initialize&lt;matrix::Dense&lt;ValueType&gt;&gt;(</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;            {parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#adde5da5ddad690e275111ea316757707">relaxation_factor</a>}, this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;        stop_criterion_factory_ =</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;            <a class="code" href="group__stop.html#ga3a3325b3a7660501f3bb72d08b09f2d2">stop::combine</a>(std::move(parameters_.<a class="code" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#af0f31d5343e290f7974cd780c7be27cc">criteria</a>));</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;    }</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160; </div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;    std::shared_ptr&lt;const LinOp&gt; system_matrix_{};</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;    std::shared_ptr&lt;const LinOp&gt; solver_{};</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;    std::shared_ptr&lt;const stop::CriterionFactory&gt; stop_criterion_factory_{};</div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;    std::shared_ptr&lt;const matrix::Dense&lt;ValueType&gt;&gt; relaxation_factor_{};</div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;};</div>
 <div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160; </div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision&gt;</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;<span class="keyword">using</span> Richardson = Ir&lt;ValueType&gt;;</div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160; </div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160; </div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision&gt;</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;<span class="keyword">using</span> Richardson = Ir&lt;ValueType&gt;;</div>
 <div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160; </div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;}  <span class="comment">// namespace solver</span></div>
-<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160; </div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;}  <span class="comment">// namespace solver</span></div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;}  <span class="comment">// namespace gko</span></div>
 <div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160; </div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SOLVER_IR_HPP_</span></div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160; </div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_SOLVER_IR_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1solver_1_1Ir_1_1Factory_html"><div class="ttname"><a href="classgko_1_1solver_1_1Ir_1_1Factory.html">gko::solver::Ir::Factory</a></div><div class="ttdef"><b>Definition:</b> ir.hpp:202</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:144</div></div>
