@@ -319,6 +319,18 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
 }
 
 
+TYPED_TEST(Ir, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> rectangular_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->ir_factory->generate(rectangular_mtx),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Ir, DefaultRelaxationFactor)
 {
     using value_type = typename TestFixture::value_type;

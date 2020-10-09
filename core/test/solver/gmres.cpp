@@ -332,6 +332,18 @@ TYPED_TEST(Gmres, ThrowsOnWrongPreconditionerInFactory)
 }
 
 
+TYPED_TEST(Gmres, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> rectangular_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->gmres_factory->generate(rectangular_mtx),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Gmres, CanSetPreconditioner)
 {
     using Solver = typename TestFixture::Solver;
