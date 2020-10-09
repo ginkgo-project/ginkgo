@@ -256,7 +256,7 @@ TYPED_TEST(Cgs, ThrowsOnWrongPreconditionerInFactory)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::create(this->exec, gko::dim<2>{1, 3});
+        Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
             .with_criteria(
