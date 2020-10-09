@@ -118,9 +118,12 @@ mkdir build; cd build
 cmake -G "Unix Makefiles" .. && make
 ```
 
-By default, `GINKGO_BUILD_REFERENCE` is enabled. You should be able to run examples with this
-executor. You would need to explicitly compile with the OpenMP and CUDA modules enabled
-to run with these executors. Please refer to the [Installation page](./INSTALL.md).
+By default, `GINKGO_BUILD_REFERENCE` is enabled. You should be able to run
+examples with this executor. By default, Ginkgo tries to enable the relevant
+modules depending on your machine environment (present of CUDA, ...). You can
+also explicitly compile with the OpenMP, CUDA, HIP or DPC++ modules enabled to
+run the examples with these executors. Please refer to the [Installation
+page](./INSTALL.md) for more details.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).

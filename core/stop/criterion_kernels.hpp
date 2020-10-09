@@ -87,6 +87,15 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 
 }  // namespace set_all_statuses
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace set_all_statuses {
+
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+
+}  // namespace set_all_statuses
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 

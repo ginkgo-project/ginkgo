@@ -176,6 +176,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace jacobi {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace jacobi
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

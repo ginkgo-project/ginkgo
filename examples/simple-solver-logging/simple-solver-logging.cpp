@@ -93,6 +93,11 @@ int main(int argc, char *argv[])
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
                                                  true);
              }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation

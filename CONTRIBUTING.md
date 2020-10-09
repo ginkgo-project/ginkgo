@@ -68,8 +68,8 @@ look at our coding guidelines before proposing a pull request.
 
 Ginkgo is divided into a `core` module with common functionalities independent
 of the architecture, and several kernel modules (`reference`, `omp`, `cuda`,
-`hip`) which contain low-level computational routines for each supported
-architecture.
+`hip`, `dpcpp`) which contain low-level computational routines for each
+supported architecture.
 
 ### Extended header files
 
@@ -521,12 +521,12 @@ existing code has been broken.
   need to be performed with data that can be as small as possible. For example,
   matrices lesser than 5x5 are acceptable. This allows the reviewers to verify
   the results for exactness with tools such as MATLAB.
-* OpenMP, CUDA and HIP kernels have to be tested against the reference kernels.
-  Hence data for the tests of these kernels can be generated in the test files
-  using helper functions or by using external files to be read through the
-  standard input. In particular for CUDA and HIP, the data size should be at
-  least bigger than the architecture's warp size to ensure there is no corner
-  case in the kernels.
+* OpenMP, CUDA, HIP and DPC++ kernels have to be tested against the reference
+  kernels. Hence data for the tests of these kernels can be generated in the
+  test files using helper functions or by using external files to be read
+  through the standard input. In particular for CUDA, HIP and DPC++ the data
+  size should be at least bigger than the architecture's warp size to ensure
+  there is no corner case in the kernels.
 
 
 ## Documentation style
