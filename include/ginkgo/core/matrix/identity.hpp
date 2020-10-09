@@ -91,6 +91,17 @@ protected:
     /**
      * Creates an Identity matrix of the specified size.
      *
+     * @param size  size of the matrix (must be square)
+     */
+    Identity(std::shared_ptr<const Executor> exec, dim<2> size)
+        : EnableLinOp<Identity>(exec, size)
+    {
+        GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    }
+
+    /**
+     * Creates an Identity matrix of the specified size.
+     *
      * @param size  size of the matrix
      */
     Identity(std::shared_ptr<const Executor> exec, size_type size)

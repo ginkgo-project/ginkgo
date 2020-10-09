@@ -252,7 +252,7 @@ TYPED_TEST(Ir, ThrowsOnWrongInnerSolverInFactory)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::create(this->exec, gko::dim<2>{1, 3});
+        Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
@@ -300,7 +300,7 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::create(this->exec, gko::dim<2>{1, 3});
+        Mtx::create(this->exec, gko::dim<2>{2, 2});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
@@ -316,6 +316,18 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
     auto solver = ir_factory->generate(this->mtx);
 
     ASSERT_THROW(solver->set_solver(ir_solver), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Ir, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> rectangular_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->ir_factory->generate(rectangular_mtx),
+                 gko::DimensionMismatch);
 }
 
 
