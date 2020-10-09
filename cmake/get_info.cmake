@@ -72,6 +72,12 @@ function(ginkgo_print_variable log_type var_name)
     FILE(APPEND ${log_type} "${upd_string}")
 endfunction()
 
+macro(ginkgo_print_foreach_variable variables)
+    foreach(var ${variables})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+endmacro()
+
 IF("${GINKGO_GIT_SHORTREV}" STREQUAL "")
     set(to_print "Summary of Configuration for Ginkgo (version ${Ginkgo_VERSION} with tag ${Ginkgo_VERSION_TAG})
 --"
@@ -88,12 +94,9 @@ ENDIF()
 set(log_types "detailed_log;minimal_log")
 foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "Ginkgo configuration:")
-    set(print_var
-        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX;PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR"
-        )
-    foreach(var ${print_var})
-        ginkgo_print_variable(${${log_type}} ${var} )
-    endforeach()
+    ginkgo_print_foreach_variable(
+        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX"
+        "PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR")
     string(SUBSTRING
         "
 --        CMAKE_CXX_COMPILER:                                                   " 0 55 print_string)
@@ -108,31 +111,17 @@ foreach(log_type ${log_types})
     FILE(APPEND ${${log_type}} "${print_string}")
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
-    set(print_var
-        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP"
-        )
-    foreach(var ${print_var})
-        ginkgo_print_variable(${${log_type}} ${var} )
-    endforeach()
+    ginkgo_print_foreach_variable(
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
-    set(print_var
+    ginkgo_print_foreach_variable(
         "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS")
-    foreach(var ${print_var})
-        ginkgo_print_variable(${${log_type}} ${var} )
-    endforeach()
     ginkgo_print_module_footer(${${log_type}} "  Documentation:")
-    set(print_var
-        "GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
-    foreach(var ${print_var})
-        ginkgo_print_variable(${${log_type}} ${var} )
-    endforeach()
+    ginkgo_print_foreach_variable("GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
     ginkgo_print_module_footer(${${log_type}} "  Developer helpers:")
-    set(print_var
+    ginkgo_print_foreach_variable(
         "GINKGO_DEVEL_TOOLS;GINKGO_WITH_CLANG_TIDY;GINKGO_WITH_IWYU"
         "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_CHECK_PATH")
-    foreach(var ${print_var})
-        ginkgo_print_variable(${${log_type}} ${var} )
-    endforeach()
     ginkgo_print_module_footer(${${log_type}} "")
 endforeach()
 
@@ -158,6 +147,10 @@ ENDIF()
 
 IF(GINKGO_BUILD_HIP)
     include(hip/get_info.cmake)
+ENDIF()
+
+IF(GINKGO_BUILD_DPCPP)
+    include(dpcpp/get_info.cmake)
 ENDIF()
 
 ginkgo_print_generic_header(${detailed_log} "Optional Components:")

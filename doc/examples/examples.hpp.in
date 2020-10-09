@@ -57,8 +57,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * By default, Ginkgo is compiled with at least
  * <code>-DGINKGO_BUILD_REFERENCE=ON</code>.
- * To execute on a GPU, you need to have a GPU on the system and must have
- * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.
+ * Ginkgo also tries to detect your environment setup (presence of CUDA, ...) to
+ * enable the relevant accelerator modules. If you want to target a specific
+ * GPU, make sure that Ginkgo is compiled with the accelerator specific module
+ * enabled, such as:
+ * <ol>
+ *   <li> <code>-DGINKGO_BUILD_CUDA=ON</code> option for NVIDIA GPUs.
+ *   <li> <code>-DGINKGO_BUILD_HIP=ON</code> option for AMD or NVIDIA GPUs.
+ *   <li> <code>-DGINKGO_BUILD_SYCL=ON</code> option for Intel GPUs (and
+ *        possibly any other platform).
+ * </ol
  *
  * <a name="graph"></a>
  * @anchor ExampleConnectionGraph

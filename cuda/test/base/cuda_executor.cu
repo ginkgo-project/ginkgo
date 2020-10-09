@@ -69,6 +69,11 @@ public:
         value = -3;
     }
 
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = -4;
+    }
+
     void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         cudaGetDevice(&value);
@@ -239,7 +244,7 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    cuda->free(copy_cuda2);
+    cuda2->free(copy_cuda2);
     cuda->free(orig);
 }
 

@@ -41,6 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#ifdef CL_SYCL_LANGUAGE_VERSION
+#include <CL/sycl.hpp>
+#endif
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -908,7 +913,11 @@ GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
                                                       remove_complex<T>>
 abs(const T &x)
 {
+#ifdef CL_SYCL_LANGUAGE_VERSION
+    return cl::sycl::sqrt(real(x) * real(x) + imag(x) * imag(x));
+#else
     return sqrt(squared_norm(x));
+#endif
 }
 
 
@@ -966,7 +975,11 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_finite(const T &value)
 {
     constexpr T infinity{detail::infinity_impl<T>::value};
+#ifdef CL_SYCL_LANGUAGE_VERSION
+    return ::gko::abs(value) < infinity;
+#else
     return abs(value) < infinity;
+#endif
 }
 
 
@@ -987,6 +1000,25 @@ is_finite(const T &value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }
+
+
+namespace kernels {
+namespace dpcpp {
+
+
+// For now this seems to be useless. Somehow, DPC++ doesn't use this
+// declaration and anyway always replace calls to `abs` by `std::abs`. To
+// reference this declaration, use `dpcpp::abs`.
+using ::gko::abs;
+
+
+#ifdef CL_SYCL_LANGUAGE_VERSION
+using cl::sycl::sqrt;
+#endif
+
+
+}  // namespace dpcpp
+}  // namespace kernels
 
 
 }  // namespace gko

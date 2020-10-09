@@ -135,6 +135,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace cgs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace cgs
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
