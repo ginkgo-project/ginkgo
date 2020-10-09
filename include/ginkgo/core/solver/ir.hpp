@@ -219,6 +219,7 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_solver) {
             solver_ = parameters_.generated_solver;
             GKO_ASSERT_EQUAL_DIMENSIONS(solver_, this);
