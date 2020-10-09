@@ -132,6 +132,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace factorization
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

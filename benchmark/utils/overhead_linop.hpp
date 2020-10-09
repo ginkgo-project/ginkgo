@@ -109,6 +109,15 @@ GKO_DECLARE_ALL;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace overhead {
+
+GKO_DECLARE_ALL;
+
+}  // namespace overhead
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL
 
 

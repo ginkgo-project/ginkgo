@@ -123,6 +123,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace upper_trs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace upper_trs
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

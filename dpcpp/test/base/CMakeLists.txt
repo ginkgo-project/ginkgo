@@ -1,0 +1,1 @@
+ginkgo_create_dpcpp_test(executor)

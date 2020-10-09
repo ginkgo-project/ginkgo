@@ -53,6 +53,10 @@ void Operation::run(std::shared_ptr<const HipExecutor> executor) const
     GKO_NOT_IMPLEMENTED;
 
 
+void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
+    GKO_NOT_IMPLEMENTED;
+
+
 void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
 {
     this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));

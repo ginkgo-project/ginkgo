@@ -75,6 +75,11 @@ public:
         value = -3;
     }
 
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = -4;
+    }
+
     void run(std::shared_ptr<const gko::HipExecutor>) const override
     {
         hipGetDevice(&value);
@@ -248,7 +253,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     omp->copy_from(hip2.get(), 2, copy_hip2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    hip->free(copy_hip2);
+    hip2->free(copy_hip2);
     hip->free(orig);
 }
 

@@ -63,9 +63,13 @@ public:
     {
         value = 3;
     }
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
     {
         value = 4;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = 5;
     }
 
     int &value;
@@ -88,9 +92,10 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(omp_lambda, cuda_lambda, hip_lambda);
+    omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -155,7 +160,7 @@ TEST(ReferenceExecutor, RunsCorrectOperation)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ref->run(ExampleOperation(value));
-    ASSERT_EQ(4, value);
+    ASSERT_EQ(5, value);
 }
 
 
@@ -165,9 +170,10 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(omp_lambda, cuda_lambda, hip_lambda);
+    ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -289,10 +295,11 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr cuda =
         gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
-    cuda->run(omp_lambda, cuda_lambda, hip_lambda);
+    cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
     ASSERT_EQ(2, value);
 }
 
@@ -360,9 +367,10 @@ TEST(HipExecutor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
-    hip->run(omp_lambda, cuda_lambda, hip_lambda);
+    hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
     ASSERT_EQ(3, value);
 }
 
@@ -411,6 +419,48 @@ TEST(HipExecutor, CanSetDeviceResetBoolean)
     hip->set_device_reset(true);
 
     ASSERT_EQ(true, hip->get_device_reset());
+}
+
+
+TEST(DpcppExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+
+    dpcpp->run(ExampleOperation(value));
+    ASSERT_EQ(4, value);
+}
+
+
+TEST(DpcppExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+
+    dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+    ASSERT_EQ(4, value);
+}
+
+
+TEST(DpcppExecutor, KnowsItsMaster)
+{
+    auto omp = gko::OmpExecutor::create();
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, omp);
+
+    ASSERT_EQ(omp, dpcpp->get_master());
+}
+
+
+TEST(DpcppExecutor, KnowsItsDeviceId)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto dpcpp = gko::DpcppExecutor::create(0, omp);
+
+    ASSERT_EQ(0, dpcpp->get_device_id());
 }
 
 

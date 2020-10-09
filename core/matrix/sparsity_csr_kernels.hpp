@@ -144,6 +144,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace sparsity_csr {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sparsity_csr
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
