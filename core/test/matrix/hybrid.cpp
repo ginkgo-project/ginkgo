@@ -127,7 +127,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Hybrid, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Hybrid, KnowsItsSize)

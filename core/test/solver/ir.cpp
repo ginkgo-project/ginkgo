@@ -91,7 +91,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Ir, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
 
 
 TYPED_TEST(Ir, IrFactoryKnowsItsExecutor)

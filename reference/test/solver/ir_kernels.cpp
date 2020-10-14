@@ -80,7 +80,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
-TYPED_TEST_CASE(Ir, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
 
 
 TYPED_TEST(Ir, SolvesTriangularSystem)

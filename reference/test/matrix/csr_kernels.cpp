@@ -349,7 +349,7 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -1345,7 +1345,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(CsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)

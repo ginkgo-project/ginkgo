@@ -81,7 +81,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_CASE(Sellp, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Sellp, AppliesToDenseVector)
@@ -651,7 +651,7 @@ protected:
     using Mtx = gko::matrix::Sellp<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(SellpComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(SellpComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(SellpComplex, OutplaceAbsolute)

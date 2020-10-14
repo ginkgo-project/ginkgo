@@ -111,7 +111,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Csr, KnowsItsSize)
