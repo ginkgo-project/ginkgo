@@ -66,7 +66,7 @@ protected:
     std::shared_ptr<gko::LinOp> scalar;
 };
 
-TYPED_TEST_CASE(Perturbation, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes);
 
 
 TYPED_TEST(Perturbation, AppliesToVector)

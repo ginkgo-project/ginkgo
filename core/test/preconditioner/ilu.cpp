@@ -69,7 +69,7 @@ protected:
     std::shared_ptr<typename u_solver_type::Factory> u_factory;
 };
 
-TYPED_TEST_CASE(IluFactory, gko::test::ValueTypes);
+TYPED_TEST_SUITE(IluFactory, gko::test::ValueTypes);
 
 
 TYPED_TEST(IluFactory, KnowsItsExecutor)

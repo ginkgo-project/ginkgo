@@ -221,7 +221,7 @@ protected:
     std::shared_ptr<Csr> u_sparse_inv2;
 };
 
-TYPED_TEST_CASE(Isai, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Isai, KernelGenerateL1)

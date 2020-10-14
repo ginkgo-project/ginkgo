@@ -64,7 +64,7 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> omp_;
 };
 
-TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes);
 
 
 TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
@@ -164,7 +164,7 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> omp_;
 };
 
-TYPED_TEST_CASE(RelativeResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes);
 
 
 TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
@@ -264,7 +264,7 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> omp_;
 };
 
-TYPED_TEST_CASE(AbsoluteResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes);
 
 
 TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)

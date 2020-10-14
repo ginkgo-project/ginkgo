@@ -58,7 +58,7 @@ protected:
 };
 
 
-TYPED_TEST_CASE(Identity, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes);
 
 
 TYPED_TEST(Identity, AppliesLinearCombinationToVector)

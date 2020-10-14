@@ -99,7 +99,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> fcg_factory_big;
 };
 
-TYPED_TEST_CASE(Fcg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
 
 
 TYPED_TEST(Fcg, SolvesStencilSystem)

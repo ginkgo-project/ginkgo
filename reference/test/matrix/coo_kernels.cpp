@@ -96,7 +96,7 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Coo, ConvertsToPrecision)
@@ -657,7 +657,7 @@ protected:
     using Mtx = gko::matrix::Coo<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(CooComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CooComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(CooComplex, OutplaceAbsolute)

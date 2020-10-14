@@ -93,7 +93,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> bicgstab_factory_precision;
 };
 
-TYPED_TEST_CASE(Bicgstab, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes);
 
 
 TYPED_TEST(Bicgstab, SolvesDenseSystem)

@@ -105,7 +105,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Ell, AppliesToDenseVector)
@@ -705,7 +705,7 @@ protected:
     using Mtx = gko::matrix::Ell<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(EllComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(EllComplex, InplaceAbsolute)

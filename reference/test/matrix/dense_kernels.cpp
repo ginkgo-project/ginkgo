@@ -104,7 +104,7 @@ protected:
 };
 
 
-TYPED_TEST_CASE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
 TYPED_TEST(Dense, AppliesToDense)
@@ -2159,7 +2159,7 @@ protected:
 };
 
 
-TYPED_TEST_CASE(DenseComplex, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
 
 
 TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
