@@ -328,21 +328,6 @@ public:
         return csr_->get_num_stored_elements();
     }
 
-    ~CuspCsrEx() override
-    {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        if (set_buffer_) {
-            try {
-                gko::cuda::device_guard g{id};
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
-            } catch (const std::exception &e) {
-                std::cerr
-                    << "Error when unallocating CuspCsrEx temporary buffer: "
-                    << e.what() << std::endl;
-            }
-        }
-    }
-
     CuspCsrEx(const CuspCsrEx &other) = delete;
 
     CuspCsrEx &operator=(const CuspCsrEx &other) = default;
@@ -370,14 +355,13 @@ protected:
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
             csr_->get_const_col_idxs(), db, &beta, dx, &buffer_size);
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
-        set_buffer_ = true;
+        buffer_.resize_and_reset(buffer_size);
 
         gko::kernels::cuda::cusparse::spmv<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
-            csr_->get_const_col_idxs(), db, &beta, dx, buffer_);
+            csr_->get_const_col_idxs(), db, &beta, dx, buffer_.get_data());
 
         // Exiting the scope sets the pointer mode back to the default
         // DEVICE for Ginkgo
@@ -390,7 +374,7 @@ protected:
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
-          set_buffer_(false)
+          buffer_(exec)
     {
 #ifdef ALLOWMP
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
@@ -401,8 +385,7 @@ private:
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
-    mutable void *buffer_;
-    mutable bool set_buffer_;
+    mutable gko::Array<char> buffer_;
 };
 
 
