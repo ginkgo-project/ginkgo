@@ -86,7 +86,7 @@ protected:
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
 };
 
-TYPED_TEST_CASE(IsaiFactory, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(IsaiFactory, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(IsaiFactory, KnowsItsExecutor)

@@ -58,7 +58,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_CASE(Identity, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes);
 
 
 TYPED_TEST(Identity, CanBeEmpty)
@@ -132,7 +132,7 @@ protected:
     using value_type = T;
 };
 
-TYPED_TEST_CASE(IdentityFactory, gko::test::ValueTypes);
+TYPED_TEST_SUITE(IdentityFactory, gko::test::ValueTypes);
 
 
 TYPED_TEST(IdentityFactory, CanGenerateIdentityMatrix)

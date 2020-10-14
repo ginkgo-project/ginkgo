@@ -91,7 +91,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Bicg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Bicg, gko::test::ValueTypes);
 
 
 TYPED_TEST(Bicg, BicgFactoryKnowsItsExecutor)

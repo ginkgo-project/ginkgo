@@ -69,7 +69,7 @@ protected:
     gko::Array<value_type> vals;
 };
 
-TYPED_TEST_CASE(FillArray, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes);
 
 
 TYPED_TEST(FillArray, EqualsReference)

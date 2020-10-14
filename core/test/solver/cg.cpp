@@ -91,7 +91,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Cg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Cg, gko::test::ValueTypes);
 
 
 TYPED_TEST(Cg, CgFactoryKnowsItsExecutor)

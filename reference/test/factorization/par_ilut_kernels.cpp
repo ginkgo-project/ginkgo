@@ -300,7 +300,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };  // namespace
 
-TYPED_TEST_CASE(ParIlut, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelect)

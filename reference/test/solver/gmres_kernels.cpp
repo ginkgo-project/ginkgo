@@ -108,7 +108,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> gmres_factory_big;
 };
 
-TYPED_TEST_CASE(Gmres, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes);
 
 
 TYPED_TEST(Gmres, SolvesStencilSystem)

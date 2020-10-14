@@ -176,7 +176,7 @@ protected:
     std::unique_ptr<Bj> adaptive_bj;
 };
 
-TYPED_TEST_CASE(Jacobi, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)

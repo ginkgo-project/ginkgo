@@ -68,7 +68,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes);
 
 
 TYPED_TEST(ResidualNormReduction, CanCreateFactory)
@@ -195,7 +195,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_CASE(RelativeResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes);
 
 
 TYPED_TEST(RelativeResidualNorm, CanCreateFactory)
@@ -321,7 +321,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_CASE(AbsoluteResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes);
 
 
 TYPED_TEST(AbsoluteResidualNorm, CanCreateFactory)
