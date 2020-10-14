@@ -148,7 +148,8 @@ protected:
      * Generates the permutation matrix and if required the inverse permutation
      * matrix.
      */
-    void generate(std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
+    void generate(std::shared_ptr<const Executor> &exec,
+                  std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
     explicit Rcm(std::shared_ptr<const Executor> exec)
         : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
@@ -158,8 +159,13 @@ protected:
         : EnablePolymorphicObject<Rcm, ReorderingBase>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        const auto exec = this->get_executor();
-        auto adjacency_matrix = SparsityMatrix::create(exec);
+        // Always execute the reordering on the cpu.
+        const auto is_gpu_executor =
+            this->get_executor() != this->get_executor()->get_master();
+        auto cpu_exec = is_gpu_executor ? this->get_executor()->get_master()
+                                        : this->get_executor();
+
+        auto adjacency_matrix = SparsityMatrix::create(cpu_exec);
         Array<IndexType> degrees;
 
         // The adjacency matrix has to be square.
@@ -167,23 +173,36 @@ protected:
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
         if (args.system_matrix->get_size()) {
-            auto tmp =
-                copy_and_convert_to<SparsityMatrix>(exec, args.system_matrix);
+            auto tmp = copy_and_convert_to<SparsityMatrix>(cpu_exec,
+                                                           args.system_matrix);
             // This function provided within the Sparsity matrix format removes
             // the diagonal elements and outputs an adjacency matrix.
             adjacency_matrix = tmp->to_adjacency_matrix();
         }
 
         auto const dim = adjacency_matrix->get_size();
-        permutation_ = PermutationMatrix::create(exec, dim);
+        permutation_ = PermutationMatrix::create(cpu_exec, dim);
 
         // To make it explicit.
         inv_permutation_ = nullptr;
         if (parameters_.construct_inverse_permutation) {
-            inv_permutation_ = PermutationMatrix::create(exec, dim);
+            inv_permutation_ = PermutationMatrix::create(cpu_exec, dim);
         }
 
-        this->generate(std::move(adjacency_matrix));
+        this->generate(cpu_exec, std::move(adjacency_matrix));
+
+        // Copy back results to gpu if necessary.
+        if (is_gpu_executor) {
+            const auto gpu_exec = this->get_executor();
+            auto gpu_perm = PermutationMatrix::create(gpu_exec, dim);
+            gpu_perm->copy_from(permutation_.get());
+            permutation_ = gko::share(gpu_perm);
+            if (inv_permutation_) {
+                auto gpu_inv_perm = PermutationMatrix::create(gpu_exec, dim);
+                gpu_inv_perm->copy_from(inv_permutation_.get());
+                inv_permutation_ = gko::share(gpu_inv_perm);
+            }
+        }
     }
 
 private:
