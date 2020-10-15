@@ -81,7 +81,8 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 }
 
 // s is subspace vector size
-// FLOPS: 2nnz + n + loops * (s^2 * 10n + s * (12n + 4nnz + 3))
+// FLOPS: 2nnz + n + loops * (2 * n * s + s^3 + 11ns/2 + 2nnz*s + 11ns^2/2 + s^2 + 2 * nnz + n + n - 1 +n + n - 1 +n + n - 1 +6+n+4n)
+// = 2nnz + n + loops * (s^3 + s^2 + 15ns/2 + 2nnz*s + 11ns^2/2 + 2 * nnz + 11n + 3)
 template <typename ValueType>
 template <typename SubspaceType>
 void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
@@ -183,15 +184,15 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         subspace_vectors->apply(residual.get(), f.get());
         // f = P^H * residual
         // TOTAL FLOPS:
-        // (s-1) * s * 6n + s * (s+1) * 4n + s * (14n + 4nnz + 3)
-        // = s^2 * 6n - 6*s*n + s^2 * 4n + 4*s*n + s * (14n + 4nnz + 3)
-        // = s^2 * 10n + s * (12n + 4nnz + 3)
+        // = s^3 - s + 6ns + 2nnz*s + 5ns^2 + 2s^2 + (n-2) * s(s-1)/2
+        // = s^3 - s + 6ns + 2nnz*s + 5ns^2 + 2s^2 + ns^2/2 - ns/2 + s - s^2
+        // = s^3 + 11ns/2 + 2nnz*s + 11ns^2/2 + s^2
         // For each k FLOPS:
-        // 2n * (s - k) + n + 2n * (s-k) + 2nnz + 6*n*k + 2nnz + 3*(n + n - 1)
-        // + 6 + 5n
-        // = (s-k) * 4n + k * 6n + 14n + 4nnz + 3
+        // 2n * (s - k) + s^2 - 1 + n + 2n * (s-k) + 2nnz + 6*n*k + (s - k) * n + 5n + 2 * (s - k)
+        // = s^2 - 1 + 6n + 2nnz +  6*n*k  + (s - k) (5n + 2)
+        // = s^2 - 1 + 6n + 2nnz + 5ns + 2s + nk - 2k
         for (size_type k = 0; k < subspace_dim_; k++) {
-            // FLOPS: 2n * (s - k)
+            // FLOPS: 2n * (s - k) + s^2 - 1
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
                                        residual.get(), g.get(), c.get(),
                                        v.get(), &stop_status));
@@ -222,11 +223,11 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             //     g_k -= alpha * g_i
             //     u_k -= alpha * u_i
             // end for
-            // FLOPS (s - k) * n
+            // FLOPS: (s - k) * n
             // for i = k to s do
             //     m_i,k = p^H_i * g_k
             // end for
-            // FLOPS: 1 + 4n + 2 * (k - s)
+            // FLOPS: 5n + 2 * (s - k)
             // beta = f_k / m_k,k
             // residual -= beta * g_k
             // dense_x += beta * u_k
