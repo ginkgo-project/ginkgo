@@ -569,7 +569,7 @@ public:
         try {
             this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
-        } catch (NotSupported &err) {
+        } catch (NotSupported &) {
             // Unoptimized copy. Try to go through the masters.
             auto src_master = src_exec->get_master().get();
             if (num_elems > 0 && src_master != src_exec) {
