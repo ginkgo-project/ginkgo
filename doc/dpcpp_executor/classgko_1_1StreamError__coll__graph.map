@@ -1,0 +1,5 @@
+<map id="gko::StreamError" name="gko::StreamError">
+<area shape="rect" id="node1" title="StreamError is thrown if accessing a stream failed." alt="" coords="5,155,137,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="29,80,114,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="14,5,129,32"/>
+</map>

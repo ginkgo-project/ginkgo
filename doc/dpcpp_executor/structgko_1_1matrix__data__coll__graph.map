@@ -1,0 +1,7 @@
+<map id="gko::matrix_data&lt; ValueType, IndexType &gt;" name="gko::matrix_data&lt; ValueType, IndexType &gt;">
+<area shape="rect" id="node1" title="This structure is used as an intermediate data type to store a sparse matrix." alt="" coords="85,228,304,269"/>
+<area shape="rect" id="node2" href="$structgko_1_1dim.html" title=" " alt="" coords="49,131,167,158"/>
+<area shape="rect" id="node3" href="$structgko_1_1dim.html" title="A type representing the dimensions of a multidimensional object." alt="" coords="5,5,203,47"/>
+<area shape="rect" id="node4" title=" " alt="" coords="197,124,379,165"/>
+<area shape="rect" id="node5" title="STL class." alt="" coords="227,13,357,39"/>
+</map>

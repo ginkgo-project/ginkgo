@@ -1,0 +1,97 @@
+\hypertarget{classgko_1_1EnableAbsoluteComputation}{}\doxysection{gko\+::Enable\+Absolute\+Computation$<$ Absolute\+Lin\+Op $>$ Class Template Reference}
+\label{classgko_1_1EnableAbsoluteComputation}\index{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$@{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{Enable\+Absolute\+Computation}} mixin provides the default implementations of {\ttfamily compute\+\_\+absolute\+\_\+linop} and the absolute interface.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Absolute\+Computation$<$ Absolute\+Lin\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=259pt]{classgko_1_1EnableAbsoluteComputation__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbsoluteComputation_ad6616d45bfad753eafabfb916006e5d7}\label{classgko_1_1EnableAbsoluteComputation_ad6616d45bfad753eafabfb916006e5d7}} 
+using {\bfseries absolute\+\_\+type} = Absolute\+Lin\+Op
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}{compute\+\_\+absolute\+\_\+linop}} () const override
+\begin{DoxyCompactList}\small\item\em Gets the absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. \end{DoxyCompactList}\item 
+virtual std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}{compute\+\_\+absolute}} () const =0
+\begin{DoxyCompactList}\small\item\em Gets the Absolute\+Lin\+Op. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Absolute\+Lin\+Op$>$\newline
+class gko\+::\+Enable\+Absolute\+Computation$<$ Absolute\+Lin\+Op $>$}
+
+The \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{Enable\+Absolute\+Computation}} mixin provides the default implementations of {\ttfamily compute\+\_\+absolute\+\_\+linop} and the absolute interface. 
+
+{\ttfamily compute\+\_\+absolute} gets a new Absolute\+Lin\+Op. {\ttfamily compute\+\_\+absolute\+\_\+inplace} applies absolute inplace, so it still keeps the value\+\_\+type of the class.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Absolute\+Lin\+Op} & the absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} which is being returned \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}\label{classgko_1_1EnableAbsoluteComputation_ac30ab2b34bfa3e28e3324cb46f5f030a}} 
+\index{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$@{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$}!compute\_absolute@{compute\_absolute}}
+\index{compute\_absolute@{compute\_absolute}!gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$@{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute()}{compute\_absolute()}}
+{\footnotesize\ttfamily template$<$typename Absolute\+Lin\+Op$>$ \\
+virtual std\+::unique\+\_\+ptr$<$absolute\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{gko\+::\+Enable\+Absolute\+Computation}}$<$ Absolute\+Lin\+Op $>$\+::compute\+\_\+absolute (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Gets the Absolute\+Lin\+Op. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute object 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a14ee18194aeed1e6110934e05b5838d0}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a4dcd3d86122716694fd0682d64701a1a}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a0cac589a24090e4fe9a2b31f85830c95}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Coo_ab79b7f7b81b279774dd15edbd98965f1}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a8274458a31460ce87bf8c8a52786bff8}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a8a8787ac4c29d0a275a495715a4f6080}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_a4a67d516d7ad7e5b14ada2c9196aac70}{gko\+::matrix\+::\+Diagonal$<$ Value\+Type $>$}}.
+
+
+
+Referenced by gko\+::\+Enable\+Absolute\+Computation$<$ remove\+\_\+complex$<$ Ell$<$ Value\+Type, Index\+Type $>$ $>$ $>$\+::compute\+\_\+absolute\+\_\+linop().
+
+\mbox{\Hypertarget{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}\label{classgko_1_1EnableAbsoluteComputation_a0ee550ae62b77d04329ab4dbce077d4f}} 
+\index{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$@{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$}!compute\_absolute\_linop@{compute\_absolute\_linop}}
+\index{compute\_absolute\_linop@{compute\_absolute\_linop}!gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$@{gko::EnableAbsoluteComputation$<$ AbsoluteLinOp $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_absolute\_linop()}{compute\_absolute\_linop()}}
+{\footnotesize\ttfamily template$<$typename Absolute\+Lin\+Op$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1EnableAbsoluteComputation}{gko\+::\+Enable\+Absolute\+Computation}}$<$ Absolute\+Lin\+Op $>$\+::compute\+\_\+absolute\+\_\+linop (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Gets the absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new absolute \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1AbsoluteComputable_a518e50b2b1d88a35acbe4ab25b9fea02}{gko\+::\+Absolute\+Computable}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp\end{DoxyCompactItemize}

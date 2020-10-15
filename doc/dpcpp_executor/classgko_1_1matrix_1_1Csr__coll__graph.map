@@ -1,0 +1,38 @@
+<map id="gko::matrix::Csr&lt; ValueType, IndexType &gt;" name="gko::matrix::Csr&lt; ValueType, IndexType &gt;">
+<area shape="rect" id="node1" title="CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr..." alt="" coords="3171,443,3381,485"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2883,443,3089,485"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2326,645,2547,701"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1819,805,2073,861"/>
+<area shape="rect" id="node5" href="$classgko_1_1LinOp.html" title=" " alt="" coords="1343,865,1434,892"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="728,865,961,906"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,755,453,811"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="711,721,979,777"/>
+<area shape="rect" id="node17" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="713,636,976,692"/>
+<area shape="rect" id="node8" title=" " alt="" coords="5,660,140,687"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1252,729,1525,770"/>
+<area shape="rect" id="node16" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1812,643,2080,685"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1818,534,2074,575"/>
+<area shape="rect" id="node12" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1267,585,1510,626"/>
+<area shape="rect" id="node13" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="773,301,916,342"/>
+<area shape="rect" id="node14" href="$classgko_1_1EnablePolymorphicAssignment.html" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="1261,519,1517,561"/>
+<area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1315,454,1462,495"/>
+<area shape="rect" id="node22" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1557,99,1780,155"/>
+<area shape="rect" id="node23" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2104,155,2293,197"/>
+<area shape="rect" id="node24" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2580,218,2827,259"/>
+<area shape="rect" id="node25" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1549,275,1788,317"/>
+<area shape="rect" id="node26" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2116,327,2281,383"/>
+<area shape="rect" id="node27" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="2626,385,2781,441"/>
+<area shape="rect" id="node28" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1571,36,1767,92"/>
+<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1818,455,2074,497"/>
+<area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2333,455,2541,497"/>
+<area shape="rect" id="node20" href="$classgko_1_1EnableCreateMethod.html" title=" " alt="" coords="2865,509,3107,550"/>
+<area shape="rect" id="node21" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,..." alt="" coords="2342,726,2531,767"/>
+<area shape="rect" id="node29" href="$classgko_1_1DiagonalExtractable.html" title="The diagonal of a LinOp implementing this interface can be extracted." alt="" coords="2893,574,3079,615"/>
+<area shape="rect" id="node30" href="$classgko_1_1ReadableFromMatrixData.html" title="A LinOp implementing this interface can read its data from a matrix_data structure." alt="" coords="2877,639,3095,681"/>
+<area shape="rect" id="node31" href="$classgko_1_1WritableToMatrixData.html" title="A LinOp implementing this interface can write its data to a matrix_data structure." alt="" coords="2889,705,3083,746"/>
+<area shape="rect" id="node32" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2917,771,3055,797"/>
+<area shape="rect" id="node33" href="$classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface." alt="" coords="2873,821,3099,848"/>
+<area shape="rect" id="node34" href="$classgko_1_1EnableAbsoluteComputation.html" title=" " alt="" coords="2851,872,3121,928"/>
+<area shape="rect" id="node35" href="$classgko_1_1AbsoluteComputable.html" title="The AbsoluteComputable is an interface that allows to get the component wise absolute of a LinOp." alt="" coords="1851,899,2041,925"/>
+<area shape="rect" id="node36" href="$classgko_1_1EnableAbsoluteComputation.html" title="The EnableAbsoluteComputation mixin provides the default implementations of compute_absolute_linop an..." alt="" coords="2317,847,2556,889"/>
+</map>

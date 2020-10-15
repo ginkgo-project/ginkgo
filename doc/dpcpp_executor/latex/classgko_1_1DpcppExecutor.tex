@@ -1,0 +1,142 @@
+\hypertarget{classgko_1_1DpcppExecutor}{}\doxysection{gko\+::Dpcpp\+Executor Class Reference}
+\label{classgko_1_1DpcppExecutor}\index{gko::DpcppExecutor@{gko::DpcppExecutor}}
+
+
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents a D\+P\+C++ enhanced device.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Dpcpp\+Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1DpcppExecutor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac9a28c1178bde1244960a2bdd6c7e7a9}{get\+\_\+master}} () noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}{get\+\_\+master}} () const noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a6b2a82c46748ddbf097fa2da3ec64d90}\label{classgko_1_1DpcppExecutor_a6b2a82c46748ddbf097fa2da3ec64d90}} 
+void \mbox{\hyperlink{classgko_1_1DpcppExecutor_a6b2a82c46748ddbf097fa2da3ec64d90}{synchronize}} () const override
+\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const override
+\begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}\label{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}} 
+int \mbox{\hyperlink{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}{get\+\_\+device\+\_\+id}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the D\+P\+C\+PP device id of the device associated to this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}\label{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}} 
+\+::cl\+::sycl\+::queue $\ast$ {\bfseries get\+\_\+queue} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}\label{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}} 
+const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}{get\+\_\+subgroup\+\_\+sizes}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the available subgroup sizes for this device. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}\label{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}} 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}{get\+\_\+num\+\_\+computing\+\_\+units}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the number of Computing Units of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}\label{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}} 
+const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}{get\+\_\+max\+\_\+workitem\+\_\+sizes}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the maximum work item sizes. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}\label{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}} 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}{get\+\_\+max\+\_\+workgroup\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the maximum workgroup size. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1DpcppExecutor_a731d4f135b59f81390cdd19d12823e9a}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master, std\+::string device\+\_\+type=\char`\"{}gpu\char`\"{})
+\begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}\label{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}} 
+static int \mbox{\hyperlink{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}{get\+\_\+num\+\_\+devices}} (std\+::string device\+\_\+type)
+\begin{DoxyCompactList}\small\item\em Get the number of devices present on the system. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents a D\+P\+C++ enhanced device. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a731d4f135b59f81390cdd19d12823e9a}\label{classgko_1_1DpcppExecutor_a731d4f135b59f81390cdd19d12823e9a}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!create@{create}}
+\index{create@{create}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}}$>$ gko\+::\+Dpcpp\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{master,  }\item[{std\+::string}]{device\+\_\+type = {\ttfamily \char`\"{}gpu\char`\"{}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Creates a new \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em device\+\_\+id} & the D\+P\+C\+PP device id of this device \\
+\hline
+{\em master} & an executor on the host that is used to invoke the device kernels \\
+\hline
+{\em device\+\_\+type} & a string representing the type of device to consider (accelerator, cpu, gpu or all). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}\label{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Dpcpp\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ac9a28c1178bde1244960a2bdd6c7e7a9}\label{classgko_1_1DpcppExecutor_ac9a28c1178bde1244960a2bdd6c7e7a9}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Dpcpp\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}\label{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!run@{run}}
+\index{run@{run}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily void gko\+::\+Dpcpp\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em op} & the operation to run \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{gko\+::\+Executor}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp\end{DoxyCompactItemize}

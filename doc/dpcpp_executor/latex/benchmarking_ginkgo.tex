@@ -1,0 +1,156 @@
+In addition to the unit tests designed to verify correctness, Ginkgo also includes an extensive benchmark suite for checking its performance on all Ginkgo supported systems. The purpose of Ginkgo\textquotesingle{}s benchmarking suite is to allow easy and complete reproduction of Ginkgo\textquotesingle{}s performance, and to facilitate performance debugging as well. Most results published in Ginkgo papers are generated thanks to this benchmarking suite and are accessible online under the \href{https://github.com/ginkgo-project/ginkgo-data/}{\texttt{ ginkgo-\/data repository}}. These results can also be used for performance comparison in order to ensure that you get similar performance as what is published on this repository.
+
+To compile the benchmarks, the flag {\ttfamily -\/G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+B\+E\+N\+C\+H\+M\+A\+R\+KS=ON} has to be set during the {\ttfamily cmake} step. In addition, the \href{https://github.com/ginkgo-project/ssget}{\texttt{ {\ttfamily ssget} command-\/line utility}} has to be installed on the system. The purpose of this file is to explain in detail the capacities of this benchmarking suite as well as how to properly setup everything.
+
+Here is a short description of the content of this file\+:
+\begin{DoxyEnumerate}
+\item Ginkgo setup and best practice guidelines
+\item Installing and using the {\ttfamily ssget} tool to fetch the \href{https://sparse.tamu.edu/}{\texttt{ Suite\+Sparse matrices}}.
+\item Benchmarking overview and how to run them in a simple way.
+\item How to publish the benchmark results online and use the \href{https://ginkgo-project.github.io/gpe/}{\texttt{ Ginkgo Performance Explorer (G\+PE)}} for performance analysis (optional).
+\item Using the benchmark suite for performance debugging thanks to the loggers.
+\item All available benchmark customization options.
+\end{DoxyEnumerate}\hypertarget{benchmarking_ginkgo_autotoc_md12}{}\doxysubsection{1\+: Ginkgo setup and best practice guidelines}\label{benchmarking_ginkgo_autotoc_md12}
+Before benchmarking Ginkgo, make sure that you follow the general guidelines in order to ensure best performance.
+
+
+\begin{DoxyEnumerate}
+\item The code should be compiled in {\ttfamily Release} mode.
+\item Make sure the machine has no competing jobs. On a Linux machine multiple commands can be used, {\ttfamily last} shows the currently opened sessions, {\ttfamily top} or {\ttfamily htop} allows to show the current machine load, and if considering using specific G\+P\+Us, {\ttfamily nvidia-\/smi} or {\ttfamily rocm-\/smi} can be used to check their load.
+\item By default, Ginkgo\textquotesingle{}s benchmarks will always do at least one warm-\/up run. For better accuracy, every benchmark is also averaged over 10 runs, except for the solver benchmark which are usually fairly long. These parameters can be tuned at the command line to either shorten benchmarking time or improve benchmarking accuracy.
+\end{DoxyEnumerate}
+
+In addition, the following specific options can be considered\+:
+\begin{DoxyEnumerate}
+\item When specifically using the adaptive block jacobi preconditioner, enable the {\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+J\+A\+C\+O\+B\+I\+\_\+\+F\+U\+L\+L\+\_\+\+O\+P\+T\+I\+M\+I\+Z\+A\+T\+I\+O\+NS} C\+Make flag. Be careful that this will use much more memory and time for the compilation due to compiler performance issues with register optimizations, in particular.
+\item The current benchmarking setup also allows to benchmark only the overhead by using as either (or for all) preconditioner/spmv/solver, the special {\ttfamily overhead} Lin\+Op. If your purpose is to check Ginkgo\textquotesingle{}s overhead, make sure to try this mode.
+\end{DoxyEnumerate}\hypertarget{benchmarking_ginkgo_autotoc_md13}{}\doxysubsection{2\+: Using ssget to fetch the matrices}\label{benchmarking_ginkgo_autotoc_md13}
+The benchmark suite tests Ginkgo\textquotesingle{}s performance using the \href{https://sparse.tamu.edu/}{\texttt{ Suite\+Sparse matrix collection}} and artificially generated matrices. The suite sparse collection will be downloaded automatically when the benchmarks are run. This is done thanks to the \href{https://github.com/ginkgo-project/ssget}{\texttt{ {\ttfamily ssget} command-\/line utility}}.
+
+To install {\ttfamily ssget}, access the repository and copy the file {\ttfamily ssget} into a directory present in your {\ttfamily P\+A\+TH} variable as per the tool\textquotesingle{}s {\ttfamily R\+E\+A\+D\+M\+E.\+md} instructions. The tool can be installed either in a global system path or a local directory such as {\ttfamily \$\+H\+O\+ME/.local/bin}. After installing the tool, it is important to review the {\ttfamily ssget} script and configure as needed the variable {\ttfamily A\+R\+C\+H\+I\+V\+E\+\_\+\+L\+O\+C\+A\+T\+I\+ON} on line 39. This is where the matrices will be stored into.
+
+The Ginkgo benchmark can be set to run on only a portion of the Suite\+Sparse matrix collection as we will see in the following section. Please note that the entire collection requires roughly 100GB of disk storage in its compressed format, and roughly 25GB of additional disk space for intermediate data (such us uncompressing the archive). Additionally, the benchmark runs usually take a long time (Sp\+MV benchmarks on the complete collection take roughly 24h using the K20 G\+PU), and will stress the system.
+
+Before proceeding, it can be useful in order to save time to download the matrices as preparation. This can be done by using the {\ttfamily ssget -\/f -\/i i} command where {\ttfamily i} is the ID of the matrix to be downloaded. The following loop allows to download the full Suite\+Sparse matrix collection\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{for i in \$(seq 0 \$(ssget -\/n)); do}
+\DoxyCodeLine{    ssget -\/f -\/i \$\{i\}}
+\DoxyCodeLine{done}
+\end{DoxyCode}
+
+
+Note that {\ttfamily ssget} can also be used to query properties of the matrix and filter the matrices which are downloaded. For example, the following will download only positive definite matrices with less than 500M non zero elements and 10M columns. Please refer to the \href{https://github.com/ginkgo-project/ssget/blob/master/README.md}{\texttt{ {\ttfamily ssget} documentation}} for more information.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{for i in \$(seq 0 \$(ssget -\/n)); do}
+\DoxyCodeLine{    posdef=\$(ssget -\/p posdef -\/i \$\{i\})}
+\DoxyCodeLine{    cols=\$(ssget -\/p cols -\/i \$\{i\})}
+\DoxyCodeLine{    nnz=\$(ssget -\/p nonzeros -\/i \$\{i\})}
+\DoxyCodeLine{    if [ "\$posdef" -\/eq 1 -\/a "\$cols" -\/lt 10000000 -\/a "\$nnz" -\/lt 500000000 ]; then}
+\DoxyCodeLine{        ssget -\/f -\/i \$\{i\}}
+\DoxyCodeLine{    fi}
+\DoxyCodeLine{done}
+\end{DoxyCode}
+\hypertarget{benchmarking_ginkgo_autotoc_md14}{}\doxysubsection{3\+: Benchmarking overview}\label{benchmarking_ginkgo_autotoc_md14}
+The benchmark suite is invoked using the {\ttfamily make benchmark} command in the build directory. Under the hood, this command simply calls the script {\ttfamily benchmark/run\+\_\+all\+\_\+benchmarks.\+sh} so it is possible to manually launch this script as well. The behavior of the suite can be modified using environment variables. Assuming the {\ttfamily bash} shell is used, these can either be specified via the {\ttfamily export} command to persist between multiple runs\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{export VARIABLE="value"}
+\DoxyCodeLine{...}
+\DoxyCodeLine{make benchmark}
+\end{DoxyCode}
+
+
+or specified on the fly, on the same line as the {\ttfamily make benchmark} command\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{VARIABLE="value" ... make benchmark}
+\end{DoxyCode}
+
+
+Since {\ttfamily make} sets any variables passed to it as temporary environment variables, the following shorthand can also be used\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{make benchmark VARIABLE="value" ...}
+\end{DoxyCode}
+
+
+A combination of the above approaches is also possible (e.\+g. it may be useful to {\ttfamily export} the {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME} variable, and specify the others at every benchmark run).
+
+The benchmark suite can take a number of configuration parameters. Benchmarks can be run only for {\ttfamily sparse matrix vector products (spmv)}, for full solvers (with or without preconditioners), or for preconditioners only when supported. The benchmark suite also allows to target a sub-\/part of the Suite\+Sparse matrix collection. For details, see the \href{\#\#\# 5: Available
+benchmark options}{\texttt{ available benchmark options}}. Here are the most important options\+:
+\begin{DoxyItemize}
+\item {\ttfamily B\+E\+N\+C\+H\+M\+A\+RK=\{spmv, solver, preconditioner\}} -\/ allows to select the type of benchmark to be ran.
+\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp,dpcpp\}} -\/ select the executor and platform the benchmarks should be ran on.
+\item {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME=$<$name$>$} -\/ a name which will be used to designate this platform (e.\+g. V100, Radeon\+V\+II, ...).
+\item {\ttfamily S\+E\+G\+M\+E\+N\+TS=$<$N$>$} -\/ Split the benchmarked matrix space into {\ttfamily $<$N$>$} segments. If specified, {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID} also has to be set.
+\item {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID=$<$I$>$} -\/ used in combination with the {\ttfamily S\+E\+G\+M\+E\+N\+TS} variable. {\ttfamily $<$I$>$} should be an integer between 1 and {\ttfamily $<$N$>$}, the number of {\ttfamily S\+E\+G\+M\+E\+N\+TS}. If specified, only the {\ttfamily $<$I$>$}-\/th segment of the benchmark suite will be run.
+\item {\ttfamily M\+A\+T\+R\+I\+X\+\_\+\+L\+I\+S\+T\+\_\+\+F\+I\+LE=/path/to/matrix\+\_\+list.file} -\/ allows to list Suite\+Sparse matrix id or name to benchmark. As an example, a matrix list file containing the following will ensure that benchmarks are ran for only those three matrices\+:
+
+\`{}\`{}\`{} 1903 Freescale/circuit5M thermal2 \`{}\`{}\`{}
+\end{DoxyItemize}\hypertarget{benchmarking_ginkgo_autotoc_md15}{}\doxysubsection{4\+: Publishing the results on Github and analyze the results with the G\+P\+E (optional)}\label{benchmarking_ginkgo_autotoc_md15}
+The previous experiments generated json files for each matrices, each containing timing, iteration count, achieved precision, ... depending on the type of benchmark run. These files are available in the directory {\ttfamily \$\{ginkgo\+\_\+build\+\_\+dir\}/benchmark/results/}. These files can be analyzed and processed through any tool (e.\+g. python). In this section, we describe how to generate the plots by using Ginkgo\textquotesingle{}s \href{https://ginkgo-project.github.io/gpe/}{\texttt{ G\+PE}} tool. First, we need to publish the experiments into a Github repository which will be then linked as source input to the G\+PE. For this, we can simply fork the ginkgo-\/data repository. To do so, we can go to the github repository and use the forking interface\+: \href{https://github.com/ginkgo-project/ginkgo-data/}{\texttt{ https\+://github.\+com/ginkgo-\/project/ginkgo-\/data/}}
+
+Once it\textquotesingle{}s done, we want to clone the repository locally, put all results online and access the G\+PE for plotting the results. Here are the detailed steps\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git clone https://github.com/<username>/ginkgo-\/data.git \$HOME/ginkgo\_benchmark/ginkgo-\/data}
+\DoxyCodeLine{\# send the benchmarked data to the ginkgo-\/data repository}
+\DoxyCodeLine{\# If needed, remove the old data so that no previous data is left.}
+\DoxyCodeLine{\# rm -\/r \$\{HOME\}/ginkgo\_benchmark/ginkgo-\/data/data/\$\{SYSTEM\_NAME\}}
+\DoxyCodeLine{rsync -\/rtv \$\{ginkgo\_build\_dir\}/benchmark/results/ \$HOME/ginkgo\_benchmark/ginkgo-\/data/data/}
+\DoxyCodeLine{cd \$\{HOME\}/ginkgo\_benchmark/ginkgo-\/data/data/}
+\DoxyCodeLine{\# The following updates the main `.json` files with the list of data.}
+\DoxyCodeLine{\# Ensure a python 3 installation is available.}
+\DoxyCodeLine{./build-\/list . > list.json}
+\DoxyCodeLine{./agregate < list.json > agregate.json}
+\DoxyCodeLine{./represent . > represent.json}
+\DoxyCodeLine{git config -\/-\/local user.name "<Name>"}
+\DoxyCodeLine{git config -\/-\/local user.email "<email>"}
+\DoxyCodeLine{git commit -\/am "Ginkgo benchmark \$\{BENCHMARK\} of \$\{SYSTEM\_NAME\}..."}
+\DoxyCodeLine{git push}
+\end{DoxyCode}
+
+
+Note that depending on what data is of interest, you may need to update the scripts {\ttfamily build-\/list} or {\ttfamily agregate} to change which files you want to agglomerate and summarize (depending on the system name), or which data you want to select (solver results, spmv results, ...).
+
+For the generating the plots in the G\+PE, here are the steps to go through\+:
+\begin{DoxyEnumerate}
+\item Access the G\+PE\+: \href{https://ginkgo-project.github.io/gpe/}{\texttt{ https\+://ginkgo-\/project.\+github.\+io/gpe/}}
+\item Update data root U\+RL, from {\ttfamily \href{https://raw.githubusercontent.com/ginkgo-project/ginkgo-data/master/data}{\texttt{ https\+://raw.\+githubusercontent.\+com/ginkgo-\/project/ginkgo-\/data/master/data}}} to {\ttfamily \href{https://raw.githubusercontent.com/}{\texttt{ https\+://raw.\+githubusercontent.\+com/}}$<$username$>$/ginkgo-\/data/$<$branch$>$/data}
+\item Click on the arrow to load the data, select the {\ttfamily Result Summary} entry above.
+\item Click on {\ttfamily select an example} to choose a plotting script. Multiple scripts are available by default in different branches. You can use the {\ttfamily jsonata} and {\ttfamily chartjs} languages to develop your own as well.
+\item The results should be available in the tab \char`\"{}plot\char`\"{} on the right side. Other tabs allow to access the result of the processed data after invoking the processing script.
+\end{DoxyEnumerate}\hypertarget{benchmarking_ginkgo_autotoc_md16}{}\doxysubsection{5\+: Detailed performance analysis and debugging}\label{benchmarking_ginkgo_autotoc_md16}
+Detailed performance analysis can be ran by passing the environment variable {\ttfamily D\+E\+T\+A\+I\+L\+ED=1} to the benchmarking script. This detailed run is available for solvers and allows to log the internal residual after every iteration as well as log the time taken by all operations. These features are also available in the {\ttfamily performance-\/debugging} example which can be used instead and modified as needed to analyze Ginkgo\textquotesingle{}s performance.
+
+These features are implemented thanks to the loggers located in the file {\ttfamily \$\{ginkgo\+\_\+src\+\_\+dir\}/benchmark/utils/loggers.hpp}. Ginkgo possesses hooks at all important code location points which can be inspected thanks to the logger. In this fashion, it is easy to use these loggers also for tracking memory allocation sizes and other important library aspects.\hypertarget{benchmarking_ginkgo_autotoc_md17}{}\doxysubsection{6\+: Available benchmark options}\label{benchmarking_ginkgo_autotoc_md17}
+There are a set amount of options available for benchmarking. Most important options can be configured through the benchmarking script itself thanks to environment variables. Otherwise, some specific options are not available through the benchmarking scripts but can be directly configured when running the benchmarking program itself. For a list of all options, run for example {\ttfamily \$\{ginkgo\+\_\+build\+\_\+dir\}/benchmark/solver/solver -\/-\/help}.
+
+The supported environment variables are described in the following list\+:
+\begin{DoxyItemize}
+\item {\ttfamily B\+E\+N\+C\+H\+M\+A\+RK=\{spmv, solver, preconditioner\}} -\/ allows to select the type of benchmark to be ran. Default is {\ttfamily spmv}.
+\begin{DoxyItemize}
+\item {\ttfamily spmv} -\/ Runs the sparse matrix-\/vector product benchmarks on the Suite\+Sparse collection.
+\item {\ttfamily solver} -\/ Runs the solver benchmarks on the Suite\+Sparse collection. The matrix format is determined by running the {\ttfamily spmv} benchmarks first, and using the fastest format determined by that benchmark.
+\item {\ttfamily preconditioner} -\/ Runs the preconditioner benchmarks on artificially generated block-\/diagonal matrices.
+\end{DoxyItemize}
+\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp,dpcpp\}} -\/ select the executor and platform the benchmarks should be ran on. Default is {\ttfamily cuda}.
+\item {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME=$<$name$>$} -\/ a name which will be used to designate this platform (e.\+g. V100, Radeon\+V\+II, ...) and not overwrite previous results. Default is {\ttfamily unknown}.
+\item {\ttfamily S\+E\+G\+M\+E\+N\+TS=$<$N$>$} -\/ Split the benchmarked matrix space into {\ttfamily $<$N$>$} segments. If specified, {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID} also has to be set. Default is {\ttfamily 1}.
+\item {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID=$<$I$>$} -\/ used in combination with the {\ttfamily S\+E\+G\+M\+E\+N\+TS} variable. {\ttfamily $<$I$>$} should be an integer between 1 and {\ttfamily $<$N$>$}, the number of {\ttfamily S\+E\+G\+M\+E\+N\+TS}. If specified, only the {\ttfamily $<$I$>$}-\/th segment of the benchmark suite will be run. Default is {\ttfamily 1}.
+\item {\ttfamily M\+A\+T\+R\+I\+X\+\_\+\+L\+I\+S\+T\+\_\+\+F\+I\+LE=/path/to/matrix\+\_\+list.file} -\/ allows to list Suite\+Sparse matrix id or name to benchmark. As an example, a matrix list file containing the following will ensure that benchmarks are ran for only those three matrices\+: \`{}\`{}\`{} 1903 Freescale/circuit5M thermal2 \`{}\`{}{\ttfamily  $\ast$}D\+E\+V\+I\+C\+E\+\_\+\+ID{\ttfamily -\/ the accelerator device ID to target for the benchmark. The default is}0{\ttfamily . $\ast$}D\+R\+Y\+\_\+\+R\+UN=\{true, false\}{\ttfamily -\/ If set to}true\`{}, prepares the system for the benchmark runs (downloads the collections, creates the result structure, etc.) and outputs the list of commands that would normally be run, but does not run the benchmarks themselves. Default is {\ttfamily false}.
+\item {\ttfamily P\+R\+E\+C\+O\+N\+DS=\{jacobi,adaptive-\/jacobi,ilu,parict,parilu,parilut,none\}} the preconditioners to use for either {\ttfamily solver} or {\ttfamily preconditioner} benchmarks. Multiple options can be passed to this variable. Default is {\ttfamily none}.
+\item {\ttfamily F\+O\+R\+M\+A\+TS=\{csr,coo,ell,hybrid,sellp,hybridxx,cusp\+\_\+xx,hipsp\+\_\+xx\}} the matrix formats to benchmark for the {\ttfamily spmv} phase of the benchmark. Run {\ttfamily \$\{ginkgo\+\_\+build\+\_\+dir\}/benchmark/spmv/spmv -\/-\/help} for a full list. If needed, multiple options for hybrid with different optimization parameters are available. Depending on the libraries available at build time, vendor library formats (cu\+S\+P\+A\+R\+SE with {\ttfamily cusp\+\_\+} prefix or hip\+S\+P\+A\+R\+SE with {\ttfamily hipsp\+\_\+} prefix) can be used as well. Multiple options can be passed. The default is {\ttfamily csr,coo,ell,hybrid,sellp}.
+\item {\ttfamily S\+O\+L\+V\+E\+RS=\{bicgstab,bicg,cg,cgs,fcg,gmres\}} -\/ the solvers which should be benchmarked. Multiple options can be passed. The default is {\ttfamily cg}.
+\item {\ttfamily S\+O\+L\+V\+E\+R\+S\+\_\+\+P\+R\+E\+C\+I\+S\+I\+ON=$<$precision$>$} -\/ the minimal residual reduction before which the solver should stop. The default is {\ttfamily 1e-\/6}.
+\item {\ttfamily S\+O\+L\+V\+E\+R\+S\+\_\+\+M\+A\+X\+\_\+\+I\+T\+E\+R\+A\+T\+I\+ON=$<$number$>$} -\/ the maximum number of iterations with which a solver should be ran. The default is {\ttfamily 10000}.
+\item {\ttfamily D\+E\+T\+A\+I\+L\+ED=\{0,1\}} -\/ selects whether detailed benchmarks should be ran for the solver benchmarks, can be either {\ttfamily 0} (off) or {\ttfamily 1} (on). The default is {\ttfamily 0}. 
+\end{DoxyItemize}
