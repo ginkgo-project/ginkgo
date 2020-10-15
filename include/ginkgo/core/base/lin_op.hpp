@@ -810,12 +810,12 @@ using EnableDefaultLinOpFactory =
  *
  * @ingroup LinOp
  */
-#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
-public:                                                                \
-    class _factory_name;                                               \
-    struct _parameters_name##_type                                     \
-        : ::gko::enable_parameters_type<_parameters_name##_type,       \
-                                        _factory_name>
+#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
+public:                                                                 \
+    class _factory_name;                                                \
+    struct _parameters_name##_type                                      \
+        : public ::gko::enable_parameters_type<_parameters_name##_type, \
+                                               _factory_name>
 
 
 /**
@@ -905,8 +905,8 @@ public:                                                                      \
                                                   _parameters_name##_type> { \
         friend class ::gko::EnablePolymorphicObject<_factory_name,           \
                                                     ::gko::LinOpFactory>;    \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
-                                                   _factory_name>;           \
+        friend struct ::gko::enable_parameters_type<_parameters_name##_type, \
+                                                    _factory_name>;          \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
             : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
                                                _parameters_name##_type>(     \

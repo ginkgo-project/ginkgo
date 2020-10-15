@@ -61,7 +61,6 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using T = value_type;
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -119,10 +118,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], T{1.0});
-        EXPECT_EQ(v[1], T{3.0});
-        EXPECT_EQ(v[2], T{2.0});
-        EXPECT_EQ(v[3], T{5.0});
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
