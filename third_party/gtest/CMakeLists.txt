@@ -2,13 +2,13 @@ if(MSVC)
     # Force using shared runtime library when MSVC builds shared libraries
     ginkgo_load_git_package(gtest_external
         "https://github.com/google/googletest.git"
-        "ee3aa831172090fd5442820f215cb04ab6062756"
+        "6a7ed316a5cdc07b6d26362c90770787513822d4"
         # Work around the linking errors when compiling gtest with CUDA
         "-Dgtest_disable_pthreads=ON" "-Dgtest_force_shared_crt=${BUILD_SHARED_LIBS}")
 else()
     ginkgo_load_git_package(gtest_external
         "https://github.com/google/googletest.git"
-        "ee3aa831172090fd5442820f215cb04ab6062756"
+        "6a7ed316a5cdc07b6d26362c90770787513822d4"
         # Work around the linking errors when compiling gtest with CUDA
         "-Dgtest_disable_pthreads=ON"
         "-DCMAKE_CXX_FLAGS=-fPIC")
