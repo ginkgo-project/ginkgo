@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 
+#include <memory>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -201,12 +204,26 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
+void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
+                                            bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
-    const auto csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
-        exec, system_matrix);
+    decltype(copy_and_convert_to<csr_type>(exec, system_matrix)) csr_mtx{};
+
+    if (skip_sorting) {
+        csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
+            exec, system_matrix);
+    } else {
+        auto editable_csr = csr_type::create(exec);
+        as<ConvertibleTo<csr_type>>(system_matrix)
+            ->convert_to(lend(editable_csr));
+        // Maybe check if it is sorted first
+        editable_csr->sort_by_column_index();
+        csr_mtx = decltype(csr_mtx){editable_csr.release(),
+                                    std::default_delete<const csr_type>{}};
+    }
 
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(csr_mtx.get());
