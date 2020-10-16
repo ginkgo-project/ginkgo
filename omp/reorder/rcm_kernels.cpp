@@ -54,10 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "components/omp_mutex.hpp"
-#include "components/sort_small.hpp"
 #include "core/base/allocator.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "omp/components/omp_mutex.hpp"
+#include "omp/components/sort_small.hpp"
 
 
 namespace gko {
