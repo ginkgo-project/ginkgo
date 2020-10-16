@@ -30,22 +30,54 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#include "core/reorder/rcm_kernels.hpp"
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/prefix_sum.cuh"
 
 
 namespace gko {
-namespace matrices {
+namespace kernels {
+namespace cuda {
+/**
+ * @brief The reordering namespace.
+ *
+ * @ingroup reorder
+ */
+namespace rcm {
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+template <typename IndexType>
+void get_degree_of_nodes(std::shared_ptr<const CudaExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType *const row_ptrs,
+                         IndexType *const degrees) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
-}  // namespace matrices
+template <typename IndexType>
+void get_permutation(
+    std::shared_ptr<const CudaExecutor> exec, const IndexType num_vertices,
+    const IndexType *const row_ptrs, const IndexType *const col_idxs,
+    const IndexType *const degrees, IndexType *const permutation,
+    IndexType *const inv_permutation,
+    const gko::reorder::starting_strategy strategy) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+
+
+}  // namespace rcm
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_MATRICES_CONFIG_HPP_

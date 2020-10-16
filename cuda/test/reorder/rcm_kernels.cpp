@@ -30,22 +30,56 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+
+#include <ginkgo/core/reorder/rcm.hpp>
 
 
-namespace gko {
-namespace matrices {
+#include <gtest/gtest.h>
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+#include "core/test/utils/assertions.hpp"
 
 
-}  // namespace matrices
-}  // namespace gko
+namespace {
 
 
-#endif  // GKO_MATRICES_CONFIG_HPP_
+class Rcm : public ::testing::Test {
+protected:
+    using v_type = double;
+    using i_type = int;
+    using CsrMtx = gko::matrix::Csr<v_type, i_type>;
+    using reorder_type = gko::reorder::Rcm<v_type, i_type>;
+    using perm_type = gko::matrix::Permutation<i_type>;
+
+
+    Rcm()
+        : exec(gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true)),
+          // clang-format off
+          p_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},
+                                         {2.0, 5.0, 1.5, 0.0, 0.0},
+                                         {0.0, 1.5, 1.5, 1.1, 0.0},
+                                         {-1.3, 0.0, 1.1, 2.0, 0.0},
+                                         {2.1, 0.0, 0.0, 0.0, 1.0}},
+                                        exec)),
+          // clang-format on
+          rcm_factory(reorder_type::build().on(exec)),
+          reorder_op(rcm_factory->generate(p_mtx))
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<reorder_type::Factory> rcm_factory;
+    std::shared_ptr<CsrMtx> p_mtx;
+    std::unique_ptr<reorder_type> reorder_op;
+};
+
+
+TEST_F(Rcm, IsExecutedOnCpuExecutor)
+{
+    // This only executes successfully if computed on cpu executor.
+    auto p = reorder_op->get_permutation();
+
+    ASSERT_TRUE(true);
+}
+
+
+}  // namespace

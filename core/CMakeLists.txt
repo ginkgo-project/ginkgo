@@ -31,6 +31,7 @@ target_sources(ginkgo
     matrix/sparsity_csr.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    reorder/rcm.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cg.cpp

@@ -30,22 +30,44 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#ifndef GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_
+#define GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_
+
+
+#include <omp.h>
 
 
 namespace gko {
-namespace matrices {
+namespace kernels {
+namespace omp {
+
+/**
+ * Wrapper class for the OpenMP mutex omp_lock_t.
+ *
+ * Fulfills the BasicLockable requirement, which means it can be used with
+ * std::lock_guard<omp_mutex>, making RAII possible.
+ */
+struct omp_mutex {
+    omp_mutex() { omp_init_lock(&lock_); }
+    ~omp_mutex() { omp_destroy_lock(&lock_); }
+
+    omp_mutex(const omp_mutex &) = delete;
+    omp_mutex(omp_mutex &&) = delete;
+    omp_mutex &operator=(const omp_mutex &) = delete;
+    omp_mutex &operator=(omp_mutex &&) = delete;
+
+    void lock() { omp_set_lock(&lock_); }
+
+    void unlock() { omp_unset_lock(&lock_); }
+
+private:
+    omp_lock_t lock_;
+};
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
-
-
-}  // namespace matrices
+}  // namespace omp
+}  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_MATRICES_CONFIG_HPP_
+#endif  // GKO_OMP_COMPONENTS_OMP_MUTEX_HPP_

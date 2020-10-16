@@ -86,7 +86,7 @@ public:
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
-    explicit ExecutorAllocator(const ExecutorAllocator<U> &other)
+    ExecutorAllocator(const ExecutorAllocator<U> &other)
         : exec_{other.get_executor()}
     {}
 
