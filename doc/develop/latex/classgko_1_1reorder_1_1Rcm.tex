@@ -1,0 +1,123 @@
+\hypertarget{classgko_1_1reorder_1_1Rcm}{}\doxysection{gko\+::reorder\+::Rcm$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1reorder_1_1Rcm}\index{gko::reorder::Rcm$<$ ValueType, IndexType $>$@{gko::reorder::Rcm$<$ ValueType, IndexType $>$}}
+
+
+\mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{Rcm}} is a reordering algorithm minimizing the bandwidth of a matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/reorder/rcm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::reorder\+::Rcm$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1reorder_1_1Rcm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1reorder_1_1Rcm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_a60cc4e9cb86944dcab5f0e12e8849d12}\label{classgko_1_1reorder_1_1Rcm_a60cc4e9cb86944dcab5f0e12e8849d12}} 
+using {\bfseries Sparsity\+Matrix} = \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{matrix\+::\+Sparsity\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_a1d727450850cc7db8f0a7093936b744a}\label{classgko_1_1reorder_1_1Rcm_a1d727450850cc7db8f0a7093936b744a}} 
+using {\bfseries Permutation\+Matrix} = \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{matrix\+::\+Permutation}}$<$ Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_affd761cf415197348dad938052c0766b}\label{classgko_1_1reorder_1_1Rcm_affd761cf415197348dad938052c0766b}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_ac00369adfaced7455cd2a2010a5f3ee1}\label{classgko_1_1reorder_1_1Rcm_ac00369adfaced7455cd2a2010a5f3ee1}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation\+Matrix}} $>$ \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm_a6038e9e149aefdefa742b635e96c54f6}{get\+\_\+permutation}} () const
+\begin{DoxyCompactList}\small\item\em Gets the permutation (permutation matrix, output of the algorithm) of the linear operator. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation\+Matrix}} $>$ \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm_a5a45e6a9811b1c2402a83652a3f0f70a}{get\+\_\+inverse\+\_\+permutation}} () const
+\begin{DoxyCompactList}\small\item\em Gets the inverse permutation (permutation matrix, output of the algorithm) of the linear operator. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_ae43427a38baf7861409d27aadd7627b5}\label{classgko_1_1reorder_1_1Rcm_ae43427a38baf7861409d27aadd7627b5}} 
+const \mbox{\hyperlink{structgko_1_1reorder_1_1Rcm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_ae3f0c2e1c163debd4f0ccff6bc49bde4}\label{classgko_1_1reorder_1_1Rcm_ae3f0c2e1c163debd4f0ccff6bc49bde4}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1reorder_1_1Rcm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_ad38ad7e755a2bacf69ee36f0464446c5}\label{classgko_1_1reorder_1_1Rcm_ad38ad7e755a2bacf69ee36f0464446c5}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Rcm, Reordering\+Base $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::reorder\+::\+Rcm$<$ Value\+Type, Index\+Type $>$}
+
+\mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{Rcm}} is a reordering algorithm minimizing the bandwidth of a matrix. 
+
+Such a reordering typically also significantly reduces fill-\/in, though usually not as effective as more complex algorithms, specifically A\+MD and nested dissection schemes. The advantage of this algorithm is its low runtime.
+
+\begin{DoxyNote}{Note}
+This class is derived from polymorphic object but is not a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} as it does not make sense for this class to implement the apply methods. The objective of this class is to generate a reordering/permutation vector (in the form of the Permutation matrix), which can be used to apply to reorder a matrix as required.
+\end{DoxyNote}
+There are two \char`\"{}starting strategies\char`\"{} currently available\+: minimum degree and pseudo-\/peripheral. These strategies control how a starting vertex for a connected component is choosen, which is then renumbered as first vertex in the component, starting the algorithm from there. In general, the bandwidths obtained by choosing a pseudo-\/peripheral vertex are slightly smaller than those obtained from choosing a vertex of minimum degree. On the other hand, this strategy is much more expensive, relatively. The algorithm for finding a pseudo-\/peripheral vertex as described in \char`\"{}\+Computer Solution of Sparse Linear Systems\char`\"{} (George, Liu, Ng, Oak Ridge National Laboratory, 1994) is implemented here.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_a5a45e6a9811b1c2402a83652a3f0f70a}\label{classgko_1_1reorder_1_1Rcm_a5a45e6a9811b1c2402a83652a3f0f70a}} 
+\index{gko::reorder::Rcm$<$ ValueType, IndexType $>$@{gko::reorder::Rcm$<$ ValueType, IndexType $>$}!get\_inverse\_permutation@{get\_inverse\_permutation}}
+\index{get\_inverse\_permutation@{get\_inverse\_permutation}!gko::reorder::Rcm$<$ ValueType, IndexType $>$@{gko::reorder::Rcm$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_inverse\_permutation()}{get\_inverse\_permutation()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation\+Matrix}}$>$ \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{gko\+::reorder\+::\+Rcm}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+inverse\+\_\+permutation (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the inverse permutation (permutation matrix, output of the algorithm) of the linear operator. 
+
+\begin{DoxyReturn}{Returns}
+the inverse permutation (permutation matrix) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1reorder_1_1Rcm_a6038e9e149aefdefa742b635e96c54f6}\label{classgko_1_1reorder_1_1Rcm_a6038e9e149aefdefa742b635e96c54f6}} 
+\index{gko::reorder::Rcm$<$ ValueType, IndexType $>$@{gko::reorder::Rcm$<$ ValueType, IndexType $>$}!get\_permutation@{get\_permutation}}
+\index{get\_permutation@{get\_permutation}!gko::reorder::Rcm$<$ ValueType, IndexType $>$@{gko::reorder::Rcm$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_permutation()}{get\_permutation()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation\+Matrix}}$>$ \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{gko\+::reorder\+::\+Rcm}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+permutation (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the permutation (permutation matrix, output of the algorithm) of the linear operator. 
+
+\begin{DoxyReturn}{Returns}
+the permutation (permutation matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/reorder/rcm.\+hpp\end{DoxyCompactItemize}

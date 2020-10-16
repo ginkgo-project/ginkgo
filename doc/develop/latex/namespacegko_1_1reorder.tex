@@ -1,0 +1,62 @@
+\hypertarget{namespacegko_1_1reorder}{}\doxysection{gko\+::reorder Namespace Reference}
+\label{namespacegko_1_1reorder}\index{gko::reorder@{gko::reorder}}
+
+
+The Reorder namespace.  
+
+
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{Rcm}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1reorder_1_1Rcm}{Rcm}} is a reordering algorithm minimizing the bandwidth of a matrix. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1reorder_1_1ReorderingBase}{Reordering\+Base}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1reorder_1_1ReorderingBase}{Reordering\+Base}} class is a base class for all the reordering algorithms. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structgko_1_1reorder_1_1ReorderingBaseArgs}{Reordering\+Base\+Args}}
+\begin{DoxyCompactList}\small\item\em This struct is used to pass parameters to the Enable\+Default\+Reordering\+Base\+Factory\+::generate() method. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1reorder_af22857fcb83663b7e2d2b6e023afd350}\label{namespacegko_1_1reorder_af22857fcb83663b7e2d2b6e023afd350}} 
+using \mbox{\hyperlink{namespacegko_1_1reorder_af22857fcb83663b7e2d2b6e023afd350}{Reordering\+Base\+Factory}} = \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}}$<$ \mbox{\hyperlink{classgko_1_1reorder_1_1ReorderingBase}{Reordering\+Base}}, \mbox{\hyperlink{structgko_1_1reorder_1_1ReorderingBaseArgs}{Reordering\+Base\+Args}} $>$
+\begin{DoxyCompactList}\small\item\em Declares an Abstract Factory specialized for Reordering\+Bases. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Reordering\+Base , typename Parameters\+Type , typename Polymorphic\+Base  = Reordering\+Base\+Factory$>$ }\\using \mbox{\hyperlink{namespacegko_1_1reorder_a17edd2d82d2a872bb4f50a70fcaa105b}{Enable\+Default\+Reordering\+Base\+Factory}} = \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}}$<$ Concrete\+Factory, Concrete\+Reordering\+Base, Parameters\+Type, Polymorphic\+Base $>$
+\begin{DoxyCompactList}\small\item\em This is an alias for the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin, which correctly sets the template parameters to enable a subclass of Reordering\+Base\+Factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1reorder_a36a893c1ecfa77de45b66c84341daebd}\label{namespacegko_1_1reorder_a36a893c1ecfa77de45b66c84341daebd}} 
+enum {\bfseries starting\+\_\+strategy} \{ {\bfseries minimum\+\_\+degree}, 
+{\bfseries pseudo\+\_\+peripheral}
+ \}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The Reorder namespace. 
+
+The reordering namespace. 
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{namespacegko_1_1reorder_a17edd2d82d2a872bb4f50a70fcaa105b}\label{namespacegko_1_1reorder_a17edd2d82d2a872bb4f50a70fcaa105b}} 
+\index{gko::reorder@{gko::reorder}!EnableDefaultReorderingBaseFactory@{EnableDefaultReorderingBaseFactory}}
+\index{EnableDefaultReorderingBaseFactory@{EnableDefaultReorderingBaseFactory}!gko::reorder@{gko::reorder}}
+\doxysubsubsection{\texorpdfstring{EnableDefaultReorderingBaseFactory}{EnableDefaultReorderingBaseFactory}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Concrete\+Reordering\+Base , typename Parameters\+Type , typename Polymorphic\+Base  = Reordering\+Base\+Factory$>$ \\
+using \mbox{\hyperlink{namespacegko_1_1reorder_a17edd2d82d2a872bb4f50a70fcaa105b}{gko\+::reorder\+::\+Enable\+Default\+Reordering\+Base\+Factory}} = typedef \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}}$<$Concrete\+Factory, Concrete\+Reordering\+Base, Parameters\+Type, Polymorphic\+Base$>$}
+
+
+
+This is an alias for the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin, which correctly sets the template parameters to enable a subclass of Reordering\+Base\+Factory. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Factory} & the concrete factory which is being implemented \mbox{[}C\+R\+TP parmeter\mbox{]} \\
+\hline
+{\em Concrete\+Reordering\+Base} & the concrete \mbox{\hyperlink{classgko_1_1reorder_1_1ReorderingBase}{Reordering\+Base}} type which this factory produces, needs to have a constructor which takes a const Concrete\+Factory $\ast$, and a const \mbox{\hyperlink{structgko_1_1reorder_1_1ReorderingBaseArgs}{Reordering\+Base\+Args}} $\ast$ as parameters. \\
+\hline
+{\em Parameters\+Type} & a subclass of \mbox{\hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type}} template which defines all of the parameters of the factory \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Factory in the polymorphic hierarchy, has to be a subclass of Reordering\+Base\+Factory \\
+\hline
+\end{DoxyTemplParams}
