@@ -118,8 +118,11 @@ struct dim {
      * different than zero.
      *
      * @return true if and only if all dimensions evaluate to true
+     *
+     * @note This operator is explicit to avoid implicit dim-to-int casts.
+     *       It will still be used in contextual conversions (if, &&, ||, !)
      */
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_) && static_cast<bool>(rest_);
     }
@@ -183,7 +186,7 @@ struct dim<1u, DimensionType> {
         return GKO_ASSERT(dimension == 0), first_;
     }
 
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_);
     }
