@@ -144,9 +144,17 @@ public:                                                                        \
             _factory_name, ::gko::reorder::ReorderingBaseFactory>;             \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
                                                    _factory_name>;             \
-        using ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
-            _factory_name, _reordering_base,                                   \
-            _parameters_name##_type>::EnableDefaultReorderingBaseFactory;      \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
+            : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
+                  _factory_name, _reordering_base, _parameters_name##_type>(   \
+                  std::move(exec))                                             \
+        {}                                                                     \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
+                               const _parameters_name##_type &parameters)      \
+            : ::gko::reorder::EnableDefaultReorderingBaseFactory<              \
+                  _factory_name, _reordering_base, _parameters_name##_type>(   \
+                  std::move(exec), parameters)                                 \
+        {}                                                                     \
     };                                                                         \
     friend ::gko::reorder::EnableDefaultReorderingBaseFactory<                 \
         _factory_name, _reordering_base, _parameters_name##_type>;             \
