@@ -274,4 +274,47 @@ TYPED_TEST(Sellp, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Sellp, CanBeReadFromMatrixAssemblyData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec);
+
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    this->assert_equal_to_original_mtx(m.get());
+}
+
+
+TYPED_TEST(Sellp, CanBeReadFromMatrixAssemblyDataWithSliceSizeAndStrideFactor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
+
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    this->assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
+        m.get());
+}
+
+
 }  // namespace

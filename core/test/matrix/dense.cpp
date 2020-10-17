@@ -278,6 +278,32 @@ TYPED_TEST(Dense, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
+
+    gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_num_stored_elements(), 6);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(0, 2), value_type{2.0});
+    ASSERT_EQ(m->at(1, 2), value_type{0.0});
+}
+
+
 TYPED_TEST(Dense, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;

@@ -79,6 +79,7 @@ class SparsityCsr
     friend class Csr<ValueType, IndexType>;
 
 public:
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
     using EnableLinOp<SparsityCsr>::convert_to;
     using EnableLinOp<SparsityCsr>::move_to;
 

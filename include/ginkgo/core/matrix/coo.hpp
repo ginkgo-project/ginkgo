@@ -94,6 +94,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
 public:
     using EnableLinOp<Coo>::convert_to;
     using EnableLinOp<Coo>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;

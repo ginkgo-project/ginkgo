@@ -85,6 +85,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class Ell<to_complex<ValueType>, IndexType>;
 
 public:
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
     using EnableLinOp<Ell>::convert_to;
     using EnableLinOp<Ell>::move_to;
 
