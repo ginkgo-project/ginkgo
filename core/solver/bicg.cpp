@@ -87,12 +87,12 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
 
 /**
  * @internal
- * Transposes the matrix by converting it into a CSR matrix of type
- * CsrType, followed by transposing.
+ * (Conjugate-)Transposes the matrix by converting it into a CSR matrix of type
+ * CsrType, followed by (conjugate-)transposing.
  *
- * @param mtx  Matrix to transpose
+ * @param mtx  Matrix to (conjugate-)transpose
  * @tparam CsrType  Matrix format in which the matrix mtx is converted into
- *                  before transposing it
+ *                  before (conjugate-)transposing it
  */
 template <typename CsrType>
 std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
