@@ -67,37 +67,17 @@ namespace gko {
 namespace machine_config {
 
 
-struct topology_obj_info {
-    hwloc_obj_t obj;
-    int numa;
-    std::size_t logical_id;
-    std::size_t physical_id;  // for GPUs, this is their number in the numa
-};
-
-
-struct machine_info {
-    virtual const topology_obj_info &get_pu(std::size_t id) = 0;
-    virtual const topology_obj_info &get_core(std::size_t id) = 0;
-    virtual const topology_obj_info &get_gpu(std::size_t id) = 0;
-    virtual std::size_t get_num_pus() = 0;
-    virtual std::size_t get_num_cores() = 0;
-    virtual std::size_t get_num_gpus() = 0;
-    virtual std::size_t get_num_numas() = 0;
-};
-
-
-struct binder {
-    virtual void bind_to_core(std::size_t id) = 0;
-    virtual void bind_to_pu(std::size_t id) = 0;
-};
-
-
 template <class Executor>
-class Topology : public machine_info, public binder {
-public:
-    Topology(Topology &) = delete;
-    Topology(Topology &&) = delete;
+class Topology {
+private:
+    struct topology_obj_info {
+        hwloc_obj_t obj;
+        int numa;
+        size_type logical_id;
+        size_type physical_id;  // for GPUs, this is their number in the numa
+    };
 
+public:
     static std::unique_ptr<Topology> create()
     {
         return std::unique_ptr<Topology>(new Topology());
@@ -105,44 +85,37 @@ public:
 
     hwloc_topology *get_topology() const { return this->topo_.get(); }
 
-    void bind_to_core(std::size_t id) override
-    {
-        hwloc_binding_helper(this->cores_, id);
-    }
+    void bind_to_core(size_type id) { hwloc_binding_helper(this->cores_, id); }
 
-    void bind_to_pu(std::size_t id) override
-    {
-        hwloc_binding_helper(this->pus_, id);
-    }
+    void bind_to_pu(size_type id) { hwloc_binding_helper(this->pus_, id); }
 
-    const topology_obj_info &get_pu(std::size_t id) override
+    const topology_obj_info &get_pu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, pus_.size());
         return pus_[id];
     }
 
-    const topology_obj_info &get_core(std::size_t id) override
+    const topology_obj_info &get_core(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, cores_.size());
         return cores_[id];
     }
 
-    const topology_obj_info &get_gpu(std::size_t id) override
+    const topology_obj_info &get_gpu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, gpus_.size());
         return gpus_[id];
     }
 
 
-    std::size_t get_num_pus() override { return pus_.size(); }
-    std::size_t get_num_cores() override { return cores_.size(); }
-    std::size_t get_num_gpus() override { return gpus_.size(); }
-    std::size_t get_num_numas() override { return num_numas_; }
+    size_type get_num_pus() { return pus_.size(); }
+    size_type get_num_cores() { return cores_.size(); }
+    size_type get_num_gpus() { return gpus_.size(); }
+    size_type get_num_numas() { return num_numas_; }
 
     virtual void load_gpus() {}
 
-    void hwloc_binding_helper(std::vector<topology_obj_info> &obj,
-                              std::size_t id)
+    void hwloc_binding_helper(std::vector<topology_obj_info> &obj, size_type id)
     {
 #if GKO_HAVE_HWLOC
         auto bitmap = hwloc_bitmap_alloc();
@@ -178,6 +151,9 @@ public:
 #endif
 
 protected:
+    Topology(Topology &) = delete;
+    Topology(Topology &&) = delete;
+
     Topology()
     {
 #if GKO_HAVE_HWLOC
@@ -241,7 +217,7 @@ private:
     std::vector<topology_obj_info> gpus_;
     std::vector<topology_obj_info> pus_;
     std::vector<topology_obj_info> cores_;
-    std::size_t num_numas_;
+    size_type num_numas_;
 
     template <typename T>
     using topo_manager = std::unique_ptr<T, std::function<void(T *)>>;

@@ -55,6 +55,50 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
+namespace machine_config {
+
+
+template <>
+void Topology<HipExecutor>::load_gpus()
+{
+#if GKO_HAVE_HWLOC
+    size_type num_in_numa = 0;
+    int last_numa = 0;
+    auto topology = this->topo_.get();
+    auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
+    for (size_type i = 0; i < n_objs; i++, num_in_numa++) {
+        hwloc_obj_t obj = NULL;
+        while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
+            bool is_gpu = (HWLOC_OBJ_OSDEV_GPU == obj->attr->osdev.type ||
+                           HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type) &&
+                          obj->name &&
+                          (!strncmp("rsmi", obj->name, 4) ||
+                           !strncmp("cuda", obj->name, 4)) &&
+                          atoi(obj->name + 4) == (int)i;
+            if (is_gpu) {
+                while (obj &&
+                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
+                    obj = obj->parent;
+                if (obj && obj->nodeset) {
+                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
+                    if (this_numa != last_numa) {
+                        num_in_numa = 0;
+                    }
+                    this->gpus_.push_back(
+                        topology_obj_info{obj, this_numa, i, num_in_numa});
+                    last_numa = this_numa;
+                }
+            }
+        }
+    }
+
+#endif
+}
+
+
+}  // namespace machine_config
+
+
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {

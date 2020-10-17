@@ -39,11 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 
-#if GKO_HAVE_HWLOC
-#include "hwloc/cuda.h"
-#endif
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -66,18 +61,17 @@ template <>
 void Topology<CudaExecutor>::load_gpus()
 {
 #if GKO_HAVE_HWLOC
-    std::size_t num_in_numa = 0;
+    size_type num_in_numa = 0;
     int last_numa = 0;
     auto topology = this->topo_.get();
-    int ngpus = 0;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceCount(&ngpus));
     auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
-    for (std::size_t i = 1; i < n_objs; i++, num_in_numa++) {
+    for (size_type i = 1; i < n_objs; i++, num_in_numa++) {
         hwloc_obj_t obj = NULL;
         while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
-            if (HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type && obj->name &&
-                !strncmp("cuda", obj->name, 4) &&
-                atoi(obj->name + 4) == (int)i) {
+            bool is_gpu = HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type &&
+                          obj->name && !strncmp("cuda", obj->name, 4) &&
+                          atoi(obj->name + 4) == (int)i;
+            if (is_gpu) {
                 while (obj &&
                        (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
                     obj = obj->parent;

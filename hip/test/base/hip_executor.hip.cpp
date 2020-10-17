@@ -136,6 +136,31 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 }
 
 
+#if GKO_HAVE_HWLOC
+
+
+TEST_F(HipExecutor, GetsExecInfo)
+{
+    int num_pus = 0;
+    int num_gpus = 0;
+    int num_cores = 0;
+    int num_numas = 0;
+    auto hip = gko::HipExecutor::create(0, omp);
+    auto hip_info = hip->get_exec_info();
+    num_pus = hip_info->get_num_pus();
+    num_gpus = hip_info->get_num_gpus();
+    num_cores = hip_info->get_num_cores();
+    num_numas = hip_info->get_num_numas();
+    EXPECT_GT(num_numas, 0);
+    EXPECT_GT(num_gpus, 0);
+    EXPECT_GT(num_pus, 0);
+    EXPECT_GT(num_cores, 0);
+}
+
+
+#endif
+
+
 TEST_F(HipExecutor, AllocatesAndFreesMemory)
 {
     int *ptr = nullptr;
