@@ -106,7 +106,7 @@ For example, in the context of matrices {\ttfamily dim$<$2$>$\{2, 3\}} creates t
 \index{operator bool@{operator bool}!gko::dim$<$ Dimensionality, DimensionType $>$@{gko::dim$<$ Dimensionality, DimensionType $>$}}
 \doxysubsubsection{\texorpdfstring{operator bool()}{operator bool()}}
 {\footnotesize\ttfamily template$<$size\+\_\+type Dimensionality, typename Dimension\+Type = size\+\_\+type$>$ \\
-constexpr \mbox{\hyperlink{structgko_1_1dim}{gko\+::dim}}$<$ Dimensionality, Dimension\+Type $>$\+::operator bool (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+constexpr \mbox{\hyperlink{structgko_1_1dim}{gko\+::dim}}$<$ Dimensionality, Dimension\+Type $>$\+::operator bool (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}, {\ttfamily [constexpr]}}
 
 
 
@@ -115,8 +115,11 @@ Checks if all dimensions evaluate to true.
 For standard arithmetic types, this is equivalent to all dimensions being different than zero.
 
 \begin{DoxyReturn}{Returns}
-true if and only if all dimensions evaluate to true 
+true if and only if all dimensions evaluate to true
 \end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This operator is explicit to avoid implicit dim-\/to-\/int casts. It will still be used in contextual conversions (if, \&\&, $\vert$$\vert$, !) 
+\end{DoxyNote}
 \mbox{\Hypertarget{structgko_1_1dim_a33151623775cbe4c229a3bd59046de36}\label{structgko_1_1dim_a33151623775cbe4c229a3bd59046de36}} 
 \index{gko::dim$<$ Dimensionality, DimensionType $>$@{gko::dim$<$ Dimensionality, DimensionType $>$}!operator\mbox{[}\mbox{]}@{operator[]}}
 \index{operator\mbox{[}\mbox{]}@{operator[]}!gko::dim$<$ Dimensionality, DimensionType $>$@{gko::dim$<$ Dimensionality, DimensionType $>$}}
