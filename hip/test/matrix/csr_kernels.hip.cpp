@@ -420,6 +420,19 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    auto ctrans = mtx->conj_transpose();
+    auto d_ctrans = dmtx->conj_transpose();
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_ctrans.get()),
+                        static_cast<Mtx *>(ctrans.get()), 0.0);
+    ASSERT_TRUE(static_cast<Mtx *>(d_ctrans.get())->is_sorted_by_column_index());
+}
+
+
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());

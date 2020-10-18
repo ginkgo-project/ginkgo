@@ -87,15 +87,15 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
 
 /**
  * @internal
- * Transposes the matrix by converting it into a CSR matrix of type
- * CsrType, followed by transposing.
+ * (Conjugate-)Transposes the matrix by converting it into a CSR matrix of type
+ * CsrType, followed by (conjugate-)transposing.
  *
- * @param mtx  Matrix to transpose
+ * @param mtx  Matrix to (conjugate-)transpose
  * @tparam CsrType  Matrix format in which the matrix mtx is converted into
- *                  before transposing it
+ *                  before (conjugate-)transposing it
  */
 template <typename CsrType>
-std::unique_ptr<LinOp> transpose_with_csr(const LinOp *mtx)
+std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
 {
     auto csr_matrix_unique_ptr = copy_and_convert_to<CsrType>(
         mtx->get_executor(), const_cast<LinOp *>(mtx));
@@ -103,7 +103,7 @@ std::unique_ptr<LinOp> transpose_with_csr(const LinOp *mtx)
     csr_matrix_unique_ptr->set_strategy(
         std::make_shared<typename CsrType::classical>());
 
-    return csr_matrix_unique_ptr->transpose();
+    return csr_matrix_unique_ptr->conj_transpose();
 }
 
 
@@ -149,12 +149,12 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
 
-    std::unique_ptr<LinOp> trans_A;
-    auto transposable_system_matrix =
+    std::unique_ptr<LinOp> conj_trans_A;
+    auto conj_transposable_system_matrix =
         dynamic_cast<const Transposable *>(system_matrix_.get());
 
-    if (transposable_system_matrix) {
-        trans_A = transposable_system_matrix->transpose();
+    if (conj_transposable_system_matrix) {
+        conj_trans_A = conj_transposable_system_matrix->conj_transpose();
     } else {
         // TODO Extend when adding more IndexTypes
         // Try to figure out the IndexType that can be used for the CSR matrix
@@ -163,15 +163,16 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto supports_int64 =
             dynamic_cast<const ConvertibleTo<Csr64> *>(system_matrix_.get());
         if (supports_int64) {
-            trans_A = transpose_with_csr<Csr64>(system_matrix_.get());
+            conj_trans_A = conj_transpose_with_csr<Csr64>(system_matrix_.get());
         } else {
-            trans_A = transpose_with_csr<Csr32>(system_matrix_.get());
+            conj_trans_A = conj_transpose_with_csr<Csr32>(system_matrix_.get());
         }
     }
 
-    auto trans_preconditioner_tmp =
+    auto conj_trans_preconditioner_tmp =
         as<const Transposable>(get_preconditioner().get());
-    auto trans_preconditioner = trans_preconditioner_tmp->transpose();
+    auto conj_trans_preconditioner =
+        conj_trans_preconditioner_tmp->conj_transpose();
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
@@ -185,7 +186,7 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        trans_preconditioner->apply(r2.get(), z2.get());
+        conj_trans_preconditioner->apply(r2.get(), z2.get());
         z->compute_dot(r2.get(), rho.get());
 
         ++iter;
@@ -205,7 +206,7 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
         system_matrix_->apply(p.get(), q.get());
-        trans_A->apply(p2.get(), q2.get());
+        conj_trans_A->apply(p2.get(), q2.get());
         p2->compute_dot(q.get(), beta.get());
         exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
                                     q.get(), q2.get(), beta.get(), rho.get(),
