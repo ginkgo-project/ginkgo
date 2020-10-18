@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/203978243 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/204123473 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -282,7 +282,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>EnablePolymorphicObj
 class gko::solver::Bicg&lt; ValueType &gt;</h3>
 
 <p>BICG or the Biconjugate gradient method is a Krylov subspace solver. </p>
-<p>Being a generic solver, it is capable of solving general matrices, including non-s.p.d matrices. Though, the memory and the computational requirement of the BiCG solver are higher than of its s.p.d solver counterpart, it has the capability to solve generic systems. BiCG is the unstable version of BiCGSTAB.</p>
+<p>Being a generic solver, it is capable of solving general matrices, including non-s.p.d matrices. Though, the memory and the computational requirement of the BiCG solver are higher than of its s.p.d solver counterpart, it has the capability to solve generic systems.</p>
+<p>BiCG is based on the bi-Lanczos tridiagonalization method and in exact arithmetic should terminate in at most N iterations (2N MV's, with A and A^H). It forms the basis of many of the cheaper methods such as BiCGSTAB and CGS.</p>
+<p>Reference: R.Fletcher, Conjugate gradient methods for indefinite systems, doi: 10.1007/BFb0080116</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
