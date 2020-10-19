@@ -50,13 +50,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #if GKO_HAVE_HWLOC
+
 #include <hwloc.h>
-#endif
 
+#else
 
-#if GKO_HAVE_HWLOC == 0
 struct hwloc_obj_type_t {};
 struct hwloc_obj_t {};
+
 #endif
 
 
@@ -64,43 +65,112 @@ struct hwloc_topology;
 
 
 namespace gko {
+/**
+ * @brief The machine configuration namespace.
+ *
+ * @ingroup machine_config
+ */
 namespace machine_config {
 
 
+/**
+ * The topology class represents the heirarchical topology of a machine,
+ * including NUMA nodes, cores and GPUs. Various infomation of the machine are
+ * gathered with the help of the Hardware Locality library (hwloc).
+ *
+ * This class also provides functionalities to bind objects in the topology to
+ * the execution objects. Binding can enhance performance by allowing data to be
+ * closer to the executing object.
+ */
 template <class Executor>
 class Topology {
 private:
+    /**
+     * This struct holds the attributes for an object.
+     */
     struct topology_obj_info {
+        /**
+         * The hwloc object.
+         */
         hwloc_obj_t obj;
+
+        /**
+         * The numa number of the object.
+         */
         int numa;
+
+        /**
+         * The logical_id assigned by the OS.
+         */
         size_type logical_id;
-        size_type physical_id;  // for GPUs, this is their number in the numa
+
+        /**
+         * The physical_id assigned to the object.
+         * For GPUs, this is their number in the numa
+         */
+        size_type physical_id;
     };
 
 public:
+    /**
+     * Creates a new Topology object.
+     */
     static std::unique_ptr<Topology> create()
     {
         return std::unique_ptr<Topology>(new Topology());
     }
 
+    /**
+     * Get the Topology object.
+     *
+     * @return  the topology object.
+     */
     hwloc_topology *get_topology() const { return this->topo_.get(); }
 
+
+    /**
+     * Bind the object associated with the id to a core.
+     *
+     * @param id  The id of the object to be bound.
+     */
     void bind_to_core(size_type id) { hwloc_binding_helper(this->cores_, id); }
 
+    /**
+     * Bind the object associated with the id to a Processing unit(PU).
+     *
+     * @param id  The id of the object to be bound.
+     */
     void bind_to_pu(size_type id) { hwloc_binding_helper(this->pus_, id); }
 
+    /**
+     * Get the object of type PU associated with the id.
+     *
+     * @param id  The id of the PU
+     */
     const topology_obj_info &get_pu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, pus_.size());
         return pus_[id];
     }
 
+
+    /**
+     * Get the object of type core associated with the id.
+     *
+     * @param id  The id of the core
+     */
     const topology_obj_info &get_core(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, cores_.size());
         return cores_[id];
     }
 
+
+    /**
+     * Get the object of type gpu associated with the id.
+     *
+     * @param id  The id of the gpu
+     */
     const topology_obj_info &get_gpu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, gpus_.size());
@@ -108,47 +178,35 @@ public:
     }
 
 
+    /**
+     * Get the number of PU objects stored in this Topology tree.
+     */
     size_type get_num_pus() { return pus_.size(); }
+
+
+    /**
+     * Get the number of core objects stored in this Topology tree.
+     */
     size_type get_num_cores() { return cores_.size(); }
+
+
+    /**
+     * Get the number of GPU objects stored in this Topology tree.
+     */
     size_type get_num_gpus() { return gpus_.size(); }
+
+
+    /**
+     * Get the number of NUMA objects stored in this Topology tree.
+     */
     size_type get_num_numas() { return num_numas_; }
 
+
+    /**
+     * Load the gpu objects. These functions are implemened by the respective
+     * GPU Executor classes.
+     */
     virtual void load_gpus() {}
-
-    void hwloc_binding_helper(std::vector<topology_obj_info> &obj, size_type id)
-    {
-#if GKO_HAVE_HWLOC
-        auto bitmap = hwloc_bitmap_alloc();
-        hwloc_bitmap_set(bitmap, obj[id].physical_id);
-        hwloc_bitmap_singlify(bitmap);
-        hwloc_set_cpubind(topo_.get(), bitmap, 0);
-        hwloc_bitmap_free(bitmap);
-#endif
-    }
-
-#if GKO_HAVE_HWLOC
-
-    static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
-                                     int depth)
-    {
-        char type[32], attr[1024];
-        unsigned i;
-        hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
-        std::cout << std::string(2 * depth, ' ') << type;
-        if (obj->os_index != (unsigned)-1) {
-            std::cout << "#" << obj->os_index;
-        }
-        hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
-        if (*attr) {
-            std::cout << "(" << attr << ")";
-        }
-        std::cout << std::endl;
-        for (i = 0; i < obj->arity; i++) {
-            hwloc_print_children(topology, obj->children[i], depth + 1);
-        }
-    }
-
-#endif
 
 protected:
     Topology(Topology &) = delete;
@@ -175,7 +233,47 @@ protected:
     }
 
 
+    /**
+     * A helper function that binds the object with an id.
+     */
+    void hwloc_binding_helper(std::vector<topology_obj_info> &obj, size_type id)
+    {
 #if GKO_HAVE_HWLOC
+        auto bitmap = hwloc_bitmap_alloc();
+        hwloc_bitmap_set(bitmap, obj[id].physical_id);
+        hwloc_bitmap_singlify(bitmap);
+        hwloc_set_cpubind(topo_.get(), bitmap, 0);
+        hwloc_bitmap_free(bitmap);
+#endif
+    }
+
+
+#if GKO_HAVE_HWLOC
+
+
+    /**
+     * A helper function that prints the topology tree of an object to a given
+     * depth. Provided from the hwloc library.
+     */
+    static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
+                                     int depth)
+    {
+        char type[32], attr[1024];
+        unsigned i;
+        hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
+        std::cout << std::string(2 * depth, ' ') << type;
+        if (obj->os_index != (unsigned)-1) {
+            std::cout << "#" << obj->os_index;
+        }
+        hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
+        if (*attr) {
+            std::cout << "(" << attr << ")";
+        }
+        std::cout << std::endl;
+        for (i = 0; i < obj->arity; i++) {
+            hwloc_print_children(topology, obj->children[i], depth + 1);
+        }
+    }
 
 
     // The objects should be sorted by logical index since hwloc uses logical
@@ -198,12 +296,8 @@ protected:
         hwloc_topology_t tmp;
         hwloc_topology_init(&tmp);
 
-#if HWLOC_API_VERSION >= 0x00020000
         hwloc_topology_set_io_types_filter(tmp,
                                            HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-#else
-        hwloc_topology_set_flags(tmp, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
-#endif
         hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
         hwloc_topology_load(tmp);
 
@@ -212,6 +306,7 @@ protected:
 
 
 #endif
+
 
 private:
     std::vector<topology_obj_info> gpus_;
