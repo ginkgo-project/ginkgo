@@ -237,7 +237,7 @@ TEST_F(ReducedStorage3d, CorrectStride)
 
 TEST_F(ReducedStorage3d, CorrectStorage)
 {
-    EXPECT_EQ(r->get_storage(), data);
+    EXPECT_EQ(r->get_stored_data(), data);
     EXPECT_EQ(r->get_const_storage(), data);
 }
 
@@ -271,7 +271,7 @@ TEST_F(ReducedStorage3d, CanImplicitlyConvertToConst)
 }
 
 
-TEST_F(ReducedStorage3d, ToConstWorking)
+TEST_F(ReducedStorage3d, ToConstWorks)
 {
     auto cr2 = r->to_const();
 
@@ -412,6 +412,18 @@ TEST_F(ReducedStorage3d, Division2)
 }
 
 
+TEST_F(ReducedStorage3d, UnaryMinus)
+{
+    const ar_type neg_expected = r(2, 0, 0);
+    const ar_type expected = -neg_expected;
+
+    auto result = -r(2, 0, 0);
+
+    check_accessor_correctness(r);
+    EXPECT_EQ(result, expected);
+}
+
+
 TEST_F(ReducedStorage3d, CanCreateSubrange)
 {
     auto subr = r(span{1, 3}, span{0, 2}, 0);
@@ -454,7 +466,7 @@ protected:
 
     const gko::dim<3> size{1u, 4u, 2u};
     static constexpr gko::size_type data_elements{8};
-    static constexpr gko::size_type scale_elements{8};
+    static constexpr gko::size_type scalar_elements{8};
     // clang-format off
     st_type data[8]{
         10, 11,
@@ -462,12 +474,12 @@ protected:
         14, -115,
         6, 77
     };
-    ar_type scale[scale_elements]{
+    ar_type scalar[scalar_elements]{
         1., 2.,
     };
     // clang-format on
-    reduced_storage r{data, scale, size};
-    const_reduced_storage cr{data, scale, size};
+    reduced_storage r{data, scalar, size};
+    const_reduced_storage cr{data, scalar, size};
 
     template <typename Accessor>
     static void check_accessor_correctness(
@@ -511,15 +523,15 @@ TEST_F(ScaledReducedStorage3d, CorrectStride)
 
 TEST_F(ScaledReducedStorage3d, CorrectStorage)
 {
-    EXPECT_EQ(r->get_storage(), data);
+    EXPECT_EQ(r->get_stored_data(), data);
     EXPECT_EQ(r->get_const_storage(), data);
 }
 
 
 TEST_F(ScaledReducedStorage3d, CorrectScale)
 {
-    EXPECT_EQ(r->get_scale(), scale);
-    EXPECT_EQ(r->get_const_scale(), scale);
+    EXPECT_EQ(r->get_scalar(), scalar);
+    EXPECT_EQ(r->get_const_scalar(), scalar);
 }
 
 
@@ -533,7 +545,7 @@ TEST_F(ScaledReducedStorage3d, CanReadData)
 TEST_F(ScaledReducedStorage3d, CopyFrom)
 {
     st_type data2[data_elements];
-    ar_type scale2[scale_elements];
+    ar_type scale2[scalar_elements];
     reduced_storage cpy(data2, scale2, size);
 
     // Do not use this in regular code since the implementation is slow
@@ -553,7 +565,7 @@ TEST_F(ScaledReducedStorage3d, CanImplicitlyConvertToConst)
 }
 
 
-TEST_F(ScaledReducedStorage3d, ToConstWorking)
+TEST_F(ScaledReducedStorage3d, ToConstWorks)
 {
     auto cr2 = r->to_const();
 
@@ -569,6 +581,7 @@ TEST_F(ScaledReducedStorage3d, CanRead)
     check_accessor_correctness(r);
 }
 
+
 TEST_F(ScaledReducedStorage3d, Subrange)
 {
     auto subr = cr(0, gko::span{0, 2}, 1);
@@ -580,7 +593,7 @@ TEST_F(ScaledReducedStorage3d, Subrange)
 
 TEST_F(ScaledReducedStorage3d, CanWriteScale)
 {
-    r->write_scale(0, 0, 10.);
+    r->write_scalar(0, 0, 10.);
 
     EXPECT_EQ(r(0, 0, 0), 100.);
     EXPECT_EQ(r(0, 0, 1), 22.);
@@ -595,8 +608,8 @@ TEST_F(ScaledReducedStorage3d, CanWriteScale)
 
 TEST_F(ScaledReducedStorage3d, CanReadScale)
 {
-    EXPECT_EQ(r->read_scale(0, 0), 1.);
-    EXPECT_EQ(r->read_scale(0, 1), 2.);
+    EXPECT_EQ(r->read_scalar(0, 0), 1.);
+    EXPECT_EQ(r->read_scalar(0, 1), 2.);
 }
 
 
@@ -701,6 +714,18 @@ TEST_F(ScaledReducedStorage3d, Division2)
     check_accessor_correctness(r, t(0, 1, 0));
     EXPECT_NEAR(r(0, 1, 0), expected, delta);
     EXPECT_NEAR(result, expected, delta);
+}
+
+
+TEST_F(ScaledReducedStorage3d, UnaryMinus)
+{
+    const ar_type neg_expected = r(0, 1, 1);
+    const ar_type expected = -neg_expected;
+
+    auto result = -r(0, 1, 1);
+
+    check_accessor_correctness(r);
+    EXPECT_EQ(result, expected);
 }
 
 
