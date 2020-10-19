@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -488,7 +490,7 @@ public:
     template <typename T>
     void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
     {
-        this->copy_from(this, num_elems, src_ptr, dest_ptr);
+        this->get_mem_space()->copy_from(this, num_elems, src_ptr, dest_ptr);
     }
 
     /**
@@ -504,7 +506,7 @@ public:
     T copy_val_to_host(const T *ptr) const
     {
         T out{};
-        this->get_master()->copy_from(this, 1, ptr, &out);
+        this->get_master()->get_mem_space()->copy_from(this, 1, ptr, &out);
         return out;
     }
 
@@ -689,14 +691,6 @@ public:
 
 protected:
     OmpExecutor() { mem_space_instance_ = HostMemorySpace::create(); }
-
-    OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
-        : mem_space_instance_(mem_space)
-    {
-        if (!check_mem_space_validity(mem_space_instance_)) {
-            GKO_MEMSPACE_MISMATCH(NOT_HOST);
-        }
-    }
 
     OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
         : mem_space_instance_(mem_space)

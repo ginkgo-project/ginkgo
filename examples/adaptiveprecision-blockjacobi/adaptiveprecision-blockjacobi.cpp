@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
                         .on(exec);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create(exec);
+        gko::log::Convergence<ValueType>::create(exec, exec->get_mem_space());
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 

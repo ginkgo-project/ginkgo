@@ -91,26 +91,26 @@ static std::mutex papi_count_mutex;
 template <typename ValueType = default_precision>
 class Papi : public Logger {
 public:
-    /* Executor events */
-    void on_allocation_started(const Executor *exec,
+    /* Memory space events */
+    void on_allocation_started(const MemorySpace *mem_space,
                                const size_type &num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
+    void on_allocation_completed(const MemorySpace *mem_space,
                                  const size_type &num_bytes,
                                  const uintptr &location) const override;
 
-    void on_free_started(const Executor *exec,
+    void on_free_started(const MemorySpace *mem_space,
                          const uintptr &location) const override;
 
-    void on_free_completed(const Executor *exec,
+    void on_free_completed(const MemorySpace *mem_space,
                            const uintptr &location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
+    void on_copy_started(const MemorySpace *from, const MemorySpace *to,
                          const uintptr &location_from,
                          const uintptr &location_to,
                          const size_type &num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
+    void on_copy_completed(const MemorySpace *from, const MemorySpace *to,
                            const uintptr &location_from,
                            const uintptr &location_to,
                            const size_type &num_bytes) const override;
@@ -185,9 +185,10 @@ public:
      */
     static std::shared_ptr<Papi> create(
         std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::MemorySpace> mem_space,
         const Logger::mask_type &enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
+        return std::shared_ptr<Papi>(new Papi(exec, mem_space, enabled_events));
     }
 
     /**
@@ -201,8 +202,9 @@ public:
 protected:
     explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::MemorySpace> mem_space,
         const Logger::mask_type &enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        : Logger(exec, mem_space, enabled_events)
     {
         std::ostringstream os;
 
@@ -257,20 +259,21 @@ private:
     };
 
 
-    mutable papi_queue<Executor> allocation_started{&papi_handle,
-                                                    "allocation_started"};
-    mutable papi_queue<Executor> allocation_completed{&papi_handle,
-                                                      "allocation_completed"};
-    mutable papi_queue<Executor> free_started{&papi_handle, "free_started"};
-    mutable papi_queue<Executor> free_completed{&papi_handle, "free_completed"};
-    mutable papi_queue<Executor> copy_started_from{&papi_handle,
-                                                   "copy_started_from"};
-    mutable papi_queue<Executor> copy_started_to{&papi_handle,
-                                                 "copy_started_to"};
-    mutable papi_queue<Executor> copy_completed_from{&papi_handle,
-                                                     "copy_completed_from"};
-    mutable papi_queue<Executor> copy_completed_to{&papi_handle,
-                                                   "copy_completed_to"};
+    mutable papi_queue<MemorySpace> allocation_started{&papi_handle,
+                                                       "allocation_started"};
+    mutable papi_queue<MemorySpace> allocation_completed{
+        &papi_handle, "allocation_completed"};
+    mutable papi_queue<MemorySpace> free_started{&papi_handle, "free_started"};
+    mutable papi_queue<MemorySpace> free_completed{&papi_handle,
+                                                   "free_completed"};
+    mutable papi_queue<MemorySpace> copy_started_from{&papi_handle,
+                                                      "copy_started_from"};
+    mutable papi_queue<MemorySpace> copy_started_to{&papi_handle,
+                                                    "copy_started_to"};
+    mutable papi_queue<MemorySpace> copy_completed_from{&papi_handle,
+                                                        "copy_completed_from"};
+    mutable papi_queue<MemorySpace> copy_completed_to{&papi_handle,
+                                                      "copy_completed_to"};
 
     mutable papi_queue<Executor> operation_launched{&papi_handle,
                                                     "operation_launched"};

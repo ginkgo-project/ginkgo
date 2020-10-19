@@ -396,6 +396,23 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Calls a given macro for each memory space type for a given kernel.
+ *
+ * The macro should take two parameters:
+ *
+ * -   the first one is replaced with the memory space class name
+ * -   the second one with the name of the kernel to be bound
+ *
+ * @param _enable_macro  macro name which will be called
+ */
+#define GKO_ENABLE_FOR_ALL_MEMORY_SPACES(_enable_macro) \
+    _enable_macro(HostMemorySpace, host);               \
+    _enable_macro(HipMemorySpace, hip);                 \
+    _enable_macro(CudaMemorySpace, cuda);               \
+    _enable_macro(CudaUVMSpace, cuda_uvm)
+
+
+/**
  * Instantiates a template for each non-complex value type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
