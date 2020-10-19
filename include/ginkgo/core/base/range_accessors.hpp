@@ -120,7 +120,7 @@ protected:
      * @param num_cols  number of columns of the accessor
      * @param stride  distance (in elements) between starting positions of
      *                consecutive rows (i.e. `data + i * stride` points to
-     * the `i`-th row)
+     *                the `i`-th row)
      */
     GKO_ATTRIBUTES constexpr explicit row_major(data_type data,
                                                 size_type num_rows,
@@ -191,7 +191,9 @@ public:
      * Copies data from another accessor
      *
      * @warning Do not use this function since it is not optimized for a
-     * specific executor. It will always be performed sequentially.
+     *          specific executor. It will always be performed sequentially.
+     *          Please write an optimized version (adjusted to the architecture)
+     *          by iterating through the values yourself.
      *
      * @tparam OtherAccessor  type of the other accessor
      *
@@ -229,15 +231,14 @@ namespace detail {
 
 // tests if the cast operator to `ValueType` is present
 template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_cast_operator : std::false_type {
-};
+struct has_cast_operator : std::false_type {};
 
 template <typename Ref, typename ValueType>
 struct has_cast_operator<
     Ref, ValueType,
     xstd::void_t<decltype(std::declval<Ref>().Ref::operator ValueType())>>
-    : std::true_type {
-};
+    : std::true_type {};
+
 
 /**
  * @internal
@@ -266,6 +267,7 @@ to_value_type(const Ref &ref)
     return static_cast<ValueType>(ref);
 }
 
+
 /**
  * This is a mixin which defines the binary operators for *, /, +, - for the
  * Reference class, the unary operator -, and the assignment operators
@@ -285,7 +287,6 @@ to_value_type(const Ref &ref)
 template <typename Reference, typename ArithmeticType>
 struct enable_reference {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-
 
 #define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)          \
     friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
@@ -348,9 +349,9 @@ struct enable_reference {
 /**
  * This namespace contains reference classes used inside accessors.
  *
- * @warning  This class should not be used by anything else but accessors.
+ * @warning  These classes should not be used by anything else but accessors.
  */
-namespace reference {
+namespace reference_class {
 
 
 /**
@@ -375,12 +376,15 @@ class reduced_storage
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
+
     // Allow move construction, so perfect forwarding is possible (required
     // for `range` support)
     reduced_storage(reduced_storage &&) = default;
 
     reduced_storage() = delete;
+
     ~reduced_storage() = default;
+
     // Forbid copy construction
     reduced_storage(const reduced_storage &) = delete;
 
@@ -394,17 +398,20 @@ public:
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
     }
+
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return *r_ptr = static_cast<storage_type>(val);
     }
+
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         const reduced_storage &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
+
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         reduced_storage &&ref) &&
     {
@@ -423,14 +430,17 @@ class reduced_storage<ArithmeticType, const StorageType>
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = const StorageType;
+
     // Allow move construction, so perfect forwarding is possible
     reduced_storage(reduced_storage &&) = default;
 
     reduced_storage() = delete;
+
     ~reduced_storage() = default;
+
     // Forbid copy construction and move assignment
     reduced_storage(const reduced_storage &) = delete;
-    // TODO  Implement this operator and call `operator=(const &)`
+
     reduced_storage &operator=(reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr reduced_storage(
@@ -453,8 +463,8 @@ private:
  * Reference class for a different storage than arithmetic type with the
  * addition of a scaling factor. The conversion between both formats is done
  * with a static_cast to the ArithmeticType, followed by a multiplication
- * of the scale (when reading; for writing, the new value is divided by the
- * scale before casting to the StorageType).
+ * of the scalar (when reading; for writing, the new value is divided by the
+ * scalar before casting to the StorageType).
  *
  * Copying this reference is disabled, but move construction is possible to
  * allow for an additional layer (like gko::range).
@@ -479,32 +489,36 @@ public:
     scaled_reduced_storage(scaled_reduced_storage &&) = default;
 
     scaled_reduced_storage() = delete;
+
     ~scaled_reduced_storage() = default;
+
     // Forbid copy construction
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
 
     GKO_ATTRIBUTES constexpr scaled_reduced_storage(
-        storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
-        : ptr_{ptr}, scale_{scale}
+        storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
+        : ptr_{ptr}, scalar_{scalar}
     {}
 
     GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scale_;
+        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
-        return *r_ptr = static_cast<storage_type>(val / scale_), val;
+        return *r_ptr = static_cast<storage_type>(val / scalar_), val;
     }
+
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         const scaled_reduced_storage &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
+
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
         scaled_reduced_storage &&ref) &&
     {
@@ -513,7 +527,7 @@ public:
 
 private:
     storage_type *const GKO_RESTRICT ptr_;
-    const arithmetic_type scale_;
+    const arithmetic_type scalar_;
 };
 
 // Specialization for constant storage_type (no `operator=`)
@@ -530,31 +544,33 @@ public:
     scaled_reduced_storage(scaled_reduced_storage &&) = default;
 
     scaled_reduced_storage() = delete;
+
     ~scaled_reduced_storage() = default;
+
     // Forbid copy construction and move assignment
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
-    // TODO  Implement this operator and call `operator=(const &)`
+
     scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
     GKO_ATTRIBUTES constexpr scaled_reduced_storage(
-        storage_type *const GKO_RESTRICT ptr, arithmetic_type scale)
-        : ptr_{ptr}, scale_{scale}
+        storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
+        : ptr_{ptr}, scalar_{scalar}
     {}
 
     GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scale_;
+        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
 
 private:
     storage_type *const GKO_RESTRICT ptr_;
-    const arithmetic_type scale_;
+    const arithmetic_type scalar_;
 };
 
 
-}  // namespace reference
+}  // namespace reference_class
 }  // namespace detail
 
 
@@ -593,8 +609,8 @@ public:
     friend class range<reduced_row_major>;
 
 protected:
-    using reference =
-        detail::reference::reduced_storage<arithmetic_type, storage_type>;
+    using reference_type =
+        detail::reference_class::reduced_storage<arithmetic_type, storage_type>;
 
     /**
      * Creates the accessor with an already allocated storage space with a
@@ -663,7 +679,9 @@ public:
      * Copies data from another accessor
      *
      * @warning Do not use this function since it is not optimized for a
-     * specific executor. It will always be performed sequentially.
+     *          specific executor. It will always be performed sequentially.
+     *          Please write an optimized version (adjusted to the architecture)
+     *          by iterating through the values yourself.
      *
      * @tparam OtherAccessor  type of the other accessor
      *
@@ -693,10 +711,10 @@ public:
      * is const), or a reference if the accessor is non-const
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr std::conditional_t<
-        is_const, arithmetic_type, reference>
+        is_const, arithmetic_type, reference_type>
     operator()(size_type x, size_type y, size_type z) const
     {
-        return reference{this->storage_ + compute_index(x, y, z)};
+        return reference_type{this->storage_ + compute_index(x, y, z)};
     }
 
     /**
@@ -752,7 +770,7 @@ public:
      *
      * @returns the pointer to the storage data
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_stored_data() const
     {
         return storage_;
     }
@@ -788,23 +806,23 @@ namespace detail {
 // In case of a const type, do not provide a write function
 template <int Dimensionality, typename Accessor, typename ScaleType,
           bool = std::is_const<ScaleType>::value>
-struct enable_write_scale {
+struct enable_write_scalar {
     static_assert(std::is_const<ScaleType>::value,
                   "This class must have a constant ScaleType!");
-    using scale_type = ScaleType;
+    using scalar_type = ScaleType;
 };
 
 // In case of a non-const type, enable the write function
 template <int Dimensionality, typename Accessor, typename ScaleType>
-struct enable_write_scale<Dimensionality, Accessor, ScaleType, false> {
+struct enable_write_scalar<Dimensionality, Accessor, ScaleType, false> {
     static_assert(!std::is_const<ScaleType>::value,
                   "This class must NOT have a constant ScaleType!");
     static_assert(Dimensionality == 3, "Only Dimensionality 3 supported!");
 
-    using scale_type = ScaleType;
+    using scalar_type = ScaleType;
 
     /**
-     * Writes the scale value at the given indices.
+     * Writes the scalar value at the given indices.
      *
      * @param x  x index
      * @param z  z index
@@ -812,11 +830,11 @@ struct enable_write_scale<Dimensionality, Accessor, ScaleType, false> {
      *
      * @returns the written value.
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr scale_type write_scale(
-        size_type x, size_type z, scale_type value) const
+    GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type write_scalar(
+        size_type x, size_type z, scalar_type value) const
     {
-        scale_type *GKO_RESTRICT rest_scale = self()->scale_;
-        return rest_scale[self()->compute_scale_index(x, z)] = value;
+        scalar_type *GKO_RESTRICT rest_scalar = self()->scalar_;
+        return rest_scalar[self()->compute_scalar_index(x, z)] = value;
     }
 
 private:
@@ -851,7 +869,7 @@ private:
  */
 template <int Dimensionality, typename ArithmeticType, typename StorageType>
 class scaled_reduced_row_major
-    : public detail::enable_write_scale<
+    : public detail::enable_write_scalar<
           Dimensionality,
           scaled_reduced_row_major<Dimensionality, ArithmeticType, StorageType>,
           ArithmeticType> {
@@ -860,7 +878,7 @@ public:
     using storage_type = StorageType;
     static constexpr size_type dimensionality{Dimensionality};
     static constexpr bool is_const{std::is_const<storage_type>::value};
-    using scale_type =
+    using scalar_type =
         std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
 
     using const_accessor =
@@ -870,14 +888,15 @@ public:
     static_assert(dimensionality == 3,
                   "Only Dimensionality == 3 is currently supported");
 
-    // Allow access to both `scale_` and `compute_scale_index()`
-    friend class detail::enable_write_scale<
-        dimensionality, scaled_reduced_row_major, scale_type>;
+    // Allow access to both `scalar_` and `compute_scalar_index()`
+    friend class detail::enable_write_scalar<
+        dimensionality, scaled_reduced_row_major, scalar_type>;
     friend class range<scaled_reduced_row_major>;
 
 protected:
-    using reference =
-        detail::reference::scaled_reduced_storage<arithmetic_type, StorageType>;
+    using reference_type =
+        detail::reference_class::scaled_reduced_storage<arithmetic_type,
+                                                        StorageType>;
 
 public:
     /**
@@ -886,19 +905,19 @@ public:
      * index, the second stride for the second index, and so on.
      *
      * @param storage  pointer to the block of memory containing the storage
-     * @param scale  pointer to the block of memory containing the scale values.
-     *               Memory required is size[0] * stride1.
+     * @param scalar  pointer to the block of memory containing the scalar
+     * values. Memory required is size[0] * stride1.
      * @param size  multidimensional size of the memory
      * @param stride0  stride used for the x-indices
      * @param stride1  stride used for the y-indices
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
-                                                      scale_type *scale,
+                                                      scalar_type *scalar,
                                                       dim<dimensionality> size,
                                                       size_type stride0,
                                                       size_type stride1)
         : storage_{storage},
-          scale_{scale},
+          scalar_{scalar},
           size_{size},
           stride_{stride0, stride1}
     {}
@@ -909,14 +928,14 @@ public:
      * It is assumed that accesses are without a stride.
      *
      * @param storage  pointer to the block of memory containing the storage
-     * @param scale  pointer to the block of memory containing the scale values.
-     *               Memory required is size[0] * size[1].
+     * @param scalar  pointer to the block of memory containing the scalar
+     * values. Memory required is size[0] * size[1].
      * @param size  multidimensional size of the memory
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
-                                                      scale_type *scale,
+                                                      scalar_type *scalar,
                                                       dim<dimensionality> size)
-        : scaled_reduced_row_major{storage, scale, size, size[1] * size[2],
+        : scaled_reduced_row_major{storage, scalar, size, size[1] * size[2],
                                    size[2]}
     {}
 
@@ -935,23 +954,23 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr range<const_accessor> to_const() const
     {
-        return range<const_accessor>{storage_, scale_, size_, stride_[0],
+        return range<const_accessor>{storage_, scalar_, size_, stride_[0],
                                      stride_[1]};
     }
 
     /**
-     * Reads the scale value at the given indices.
+     * Reads the scalar value at the given indices.
      *
      * @param x  x index
      * @param z  z index
      *
-     * @returns the scale value at the given indices.
+     * @returns the scalar value at the given indices.
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr scale_type read_scale(size_type x,
-                                                              size_type z) const
+    GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type read_scalar(
+        size_type x, size_type z) const
     {
-        const arithmetic_type *GKO_RESTRICT rest_scale = scale_;
-        return rest_scale[compute_scale_index(x, z)];
+        const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
+        return rest_scalar[compute_scalar_index(x, z)];
     }
 
     /**
@@ -971,7 +990,9 @@ public:
      * Copies data from another accessor
      *
      * @warning Do not use this function since it is not optimized for a
-     * specific executor. It will always be performed sequentially.
+     *          specific executor. It will always be performed sequentially.
+     *          Please write an optimized version (adjusted to the architecture)
+     *          by iterating through the values yourself.
      *
      * @tparam OtherAccessor  type of the other accessor
      *
@@ -982,7 +1003,7 @@ public:
     {
         for (size_type i = 0; i < this->size_[0]; ++i) {
             for (size_type k = 0; k < this->size_[2]; ++k) {
-                this->write_scale(i, k, other.read_scale(i, k));
+                this->write_scalar(i, k, other.read_scalar(i, k));
             }
         }
         for (size_type i = 0; i < this->size_[0]; ++i) {
@@ -1006,11 +1027,11 @@ public:
      * is const), or a reference if the accessor is non-const
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr std::conditional_t<
-        is_const, arithmetic_type, reference>
+        is_const, arithmetic_type, reference_type>
     operator()(size_type x, size_type y, size_type z) const
     {
-        return reference{this->storage_ + this->compute_index(x, y, z),
-                         this->read_scale(x, z)};
+        return reference_type{this->storage_ + this->compute_index(x, y, z),
+                              this->read_scalar(x, z)};
     }
 
     /**
@@ -1034,8 +1055,8 @@ public:
                    this->storage_ + this->compute_index(x_span.begin,
                                                         y_span.begin,
                                                         z_span.begin),
-                   this->scale_ +
-                       this->compute_scale_index(x_span.begin, z_span.begin),
+                   this->scalar_ +
+                       this->compute_scalar_index(x_span.begin, z_span.begin),
                    dim<dimensionality>{x_span.end - x_span.begin,
                                        y_span.end - y_span.begin,
                                        z_span.end - z_span.begin},
@@ -1069,7 +1090,7 @@ public:
      *
      * @returns the pointer to the storage data
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_storage() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr storage_type *get_stored_data() const
     {
         return storage_;
     }
@@ -1086,24 +1107,24 @@ public:
     }
 
     /**
-     * Returns the pointer to the scale data
+     * Returns the pointer to the scalar data
      *
-     * @returns the pointer to the scale data
+     * @returns the pointer to the scalar data
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr scale_type *get_scale() const
+    GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type *get_scalar() const
     {
-        return this->scale_;
+        return this->scalar_;
     }
 
     /**
-     * Returns a const pointer to the scale data
+     * Returns a const pointer to the scalar data
      *
-     * @returns a const pointer to the scale data
+     * @returns a const pointer to the scalar data
      */
-    GKO_ATTRIBUTES GKO_INLINE constexpr const scale_type *get_const_scale()
+    GKO_ATTRIBUTES GKO_INLINE constexpr const scalar_type *get_const_scalar()
         const
     {
-        return this->scale_;
+        return this->scalar_;
     }
 
 protected:
@@ -1115,14 +1136,14 @@ protected:
     }
 
     GKO_ATTRIBUTES constexpr GKO_INLINE size_type
-    compute_scale_index(size_type x, size_type z) const
+    compute_scalar_index(size_type x, size_type z) const
     {
         return GKO_ASSERT(x < size_[0]), GKO_ASSERT(z < size_[2]),
                x * stride_[1] + z;
     }
 
     storage_type *storage_;
-    scale_type *scale_;
+    scalar_type *scalar_;
     const dim<dimensionality> size_;
     const std::array<const size_type, dimensionality - 1> stride_;
 };
