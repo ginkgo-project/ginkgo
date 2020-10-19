@@ -30,56 +30,50 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/absolute_array.hpp"
+#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
+#define GKO_DPCPP_BASE_CONFIG_HPP_
 
 
-#include <CL/sycl.hpp>
-
-
-#include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace components {
 
 
-constexpr int default_block_size = 256;
+struct config {
+    /**
+     * The type containing a bitmask over all lanes of a warp.
+     */
+    using lane_mask_type = uint32;
+
+    /**
+     * The number of threads within a DPCPP warp.
+     */
+    static constexpr uint32 warp_size = 16;
+
+    /**
+     * The bitmask of the entire warp.
+     */
+    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
+
+    /**
+     * The maximal number of threads allowed in a DPCPP warp.
+     */
+    static constexpr uint32 max_block_size = 256;
+
+    /**
+     * The minimal amount of warps that need to be scheduled for each block
+     * to maximize GPU occupancy.
+     */
+    static constexpr uint32 min_warps_per_block = 4;
+};
 
 
-#include "dpcpp_code/components/absolute_array.hpp.inc"
-
-
-template <typename ValueType>
-void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                            ValueType *data, size_type n)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::inplace_absolute_array_kernel(grid_size, block_size, 0,
-                                          exec->get_queue(), n, data);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
-
-
-template <typename ValueType>
-void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                             const ValueType *in, size_type n,
-                             remove_complex<ValueType> *out)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::outplace_absolute_array_kernel(grid_size, block_size, 0,
-                                           exec->get_queue(), n, in, out);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
-
-
-}  // namespace components
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
