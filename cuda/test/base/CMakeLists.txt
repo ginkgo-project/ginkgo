@@ -1,4 +1,5 @@
 ginkgo_create_cuda_test(cuda_executor)
+ginkgo_create_cuda_test(cuda_memory_space)
 ginkgo_create_cuda_test(exception_helpers)
 ginkgo_create_cuda_test(lin_op)
 ginkgo_create_cuda_test(math)

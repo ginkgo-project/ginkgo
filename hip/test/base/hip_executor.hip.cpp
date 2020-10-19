@@ -131,75 +131,6 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 }
 
 
-TEST_F(HipExecutor, AllocatesAndFreesMemory)
-{
-    int *ptr = nullptr;
-
-    ASSERT_NO_THROW(ptr = hip->alloc<int>(2));
-    ASSERT_NO_THROW(hip->free(ptr));
-}
-
-
-TEST_F(HipExecutor, FailsWhenOverallocating)
-{
-    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    int *ptr = nullptr;
-
-    ASSERT_THROW(
-        {
-            ptr = hip->alloc<int>(num_elems);
-            hip->synchronize();
-        },
-        gko::AllocationError);
-
-    hip->free(ptr);
-}
-
-
-__global__ void check_data(int *data)
-{
-    if (data[0] != 3 || data[1] != 8) {
-#if GINKGO_HIP_PLATFORM_HCC
-        asm("s_trap 0x02;");
-#else  // GINKGO_HIP_PLATFORM_NVCC
-        asm("trap;");
-#endif
-    }
-}
-
-TEST_F(HipExecutor, CopiesDataToHip)
-{
-    int orig[] = {3, 8};
-    auto *copy = hip->alloc<int>(2);
-
-    hip->copy_from(omp.get(), 2, orig, copy);
-
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy);
-    ASSERT_NO_THROW(hip->synchronize());
-    hip->free(copy);
-}
-
-
-__global__ void init_data(int *data)
-{
-    data[0] = 3;
-    data[1] = 8;
-}
-
-TEST_F(HipExecutor, CopiesDataFromHip)
-{
-    int copy[2];
-    auto orig = hip->alloc<int>(2);
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
-
-    omp->copy_from(hip.get(), 2, orig, copy);
-
-    EXPECT_EQ(3, copy[0]);
-    ASSERT_EQ(8, copy[1]);
-    hip->free(orig);
-}
-
-
 /* Properly checks if it works only when multiple GPUs exist */
 TEST_F(HipExecutor, PreservesDeviceSettings)
 {
@@ -224,32 +155,6 @@ TEST_F(HipExecutor, RunsOnProperDevice)
     hip2->run(ExampleOperation(value));
 
     ASSERT_EQ(value, hip2->get_device_id());
-}
-
-
-TEST_F(HipExecutor, CopiesDataFromHipToHip)
-{
-    int copy[2];
-    auto orig = hip->alloc<int>(2);
-    GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
-
-    auto copy_hip2 = hip2->alloc<int>(2);
-    hip2->copy_from(hip.get(), 2, orig, copy_hip2);
-
-    // Check that the data is really on GPU2 and ensure we did not cheat
-    int value = -1;
-    GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy_hip2);
-    GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hip2->run(ExampleOperation(value));
-    ASSERT_EQ(value, hip2->get_device_id());
-    // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(hip2.get(), 2, copy_hip2, copy);
-    EXPECT_EQ(3, copy[0]);
-    ASSERT_EQ(8, copy[1]);
-    hip->free(copy_hip2);
-    hip->free(orig);
 }
 
 
