@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -474,69 +475,6 @@ public:
     }
 
     /**
-     * Allocates memory in this Executor.
-     *
-     * @tparam T  datatype to allocate
-     *
-     * @param num_elems  number of elements of type T to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return pointer to allocated memory
-     */
-    template <typename T>
-    T *alloc(size_type num_elems) const
-    {
-        this->template log<log::Logger::allocation_started>(
-            this, num_elems * sizeof(T));
-        T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
-        this->template log<log::Logger::allocation_completed>(
-            this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
-        return allocated;
-    }
-
-    /**
-     * Frees memory previously allocated with Executor::alloc().
-     *
-     * If `ptr` is a `nullptr`, the function has no effect.
-     *
-     * @param ptr  pointer to the allocated memory block
-     */
-    void free(void *ptr) const noexcept
-    {
-        this->template log<log::Logger::free_started>(
-            this, reinterpret_cast<uintptr>(ptr));
-        this->raw_free(ptr);
-        this->template log<log::Logger::free_completed>(
-            this, reinterpret_cast<uintptr>(ptr));
-    }
-
-    /**
-     * Copies data from another Executor.
-     *
-     * @tparam T  datatype to copy
-     *
-     * @param src_exec  Executor from which the memory will be copied
-     * @param num_elems  number of elements of type T to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory
-     *                  where the data will be copied to
-     */
-    template <typename T>
-    void copy_from(const Executor *src_exec, size_type num_elems,
-                   const T *src_ptr, T *dest_ptr) const
-    {
-        this->template log<log::Logger::copy_started>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-        this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
-        this->template log<log::Logger::copy_completed>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-    }
-
-    /**
      * Copies data within this Executor.
      *
      * @tparam T  datatype to copy
@@ -582,60 +520,21 @@ public:
     virtual std::shared_ptr<const Executor> get_master() const noexcept = 0;
 
     /**
+     * Returns the associated memory space of this Executor.
+     * @return the associated memory space of this Executor.
+     */
+    virtual std::shared_ptr<MemorySpace> get_mem_space() noexcept = 0;
+
+    /**
+     * @copydoc get_mem_space
+     */
+    virtual std::shared_ptr<const MemorySpace> get_mem_space() const
+        noexcept = 0;
+
+    /**
      * Synchronize the operations launched on the executor with its master.
      */
     virtual void synchronize() const = 0;
-
-protected:
-    /**
-     * Allocates raw memory in this Executor.
-     *
-     * @param size  number of bytes to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return raw pointer to allocated memory
-     */
-    virtual void *raw_alloc(size_type size) const = 0;
-
-    /**
-     * Frees memory previously allocated with Executor::alloc().
-     *
-     * If `ptr` is a `nullptr`, the function has no effect.
-     *
-     * @param ptr  pointer to the allocated memory block
-     */
-    virtual void raw_free(void *ptr) const noexcept = 0;
-
-    /**
-     * Copies raw data from another Executor.
-     *
-     * @param src_exec  Executor from which the memory will be copied
-     * @param n_bytes  number of bytes to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory where the data
-     *                  will be copied to
-     */
-    virtual void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                               const void *src_ptr, void *dest_ptr) const = 0;
-
-/**
- * @internal
- * Declares a raw_copy_to() overload for a specified Executor subclass.
- *
- * This is the second stage of the double dispatch emulation required to
- * implement raw_copy_from().
- *
- * @param _exec_type  the Executor subclass
- */
-#define GKO_ENABLE_RAW_COPY_TO(_exec_type, ...)                              \
-    virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
-                             const void *src_ptr, void *dest_ptr) const = 0
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_RAW_COPY_TO);
-
-#undef GKO_ENABLE_RAW_COPY_TO
 
 private:
     /**
@@ -690,66 +589,6 @@ private:
 };
 
 
-/**
- * This is a deleter that uses an executor's `free` method to deallocate the
- * data.
- *
- * @tparam T  the type of object being deleted
- *
- * @ingroup Executor
- */
-template <typename T>
-class executor_deleter {
-public:
-    using pointer = T *;
-
-    /**
-     * Creates a new deleter.
-     *
-     * @param exec  the executor used to free the data
-     */
-    explicit executor_deleter(std::shared_ptr<const Executor> exec)
-        : exec_{exec}
-    {}
-
-    /**
-     * Deletes the object.
-     *
-     * @param ptr  pointer to the object being deleted
-     */
-    void operator()(pointer ptr) const
-    {
-        if (exec_) {
-            exec_->free(ptr);
-        }
-    }
-
-private:
-    std::shared_ptr<const Executor> exec_;
-};
-
-// a specialization for arrays
-template <typename T>
-class executor_deleter<T[]> {
-public:
-    using pointer = T[];
-
-    explicit executor_deleter(std::shared_ptr<const Executor> exec)
-        : exec_{exec}
-    {}
-
-    void operator()(pointer ptr) const
-    {
-        if (exec_) {
-            exec_->free(ptr);
-        }
-    }
-
-private:
-    std::shared_ptr<const Executor> exec_;
-};
-
-
 namespace detail {
 
 
@@ -761,13 +600,6 @@ public:
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
-    }
-
-protected:
-    void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                       const void *src_ptr, void *dest_ptr) const override
-    {
-        src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
 private:
@@ -823,11 +655,6 @@ private:
 }  // namespace detail
 
 
-#define GKO_OVERRIDE_RAW_COPY_TO(_executor_type, ...)                    \
-    void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
-                     const void *src_ptr, void *dest_ptr) const override
-
-
 /**
  * This is the Executor subclass which represents the OpenMP device
  * (typically CPU).
@@ -840,6 +667,8 @@ class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
+    using DefaultMemorySpace = HostMemorySpace;
+
     /**
      * Creates a new OmpExecutor.
      */
@@ -852,16 +681,44 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
+
     void synchronize() const override;
 
 protected:
-    OmpExecutor() = default;
+    OmpExecutor() { mem_space_instance_ = HostMemorySpace::create(); }
 
-    void *raw_alloc(size_type size) const override;
+    OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
+        : mem_space_instance_(mem_space)
+    {
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            GKO_MEMSPACE_MISMATCH(NOT_HOST);
+        }
+    }
 
-    void raw_free(void *ptr) const noexcept override;
+    OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
+        : mem_space_instance_(mem_space)
+    {
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            GKO_MEMSPACE_MISMATCH(NOT_HOST);
+        }
+    }
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_default_mem_space =
+            dynamic_cast<DefaultMemorySpace *>(mem_space.get());
+        if (check_default_mem_space == nullptr) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+private:
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 };
 
 
@@ -881,9 +738,25 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
+    /**
+     * Creates a new ReferenceExecutor with an existing memory space.
+     *
+     */
     static std::shared_ptr<ReferenceExecutor> create()
     {
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
+    }
+
+    /**
+     * Creates a new ReferenceExecutor with an existing memory space.
+     *
+     * @param memory_space  The memory space to be associated with the executor.
+     */
+    static std::shared_ptr<ReferenceExecutor> create(
+        std::shared_ptr<MemorySpace> memory_space)
+    {
+        return std::shared_ptr<ReferenceExecutor>(
+            new ReferenceExecutor(memory_space));
     }
 
     void run(const Operation &op) const override
@@ -894,8 +767,40 @@ public:
         this->template log<log::Logger::operation_completed>(this, &op);
     }
 
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override
+    {
+        return this->mem_space_instance_;
+    }
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override
+    {
+        return this->mem_space_instance_;
+    }
+
 protected:
-    ReferenceExecutor() = default;
+    ReferenceExecutor() { mem_space_instance_ = HostMemorySpace::create(); }
+
+    ReferenceExecutor(std::shared_ptr<MemorySpace> mem_space)
+        : mem_space_instance_(mem_space)
+    {
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            GKO_MEMSPACE_MISMATCH(NOT_HOST);
+        }
+    }
+
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_default_mem_space =
+            dynamic_cast<DefaultMemorySpace *>(mem_space.get());
+        if (check_default_mem_space == nullptr) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+private:
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 };
 
 
@@ -918,22 +823,44 @@ class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
+    using DefaultMemorySpace = CudaMemorySpace;
+
     /**
      * Creates a new CudaExecutor.
      *
      * @param device_id  the CUDA device id of this device
      * @param master  an executor on the host that is used to invoke the device
      * kernels
+     * @param device_reset Flag that controls calls CudaDeviceReset at the end
+     * of its scope.
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
+
+    /**
+     * Creates a new CudaExecutor.
+     *
+     * @param device_id  the CUDA device id of this device
+     * @param memory_space  the memory space associated to the executor.
+     * @param master  an executor on the host that is used to invoke the device
+     * kernels
+     * @param device_reset Flag that controls calls CudaDeviceReset at the end
+     * of its scope.
+     */
+    static std::shared_ptr<CudaExecutor> create(
+        int device_id, std::shared_ptr<MemorySpace> memory_space,
+        std::shared_ptr<Executor> master, bool device_reset = false);
 
     ~CudaExecutor() { decrease_num_execs(this->device_id_); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
 
     void synchronize() const override;
 
@@ -1019,13 +946,41 @@ protected:
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
+        mem_space_instance_ = CudaMemorySpace::create(device_id);
     }
 
-    void *raw_alloc(size_type size) const override;
+    CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
+                 std::shared_ptr<Executor> master, bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
+          master_(master),
+          num_warps_per_sm_(0),
+          num_multiprocessor_(0),
+          major_(0),
+          minor_(0),
+          mem_space_instance_(mem_space)
+    {
+        assert(device_id < max_devices);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            GKO_MEMSPACE_MISMATCH(NOT_CUDA);
+        }
+    }
 
-    void raw_free(void *ptr) const noexcept override;
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_cuda_mem_space =
+            dynamic_cast<CudaMemorySpace *>(mem_space.get());
+        auto check_cuda_uvm_mem_space =
+            dynamic_cast<CudaUVMSpace *>(mem_space.get());
+        if (check_cuda_mem_space == nullptr &&
+            check_cuda_uvm_mem_space == nullptr) {
+            return false;
+        }
+        return true;
+    }
 
     static void increase_num_execs(unsigned device_id)
     {
@@ -1053,6 +1008,7 @@ private:
     int major_;
     int minor_;
     int warp_size_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1084,22 +1040,42 @@ class HipExecutor : public detail::ExecutorBase<HipExecutor>,
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
+    using DefaultMemorySpace = HipMemorySpace;
+
     /**
      * Creates a new HipExecutor.
      *
      * @param device_id  the HIP device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
+     * @param device_reset Flag that controls calls HipDeviceReset at the end
+     * of its scope.
      */
     static std::shared_ptr<HipExecutor> create(int device_id,
                                                std::shared_ptr<Executor> master,
                                                bool device_reset = false);
+
+    /**
+     * Creates a new HipExecutor.
+     *
+     * @param device_id  the HIP device id of this device
+     * @param memory_space  the memory space associated to the executor.
+     * @param master  an executor on the host that is used to invoke the device
+     * kernels
+     */
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<MemorySpace> memory_space,
+        std::shared_ptr<Executor> master, bool device_reset = false);
 
     ~HipExecutor() { decrease_num_execs(this->device_id_); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
 
     void synchronize() const override;
 
@@ -1185,13 +1161,34 @@ protected:
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
+        mem_space_instance_ = HipMemorySpace::create(device_id);
     }
 
-    void *raw_alloc(size_type size) const override;
+    HipExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
+                std::shared_ptr<Executor> master, bool device_reset = false)
+        : device_id_(device_id),
+          master_(master),
+          num_multiprocessor_(0),
+          mem_space_instance_(mem_space)
+    {
+        assert(device_id < max_devices);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            GKO_MEMSPACE_MISMATCH(NOT_HIP);
+        }
+    }
 
-    void raw_free(void *ptr) const noexcept override;
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_hip_mem_space =
+            dynamic_cast<HipMemorySpace *>(mem_space.get());
+        if (check_hip_mem_space == nullptr) {
+            return false;
+        }
+        return true;
+    }
 
     static void increase_num_execs(int device_id)
     {
@@ -1219,6 +1216,7 @@ private:
     int major_;
     int minor_;
     int warp_size_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1236,9 +1234,6 @@ namespace hip {
 using DefaultExecutor = HipExecutor;
 }  // namespace hip
 }  // namespace kernels
-
-
-#undef GKO_OVERRIDE_RAW_COPY_TO
 
 
 }  // namespace gko
