@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 
@@ -62,12 +63,22 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master, bool device_reset)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, mem_space, std::move(master)),
+        device_reset);
+}
+
+
+void HostMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_free(void *ptr) const noexcept
+void CudaMemorySpace::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -75,22 +86,65 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
+void CudaUVMSpace::raw_free(void *ptr) const noexcept
+{
+    // Free must never fail, as it can be called in destructors.
+    // If the nvidia module was not compiled, the library couldn't have
+    // allocated the memory, so there is no need to deallocate it.
+}
 
 
-void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void *CudaMemorySpace::raw_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
+
+
+void *CudaUVMSpace::raw_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
+
+
+void CudaMemorySpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
+
+
+void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                                  size_type n_bytes, const void *src_ptr,
+                                  void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const HipMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void HostMemorySpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                                  size_type n_bytes, const void *src_ptr,
+                                  void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const HostMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);

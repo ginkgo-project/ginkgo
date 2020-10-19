@@ -69,6 +69,7 @@ target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
     base/executor.cpp
+    base/memory_space.cpp
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu
