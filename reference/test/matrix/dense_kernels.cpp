@@ -2095,6 +2095,62 @@ TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 }
 
 
+TYPED_TEST(Dense, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{14.0, 16.0}, complex_type{20.0, 22.0}},
+           {complex_type{17.0, 19.0}, complex_type{24.5, 26.5}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Dense, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-12.0, -16.0}, complex_type{-16.0, -20.0}},
+           {complex_type{-13.0, -15.0}, complex_type{-18.5, -20.5}}}),
+        0.0);
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:

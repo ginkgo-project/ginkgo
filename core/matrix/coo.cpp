@@ -77,8 +77,18 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(coo::make_spmv(this, as<Dense<ValueType>>(b),
+                                                 as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        this->get_executor()->run(coo::make_spmv(
+            as<Coo<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+    }
 }
 
 
@@ -86,18 +96,41 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(coo::make_advanced_spmv(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        auto dense_alpha = as<RealDense>(alpha);
+        auto dense_beta = as<RealDense>(beta);
+        this->get_executor()->run(coo::make_advanced_spmv(
+            dense_alpha, as<Coo<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_beta,
+            dense_x->view_as_real().get()));
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        coo::make_spmv2(this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(coo::make_spmv2(this, as<Dense<ValueType>>(b),
+                                                  as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        this->get_executor()->run(coo::make_spmv2(
+            as<Coo<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+    }
 }
 
 
@@ -105,9 +138,21 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
                                             LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_advanced_spmv2(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(coo::make_advanced_spmv2(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        auto dense_alpha = as<RealDense>(alpha);
+        this->get_executor()->run(coo::make_advanced_spmv2(
+            dense_alpha, as<Coo<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+    }
 }
 
 

@@ -220,11 +220,11 @@ void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         this->get_executor()->run(dense::make_simple_apply(
             this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
     } else {
-        auto dense_b = as<const Dense<to_complex<ValueType>>>(b);
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
         auto dense_x = as<Dense<to_complex<ValueType>>>(x);
-        this->get_executor()->run(
-            dense::make_simple_apply(this, dense_b->view_as_real().get(),
-                                     dense_x->view_as_real().get()));
+        this->get_executor()->run(dense::make_simple_apply(
+            as<Dense<remove_complex<ValueType>>>(this),
+            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
     }
 }
 
@@ -233,9 +233,20 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_apply(
-        as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-        as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_apply(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        auto dense_alpha = as<Dense<remove_complex<ValueType>>>(alpha);
+        auto dense_beta = as<Dense<remove_complex<ValueType>>>(beta);
+        this->get_executor()->run(dense::make_apply(
+            dense_alpha, as<Dense<remove_complex<ValueType>>>(this),
+            dense_b->view_as_real().get(), dense_beta,
+            dense_x->view_as_real().get()));
+    }
 }
 
 

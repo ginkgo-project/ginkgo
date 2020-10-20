@@ -101,8 +101,18 @@ size_type calculate_max_nnz_per_row(
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(ell::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(ell::make_spmv(this, as<Dense<ValueType>>(b),
+                                                 as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        this->get_executor()->run(ell::make_spmv(
+            as<Ell<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+    }
 }
 
 
@@ -110,9 +120,23 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(ell::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(ell::make_advanced_spmv(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        auto dense_alpha = as<RealDense>(alpha);
+        auto dense_beta = as<RealDense>(beta);
+        this->get_executor()->run(ell::make_advanced_spmv(
+            dense_alpha, as<Ell<remove_complex<ValueType>, IndexType>>(this),
+            dense_b->view_as_real().get(), dense_beta,
+            dense_x->view_as_real().get()));
+    }
 }
 
 
