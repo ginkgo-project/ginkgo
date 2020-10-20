@@ -136,12 +136,12 @@ TEST_F(HipExecutor, PreservesDeviceSettings)
 {
     auto previous_device = gko::HipExecutor::get_num_devices() - 1;
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(previous_device));
-    auto orig = hip->alloc<int>(2);
+    auto orig = hip->get_mem_space()->alloc<int>(2);
     int current_device;
     GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 
-    hip->free(orig);
+    hip->get_mem_space()->free(orig);
     GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 }

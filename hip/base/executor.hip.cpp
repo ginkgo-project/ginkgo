@@ -71,87 +71,20 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+std::shared_ptr<HipExecutor> HipExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master, bool device_reset)
 {
-    if (num_bytes > 0) {
-        hip::device_guard g(dest->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(
-            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
-    }
-}
-
-
-void HipExecutor::raw_free(void *ptr) const noexcept
-{
-    hip::device_guard g(this->get_device_id());
-    auto error_code = hipFree(ptr);
-    if (error_code != hipSuccess) {
-#if GKO_VERBOSE_LEVEL >= 1
-        // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable HIP error on device " << this->device_id_
-                  << " in " << __func__ << ": " << hipGetErrorName(error_code)
-                  << ": " << hipGetErrorString(error_code) << std::endl
-                  << "Exiting program" << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
-        std::exit(error_code);
-    }
-}
-
-
-void *HipExecutor::raw_alloc(size_type num_bytes) const
-{
-    void *dev_ptr = nullptr;
-    hip::device_guard g(this->get_device_id());
-#if defined(NDEBUG) || (GINKGO_HIP_PLATFORM_HCC == 1)
-    auto error_code = hipMalloc(&dev_ptr, num_bytes);
-#else
-    auto error_code = hipMallocManaged(&dev_ptr, num_bytes);
-#endif
-    if (error_code != hipErrorMemoryAllocation) {
-        GKO_ASSERT_NO_HIP_ERRORS(error_code);
-    }
-    GKO_ENSURE_ALLOCATED(dev_ptr, "hip", num_bytes);
-    return dev_ptr;
-}
-
-
-void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-    if (num_bytes > 0) {
-        hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(
-            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
-    }
-}
-
-
-void HipExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC == 1
-    if (num_bytes > 0) {
-        hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
-                                               src_ptr, this->get_device_id(),
-                                               num_bytes));
-    }
-#else
-    GKO_NOT_SUPPORTED(this);
-#endif
-}
-
-
-void HipExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-    if (num_bytes > 0) {
-        hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
-                                               src_ptr, this->get_device_id(),
-                                               num_bytes));
-    }
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, mem_space, std::move(master), device_reset),
+        [device_id](HipExecutor *exec) {
+            delete exec;
+            if (!HipExecutor::get_num_execs(device_id) &&
+                exec->get_device_reset()) {
+                hip::device_guard g(device_id);
+                hipDeviceReset();
+            }
+        });
 }
 
 

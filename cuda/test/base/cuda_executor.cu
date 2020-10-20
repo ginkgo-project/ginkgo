@@ -131,12 +131,12 @@ TEST_F(CudaExecutor, PreservesDeviceSettings)
 {
     auto previous_device = gko::CudaExecutor::get_num_devices() - 1;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
-    auto orig = cuda->alloc<int>(2);
+    auto orig = cuda->get_mem_space()->alloc<int>(2);
     int current_device;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 
-    cuda->free(orig);
+    cuda->get_mem_space()->free(orig);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 }
