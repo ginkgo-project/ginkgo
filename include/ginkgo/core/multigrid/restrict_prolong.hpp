@@ -250,7 +250,7 @@ public:
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
  *                          hierarchy, has to be a subclass of
- * RestrictProlongFactory
+ *                          RestrictProlongFactory
  *
  * @ingroup LinOp
  */
@@ -267,7 +267,6 @@ using EnableDefaultRestrictProlongFactory =
  * implementations of the majority of the RestrictProlong and PolymorphicObject
  * interface.
  *
- * *
  * The goal of the mixin is to facilitate the development of new
  * RestrictProlong, by enabling the implementers to focus on the important parts
  * of their operator, while the library takes care of generating the trivial
