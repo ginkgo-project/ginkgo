@@ -59,8 +59,9 @@ namespace multigrid {
  * elements.
  * 1: get the strongest neighbor of each unaggregated element.
  * 2: group the elements whose strongest neighbor is each other.
- * repeating until reaching the given conditions. After that, assigns the
- * unaggregated elements to aggregated group or stay alone.
+ * repeating until reaching the given conditions. After that, the
+ * un-aggregated elements are assigned to an aggregated group
+ * or are left alone.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -120,7 +121,8 @@ public:
 
         /**
          * The maximum ratio of unassigned number, which is valid in the
-         * interval 0.0 ~ 1.0.
+         * interval 0.0 ~ 1.0. We use the same default value as NVIDIA AMGX
+         * Rerference Manual (October 2017, API Version 2).
          */
         double GKO_FACTORY_PARAMETER(max_unassigned_percentage, 0.05);
 

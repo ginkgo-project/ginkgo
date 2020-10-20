@@ -69,8 +69,8 @@ protected:
     using Vec = gko::matrix::Dense<value_type>;
     using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
     using T = value_type;
-    using rmc_value_type = gko::remove_complex<value_type>;
-    using WeightMtx = gko::matrix::Csr<rmc_value_type, index_type>;
+    using real_type = gko::remove_complex<value_type>;
+    using WeightMtx = gko::matrix::Csr<real_type, index_type>;
     AmgxPgm()
         : exec(gko::ReferenceExecutor::create()),
           amgxpgm_factory(RestrictProlong::build()
@@ -242,7 +242,7 @@ protected:
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
         ASSERT_EQ(m1->get_num_stored_elements(), m2->get_num_stored_elements());
-        for (gko::size_type i = 0; i < m1->get_size() + 1; i++) {
+        for (gko::size_type i = 0; i < m1->get_size()[0] + 1; i++) {
             ASSERT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
         }
         for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
@@ -263,7 +263,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> coarse;
     std::shared_ptr<WeightMtx> weight;
-    std::shared_ptr<gko::matrix::Diagonal<rmc_value_type>> mtx_diag;
+    std::shared_ptr<gko::matrix::Diagonal<real_type>> mtx_diag;
     gko::Array<index_type> agg;
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;

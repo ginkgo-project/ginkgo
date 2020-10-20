@@ -288,8 +288,8 @@ void amgx_pgm_generate(std::shared_ptr<const ReferenceExecutor> exec,
     const auto source_row_ptrs = source->get_const_row_ptrs();
     const auto source_col_idxs = source->get_const_col_idxs();
     const auto source_vals = source->get_const_values();
-    vector<map<IndexType, ValueType>> row_list(
-        source_nrows, map<IndexType, ValueType>{exec}, exec);
+    gko::vector<gko::map<IndexType, ValueType>> row_list(
+        source_nrows, gko::map<IndexType, ValueType>{exec}, exec);
     for (size_type i = 0; i < source_nrows; i++) {
         IndexType row_idx = agg.get_const_data()[i];
         for (auto j = source_row_ptrs[i]; j < source_row_ptrs[i + 1]; j++) {

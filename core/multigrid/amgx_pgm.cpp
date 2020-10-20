@@ -92,13 +92,13 @@ template <typename ValueType, typename IndexType>
 void AmgxPgm<ValueType, IndexType>::generate()
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
-    using rmc_value_type = remove_complex<ValueType>;
+    using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
-    const auto num = this->system_matrix_->get_size()[0];
-    Array<IndexType> strongest_neighbor(this->get_executor(), num);
+    const auto num_rows = this->system_matrix_->get_size()[0];
+    Array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
     Array<IndexType> intermediate_agg(this->get_executor(),
-                                      parameters_.deterministic * num);
+                                      parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
     const matrix_type *amgxpgm_op = nullptr;
     // Store the csr matrix if needed
@@ -121,10 +121,10 @@ void AmgxPgm<ValueType, IndexType>::generate()
     auto abs_mtx = amgxpgm_op->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
     auto weight_mtx = gko::as<weight_matrix_type>(abs_mtx->transpose());
-    auto half_scaler = initialize<matrix::Dense<rmc_value_type>>({0.5}, exec);
-    auto identity = matrix::Identity<rmc_value_type>::create(exec, num);
+    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+    auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(lend(half_scaler), lend(identity), lend(half_scaler),
+    abs_mtx->apply(lend(half_scalar), lend(identity), lend(half_scalar),
                    lend(weight_mtx));
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
@@ -139,7 +139,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
         // no new match, all match, or the ratio of num_unagg/num is lower
         // than parameter.max_unassigned_percentage
         if (num_unagg == 0 || num_unagg == num_unagg_prev ||
-            num_unagg < parameters_.max_unassigned_percentage * num) {
+            num_unagg < parameters_.max_unassigned_percentage * num_rows) {
             break;
         }
         num_unagg_prev = num_unagg;
@@ -156,10 +156,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
-
     // Construct the coarse matrix
     auto coarse = amgx_pgm_generate(exec, amgxpgm_op, num_agg, agg_);
-    this->set_coarse_fine(std::move(coarse), num);
+    this->set_coarse_fine(std::move(coarse), num_rows);
 }
 
 
