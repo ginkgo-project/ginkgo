@@ -451,9 +451,9 @@ public:
         const auto num_rows = this->get_size()[0];
         const bool complex = is_complex<ValueType>();
         const auto num_cols =
-            complex ? this->get_size()[1] : 2 * this->get_size()[1];
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
         const auto stride =
-            complex ? this->get_stride() : 2 * this->get_stride();
+            complex ? 2 * this->get_stride() : this->get_stride();
 
         return Dense<remove_complex<ValueType>>::create(
             this->get_executor(), dim<2>{num_rows, num_cols},
@@ -467,21 +467,21 @@ public:
     /*
      * Create a constant real view of the (potentially) complex original matrix.
      */
-    std::unique_ptr<Dense<remove_complex<ValueType>>> view_as_real() const
+    std::unique_ptr<const Dense<remove_complex<ValueType>>> view_as_real() const
     {
         const auto num_rows = this->get_size()[0];
         const bool complex = is_complex<ValueType>();
         const auto num_cols =
-            complex ? this->get_size()[1] : 2 * this->get_size()[1];
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
         const auto stride =
-            complex ? this->get_stride() : 2 * this->get_stride();
+            complex ? 2 * this->get_stride() : this->get_stride();
 
         return Dense<remove_complex<ValueType>>::create(
             this->get_executor(), dim<2>{num_rows, num_cols},
             Array<remove_complex<ValueType>>::view(
                 this->get_executor(), num_rows * stride,
-                const_cast<remove_complex<ValueType *>>(
-                    reinterpret_cast<remove_complex<const ValueType> *>(
+                const_cast<remove_complex<ValueType> *>(
+                    reinterpret_cast<const remove_complex<ValueType> *>(
                         this->get_const_values()))),
             stride);
     }

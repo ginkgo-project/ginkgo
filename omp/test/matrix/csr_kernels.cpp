@@ -290,6 +290,38 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data(3);
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data(3);
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
 
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {

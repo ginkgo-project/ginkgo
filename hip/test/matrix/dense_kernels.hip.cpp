@@ -314,6 +314,38 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+    auto dcomplex_x = ComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(complex_b.get(), complex_x.get());
+    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+    auto dcomplex_x = ComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
 
 TEST_F(Dense, IsTransposable)
 {

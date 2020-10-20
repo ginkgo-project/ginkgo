@@ -94,7 +94,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
+    using ComplexDense = Dense<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
@@ -102,8 +102,16 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
-        this->get_executor()->run(
-            csr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+        if (dynamic_cast<const Dense<ValueType> *>(b)) {
+            this->get_executor()->run(csr::make_spmv(
+                this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+        } else {
+            auto dense_b = as<ComplexDense>(b);
+            auto dense_x = as<ComplexDense>(x);
+            this->get_executor()->run(csr::make_spmv(
+                as<Csr<remove_complex<ValueType>, IndexType>>(this),
+                dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+        }
     }
 }
 
@@ -112,26 +120,40 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
-        this->get_executor()->run(
-            csr::make_advanced_spgemm(as<Dense>(alpha), this, b_csr,
-                                      as<Dense>(beta), x_copy.get(), x_csr));
+        this->get_executor()->run(csr::make_advanced_spgemm(
+            as<Dense<ValueType>>(alpha), this, b_csr,
+            as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
-        this->get_executor()->run(csr::make_spgeam(
-            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_csr));
+        this->get_executor()->run(
+            csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
+                             as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
-        this->get_executor()->run(
-            csr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
-                                    as<Dense>(beta), as<Dense>(x)));
+        if (dynamic_cast<const Dense<ValueType> *>(b)) {
+            this->get_executor()->run(csr::make_advanced_spmv(
+                as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+                as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+        } else {
+            auto dense_b = as<ComplexDense>(b);
+            auto dense_x = as<ComplexDense>(x);
+            auto dense_alpha = as<RealDense>(alpha);
+            auto dense_beta = as<RealDense>(beta);
+            this->get_executor()->run(csr::make_advanced_spmv(
+                dense_alpha,
+                as<Csr<remove_complex<ValueType>, IndexType>>(this),
+                dense_b->view_as_real().get(), dense_beta,
+                dense_x->view_as_real().get()));
+        }
     }
 }
 
