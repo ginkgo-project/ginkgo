@@ -490,7 +490,8 @@ public:
     template <typename T>
     void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
     {
-        this->get_mem_space()->copy_from(this, num_elems, src_ptr, dest_ptr);
+        this->get_mem_space()->copy_from(this->get_mem_space().get(), num_elems,
+                                         src_ptr, dest_ptr);
     }
 
     /**
@@ -506,7 +507,8 @@ public:
     T copy_val_to_host(const T *ptr) const
     {
         T out{};
-        this->get_master()->get_mem_space()->copy_from(this, 1, ptr, &out);
+        this->get_master()->get_mem_space()->copy_from(this->get_mem_space().get(), 1,
+                                                       ptr, &out);
         return out;
     }
 

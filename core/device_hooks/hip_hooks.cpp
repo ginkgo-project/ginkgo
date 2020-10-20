@@ -64,9 +64,8 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<MemorySpace> memory_space,
     std::shared_ptr<Executor> master, bool device_reset)
 {
-    return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, memory_space, std::move(master)),
-        device_reset);
+    return std::shared_ptr<HipExecutor>(new HipExecutor(
+        device_id, memory_space, std::move(master), device_reset));
 }
 
 void HostMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
@@ -109,6 +108,9 @@ void HipMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 
+void HipMemorySpace::synchronize() const GKO_NOT_COMPILED(hip);
+
+
 void HipExecutor::run(const Operation &op) const
 {
     op.run(
@@ -135,6 +137,9 @@ std::string HipsparseError::get_error(int64)
 
 
 int HipExecutor::get_num_devices() { return 0; }
+
+
+int HipMemorySpace::get_num_devices() { return 0; }
 
 
 void HipExecutor::set_gpu_property() {}

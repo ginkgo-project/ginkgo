@@ -67,9 +67,8 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<MemorySpace> mem_space,
     std::shared_ptr<Executor> master, bool device_reset)
 {
-    return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, mem_space, std::move(master)),
-        device_reset);
+    return std::shared_ptr<CudaExecutor>(new CudaExecutor(
+        device_id, mem_space, std::move(master), device_reset));
 }
 
 
@@ -150,6 +149,12 @@ void CudaUVMSpace::raw_copy_to(const HostMemorySpace *dest_mem_space,
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
+void CudaMemorySpace::synchronize() const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::synchronize() const GKO_NOT_COMPILED(cuda);
+
+
 void CudaExecutor::run(const Operation &op) const
 {
     op.run(
@@ -176,6 +181,12 @@ std::string CusparseError::get_error(int64)
 
 
 int CudaExecutor::get_num_devices() { return 0; }
+
+
+int CudaMemorySpace::get_num_devices() { return 0; }
+
+
+int CudaUVMSpace::get_num_devices() { return 0; }
 
 
 void CudaExecutor::set_gpu_property() {}
