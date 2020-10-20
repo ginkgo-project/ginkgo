@@ -183,23 +183,25 @@ int main(int, char **)
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        auto test =
+            gko::log::Convergence<>::create(refExec, refExec->get_mem_space());
     }
 
     // core/log/record.hpp
     {
-        auto test = gko::log::executor_data{};
+        auto test = gko::log::memory_space_data{};
     }
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(refExec);
+        auto test =
+            gko::log::Stream<>::create(refExec, refExec->get_mem_space());
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        auto test = gko::log::Papi<>::create(refExec);
+        auto test = gko::log::Papi<>::create(refExec, refExec->get_mem_space());
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
@@ -357,13 +359,13 @@ int main(int, char **)
                            .with_reduction_factor(1e-10)
                            .on(refExec);
 
-        auto rel_res = gko::stop::RelativeResidualNorm<>::build()
-                           .with_tolerance(1e-10)
-                           .on(refExec);
+        auto rel_res =
+            gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
 
-        auto abs_res = gko::stop::AbsoluteResidualNorm<>::build()
-                           .with_tolerance(1e-10)
-                           .on(refExec);
+        auto abs_res =
+            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
 
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};

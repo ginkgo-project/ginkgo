@@ -101,7 +101,7 @@ public:
      */
     T *allocate(std::size_t n) const
     {
-        return exec_->get_mem_space()->alloc<T>(n);
+        return exec_->get_mem_space()->template alloc<T>(n);
     }
 
     /**

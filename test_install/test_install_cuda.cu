@@ -187,23 +187,23 @@ int main(int, char **)
 
     // core/log/convergence.hpp
     {
-        gko::log::Convergence<>::create(cudaExec);
+        gko::log::Convergence<>::create(cudaExec, cudaExec->get_mem_space());
     }
 
     // core/log/record.hpp
     {
-        gko::log::executor_data{};
+        gko::log::memory_space_data{};
     }
 
     // core/log/stream.hpp
     {
-        gko::log::Stream<>::create(cudaExec);
+        gko::log::Stream<>::create(cudaExec, cudaExec->get_mem_space());
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        gko::log::Papi<>::create(cudaExec);
+        gko::log::Papi<>::create(cudaExec, cudaExec->get_mem_space());
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
@@ -349,13 +349,11 @@ int main(int, char **)
             .with_reduction_factor(1e-10)
             .on(cudaExec);
 
-        gko::stop::RelativeResidualNorm<>::build()
-            .with_tolerance(1e-10)
-            .on(cudaExec);
+        gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
+            cudaExec);
 
-        gko::stop::AbsoluteResidualNorm<>::build()
-            .with_tolerance(1e-10)
-            .on(cudaExec);
+        gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
+            cudaExec);
 
         // stopping_status.hpp
         gko::stopping_status{};
