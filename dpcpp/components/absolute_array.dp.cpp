@@ -49,7 +49,72 @@ namespace components {
 constexpr int default_block_size = 256;
 
 
-#include "dpcpp_code/components/absolute_array.hpp.inc"
+// #include "common/components/absolute_array.hpp.inc"
+namespace kernel {
+
+
+template <typename ValueType>
+void inplace_absolute_array_kernel(const size_type n,
+                                   ValueType *__restrict__ array,
+                                   sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    if (tidx < n) {
+        array[tidx] = dpcpp::abs(array[tidx]);
+    }
+}
+
+template <typename ValueType>
+void inplace_absolute_array_kernel(dim3 grid, dim3 block,
+                                   size_t dynamic_shared_memory,
+                                   sycl::queue *stream, const size_type n,
+                                   ValueType *array)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             inplace_absolute_array_kernel(n, array, item_ct1);
+                         });
+    });
+}
+
+
+template <typename ValueType>
+void outplace_absolute_array_kernel(const size_type n,
+                                    const ValueType *__restrict__ in,
+                                    remove_complex<ValueType> *__restrict__ out,
+                                    sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    if (tidx < n) {
+        out[tidx] = dpcpp::abs(in[tidx]);
+    }
+}
+
+template <typename ValueType>
+void outplace_absolute_array_kernel(dim3 grid, dim3 block,
+                                    size_t dynamic_shared_memory,
+                                    sycl::queue *stream, const size_type n,
+                                    const ValueType *in,
+                                    remove_complex<ValueType> *out)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             outplace_absolute_array_kernel(n, in, out,
+                                                            item_ct1);
+                         });
+    });
+}
+
+
+}  // namespace kernel
 
 
 template <typename ValueType>
