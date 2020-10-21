@@ -63,6 +63,7 @@ protected:
     using Mtx = gko::matrix::Dense<vtype>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
     using Arr = gko::Array<itype>;
+    using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
 
     Dense() : rand_engine(15) {}
 
