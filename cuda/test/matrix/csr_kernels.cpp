@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -219,6 +220,18 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
+    gko::test::unsort_matrix(dmtx.get(), rand_engine);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
@@ -233,6 +246,18 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparseUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    gko::test::unsort_matrix(dmtx.get(), rand_engine);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -263,6 +288,18 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
+    gko::test::unsort_matrix(dmtx.get(), rand_engine);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data(std::make_shared<Mtx::merge_path>());
@@ -277,6 +314,18 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    gko::test::unsort_matrix(dmtx.get(), rand_engine);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -393,6 +442,23 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     set_up_apply_data(std::make_shared<Mtx::automatical>());
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
+
+    mtx->apply(trans.get(), square_mtx.get());
+    dmtx->apply(d_trans.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRefUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+    gko::test::unsort_matrix(static_cast<Mtx *>(dmtx.get()), rand_engine);
+    gko::test::unsort_matrix(static_cast<Mtx *>(d_trans.get()), rand_engine);
 
     mtx->apply(trans.get(), square_mtx.get());
     dmtx->apply(d_trans.get(), square_dmtx.get());
