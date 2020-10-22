@@ -626,4 +626,37 @@ TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MakeComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto complex_x = x->make_complex();
+    auto dcomplex_x = dx->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 1e-14);
+}
+
+
+TEST_F(Dense, GetRealIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto real_x = x->get_real();
+    auto dreal_x = dx->get_real();
+
+    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 1e-14);
+}
+
+
+TEST_F(Dense, GetImagIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto imag_x = x->get_imag();
+    auto dimag_x = dx->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 1e-14);
+}
+
+
 }  // namespace

@@ -142,6 +142,7 @@ public:
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Dense>;
+    using complex_type = to_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
@@ -254,6 +255,12 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    std::unique_ptr<complex_type> make_complex() const;
+
+    std::unique_ptr<absolute_type> get_real() const;
+
+    std::unique_ptr<absolute_type> get_imag() const;
 
     /**
      * Returns a pointer to the array of values of the matrix.

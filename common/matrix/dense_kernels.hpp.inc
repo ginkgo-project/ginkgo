@@ -539,4 +539,49 @@ __global__ __launch_bounds__(default_block_size) void outplace_absolute_dense(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void make_complex(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
+    size_type stride_in, to_complex<ValueType> *__restrict__ out,
+    size_type stride_out)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    auto row = tidx / num_cols;
+    auto col = tidx % num_cols;
+    if (row < num_rows) {
+        out[row * stride_out + col] = to_complex{in[row * stride_in + col]};
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void get_real(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
+    size_type stride_in, to_complex<ValueType> *__restrict__ out,
+    size_type stride_out)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    auto row = tidx / num_cols;
+    auto col = tidx % num_cols;
+    if (row < num_rows) {
+        out[row * stride_out + col] = real(in[row * stride_in + col]);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void get_imag(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
+    size_type stride_in, to_complex<ValueType> *__restrict__ out,
+    size_type stride_out)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    auto row = tidx / num_cols;
+    auto col = tidx % num_cols;
+    if (row < num_rows) {
+        out[row * stride_out + col] = imag(in[row * stride_in + col]);
+    }
+}
+
+
 }  // namespace kernel
