@@ -55,39 +55,30 @@ namespace test {
 
 
 using ValueTypes =
-    ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
+    ::testing::Types<float, double>;
 
 
-using ComplexValueTypes =
-    ::testing::Types<std::complex<float>, std::complex<double>>;
+// using ComplexValueTypes =
+//     ::testing::Types<std::complex<float>, std::complex<double>>;
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
 
 
 using ValueAndIndexTypes =
-    ::testing::Types<float, double, std::complex<float>, std::complex<double>,
+    ::testing::Types<float, double,
                      gko::int32, gko::int64, gko::size_type>;
 
 
 using ValueIndexTypes = ::testing::Types<
-    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-    std::tuple<std::complex<float>, gko::int32>,
-    std::tuple<std::complex<double>, gko::int32>, std::tuple<float, gko::int64>,
-    std::tuple<double, gko::int64>, std::tuple<std::complex<float>, gko::int64>,
-    std::tuple<std::complex<double>, gko::int64>>;
+    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>, std::tuple<float, gko::int64>,
+    std::tuple<double, gko::int64>>;
 
 
 using RealValueIndexTypes = ::testing::Types<
     std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
     std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
 
-
-using ComplexValueIndexTypes =
-    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<std::complex<double>, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int64>,
-                     std::tuple<std::complex<double>, gko::int64>>;
 
 
 template <typename T>

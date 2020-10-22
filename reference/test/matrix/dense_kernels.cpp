@@ -2095,73 +2095,73 @@ TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 }
 
 
-template <typename T>
-class DenseComplex : public ::testing::Test {
-protected:
-    using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
-};
+// template <typename T>
+// class DenseComplex : public ::testing::Test {
+// protected:
+//     using value_type = T;
+//     using Mtx = gko::matrix::Dense<value_type>;
+// };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
+// TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
 
 
-TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
-{
-    using Dense = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto exec = gko::ReferenceExecutor::create();
-    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.1}},
-                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
-                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
-                                      exec);
+// TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
+// {
+//     using Dense = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.1}},
+//                                        {T{-2.0, 1.5}, T{4.5, 0.0}},
+//                                        {T{1.0, 0.0}, T{0.0, 1.0}}},
+//                                       exec);
 
-    auto trans = mtx->conj_transpose();
-    auto trans_as_dense = static_cast<Dense *>(trans.get());
+//     auto trans = mtx->conj_transpose();
+//     auto trans_as_dense = static_cast<Dense *>(trans.get());
 
-    GKO_ASSERT_MTX_NEAR(trans_as_dense,
-                        l({{T{1.0, -2.0}, T{-2.0, -1.5}, T{1.0, 0.0}},
-                           {T{-1.0, -2.1}, T{4.5, 0.0}, T{0.0, -1.0}}}),
-                        0.0);
-}
-
-
-TYPED_TEST(DenseComplex, InplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
-
-    mtx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(
-        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
+//     GKO_ASSERT_MTX_NEAR(trans_as_dense,
+//                         l({{T{1.0, -2.0}, T{-2.0, -1.5}, T{1.0, 0.0}},
+//                            {T{-1.0, -2.1}, T{4.5, 0.0}, T{0.0, -1.0}}}),
+//                         0.0);
+// }
 
 
-TYPED_TEST(DenseComplex, OutplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
+// TYPED_TEST(DenseComplex, InplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+//     // clang-format on
 
-    auto abs_mtx = mtx->compute_absolute();
+//     mtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
+//     GKO_ASSERT_MTX_NEAR(
+//         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+// }
+
+
+// TYPED_TEST(DenseComplex, OutplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+//     // clang-format on
+
+//     auto abs_mtx = mtx->compute_absolute();
+
+//     GKO_ASSERT_MTX_NEAR(
+//         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+// }
 
 
 }  // namespace

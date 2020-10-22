@@ -56,7 +56,7 @@ protected:
           rand(293),
           total_size(42793),
           vals(ref, total_size),
-          cvals(ref, total_size),
+        //   cvals(ref, total_size),
           vals2(ref, 1),
           expected_float(ref, 1),
           expected_double(ref, 1)
@@ -65,7 +65,7 @@ protected:
         std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
             vals.get_data()[i] = dist(rand);
-            cvals.get_data()[i] = {dist(rand), dist(rand)};
+            // cvals.get_data()[i] = {dist(rand), dist(rand)};
         }
         gko::uint64 rawdouble{0x4218888000889111ULL};
         gko::uint32 rawfloat{0x50c44400UL};
@@ -82,7 +82,7 @@ protected:
     gko::Array<double> vals2;
     gko::Array<float> expected_float;
     gko::Array<double> expected_double;
-    gko::Array<std::complex<float>> cvals;
+    // gko::Array<std::complex<float>> cvals;
 };
 
 
@@ -135,16 +135,16 @@ TEST_F(PrecisionConversion, ConvertsRealFromView)
 }
 
 
-TEST_F(PrecisionConversion, ConvertsComplex)
-{
-    gko::Array<std::complex<double>> tmp;
-    gko::Array<std::complex<float>> out;
+// TEST_F(PrecisionConversion, ConvertsComplex)
+// {
+//     gko::Array<std::complex<double>> tmp;
+//     gko::Array<std::complex<float>> out;
 
-    tmp = cvals;
-    out = tmp;
+//     tmp = cvals;
+//     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(cvals, out);
-}
+//     GKO_ASSERT_ARRAY_EQ(cvals, out);
+// }
 
 
 }  // namespace

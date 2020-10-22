@@ -637,57 +637,57 @@ TYPED_TEST(Ell, OutplaceAbsolute)
 }
 
 
-template <typename ValueIndexType>
-class EllComplex : public ::testing::Test {
-protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::Ell<value_type, index_type>;
-};
+// template <typename ValueIndexType>
+// class EllComplex : public ::testing::Test {
+// protected:
+//     using value_type =
+//         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+//     using index_type =
+//         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+//     using Mtx = gko::matrix::Ell<value_type, index_type>;
+// };
 
-TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes);
-
-
-TYPED_TEST(EllComplex, InplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
-
-    mtx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(
-        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
+// TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes);
 
 
-TYPED_TEST(EllComplex, OutplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
+// TYPED_TEST(EllComplex, InplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+//     // clang-format on
 
-    auto abs_mtx = mtx->compute_absolute();
+//     mtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
+//     GKO_ASSERT_MTX_NEAR(
+//         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+// }
+
+
+// TYPED_TEST(EllComplex, OutplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+//     // clang-format on
+
+//     auto abs_mtx = mtx->compute_absolute();
+
+//     GKO_ASSERT_MTX_NEAR(
+//         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+// }
 
 
 }  // namespace

@@ -686,61 +686,61 @@ TYPED_TEST(Hybrid, OutplaceAbsolute)
 }
 
 
-template <typename ValueIndexType>
-class HybridComplex : public ::testing::Test {
-protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::Hybrid<value_type, index_type>;
-};
+// template <typename ValueIndexType>
+// class HybridComplex : public ::testing::Test {
+// protected:
+//     using value_type =
+//         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+//     using index_type =
+//         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+//     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
+// };
 
-TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes);
-
-
-TYPED_TEST(HybridComplex, OutplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec, std::make_shared<typename Mtx::column_limit>(2));
-    // clang-format on
-
-    auto abs_mtx = mtx->compute_absolute();
-    auto abs_strategy =
-        gko::as<typename gko::remove_complex<Mtx>::column_limit>(
-            abs_mtx->get_strategy());
-
-    GKO_ASSERT_MTX_NEAR(
-        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
-}
+// TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes);
 
 
-TYPED_TEST(HybridComplex, InplaceAbsolute)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto exec = gko::ReferenceExecutor::create();
-    // clang-format off
-    auto mtx = gko::initialize<Mtx>(
-        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-    // clang-format on
+// TYPED_TEST(HybridComplex, OutplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec, std::make_shared<typename Mtx::column_limit>(2));
+//     // clang-format on
 
-    mtx->compute_absolute_inplace();
+//     auto abs_mtx = mtx->compute_absolute();
+//     auto abs_strategy =
+//         gko::as<typename gko::remove_complex<Mtx>::column_limit>(
+//             abs_mtx->get_strategy());
 
-    GKO_ASSERT_MTX_NEAR(
-        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-}
+//     GKO_ASSERT_MTX_NEAR(
+//         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+//     GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
+// }
+
+
+// TYPED_TEST(HybridComplex, InplaceAbsolute)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto exec = gko::ReferenceExecutor::create();
+//     // clang-format off
+//     auto mtx = gko::initialize<Mtx>(
+//         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+//          {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+//          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+//     // clang-format on
+
+//     mtx->compute_absolute_inplace();
+
+//     GKO_ASSERT_MTX_NEAR(
+//         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+// }
 
 
 }  // namespace

@@ -57,22 +57,22 @@ protected:
           rand(293),
           total_size(42793),
           vals(ref, total_size),
-          cvals(ref, total_size),
+        //   cvals(ref, total_size),
           vals2(ref, 1),
           expected_float(ref, 1),
           expected_double(ref, 1),
           dvals(exec),
-          dcvals(exec),
+        //   dcvals(exec),
           dvals2(exec)
     {
         auto maxval = 1e10f;
         std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
             vals.get_data()[i] = dist(rand);
-            cvals.get_data()[i] = {dist(rand), dist(rand)};
+            // cvals.get_data()[i] = {dist(rand), dist(rand)};
         }
         dvals = vals;
-        dcvals = cvals;
+        // dcvals = cvals;
         gko::uint64 rawdouble{0x4218888000889111ULL};
         gko::uint32 rawfloat{0x50c44400UL};
         gko::uint64 rawrounded{0x4218888000000000ULL};
@@ -92,8 +92,8 @@ protected:
     gko::Array<double> dvals2;
     gko::Array<float> expected_float;
     gko::Array<double> expected_double;
-    gko::Array<std::complex<float>> cvals;
-    gko::Array<std::complex<float>> dcvals;
+    // gko::Array<std::complex<float>> cvals;
+    // gko::Array<std::complex<float>> dcvals;
 };
 
 
@@ -121,16 +121,16 @@ TEST_F(PrecisionConversion, ConvertsRealViaRef)
 }
 
 
-TEST_F(PrecisionConversion, ConvertsComplex)
-{
-    gko::Array<std::complex<double>> dtmp;
-    gko::Array<std::complex<float>> dout;
+// TEST_F(PrecisionConversion, ConvertsComplex)
+// {
+//     gko::Array<std::complex<double>> dtmp;
+//     gko::Array<std::complex<float>> dout;
 
-    dtmp = dcvals;
-    dout = dtmp;
+//     dtmp = dcvals;
+//     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(dcvals, dout);
-}
+//     GKO_ASSERT_ARRAY_EQ(dcvals, dout);
+// }
 
 
 TEST_F(PrecisionConversion, ConversionRounds)
@@ -158,16 +158,16 @@ TEST_F(PrecisionConversion, ConvertsRealFromRef)
 }
 
 
-TEST_F(PrecisionConversion, ConvertsComplexFromRef)
-{
-    gko::Array<std::complex<double>> dtmp;
-    gko::Array<std::complex<float>> dout;
+// TEST_F(PrecisionConversion, ConvertsComplexFromRef)
+// {
+//     gko::Array<std::complex<double>> dtmp;
+//     gko::Array<std::complex<float>> dout;
 
-    dtmp = cvals;
-    dout = dtmp;
+//     dtmp = cvals;
+//     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(dcvals, dout);
-}
+//     GKO_ASSERT_ARRAY_EQ(dcvals, dout);
+// }
 
 
 }  // namespace

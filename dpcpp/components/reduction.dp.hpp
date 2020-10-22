@@ -253,7 +253,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
         block_results.resize_and_reset(grid_dim);
 
         reduce_add_array(grid_dim, default_block_size, 0, exec->get_queue(),
-                         size, source, as_dpcpp_type(block_results.get_data()));
+                         size, source, block_results.get_data());
 
         block_results_val = block_results.get_const_data();
     }
@@ -261,7 +261,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     auto d_result = Array<ValueType>(exec, 1);
 
     reduce_add_array(1, default_block_size, 0, exec->get_queue(), grid_dim,
-                     block_results_val, as_dpcpp_type(d_result.get_data()));
+                     block_results_val, d_result.get_data());
     auto answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;
 }

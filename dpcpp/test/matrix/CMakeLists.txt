@@ -1,0 +1,1 @@
+ginkgo_create_test(coo_kernels)

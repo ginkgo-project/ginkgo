@@ -418,9 +418,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value type.
  */
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<float>);                    \
-    template _macro(std::complex<double>)
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro)
 
 
 /**
@@ -447,12 +445,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro) \
     template _macro(float, int32);                            \
     template _macro(double, int32);                           \
-    template _macro(std::complex<float>, int32);              \
-    template _macro(std::complex<double>, int32);             \
     template _macro(float, int64);                            \
-    template _macro(double, int64);                           \
-    template _macro(std::complex<float>, int64);              \
-    template _macro(std::complex<double>, int64)
+    template _macro(double, int64)
 
 
 /**
@@ -466,9 +460,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
     template _macro(float, double);                             \
-    template _macro(double, float);                             \
-    template _macro(std::complex<float>, std::complex<double>); \
-    template _macro(std::complex<double>, std::complex<float>)
+    template _macro(double, float)
 
 
 }  // namespace gko

@@ -83,9 +83,9 @@ protected:
     using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using ComplexCsr =
-        gko::matrix::Csr<std::complex<gko::remove_complex<value_type>>,
-                         index_type>;
+    // using ComplexCsr =
+    //     gko::matrix::Csr<std::complex<gko::remove_complex<value_type>>,
+    //                      index_type>;
 
     ParIlut()
         : ref(gko::ReferenceExecutor::create()),
@@ -106,18 +106,18 @@ protected:
                                                   {0., 0., -1., 0.},
                                                   {0., -3., 0., 1.}},
                                                  ref)),
-          mtx1_complex(gko::initialize<ComplexCsr>(
-              {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
-               {{-1., .1}, {.1, -1.}, {0., 0.}, {0., 0.}},
-               {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
-               {{1., -2.}, {-3., -.1}, {-1., .1}, {.1, 2.}}},
-              ref)),
-          mtx1_expect_complex_thrm(gko::initialize<ComplexCsr>(
-              {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
-               {{0., 0.}, {.1, -1.}, {0., 0.}, {0., 0.}},
-               {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
-               {{1., -2.}, {-3., -.1}, {0., 0.}, {.1, 2.}}},
-              ref)),
+        //   mtx1_complex(gko::initialize<ComplexCsr>(
+        //       {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
+        //        {{-1., .1}, {.1, -1.}, {0., 0.}, {0., 0.}},
+        //        {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
+        //        {{1., -2.}, {-3., -.1}, {-1., .1}, {.1, 2.}}},
+        //       ref)),
+        //   mtx1_expect_complex_thrm(gko::initialize<ComplexCsr>(
+        //       {{{.1, 0.}, {0., 0.}, {0., 0.}, {0., 0.}},
+        //        {{0., 0.}, {.1, -1.}, {0., 0.}, {0., 0.}},
+        //        {{-1., 1.}, {-2., .2}, {-1., -.3}, {0., 0.}},
+        //        {{1., -2.}, {-3., -.1}, {0., 0.}, {.1, 2.}}},
+        //       ref)),
           identity(gko::initialize<Csr>(
               {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}}, ref)),
           lower_tri(gko::initialize<Csr>(
@@ -277,8 +277,8 @@ protected:
     std::unique_ptr<Csr> mtx1;
     std::unique_ptr<Csr> mtx1_expect_thrm2;
     std::unique_ptr<Csr> mtx1_expect_thrm3;
-    std::unique_ptr<ComplexCsr> mtx1_complex;
-    std::unique_ptr<ComplexCsr> mtx1_expect_complex_thrm;
+    // std::unique_ptr<ComplexCsr> mtx1_complex;
+    // std::unique_ptr<ComplexCsr> mtx1_expect_complex_thrm;
     std::shared_ptr<Csr> identity;
     std::shared_ptr<Csr> lower_tri;
     std::shared_ptr<Csr> upper_tri;
@@ -321,25 +321,25 @@ TYPED_TEST(ParIlut, KernelThresholdSelectMax)
 }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdSelect)
-{
-    using value_type = typename TestFixture::value_type;
-    this->test_select(this->mtx1_complex, 5, sqrt(2), this->tol);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdSelect)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     this->test_select(this->mtx1_complex, 5, sqrt(2), this->tol);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdSelectMin)
-{
-    using value_type = typename TestFixture::value_type;
-    this->test_select(this->mtx1_complex, 0, 0.1, this->tol);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdSelectMin)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     this->test_select(this->mtx1_complex, 0, 0.1, this->tol);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdSelectMax)
-{
-    using value_type = typename TestFixture::value_type;
-    this->test_select(this->mtx1_complex, 9, sqrt(9.01), this->tol);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdSelectMax)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     this->test_select(this->mtx1_complex, 9, sqrt(9.01), this->tol);
+// }
 
 
 TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
@@ -393,30 +393,30 @@ TYPED_TEST(ParIlut, KernelThresholdFilterSomeAboveThresholdUpper)
 }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneLower)
-{
-    this->test_filter(this->mtx1_complex, 0.0, this->mtx1_complex, true);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneLower)
+// {
+//     this->test_filter(this->mtx1_complex, 0.0, this->mtx1_complex, true);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneUpper)
-{
-    this->test_filter(this->mtx1_complex, 0.0, this->mtx1_complex, false);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneUpper)
+// {
+//     this->test_filter(this->mtx1_complex, 0.0, this->mtx1_complex, false);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdLower)
-{
-    this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
-                      true);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdLower)
+// {
+//     this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
+//                       true);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdUpper)
-{
-    this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
-                      false);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdUpper)
+// {
+//     this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
+//                       false);
+// }
 
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
@@ -458,17 +458,17 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNoneApprox)
 }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeApprox)
-{
-    this->test_filter_approx(this->mtx1_complex, 4,
-                             this->mtx1_expect_complex_thrm);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeApprox)
+// {
+//     this->test_filter_approx(this->mtx1_complex, 4,
+//                              this->mtx1_expect_complex_thrm);
+// }
 
 
-TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneApprox)
-{
-    this->test_filter_approx(this->mtx1_complex, 0, this->mtx1_complex);
-}
+// TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneApprox)
+// {
+//     this->test_filter_approx(this->mtx1_complex, 0, this->mtx1_complex);
+// }
 
 
 TYPED_TEST(ParIlut, KernelAddCandidates)
