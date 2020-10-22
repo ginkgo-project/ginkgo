@@ -2151,6 +2151,53 @@ TYPED_TEST(Dense, AdvancedAppliesToComplex)
 }
 
 
+TYPED_TEST(Dense, MakeComplex)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto abs_mtx = this->mtx5->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, this->mtx5, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, GetReal)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto abs_mtx = this->mtx5->get_real();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, this->mtx5, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, GetImag)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto abs_mtx = this->mtx5->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx,
+                        l({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}),
+                        r<TypeParam>::value);
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
@@ -2217,6 +2264,62 @@ TYPED_TEST(DenseComplex, OutplaceAbsolute)
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, MakeComplex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, mtx, 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetReal)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->get_real();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 3.0, 0.0}, {-4.0, -1.0, 0.0}, {0.0, 0.0, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetImag)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{0.0, 4.0, 2.0}, {-3.0, 0.0, 0.0}, {0.0, -1.5, 0.0}}), 0.0);
 }
 
 

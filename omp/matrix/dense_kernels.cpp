@@ -805,6 +805,60 @@ void outplace_absolute_dense(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL);
 
 
+template <typename ValueType>
+void make_complex(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Dense<ValueType> *source,
+                  matrix::Dense<to_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = to_complex<ValueType>{source->at(row, col)};
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_KERNEL);
+
+
+template <typename ValueType>
+void get_real(std::shared_ptr<const OmpExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = real(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
+
+
+template <typename ValueType>
+void get_imag(std::shared_ptr<const OmpExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = imag(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
+
+
 }  // namespace dense
 }  // namespace omp
 }  // namespace kernels

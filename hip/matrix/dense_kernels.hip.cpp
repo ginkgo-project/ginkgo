@@ -763,6 +763,60 @@ void outplace_absolute_dense(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL);
 
 
+template <typename ValueType>
+void make_complex(std::shared_ptr<const HipExecutor> exec,
+                  const matrix::Dense<ValueType> *source,
+                  matrix::Dense<to_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    const dim3 grid_dim = ceildiv(dim[0] * dim[1], default_block_size);
+
+    hipLaunchKernelGGL(kernel::make_complex, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, dim[0], dim[1],
+                       as_hip_type(source->get_const_values()),
+                       source->get_stride(), as_hip_type(result->get_values()),
+                       result->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_KERNEL);
+
+
+template <typename ValueType>
+void get_real(std::shared_ptr<const HipExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    const dim3 grid_dim = ceildiv(dim[0] * dim[1], default_block_size);
+
+    hipLaunchKernelGGL(kernel::get_real, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, dim[0], dim[1],
+                       as_hip_type(source->get_const_values()),
+                       source->get_stride(), as_hip_type(result->get_values()),
+                       result->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
+
+
+template <typename ValueType>
+void get_imag(std::shared_ptr<const HipExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    const dim3 grid_dim = ceildiv(dim[0] * dim[1], default_block_size);
+
+    hipLaunchKernelGGL(kernel::get_imag, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, dim[0], dim[1],
+                       as_hip_type(source->get_const_values()),
+                       source->get_stride(), as_hip_type(result->get_values()),
+                       result->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
+
+
 }  // namespace dense
 }  // namespace hip
 }  // namespace kernels
