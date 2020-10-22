@@ -407,6 +407,7 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
     ASSERT_TRUE(db->is_sorted_by_column_index());
 }
 
+
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>());
@@ -422,6 +423,7 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
+
 
 TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {

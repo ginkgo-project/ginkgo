@@ -85,9 +85,8 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     } else {
         auto dense_b = as<ComplexDense>(b);
         auto dense_x = as<ComplexDense>(x);
-        this->get_executor()->run(coo::make_spmv(
-            as<Coo<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
     }
 }
 
@@ -108,10 +107,8 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
         auto dense_x = as<ComplexDense>(x);
         auto dense_alpha = as<RealDense>(alpha);
         auto dense_beta = as<RealDense>(beta);
-        this->get_executor()->run(coo::make_advanced_spmv(
-            dense_alpha, as<Coo<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_beta,
-            dense_x->view_as_real().get()));
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
     }
 }
 
@@ -127,9 +124,8 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
     } else {
         auto dense_b = as<ComplexDense>(b);
         auto dense_x = as<ComplexDense>(x);
-        this->get_executor()->run(coo::make_spmv2(
-            as<Coo<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+        this->apply2(dense_b->create_real_view().get(),
+                     dense_x->create_real_view().get());
     }
 }
 
@@ -149,9 +145,8 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
         auto dense_b = as<ComplexDense>(b);
         auto dense_x = as<ComplexDense>(x);
         auto dense_alpha = as<RealDense>(alpha);
-        this->get_executor()->run(coo::make_advanced_spmv2(
-            dense_alpha, as<Coo<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+        this->apply2(dense_alpha, dense_b->create_real_view().get(),
+                     dense_x->create_real_view().get());
     }
 }
 

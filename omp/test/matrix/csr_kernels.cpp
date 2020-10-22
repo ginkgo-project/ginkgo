@@ -290,6 +290,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(3);
@@ -305,6 +306,7 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
+
 
 TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
