@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,86 +30,59 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
-#define GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
+#ifndef GKO_DPCPP_COMPONENTS_SEGMENT_SCAN_DP_HPP_
+#define GKO_DPCPP_COMPONENTS_SEGMENT_SCAN_DP_HPP_
 
 
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/thread_ids.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace ell {
-namespace kernel {
 
 
+// #include "common/components/segment_scan.hpp.inc"
 /**
  * @internal
  *
- * It counts the number of explicit nonzeros per row of Ell.
+ * Compute a segement scan using add operation (+) of a subwarp. Each segment
+ * performs suffix sum. Works on the source array and returns whether the thread
+ * is the first element of its segment with same `ind`.
  */
-template <typename ValueType, typename IndexType>
-void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
-                       size_type stride, const ValueType *__restrict__ values,
-                       IndexType *__restrict__ result);
-
-
-}  // namespace kernel
-}  // namespace ell
-
-
-namespace coo {
-namespace kernel {
-
-
-/**
- * @internal
- *
- * It converts the row index of Coo to the row pointer of Csr.
- */
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
-                              size_type num_nonzeros,
-                              IndexType *__restrict__ ptrs, size_type length);
-
-
-}  // namespace kernel
-
-
-namespace host_kernel {
-
-
-/**
- * @internal
- *
- * It calculates the number of warps used in Coo Spmv depending on the GPU
- * architecture and the number of stored elements.
- */
-template <size_type subwarp_size = config::warp_size>
-size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
-                           const size_type nnz)
+template <unsigned subwarp_size, typename ValueType, typename IndexType>
+__dpct_inline__ bool segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    ValueType *__restrict__ val)
 {
-    size_type nwarps_in_dpcpp = 16;
-    size_type multiple = 1;
-    return std::min(multiple * nwarps_in_dpcpp,
-                    size_type(ceildiv(nnz, config::warp_size)));
+    bool head = true;
+#pragma unroll
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (add_ind == ind && group.thread_rank() >= i) {
+            add_val = *val;
+            if (i == 1) {
+                head = false;
+            }
+        }
+        add_val = group.shfl_down(add_val, i);
+        if (group.thread_rank() < subwarp_size - i) {
+            *val += add_val;
+        }
+    }
+    return head;
 }
 
 
-}  // namespace host_kernel
-}  // namespace coo
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
+#endif  // GKO_DPCPP_COMPONENTS_SEGMENT_SCAN_DP_HPP_

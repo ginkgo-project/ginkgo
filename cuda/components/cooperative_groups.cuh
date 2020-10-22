@@ -539,7 +539,7 @@ __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
 template <unsigned Size, typename Group>
 __device__ __forceinline__ auto tiled_partition_i(const Group &g)
 {
-    return tiled_partition<Size>(g);
+    return ::gko::kernels::cuda::group::tiled_partition<Size>(g);
 }
 
 

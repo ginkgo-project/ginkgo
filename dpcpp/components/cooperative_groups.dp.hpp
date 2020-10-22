@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dpct.hpp"
 
 
 namespace gko {
@@ -177,7 +178,8 @@ class thread_block_tile : public cl::sycl::intel::sub_group {
 public:
     // note: intel calls nd_item.get_sub_group(), but it still call
     // intel::sub_group() to create the sub_group.
-    explicit thread_block_tile(const sycl::nd_item<3> &parent_group)
+    template <typename Group>
+    explicit thread_block_tile(const Group &parent_group)
         : data_{Size, 0}, sub_group()
     {
 #ifndef NDEBUG
@@ -263,6 +265,7 @@ private:
 
 }  // namespace detail
 
+using detail::thread_block_tile;
 
 // Only support tile_partition with 8, 16, 32.
 template <unsigned Size, typename Group>

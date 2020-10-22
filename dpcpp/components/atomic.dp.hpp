@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <CL/sycl.hpp>
 #include <type_traits>
+#include "dpcpp/base/dpct.hpp"
 
 namespace gko {
 namespace kernels {
@@ -80,7 +81,8 @@ inline T atomic_fetch_add(
     return cl::sycl::atomic_fetch_add(obj, operand, memoryOrder);
 }
 
-typename<typename T> struct fake_complex {
+template <typename T>
+struct fake_complex {
     T x;
     T y;
 };
