@@ -467,10 +467,13 @@ using cooperative_groups::this_thread;
 // Instead, use our limited implementation:
 __device__ inline grid_group this_grid() { return {}; }
 
+__device__ inline grid_group this_grid_t() { return this_grid(); }
+
 
 // thread_block this_thread_block()
 using cooperative_groups::this_thread_block;
 
+__device__ auto this_thread_block_t() { return this_thread_block(); }
 
 // coalesced_group coalesced_threads()
 using cooperative_groups::coalesced_threads;
@@ -531,6 +534,12 @@ __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
 
 
 #endif
+
+template <unsigned Size, typename Group>
+__device__ __forceinline__ auto tiled_partition_t(const Group &g)
+{
+    return tiled_partition<Size>(g);
+}
 
 
 }  // namespace group
