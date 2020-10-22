@@ -215,6 +215,7 @@ TEST_F(Sellp,
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+
 TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -230,6 +231,7 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
+
 
 TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 {

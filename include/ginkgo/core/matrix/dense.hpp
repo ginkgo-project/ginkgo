@@ -445,8 +445,12 @@ public:
 
     /*
      * Create a real view of the (potentially) complex original matrix.
+     * If the original matrix is real, nothing changes. If the original matrix
+     * is complex, the result is created by viewing the complex matrix with as
+     * real with a reinterpret_cast with twice the number of columns and
+     * double the stride.
      */
-    std::unique_ptr<Dense<remove_complex<ValueType>>> view_as_real()
+    std::unique_ptr<Dense<remove_complex<ValueType>>> create_real_view()
     {
         const auto num_rows = this->get_size()[0];
         const bool complex = is_complex<ValueType>();
@@ -465,9 +469,10 @@ public:
     }
 
     /*
-     * Create a constant real view of the (potentially) complex original matrix.
+     * @copydoc create_real_view()
      */
-    std::unique_ptr<const Dense<remove_complex<ValueType>>> view_as_real() const
+    std::unique_ptr<const Dense<remove_complex<ValueType>>> create_real_view()
+        const
     {
         const auto num_rows = this->get_size()[0];
         const bool complex = is_complex<ValueType>();

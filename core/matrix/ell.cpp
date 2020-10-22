@@ -109,9 +109,8 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     } else {
         auto dense_b = as<ComplexDense>(b);
         auto dense_x = as<ComplexDense>(x);
-        this->get_executor()->run(ell::make_spmv(
-            as<Ell<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_x->view_as_real().get()));
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
     }
 }
 
@@ -132,10 +131,8 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
         auto dense_x = as<ComplexDense>(x);
         auto dense_alpha = as<RealDense>(alpha);
         auto dense_beta = as<RealDense>(beta);
-        this->get_executor()->run(ell::make_advanced_spmv(
-            dense_alpha, as<Ell<remove_complex<ValueType>, IndexType>>(this),
-            dense_b->view_as_real().get(), dense_beta,
-            dense_x->view_as_real().get()));
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
     }
 }
 

@@ -328,11 +328,11 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 }
 
 
-TYPED_TEST(Dense, CanBeViewedAsReal)
+TYPED_TEST(Dense, CanCreateRealView)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
-    auto real_view = this->mtx->view_as_real();
+    auto real_view = this->mtx->create_real_view();
 
     if (gko::is_complex<value_type>()) {
         EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
