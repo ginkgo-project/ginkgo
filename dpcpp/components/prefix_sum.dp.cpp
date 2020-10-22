@@ -36,8 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
+#include <iostream>
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/components/prefix_sum.dp.hpp"
 
 namespace gko {
 namespace kernels {
@@ -45,9 +46,46 @@ namespace dpcpp {
 namespace components {
 
 
+constexpr int prefix_sum_block_size = 256;
+
+
 template <typename IndexType>
 void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType *counts,
-                size_type num_entries) GKO_NOT_IMPLEMENTED;
+                size_type num_entries)
+{
+    // prefix_sum should be on the valid array
+    // std::cout << "Initial" << std::endl;
+    // for (int i = 0; i < num_entries; i++) {
+    //     std::cout << counts[i] << " ";
+    // }
+    std::cout << std::endl;
+    if (num_entries > 0) {
+        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
+        Array<IndexType> block_sum_array(exec, num_blocks - 1);
+        auto block_sums = block_sum_array.get_data();
+        start_prefix_sum<prefix_sum_block_size>(
+            num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
+            num_entries, counts, block_sums);
+        // exec->synchronize();
+        // std::cout << "START" << std::endl;
+        // for (int i = 0; i < num_entries; i++) {
+        //     std::cout << counts[i] << " ";
+        // }
+        std::cout << std::endl;
+        // add the total sum of the previous block only when the number of block
+        // is larger than 1.
+        if (num_blocks > 1) {
+            finalize_prefix_sum<prefix_sum_block_size>(
+                num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
+                num_entries, counts, block_sums);
+            // std::cout << "Final" << std::endl;
+            // for (int i = 0; i < num_entries; i++) {
+            //     std::cout << counts[i] << " ";
+            // }
+            // std::cout << std::endl;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 // instantiate for size_type as well, as this is used in the Sellp format

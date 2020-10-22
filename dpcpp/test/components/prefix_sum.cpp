@@ -30,22 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef DPCPP_BASE_DIM3_DP_HPP_
-#define DPCPP_BASE_DIM3_DP_HPP_
+#include "core/components/prefix_sum.hpp"
 
 
-#include <CL/sycl.hpp>
+#include <memory>
+#include <random>
+#include <vector>
 
 
-struct dim3 {
-    unsigned int x;
-    unsigned int y;
-    unsigned int z;
-    dim3(unsigned int xval, unsigned int yval = 1, unsigned int zval = 1)
-        : x(xval), y(yval), z(zval)
-    {}
-    sycl::range<3> reverse() { return sycl::range<3>(z, y, x); }
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/array.hpp>
+
+
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/test/utils.hpp"
+
+
+namespace {
+
+
+class PrefixSum : public ::testing::Test {
+protected:
+    using index_type = gko::int32;
+    PrefixSum()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::DpcppExecutor::create(0, ref)),
+          rand(293),
+          total_size(42793),
+          vals(ref, total_size),
+          dvals(exec)
+    {
+        std::uniform_int_distribution<index_type> dist(0, 1000);
+        for (gko::size_type i = 0; i < total_size; ++i) {
+            vals.get_data()[i] = dist(rand);
+        }
+        dvals = vals;
+        // exec->synchronize();
+    }
+
+    void test(gko::size_type size)
+    {
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::dpcpp::components::prefix_sum(exec, dvals.get_data(),
+                                                    size);
+
+        GKO_ASSERT_ARRAY_EQ(vals, dvals);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::DpcppExecutor> exec;
+    std::default_random_engine rand;
+    gko::size_type total_size;
+    gko::Array<index_type> vals;
+    gko::Array<index_type> dvals;
 };
 
 
-#endif  // DPCPP_BASE_DIM3_DP_HPP_
+TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
+
+
+TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+
+
+}  // namespace
