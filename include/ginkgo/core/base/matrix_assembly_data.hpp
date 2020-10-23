@@ -52,43 +52,15 @@ namespace gko {
 namespace detail {
 
 
-/**
- * Type used to store indices used as keys in the unordered_map storing
- * the nonzeros.
- */
-template <typename IndexType>
-struct symbolic_nonzero {
-    using index_type = IndexType;
-
-    symbolic_nonzero() = default;
-
-    symbolic_nonzero(index_type r, index_type c) noexcept : row(r), column(c) {}
-
-    bool operator==(symbolic_nonzero other) const noexcept
-    {
-        return std::tie(this->row, this->column) ==
-               std::tie(other.row, other.column);
-    }
-
-    bool operator!=(symbolic_nonzero other) const noexcept
-    {
-        return !(*this == other);
-    }
-
-    index_type row;
-    index_type column;
-};
-
-
 template <typename IndexType>
 struct symbolic_nonzero_hash {
     explicit symbolic_nonzero_hash(size_type num_cols) noexcept
         : num_cols_{num_cols}
     {}
 
-    std::size_t operator()(symbolic_nonzero<IndexType> nnz) const noexcept
+    std::size_t operator()(std::pair<IndexType, IndexType> nnz) const noexcept
     {
-        return static_cast<std::size_t>(nnz.row) * num_cols_ + nnz.column;
+        return static_cast<std::size_t>(nnz.first) * num_cols_ + nnz.second;
     }
 
     size_type num_cols_;
@@ -132,7 +104,7 @@ public:
      */
     void add_value(index_type row, index_type col, value_type val)
     {
-        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        auto ind = std::make_pair(row, col);
         nonzeros_[ind] += val;
     }
 
@@ -146,7 +118,7 @@ public:
      */
     void set_value(index_type row, index_type col, value_type val)
     {
-        auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        auto ind = std::make_pair(row, col);
         nonzeros_[ind] = val;
     }
 
@@ -159,8 +131,7 @@ public:
      */
     value_type get_value(index_type row, index_type col)
     {
-        const auto ind = detail::symbolic_nonzero<index_type>{row, col};
-        const auto it = nonzeros_.find(ind);
+        const auto it = nonzeros_.find(std::make_pair(row, col));
         if (it == nonzeros_.end()) {
             return zero<value_type>();
         } else {
@@ -177,9 +148,7 @@ public:
      */
     bool contains(index_type row, index_type col)
     {
-        const auto ind = detail::symbolic_nonzero<index_type>{row, col};
-        const auto it = nonzeros_.find(ind);
-        return it != nonzeros_.end();
+        return nonzeros_.find(std::make_pair(row, col)) != nonzeros_.end();
     }
 
     /** @return the dimensions of the matrix being assembled */
@@ -200,13 +169,13 @@ public:
         using output_type = matrix_data<ValueType, IndexType>;
         using nonzero_type = typename output_type::nonzero_type;
         using entry_type =
-            std::pair<detail::symbolic_nonzero<index_type>, value_type>;
+            std::pair<std::pair<index_type, index_type>, value_type>;
         output_type data{size_};
         data.nonzeros.reserve(nonzeros_.size());
         std::transform(nonzeros_.begin(), nonzeros_.end(),
                        std::back_inserter(data.nonzeros), [](entry_type entry) {
-                           return nonzero_type{entry.first.row,
-                                               entry.first.column,
+                           return nonzero_type{entry.first.first,
+                                               entry.first.second,
                                                entry.second};
                        });
         data.ensure_row_major_order();
@@ -226,7 +195,7 @@ private:
      * index of a matrix element, and its value is the value at that
      * position.
      */
-    std::unordered_map<detail::symbolic_nonzero<index_type>, value_type,
+    std::unordered_map<std::pair<index_type, index_type>, value_type,
                        detail::symbolic_nonzero_hash<index_type>>
         nonzeros_;
 };
