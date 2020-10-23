@@ -228,7 +228,6 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::load_balance>(2));
-
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);

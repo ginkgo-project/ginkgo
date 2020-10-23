@@ -272,19 +272,18 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByPercent40)
     auto c = m->get_const_ell_col_idxs();
     auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
+    auto coo_v = m->get_const_coo_values();
+    auto coo_c = m->get_const_coo_col_idxs();
+    auto coo_r = m->get_const_coo_row_idxs();
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(n, 1);
     EXPECT_EQ(p, 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(v[0], value_type{1.0});
     EXPECT_EQ(v[1], value_type{5.0});
-
-    auto coo_v = m->get_const_coo_values();
-    auto coo_c = m->get_const_coo_col_idxs();
-    auto coo_r = m->get_const_coo_row_idxs();
-    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(coo_v[0], value_type{3.0});
     EXPECT_EQ(coo_v[1], value_type{2.0});
     EXPECT_EQ(coo_c[0], 1);
@@ -301,7 +300,6 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataAutomatically)
     using index_type = typename TestFixture::index_type;
     auto m =
         Mtx::create(this->exec, std::make_shared<typename Mtx::automatic>());
-
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -344,7 +342,6 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByColumns2)
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::column_limit>(2));
-
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -366,7 +363,6 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::imbalance_limit>(0.4));
-
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -381,19 +377,18 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
     auto c = m->get_const_ell_col_idxs();
     auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
+    auto coo_v = m->get_const_coo_values();
+    auto coo_c = m->get_const_coo_col_idxs();
+    auto coo_r = m->get_const_coo_row_idxs();
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(n, 1);
     EXPECT_EQ(p, 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(v[0], value_type{1.0});
     EXPECT_EQ(v[1], value_type{5.0});
-
-    auto coo_v = m->get_const_coo_values();
-    auto coo_c = m->get_const_coo_col_idxs();
-    auto coo_r = m->get_const_coo_row_idxs();
-    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(coo_v[0], value_type{3.0});
     EXPECT_EQ(coo_v[1], value_type{2.0});
     EXPECT_EQ(coo_c[0], 1);

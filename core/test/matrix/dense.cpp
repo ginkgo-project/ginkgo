@@ -282,7 +282,6 @@ TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
 {
     using value_type = typename TestFixture::value_type;
     auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
-
     gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);

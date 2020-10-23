@@ -114,7 +114,6 @@ TEST(MatrixAssemblyData, GetsSortedData)
     gko::matrix_assembly_data<double, int> m(gko::dim<2>{3, 5});
     std::vector<gko::matrix_data<double, int>::nonzero_type> reference{
         {0, 0, 1.3}, {1, 2, 3.6}, {1, 4, 1.1}, {2, 3, 2.2}};
-
     m.set_value(0, 0, 1.3);
     m.set_value(2, 3, 2.2);
     m.set_value(1, 4, 1.1);

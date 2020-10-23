@@ -237,7 +237,6 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto m = Mtx::create(this->exec);
-
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
