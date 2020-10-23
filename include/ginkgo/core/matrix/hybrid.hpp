@@ -89,6 +89,7 @@ class Hybrid
 public:
     using EnableLinOp<Hybrid>::convert_to;
     using EnableLinOp<Hybrid>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;

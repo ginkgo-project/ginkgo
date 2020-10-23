@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -538,6 +539,16 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(const matrix_assembly_data<ValueType, IndexType> &data)
+    {
+        this->read(data.get_ordered_data());
+    }
 };
 
 

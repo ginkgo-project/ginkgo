@@ -145,6 +145,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
+
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
