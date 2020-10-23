@@ -49,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
 namespace detail {
 
 
@@ -61,6 +59,7 @@ namespace detail {
 template <typename IndexType>
 struct symbolic_nonzero {
     using index_type = IndexType;
+
     symbolic_nonzero() = default;
 
     symbolic_nonzero(index_type r, index_type c) noexcept : row(r), column(c) {}
@@ -89,10 +88,10 @@ struct symbolic_nonzero_hash {
 
     std::size_t operator()(symbolic_nonzero<IndexType> nnz) const noexcept
     {
-        return nnz.row * num_cols_ + nnz.column;
+        return static_cast<std::size_t>(nnz.row) * num_cols_ + nnz.column;
     }
 
-    std::size_t num_cols_;
+    size_type num_cols_;
 };
 
 
@@ -103,10 +102,10 @@ struct symbolic_nonzero_hash {
  * This structure is used as an intermediate type to assemble a sparse matrix.
  *
  * The matrix is stored as a set of nonzero elements, where each element is
- * a triple of the form (row_index, column_index, value).
+ * a triplet of the form (row_index, column_index, value).
  *
- * New values can be added by using the matrix_assembly_data::add_entry or
- * matrix_assembly_data::add_entries functions.
+ * New values can be added by using the matrix_assembly_data::add_value or
+ * matrix_assembly_data::set_value
  *
  * @tparam ValueType  type of matrix values stored in the structure
  * @tparam IndexType  type of matrix indexes stored in the structure
@@ -124,8 +123,12 @@ public:
 
     /**
      * Sets the matrix value at (row, col).
-     * If there is an existing value, it will be replaced by the sum of the
-     * existing and new value otherwise it will be.
+     * If there is an existing value, it will be set to the sum of the
+     * existing and new value, otherwise the value will be inserted.
+     *
+     * @param row  the row where the value should be added
+     * @param col  the column where the value should be added
+     * @param val  the value to be added to (row, col)
      */
     void add_value(index_type row, index_type col, value_type val)
     {
@@ -136,6 +139,10 @@ public:
     /**
      * Sets the matrix value at (row, col).
      * If there is an existing value, it will be overwritten by the new value.
+     *
+     * @param row  the row index
+     * @param col  the column index
+     * @param val  the value to be written to (row, col)
      */
     void set_value(index_type row, index_type col, value_type val)
     {
@@ -145,12 +152,15 @@ public:
 
     /**
      * Gets the matrix value at (row, col).
-     * Returns zero if it doesn't exist.
+     *
+     * @param row  the row index
+     * @param col  the column index
+     * @return the value at (row, col) or 0 if it doesn't exist.
      */
     value_type get_value(index_type row, index_type col)
     {
-        auto ind = detail::symbolic_nonzero<index_type>{row, col};
-        auto it = nonzeros_.find(ind);
+        const auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        const auto it = nonzeros_.find(ind);
         if (it == nonzeros_.end()) {
             return zero<value_type>();
         } else {
@@ -159,26 +169,30 @@ public:
     }
 
     /**
-     * Returns true iff the matrix has an entry at (row, col).
+     * Returns true iff the matrix contains an entry at (row, col).
+     *
+     * @param row  the row index
+     * @param col  the column index
+     * @return true if the value at (row, col) exists, false otherwise
      */
     bool contains(index_type row, index_type col)
     {
-        auto ind = detail::symbolic_nonzero<index_type>{row, col};
-        auto it = nonzeros_.find(ind);
+        const auto ind = detail::symbolic_nonzero<index_type>{row, col};
+        const auto it = nonzeros_.find(ind);
         return it != nonzeros_.end();
     }
 
-    /** Returns the size of the matrix being assembled. */
+    /** @return the dimensions of the matrix being assembled */
     dim<2> get_size() const noexcept { return size_; }
 
-    /** Returns the number of non-zeros in the (partially) assembled matrix. */
+    /** @return the number of non-zeros in the (partially) assembled matrix */
     size_type get_num_stored_elements() const noexcept
     {
         return nonzeros_.size();
     }
 
     /**
-     * Returns a matrix_data instance containing the assembled non-zeros in
+     * @return a matrix_data instance containing the assembled non-zeros in
      * row-major order to be used by all matrix formats.
      */
     matrix_data<ValueType, IndexType> get_ordered_data() const

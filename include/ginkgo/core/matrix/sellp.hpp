@@ -82,9 +82,9 @@ class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
     friend class Sellp<to_complex<ValueType>, IndexType>;
 
 public:
-    using ReadableFromMatrixData<ValueType, IndexType>::read;
     using EnableLinOp<Sellp>::convert_to;
     using EnableLinOp<Sellp>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
