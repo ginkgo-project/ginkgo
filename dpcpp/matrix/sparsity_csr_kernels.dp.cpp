@@ -33,28 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
 
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-
-#include <CL/sycl.hpp>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/base/iterator_factory.hpp"
-#include "dpcpp/components/format_conversion.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The SparsityCsr pattern format namespace.
+ * @brief The Compressed sparse row matrix format namespace.
  *
  * @ingroup sparsity
  */
@@ -64,10 +50,8 @@ namespace sparsity_csr {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::SparsityCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
@@ -79,10 +63,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::SparsityCsr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
@@ -92,55 +73,27 @@ template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type *num_diagonal_elements)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+    size_type *num_diagonal_elements) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType *row_ptrs,
-                              const IndexType *col_idxs,
-                              matrix::SparsityCsr<ValueType, IndexType> *matrix)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+void remove_diagonal_elements(
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType *row_ptrs,
+    const IndexType *col_idxs,
+    matrix::SparsityCsr<ValueType, IndexType> *matrix) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename IndexType>
-inline void convert_sparsity_to_csc(size_type num_rows,
-                                    const IndexType *row_ptrs,
-                                    const IndexType *col_idxs,
-                                    IndexType *row_idxs, IndexType *col_ptrs)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-
-template <typename ValueType, typename IndexType>
-void transpose_and_transform(
-    std::shared_ptr<const DpcppExecutor> exec,
-    matrix::SparsityCsr<ValueType, IndexType> *trans,
-    const matrix::SparsityCsr<ValueType, IndexType> *orig)
-{
-    GKO_NOT_IMPLEMENTED;
-}
 
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::SparsityCsr<ValueType, IndexType> *orig,
                matrix::SparsityCsr<ValueType, IndexType> *trans)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
@@ -149,9 +102,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::SparsityCsr<ValueType, IndexType> *to_sort)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
@@ -160,10 +111,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *to_check, bool *is_sorted)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+    const matrix::SparsityCsr<ValueType, IndexType> *to_check,
+    bool *is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);

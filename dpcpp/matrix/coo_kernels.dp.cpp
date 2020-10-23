@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo_kernels.hpp"
 
 
-// #include <dpcpp/base/cusparse_bindings.hpp>
-// #include <dpcpp/base/math.hpp>
+#include <dpcpp/base/cusparse_bindings.hpp>
+#include <dpcpp/base/math.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -74,7 +74,7 @@ namespace dpcpp {
 namespace coo {
 
 
-constexpr int default_block_size = 256;
+constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
@@ -101,7 +101,7 @@ namespace {
  * @tparam IndexType  type of matrix indexes stored in the structure
  * @tparam Closure  type of the function used to write the result
  */
-template <unsigned subwarp_size = config::warp_size, typename ValueType,
+template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 void spmv_kernel(const size_type nnz, const size_type num_lines,
                  const ValueType *__restrict__ val,
@@ -564,8 +564,7 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             // functioname abstract_spmv
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_lines, a->get_const_values(),
-                          a->get_const_col_idxs(),
-                          a->get_const_row_idxs(),
+                          a->get_const_col_idxs(), a->get_const_row_idxs(),
                           b->get_const_values(), b->get_stride(),
                           c->get_values(), c->get_stride());
         } else {
@@ -576,9 +575,8 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             // functioname abstract_spmm
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_elems, a->get_const_values(),
-                          a->get_const_col_idxs(),
-                          a->get_const_row_idxs(), b_ncols,
-                          b->get_const_values(), b->get_stride(),
+                          a->get_const_col_idxs(), a->get_const_row_idxs(),
+                          b_ncols, b->get_const_values(), b->get_stride(),
                           c->get_values(), c->get_stride());
         }
     }
@@ -606,11 +604,9 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             // functioname abstract_spmv
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_lines, alpha->get_const_values(),
-                          a->get_const_values(),
-                          a->get_const_col_idxs(),
-                          a->get_const_row_idxs(),
-                          b->get_const_values(), b->get_stride(),
-                          c->get_values(), c->get_stride());
+                          a->get_const_values(), a->get_const_col_idxs(),
+                          a->get_const_row_idxs(), b->get_const_values(),
+                          b->get_stride(), c->get_values(), c->get_stride());
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
@@ -619,8 +615,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             // functioname abstract_spmm
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_elems, alpha->get_const_values(),
-                          a->get_const_values(),
-                          a->get_const_col_idxs(),
+                          a->get_const_values(), a->get_const_col_idxs(),
                           a->get_const_row_idxs(), b_ncols,
                           b->get_const_values(), b->get_stride(),
                           c->get_values(), c->get_stride());
@@ -641,8 +636,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname convert_row_idxs_to_ptrs
     kernel::convert_row_idxs_to_ptrs(grid_dim, default_block_size, 0,
-                                     exec->get_queue(), idxs, num_nonzeros,
-                                     ptrs, length);
+                                     exec->get_queue(), as_dpcpp_type(idxs),
+                                     num_nonzeros, as_dpcpp_type(ptrs), length);
 }
 
 
@@ -688,11 +683,10 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto grid_dim = ceildiv(nnz, default_block_size);
     // functioname fill_in_dense
-    kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                          nnz, source->get_const_row_idxs(),
-                          source->get_const_col_idxs(),
-                          source->get_const_values(), stride,
-                          result->get_values());
+    kernel::fill_in_dense(
+        grid_dim, default_block_size, 0, exec->get_queue(), nnz,
+        source->get_const_row_idxs(), source->get_const_col_idxs(),
+        source->get_const_values(), stride, result->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -714,9 +708,10 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     auto diag_values = diag->get_values();
 
     // functioname extract_diagonal
-    kernel::extract_diagonal(num_blocks, default_block_size, 0,
-                             exec->get_queue(), nnz, orig_values, orig_row_idxs,
-                             orig_col_idxs, diag_values);
+    kernel::extract_diagonal(
+        num_blocks, default_block_size, 0, exec->get_queue(), nnz,
+        as_dpcpp_type(orig_values), as_dpcpp_type(orig_row_idxs),
+        as_dpcpp_type(orig_col_idxs), as_dpcpp_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
