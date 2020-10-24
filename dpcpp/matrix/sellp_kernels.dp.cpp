@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 
 
-#include <dpcpp/base/cusparse_bindings.hpp>
+// #include <dpcpp/base/cusparse_bindings.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -65,7 +65,7 @@ namespace dpcpp {
 namespace sellp {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 
 
 // #include "common/matrix/sellp_kernels.hpp.inc"
@@ -294,7 +294,7 @@ void count_nnz_per_row(size_type num_rows, size_type slice_size,
                 part_result += 1;
             }
         }
-        result[row_idx] = reduce(
+        result[row_idx] = ::gko::kernels::dpcpp::reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
     }
@@ -509,9 +509,8 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
         // functioname fill_in_dense<threads_per_row>
         kernel::fill_in_dense<threads_per_row>(
             grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            num_cols, result->get_stride(), slice_size,
-            as_dpcpp_type(slice_lengths), as_dpcpp_type(slice_sets),
-            as_dpcpp_type(col_idxs), as_dpcpp_type(vals), result->get_values());
+            num_cols, result->get_stride(), slice_size, slice_lengths,
+            slice_sets, col_idxs, vals, result->get_values());
     }
 }
 
@@ -543,8 +542,7 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
         // functioname count_nnz_per_row
         kernel::count_nnz_per_row(
             grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            slice_size, as_dpcpp_type(source_slice_sets),
-            as_dpcpp_type(source_values), as_dpcpp_type(result_row_ptrs));
+            slice_size, source_slice_sets, source_values, result_row_ptrs);
     }
 
     grid_dim = ceildiv(num_rows + 1, default_block_size);
@@ -556,12 +554,10 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     if (grid_dim > 0) {
         // functioname fill_in_csr
-        kernel::fill_in_csr(
-            grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            slice_size, as_dpcpp_type(source_slice_sets),
-            as_dpcpp_type(source_col_idxs), as_dpcpp_type(source_values),
-            as_dpcpp_type(result_row_ptrs), as_dpcpp_type(result_col_idxs),
-            as_dpcpp_type(result_values));
+        kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
+                            num_rows, slice_size, source_slice_sets,
+                            source_col_idxs, source_values, result_row_ptrs,
+                            result_col_idxs, result_values);
     }
 }
 
@@ -592,8 +588,7 @@ void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
     // functioname count_nnz_per_row
     kernel::count_nnz_per_row(grid_dim, default_block_size, 0,
                               exec->get_queue(), num_rows, slice_size,
-                              as_dpcpp_type(slice_sets), as_dpcpp_type(values),
-                              nnz_per_row.get_data());
+                              slice_sets, values, nnz_per_row.get_data());
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
 }
@@ -621,8 +616,7 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     // functioname extract_diagonal
     kernel::extract_diagonal(
         num_blocks, default_block_size, 0, exec->get_queue(), diag_size,
-        slice_size, as_dpcpp_type(orig_slice_sets), as_dpcpp_type(orig_values),
-        as_dpcpp_type(orig_col_idxs), as_dpcpp_type(diag_values));
+        slice_size, orig_slice_sets, orig_values, orig_col_idxs, diag_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

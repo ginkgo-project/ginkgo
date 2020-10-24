@@ -57,12 +57,12 @@ protected:
           rand(293),
           total_size(42793),
           vals(ref, total_size),
-        //   cvals(ref, total_size),
+          //   cvals(ref, total_size),
           vals2(ref, 1),
           expected_float(ref, 1),
           expected_double(ref, 1),
           dvals(exec),
-        //   dcvals(exec),
+          //   dcvals(exec),
           dvals2(exec)
     {
         auto maxval = 1e10f;

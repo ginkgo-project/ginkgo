@@ -34,11 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <dpcpp/base/cusparse_bindings.hpp>
-#include <dpcpp/base/math.hpp>
-#include <dpcpp/base/pointer_mode_guard.hpp>
-#include <dpcpp/components/intrinsics.dp.hpp>
-#include <dpcpp/components/merging.dp.hpp>
+// #include <dpcpp/base/cusparse_bindings.hpp>
+// #include <dpcpp/base/math.hpp>
+// #include <dpcpp/base/pointer_mode_guard.hpp>
+#include "dpcpp/components/intrinsics.dp.hpp"
+// #include <dpcpp/components/merging.dp.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -81,7 +81,7 @@ namespace dpcpp {
 namespace csr {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
@@ -92,13 +92,11 @@ constexpr int classical_overweight = 32;
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels =
-    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
+using classical_kernels = syn::value_list<int, config::warp_size, 16, 8>;
 
-using spgeam_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+using spgeam_kernels = syn::value_list<int, 8, 16>;
 
 
 // #include "common/matrix/csr_kernels.hpp.inc"
@@ -130,9 +128,9 @@ __dpct_inline__ bool block_segment_scan_reverse(
             reg_ind == ind[item_ct1.get_local_id(2) - i]) {
             temp = val[item_ct1.get_local_id(2) - i];
         }
-        group::this_thread_block().sync();
+        group::this_thread_block(item_ct1).sync();
         val[item_ct1.get_local_id(2)] += temp;
-        group::this_thread_block().sync();
+        group::this_thread_block(item_ct1).sync();
     }
 
     return last;
@@ -424,11 +422,11 @@ void merge_path_reduce(const IndexType nwarps,
 
     (*tmp_val)[item_ct1.get_local_id(2)] = value;
     (*tmp_ind)[item_ct1.get_local_id(2)] = row;
-    group::this_thread_block().sync();
+    group::this_thread_block(item_ct1).sync();
     bool last = block_segment_scan_reverse(static_cast<IndexType *>((*tmp_ind)),
                                            static_cast<ValueType *>((*tmp_val)),
                                            item_ct1);
-    group::this_thread_block().sync();
+    group::this_thread_block(item_ct1).sync();
     if (last) {
         c[row * c_stride] += alpha_op((*tmp_val)[item_ct1.get_local_id(2)]);
     }
@@ -472,7 +470,7 @@ void merge_path_spmv(const IndexType num_rows,
          i += spmv_block_size) {
         shared_row_ptrs[i] = row_end_ptrs[block_start_x + i];
     }
-    group::this_thread_block().sync();
+    group::this_thread_block(item_ct1).sync();
 
     IndexType start_x;
     IndexType start_y;
@@ -499,13 +497,13 @@ void merge_path_spmv(const IndexType num_rows,
             }
         }
     }
-    group::this_thread_block().sync();
+    group::this_thread_block(item_ct1).sync();
     IndexType *tmp_ind = shared_row_ptrs;
     ValueType *tmp_val =
         reinterpret_cast<ValueType *>(shared_row_ptrs + spmv_block_size);
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row_i;
-    group::this_thread_block().sync();
+    group::this_thread_block(item_ct1).sync();
     bool last =
         block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
                                    static_cast<ValueType *>(tmp_val), item_ct1);
@@ -547,7 +545,8 @@ void abstract_merge_path_spmv(dim3 grid, dim3 block,
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(sycl::range<1>(block_items), cgh);
+            shared_row_ptrs_acc_ct1(
+                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         auto local_range = block.reverse();
         auto global_range = grid.reverse() * local_range;
@@ -598,7 +597,8 @@ void abstract_merge_path_spmv(dim3 grid, dim3 block,
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(sycl::range<1>(block_items), cgh);
+            shared_row_ptrs_acc_ct1(
+                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         auto local_range = block.reverse();
         auto global_range = grid.reverse() * local_range;
@@ -737,7 +737,7 @@ void device_classical_spmv(const size_type num_rows,
              ind += subwarp_size) {
             temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
         }
-        auto subwarp_result = reduce(
+        auto subwarp_result = ::gko::kernels::dpcpp::reduce(
             subwarp_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
         if (subid == 0) {
@@ -826,150 +826,156 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 }
 
 
-template <int subwarp_size, typename IndexType>
-void spgeam_nnz(const IndexType *__restrict__ a_row_ptrs,
-                const IndexType *__restrict__ a_col_idxs,
-                const IndexType *__restrict__ b_row_ptrs,
-                const IndexType *__restrict__ b_col_idxs, IndexType num_rows,
-                IndexType *__restrict__ nnz, sycl::nd_item<3> item_ct1)
-{
-    const auto row =
-        thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
-    auto subwarp = group::tiled_partition<subwarp_size>(
-        group::this_thread_block(item_ct1));
-    if (row >= num_rows) {
-        return;
-    }
+// template <int subwarp_size, typename IndexType>
+// void spgeam_nnz(const IndexType *__restrict__ a_row_ptrs,
+//                 const IndexType *__restrict__ a_col_idxs,
+//                 const IndexType *__restrict__ b_row_ptrs,
+//                 const IndexType *__restrict__ b_col_idxs, IndexType num_rows,
+//                 IndexType *__restrict__ nnz, sycl::nd_item<3> item_ct1)
+// {
+//     const auto row =
+//         thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+//     auto subwarp = group::tiled_partition<subwarp_size>(
+//         group::this_thread_block(item_ct1));
+//     if (row >= num_rows) {
+//         return;
+//     }
 
-    const auto a_begin = a_row_ptrs[row];
-    const auto b_begin = b_row_ptrs[row];
-    const auto a_size = a_row_ptrs[row + 1] - a_begin;
-    const auto b_size = b_row_ptrs[row + 1] - b_begin;
-    IndexType count{};
-    group_merge<subwarp_size>(
-        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
-        [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
-            bool valid) {
-            count += popcnt(subwarp.ballot(a_col != b_col && valid));
-            return true;
-        });
+//     const auto a_begin = a_row_ptrs[row];
+//     const auto b_begin = b_row_ptrs[row];
+//     const auto a_size = a_row_ptrs[row + 1] - a_begin;
+//     const auto b_size = b_row_ptrs[row + 1] - b_begin;
+//     IndexType count{};
+//     group_merge<subwarp_size>(
+//         a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
+//         [&](IndexType, IndexType a_col, IndexType, IndexType b_col,
+//         IndexType,
+//             bool valid) {
+//             count += popcnt(subwarp.ballot(a_col != b_col && valid));
+//             return true;
+//         });
 
-    if (subwarp.thread_rank() == 0) {
-        nnz[row] = count;
-    }
-}
+//     if (subwarp.thread_rank() == 0) {
+//         nnz[row] = count;
+//     }
+// }
 
-template <int subwarp_size, typename IndexType>
-void spgeam_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, const IndexType *a_row_ptrs,
-                const IndexType *a_col_idxs, const IndexType *b_row_ptrs,
-                const IndexType *b_col_idxs, IndexType num_rows, IndexType *nnz)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
+// template <int subwarp_size, typename IndexType>
+// void spgeam_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+//                 sycl::queue *stream, const IndexType *a_row_ptrs,
+//                 const IndexType *a_col_idxs, const IndexType *b_row_ptrs,
+//                 const IndexType *b_col_idxs, IndexType num_rows, IndexType
+//                 *nnz)
+// {
+//     stream->submit([&](sycl::handler &cgh) {
+//         auto local_range = block.reverse();
+//         auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             spgeam_nnz<subwarp_size>(a_row_ptrs, a_col_idxs,
-                                                      b_row_ptrs, b_col_idxs,
-                                                      num_rows, nnz, item_ct1);
-                         });
-    });
-}
+//         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+//                          [=](sycl::nd_item<3> item_ct1) {
+//                              spgeam_nnz<subwarp_size>(a_row_ptrs, a_col_idxs,
+//                                                       b_row_ptrs, b_col_idxs,
+//                                                       num_rows, nnz,
+//                                                       item_ct1);
+//                          });
+//     });
+// }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(const ValueType *__restrict__ palpha,
-            const IndexType *__restrict__ a_row_ptrs,
-            const IndexType *__restrict__ a_col_idxs,
-            const ValueType *__restrict__ a_vals,
-            const ValueType *__restrict__ pbeta,
-            const IndexType *__restrict__ b_row_ptrs,
-            const IndexType *__restrict__ b_col_idxs,
-            const ValueType *__restrict__ b_vals, IndexType num_rows,
-            const IndexType *__restrict__ c_row_ptrs,
-            IndexType *__restrict__ c_col_idxs, ValueType *__restrict__ c_vals,
-            sycl::nd_item<3> item_ct1)
-{
-    const auto row =
-        thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
-    auto subwarp = group::tiled_partition<subwarp_size>(
-        group::this_thread_block(item_ct1));
-    if (row >= num_rows) {
-        return;
-    }
+// template <int subwarp_size, typename ValueType, typename IndexType>
+// void spgeam(const ValueType *__restrict__ palpha,
+//             const IndexType *__restrict__ a_row_ptrs,
+//             const IndexType *__restrict__ a_col_idxs,
+//             const ValueType *__restrict__ a_vals,
+//             const ValueType *__restrict__ pbeta,
+//             const IndexType *__restrict__ b_row_ptrs,
+//             const IndexType *__restrict__ b_col_idxs,
+//             const ValueType *__restrict__ b_vals, IndexType num_rows,
+//             const IndexType *__restrict__ c_row_ptrs,
+//             IndexType *__restrict__ c_col_idxs, ValueType *__restrict__
+//             c_vals, sycl::nd_item<3> item_ct1)
+// {
+//     const auto row =
+//         thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+//     auto subwarp = group::tiled_partition<subwarp_size>(
+//         group::this_thread_block(item_ct1));
+//     if (row >= num_rows) {
+//         return;
+//     }
 
-    const auto alpha = palpha[0];
-    const auto beta = pbeta[0];
-    const auto lane = static_cast<IndexType>(subwarp.thread_rank());
-    constexpr auto lanemask_full =
-        ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
-    const auto lanemask_eq = config::lane_mask_type{1} << lane;
-    const auto lanemask_lt = lanemask_eq - 1;
+//     const auto alpha = palpha[0];
+//     const auto beta = pbeta[0];
+//     const auto lane = static_cast<IndexType>(subwarp.thread_rank());
+//     constexpr auto lanemask_full =
+//         ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
+//     const auto lanemask_eq = config::lane_mask_type{1} << lane;
+//     const auto lanemask_lt = lanemask_eq - 1;
 
-    const auto a_begin = a_row_ptrs[row];
-    const auto b_begin = b_row_ptrs[row];
-    const auto a_size = a_row_ptrs[row + 1] - a_begin;
-    const auto b_size = b_row_ptrs[row + 1] - b_begin;
-    auto c_begin = c_row_ptrs[row];
-    bool skip_first{};
-    group_merge<subwarp_size>(
-        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
-        [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
-            IndexType, bool valid) {
-            auto c_col = min(a_col, b_col);
-            auto equal_mask = subwarp.ballot(a_col == b_col && valid);
-            // check if the elements in the previous merge step are
-            // equal
-            auto prev_equal_mask = equal_mask << 1 | skip_first;
-            // store the highest bit for the next group_merge_step
-            skip_first = bool(equal_mask >> (subwarp_size - 1));
-            auto prev_equal = bool(prev_equal_mask & lanemask_eq);
-            // only output an entry if the previous cols weren't equal.
-            // if they were equal, they were both handled in the
-            // previous step
-            if (valid && !prev_equal) {
-                auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
-                c_col_idxs[c_begin + c_ofs] = c_col;
-                auto a_val =
-                    a_col <= b_col ? a_vals[a_nz + a_begin] : zero<ValueType>();
-                auto b_val =
-                    b_col <= a_col ? b_vals[b_nz + b_begin] : zero<ValueType>();
-                c_vals[c_begin + c_ofs] = alpha * a_val + beta * b_val;
-            }
-            // advance by the number of merged elements
-            // in theory, we would need to mask by `valid`, but this
-            // would only be false somwhere in the last iteration, where
-            // we don't need the value of c_begin afterwards, anyways.
-            c_begin += popcnt(~prev_equal_mask & lanemask_full);
-            return true;
-        });
-}
+//     const auto a_begin = a_row_ptrs[row];
+//     const auto b_begin = b_row_ptrs[row];
+//     const auto a_size = a_row_ptrs[row + 1] - a_begin;
+//     const auto b_size = b_row_ptrs[row + 1] - b_begin;
+//     auto c_begin = c_row_ptrs[row];
+//     bool skip_first{};
+//     group_merge<subwarp_size>(
+//         a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
+//         [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
+//             IndexType, bool valid) {
+//             auto c_col = min(a_col, b_col);
+//             auto equal_mask = subwarp.ballot(a_col == b_col && valid);
+//             // check if the elements in the previous merge step are
+//             // equal
+//             auto prev_equal_mask = equal_mask << 1 | skip_first;
+//             // store the highest bit for the next group_merge_step
+//             skip_first = bool(equal_mask >> (subwarp_size - 1));
+//             auto prev_equal = bool(prev_equal_mask & lanemask_eq);
+//             // only output an entry if the previous cols weren't equal.
+//             // if they were equal, they were both handled in the
+//             // previous step
+//             if (valid && !prev_equal) {
+//                 auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
+//                 c_col_idxs[c_begin + c_ofs] = c_col;
+//                 auto a_val =
+//                     a_col <= b_col ? a_vals[a_nz + a_begin] :
+//                     zero<ValueType>();
+//                 auto b_val =
+//                     b_col <= a_col ? b_vals[b_nz + b_begin] :
+//                     zero<ValueType>();
+//                 c_vals[c_begin + c_ofs] = alpha * a_val + beta * b_val;
+//             }
+//             // advance by the number of merged elements
+//             // in theory, we would need to mask by `valid`, but this
+//             // would only be false somwhere in the last iteration, where
+//             // we don't need the value of c_begin afterwards, anyways.
+//             c_begin += popcnt(~prev_equal_mask & lanemask_full);
+//             return true;
+//         });
+// }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-            sycl::queue *stream, const ValueType *palpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *pbeta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals, IndexType num_rows,
-            const IndexType *c_row_ptrs, IndexType *c_col_idxs,
-            ValueType *c_vals)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
+// template <int subwarp_size, typename ValueType, typename IndexType>
+// void spgeam(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+//             sycl::queue *stream, const ValueType *palpha,
+//             const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
+//             const ValueType *a_vals, const ValueType *pbeta,
+//             const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
+//             const ValueType *b_vals, IndexType num_rows,
+//             const IndexType *c_row_ptrs, IndexType *c_col_idxs,
+//             ValueType *c_vals)
+// {
+//     stream->submit([&](sycl::handler &cgh) {
+//         auto local_range = block.reverse();
+//         auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             spgeam<subwarp_size>(
-                                 palpha, a_row_ptrs, a_col_idxs, a_vals, pbeta,
-                                 b_row_ptrs, b_col_idxs, b_vals, num_rows,
-                                 c_row_ptrs, c_col_idxs, c_vals, item_ct1);
-                         });
-    });
-}
+//         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+//                          [=](sycl::nd_item<3> item_ct1) {
+//                              spgeam<subwarp_size>(
+//                                  palpha, a_row_ptrs, a_col_idxs, a_vals,
+//                                  pbeta, b_row_ptrs, b_col_idxs, b_vals,
+//                                  num_rows, c_row_ptrs, c_col_idxs, c_vals,
+//                                  item_ct1);
+//                          });
+//     });
+// }
 
 
 template <typename IndexType>
@@ -1125,7 +1131,7 @@ void calculate_slice_lengths(size_type num_rows, size_type slice_size,
 
         auto warp_tile = group::tiled_partition<warp_size>(
             group::this_thread_block(item_ct1));
-        auto warp_result = reduce(
+        auto warp_result = ::gko::kernels::dpcpp::reduce(
             warp_tile, thread_result,
             [](const size_type &a, const size_type &b) { return max(a, b); });
 
@@ -1320,7 +1326,7 @@ void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
                 max(thread_result, nnz_per_row[warpid * slice_size + i]);
         }
     }
-    auto warp_result = reduce(
+    auto warp_result = ::gko::kernels::dpcpp::reduce(
         warp_tile, thread_result,
         [](const size_type &a, const size_type &b) { return max(a, b); });
 
@@ -1354,7 +1360,7 @@ void reduce_total_cols(size_type num_slices,
                        size_type *__restrict__ result,
                        sycl::nd_item<3> item_ct1, size_type *block_result)
 {
-    reduce_array(num_slices, max_nnz_per_slice, block_result,
+    reduce_array(num_slices, max_nnz_per_slice, block_result, item_ct1,
                  [](const size_type &x, const size_type &y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -1390,7 +1396,7 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
                     size_type *block_max)
 {
     reduce_array(
-        size, nnz_per_row, block_max,
+        size, nnz_per_row, block_max, item_ct1,
         [](const size_type &x, const size_type &y) { return max(x, y); });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -1685,13 +1691,12 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 grid, block, 0, exec->get_queue(),
                 static_cast<IndexType>(a->get_size()[0]), a->get_const_values(),
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), as_dpcpp_type(b_vals), b->get_stride(),
-                as_dpcpp_type(c_vals), c->get_stride(), row_out.get_data(),
-                val_out.get_data());
+                a->get_const_srow(), b_vals, b->get_stride(), c_vals,
+                c->get_stride(), row_out.get_data(), val_out.get_data());
             // functioname abstract_reduce
             kernel::abstract_reduce(1, spmv_block_size, 0, exec->get_queue(),
                                     grid_num, val_out.get_data(),
-                                    row_out.get_data(), as_dpcpp_type(c_vals),
+                                    row_out.get_data(), c_vals,
                                     c->get_stride());
 
         } else if (alpha != nullptr && beta != nullptr) {
@@ -1703,15 +1708,14 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 static_cast<IndexType>(a->get_size()[0]),
                 alpha->get_const_values(), a->get_const_values(),
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                a->get_const_srow(), as_dpcpp_type(b_vals), b->get_stride(),
-                beta->get_const_values(), as_dpcpp_type(c_vals),
-                c->get_stride(), row_out.get_data(), val_out.get_data());
+                a->get_const_srow(), b_vals, b->get_stride(),
+                beta->get_const_values(), c_vals, c->get_stride(),
+                row_out.get_data(), val_out.get_data());
             // functioname abstract_reduce
-            kernel::abstract_reduce(1, spmv_block_size, 0, exec->get_queue(),
-                                    grid_num, val_out.get_data(),
-                                    row_out.get_data(),
-                                    alpha->get_const_values(),
-                                    as_dpcpp_type(c_vals), c->get_stride());
+            kernel::abstract_reduce(
+                1, spmv_block_size, 0, exec->get_queue(), grid_num,
+                val_out.get_data(), row_out.get_data(),
+                alpha->get_const_values(), c_vals, c->get_stride());
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -1724,32 +1728,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 {
-    const int version =
-        (exec->get_major_version() << 4) + exec->get_minor_version();
-    // The num_item is decided to make the occupancy 100%
-    // TODO: Extend this list when new GPU is released
-    //       Tune this parameter
-    // 128 threads/block the number of items per threads
-    // 3.0 3.5: 6
-    // 3.7: 14
-    // 5.0, 5.3, 6.0, 6.2: 8
-    // 5.2, 6.1, 7.0: 12
     int num_item = 6;
-    switch (version) {
-    case 0x50:
-    case 0x53:
-    case 0x60:
-    case 0x62:
-        num_item = 8;
-        break;
-    case 0x52:
-    case 0x61:
-    case 0x70:
-        num_item = 12;
-        break;
-    case 0x37:
-        num_item = 14;
-    }
     // Ensure that the following is satisfied:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
@@ -1769,8 +1748,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     const matrix::Dense<ValueType> *alpha = nullptr,
                     const matrix::Dense<ValueType> *beta = nullptr)
 {
-    const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * classical_overweight;
+    const auto nwarps = 16 * classical_overweight;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));
@@ -1857,62 +1835,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (cusparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
-            auto handle = exec->get_cusparse_handle();
-            {
-                cusparse::pointer_mode_guard pm_guard(handle);
-                const auto alpha = one<ValueType>();
-                const auto beta = zero<ValueType>();
-                // TODO: add implementation for int64 and multiple RHS
-                if (b->get_stride() != 1 || c->get_stride() != 1)
-                    GKO_NOT_IMPLEMENTED;
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-                auto descr = cusparse::create_mat_descr();
-                auto row_ptrs = a->get_const_row_ptrs();
-                auto col_idxs = a->get_const_col_idxs();
-                cusparse::spmv(handle, oneapi::mkl::transpose::nontrans,
-                               a->get_size()[0], a->get_size()[1],
-                               a->get_num_stored_elements(), &alpha, descr,
-                               a->get_const_values(), row_ptrs, col_idxs,
-                               b->get_const_values(), &beta, c->get_values());
-
-                cusparse::destroy(descr);
-#else  // DPCPP_VERSION >= 11000
-                cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-                cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-                auto row_ptrs =
-                    const_cast<IndexType *>(a->get_const_row_ptrs());
-                auto col_idxs =
-                    const_cast<IndexType *>(a->get_const_col_idxs());
-                auto values = const_cast<ValueType *>(a->get_const_values());
-                auto mat = cusparse::create_csr(
-                    a->get_size()[0], a->get_size()[1],
-                    a->get_num_stored_elements(), row_ptrs, col_idxs, values);
-                auto b_val = const_cast<ValueType *>(b->get_const_values());
-                auto c_val = c->get_values();
-                auto vecb =
-                    cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-                auto vecc =
-                    cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-                size_type buffer_size = 0;
-                cusparse::spmv_buffersize<ValueType>(handle, trans, &alpha, mat,
-                                                     vecb, &beta, vecc, alg,
-                                                     &buffer_size);
-
-                gko::Array<char> buffer_array(exec, buffer_size);
-                auto buffer = buffer_array.get_data();
-                cusparse::spmv<ValueType>(handle, trans, &alpha, mat, vecb,
-                                          &beta, vecc, alg, buffer);
-                cusparse::destroy(vecb);
-                cusparse::destroy(vecc);
-                cusparse::destroy(mat);
-#endif
-            }
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        GKO_NOT_IMPLEMENTED;
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -1951,55 +1874,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (cusparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
-            if (b->get_stride() != 1 || c->get_stride() != 1)
-                GKO_NOT_IMPLEMENTED;
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-            auto descr = cusparse::create_mat_descr();
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-            cusparse::spmv(exec->get_cusparse_handle(),
-                           oneapi::mkl::transpose::nontrans, a->get_size()[0],
-                           a->get_size()[1], a->get_num_stored_elements(),
-                           alpha->get_const_values(), descr,
-                           a->get_const_values(), row_ptrs, col_idxs,
-                           b->get_const_values(), beta->get_const_values(),
-                           c->get_values());
-
-            cusparse::destroy(descr);
-#else  // DPCPP_VERSION >= 11000
-            cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-            cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-            auto row_ptrs = const_cast<IndexType *>(a->get_const_row_ptrs());
-            auto col_idxs = const_cast<IndexType *>(a->get_const_col_idxs());
-            auto values = const_cast<ValueType *>(a->get_const_values());
-            auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
-                                            a->get_num_stored_elements(),
-                                            row_ptrs, col_idxs, values);
-            auto b_val = const_cast<ValueType *>(b->get_const_values());
-            auto c_val = c->get_values();
-            auto vecb =
-                cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-            auto vecc =
-                cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-            size_type buffer_size = 0;
-            cusparse::spmv_buffersize<ValueType>(
-                exec->get_cusparse_handle(), trans, alpha->get_const_values(),
-                mat, vecb, beta->get_const_values(), vecc, alg, &buffer_size);
-            gko::Array<char> buffer_array(exec, buffer_size);
-            auto buffer = buffer_array.get_data();
-            cusparse::spmv<ValueType>(
-                exec->get_cusparse_handle(), trans, alpha->get_const_values(),
-                mat, vecb, beta->get_const_values(), vecc, alg, buffer);
-            cusparse::destroy(vecb);
-            cusparse::destroy(vecc);
-            cusparse::destroy(mat);
-#endif
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        GKO_NOT_IMPLEMENTED;
     } else if (a->get_strategy()->get_name() == "classical") {
         IndexType max_length_per_row = 0;
         using Tcsr = matrix::Csr<ValueType, IndexType>;
@@ -2054,115 +1929,131 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     auto b_col_idxs = b->get_const_col_idxs();
     auto c_row_ptrs = c->get_row_ptrs();
 
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
+    //     if (cusparse::is_supported<ValueType, IndexType>::value) {
+    //         auto handle = exec->get_cusparse_handle();
+    //         cusparse::pointer_mode_guard pm_guard(handle);
 
-        auto alpha = one<ValueType>();
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto zero_nnz = IndexType{};
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+    //         auto alpha = one<ValueType>();
+    //         auto a_nnz =
+    //         static_cast<IndexType>(a->get_num_stored_elements()); auto b_nnz
+    //         = static_cast<IndexType>(b->get_num_stored_elements()); auto
+    //         null_value = static_cast<ValueType *>(nullptr); auto null_index =
+    //         static_cast<IndexType *>(nullptr); auto zero_nnz = IndexType{};
+    //         auto m = IndexType(a->get_size()[0]);
+    //         auto n = IndexType(b->get_size()[1]);
+    //         auto k = IndexType(a->get_size()[1]);
+    //         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    //         auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    //         auto &c_vals_array = c_builder.get_value_array();
 
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            zero_nnz, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
+    // #if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
+    //         auto a_descr = cusparse::create_mat_descr();
+    //         auto b_descr = cusparse::create_mat_descr();
+    //         auto c_descr = cusparse::create_mat_descr();
+    //         auto d_descr = cusparse::create_mat_descr();
+    //         auto info = cusparse::create_spgemm_info();
+    //         // allocate buffer
+    //         size_type buffer_size{};
+    //         cusparse::spgemm_buffer_size(
+    //             handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs,
+    //             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+    //             null_value, d_descr, zero_nnz, null_index, null_index, info,
+    //             buffer_size);
+    //         Array<char> buffer_array(exec, buffer_size);
+    //         auto buffer = buffer_array.get_data();
 
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, zero_nnz, null_index, null_index, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
+    //         // count nnz
+    //         IndexType c_nnz{};
+    //         cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+    //                              a_col_idxs, b_descr, b_nnz, b_row_ptrs,
+    //                              b_col_idxs, d_descr, zero_nnz, null_index,
+    //                              null_index, c_descr, c_row_ptrs, &c_nnz,
+    //                              info, buffer);
 
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
-                         null_value, null_index, null_index, c_descr, c_vals,
-                         c_row_ptrs, c_col_idxs, info, buffer);
+    //         // accumulate non-zeros
+    //         c_col_idxs_array.resize_and_reset(c_nnz);
+    //         c_vals_array.resize_and_reset(c_nnz);
+    //         auto c_col_idxs = c_col_idxs_array.get_data();
+    //         auto c_vals = c_vals_array.get_data();
+    //         cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+    //                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+    //                          b_row_ptrs, b_col_idxs, null_value, d_descr,
+    //                          zero_nnz, null_value, null_index, null_index,
+    //                          c_descr, c_vals, c_row_ptrs, c_col_idxs, info,
+    //                          buffer);
 
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
+    //         cusparse::destroy(info);
+    //         cusparse::destroy(d_descr);
+    //         cusparse::destroy(c_descr);
+    //         cusparse::destroy(b_descr);
+    //         cusparse::destroy(a_descr);
 
-#else   // DPCPP_VERSION >= 11000
-        const auto beta = zero<ValueType>();
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
-                                            null_index, null_value);
+    // #else   // DPCPP_VERSION >= 11000
+    //         const auto beta = zero<ValueType>();
+    //         auto spgemm_descr = cusparse::create_spgemm_descr();
+    //         auto a_descr = cusparse::create_csr(m, k, a_nnz,
+    //                                             const_cast<IndexType
+    //                                             *>(a_row_ptrs),
+    //                                             const_cast<IndexType
+    //                                             *>(a_col_idxs),
+    //                                             const_cast<ValueType
+    //                                             *>(a_vals));
+    //         auto b_descr = cusparse::create_csr(k, n, b_nnz,
+    //                                             const_cast<IndexType
+    //                                             *>(b_row_ptrs),
+    //                                             const_cast<IndexType
+    //                                             *>(b_col_idxs),
+    //                                             const_cast<ValueType
+    //                                             *>(b_vals));
+    //         auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
+    //                                             null_index, null_value);
 
-        // estimate work
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
+    //         // estimate work
+    //         size_type buffer1_size{};
+    //         cusparse::spgemm_work_estimation(handle, &alpha, a_descr,
+    //         b_descr,
+    //                                          &beta, c_descr, spgemm_descr,
+    //                                          buffer1_size, nullptr);
+    //         Array<char> buffer1{exec, buffer1_size};
+    //         cusparse::spgemm_work_estimation(handle, &alpha, a_descr,
+    //         b_descr,
+    //                                          &beta, c_descr, spgemm_descr,
+    //                                          buffer1_size,
+    //                                          buffer1.get_data());
 
-        // compute spgemm
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
+    //         // compute spgemm
+    //         size_type buffer2_size{};
+    //         cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+    //                                  c_descr, spgemm_descr,
+    //                                  buffer1.get_data(), buffer2_size,
+    //                                  nullptr);
+    //         Array<char> buffer2{exec, buffer2_size};
+    //         cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+    //                                  c_descr, spgemm_descr,
+    //                                  buffer1.get_data(), buffer2_size,
+    //                                  buffer2.get_data());
 
-        // copy data to result
-        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
-                                   c_col_idxs_array.get_data(),
-                                   c_vals_array.get_data());
+    //         // copy data to result
+    //         auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
+    //         c_col_idxs_array.resize_and_reset(c_nnz);
+    //         c_vals_array.resize_and_reset(c_nnz);
+    //         cusparse::csr_set_pointers(c_descr, c_row_ptrs,
+    //                                    c_col_idxs_array.get_data(),
+    //                                    c_vals_array.get_data());
 
-        cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                              spgemm_descr);
+    //         cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta,
+    //         c_descr,
+    //                               spgemm_descr);
 
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
-#endif  // DPCPP_VERSION >= 11000
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    //         cusparse::destroy(c_descr);
+    //         cusparse::destroy(b_descr);
+    //         cusparse::destroy(a_descr);
+    //         cusparse::destroy(spgemm_descr);
+    // #endif  // DPCPP_VERSION >= 11000
+    //     } else {
+    //         GKO_NOT_IMPLEMENTED;
+    //     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
@@ -2179,32 +2070,33 @@ void spgeam(syn::value_list<int, subwarp_size>,
             const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
             const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
 {
-    auto m = static_cast<IndexType>(c->get_size()[0]);
-    auto c_row_ptrs = c->get_row_ptrs();
-    // count nnz for alpha * A + beta * B
-    auto subwarps_per_block = default_block_size / subwarp_size;
-    auto num_blocks = ceildiv(m, subwarps_per_block);
-    // functioname spgeam_nnz<subwarp_size>
-    kernel::spgeam_nnz<subwarp_size>(num_blocks, default_block_size, 0,
-                                     exec->get_queue(), a_row_ptrs, a_col_idxs,
-                                     b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+    // auto m = static_cast<IndexType>(c->get_size()[0]);
+    // auto c_row_ptrs = c->get_row_ptrs();
+    // // count nnz for alpha * A + beta * B
+    // auto subwarps_per_block = default_block_size / subwarp_size;
+    // auto num_blocks = ceildiv(m, subwarps_per_block);
+    // // functioname spgeam_nnz<subwarp_size>
+    // kernel::spgeam_nnz<subwarp_size>(num_blocks, default_block_size, 0,
+    //                                  exec->get_queue(), a_row_ptrs,
+    //                                  a_col_idxs, b_row_ptrs, b_col_idxs, m,
+    //                                  c_row_ptrs);
 
-    // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, m + 1);
+    // // build row pointers
+    // components::prefix_sum(exec, c_row_ptrs, m + 1);
 
-    // accumulate non-zeros for alpha * A + beta * B
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
-    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
-    c_builder.get_value_array().resize_and_reset(c_nnz);
-    auto c_col_idxs = c->get_col_idxs();
-    auto c_vals = c->get_values();
-    // functioname spgeam<subwarp_size>
-    kernel::spgeam<subwarp_size>(
-        num_blocks, default_block_size, 0, exec->get_queue(),
-        as_dpcpp_type(alpha), a_row_ptrs, a_col_idxs, as_dpcpp_type(a_vals),
-        as_dpcpp_type(beta), b_row_ptrs, b_col_idxs, as_dpcpp_type(b_vals), m,
-        c_row_ptrs, c_col_idxs, as_dpcpp_type(c_vals));
+    // // accumulate non-zeros for alpha * A + beta * B
+    // matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    // auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
+    // c_builder.get_col_idx_array().resize_and_reset(c_nnz);
+    // c_builder.get_value_array().resize_and_reset(c_nnz);
+    // auto c_col_idxs = c->get_col_idxs();
+    // auto c_vals = c->get_values();
+    // // functioname spgeam<subwarp_size>
+    // kernel::spgeam<subwarp_size>(
+    //     num_blocks, default_block_size, 0, exec->get_queue(), alpha,
+    //     a_row_ptrs, a_col_idxs, a_vals, beta, b_row_ptrs, b_col_idxs, b_vals,
+    //     m, c_row_ptrs, c_col_idxs, c_vals);
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
@@ -2222,142 +2114,162 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *d,
                      matrix::Csr<ValueType, IndexType> *c)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
+    //     if (cusparse::is_supported<ValueType, IndexType>::value) {
+    //         auto handle = exec->get_cusparse_handle();
+    //         cusparse::pointer_mode_guard pm_guard(handle);
 
-        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
-        auto a_nnz = IndexType(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
-        auto d_nnz = IndexType(d->get_num_stored_elements());
-        auto d_vals = d->get_const_values();
-        auto d_row_ptrs = d->get_const_row_ptrs();
-        auto d_col_idxs = d->get_const_col_idxs();
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        auto c_row_ptrs = c->get_row_ptrs();
+    //         auto valpha = exec->copy_val_to_host(alpha->get_const_values());
+    //         auto a_nnz = IndexType(a->get_num_stored_elements());
+    //         auto a_vals = a->get_const_values();
+    //         auto a_row_ptrs = a->get_const_row_ptrs();
+    //         auto a_col_idxs = a->get_const_col_idxs();
+    //         auto b_nnz = IndexType(b->get_num_stored_elements());
+    //         auto b_vals = b->get_const_values();
+    //         auto b_row_ptrs = b->get_const_row_ptrs();
+    //         auto b_col_idxs = b->get_const_col_idxs();
+    //         auto vbeta = exec->copy_val_to_host(beta->get_const_values());
+    //         auto d_nnz = IndexType(d->get_num_stored_elements());
+    //         auto d_vals = d->get_const_values();
+    //         auto d_row_ptrs = d->get_const_row_ptrs();
+    //         auto d_col_idxs = d->get_const_col_idxs();
+    //         auto m = IndexType(a->get_size()[0]);
+    //         auto n = IndexType(b->get_size()[1]);
+    //         auto k = IndexType(a->get_size()[1]);
+    //         auto c_row_ptrs = c->get_row_ptrs();
 
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
-            d_row_ptrs, d_col_idxs, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
+    // #if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
+    //         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    //         auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    //         auto &c_vals_array = c_builder.get_value_array();
+    //         auto a_descr = cusparse::create_mat_descr();
+    //         auto b_descr = cusparse::create_mat_descr();
+    //         auto c_descr = cusparse::create_mat_descr();
+    //         auto d_descr = cusparse::create_mat_descr();
+    //         auto info = cusparse::create_spgemm_info();
+    //         // allocate buffer
+    //         size_type buffer_size{};
+    //         cusparse::spgemm_buffer_size(
+    //             handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs,
+    //             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta,
+    //             d_descr, d_nnz, d_row_ptrs, d_col_idxs, info, buffer_size);
+    //         Array<char> buffer_array(exec, buffer_size);
+    //         auto buffer = buffer_array.get_data();
 
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
+    //         // count nnz
+    //         IndexType c_nnz{};
+    //         cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+    //                              a_col_idxs, b_descr, b_nnz, b_row_ptrs,
+    //                              b_col_idxs, d_descr, d_nnz, d_row_ptrs,
+    //                              d_col_idxs, c_descr, c_row_ptrs, &c_nnz,
+    //                              info, buffer);
 
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
-                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
-                         c_col_idxs, info, buffer);
+    //         // accumulate non-zeros
+    //         c_col_idxs_array.resize_and_reset(c_nnz);
+    //         c_vals_array.resize_and_reset(c_nnz);
+    //         auto c_col_idxs = c_col_idxs_array.get_data();
+    //         auto c_vals = c_vals_array.get_data();
+    //         cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz,
+    //         a_vals,
+    //                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+    //                          b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
+    //                          d_vals, d_row_ptrs, d_col_idxs, c_descr, c_vals,
+    //                          c_row_ptrs, c_col_idxs, info, buffer);
 
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-#else   // DPCPP_VERSION >= 11000
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto one_val = one<ValueType>();
-        auto zero_val = zero<ValueType>();
-        auto zero_nnz = IndexType{};
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
-                                            null_index, null_value);
+    //         cusparse::destroy(info);
+    //         cusparse::destroy(d_descr);
+    //         cusparse::destroy(c_descr);
+    //         cusparse::destroy(b_descr);
+    //         cusparse::destroy(a_descr);
+    // #else   // DPCPP_VERSION >= 11000
+    //         auto null_value = static_cast<ValueType *>(nullptr);
+    //         auto null_index = static_cast<IndexType *>(nullptr);
+    //         auto one_val = one<ValueType>();
+    //         auto zero_val = zero<ValueType>();
+    //         auto zero_nnz = IndexType{};
+    //         auto spgemm_descr = cusparse::create_spgemm_descr();
+    //         auto a_descr = cusparse::create_csr(m, k, a_nnz,
+    //                                             const_cast<IndexType
+    //                                             *>(a_row_ptrs),
+    //                                             const_cast<IndexType
+    //                                             *>(a_col_idxs),
+    //                                             const_cast<ValueType
+    //                                             *>(a_vals));
+    //         auto b_descr = cusparse::create_csr(k, n, b_nnz,
+    //                                             const_cast<IndexType
+    //                                             *>(b_row_ptrs),
+    //                                             const_cast<IndexType
+    //                                             *>(b_col_idxs),
+    //                                             const_cast<ValueType
+    //                                             *>(b_vals));
+    //         auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
+    //                                             null_index, null_value);
 
-        // estimate work
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                         &zero_val, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                         &zero_val, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
+    //         // estimate work
+    //         size_type buffer1_size{};
+    //         cusparse::spgemm_work_estimation(handle, &one_val, a_descr,
+    //         b_descr,
+    //                                          &zero_val, c_descr,
+    //                                          spgemm_descr, buffer1_size,
+    //                                          nullptr);
+    //         Array<char> buffer1{exec, buffer1_size};
+    //         cusparse::spgemm_work_estimation(handle, &one_val, a_descr,
+    //         b_descr,
+    //                                          &zero_val, c_descr,
+    //                                          spgemm_descr, buffer1_size,
+    //                                          buffer1.get_data());
 
-        // compute spgemm
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
+    //         // compute spgemm
+    //         size_type buffer2_size{};
+    //         cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr,
+    //         &zero_val,
+    //                                  c_descr, spgemm_descr,
+    //                                  buffer1.get_data(), buffer2_size,
+    //                                  nullptr);
+    //         Array<char> buffer2{exec, buffer2_size};
+    //         cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr,
+    //         &zero_val,
+    //                                  c_descr, spgemm_descr,
+    //                                  buffer1.get_data(), buffer2_size,
+    //                                  buffer2.get_data());
 
-        // write result to temporary storage
-        auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
-        Array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
-        Array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
-        cusparse::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
-                                   c_tmp_col_idxs_array.get_data(),
-                                   c_tmp_vals_array.get_data());
+    //         // write result to temporary storage
+    //         auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
+    //         Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
+    //         Array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
+    //         Array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
+    //         cusparse::csr_set_pointers(c_descr,
+    //         c_tmp_row_ptrs_array.get_data(),
+    //                                    c_tmp_col_idxs_array.get_data(),
+    //                                    c_tmp_vals_array.get_data());
 
-        cusparse::spgemm_copy(handle, &one_val, a_descr, b_descr, &zero_val,
-                              c_descr, spgemm_descr);
+    //         cusparse::spgemm_copy(handle, &one_val, a_descr, b_descr,
+    //         &zero_val,
+    //                               c_descr, spgemm_descr);
 
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
+    //         cusparse::destroy(c_descr);
+    //         cusparse::destroy(b_descr);
+    //         cusparse::destroy(a_descr);
+    //         cusparse::destroy(spgemm_descr);
 
-        auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
-        auto nnz_per_row = spgeam_total_nnz / m;
-        select_spgeam(
-            spgeam_kernels(),
-            [&](int compiled_subwarp_size) {
-                return compiled_subwarp_size >= nnz_per_row ||
-                       compiled_subwarp_size == config::warp_size;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec,
-            alpha->get_const_values(), c_tmp_row_ptrs_array.get_const_data(),
-            c_tmp_col_idxs_array.get_const_data(),
-            c_tmp_vals_array.get_const_data(), beta->get_const_values(),
-            d_row_ptrs, d_col_idxs, d_vals, c);
-#endif  // DPCPP_VERSION >= 11000
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    //         auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
+    //         auto nnz_per_row = spgeam_total_nnz / m;
+    //         select_spgeam(
+    //             spgeam_kernels(),
+    //             [&](int compiled_subwarp_size) {
+    //                 return compiled_subwarp_size >= nnz_per_row ||
+    //                        compiled_subwarp_size == config::warp_size;
+    //             },
+    //             syn::value_list<int>(), syn::type_list<>(), exec,
+    //             alpha->get_const_values(),
+    //             c_tmp_row_ptrs_array.get_const_data(),
+    //             c_tmp_col_idxs_array.get_const_data(),
+    //             c_tmp_vals_array.get_const_data(), beta->get_const_values(),
+    //             d_row_ptrs, d_col_idxs, d_vals, c);
+    // #endif  // DPCPP_VERSION >= 11000
+    //     } else {
+    //         GKO_NOT_IMPLEMENTED;
+    //     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2400,8 +2312,7 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname convert_row_ptrs_to_idxs
     kernel::convert_row_ptrs_to_idxs(grid_dim, default_block_size, 0,
-                                     exec->get_queue(), num_rows,
-                                     as_dpcpp_type(ptrs), as_dpcpp_type(idxs));
+                                     exec->get_queue(), num_rows, ptrs, idxs);
 }
 
 
@@ -2446,8 +2357,7 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(num_rows, default_block_size);
     // functioname fill_in_dense
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                          num_rows, as_dpcpp_type(row_ptrs),
-                          as_dpcpp_type(col_idxs), as_dpcpp_type(vals), stride,
+                          num_rows, row_ptrs, col_idxs, vals, stride,
                           result->get_values());
 }
 
@@ -2485,9 +2395,9 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
 
     if (grid_dim > 0) {
         // functioname calculate_nnz_per_row
-        kernel::calculate_nnz_per_row(
-            grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            as_dpcpp_type(source_row_ptrs), nnz_per_row.get_data());
+        kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
+                                      exec->get_queue(), num_rows,
+                                      source_row_ptrs, nnz_per_row.get_data());
     }
 
     grid_dim = slice_num;
@@ -2497,7 +2407,7 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
         kernel::calculate_slice_lengths(
             grid_dim, config::warp_size, 0, exec->get_queue(), num_rows,
             slice_size, stride_factor, nnz_per_row.get_const_data(),
-            as_dpcpp_type(slice_lengths), as_dpcpp_type(slice_sets));
+            slice_lengths, slice_sets);
     }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
@@ -2507,10 +2417,8 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
         // functioname fill_in_sellp
         kernel::fill_in_sellp(
             grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            slice_size, as_dpcpp_type(source_values),
-            as_dpcpp_type(source_row_ptrs), as_dpcpp_type(source_col_idxs),
-            as_dpcpp_type(slice_lengths), as_dpcpp_type(slice_sets),
-            as_dpcpp_type(result_col_idxs), as_dpcpp_type(result_values));
+            slice_size, source_values, source_row_ptrs, source_col_idxs,
+            slice_lengths, slice_sets, result_col_idxs, result_values);
     }
 }
 
@@ -2540,18 +2448,15 @@ void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
     // functioname initialize_zero_ell
     kernel::initialize_zero_ell(init_grid_dim, default_block_size, 0,
                                 exec->get_queue(), max_nnz_per_row, stride,
-                                as_dpcpp_type(result_values),
-                                as_dpcpp_type(result_col_idxs));
+                                result_values, result_col_idxs);
 
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);
 
     // functioname fill_in_ell
-    kernel::fill_in_ell(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows, stride,
-        as_dpcpp_type(source_values), as_dpcpp_type(source_row_ptrs),
-        as_dpcpp_type(source_col_idxs), as_dpcpp_type(result_values),
-        as_dpcpp_type(result_col_idxs));
+    kernel::fill_in_ell(grid_dim, default_block_size, 0, exec->get_queue(),
+                        num_rows, stride, source_values, source_row_ptrs,
+                        source_col_idxs, result_values, result_col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2578,9 +2483,9 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
     // functioname calculate_nnz_per_row
-    kernel::calculate_nnz_per_row(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-        as_dpcpp_type(row_ptrs), nnz_per_row.get_data());
+    kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
+                                  exec->get_queue(), num_rows, row_ptrs,
+                                  nnz_per_row.get_data());
 
     grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
@@ -2618,44 +2523,46 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::Csr<ValueType, IndexType> *orig,
                matrix::Csr<ValueType, IndexType> *trans)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
+    //     if (cusparse::is_supported<ValueType, IndexType>::value) {
+    // #if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
+    //         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    //         oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
 
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
-#else  // DPCPP_VERSION >= 11000
-        dpcppDataType_t cu_value =
-            gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
-        size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, buffer);
-#endif
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    //         cusparse::transpose(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues,
+    //             idxBase);
+    // #else  // DPCPP_VERSION >= 11000
+    //         dpcppDataType_t cu_value =
+    //             gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
+    //         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    //         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+    //         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
+    //         size_type buffer_size = 0;
+    //         cusparse::transpose_buffersize(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value,
+    //             copyValues, idxBase, alg, &buffer_size);
+    //         Array<char> buffer_array(exec, buffer_size);
+    //         auto buffer = buffer_array.get_data();
+    //         cusparse::transpose(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value,
+    //             copyValues, idxBase, alg, buffer);
+    // #endif
+    //     } else {
+    //         GKO_NOT_IMPLEMENTED;
+    //     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
@@ -2666,52 +2573,56 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *trans)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        const dim3 block_size(default_block_size, 1, 1);
-        const dim3 grid_size(
-            ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
+    //     if (cusparse::is_supported<ValueType, IndexType>::value) {
+    //         const dim3 block_size(default_block_size, 1, 1);
+    //         const dim3 grid_size(
+    //             ceildiv(trans->get_num_stored_elements(), block_size.x), 1,
+    //             1);
 
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
+    // #if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
+    //         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    //         oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
 
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
-#else  // DPCPP_VERSION >= 11000
-        dpcppDataType_t cu_value =
-            gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
-        size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, buffer);
-#endif
+    //         cusparse::transpose(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues,
+    //             idxBase);
+    // #else  // DPCPP_VERSION >= 11000
+    //         dpcppDataType_t cu_value =
+    //             gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
+    //         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+    //         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+    //         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
+    //         size_type buffer_size = 0;
+    //         cusparse::transpose_buffersize(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value,
+    //             copyValues, idxBase, alg, &buffer_size);
+    //         Array<char> buffer_array(exec, buffer_size);
+    //         auto buffer = buffer_array.get_data();
+    //         cusparse::transpose(
+    //             exec->get_cusparse_handle(), orig->get_size()[0],
+    //             orig->get_size()[1], orig->get_num_stored_elements(),
+    //             orig->get_const_values(), orig->get_const_row_ptrs(),
+    //             orig->get_const_col_idxs(), trans->get_values(),
+    //             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value,
+    //             copyValues, idxBase, alg, buffer);
+    // #endif
 
-        // functioname conjugate_kernel
-        conjugate_kernel(grid_size, block_size, 0, exec->get_queue(),
-                         trans->get_num_stored_elements(), trans->get_values());
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    //         // functioname conjugate_kernel
+    //         conjugate_kernel(grid_size, block_size, 0, exec->get_queue(),
+    //                          trans->get_num_stored_elements(),
+    //                          trans->get_values());
+    //     } else {
+    //         GKO_NOT_IMPLEMENTED;
+    //     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2817,7 +2728,7 @@ void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
     // functioname initialize_zero_ell
     kernel::initialize_zero_ell(grid_dim, default_block_size, 0,
                                 exec->get_queue(), max_nnz_per_row, stride,
-                                as_dpcpp_type(ell_val), as_dpcpp_type(ell_col));
+                                ell_val, ell_col);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     auto coo_offset = Array<size_type>(exec, num_rows);
@@ -2834,9 +2745,8 @@ void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
         grid_dim, default_block_size, 0, exec->get_queue(), num_rows, stride,
         max_nnz_per_row, source->get_const_values(),
         source->get_const_row_ptrs(), source->get_const_col_idxs(),
-        coo_offset.get_const_data(), as_dpcpp_type(ell_val),
-        as_dpcpp_type(ell_col), as_dpcpp_type(coo_val), as_dpcpp_type(coo_col),
-        as_dpcpp_type(coo_row));
+        coo_offset.get_const_data(), ell_val, ell_col, coo_val, coo_col,
+        coo_row);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2854,8 +2764,8 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname calculate_nnz_per_row
     kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
-                                  exec->get_queue(), num_rows,
-                                  as_dpcpp_type(row_ptrs), result->get_data());
+                                  exec->get_queue(), num_rows, row_ptrs,
+                                  result->get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2866,51 +2776,54 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        auto descr = cusparse::create_mat_descr();
-        auto m = IndexType(to_sort->get_size()[0]);
-        auto n = IndexType(to_sort->get_size()[1]);
-        auto nnz = IndexType(to_sort->get_num_stored_elements());
-        auto row_ptrs = to_sort->get_const_row_ptrs();
-        auto col_idxs = to_sort->get_col_idxs();
-        auto vals = to_sort->get_values();
+    //     if (cusparse::is_supported<ValueType, IndexType>::value) {
+    //         auto handle = exec->get_cusparse_handle();
+    //         auto descr = cusparse::create_mat_descr();
+    //         auto m = IndexType(to_sort->get_size()[0]);
+    //         auto n = IndexType(to_sort->get_size()[1]);
+    //         auto nnz = IndexType(to_sort->get_num_stored_elements());
+    //         auto row_ptrs = to_sort->get_const_row_ptrs();
+    //         auto col_idxs = to_sort->get_col_idxs();
+    //         auto vals = to_sort->get_values();
 
-        // copy values
-        Array<ValueType> tmp_vals_array(exec, nnz);
-        exec->copy(nnz, vals, tmp_vals_array.get_data());
-        auto tmp_vals = tmp_vals_array.get_const_data();
+    //         // copy values
+    //         Array<ValueType> tmp_vals_array(exec, nnz);
+    //         exec->copy(nnz, vals, tmp_vals_array.get_data());
+    //         auto tmp_vals = tmp_vals_array.get_const_data();
 
-        // init identity permutation
-        Array<IndexType> permutation_array(exec, nnz);
-        auto permutation = permutation_array.get_data();
-        cusparse::create_identity_permutation(handle, nnz, permutation);
+    //         // init identity permutation
+    //         Array<IndexType> permutation_array(exec, nnz);
+    //         auto permutation = permutation_array.get_data();
+    //         cusparse::create_identity_permutation(handle, nnz, permutation);
 
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
-                                      buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
-        auto buffer = buffer_array.get_data();
+    //         // allocate buffer
+    //         size_type buffer_size{};
+    //         cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs,
+    //         col_idxs,
+    //                                       buffer_size);
+    //         Array<char> buffer_array{exec, buffer_size};
+    //         auto buffer = buffer_array.get_data();
 
-        // sort column indices
-        cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
-                          permutation, buffer);
+    //         // sort column indices
+    //         cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
+    //                           permutation, buffer);
 
-        // sort values
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
-#else  // DPCPP_VERSION >= 11000
-        auto val_vec = cusparse::create_spvec(nnz, nnz, permutation, vals);
-        auto tmp_vec =
-            cusparse::create_dnvec(nnz, const_cast<ValueType *>(tmp_vals));
-        cusparse::gather(handle, tmp_vec, val_vec);
-#endif
+    //         // sort values
+    // #if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
+    //         cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
+    // #else  // DPCPP_VERSION >= 11000
+    //         auto val_vec = cusparse::create_spvec(nnz, nnz, permutation,
+    //         vals); auto tmp_vec =
+    //             cusparse::create_dnvec(nnz, const_cast<ValueType
+    //             *>(tmp_vals));
+    //         cusparse::gather(handle, tmp_vec, val_vec);
+    // #endif
 
-        cusparse::destroy(descr);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    //         cusparse::destroy(descr);
+    //     } else {
+    //         GKO_NOT_IMPLEMENTED;
+    //     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2956,10 +2869,9 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     auto diag_values = diag->get_values();
 
     // functioname extract_diagonal
-    kernel::extract_diagonal(
-        num_blocks, default_block_size, 0, exec->get_queue(), diag_size, nnz,
-        as_dpcpp_type(orig_values), as_dpcpp_type(orig_row_ptrs),
-        as_dpcpp_type(orig_col_idxs), as_dpcpp_type(diag_values));
+    kernel::extract_diagonal(num_blocks, default_block_size, 0,
+                             exec->get_queue(), diag_size, nnz, orig_values,
+                             orig_row_ptrs, orig_col_idxs, diag_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);

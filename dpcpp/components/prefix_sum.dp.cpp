@@ -33,10 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
+#include <iostream>
+
+
 #include <CL/sycl.hpp>
 
 
-#include <iostream>
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/components/prefix_sum.dp.hpp"
 
