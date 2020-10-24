@@ -22,7 +22,9 @@ using {\bfseries index\+\_\+type} = Index\+Type
 \begin{DoxyCompactItemize}
 \item 
 virtual void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{read}} (const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&data)=0
-\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_a7fc1141f76b70b6ca112c7b99387b8b7}{read}} (const \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&data)
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{matrix\+\_\+assembly\+\_\+data}} structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -32,10 +34,26 @@ class gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}
 A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can read its data from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1ReadableFromMatrixData_a7fc1141f76b70b6ca112c7b99387b8b7}\label{classgko_1_1ReadableFromMatrixData_a7fc1141f76b70b6ca112c7b99387b8b7}} 
+\index{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}!read@{read}}
+\index{read@{read}!gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type, typename Index\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData}{gko\+::\+Readable\+From\+Matrix\+Data}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Reads a matrix from a \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{matrix\+\_\+assembly\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{matrix\+\_\+assembly\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}\label{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}} 
 \index{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}!read@{read}}
 \index{read@{read}!gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}}
-\doxysubsubsection{\texorpdfstring{read()}{read()}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type, typename Index\+Type$>$ \\
 virtual void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData}{gko\+::\+Readable\+From\+Matrix\+Data}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
 

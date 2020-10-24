@@ -1,0 +1,187 @@
+\hypertarget{classgko_1_1matrix__assembly__data}{}\doxysection{gko\+::matrix\+\_\+assembly\+\_\+data$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix__assembly__data}\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+
+
+This structure is used as an intermediate type to assemble a sparse matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/matrix\+\_\+assembly\+\_\+data.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a2d82e8f2d5d54f9a40d7203b8aa846a0}\label{classgko_1_1matrix__assembly__data_a2d82e8f2d5d54f9a40d7203b8aa846a0}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_aca749bd223b0c216236a7168e59dc248}\label{classgko_1_1matrix__assembly__data_aca749bd223b0c216236a7168e59dc248}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a1d69991399629a0de0cd275743acfab1}\label{classgko_1_1matrix__assembly__data_a1d69991399629a0de0cd275743acfab1}} 
+{\bfseries matrix\+\_\+assembly\+\_\+data} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size)
+\item 
+void \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a0927a396f936167366bce13745156cf5}{add\+\_\+value}} (index\+\_\+type row, index\+\_\+type col, value\+\_\+type val)
+\begin{DoxyCompactList}\small\item\em Sets the matrix value at (row, col). \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a2860092246c1184546610e903ac1b94b}{set\+\_\+value}} (index\+\_\+type row, index\+\_\+type col, value\+\_\+type val)
+\begin{DoxyCompactList}\small\item\em Sets the matrix value at (row, col). \end{DoxyCompactList}\item 
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a55c82c5c099a6a77c0dfb3930148f09c}{get\+\_\+value}} (index\+\_\+type row, index\+\_\+type col)
+\begin{DoxyCompactList}\small\item\em Gets the matrix value at (row, col). \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a38a6b452ac3c028ed0c7f2eeac4616e8}{contains}} (index\+\_\+type row, index\+\_\+type col)
+\begin{DoxyCompactList}\small\item\em Returns true iff the matrix contains an entry at (row, col). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \mbox{\hyperlink{classgko_1_1matrix__assembly__data_aad7c0d3e33c899e0966d8b843b1c6439}{get\+\_\+size}} () const noexcept
+\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a300e1722d1853b50fb2c196a2457d0f2}{get\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\item 
+\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a68703be90aaa86a248933c4bf22b24b6}{get\+\_\+ordered\+\_\+data}} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+\_\+assembly\+\_\+data$<$ Value\+Type, Index\+Type $>$}
+
+This structure is used as an intermediate type to assemble a sparse matrix. 
+
+The matrix is stored as a set of nonzero elements, where each element is a triplet of the form (row\+\_\+index, column\+\_\+index, value).
+
+New values can be added by using the \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a0927a396f936167366bce13745156cf5}{matrix\+\_\+assembly\+\_\+data\+::add\+\_\+value}} or \mbox{\hyperlink{classgko_1_1matrix__assembly__data_a2860092246c1184546610e903ac1b94b}{matrix\+\_\+assembly\+\_\+data\+::set\+\_\+value}}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & type of matrix values stored in the structure \\
+\hline
+{\em Index\+Type} & type of matrix indexes stored in the structure \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a0927a396f936167366bce13745156cf5}\label{classgko_1_1matrix__assembly__data_a0927a396f936167366bce13745156cf5}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!add\_value@{add\_value}}
+\index{add\_value@{add\_value}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{add\_value()}{add\_value()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::add\+\_\+value (\begin{DoxyParamCaption}\item[{index\+\_\+type}]{row,  }\item[{index\+\_\+type}]{col,  }\item[{value\+\_\+type}]{val }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the matrix value at (row, col). 
+
+If there is an existing value, it will be set to the sum of the existing and new value, otherwise the value will be inserted.
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row where the value should be added \\
+\hline
+{\em col} & the column where the value should be added \\
+\hline
+{\em val} & the value to be added to (row, col) \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a38a6b452ac3c028ed0c7f2eeac4616e8}\label{classgko_1_1matrix__assembly__data_a38a6b452ac3c028ed0c7f2eeac4616e8}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!contains@{contains}}
+\index{contains@{contains}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{contains()}{contains()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::contains (\begin{DoxyParamCaption}\item[{index\+\_\+type}]{row,  }\item[{index\+\_\+type}]{col }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns true iff the matrix contains an entry at (row, col). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row index \\
+\hline
+{\em col} & the column index \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true if the value at (row, col) exists, false otherwise 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a300e1722d1853b50fb2c196a2457d0f2}\label{classgko_1_1matrix__assembly__data_a300e1722d1853b50fb2c196a2457d0f2}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!get\_num\_stored\_elements@{get\_num\_stored\_elements}}
+\index{get\_num\_stored\_elements@{get\_num\_stored\_elements}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_stored\_elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+\begin{DoxyReturn}{Returns}
+the number of non-\/zeros in the (partially) assembled matrix 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a68703be90aaa86a248933c4bf22b24b6}\label{classgko_1_1matrix__assembly__data_a68703be90aaa86a248933c4bf22b24b6}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!get\_ordered\_data@{get\_ordered\_data}}
+\index{get\_ordered\_data@{get\_ordered\_data}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ordered\_data()}{get\_ordered\_data()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$Value\+Type, Index\+Type$>$ \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ordered\+\_\+data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyReturn}{Returns}
+a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} instance containing the assembled non-\/zeros in row-\/major order to be used by all matrix formats. 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, int32 $>$\+::read().
+
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_aad7c0d3e33c899e0966d8b843b1c6439}\label{classgko_1_1matrix__assembly__data_aad7c0d3e33c899e0966d8b843b1c6439}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!get\_size@{get\_size}}
+\index{get\_size@{get\_size}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_size()}{get\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$2$>$ \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+\begin{DoxyReturn}{Returns}
+the dimensions of the matrix being assembled 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a55c82c5c099a6a77c0dfb3930148f09c}\label{classgko_1_1matrix__assembly__data_a55c82c5c099a6a77c0dfb3930148f09c}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!get\_value@{get\_value}}
+\index{get\_value@{get\_value}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_value()}{get\_value()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+value (\begin{DoxyParamCaption}\item[{index\+\_\+type}]{row,  }\item[{index\+\_\+type}]{col }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the matrix value at (row, col). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row index \\
+\hline
+{\em col} & the column index \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the value at (row, col) or 0 if it doesn\textquotesingle{}t exist. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix__assembly__data_a2860092246c1184546610e903ac1b94b}\label{classgko_1_1matrix__assembly__data_a2860092246c1184546610e903ac1b94b}} 
+\index{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}!set\_value@{set\_value}}
+\index{set\_value@{set\_value}!gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$@{gko::matrix\_assembly\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_value()}{set\_value()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix__assembly__data}{gko\+::matrix\+\_\+assembly\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::set\+\_\+value (\begin{DoxyParamCaption}\item[{index\+\_\+type}]{row,  }\item[{index\+\_\+type}]{col,  }\item[{value\+\_\+type}]{val }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the matrix value at (row, col). 
+
+If there is an existing value, it will be overwritten by the new value.
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row index \\
+\hline
+{\em col} & the column index \\
+\hline
+{\em val} & the value to be written to (row, col) \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/matrix\+\_\+assembly\+\_\+data.\+hpp\end{DoxyCompactItemize}
