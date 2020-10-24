@@ -65,7 +65,7 @@ namespace dpcpp {
 namespace hybrid {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 
 
@@ -272,9 +272,8 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     size_type grid_num = ceildiv(coo_num_stored_elements, default_block_size);
     // functioname convert_row_idxs_to_ptrs
     coo::kernel::convert_row_idxs_to_ptrs(
-        grid_num, default_block_size, 0, exec->get_queue(),
-        as_dpcpp_type(coo_row), coo_num_stored_elements, coo_offset.get_data(),
-        num_rows + 1);
+        grid_num, default_block_size, 0, exec->get_queue(), coo_row,
+        coo_num_stored_elements, coo_offset.get_data(), num_rows + 1);
 
     // Compute the row ptrs of Csr
     auto row_ptrs = result->get_row_ptrs();
@@ -285,8 +284,7 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     // functioname count_nnz_per_row
     ell::kernel::count_nnz_per_row(grid_num, default_block_size, 0,
                                    exec->get_queue(), num_rows, max_nnz_per_row,
-                                   stride, as_dpcpp_type(ell_val),
-                                   as_dpcpp_type(row_ptrs));
+                                   stride, ell_val, row_ptrs);
 
     components::fill_array(exec, coo_row_ptrs.get_data(), num_rows,
                            zero<IndexType>());
@@ -300,15 +298,14 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
 
         // functioname count_coo_row_nnz
-        kernel::count_coo_row_nnz(
-            coo_grid, coo_block, 0, exec->get_queue(), coo_num_stored_elements,
-            num_lines, as_dpcpp_type(coo_val), as_dpcpp_type(coo_row),
-            coo_row_ptrs.get_data());
+        kernel::count_coo_row_nnz(coo_grid, coo_block, 0, exec->get_queue(),
+                                  coo_num_stored_elements, num_lines, coo_val,
+                                  coo_row, coo_row_ptrs.get_data());
     }
 
     // functioname add
     kernel::add(grid_num, default_block_size, 0, exec->get_queue(), num_rows,
-                as_dpcpp_type(row_ptrs), coo_row_ptrs.get_const_data());
+                row_ptrs, coo_row_ptrs.get_const_data());
 
     components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
@@ -316,10 +313,8 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     grid_num = ceildiv(num_rows, default_block_size);
     // functioname fill_in_csr
     kernel::fill_in_csr(grid_num, default_block_size, 0, exec->get_queue(),
-                        num_rows, max_nnz_per_row, stride,
-                        as_dpcpp_type(ell_val), as_dpcpp_type(ell_col),
-                        as_dpcpp_type(coo_val), as_dpcpp_type(coo_col),
-                        coo_offset.get_const_data(), as_dpcpp_type(row_ptrs),
+                        num_rows, max_nnz_per_row, stride, ell_val, ell_col,
+                        coo_val, coo_col, coo_offset.get_const_data(), row_ptrs,
                         result->get_col_idxs(), result->get_values());
 }
 

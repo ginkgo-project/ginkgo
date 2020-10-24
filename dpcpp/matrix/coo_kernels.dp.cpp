@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo_kernels.hpp"
 
 
-#include <dpcpp/base/cusparse_bindings.hpp>
-#include <dpcpp/base/math.hpp>
+// #include <dpcpp/base/cusparse_bindings.hpp>
+// #include <dpcpp/base/math.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -74,7 +74,7 @@ namespace dpcpp {
 namespace coo {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
@@ -412,6 +412,12 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
     });
 }
 
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+                                       const int32 *idxs, size_type, int32 *,
+                                       size_type);
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+                                       const int64 *idxs, size_type, int64 *,
+                                       size_type);
 
 template <typename ValueType>
 void initialize_zero_dense(size_type num_rows, size_type num_cols,
@@ -636,8 +642,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname convert_row_idxs_to_ptrs
     kernel::convert_row_idxs_to_ptrs(grid_dim, default_block_size, 0,
-                                     exec->get_queue(), as_dpcpp_type(idxs),
-                                     num_nonzeros, as_dpcpp_type(ptrs), length);
+                                     exec->get_queue(), idxs, num_nonzeros,
+                                     ptrs, length);
 }
 
 
@@ -708,10 +714,9 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     auto diag_values = diag->get_values();
 
     // functioname extract_diagonal
-    kernel::extract_diagonal(
-        num_blocks, default_block_size, 0, exec->get_queue(), nnz,
-        as_dpcpp_type(orig_values), as_dpcpp_type(orig_row_idxs),
-        as_dpcpp_type(orig_col_idxs), as_dpcpp_type(diag_values));
+    kernel::extract_diagonal(num_blocks, default_block_size, 0,
+                             exec->get_queue(), nnz, orig_values, orig_row_idxs,
+                             orig_col_idxs, diag_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

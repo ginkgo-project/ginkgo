@@ -30,25 +30,38 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_TEST_UTILS_HPP_
-#define GKO_DPCPP_TEST_UTILS_HPP_
+#ifndef GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
+#define GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
 
 
-#include "core/test/utils.hpp"
+#include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-namespace {
+#include "dpcpp/base/dpct.hpp"
 
 
-// prevent device reset after each test
-auto no_reset_exec =
-    gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
+namespace gko {
+namespace kernels {
+namespace dpcpp {
 
 
-}  // namespace
+// #include "common/components/intrinsics.hpp.inc"
+/**
+ * @internal
+ * Returns the number of set bits in the given mask.
+ */
+__dpct_inline__ int popcnt(uint32 mask) { return sycl::popcount(mask); }
+
+/** @copydoc popcnt */
+__dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
 
 
-#endif  // GKO_DPCPP_TEST_UTILS_HPP_
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_

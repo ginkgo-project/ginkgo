@@ -57,7 +57,7 @@ namespace dpcpp {
 namespace diagonal {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 
 
 // #include "common/matrix/diagonal_kernels.hpp.inc"
@@ -317,9 +317,8 @@ void apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname apply_to_dense
     kernel::apply_to_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                           num_rows, num_cols, as_dpcpp_type(diag_values),
-                           b_stride, as_dpcpp_type(b_values), c_stride,
-                           as_dpcpp_type(c_values));
+                           num_rows, num_cols, diag_values, b_stride, b_values,
+                           c_stride, c_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
@@ -345,8 +344,7 @@ void right_apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     // functioname right_apply_to_dense
     kernel::right_apply_to_dense(
         grid_dim, default_block_size, 0, exec->get_queue(), num_rows, num_cols,
-        as_dpcpp_type(diag_values), b_stride, as_dpcpp_type(b_values), c_stride,
-        as_dpcpp_type(c_values));
+        diag_values, b_stride, b_values, c_stride, c_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -369,9 +367,7 @@ void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows * config::warp_size, default_block_size);
     // functioname apply_to_csr
     kernel::apply_to_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                         num_rows, as_dpcpp_type(diag_values),
-                         as_dpcpp_type(csr_row_ptrs),
-                         as_dpcpp_type(csr_values));
+                         num_rows, diag_values, csr_row_ptrs, csr_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -392,10 +388,9 @@ void right_apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto grid_dim = ceildiv(num_nnz, default_block_size);
     // functioname right_apply_to_csr
-    kernel::right_apply_to_csr(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_nnz,
-        as_dpcpp_type(diag_values), as_dpcpp_type(csr_col_idxs),
-        as_dpcpp_type(csr_values));
+    kernel::right_apply_to_csr(grid_dim, default_block_size, 0,
+                               exec->get_queue(), num_nnz, diag_values,
+                               csr_col_idxs, csr_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -417,9 +412,7 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname convert_to_csr
     kernel::convert_to_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                           size, as_dpcpp_type(diag_values),
-                           as_dpcpp_type(row_ptrs), as_dpcpp_type(col_idxs),
-                           as_dpcpp_type(csr_values));
+                           size, diag_values, row_ptrs, col_idxs, csr_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -438,8 +431,7 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
     // functioname conj_transpose
     kernel::conj_transpose(grid_dim, default_block_size, 0, exec->get_queue(),
-                           size, as_dpcpp_type(orig_values),
-                           as_dpcpp_type(trans_values));
+                           size, orig_values, trans_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);

@@ -149,7 +149,8 @@ void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
     if (warp_id > 0) {
         return;
     }
-    auto result = reduce(warp, data[warp.thread_rank()], reduce_op);
+    auto result = ::gko::kernels::dpcpp::reduce(warp, data[warp.thread_rank()],
+                                                reduce_op);
     if (warp.thread_rank() == 0) {
         data[0] = result;
     }

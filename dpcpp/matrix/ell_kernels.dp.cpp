@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
-#include <dpcpp/base/cusparse_bindings.hpp>
+// #include <dpcpp/base/cusparse_bindings.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -71,7 +71,7 @@ namespace dpcpp {
 namespace ell {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
@@ -93,7 +93,7 @@ constexpr double ratio = 1e-2;
  * max_thread_per_worker is the max number of thread per worker. The
  * `compiled_kernels` must be a list <0, 1, 2, ..., max_thread_per_worker>
  */
-constexpr int max_thread_per_worker = 32;
+constexpr int max_thread_per_worker = 16;
 
 
 /**
@@ -102,7 +102,7 @@ constexpr int max_thread_per_worker = 32;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16>;
 
 
 // #include "common/matrix/ell_kernels.hpp.inc"
@@ -401,7 +401,7 @@ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
                 part_result += 1;
             }
         }
-        result[row_idx] = reduce(
+        result[row_idx] = ::gko::kernels::dpcpp::reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
     }
@@ -425,6 +425,15 @@ void count_nnz_per_row(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          });
     });
 }
+
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type, const float *, int32 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type, const double *, int32 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type, const float *, int64 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type, const double *, int64 *);
 
 
 template <typename ValueType, typename IndexType>
@@ -522,7 +531,9 @@ namespace {
 
 
 template <int info, typename ValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+void abstract_spmv(syn::value_list<int, info>,
+                   std::shared_ptr<const DpcppExecutor> exec,
+                   int num_worker_per_row,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    matrix::Dense<ValueType> *c,
@@ -574,8 +585,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
     // TODO: num_threads_per_core should be tuned for AMD gpu
-    const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * num_threads_per_core;
+    const auto nwarps = 16 * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
@@ -629,8 +639,8 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
-        c);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
@@ -661,8 +671,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
-        alpha, beta);
+        syn::value_list<int>(), syn::type_list<>(), exec, num_worker_per_row, a,
+        b, c, alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -694,8 +704,7 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     // functioname fill_in_dense
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
                           num_rows, source->get_num_stored_elements_per_row(),
-                          source_stride, as_dpcpp_type(col_idxs),
-                          as_dpcpp_type(vals), result_stride,
+                          source_stride, col_idxs, vals, result_stride,
                           result->get_values());
 }
 
@@ -724,19 +733,17 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     // functioname count_nnz_per_row
     kernel::count_nnz_per_row(grid_dim_nnz, default_block_size, 0,
                               exec->get_queue(), num_rows, max_nnz_per_row,
-                              stride, source->get_const_values(),
-                              as_dpcpp_type(row_ptrs));
+                              stride, source->get_const_values(), row_ptrs);
 
     components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     // functioname fill_in_csr
-    kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                        num_rows, max_nnz_per_row, stride,
-                        source->get_const_values(),
-                        source->get_const_col_idxs(), as_dpcpp_type(row_ptrs),
-                        as_dpcpp_type(col_idxs), as_dpcpp_type(values));
+    kernel::fill_in_csr(
+        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
+        max_nnz_per_row, stride, source->get_const_values(),
+        source->get_const_col_idxs(), row_ptrs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -774,9 +781,9 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
     const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
 
     // functioname count_nnz_per_row
-    kernel::count_nnz_per_row(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-        max_nnz_per_row, stride, as_dpcpp_type(values), result->get_data());
+    kernel::count_nnz_per_row(grid_dim, default_block_size, 0,
+                              exec->get_queue(), num_rows, max_nnz_per_row,
+                              stride, values, result->get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -801,8 +808,7 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     // functioname extract_diagonal
     kernel::extract_diagonal(
         num_blocks, default_block_size, 0, exec->get_queue(), diag_size,
-        max_nnz_per_row, orig_stride, as_dpcpp_type(orig_values),
-        as_dpcpp_type(orig_col_idxs), as_dpcpp_type(diag_values));
+        max_nnz_per_row, orig_stride, orig_values, orig_col_idxs, diag_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

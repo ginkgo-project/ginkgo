@@ -30,12 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_COMPONENTS_ATOMIC_CUH_
-#define GKO_DPCPP_COMPONENTS_ATOMIC_CUH_
+#ifndef GKO_DPCPP_COMPONENTS_ATOMIC_DP_HPP_
+#define GKO_DPCPP_COMPONENTS_ATOMIC_DP_HPP_
+
+
+#include <type_traits>
 
 
 #include <CL/sycl.hpp>
-#include <type_traits>
+
+
 #include "dpcpp/base/dpct.hpp"
 
 namespace gko {
@@ -211,4 +215,4 @@ __dpct_inline__ std::complex<double> atomic_add(
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_COMPONENTS_ATOMIC_CUH_
+#endif  // GKO_DPCPP_COMPONENTS_ATOMIC_DP_HPP_
