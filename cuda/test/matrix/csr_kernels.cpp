@@ -60,6 +60,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
+    using Arr = gko::Array<int>;
     using Vec = gko::matrix::Dense<>;
     using Mtx = gko::matrix::Csr<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
@@ -114,6 +115,18 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Vec::create(cuda);
         dbeta->copy_from(beta.get());
+
+        std::vector<int> tmp(mtx->get_size()[0], 0);
+        auto rng = std::default_random_engine{};
+        std::iota(tmp.begin(), tmp.end(), 0);
+        std::shuffle(tmp.begin(), tmp.end(), rng);
+        std::vector<int> tmp2(mtx->get_size()[1], 0);
+        std::iota(tmp2.begin(), tmp2.end(), 0);
+        std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        rpermute_idxs = std::make_unique<Arr>(ref, tmp.begin(), tmp.end());
+        drpermute_idxs = std::make_unique<Arr>(cuda, tmp.begin(), tmp.end());
+        cpermute_idxs = std::make_unique<Arr>(ref, tmp2.begin(), tmp2.end());
+        dcpermute_idxs = std::make_unique<Arr>(cuda, tmp2.begin(), tmp2.end());
     }
 
     void set_up_apply_complex_data(
@@ -179,6 +192,10 @@ protected:
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
+    std::unique_ptr<Arr> rpermute_idxs;
+    std::unique_ptr<Arr> drpermute_idxs;
+    std::unique_ptr<Arr> cpermute_idxs;
+    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -685,6 +702,62 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     dmtx->move_to(dhybrid_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, IsRowPermutable)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto r_permute = gko::share(mtx->row_permute(rpermute_idxs.get()));
+    auto dr_permute = gko::share(dmtx->row_permute(drpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(r_permute),
+                               gko::as<Mtx>(dr_permute));
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(r_permute), gko::as<Mtx>(dr_permute), 0);
+}
+
+
+TEST_F(Csr, IsColPermutable)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto c_permute = gko::share(mtx->column_permute(cpermute_idxs.get()));
+    auto dc_permute = gko::share(dmtx->column_permute(dcpermute_idxs.get()));
+
+    ASSERT_TRUE(gko::as<Mtx>(dc_permute)->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(c_permute),
+                               gko::as<Mtx>(dc_permute));
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(c_permute), gko::as<Mtx>(dc_permute), 0);
+}
+
+
+TEST_F(Csr, IsInverseRowPermutable)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto inverse_r_permute =
+        gko::share(mtx->inverse_row_permute(rpermute_idxs.get()));
+    auto d_inverse_r_permute =
+        gko::share(dmtx->inverse_row_permute(drpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(inverse_r_permute),
+                               gko::as<Mtx>(d_inverse_r_permute));
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(inverse_r_permute),
+                        gko::as<Mtx>(d_inverse_r_permute), 0);
+}
+
+
+TEST_F(Csr, IsInverseColPermutable)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto inverse_c_permute =
+        gko::share(mtx->inverse_column_permute(cpermute_idxs.get()));
+    auto d_inverse_c_permute =
+        gko::share(dmtx->inverse_column_permute(dcpermute_idxs.get()));
+
+    ASSERT_TRUE(gko::as<Mtx>(d_inverse_c_permute)->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(inverse_c_permute),
+                               gko::as<Mtx>(d_inverse_c_permute));
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(inverse_c_permute),
+                        gko::as<Mtx>(d_inverse_c_permute), 0);
 }
 
 
