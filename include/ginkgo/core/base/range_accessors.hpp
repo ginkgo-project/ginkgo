@@ -849,8 +849,10 @@ private:
 
 
 /**
- * The reduced_row_major class allows a storage format that is different from
- * the arithmetic format (which is returned from the brace operator).
+ * The scaled_reduced_row_major class allows a storage format that is different
+ * from the arithmetic format (which is returned from the brace operator).
+ * Additionally, a scalar is used when reading and writing data to allow for
+ * a shift in range.
  * As storage, the storage_type is used.
  *
  * This accessor uses row-major access, meaning neighboring z coordinates are
@@ -864,10 +866,18 @@ private:
  *
  * @tparam StorageType  Value type used for storing the actual value to memory
  *
+ * @tparam ScalarMask  Binary mask that marks which indices matter for the
+ *                     scalar selection (set bit means the corresponding index
+ *                     needs to be considered, 0 means it is not). The least
+ *                     significand bit corresponds to the first index dimension,
+ *                     the second least to the second index dimension, and so
+ *                     on.
+ *
  * @note  This class only manages the accesses and not the memory itself.
  * @note  Currently, only Dimensionality = 3 is supported.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType>
+template <int Dimensionality, typename ArithmeticType, typename StorageType,
+          int32 ScalarMask = 0b0101>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
@@ -877,6 +887,7 @@ public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     static constexpr size_type dimensionality{Dimensionality};
+    static constexpr int32 scalar_mask{ScalarMask};
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using scalar_type =
         std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
@@ -887,6 +898,8 @@ public:
 
     static_assert(dimensionality == 3,
                   "Only Dimensionality == 3 is currently supported");
+    static_assert(scalar_mask == 0b0101,
+                  "Only StorageMask == 0b0101 is currently supported");
 
     // Allow access to both `scalar_` and `compute_scalar_index()`
     friend class detail::enable_write_scalar<
@@ -962,15 +975,15 @@ public:
      * Reads the scalar value at the given indices.
      *
      * @param x  x index
-     * @param z  z index
+     * @param y  y index
      *
      * @returns the scalar value at the given indices.
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type read_scalar(
-        size_type x, size_type z) const
+        size_type x, size_type y) const
     {
         const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
-        return rest_scalar[compute_scalar_index(x, z)];
+        return rest_scalar[compute_scalar_index(x, y)];
     }
 
     /**
