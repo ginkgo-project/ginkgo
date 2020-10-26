@@ -427,42 +427,42 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
+// TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+//     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+//     auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
 
-    x->convert_to(sellp_mtx.get());
-    dx->convert_to(dsellp_mtx.get());
+//     x->convert_to(sellp_mtx.get());
+//     dx->convert_to(dsellp_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
-}
-
-
-TEST_F(Dense, MoveToSellpIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
-
-    x->move_to(sellp_mtx.get());
-    dx->move_to(dsellp_mtx.get());
-
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+// }
 
 
-TEST_F(Dense, ConvertsEmptyToSellp)
-{
-    auto dempty_mtx = Mtx::create(dpcpp);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
+// TEST_F(Dense, MoveToSellpIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+//     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
+//     auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
 
-    dempty_mtx->convert_to(dsellp_mtx.get());
+//     x->move_to(sellp_mtx.get());
+//     dx->move_to(dsellp_mtx.get());
 
-    ASSERT_EQ(dpcpp->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
-    ASSERT_FALSE(dsellp_mtx->get_size());
-}
+//     GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+// }
+
+
+// TEST_F(Dense, ConvertsEmptyToSellp)
+// {
+//     auto dempty_mtx = Mtx::create(dpcpp);
+//     auto dsellp_mtx = gko::matrix::Sellp<>::create(dpcpp);
+
+//     dempty_mtx->convert_to(dsellp_mtx.get());
+
+//     ASSERT_EQ(dpcpp->copy_val_to_host(dsellp_mtx->get_const_slice_sets()),
+//     0); ASSERT_FALSE(dsellp_mtx->get_size());
+// }
 
 
 TEST_F(Dense, CountNNZIsEquivalentToRef)

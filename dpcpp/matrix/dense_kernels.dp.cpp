@@ -33,11 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-// #include <dpcpp/base/cublas_bindings.hpp>
-// #include <dpcpp/base/pointer_mode_guard.hpp>
-
-
 #include <CL/sycl.hpp>
+#include <mkl_blas_sycl.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -1090,23 +1087,12 @@ void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *c)
 {
-    // if (cublas::is_supported<ValueType>::value) {
-    //     auto handle = exec->get_cublas_handle();
-    //     {
-    //         cublas::pointer_mode_guard pm_guard(handle);
-    //         auto alpha = one<ValueType>();
-    //         auto beta = zero<ValueType>();
-    //         cublas::gemm(handle, oneapi::mkl::transpose::nontrans,
-    //                      oneapi::mkl::transpose::nontrans, c->get_size()[1],
-    //                      c->get_size()[0], a->get_size()[1], &alpha,
-    //                      b->get_const_values(), b->get_stride(),
-    //                      a->get_const_values(), a->get_stride(), &beta,
-    //                      c->get_values(), c->get_stride());
-    //     }
-    // } else {
-    //     GKO_NOT_IMPLEMENTED;
-    // }
-    GKO_NOT_IMPLEMENTED;
+    using namespace oneapi::mkl;
+    oneapi::mkl::blas::row_major::gemm(
+        *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+        c->get_size()[0], c->get_size()[1], a->get_size()[1], one<ValueType>(),
+        a->get_const_values(), a->get_stride(), b->get_const_values(),
+        b->get_stride(), zero<ValueType>(), c->get_values(), c->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
@@ -1118,18 +1104,14 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
            const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 {
-    // if (cublas::is_supported<ValueType>::value) {
-    //     cublas::gemm(
-    //         exec->get_cublas_handle(), oneapi::mkl::transpose::nontrans,
-    //         oneapi::mkl::transpose::nontrans, c->get_size()[1],
-    //         c->get_size()[0], a->get_size()[1], alpha->get_const_values(),
-    //         b->get_const_values(), b->get_stride(), a->get_const_values(),
-    //         a->get_stride(), beta->get_const_values(), c->get_values(),
-    //         c->get_stride());
-    // } else {
-    //     GKO_NOT_IMPLEMENTED;
-    // }
-    GKO_NOT_IMPLEMENTED;
+    using namespace oneapi::mkl;
+    oneapi::mkl::blas::row_major::gemm(
+        *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+        c->get_size()[0], c->get_size()[1], a->get_size()[1],
+        exec->copy_val_to_host(alpha->get_const_values()),
+        a->get_const_values(), a->get_stride(), b->get_const_values(),
+        b->get_stride(), exec->copy_val_to_host(beta->get_const_values()),
+        c->get_values(), c->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
@@ -1146,22 +1128,24 @@ template <typename ValueType>
 void scale(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    // if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-    //     cublas::scal(exec->get_cublas_handle(), x->get_size()[0],
-    //                  alpha->get_const_values(), x->get_values(),
-    //                  x->get_stride());
-    // } else {
-    // TODO: tune this parameter
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    // functioname scale<block_size>
-    kernel::scale<block_size>(grid_dim, block_dim, 0, exec->get_queue(),
-                              x->get_size()[0], x->get_size()[1],
-                              alpha->get_size()[1], alpha->get_const_values(),
-                              x->get_values(), x->get_stride());
-    // }
+    if (x->get_size()[1] == 1) {
+        oneapi::mkl::blas::row_major::scal(
+            *exec->get_queue(), x->get_size()[0] * x->get_size()[1],
+            exec->copy_val_to_host(alpha->get_const_values()), x->get_values(),
+            x->get_stride());
+    } else {
+        // TODO: tune this parameter
+        constexpr auto block_size = default_block_size;
+        const dim3 grid_dim =
+            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        // functioname scale<block_size>
+        kernel::scale<block_size>(
+            grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
+            x->get_size()[1], alpha->get_size()[1], alpha->get_const_values(),
+            x->get_values(), x->get_stride());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
@@ -1172,23 +1156,26 @@ void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    // if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-    //     cublas::axpy(exec->get_cublas_handle(), x->get_size()[0],
-    //                  alpha->get_const_values(), x->get_const_values(),
-    //                  x->get_stride(), y->get_values(), y->get_stride());
-    // } else {
-    // TODO: tune this parameter
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    // functioname add_scaled<block_size>
-    kernel::add_scaled<block_size>(
-        grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-        x->get_size()[1], alpha->get_size()[1], alpha->get_const_values(),
-        x->get_const_values(), x->get_stride(), y->get_values(),
-        y->get_stride());
-    // }
+    if (x->get_size()[1] == 1) {
+        oneapi::mkl::blas::row_major::axpy(
+            *exec->get_queue(), x->get_size()[0],
+            exec->copy_val_to_host(alpha->get_const_values()),
+            x->get_const_values(), x->get_stride(), y->get_values(),
+            y->get_stride());
+    } else {
+        // TODO: tune this parameter
+        constexpr auto block_size = default_block_size;
+        const dim3 grid_dim =
+            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        // functioname add_scaled<block_size>
+        kernel::add_scaled<block_size>(
+            grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
+            x->get_size()[1], alpha->get_size()[1], alpha->get_const_values(),
+            x->get_const_values(), x->get_stride(), y->get_values(),
+            y->get_stride());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
@@ -1219,38 +1206,49 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
-    // if (cublas::is_supported<ValueType>::value) {
-    //     // TODO: write a custom kernel which does this more efficiently
-    //     for (size_type col = 0; col < x->get_size()[1]; ++col) {
-    //         cublas::dot(exec->get_cublas_handle(), x->get_size()[0],
-    //                     x->get_const_values() + col, x->get_stride(),
-    //                     y->get_const_values() + col, y->get_stride(),
-    //                     result->get_values() + col);
-    //     }
-    // } else {
-    // TODO: these are tuning parameters obtained experimentally, once
-    // we decide how to handle this uniformly, they should be modified
-    // appropriately
-    constexpr auto work_per_thread = 32;
-    constexpr auto block_size = default_block_size;
+    if (!is_complex<ValueType>()) {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            oneapi::mkl::blas::row_major::dot(
+                *exec->get_queue(), x->get_size()[0],
+                x->get_const_values() + col, x->get_stride(),
+                y->get_const_values() + col, y->get_stride(),
+                result->get_values() + col);
+        }
+        // dotc seems not to have usm version yet.
+        // } else if (is_complex<ValueType>()) {
+        //     for (size_type col = 0; col < x->get_size()[1]; ++col) {
+        //         oneapi::mkl::blas::dotc(
+        //             *exec->get_queue(), x->get_size()[0],
+        //             x->get_const_values() + col, x->get_stride(),
+        //             y->get_const_values() + col, y->get_stride(),
+        //             result->get_values() + col);
+        //     }
+    } else {
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = default_block_size;
 
-    constexpr auto work_per_block = work_per_thread * block_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    Array<ValueType> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        // functioname compute_partial_dot<block_size>
-        kernel::compute_partial_dot<block_size>(
-            grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-            x->get_const_values() + col, x->get_stride(),
-            y->get_const_values() + col, y->get_stride(), work.get_data());
-        // functioname finalize_dot_computation<block_size>
-        kernel::finalize_dot_computation<block_size>(
-            1, block_dim, 0, exec->get_queue(), grid_dim.x,
-            work.get_const_data(), result->get_values() + col);
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<ValueType> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            // functioname compute_partial_dot<block_size>
+            kernel::compute_partial_dot<block_size>(
+                grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
+                x->get_const_values() + col, x->get_stride(),
+                y->get_const_values() + col, y->get_stride(), work.get_data());
+            // functioname finalize_dot_computation<block_size>
+            kernel::finalize_dot_computation<block_size>(
+                1, block_dim, 0, exec->get_queue(), grid_dim.x,
+                work.get_const_data(), result->get_values() + col);
+        }
     }
-    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
@@ -1261,36 +1259,38 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType> *x,
                    matrix::Dense<remove_complex<ValueType>> *result)
 {
-    // if (cublas::is_supported<ValueType>::value) {
-    //     for (size_type col = 0; col < x->get_size()[1]; ++col) {
-    //         cublas::norm2(exec->get_cublas_handle(), x->get_size()[0],
-    //                       x->get_const_values() + col, x->get_stride(),
-    //                       result->get_values() + col);
-    //     }
-    // } else {
-    using norm_type = remove_complex<ValueType>;
-    // TODO: these are tuning parameters obtained experimentally, once
-    // we decide how to handle this uniformly, they should be modified
-    // appropriately
-    constexpr auto work_per_thread = 32;
-    constexpr auto block_size = default_block_size;
+    if (1) {
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            oneapi::mkl::blas::row_major::nrm2(
+                *exec->get_queue(), x->get_size()[0],
+                x->get_const_values() + col, x->get_stride(),
+                result->get_values() + col);
+        }
+    } else {
+        using norm_type = remove_complex<ValueType>;
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = default_block_size;
 
-    constexpr auto work_per_block = work_per_thread * block_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    Array<norm_type> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        // functioname compute_partial_norm2<block_size>
-        kernel::compute_partial_norm2<block_size>(
-            grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-            x->get_const_values() + col, x->get_stride(), work.get_data());
-        // functioname finalize_norm2_computation<block_size>
-        kernel::finalize_norm2_computation<block_size>(
-            1, block_dim, 0, exec->get_queue(), grid_dim.x,
-            work.get_const_data(), result->get_values() + col);
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<norm_type> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            // functioname compute_partial_norm2<block_size>
+            kernel::compute_partial_norm2<block_size>(
+                grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
+                x->get_const_values() + col, x->get_stride(), work.get_data());
+            // functioname finalize_norm2_computation<block_size>
+            kernel::finalize_norm2_computation<block_size>(
+                1, block_dim, 0, exec->get_queue(), grid_dim.x,
+                work.get_const_data(), result->get_values() + col);
+        }
     }
-    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
@@ -1605,8 +1605,8 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
     //             handle, oneapi::mkl::transpose::trans,
     //             oneapi::mkl::transpose::nontrans, orig->get_size()[0],
     //             orig->get_size()[1], &alpha, orig->get_const_values(),
-    //             orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-    //             trans->get_size()[1], trans->get_values(),
+    //             orig->get_stride(), &beta, static_cast<ValueType
+    //             *>(nullptr), trans->get_size()[1], trans->get_values(),
     //             trans->get_stride());
     //     }
     // } else {
@@ -1633,8 +1633,8 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
     //             handle, oneapi::mkl::transpose::conjtrans,
     //             oneapi::mkl::transpose::nontrans, orig->get_size()[0],
     //             orig->get_size()[1], &alpha, orig->get_const_values(),
-    //             orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-    //             trans->get_size()[1], trans->get_values(),
+    //             orig->get_stride(), &beta, static_cast<ValueType
+    //             *>(nullptr), trans->get_size()[1], trans->get_values(),
     //             trans->get_stride());
     //     }
     // } else {

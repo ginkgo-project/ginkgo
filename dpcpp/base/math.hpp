@@ -30,64 +30,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
-#define GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
+#ifndef GKO_DPCPP_BASE_MATH_HPP_
+#define GKO_DPCPP_BASE_MATH_HPP_
+
+
+#include <ginkgo/core/base/math.hpp>
 
 
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/types.hpp>
+#include "dpcpp/base/dim3.dp.hpp"
 
-
-#include "dpcpp/base/dpct.hpp"
+// #include <dpct/dpstd_utils.hpp>
+// #include <dpstd/execution>
+// #include <dpstd/algorithm>
+#include <complex>
 
 
 namespace gko {
-namespace kernels {
-namespace dpcpp {
 
 
-// #include "common/components/intrinsics.hpp.inc"
-/**
- * @internal
- * Returns the number of set bits in the given mask.
- */
-__dpct_inline__ int popcnt(uint32 mask) { return sycl::popcount(mask); }
-
-/** @copydoc popcnt */
-__dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
-
-
-/**
- * @internal
- * Returns the (1-based!) index of the first set bit in the given mask,
- * starting from the least significant bit.
- */
-__dpct_inline__ int ffs(uint32 mask) { return __builtin_ffs(mask); }
-
-/** @copydoc ffs */
-__dpct_inline__ int ffs(uint64 mask)
-{
-    // the cast is necessary, as the overloads defined by HIP are ambiguous
-    return __builtin_ffsll(static_cast<unsigned long long int>(mask));
-}
+// #include "common/base/math.hpp.inc"
+// We need this struct, because otherwise we would call a __host__ function in a
+// __device__ function (even though it is constexpr)
+template <typename T>
+struct device_numeric_limits {
+    static constexpr auto inf = std::numeric_limits<T>::infinity();
+    static constexpr auto max = std::numeric_limits<T>::max();
+    static constexpr auto min = std::numeric_limits<T>::min();
+};
 
 
-/**
- * @internal
- * Returns the number of zero bits before the first set bit in the given mask,
- * starting from the most significant bit.
- */
-__dpct_inline__ int clz(uint32 mask) { return __builtin_clz(mask); }
-
-/** @copydoc clz */
-__dpct_inline__ int clz(uint64 mask) { return __builtin_clzll(mask); }
-
-
-}  // namespace dpcpp
-}  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
+#endif  // GKO_DPCPP_BASE_MATH_HPP_
