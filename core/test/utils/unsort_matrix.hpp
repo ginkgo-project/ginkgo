@@ -76,7 +76,7 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType> *mtx,
     for (index_type row = 0; row < size[0]; ++row) {
         auto start = row_ptrs[row];
         auto end = row_ptrs[row + 1];
-        auto iterator = detail::IteratorFactory<IndexType, ValueType>(
+        auto iterator = gko::detail::IteratorFactory<IndexType, ValueType>(
             cols + start, vals + start, end - start);
         std::shuffle(iterator.begin(), iterator.end(), engine);
     }
@@ -122,7 +122,7 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
         }
         current_row = rows[i];
         auto end = i;
-        auto iterator = detail::IteratorFactory<IndexType, ValueType>(
+        auto iterator = gko::detail::IteratorFactory<IndexType, ValueType>(
             cols + start, vals + start, end - start);
         // since the row entries are supposed to be the same, there is no need
         // to swap

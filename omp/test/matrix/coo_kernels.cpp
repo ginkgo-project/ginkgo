@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/coo_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace {
@@ -60,7 +61,7 @@ protected:
     using Vec = gko::matrix::Dense<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
-    Coo() : rand_engine(42) {}
+    Coo() : mtx_size(532, 231), rand_engine(42) {}
 
     void SetUp()
     {
@@ -88,9 +89,9 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231, 1));
-        expected = gen_mtx(532, num_vectors, 1);
-        y = gen_mtx(231, num_vectors, 1);
+        mtx->copy_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
+        expected = gen_mtx(mtx_size[0], num_vectors, 1);
+        y = gen_mtx(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -105,10 +106,30 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    struct matrix_pair {
+        std::unique_ptr<Mtx> ref;
+        std::unique_ptr<Mtx> omp;
+    };
+
+    matrix_pair gen_unsorted_mtx()
+    {
+        constexpr int min_nnz_per_row{2};
+        auto local_mtx_ref = Mtx::create(ref);
+        auto generated = gen_mtx(mtx_size[0], mtx_size[1], min_nnz_per_row);
+        local_mtx_ref->copy_from(generated.get());
+        gko::test::unsort_matrix(local_mtx_ref.get(), rand_engine);
+
+        auto local_mtx_omp = Mtx::create(omp);
+        local_mtx_omp->copy_from(local_mtx_ref.get());
+
+        return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
+    }
+
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
+    const gko::dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
@@ -197,6 +218,18 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
+{
+    set_up_apply_data(3);
+    auto pair = gen_unsorted_mtx();
+
+    pair.ref->apply2(y.get(), expected.get());
+    pair.omp->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
