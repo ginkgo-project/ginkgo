@@ -604,7 +604,7 @@ void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
                         IndexType *inv_permutation)
 {
 #pragma omp parallel for
-    for (size_type i = 0; i < size; ++i) {
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
         inv_permutation[permutation_indices[i]] = i;
     }
 }
@@ -624,7 +624,6 @@ void row_permute(std::shared_ptr<const OmpExecutor> exec, const IndexType *perm,
     auto rp_col_idxs = row_permuted->get_col_idxs();
     auto rp_vals = row_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
-    size_type num_nnz = orig->get_num_stored_elements();
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
@@ -664,7 +663,6 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
     auto rp_col_idxs = row_permuted->get_col_idxs();
     auto rp_vals = row_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
-    size_type num_nnz = orig->get_num_stored_elements();
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

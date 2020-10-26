@@ -694,7 +694,7 @@ void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
                         size_type size, const IndexType *permutation_indices,
                         IndexType *inv_permutation)
 {
-    for (size_type i = 0; i < size; ++i) {
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
         inv_permutation[permutation_indices[i]] = i;
     }
 }
@@ -715,7 +715,6 @@ void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
     auto rp_col_idxs = row_permuted->get_col_idxs();
     auto rp_vals = row_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
-    size_type num_nnz = orig->get_num_stored_elements();
 
     for (size_type row = 0; row < num_rows; ++row) {
         auto src_row = perm[row];
@@ -751,7 +750,6 @@ void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
     auto rp_col_idxs = row_permuted->get_col_idxs();
     auto rp_vals = row_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
-    size_type num_nnz = orig->get_num_stored_elements();
 
     for (size_type row = 0; row < num_rows; ++row) {
         auto src_row = row;
