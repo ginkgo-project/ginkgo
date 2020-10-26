@@ -325,12 +325,11 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto trans = mtx->transpose();
-    auto d_trans = dmtx->transpose();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto d_trans = gko::as<Mtx>(dmtx->transpose());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
-                        static_cast<Mtx *>(trans.get()), 0.0);
-    ASSERT_TRUE(static_cast<Mtx *>(d_trans.get())->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
 }
 
 
@@ -338,13 +337,11 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto trans = complex_mtx->conj_transpose();
-    auto d_trans = complex_dmtx->conj_transpose();
+    auto trans = gko::as<ComplexMtx>(complex_mtx->conj_transpose());
+    auto d_trans = gko::as<ComplexMtx>(complex_dmtx->conj_transpose());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0.0);
-    ASSERT_TRUE(
-        static_cast<ComplexMtx *>(d_trans.get())->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
 }
 
 
@@ -476,56 +473,54 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 TEST_F(Csr, IsRowPermutable)
 {
     set_up_apply_data();
-    auto r_permute = gko::share(mtx->row_permute(rpermute_idxs.get()));
-    auto dr_permute = gko::share(dmtx->row_permute(drpermute_idxs.get()));
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(r_permute),
-                               gko::as<Mtx>(dr_permute));
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(r_permute), gko::as<Mtx>(dr_permute), 0);
+    auto r_permute = gko::as<Mtx>(mtx->row_permute(rpermute_idxs.get()));
+    auto dr_permute = gko::as<Mtx>(dmtx->row_permute(drpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(r_permute, dr_permute);
+    GKO_ASSERT_MTX_NEAR(r_permute, dr_permute, 0);
 }
 
 
 TEST_F(Csr, IsColPermutable)
 {
     set_up_apply_data();
-    auto c_permute = gko::share(mtx->column_permute(cpermute_idxs.get()));
-    auto dc_permute = gko::share(dmtx->column_permute(dcpermute_idxs.get()));
 
-    ASSERT_TRUE(gko::as<Mtx>(dc_permute)->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(c_permute),
-                               gko::as<Mtx>(dc_permute));
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(c_permute), gko::as<Mtx>(dc_permute), 0);
+    auto c_permute = gko::as<Mtx>(mtx->column_permute(cpermute_idxs.get()));
+    auto dc_permute = gko::as<Mtx>(dmtx->column_permute(dcpermute_idxs.get()));
+
+    ASSERT_TRUE(dc_permute->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(c_permute, dc_permute);
+    GKO_ASSERT_MTX_NEAR(c_permute, dc_permute, 0);
 }
 
 
 TEST_F(Csr, IsInverseRowPermutable)
 {
     set_up_apply_data();
-    auto inverse_r_permute =
-        gko::share(mtx->inverse_row_permute(rpermute_idxs.get()));
-    auto d_inverse_r_permute =
-        gko::share(dmtx->inverse_row_permute(drpermute_idxs.get()));
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(inverse_r_permute),
-                               gko::as<Mtx>(d_inverse_r_permute));
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(inverse_r_permute),
-                        gko::as<Mtx>(d_inverse_r_permute), 0);
+    auto inverse_r_permute =
+        gko::as<Mtx>(mtx->inverse_row_permute(rpermute_idxs.get()));
+    auto d_inverse_r_permute =
+        gko::as<Mtx>(dmtx->inverse_row_permute(drpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(inverse_r_permute, d_inverse_r_permute);
+    GKO_ASSERT_MTX_NEAR(inverse_r_permute, d_inverse_r_permute, 0);
 }
 
 
 TEST_F(Csr, IsInverseColPermutable)
 {
     set_up_apply_data();
-    auto inverse_c_permute =
-        gko::share(mtx->inverse_column_permute(cpermute_idxs.get()));
-    auto d_inverse_c_permute =
-        gko::share(dmtx->inverse_column_permute(dcpermute_idxs.get()));
 
-    ASSERT_TRUE(gko::as<Mtx>(d_inverse_c_permute)->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_EQ_SPARSITY(gko::as<Mtx>(inverse_c_permute),
-                               gko::as<Mtx>(d_inverse_c_permute));
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(inverse_c_permute),
-                        gko::as<Mtx>(d_inverse_c_permute), 0);
+    auto inverse_c_permute =
+        gko::as<Mtx>(mtx->inverse_column_permute(cpermute_idxs.get()));
+    auto d_inverse_c_permute =
+        gko::as<Mtx>(dmtx->inverse_column_permute(dcpermute_idxs.get()));
+
+    ASSERT_TRUE(d_inverse_c_permute->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(inverse_c_permute, d_inverse_c_permute);
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute, d_inverse_c_permute, 0);
 }
 
 
