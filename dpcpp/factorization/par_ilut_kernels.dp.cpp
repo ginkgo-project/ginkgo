@@ -52,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "dpcpp/components/csr_spgeam.dp.hpp"
 
 
 namespace gko {
@@ -71,10 +70,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *m,
                       IndexType rank, Array<ValueType> &tmp,
                       Array<remove_complex<ValueType>> &,
-                      remove_complex<ValueType> &threshold)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      remove_complex<ValueType> &threshold) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
@@ -91,10 +87,7 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *m,
                      matrix::Csr<ValueType, IndexType> *m_out,
                      matrix::Coo<ValueType, IndexType> *m_out_coo,
-                     Predicate pred)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                     Predicate pred) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
@@ -102,10 +95,8 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *m,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType> *m_out,
-                      matrix::Coo<ValueType, IndexType> *m_out_coo, bool)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Coo<ValueType, IndexType> *m_out_coo,
+                      bool) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
@@ -116,15 +107,12 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 
 
 template <typename ValueType, typename IndexType>
-void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> &tmp,
-                             remove_complex<ValueType> &threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+void threshold_filter_approx(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *m, IndexType rank,
+    Array<ValueType> &tmp, remove_complex<ValueType> &threshold,
+    matrix::Csr<ValueType, IndexType> *m_out,
+    matrix::Coo<ValueType, IndexType> *m_out_coo) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
@@ -138,9 +126,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          matrix::Csr<ValueType, IndexType> *u,
                          const matrix::Coo<ValueType, IndexType> *,
                          matrix::Csr<ValueType, IndexType> *u_csc)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL);
@@ -154,9 +140,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *u,
                     matrix::Csr<ValueType, IndexType> *l_new,
                     matrix::Csr<ValueType, IndexType> *u_new)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL);

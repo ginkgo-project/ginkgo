@@ -64,10 +64,8 @@ namespace coo {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
@@ -78,10 +76,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Coo<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
@@ -90,10 +85,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Coo<ValueType, IndexType> *a,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+           const matrix::Dense<ValueType> *b,
+           matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
@@ -103,10 +96,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType> *alpha,
                     const matrix::Coo<ValueType, IndexType> *a,
                     const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                    matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
@@ -115,19 +105,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                              IndexType *ptrs,
+                              size_type length) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Coo<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
@@ -136,10 +122,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Coo<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
@@ -148,10 +131,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);

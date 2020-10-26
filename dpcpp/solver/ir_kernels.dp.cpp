@@ -48,10 +48,7 @@ namespace ir {
 
 
 void initialize(std::shared_ptr<const DpcppExecutor> exec,
-                Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace ir

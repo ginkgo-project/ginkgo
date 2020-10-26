@@ -72,6 +72,21 @@ function(ginkgo_print_variable log_type var_name)
     FILE(APPEND ${log_type} "${upd_string}")
 endfunction()
 
+
+function(ginkgo_print_env_variable log_type var_name)
+    string(SUBSTRING
+        "
+--        ${var_name}:                                                          " 0 55 upd_string)
+    if(NOT ENV{${var_name}})
+        set(str_value "<empty>")
+    else()
+        set(str_value "$ENV{${var_name}}")
+    endif()
+    string(APPEND upd_string "${str_value}")
+    FILE(APPEND ${log_type} "${upd_string}")
+endfunction()
+
+
 macro(ginkgo_print_foreach_variable variables)
     foreach(var ${variables})
         ginkgo_print_variable(${${log_type}} ${var} )

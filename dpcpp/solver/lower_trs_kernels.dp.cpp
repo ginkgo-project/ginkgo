@@ -60,10 +60,7 @@ namespace lower_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                              bool &do_transpose)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
 
 
 void init_struct(std::shared_ptr<const DpcppExecutor> exec,
@@ -97,10 +94,8 @@ void solve(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+           const matrix::Dense<ValueType> *b,
+           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);

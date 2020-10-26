@@ -60,30 +60,22 @@ namespace {
 template <typename ValueType>
 void finish_arnoldi(size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
-                    const stopping_status *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                    const stopping_status *stop_status) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
 void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
                            matrix::Dense<ValueType> *givens_cos,
                            matrix::Dense<ValueType> *hessenberg_iter,
-                           size_type iter, const size_type rhs)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                           size_type iter,
+                           const size_type rhs) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
 void givens_rotation(matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
-                     const stopping_status *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                     const stopping_status *stop_status) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
@@ -91,30 +83,21 @@ void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
     matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *residual_norm_collection, size_type iter,
-    const stopping_status *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+    const stopping_status *stop_status) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType> *residual_norm_collection,
     const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-    const size_type *final_iter_nums)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+    const size_type *final_iter_nums) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
 void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
-                  const size_type *final_iter_nums)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                  const size_type *final_iter_nums) GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace
@@ -126,10 +109,8 @@ void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, size_type krylov_dim)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                  Array<stopping_status> *stop_status,
+                  size_type krylov_dim) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
@@ -140,10 +121,8 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, size_type krylov_dim)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                  Array<size_type> *final_iter_nums,
+                  size_type krylov_dim) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
@@ -157,10 +136,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
             Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
@@ -172,10 +148,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType> *hessenberg,
             matrix::Dense<ValueType> *y,
             matrix::Dense<ValueType> *before_preconditioner,
-            const Array<size_type> *final_iter_nums)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+            const Array<size_type> *final_iter_nums) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
 

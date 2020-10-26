@@ -55,10 +55,7 @@ template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Diagonal<ValueType> *a,
                     const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                    matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
@@ -67,10 +64,7 @@ template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                           const matrix::Diagonal<ValueType> *a,
                           const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
@@ -80,10 +74,7 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::Diagonal<ValueType> *a,
                   const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                  matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
@@ -94,9 +85,7 @@ void right_apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                         const matrix::Diagonal<ValueType> *a,
                         const matrix::Csr<ValueType, IndexType> *b,
                         matrix::Csr<ValueType, IndexType> *c)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
@@ -106,9 +95,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Diagonal<ValueType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
@@ -117,10 +104,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Diagonal<ValueType> *orig,
-                    matrix::Diagonal<ValueType> *trans)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                    matrix::Diagonal<ValueType> *trans) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 

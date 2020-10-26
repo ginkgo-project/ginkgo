@@ -64,10 +64,7 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
                 matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
@@ -78,10 +75,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev,
-            const Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
@@ -93,10 +87,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *gamma,
-            const Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
@@ -105,10 +96,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<stopping_status> *stop_status)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 

@@ -48,7 +48,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
 {
     exec->get_queue()->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl::range<1>{n}, [=](sycl::id<1> idx_id) {
-            const int idx = idx_id[0];
+            const auto idx = idx_id[0];
             array[idx] = val;
         });
     });
