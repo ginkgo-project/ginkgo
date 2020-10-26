@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <iostream>
 // #include <dpcpp/base/cusparse_bindings.hpp>
 
 
@@ -59,6 +60,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
+
+#ifdef __SYCL_DEVICE_ONLY__
+#define CONSTANT_AS __attribute__((opencl_constant))
+#else
+#define CONSTANT_AS
+#endif
 
 namespace gko {
 namespace kernels {
@@ -102,7 +109,7 @@ constexpr int max_thread_per_worker = 16;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16>;
+using compiled_kernels = syn::value_list<int, 0, 8, 16>;
 
 
 // #include "common/matrix/ell_kernels.hpp.inc"
@@ -147,9 +154,9 @@ void spmv_kernel(
             const auto x = tidx % num_rows;
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
-
+            ValueType *storage_val = *storage;
             if (idx_in_worker == 0) {
-                (*storage)[item_ct1.get_local_id(2)] = 0;
+                storage_val[item_ct1.get_local_id(2)] = 0;
             }
             item_ct1.barrier();
             ValueType temp = zero<ValueType>();
@@ -164,17 +171,23 @@ void spmv_kernel(
                     temp += val[ind] * b[col_idx * b_stride + column_id];
                 }
             }
-            atomic_add(&(*storage)[item_ct1.get_local_id(2)], temp);
+            atomic_add(&(storage_val[item_ct1.get_local_id(2)]), temp);
             item_ct1.barrier();
             if (idx_in_worker == 0) {
                 const auto c_ind = x * c_stride + column_id;
+                const CONSTANT_AS char FMT[] =
+                    "c_ind: %d, val: %lf, c: %lf, temp: %lf\n";
+                auto val_tmp =
+                    static_cast<double>(storage_val[item_ct1.get_local_id(2)]);
+                cl::sycl::intel::experimental::printf(FMT, c_ind, val_tmp,
+                                                      c[c_ind], temp);
                 if (atomic) {
                     atomic_add(
                         &(c[c_ind]),
-                        op((*storage)[item_ct1.get_local_id(2)], c[c_ind]));
+                        op(storage_val[item_ct1.get_local_id(2)], c[c_ind]));
                 } else {
                     c[c_ind] =
-                        op((*storage)[item_ct1.get_local_id(2)], c[c_ind]);
+                        op(storage_val[item_ct1.get_local_id(2)], c[c_ind]);
                 }
             }
         }
@@ -209,6 +222,9 @@ void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
           const size_type num_stored_elements_per_row, const ValueType *b,
           const size_type b_stride, ValueType *c, const size_type c_stride)
 {
+    std::cout << "kernel - atomic " << atomic << ", num_thread_per_worker "
+              << num_thread_per_worker << ", num_worker_per_row"
+              << num_worker_per_row << std::endl;
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, default_block_size /
                                                          num_thread_per_worker>,
@@ -578,7 +594,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Ell<ValueType, IndexType> *a)
 {
-    int num_thread_per_worker = 1;
+    int num_thread_per_worker = 8;
     int atomic = 0;
     int num_worker_per_row = 1;
 
@@ -625,7 +641,9 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     const int num_thread_per_worker = std::get<0>(data);
     const int atomic = std::get<1>(data);
     const int num_worker_per_row = std::get<2>(data);
-
+    std::cout << "Usage: atomic-" << atomic << ", num_thread_per_worker-"
+              << num_thread_per_worker << ", num_worker_per_row-"
+              << num_worker_per_row << std::endl;
     /**
      * info is the parameter for selecting the dpcpp kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic

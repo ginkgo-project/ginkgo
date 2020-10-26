@@ -137,58 +137,58 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
+// {
+//     set_up_apply_data();
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
-{
-    set_up_apply_data(532, 231, 1, 300, 600);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
-{
-    set_up_apply_data(532, 231, 1, 300, 600);
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+// TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
+// {
+//     set_up_apply_data(532, 231, 1, 300, 600);
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     mtx->apply(y.get(), expected.get());
+//     dmtx->apply(dy.get(), dresult.get());
 
-
-TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(532, 231, 3, 300, 600);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(532, 231, 3, 300, 600);
+// TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
+// {
+//     set_up_apply_data(532, 231, 1, 300, 600);
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+
+// TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(532, 231, 3, 300, 600);
+
+//     mtx->apply(y.get(), expected.get());
+//     dmtx->apply(dy.get(), dresult.get());
+
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
+
+
+// TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(532, 231, 3, 300, 600);
+
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
 TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
@@ -202,180 +202,180 @@ TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
-{
-    set_up_apply_data(10, 10000);
+// TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
+// {
+//     set_up_apply_data(10, 10000);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(10, 10000, 3);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
-{
-    set_up_apply_data(10, 10000, 3);
+// TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(10, 10000, 3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     mtx->apply(y.get(), expected.get());
+//     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(1, 10);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(1, 10, 3);
+// TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
+// {
+//     set_up_apply_data(10, 10000, 3);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, SimpleApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(1, 10, 3);
-
-    mtx->apply(y.get(), expected.get());
-    dmtx->apply(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, AdvancedApplyOnSmallMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(1, 10);
+// TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(1, 10);
 
-    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
-    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//     mtx->apply(y.get(), expected.get());
+//     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
-
-    mtx->convert_to(dense_mtx.get());
-    dmtx->convert_to(ddense_mtx.get());
-
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(1, 10, 3);
 
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    mtx->convert_to(csr_mtx.get());
-    dmtx->convert_to(dcsr_mtx.get());
-
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, SimpleApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(1, 10, 3);
 
-    gko::Array<gko::size_type> nnz_per_row;
-    nnz_per_row.set_executor(ref);
-    nnz_per_row.resize_and_reset(mtx->get_size()[0]);
+//     mtx->apply(y.get(), expected.get());
+//     dmtx->apply(dy.get(), dresult.get());
 
-    gko::Array<gko::size_type> dnnz_per_row;
-    dnnz_per_row.set_executor(dpcpp);
-    dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
-
-    gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
-                                                             &nnz_per_row);
-    gko::kernels::dpcpp::ell::calculate_nonzeros_per_row(dpcpp, dmtx.get(),
-                                                         &dnnz_per_row);
-
-    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
-    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
-        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
-    }
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, CountNNZIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, AdvancedApplyOnSmallMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data(1, 10);
 
-    gko::size_type nnz;
-    gko::size_type dnnz;
+//     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
-    gko::kernels::dpcpp::ell::count_nonzeros(dpcpp, dmtx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
-}
+//     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+// }
 
 
-TEST_F(Ell, ExtractDiagonalIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
+// {
+//     set_up_apply_data();
 
-    auto diag = mtx->extract_diagonal();
-    auto ddiag = dmtx->extract_diagonal();
+//     auto dense_mtx = gko::matrix::Dense<>::create(ref);
+//     auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
 
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-}
+//     mtx->convert_to(dense_mtx.get());
+//     dmtx->convert_to(ddense_mtx.get());
 
-
-TEST_F(Ell, InplaceAbsoluteMatrixIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->compute_absolute_inplace();
-    dmtx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
-}
+//     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+// }
 
 
-TEST_F(Ell, OutplaceAbsoluteMatrixIsEquivalentToRef)
-{
-    set_up_apply_data();
+// TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
+// {
+//     set_up_apply_data();
 
-    auto abs_mtx = mtx->compute_absolute();
-    auto dabs_mtx = dmtx->compute_absolute();
+//     auto csr_mtx = gko::matrix::Csr<>::create(ref);
+//     auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
-}
+//     mtx->convert_to(csr_mtx.get());
+//     dmtx->convert_to(dcsr_mtx.get());
+
+//     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+// }
+
+
+// TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+
+//     gko::Array<gko::size_type> nnz_per_row;
+//     nnz_per_row.set_executor(ref);
+//     nnz_per_row.resize_and_reset(mtx->get_size()[0]);
+
+//     gko::Array<gko::size_type> dnnz_per_row;
+//     dnnz_per_row.set_executor(dpcpp);
+//     dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
+
+//     gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
+//                                                              &nnz_per_row);
+//     gko::kernels::dpcpp::ell::calculate_nonzeros_per_row(dpcpp, dmtx.get(),
+//                                                          &dnnz_per_row);
+
+//     auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
+//     for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
+//         ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
+//     }
+// }
+
+
+// TEST_F(Ell, CountNNZIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+
+//     gko::size_type nnz;
+//     gko::size_type dnnz;
+
+//     gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
+//     gko::kernels::dpcpp::ell::count_nonzeros(dpcpp, dmtx.get(), &dnnz);
+
+//     ASSERT_EQ(nnz, dnnz);
+// }
+
+
+// TEST_F(Ell, ExtractDiagonalIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+
+//     auto diag = mtx->extract_diagonal();
+//     auto ddiag = dmtx->extract_diagonal();
+
+//     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+// }
+
+
+// TEST_F(Ell, InplaceAbsoluteMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+
+//     mtx->compute_absolute_inplace();
+//     dmtx->compute_absolute_inplace();
+
+//     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+// }
+
+
+// TEST_F(Ell, OutplaceAbsoluteMatrixIsEquivalentToRef)
+// {
+//     set_up_apply_data();
+
+//     auto abs_mtx = mtx->compute_absolute();
+//     auto dabs_mtx = dmtx->compute_absolute();
+
+//     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+// }
 
 
 }  // namespace
