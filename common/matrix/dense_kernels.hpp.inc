@@ -557,7 +557,7 @@ __global__ __launch_bounds__(default_block_size) void make_complex(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void get_real(
     size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
-    size_type stride_in, to_complex<ValueType> *__restrict__ out,
+    size_type stride_in, remove_complex<ValueType> *__restrict__ out,
     size_type stride_out)
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -572,7 +572,7 @@ __global__ __launch_bounds__(default_block_size) void get_real(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void get_imag(
     size_type num_rows, size_type num_cols, const ValueType *__restrict__ in,
-    size_type stride_in, to_complex<ValueType> *__restrict__ out,
+    size_type stride_in, remove_complex<ValueType> *__restrict__ out,
     size_type stride_out)
 {
     const auto tidx = thread::get_thread_id_flat();
