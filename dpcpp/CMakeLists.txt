@@ -45,6 +45,7 @@ ginkgo_compile_features(ginkgo_dpcpp)
 set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
+target_link_libraries(ginkgo_dpcpp PRIVATE "mkl_sycl;mkl_intel_ilp64;mkl_sequential;mkl_core")
 
 ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp dpcpp)

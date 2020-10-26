@@ -364,6 +364,15 @@ public:
         {}
 
         /**
+         * Creates a load_balance strategy with DPCPP executor.
+         *
+         * @param exec the HIP executor
+         */
+        load_balance(std::shared_ptr<const DpcppExecutor> exec)
+            : load_balance(16, 16, false)
+        {}
+
+        /**
          * Creates a load_balance strategy with specified parameters
          *
          * @param nwarps the number of warps in the executor
@@ -446,7 +455,9 @@ public:
                 } else if (nnz >= static_cast<int64_t>(2e5)) {
                     multiple = 32;
                 }
-
+                if (!cuda_strategy_) {
+                    multiple = 1;
+                }
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
@@ -516,6 +527,15 @@ public:
          */
         automatical(std::shared_ptr<const HipExecutor> exec)
             : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        /**
+         * Creates an automatical strategy with Dpcpp executor.
+         *
+         * @param exec the Dpcpp executor
+         */
+        automatical(std::shared_ptr<const DpcppExecutor> exec)
+            : automatical(16, 16, false)
         {}
 
         /**
@@ -931,6 +951,8 @@ protected:
             auto cuda_exec =
                 std::dynamic_pointer_cast<const CudaExecutor>(rexec);
             auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+            auto dpcpp_exec =
+                std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
             auto lb = dynamic_cast<load_balance *>(strat);
             if (cuda_exec) {
                 if (lb) {
@@ -950,6 +972,15 @@ protected:
                     new_strat = std::make_shared<typename CsrType::automatical>(
                         hip_exec);
                 }
+            } else if (dpcpp_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            dpcpp_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        dpcpp_exec);
+                }
             } else {
                 // Try to preserve this executor's configuration
                 auto this_cuda_exec =
@@ -957,6 +988,9 @@ protected:
                         this->get_executor());
                 auto this_hip_exec =
                     std::dynamic_pointer_cast<const HipExecutor>(
+                        this->get_executor());
+                auto this_dpcpp_exec =
+                    std::dynamic_pointer_cast<const DpcppExecutor>(
                         this->get_executor());
                 if (this_cuda_exec) {
                     if (lb) {
@@ -977,6 +1011,16 @@ protected:
                         new_strat =
                             std::make_shared<typename CsrType::automatical>(
                                 this_hip_exec);
+                    }
+                } else if (this_dpcpp_exec) {
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>(
+                                this_dpcpp_exec);
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>(
+                                this_dpcpp_exec);
                     }
                 } else {
                     // We had a load balance or automatical strategy from a non
@@ -1003,6 +1047,19 @@ protected:
     {
         srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
         strategy_->process(row_ptrs_, &srow_);
+        // if strategy is cusparse or sparselib in dpcpp set mat_handle
+        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(
+            this->get_executor());
+        // if (strategy_->get_name() == "cusparse" ||
+        //     strategy_->get_name() == "sparselib") {
+        //     if (dpcpp_exec) {
+        //         oneapi::mkl::sparse::init_matrix_handle(&mat_handle_);
+        //         oneapi::mkl::sparse::set_csr_data(
+        //             mat_handle_, int(csr->get_size()[0]),
+        //             int(csr->get_size()[1]), oneapi::mkl::index_base::zero,
+        //             row_ptrs_, col_idxs_, values_);
+        //     }
+        // }
     }
 
 private:
@@ -1011,6 +1068,7 @@ private:
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
+    // oneapi::mkl::sparse::matrix_handle_t mat_handle_;
 };
 
 

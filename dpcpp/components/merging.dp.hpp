@@ -34,17 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_COMPONENTS_MERGING_DP_HPP_
 
 
-// #include <dpcpp/base/math.hpp>
-#include <dpcpp/components/searching.dp.hpp>
-
-
 #include <CL/sycl.hpp>
 
 
 #include "core/base/utils.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/searching.dp.hpp"
 
 
 namespace gko {
