@@ -82,6 +82,7 @@ TEST(OmpExecutor, RunsCorrectOperation)
     exec_ptr omp = gko::OmpExecutor::create();
 
     omp->run(ExampleOperation(value));
+
     ASSERT_EQ(1, value);
 }
 
@@ -96,6 +97,7 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     exec_ptr omp = gko::OmpExecutor::create();
 
     omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(1, value);
 }
 
@@ -160,6 +162,7 @@ TEST(ReferenceExecutor, RunsCorrectOperation)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ref->run(ExampleOperation(value));
+
     ASSERT_EQ(5, value);
 }
 
@@ -174,6 +177,7 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(1, value);
 }
 
@@ -285,6 +289,7 @@ TEST(CudaExecutor, RunsCorrectOperation)
         gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(ExampleOperation(value));
+
     ASSERT_EQ(2, value);
 }
 
@@ -300,6 +305,7 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
         gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(2, value);
 }
 
@@ -357,6 +363,7 @@ TEST(HipExecutor, RunsCorrectOperation)
     exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
     hip->run(ExampleOperation(value));
+
     ASSERT_EQ(3, value);
 }
 
@@ -371,6 +378,7 @@ TEST(HipExecutor, RunsCorrectLambdaOperation)
     exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
     hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(3, value);
 }
 
@@ -428,6 +436,7 @@ TEST(DpcppExecutor, RunsCorrectOperation)
     exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
 
     dpcpp->run(ExampleOperation(value));
+
     ASSERT_EQ(4, value);
 }
 
@@ -442,6 +451,7 @@ TEST(DpcppExecutor, RunsCorrectLambdaOperation)
     exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
 
     dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(4, value);
 }
 
@@ -498,6 +508,7 @@ TEST(ExecutorDeleter, DeletesObject)
 TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
 {
     int x[5];
+
     ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
 }
 

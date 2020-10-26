@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+
 version version_info::get_dpcpp_version() noexcept
 {
     // We just return the version with a special "not compiled" tag in
@@ -85,9 +86,11 @@ void DpcppExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
+
 void DpcppExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
+
 
 void DpcppExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
