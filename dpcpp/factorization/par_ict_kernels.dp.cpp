@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "dpcpp/components/csr_spgeam.dp.hpp"
 
 
 namespace gko {
@@ -67,9 +66,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *a,
                     matrix::Csr<ValueType, IndexType> *l,
                     const matrix::Coo<ValueType, IndexType> *)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL);
@@ -81,9 +78,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *a,
                     const matrix::Csr<ValueType, IndexType> *l,
                     matrix::Csr<ValueType, IndexType> *l_new)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL);

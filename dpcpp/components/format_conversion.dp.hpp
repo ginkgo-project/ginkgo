@@ -56,10 +56,8 @@ namespace dpcpp {
 template <typename IndexType>
 inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
                                           size_type num_nonzeros,
-                                          IndexType *ptrs, size_type length)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                                          IndexType *ptrs,
+                                          size_type length) GKO_NOT_IMPLEMENTED;
 
 
 /**
@@ -72,18 +70,12 @@ inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
 template <typename IndexType>
 inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
                                         size_type num_nonzeros, IndexType *ptrs,
-                                        size_type length)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                                        size_type length) GKO_NOT_IMPLEMENTED;
 
 
 template <typename IndexType>
 inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
-                                 IndexType *idxs)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                                 IndexType *idxs) GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace dpcpp

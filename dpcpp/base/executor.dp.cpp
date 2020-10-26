@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <map>
 #include <string>
@@ -56,6 +58,8 @@ const std::vector<sycl::device> get_devices(std::string device_type)
         {"all", sycl::info::device_type::all},
         {"cpu", sycl::info::device_type::cpu},
         {"gpu", sycl::info::device_type::gpu}};
+    std::for_each(device_type.begin(), device_type.end(),
+                  [](char &c) { c = std::tolower(c); });
     return sycl::device::get_devices(device_type_map.at(device_type));
 }
 
@@ -123,7 +127,6 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
-        // TODO: does this work? Or is it needed to go through host?
         dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
     }
 }
@@ -147,11 +150,17 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 }
 
 
+namespace detail {
+
+
 void delete_queue(sycl::queue *queue)
 {
     queue->wait();
     delete queue;
 }
+
+
+}  // namespace detail
 
 
 void DpcppExecutor::set_device_property()
@@ -174,8 +183,13 @@ void DpcppExecutor::set_device_property()
     }
     max_workgroup_size_ =
         device.get_info<sycl::info::device::max_work_group_size>();
+    // Here we declare the queue with the property `in_order` which ensures the
+    // kernels are executed in the submission order. Otherwise, calls to
+    // `wait()` would be needed after every call to a DPC++ function or kernel.
+    // For example, without `in_order`, doing a copy, a kernel, and a copy, will
+    // not necessarily happen in that order by default, which we need to avoid.
     auto *queue = new sycl::queue{device, sycl::property::queue::in_order{}};
-    queue_ = std::move(queue_manager<sycl::queue>{queue, delete_queue});
+    queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 
 

@@ -53,10 +53,8 @@ namespace sellp {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Sellp<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
@@ -67,10 +65,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Sellp<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
@@ -79,10 +74,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Sellp<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
@@ -110,10 +102,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Sellp<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);

@@ -47,13 +47,9 @@ namespace components {
 
 template <typename IndexType>
 void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType *counts,
-                size_type num_entries)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                size_type num_entries) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
 // instantiate for size_type as well, as this is used in the Sellp format
 template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 

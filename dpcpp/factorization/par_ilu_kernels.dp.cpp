@@ -53,14 +53,11 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
-                         size_type iterations,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+void compute_l_u_factors(
+    std::shared_ptr<const DpcppExecutor> exec, size_type iterations,
+    const matrix::Coo<ValueType, IndexType> *system_matrix,
+    matrix::Csr<ValueType, IndexType> *l_factor,
+    matrix::Csr<ValueType, IndexType> *u_factor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);

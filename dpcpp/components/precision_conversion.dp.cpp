@@ -48,7 +48,7 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 {
     exec->get_queue()->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
-            const int idx = idx_id[0];
+            const auto idx = idx_id[0];
             out[idx] = in[idx];
         });
     });

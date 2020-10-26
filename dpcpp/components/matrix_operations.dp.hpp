@@ -48,13 +48,9 @@ namespace dpcpp {
  * Computes the infinity norm of a column-major matrix.
  */
 template <typename ValueType>
-remove_complex<ValueType> compute_inf_norm(size_type num_rows,
-                                           size_type num_cols,
-                                           const ValueType *matrix,
-                                           size_type stride)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+remove_complex<ValueType> compute_inf_norm(
+    size_type num_rows, size_type num_cols, const ValueType *matrix,
+    size_type stride) GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace dpcpp

@@ -62,10 +62,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, Array<stopping_status> *stop_status,
                    Array<bool> *device_storage, bool *all_converged,
-                   bool *one_changed)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                   bool *one_changed) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
     GKO_DECLARE_RESIDUAL_NORM_KERNEL);

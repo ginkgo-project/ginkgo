@@ -59,10 +59,8 @@ namespace ell {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+          const matrix::Dense<ValueType> *b,
+          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
@@ -73,10 +71,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
@@ -85,10 +80,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Ell<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
@@ -106,10 +98,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                    size_type *result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
@@ -127,10 +116,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
