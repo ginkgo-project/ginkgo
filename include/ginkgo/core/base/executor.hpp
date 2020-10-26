@@ -374,6 +374,8 @@ private:                                                                     \
                   "semi-colon warnings")
 
 
+#define GKO_DECLARE_EXECUTOR_FRIEND(_type, ...) friend class _type
+
 /**
  * The first step in using the Ginkgo library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
@@ -465,11 +467,7 @@ class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
-#define GKO_DECLARE_EXECUTOR_FRIEND(_type, ...) friend class _type
-
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
-
-#undef GKO_DECLARE_EXECUTOR_FRIEND
 
 public:
     virtual ~Executor() = default;
@@ -817,11 +815,7 @@ namespace detail {
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
-#define GKO_DECLARE_EXECUTOR_FRIEND(_type, ...) friend class _type
-
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
-
-#undef GKO_DECLARE_EXECUTOR_FRIEND
 
 public:
     void run(const Operation &op) const override
@@ -850,6 +844,7 @@ private:
     }
 };
 
+#undef GKO_DECLARE_EXECUTOR_FRIEND
 
 /**
  * Controls whether the DeviceReset function should be called thanks to a
