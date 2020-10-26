@@ -104,9 +104,9 @@ get_include_regex () {
         if [ ! -z "${path_prefix}" ]; then
             path_prefix="${path_prefix}/"
         fi
-        local_output=$(echo "${file}" | sed -E "s~\.hip~~g;s~$path_regex~$path_prefix\2~g")
+        local_output=$(echo "${file}" | sed -E "s~\.(hip|dp)~~g;s~$path_regex~$path_prefix\2~g")
         local_output=$(echo "${local_output}" | sed -E "s~$core_suffix$~~g")
-        local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|cuh)(\"|>)"
+        local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|dp\.hpp|cuh)(\"|>)"
         if [ "${remove_test}" = "true" ]; then
             local_output=$(echo "${local_output}" | sed -E "s~test/~~g")
         fi
