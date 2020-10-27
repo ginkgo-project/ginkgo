@@ -207,9 +207,25 @@ public:
                   "semi-colon warnings")
 
     GKO_BIND_SHFL(shfl, shuffle);
-    GKO_BIND_SHFL(shfl_up, shuffle_up);
-    GKO_BIND_SHFL(shfl_down, shuffle_down);
+    // GKO_BIND_SHFL(shfl_up, shuffle_up);
+    // GKO_BIND_SHFL(shfl_down, shuffle_down);
     GKO_BIND_SHFL(shfl_xor, shuffle_xor);
+
+    template <typename ValueType, typename SelectorType>
+    __dpct_inline__ ValueType shfl_up(ValueType var,
+                                      SelectorType selector) const noexcept
+    {
+        const auto result = this->shuffle_up(var, selector);
+        return (data_.rank < selector) ? var : result;
+    }
+
+    template <typename ValueType, typename SelectorType>
+    __dpct_inline__ ValueType shfl_down(ValueType var,
+                                        SelectorType selector) const noexcept
+    {
+        const auto result = this->shuffle_down(var, selector);
+        return (data_.rank + selector >= Size) ? var : result;
+    }
 
     /**
      * Returns a bitmask containing the value of the given predicate
