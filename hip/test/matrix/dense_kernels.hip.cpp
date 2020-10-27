@@ -633,7 +633,7 @@ TEST_F(Dense, MakeComplexIsEquivalentToRef)
     auto complex_x = x->make_complex();
     auto dcomplex_x = dx->make_complex();
 
-    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
 }
 
 
@@ -644,7 +644,7 @@ TEST_F(Dense, GetRealIsEquivalentToRef)
     auto real_x = x->get_real();
     auto dreal_x = dx->get_real();
 
-    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
 }
 
 
@@ -655,7 +655,7 @@ TEST_F(Dense, GetImagIsEquivalentToRef)
     auto imag_x = x->get_imag();
     auto dimag_x = dx->get_imag();
 
-    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
 }
 
 
