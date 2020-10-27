@@ -142,7 +142,7 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto element_id = item_ct1.get_local_id(2);
     const CONSTANT_AS char FMTd[] = "n: tidx %u element_id%u\n";
-    // cl::sycl::intel::experimental::printf(FMTd, static_cast<unsigned>(tidx),
+    // cl::sycl::ONEAPI::experimental::printf(FMTd, static_cast<unsigned>(tidx),
     // static_cast<unsigned>(element_id));
     // ValueType *(*prefix_helper) = *prefix_helper;
     // do not need to access the last element when exclusive prefix sum
@@ -153,9 +153,9 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
     // const CONSTANT_AS char FMTe[] = "elem: %lf %lf %lf\n";
 
     // if (tidx == 0) {
-    //     cl::sycl::intel::experimental::printf(FMTe, elements[0], elements[1],
+    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
     //                                           elements[2]);
-    //     cl::sycl::intel::experimental::printf(
+    //     cl::sycl::ONEAPI::experimental::printf(
     //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
     //         (*prefix_helper)[2],
     //         (*prefix_helper)[3]);
@@ -174,9 +174,9 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
     }
 
     // if (element_id == 0) {
-    //     cl::sycl::intel::experimental::printf(FMTe, elements[0], elements[1],
+    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
     //                                           elements[2]);
-    //     cl::sycl::intel::experimental::printf(
+    //     cl::sycl::ONEAPI::experimental::printf(
     //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
     //         (*prefix_helper)[2],
     //         (*prefix_helper)[3]);
@@ -207,9 +207,9 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
         elements[tidx] = (*prefix_helper)[element_id];
     }
     // if (element_id == 0) {
-    //     cl::sycl::intel::experimental::printf(FMTe, elements[0], elements[1],
+    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
     //                                           elements[2]);
-    //     cl::sycl::intel::experimental::printf(
+    //     cl::sycl::ONEAPI::experimental::printf(
     //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
     //         (*prefix_helper)[2],
     //         (*prefix_helper)[3]);

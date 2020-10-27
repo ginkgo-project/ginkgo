@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <mkl_blas_sycl.hpp>
+#include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
