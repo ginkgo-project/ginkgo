@@ -180,7 +180,7 @@ void spmv_kernel(
                     "c_ind: %d, val: %lf, c: %lf, temp: %lf\n";
                 auto val_tmp =
                     static_cast<double>(storage_val[item_ct1.get_local_id(2)]);
-                cl::sycl::intel::experimental::printf(FMT, c_ind, val_tmp,
+                cl::sycl::ONEAPI::experimental::printf(FMT, c_ind, val_tmp,
                                                       c[c_ind], temp);
                 if (atomic) {
                     atomic_add(

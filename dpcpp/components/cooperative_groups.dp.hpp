@@ -170,8 +170,8 @@ namespace detail {
  *
  */
 template <unsigned Size>
-class thread_block_tile : public cl::sycl::intel::sub_group {
-    using sub_group = cl::sycl::intel::sub_group;
+class thread_block_tile : public cl::sycl::ONEAPI::sub_group {
+    using sub_group = cl::sycl::ONEAPI::sub_group;
     using id_type = sub_group::id_type;
     using mask_type = config::lane_mask_type;
 
@@ -212,16 +212,16 @@ public:
     GKO_BIND_SHFL(shfl_xor, shuffle_xor);
 
     template <typename ValueType, typename SelectorType>
-    __dpct_inline__ ValueType shfl_up(ValueType var,
-                                      SelectorType selector) const noexcept
+    __dpct_inline__ ValueType shfl_up(ValueType var, SelectorType selector)
+        const noexcept
     {
         const auto result = this->shuffle_up(var, selector);
         return (data_.rank < selector) ? var : result;
     }
 
     template <typename ValueType, typename SelectorType>
-    __dpct_inline__ ValueType shfl_down(ValueType var,
-                                        SelectorType selector) const noexcept
+    __dpct_inline__ ValueType shfl_down(ValueType var, SelectorType selector)
+        const noexcept
     {
         const auto result = this->shuffle_down(var, selector);
         return (data_.rank + selector >= Size) ? var : result;
@@ -236,13 +236,13 @@ public:
      */
     __dpct_inline__ mask_type ballot(int predicate) const noexcept
     {
-        // return cl::sycl::intel::reduce(
-        //     static_cast<cl::sycl::intel::sub_group>(*this),
+        // return cl::sycl::ONEAPI::reduce(
+        //     static_cast<cl::sycl::ONEAPI::sub_group>(*this),
         //     (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-        //     cl::sycl::intel::plus<mask_type>());
-        return cl::sycl::intel::reduce(
+        //     cl::sycl::ONEAPI::plus<mask_type>());
+        return cl::sycl::ONEAPI::reduce(
             *this, (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-            cl::sycl::intel::plus<mask_type>());
+            cl::sycl::ONEAPI::plus<mask_type>());
     }
 
     /**
@@ -251,11 +251,11 @@ public:
      */
     __dpct_inline__ bool any(int predicate) const noexcept
     {
-        // return cl::sycl::intel::reduce(
-        //     static_cast<cl::sycl::intel::sub_group>(*this),
+        // return cl::sycl::ONEAPI::reduce(
+        //     static_cast<cl::sycl::ONEAPI::sub_group>(*this),
         //     (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-        //     cl::sycl::intel::plus<mask_type>());
-        return cl::sycl::intel::any_of(*this, (predicate != 0));
+        //     cl::sycl::ONEAPI::plus<mask_type>());
+        return cl::sycl::ONEAPI::any_of(*this, (predicate != 0));
     }
 
     /**
@@ -264,11 +264,11 @@ public:
      */
     __dpct_inline__ bool all(int predicate) const noexcept
     {
-        // return cl::sycl::intel::reduce(
-        //     static_cast<cl::sycl::intel::sub_group>(*this),
+        // return cl::sycl::ONEAPI::reduce(
+        //     static_cast<cl::sycl::ONEAPI::sub_group>(*this),
         //     (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-        //     cl::sycl::intel::plus<mask_type>());
-        return cl::sycl::intel::all_of(*this, (predicate != 0));
+        //     cl::sycl::ONEAPI::plus<mask_type>());
+        return cl::sycl::ONEAPI::all_of(*this, (predicate != 0));
     }
 
 
