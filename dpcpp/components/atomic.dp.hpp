@@ -42,17 +42,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/dpct.hpp"
 
+// #include "dpct/atomic.hpp"
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+namespace atomic {
+constexpr cl::sycl::access::address_space local_space =
+    cl::sycl::access::address_space::local_space;
+constexpr cl::sycl::access::address_space global_space =
+    cl::sycl::access::address_space::global_space;
+}  // namespace atomic
+
 namespace {
 
 
-template <typename T, cl::sycl::access::address_space addressSpace =
-                          cl::sycl::access::address_space::global_space>
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
 T atomic_compare_exchange_strong(
-    cl::sycl::multi_ptr<T, cl::sycl::access::address_space::global_space> addr,
-    T expected, T desired,
+    cl::sycl::multi_ptr<T, addressSpace> addr, T expected, T desired,
     cl::sycl::memory_order success = cl::sycl::memory_order::relaxed,
     cl::sycl::memory_order fail = cl::sycl::memory_order::relaxed)
 {
@@ -61,8 +69,8 @@ T atomic_compare_exchange_strong(
     return expected;
 }
 
-template <typename T, cl::sycl::access::address_space addressSpace =
-                          cl::sycl::access::address_space::global_space>
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
 T atomic_compare_exchange_strong(
     T *addr, T expected, T desired,
     cl::sycl::memory_order success = cl::sycl::memory_order::relaxed,
@@ -74,8 +82,8 @@ T atomic_compare_exchange_strong(
 }
 
 
-template <typename T, cl::sycl::access::address_space addressSpace =
-                          cl::sycl::access::address_space::global_space>
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
 inline T atomic_fetch_add(
     T *addr, T operand,
     cl::sycl::memory_order memoryOrder = cl::sycl::memory_order::relaxed)
@@ -97,7 +105,8 @@ struct fake_complex {
 namespace detail {
 
 
-template <typename ValueType, typename = void>
+template <cl::sycl::access::address_space addressSpace, typename ValueType,
+          typename = void>
 struct atomic_helper {
     __dpct_inline__ static ValueType atomic_add(ValueType *, ValueType)
     {
@@ -120,9 +129,10 @@ __dpct_inline__ ResultType reinterpret(ValueType val)
 
 
 #define GKO_BIND_ATOMIC_HELPER_STRUCTURE(CONVERTER_TYPE)                   \
-    template <typename ValueType>                                          \
+    template <cl::sycl::access::address_space addressSpace,                \
+              typename ValueType>                                          \
     struct atomic_helper<                                                  \
-        ValueType,                                                         \
+        addressSpace, ValueType,                                           \
         std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> { \
         __dpct_inline__ static ValueType atomic_add(                       \
             ValueType *__restrict__ addr, ValueType val)                   \
@@ -133,7 +143,7 @@ __dpct_inline__ ResultType reinterpret(ValueType val)
             CONVERTER_TYPE assumed;                                        \
             do {                                                           \
                 assumed = old;                                             \
-                old = atomic_compare_exchange_strong(                      \
+                old = atomic_compare_exchange_strong<addressSpace>(        \
                     address_as_converter, assumed,                         \
                     reinterpret<CONVERTER_TYPE>(                           \
                         val + reinterpret<ValueType>(assumed)));           \
@@ -150,63 +160,47 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
+#define GKO_BIND_ATOMIC_HELPER_ValueType(ValueType)                         \
+    template <cl::sycl::access::address_space addressSpace>                 \
+    struct atomic_helper<addressSpace, ValueType, std::enable_if_t<true>> { \
+        __dpct_inline__ static ValueType atomic_add(                        \
+            ValueType *__restrict__ addr, ValueType val)                    \
+        {                                                                   \
+            return atomic_fetch_add<addressSpace>(addr, val);               \
+        }                                                                   \
+    };
+
+GKO_BIND_ATOMIC_HELPER_ValueType(int);
+GKO_BIND_ATOMIC_HELPER_ValueType(unsigned int);
+GKO_BIND_ATOMIC_HELPER_ValueType(unsigned long long int);
+
+
+template <cl::sycl::access::address_space addressSpace, typename ValueType>
+struct atomic_helper<addressSpace, std::complex<ValueType>,
+                     std::enable_if_t<true>> {
+    __dpct_inline__ static std::complex<ValueType> atomic_add(
+        std::complex<ValueType> *__restrict__ addr, std::complex<ValueType> val)
+    {
+        fake_complex<ValueType> *fake_addr =
+            reinterpret_cast<fake_complex<ValueType> *>(addr);
+        // Separate to real part and imag part
+        auto real = atomic_helper<addressSpace, ValueType>::atomic_add(
+            &(fake_addr->x), val.real());
+        auto imag = atomic_helper<addressSpace, ValueType>::atomic_add(
+            &(fake_addr->y), val.imag());
+        return {real, imag};
+    }
+};
+
 
 }  // namespace detail
 
 
-template <typename T>
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
 __dpct_inline__ T atomic_add(T *__restrict__ addr, T val)
 {
-    return detail::atomic_helper<T>::atomic_add(addr, val);
-}
-
-
-#define GKO_BIND_ATOMIC_ADD(ValueType)                                 \
-    __dpct_inline__ ValueType atomic_add(ValueType *__restrict__ addr, \
-                                         ValueType val)                \
-    {                                                                  \
-        return atomic_fetch_add(addr, val);                            \
-    }
-
-GKO_BIND_ATOMIC_ADD(int);
-GKO_BIND_ATOMIC_ADD(unsigned int);
-GKO_BIND_ATOMIC_ADD(unsigned long long int);
-
-
-#undef GKO_BIND_ATOMIC_ADD
-
-
-/**
- * @internal
- *
- * @note It is not 'real' complex<float> atomic add operation
- */
-__dpct_inline__ std::complex<float> atomic_add(
-    std::complex<float> *__restrict__ address, std::complex<float> val)
-{
-    fake_complex<float> *addr =
-        reinterpret_cast<fake_complex<float> *>(address);
-    // Separate to real part and imag part
-    auto real = atomic_add(&(addr->x), val.real());
-    auto imag = atomic_add(&(addr->y), val.imag());
-    return {real, imag};
-}
-
-
-/**
- * @internal
- *
- * @note It is not 'real' complex<double> atomic add operation
- */
-__dpct_inline__ std::complex<double> atomic_add(
-    std::complex<double> *__restrict__ address, std::complex<double> val)
-{
-    fake_complex<double> *addr =
-        reinterpret_cast<fake_complex<double> *>(address);
-    // Separate to real part and imag part
-    auto real = atomic_add(&(addr->x), val.real());
-    auto imag = atomic_add(&(addr->y), val.imag());
-    return {real, imag};
+    return detail::atomic_helper<addressSpace, T>::atomic_add(addr, val);
 }
 
 

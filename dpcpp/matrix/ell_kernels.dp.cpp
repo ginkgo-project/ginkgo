@@ -171,7 +171,8 @@ void spmv_kernel(
                     temp += val[ind] * b[col_idx * b_stride + column_id];
                 }
             }
-            atomic_add(&(storage_val[item_ct1.get_local_id(2)]), temp);
+            atomic_add<atomic::local_space>(
+                &(storage_val[item_ct1.get_local_id(2)]), temp);
             item_ct1.barrier();
             if (idx_in_worker == 0) {
                 const auto c_ind = x * c_stride + column_id;
