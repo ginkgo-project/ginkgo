@@ -58,6 +58,7 @@ class Coo : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Coo<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Coo() : rand_engine(42) {}
 
@@ -74,9 +75,11 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -207,6 +210,57 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Coo, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply2(alpha.get(), complex_b.get(), complex_x.get());
+    dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 

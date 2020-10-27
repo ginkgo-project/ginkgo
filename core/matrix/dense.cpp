@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -215,8 +216,15 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_simple_apply(
-        this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_simple_apply(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -224,9 +232,18 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_apply(
-        as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-        as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_apply(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        auto dense_alpha = as<Dense<remove_complex<ValueType>>>(alpha);
+        auto dense_beta = as<Dense<remove_complex<ValueType>>>(beta);
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
+    }
 }
 
 
