@@ -256,10 +256,22 @@ public:
 
     void compute_absolute_inplace() override;
 
+    /**
+     * Creates a complex copy of the original matrix. If the original matrix
+     * was real, the imaginary part of the result will be zero.
+     */
     std::unique_ptr<complex_type> make_complex() const;
 
+    /**
+     * Creates a new real matrix and extracts the real part of the original
+     * matrix into that.
+     */
     std::unique_ptr<absolute_type> get_real() const;
 
+    /**
+     * Creates a new real matrix and extracts the imaginary part of the
+     * original matrix into that.
+     */
     std::unique_ptr<absolute_type> get_imag() const;
 
     /**
