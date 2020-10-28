@@ -154,9 +154,8 @@ void spmv_kernel(
             const auto x = tidx % num_rows;
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
-            ValueType *storage_val = *storage;
             if (idx_in_worker == 0) {
-                storage_val[item_ct1.get_local_id(2)] = 0;
+                (*storage)[item_ct1.get_local_id(2)] = 0;
             }
             item_ct1.barrier();
             ValueType temp = zero<ValueType>();
@@ -172,23 +171,17 @@ void spmv_kernel(
                 }
             }
             atomic_add<atomic::local_space>(
-                &(storage_val[item_ct1.get_local_id(2)]), temp);
+                &((*storage)[item_ct1.get_local_id(2)]), temp);
             item_ct1.barrier();
             if (idx_in_worker == 0) {
                 const auto c_ind = x * c_stride + column_id;
-                const CONSTANT_AS char FMT[] =
-                    "c_ind: %d, val: %lf, c: %lf, temp: %lf\n";
-                auto val_tmp =
-                    static_cast<double>(storage_val[item_ct1.get_local_id(2)]);
-                cl::sycl::ONEAPI::experimental::printf(FMT, c_ind, val_tmp,
-                                                      c[c_ind], temp);
                 if (atomic) {
                     atomic_add(
                         &(c[c_ind]),
-                        op(storage_val[item_ct1.get_local_id(2)], c[c_ind]));
+                        op((*storage)[item_ct1.get_local_id(2)], c[c_ind]));
                 } else {
                     c[c_ind] =
-                        op(storage_val[item_ct1.get_local_id(2)], c[c_ind]);
+                        op((*storage)[item_ct1.get_local_id(2)], c[c_ind]);
                 }
             }
         }
@@ -223,9 +216,6 @@ void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
           const size_type num_stored_elements_per_row, const ValueType *b,
           const size_type b_stride, ValueType *c, const size_type c_stride)
 {
-    std::cout << "kernel - atomic " << atomic << ", num_thread_per_worker "
-              << num_thread_per_worker << ", num_worker_per_row"
-              << num_worker_per_row << std::endl;
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, default_block_size /
                                                          num_thread_per_worker>,
@@ -642,9 +632,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     const int num_thread_per_worker = std::get<0>(data);
     const int atomic = std::get<1>(data);
     const int num_worker_per_row = std::get<2>(data);
-    std::cout << "Usage: atomic-" << atomic << ", num_thread_per_worker-"
-              << num_thread_per_worker << ", num_worker_per_row-"
-              << num_worker_per_row << std::endl;
     /**
      * info is the parameter for selecting the dpcpp kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic

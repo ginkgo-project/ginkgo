@@ -84,8 +84,7 @@ protected:
     void test_subwarp(Kernel kernel)
     {
         // functioname kernel
-        kernel(1, config::warp_size, 0, dpcpp->get_queue(),
-               dresult.get_data());
+        kernel(1, config::warp_size, 0, dpcpp->get_queue(), dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 
@@ -121,9 +120,6 @@ void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
     auto group = group::tiled_partition<config::warp_size>(
         group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
-    const CONSTANT_AS char FMT[] = "thread_rank: %d shfl_up: %d expect: %d\n";
-    cl::sycl::ONEAPI::experimental::printf(FMT, i,
-                                          group.shfl_up(i, 1), sycl::max(0, (int)(i - 1)));
     test_assert(s, group.shfl_up(i, 1) == sycl::max(0, (int)(i - 1)));
     test_assert(s, group.shfl_down(i, 1) ==
                        sycl::min((unsigned int)(i + 1),
@@ -132,7 +128,7 @@ void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                     sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -157,7 +153,7 @@ void cg_all(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_all_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                 sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -182,7 +178,7 @@ void cg_any(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_any_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                 sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -207,7 +203,7 @@ void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_ballot_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                    sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -247,22 +243,27 @@ void cg_subwarp_shuffle(bool *s, sycl::nd_item<3> item_ct1)
     }
 }
 
-void cg_subwarp_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+void cg_subwarp_shuffle_host(dim3 grid, dim3 block,
+                             size_t dynamic_shared_memory, sycl::queue *stream,
+                             bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
         auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(
-            sycl::nd_range<3>(global_range, local_range),
-            [=](sycl::nd_item<3> item_ct1) { cg_subwarp_shuffle(s, item_ct1); });
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             cg_subwarp_shuffle(s, item_ct1);
+                         });
     });
 }
 
 TEST_F(CooperativeGroups, SubwarpShuffle) { test(cg_subwarp_shuffle_host); }
 
-TEST_F(CooperativeGroups, SubwarpShuffle2) { test_subwarp(cg_subwarp_shuffle_host); }
+TEST_F(CooperativeGroups, SubwarpShuffle2)
+{
+    test_subwarp(cg_subwarp_shuffle_host);
+}
 
 
 void cg_subwarp_all(bool *s, sycl::nd_item<3> item_ct1)
@@ -288,7 +289,7 @@ void cg_subwarp_all(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_subwarp_all_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                         sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -328,7 +329,7 @@ void cg_subwarp_any(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_subwarp_any_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                         sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -369,7 +370,7 @@ void cg_subwarp_ballot(bool *s, sycl::nd_item<3> item_ct1)
 }
 
 void cg_subwarp_ballot_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, bool *s)
+                            sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -383,7 +384,10 @@ void cg_subwarp_ballot_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot_host); }
 
-TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot_host); }
+TEST_F(CooperativeGroups, SubwarpBallot2)
+{
+    test_subwarp(cg_subwarp_ballot_host);
+}
 
 
 }  // namespace

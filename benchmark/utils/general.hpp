@@ -417,6 +417,12 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
     answer->compute_norm2(lend(answer_norm));
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     result->add_scaled(lend(neg_one), lend(answer));
+    // auto result_host = clone(result->get_executor()->get_master(), result);
+    // double sum = 0;
+    // for(int i = 0; i < result_host->get_size()[0]; i++) {
+    //     sum += result_host->at(i, 0);
+    // }
+    // std::cout << "sum " << sum << std::endl;
     auto absolute_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
     result->compute_norm2(lend(absolute_norm));
@@ -426,6 +432,8 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
+        // std::cout << host_absolute_norm->at(0, i) << ", " <<
+        // host_answer_norm->at(0, i) << std::endl;
         max_relative_norm2 =
             std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
                      max_relative_norm2);

@@ -81,7 +81,7 @@ protected:
     }
 
     OnemklBase(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+               const gko::dim<2> &size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
         gpu_exec_ = std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec);
@@ -113,10 +113,13 @@ private:
 };
 
 
-template <typename ValueType = gko::default_precision, typename IndexType = gko::int32>
+template <bool optimized = false, typename ValueType = gko::default_precision,
+          typename IndexType = gko::int32>
 class OnemklCsr
-    : public gko::EnableLinOp<OnemklCsr<ValueType, IndexType>, OnemklBase>,
-      public gko::EnableCreateMethod<OnemklCsr<ValueType, IndexType>>,
+    : public gko::EnableLinOp<OnemklCsr<optimized, ValueType, IndexType>,
+                              OnemklBase>,
+      public gko::EnableCreateMethod<
+          OnemklCsr<optimized, ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<OnemklCsr>;
     friend class gko::EnablePolymorphicObject<OnemklCsr, OnemklBase>;
@@ -133,6 +136,11 @@ public:
             this->get_mat_handle(), int(this->get_size()[0]),
             int(this->get_size()[1]), oneapi::mkl::index_base::zero,
             csr_->get_row_ptrs(), csr_->get_col_idxs(), csr_->get_values());
+        if (optimized) {
+            oneapi::mkl::sparse::optimize_gemv(
+                *(this->get_gpu_exec()->get_queue()), trans_,
+                this->get_mat_handle());
+        }
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -174,6 +182,9 @@ private:
 
 
 using onemkl_csr = detail::OnemklCsr<>;
+
+using onemkl_optimized_csr =
+    detail::OnemklCsr<true, gko::default_precision, gko::int32>;
 
 
 #endif  // GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_

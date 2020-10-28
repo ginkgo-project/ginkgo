@@ -1259,7 +1259,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType> *x,
                    matrix::Dense<remove_complex<ValueType>> *result)
 {
-    if (1) {
+    if (0) {
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             oneapi::mkl::blas::row_major::nrm2(
                 *exec->get_queue(), x->get_size()[0],

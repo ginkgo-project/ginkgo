@@ -100,8 +100,8 @@ template <size_type subwarp_size = config::warp_size>
 size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
-    size_type nwarps_in_dpcpp = 16;
-    size_type multiple = 1;
+    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type multiple = 8;
     return std::min(multiple * nwarps_in_dpcpp,
                     size_type(ceildiv(nnz, config::warp_size)));
 }
