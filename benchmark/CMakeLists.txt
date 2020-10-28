@@ -50,6 +50,12 @@ function(ginkgo_benchmark_hipsp_linops name)
     target_link_libraries("${name}" ${HIPSPARSE_LIBRARIES})
 endfunction()
 
+function(ginkgo_benchmark_intel_linops name)
+    target_compile_definitions("${name}" PRIVATE HAS_INTEL=1)
+    target_compile_features("${name}" PRIVATE cxx_std_17)
+    target_link_libraries("${name}" ginkgo "mkl_sycl;mkl_intel_ilp64;mkl_sequential;mkl_core")
+endfunction()
+
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
