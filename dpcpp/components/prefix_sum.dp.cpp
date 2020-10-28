@@ -55,12 +55,6 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    // prefix_sum should be on the valid array
-    // std::cout << "Initial" << std::endl;
-    // for (int i = 0; i < num_entries; i++) {
-    //     std::cout << counts[i] << " ";
-    // }
-    std::cout << std::endl;
     if (num_entries > 0) {
         auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
         Array<IndexType> block_sum_array(exec, num_blocks - 1);
@@ -68,23 +62,12 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
         start_prefix_sum<prefix_sum_block_size>(
             num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
             num_entries, counts, block_sums);
-        // exec->synchronize();
-        // std::cout << "START" << std::endl;
-        // for (int i = 0; i < num_entries; i++) {
-        //     std::cout << counts[i] << " ";
-        // }
-        std::cout << std::endl;
         // add the total sum of the previous block only when the number of block
         // is larger than 1.
         if (num_blocks > 1) {
             finalize_prefix_sum<prefix_sum_block_size>(
                 num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
                 num_entries, counts, block_sums);
-            // std::cout << "Final" << std::endl;
-            // for (int i = 0; i < num_entries; i++) {
-            //     std::cout << counts[i] << " ";
-            // }
-            // std::cout << std::endl;
         }
     }
 }

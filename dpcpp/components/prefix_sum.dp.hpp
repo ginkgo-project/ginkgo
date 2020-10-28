@@ -141,25 +141,9 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto element_id = item_ct1.get_local_id(2);
-    const CONSTANT_AS char FMTd[] = "n: tidx %u element_id%u\n";
-    // cl::sycl::ONEAPI::experimental::printf(FMTd, static_cast<unsigned>(tidx),
-    // static_cast<unsigned>(element_id));
-    // ValueType *(*prefix_helper) = *prefix_helper;
-    // do not need to access the last element when exclusive prefix sum
     (*prefix_helper)[element_id] =
         (tidx + 1 < num_elements) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block(item_ct1);
-    // const CONSTANT_AS char FMT[] = "n: %lf %lf %lf %lf\n";
-    // const CONSTANT_AS char FMTe[] = "elem: %lf %lf %lf\n";
-
-    // if (tidx == 0) {
-    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
-    //                                           elements[2]);
-    //     cl::sycl::ONEAPI::experimental::printf(
-    //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
-    //         (*prefix_helper)[2],
-    //         (*prefix_helper)[3]);
-    // }
     item_ct1.barrier();
 
     // Do a normal reduction
@@ -173,14 +157,6 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
         item_ct1.barrier();
     }
 
-    // if (element_id == 0) {
-    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
-    //                                           elements[2]);
-    //     cl::sycl::ONEAPI::experimental::printf(
-    //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
-    //         (*prefix_helper)[2],
-    //         (*prefix_helper)[3]);
-    // }
     if (element_id == 0) {
         // Store the total sum except the last block
         if (item_ct1.get_group(2) + 1 < item_ct1.get_group_range(2)) {
@@ -206,14 +182,6 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
     if (tidx < num_elements) {
         elements[tidx] = (*prefix_helper)[element_id];
     }
-    // if (element_id == 0) {
-    //     cl::sycl::ONEAPI::experimental::printf(FMTe, elements[0], elements[1],
-    //                                           elements[2]);
-    //     cl::sycl::ONEAPI::experimental::printf(
-    //         FMT, (*prefix_helper)[0], (*prefix_helper)[1],
-    //         (*prefix_helper)[2],
-    //         (*prefix_helper)[3]);
-    // }
 }
 
 template <int block_size, typename ValueType>
@@ -229,10 +197,6 @@ void start_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         auto local_range = block.reverse();
         auto global_range = grid.reverse() * local_range;
-        std::cout << local_range.get(0) << " " << local_range.get(1) << " "
-                  << local_range.get(2) << std::endl;
-        std::cout << global_range.get(0) << " " << global_range.get(1) << " "
-                  << global_range.get(2) << std::endl;
         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
                          [=](sycl::nd_item<3> item_ct1) {
                              start_prefix_sum<block_size>(

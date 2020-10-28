@@ -83,6 +83,16 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
             system_matrix->apply(lend(b), lend(x_clone));
             exec->synchronize();
+            // auto x_clone_ref = vec<etype>::create(exec->get_master());
+            // auto answer_ref = vec<etype>::create(exec->get_master());
+            // x_clone_ref->copy_from(gko::as<vec<etype>>(lend(x_clone)));
+            // answer_ref->copy_from(answer);
+            // std::cout << "format: " << format_name << std::endl;
+            // for (int i = 0; i < x_clone_ref->get_size()[0]; i++) {
+            //     std::cout << answer_ref->at(i, 0) << " - " <<
+            //     x_clone_ref->at(i, 0) << " = " << answer_ref->at(i, 0) -
+            //     x_clone_ref->at(i, 0) << std::endl;
+            // }
             double max_relative_norm2 =
                 compute_max_relative_norm2(lend(x_clone), lend(answer));
             add_or_set_member(spmv_case[format_name], "max_relative_norm2",

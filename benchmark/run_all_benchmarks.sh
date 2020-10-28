@@ -204,7 +204,7 @@ run_preconditioner_benchmarks() {
 ################################################################################
 # SuiteSparse collection
 
-SSGET=ssget
+SSGET=/home/u45533/ssget/ssget
 NUM_PROBLEMS="$(${SSGET} -n)"
 
 # Creates an input file for $1-th problem in the SuiteSparse collection
@@ -257,7 +257,7 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
     if [ "${BENCHMARK}" == "preconditioner" ]; then
         break
     fi
-    if [ "$(${SSGET} -i "$i" -preal)" = "0" ]; then
+    if [ "$(${SSGET} -i "$i" -preal)" = "0" ] || [ "$(${SSGET} -i "$i" -pnonzeros)" -gt "300000000" ]; then
         [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
         continue
     fi

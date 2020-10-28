@@ -369,7 +369,7 @@ public:
          * @param exec the HIP executor
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(16, 16, false)
+            : load_balance(exec->get_num_computing_units() * 7, 16, false)
         {}
 
         /**
@@ -456,7 +456,7 @@ public:
                     multiple = 32;
                 }
                 if (!cuda_strategy_) {
-                    multiple = 1;
+                    multiple = 8;
                 }
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
@@ -535,7 +535,7 @@ public:
          * @param exec the Dpcpp executor
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(16, 16, false)
+            : automatical(exec->get_num_computing_units() * 7, 16, false)
         {}
 
         /**

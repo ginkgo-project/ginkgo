@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif  // HAS_HIP
 #ifdef HAS_INTEL
 #include "benchmark/utils/intel_linops.dp.hpp"
-#endif // HAS_INTEL
+#endif  // HAS_INTEL
 
 namespace formats {
 
@@ -77,8 +77,8 @@ std::string available_format =
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
 #endif  // HAS_HIP
 #ifdef HAS_INTEL
-    ", onemkl_csr"
-#endif // HAS_INTEL
+    ", onemkl_csr, onemkl_optimized_csr"
+#endif  // HAS_INTEL
     ".\n";
 
 std::string format_description =
@@ -140,8 +140,9 @@ std::string format_description =
 #endif  // HAS_HIP
 #ifdef HAS_INTEL
     "\n"
-    "onemkl_csr: benchmark OneMKL with csr"
-#endif // HAS_INTEL
+    "onemkl_csr: benchmark OneMKL with csr.\n"
+    "onemkl_optimize_csr: benchmark OneMKL with optimized csr.\n"
+#endif  // HAS_INTEL
     ;
 
 std::string format_command =
@@ -203,8 +204,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
     matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
+        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>(gko::DpcppExecutor::create(0, gko::OmpExecutor::create())))},
+        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>(gko::DpcppExecutor::create(0, gko::OmpExecutor::create())))},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
@@ -265,9 +266,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-#ifdef HAS_HIP
+#ifdef HAS_INTEL
         {"onemkl_csr", read_matrix_from_data<onemkl_csr>},
-#endif  // HAS_HIP
+        {"onemkl_optimized_csr", read_matrix_from_data<onemkl_optimized_csr>},
+#endif  // HAS_INTEL
         {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
 // clang-format on
 
