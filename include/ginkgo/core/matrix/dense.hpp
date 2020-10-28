@@ -263,16 +263,34 @@ public:
     std::unique_ptr<complex_type> make_complex() const;
 
     /**
+     * Writes a complex copy of the original matrix to a given complex matrix.
+     * If the original matrix was real, the imaginary part of the result will
+     * be zero.
+     */
+    void make_complex(Dense<to_complex<ValueType>> *result) const;
+
+    /**
      * Creates a new real matrix and extracts the real part of the original
      * matrix into that.
      */
     std::unique_ptr<absolute_type> get_real() const;
 
     /**
+     * Extracts the real part of the original matrix into a given real matrix.
+     */
+    void get_real(Dense<remove_complex<ValueType>> *result) const;
+
+    /**
      * Creates a new real matrix and extracts the imaginary part of the
      * original matrix into that.
      */
     std::unique_ptr<absolute_type> get_imag() const;
+
+    /**
+     * Extracts the imaginary part of the original matrix into a given real
+     * matrix.
+     */
+    void get_imag(Dense<remove_complex<ValueType>> *result) const;
 
     /**
      * Returns a pointer to the array of values of the matrix.

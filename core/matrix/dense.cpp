@@ -813,6 +813,17 @@ Dense<ValueType>::make_complex() const
 
 
 template <typename ValueType>
+void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(dense::make_make_complex(this, result));
+}
+
+
+template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::absolute_type>
 Dense<ValueType>::get_real() const
 {
@@ -827,6 +838,17 @@ Dense<ValueType>::get_real() const
 
 
 template <typename ValueType>
+void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(dense::make_get_real(this, result));
+}
+
+
+template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::absolute_type>
 Dense<ValueType>::get_imag() const
 {
@@ -837,6 +859,17 @@ Dense<ValueType>::get_imag() const
     exec->run(dense::make_get_imag(this, imag_dense.get()));
 
     return imag_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::get_imag(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(dense::make_get_imag(this, result));
 }
 
 

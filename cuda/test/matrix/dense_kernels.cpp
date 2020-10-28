@@ -654,6 +654,19 @@ TEST_F(Dense, MakeComplexIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MakeComplexWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto complex_x = ComplexMtx::create(ref, x->get_size());
+    x->make_complex(complex_x.get());
+    auto dcomplex_x = ComplexMtx::create(cuda, x->get_size());
+    dx->make_complex(dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
+}
+
+
 TEST_F(Dense, GetRealIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -665,12 +678,38 @@ TEST_F(Dense, GetRealIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, GetRealWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto real_x = Mtx::create(ref, x->get_size());
+    x->get_real(real_x.get());
+    auto dreal_x = Mtx::create(cuda, dx->get_size());
+    dx->get_real(dreal_x.get());
+
+    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
+}
+
+
 TEST_F(Dense, GetImagIsEquivalentToRef)
 {
     set_up_apply_data();
 
     auto imag_x = x->get_imag();
     auto dimag_x = dx->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
+}
+
+
+TEST_F(Dense, GetImagWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto imag_x = Mtx::create(ref, x->get_size());
+    x->get_imag(imag_x.get());
+    auto dimag_x = Mtx::create(cuda, dx->get_size());
+    dx->get_imag(dimag_x.get());
 
     GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
 }
