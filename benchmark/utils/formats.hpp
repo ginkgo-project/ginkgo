@@ -50,7 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef HAS_HIP
 #include "benchmark/utils/hip_linops.hip.hpp"
 #endif  // HAS_HIP
-
+#ifdef HAS_INTEL
+#include "benchmark/utils/intel_linops.dp.hpp"
+#endif // HAS_INTEL
 
 #include "benchmark/utils/types.hpp"
 
@@ -77,6 +79,9 @@ std::string available_format =
 #ifdef HAS_HIP
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
 #endif  // HAS_HIP
+#ifdef HAS_INTEL
+    ", onemkl_csr"
+#endif // HAS_INTEL
     ".\n";
 
 std::string format_description =
@@ -136,6 +141,10 @@ std::string format_description =
     "partition.\n"
     "hipsp_ell: use hipsparseXhybmv with HIPSPARSE_HYB_PARTITION_MAX partition."
 #endif  // HAS_HIP
+#ifdef HAS_INTEL
+    "\n"
+    "onemkl_csr: benchmark OneMKL with csr"
+#endif // HAS_INTEL
     ;
 
 std::string format_command =
@@ -260,7 +269,11 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>}};
+        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>},
+        #ifdef HAS_INTEL
+        {"onemkl_csr", read_matrix_from_data<onemkl_csr>}
+        #endif  // HAS_INTEL
+    };
 // clang-format on
 
 

@@ -74,6 +74,9 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def)
         if (GINKGO_BUILD_HIP)
             ginkgo_benchmark_hipsp_linops("${name}")
         endif()
+        if (GINKGO_BUILD_DPCPP)
+            ginkgo_benchmark_intel_linops("${name}")
+        endif()
     endif()
 endfunction(ginkgo_add_single_benchmark_executable)
 
@@ -96,6 +99,12 @@ function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
         "${name}_scomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" ${ARGN})
 endfunction(ginkgo_add_typed_benchmark_executables)
 
+
+function(ginkgo_benchmark_intel_linops name)
+    target_compile_definitions("${name}" PRIVATE HAS_INTEL=1)
+    target_compile_features("${name}" PRIVATE cxx_std_17)
+    target_link_libraries("${name}" ginkgo "mkl_sycl;mkl_intel_ilp64;mkl_sequential;mkl_core")
+endfunction()
 
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
