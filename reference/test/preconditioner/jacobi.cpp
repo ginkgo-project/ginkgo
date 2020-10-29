@@ -314,16 +314,11 @@ TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
     GKO_EXPECT_NEAR(first.value, second.value, tol)
 
 
-TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
+template <typename ValueType, typename IndexType>
+void assert_matrix_data(gko::matrix_data<ValueType, IndexType> data)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
-    auto tol = r<value_type>::value;
-    gko::matrix_data<value_type, index_type> data;
-
-    this->bj->write(data);
-
+    using tpl = typename decltype(data)::nonzero_type;
+    auto tol = r<ValueType>::value;
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), tol);
@@ -339,6 +334,18 @@ TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
+}
+
+
+TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::matrix_data<value_type, index_type> data;
+
+    this->bj->write(data);
+
+    assert_matrix_data(data);
 }
 
 

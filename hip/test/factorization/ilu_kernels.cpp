@@ -61,12 +61,14 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
+    std::randlux48 rand_engine;
     std::shared_ptr<Csr> csr_ref;
     std::shared_ptr<Csr> csr_hip;
 
     Ilu()
         : ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, ref))
+          hip(gko::HipExecutor::create(0, ref)),
+          rand_engine(1337)
     {}
 
     void SetUp() override
@@ -84,12 +86,42 @@ protected:
 };
 
 
-TEST_F(Ilu, ComputeILUIsEquivalentToRef)
+TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 {
-    auto ref_fact =
-        gko::factorization::ParIlu<>::build().on(ref)->generate(csr_ref);
-    auto hip_fact =
-        gko::factorization::Ilu<>::build().on(hip)->generate(csr_hip);
+    auto ref_fact = gko::factorization::ParIlu<>::build()
+                        .with_skip_sorting(true)
+                        .on(ref)
+                        ->generate(csr_ref);
+    auto hip_fact = gko::factorization::Ilu<>::build()
+                        .with_skip_sorting(true)
+                        .on(hip)
+                        ->generate(csr_hip);
+
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), hip_fact->get_l_factor(),
+                        1e-14);
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), hip_fact->get_u_factor(),
+                        1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
+                               hip_fact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
+                               hip_fact->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
+{
+    gko::test::unsort_matrix(gko::lend(csr_ref), rand_engine);
+    csr_hip->copy_from(gko::lend(csr_ref));
+
+    // TODO: Remove sorting, just for testing here!
+    auto ref_fact = gko::factorization::ParIlu<>::build()
+                        .with_skip_sorting(true)
+                        .on(ref)
+                        ->generate(csr_ref);
+    auto hip_fact = gko::factorization::Ilu<>::build()
+                        .with_skip_sorting(true)
+                        .on(hip)
+                        ->generate(csr_hip);
 
     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), hip_fact->get_l_factor(),
                         1e-14);
