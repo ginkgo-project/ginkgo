@@ -819,7 +819,8 @@ void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
 
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
 
-    exec->run(dense::make_make_complex(this, result));
+    exec->run(dense::make_make_complex(
+        this, make_temporary_clone(exec, result).get()));
 }
 
 
@@ -844,7 +845,8 @@ void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
 
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
 
-    exec->run(dense::make_get_real(this, result));
+    exec->run(
+        dense::make_get_real(this, make_temporary_clone(exec, result).get()));
 }
 
 
@@ -869,7 +871,8 @@ void Dense<ValueType>::get_imag(Dense<remove_complex<ValueType>> *result) const
 
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
 
-    exec->run(dense::make_get_imag(this, result));
+    exec->run(
+        dense::make_get_imag(this, make_temporary_clone(exec, result).get()));
 }
 
 
