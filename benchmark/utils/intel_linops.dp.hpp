@@ -30,16 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
-#define GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
+#ifndef GKO_BENCHMARK_UTILS_INTEL_LINOPS_DP_HPP_
+#define GKO_BENCHMARK_UTILS_INTEL_LINOPS_DP_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
 
 
 #include <memory>
-
-
 #include <oneapi/mkl.hpp>
 
 
@@ -187,4 +185,4 @@ using onemkl_optimized_csr =
     detail::OnemklCsr<true, gko::default_precision, gko::int32>;
 
 
-#endif  // GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
+#endif  // GKO_BENCHMARK_UTILS_INTEL_LINOPS_DP_HPP_

@@ -36,10 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+
+
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
 
 
 namespace gko {
@@ -53,6 +56,207 @@ namespace dpcpp {
 namespace cgs {
 
 
+constexpr int default_block_size = 256;
+
+
+// #include "common/solver/cgs_kernels.hpp.inc"
+template <typename ValueType>
+void initialize_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ b, ValueType *__restrict__ r,
+    ValueType *__restrict__ r_tld, ValueType *__restrict__ p,
+    ValueType *__restrict__ q, ValueType *__restrict__ u,
+    ValueType *__restrict__ u_hat, ValueType *__restrict__ v_hat,
+    ValueType *__restrict__ t, ValueType *__restrict__ alpha,
+    ValueType *__restrict__ beta, ValueType *__restrict__ gamma,
+    ValueType *__restrict__ rho_prev, ValueType *__restrict__ rho,
+    stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+
+    if (tidx < num_cols) {
+        rho[tidx] = zero<ValueType>();
+        alpha[tidx] = one<ValueType>();
+        beta[tidx] = one<ValueType>();
+        gamma[tidx] = one<ValueType>();
+        rho_prev[tidx] = one<ValueType>();
+        stop_status[tidx].reset();
+    }
+
+    if (tidx < num_rows * stride) {
+        r[tidx] = b[tidx];
+        r_tld[tidx] = b[tidx];
+        u[tidx] = zero<ValueType>();
+        p[tidx] = zero<ValueType>();
+        q[tidx] = zero<ValueType>();
+        u_hat[tidx] = zero<ValueType>();
+        v_hat[tidx] = zero<ValueType>();
+        t[tidx] = zero<ValueType>();
+    }
+}
+
+template <typename ValueType>
+void initialize_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                       sycl::queue *stream, size_type num_rows,
+                       size_type num_cols, size_type stride, const ValueType *b,
+                       ValueType *r, ValueType *r_tld, ValueType *p,
+                       ValueType *q, ValueType *u, ValueType *u_hat,
+                       ValueType *v_hat, ValueType *t, ValueType *alpha,
+                       ValueType *beta, ValueType *gamma, ValueType *rho_prev,
+                       ValueType *rho, stopping_status *stop_status)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             initialize_kernel(num_rows, num_cols, stride, b, r,
+                                               r_tld, p, q, u, u_hat, v_hat, t,
+                                               alpha, beta, gamma, rho_prev,
+                                               rho, stop_status, item_ct1);
+                         });
+    });
+}
+
+
+template <typename ValueType>
+void step_1_kernel(size_type num_rows, size_type num_cols, size_type stride,
+                   const ValueType *__restrict__ r, ValueType *__restrict__ u,
+                   ValueType *__restrict__ p, const ValueType *__restrict__ q,
+                   ValueType *__restrict__ beta,
+                   const ValueType *__restrict__ rho,
+                   const ValueType *__restrict__ rho_prev,
+                   const stopping_status *__restrict__ stop_status,
+                   sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    const auto col = tidx % stride;
+
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    if (rho_prev[col] != zero<ValueType>()) {
+        beta[col] = rho[col] / rho_prev[col];
+        u[tidx] = r[tidx] + beta[col] * q[tidx];
+        p[tidx] = u[tidx] + beta[col] * (q[tidx] + beta[col] * p[tidx]);
+    }
+}
+
+template <typename ValueType>
+void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                   sycl::queue *stream, size_type num_rows, size_type num_cols,
+                   size_type stride, const ValueType *r, ValueType *u,
+                   ValueType *p, const ValueType *q, ValueType *beta,
+                   const ValueType *rho, const ValueType *rho_prev,
+                   const stopping_status *stop_status)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             step_1_kernel(num_rows, num_cols, stride, r, u, p,
+                                           q, beta, rho, rho_prev, stop_status,
+                                           item_ct1);
+                         });
+    });
+}
+
+
+template <typename ValueType>
+void step_2_kernel(size_type num_rows, size_type num_cols, size_type stride,
+                   const ValueType *__restrict__ u,
+                   const ValueType *__restrict__ v_hat,
+                   ValueType *__restrict__ q, ValueType *__restrict__ t,
+                   ValueType *__restrict__ alpha,
+                   const ValueType *__restrict__ rho,
+                   const ValueType *__restrict__ gamma,
+                   const stopping_status *__restrict__ stop_status,
+                   sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    const auto col = tidx % stride;
+
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    if (gamma[col] != zero<ValueType>()) {
+        alpha[col] = rho[col] / gamma[col];
+        q[tidx] = u[tidx] - alpha[col] * v_hat[tidx];
+        t[tidx] = u[tidx] + q[tidx];
+    }
+}
+
+template <typename ValueType>
+void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                   sycl::queue *stream, size_type num_rows, size_type num_cols,
+                   size_type stride, const ValueType *u, const ValueType *v_hat,
+                   ValueType *q, ValueType *t, ValueType *alpha,
+                   const ValueType *rho, const ValueType *gamma,
+                   const stopping_status *stop_status)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             step_2_kernel(num_rows, num_cols, stride, u, v_hat,
+                                           q, t, alpha, rho, gamma, stop_status,
+                                           item_ct1);
+                         });
+    });
+}
+
+
+template <typename ValueType>
+void step_3_kernel(size_type num_rows, size_type num_cols, size_type stride,
+                   size_type x_stride, const ValueType *__restrict__ t,
+                   const ValueType *__restrict__ v_hat,
+                   ValueType *__restrict__ r, ValueType *__restrict__ x,
+                   const ValueType *__restrict__ alpha,
+                   const stopping_status *__restrict__ stop_status,
+                   sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    const auto row = tidx / stride;
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    const auto x_pos = row * x_stride + col;
+    auto t_x = x[x_pos] + alpha[col] * v_hat[tidx];
+    auto t_r = r[tidx] - alpha[col] * t[tidx];
+    x[x_pos] = t_x;
+    r[tidx] = t_r;
+}
+
+template <typename ValueType>
+void step_3_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                   sycl::queue *stream, size_type num_rows, size_type num_cols,
+                   size_type stride, size_type x_stride, const ValueType *t,
+                   const ValueType *v_hat, ValueType *r, ValueType *x,
+                   const ValueType *alpha, const stopping_status *stop_status)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        auto local_range = block.reverse();
+        auto global_range = grid.reverse() * local_range;
+
+        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             step_3_kernel(num_rows, num_cols, stride, x_stride,
+                                           t, v_hat, r, x, alpha, stop_status,
+                                           item_ct1);
+                         });
+    });
+}
+
+
 template <typename ValueType>
 void initialize(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
@@ -62,9 +266,24 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
                 matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *t,
                 matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
                 matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *prev_rho,
+                matrix::Dense<ValueType> *rho_prev,
                 matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
+
+    // functioname initialize_kernel
+    initialize_kernel(grid_size, block_size, 0, exec->get_queue(),
+                      b->get_size()[0], b->get_size()[1], b->get_stride(),
+                      b->get_const_values(), r->get_values(),
+                      r_tld->get_values(), p->get_values(), q->get_values(),
+                      u->get_values(), u_hat->get_values(), v_hat->get_values(),
+                      t->get_values(), alpha->get_values(), beta->get_values(),
+                      gamma->get_values(), rho_prev->get_values(),
+                      rho->get_values(), stop_status->get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
@@ -75,7 +294,19 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *rho_prev,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
+
+    // functioname step_1_kernel
+    step_1_kernel(grid_size, block_size, 0, exec->get_queue(), p->get_size()[0],
+                  p->get_size()[1], p->get_stride(), r->get_const_values(),
+                  u->get_values(), p->get_values(), q->get_const_values(),
+                  beta->get_values(), rho->get_const_values(),
+                  rho_prev->get_const_values(), stop_status->get_const_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
@@ -87,16 +318,41 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *gamma,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(u->get_size()[0] * u->get_stride(), block_size.x), 1, 1);
+
+    // functioname step_2_kernel
+    step_2_kernel(grid_size, block_size, 0, exec->get_queue(), u->get_size()[0],
+                  u->get_size()[1], u->get_stride(), u->get_const_values(),
+                  v_hat->get_const_values(), q->get_values(), t->get_values(),
+                  alpha->get_values(), rho->get_const_values(),
+                  gamma->get_const_values(), stop_status->get_const_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
+
 template <typename ValueType>
-void step_3(std::shared_ptr<const DefaultExecutor> exec,
+void step_3(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(t->get_size()[0] * t->get_stride(), block_size.x), 1, 1);
+
+    // functioname step_3_kernel
+    step_3_kernel(grid_size, block_size, 0, exec->get_queue(), t->get_size()[0],
+                  t->get_size()[1], t->get_stride(), x->get_stride(),
+                  t->get_const_values(), u_hat->get_const_values(),
+                  r->get_values(), x->get_values(), alpha->get_const_values(),
+                  stop_status->get_const_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 
