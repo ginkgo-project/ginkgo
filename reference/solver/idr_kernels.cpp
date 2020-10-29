@@ -134,25 +134,11 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *dense_b,
-                const matrix::Dense<ValueType> *dense_x,
-                matrix::Dense<to_complex<ValueType>> *complex_b,
-                matrix::Dense<to_complex<ValueType>> *complex_x,
-                matrix::Dense<to_complex<ValueType>> *m,
-                matrix::Dense<to_complex<ValueType>> *subspace_vectors,
-                bool deterministic, Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType> *m,
+                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
+                Array<stopping_status> *stop_status)
 {
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
-
-    // Initialize complex b and x
-    for (size_type row = 0; row < dense_b->get_size()[0]; row++) {
-        for (size_type rhs = 0; rhs < nrhs; rhs++) {
-            complex_x->at(row, rhs) =
-                to_complex<ValueType>{dense_x->at(row, rhs)};
-            complex_b->at(row, rhs) =
-                to_complex<ValueType>{dense_b->at(row, rhs)};
-        }
-    }
 
     // Initialize M
     for (size_type i = 0; i < nrhs; i++) {
@@ -161,9 +147,8 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type row = 0; row < m->get_size()[0]; row++) {
         for (size_type col = 0; col < m->get_size()[1]; col++) {
-            m->at(row, col) = (row == col / nrhs)
-                                  ? one<to_complex<ValueType>>()
-                                  : zero<to_complex<ValueType>>();
+            m->at(row, col) =
+                (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
         }
     }
 
@@ -180,7 +165,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         }
 
         for (size_type i = 0; i < row; i++) {
-            auto dot = zero<to_complex<ValueType>>();
+            auto dot = zero<ValueType>();
             for (size_type j = 0; j < num_cols; j++) {
                 dot += subspace_vectors->at(row, j) *
                        conj(subspace_vectors->at(i, j));
@@ -191,7 +176,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
 
-        auto norm = zero<remove_complex<ValueType>>();
+        auto norm = zero<ValueType>();
         for (size_type j = 0; j < num_cols; j++) {
             norm += squared_norm(subspace_vectors->at(row, j));
         }
@@ -334,25 +319,6 @@ void compute_omega(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
-
-
-template <typename ValueType>
-void finalize(std::shared_ptr<const ReferenceExecutor> exec,
-              const matrix::Dense<to_complex<ValueType>> *complex_x,
-              matrix::Dense<ValueType> *dense_x)
-{
-    if (is_complex<ValueType>()) {
-        dense_x->copy_from(complex_x);
-    } else {
-        for (size_type row = 0; row < dense_x->get_size()[0]; row++) {
-            for (size_type rhs = 0; rhs < dense_x->get_size()[1]; rhs++) {
-                dense_x->at(row, rhs) = real(complex_x->at(row, rhs));
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_FINALIZE_KERNEL);
 
 
 }  // namespace idr

@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_IDR_HPP_
 
 
+#include <iostream>
 #include <random>
+#include <typeinfo>
 #include <vector>
 
 
@@ -176,6 +178,15 @@ public:
          * The default behaviour is to choose the subspace vectors randomly.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
+
+        /**
+         * If set to true, IDR will use a complex subspace S also for real
+         * problems, allowing for faster convergence and better results by
+         * acknowledging the influence of complex eigenvectors.
+         *
+         * The default is false.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(complex_subspace, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -185,6 +196,9 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    template <typename SubspaceType>
+    void iterate(const LinOp *b, LinOp *x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Idr>(std::move(exec))
@@ -213,6 +227,7 @@ protected:
         subspace_dim_ = parameters_.subspace_dim;
         kappa_ = parameters_.kappa;
         deterministic_ = parameters_.deterministic;
+        complex_subspace_ = parameters_.complex_subspace;
     }
 
 private:
@@ -221,6 +236,7 @@ private:
     size_type subspace_dim_;
     remove_complex<ValueType> kappa_;
     bool deterministic_;
+    bool complex_subspace_;
 };
 
 

@@ -67,6 +67,7 @@ protected:
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           idr_factory(
               Solver::build()
+                  .with_deterministic(true)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(8u).on(exec),
                       gko::stop::Time::build()
@@ -78,6 +79,7 @@ protected:
                   .on(exec)),
           idr_factory_precision(
               Solver::build()
+                  .with_deterministic(true)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(50u).on(
                           exec),
@@ -114,6 +116,35 @@ TYPED_TEST(Idr, SolvesDenseSystem)
 }
 
 
+TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver_factory =
+        Solver::build()
+            .with_complex_subspace(true)
+            .with_deterministic(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(8u).on(this->exec),
+                gko::stop::Time::build()
+                    .with_time_limit(std::chrono::seconds(6))
+                    .on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .on(this->exec);
+    auto solver = solver_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
+}
+
+
 TYPED_TEST(Idr, SolvesMultipleDenseSystems)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -121,6 +152,39 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystems)
     using T = value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->idr_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}),
+                        half_tol);
+}
+
+
+TYPED_TEST(Idr, SolvesMultipleDenseSystemsWithComplexSubspace)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    using Solver = typename TestFixture::Solver;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver_factory =
+        Solver::build()
+            .with_complex_subspace(true)
+            .with_deterministic(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(8u).on(this->exec),
+                gko::stop::Time::build()
+                    .with_time_limit(std::chrono::seconds(6))
+                    .on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .on(this->exec);
+    auto solver = solver_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
     auto x = gko::initialize<Mtx>(

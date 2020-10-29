@@ -127,7 +127,7 @@ stages:
 
 sync:
   stage: sync
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     GIT_STRATEGY: none
     PRIVATE_REPO: git@gitlab.com:ginkgo-project/ginkgo.git
@@ -153,7 +153,7 @@ sync:
 # Job with example runs.
 build/cuda90/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda90-gnu5-llvm39
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -171,7 +171,7 @@ build/cuda90/gcc/all/debug/shared:
 
 build/cuda90/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda90-gnu5-llvm39
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -192,7 +192,7 @@ build/cuda90/clang/all/release/static:
 # cuda 9.1 and friends
 build/cuda91/gcc/all/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda91-gnu6-llvm40
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -210,7 +210,7 @@ build/cuda91/gcc/all/debug/static:
 
 build/cuda91/clang/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda91-gnu6-llvm40
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -231,7 +231,7 @@ build/cuda91/clang/all/release/shared:
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/debug:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda92-gnu7-llvm50-intel2017
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -249,7 +249,7 @@ build/cuda92/gcc/all/release/debug:
 
 build/cuda92/intel/cuda/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda92-gnu7-llvm50-intel2017
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -270,7 +270,7 @@ build/cuda92/intel/cuda/release/static:
 # cuda 10.0 and friends
 build/cuda100/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -288,7 +288,7 @@ build/cuda100/gcc/all/debug/shared:
 
 build/cuda100/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -309,7 +309,7 @@ build/cuda100/clang/all/release/static:
 
 build/cuda100/intel/cuda/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -329,7 +329,7 @@ build/cuda100/intel/cuda/release/shared:
 # cuda 10.1 and friends
 build/cuda101/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -347,7 +347,7 @@ build/cuda101/gcc/all/debug/shared:
 
 build/cuda101/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -369,7 +369,7 @@ build/cuda101/clang/all/release/static:
 # clang-cuda with cuda 10.1 and friends
 build/clang-cuda101/gcc/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   variables:
     <<: *default_variables
     CUDA_COMPILER: "clang++"
@@ -388,7 +388,7 @@ build/clang-cuda101/gcc/all/release/shared:
 
 build/clang-cuda101/clang/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -410,7 +410,7 @@ build/clang-cuda101/clang/cuda/debug/static:
 # cuda 10.2 and friends
 build/cuda102/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda102-gnu8-llvm8-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda102-gnu8-llvm8-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -428,7 +428,7 @@ build/cuda102/gcc/all/debug/shared:
 
 build/cuda102/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda102-gnu8-llvm8-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda102-gnu8-llvm8-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -449,7 +449,7 @@ build/cuda102/clang/all/release/static:
 
 build/cuda102/intel/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda102-gnu8-llvm8-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda102-gnu8-llvm8-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -470,7 +470,7 @@ build/cuda102/intel/cuda/debug/static:
 # cuda 11.0 and friends
 build/cuda110/gcc/cuda/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda110-gnu9-llvm9-intel2020
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda110-gnu9-llvm9-intel2020
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -487,7 +487,7 @@ build/cuda110/gcc/cuda/debug/shared:
 
 build/cuda110/clang/cuda/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda110-gnu9-llvm9-intel2020
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda110-gnu9-llvm9-intel2020
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -507,7 +507,7 @@ build/cuda110/clang/cuda/release/static:
 
 build/cuda110/intel/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda110-gnu9-llvm9-intel2020
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda110-gnu9-llvm9-intel2020
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -528,7 +528,7 @@ build/cuda110/intel/cuda/debug/static:
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-amd-gnu8-llvm7
+  image: localhost:5000/add_hiprand_fec6ada9_gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -545,7 +545,7 @@ build/amd/gcc/hip/debug/shared:
 
 build/amd/clang/hip/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-amd-gnu8-llvm7
+  image: localhost:5000/add_hiprand_fec6ada9_gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -565,7 +565,7 @@ build/amd/clang/hip/release/static:
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_REFERENCE: "OFF"
@@ -580,7 +580,7 @@ build/nocuda/gcc/core/debug/static:
 
 build/nocuda/clang/core/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -596,7 +596,7 @@ build/nocuda/clang/core/release/shared:
 
 build/nocuda/intel/core/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -613,7 +613,7 @@ build/nocuda/intel/core/debug/shared:
 
 build/nocuda/gcc/omp/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -627,7 +627,7 @@ build/nocuda/gcc/omp/release/shared:
 
 build/nocuda/clang/omp/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -644,7 +644,7 @@ build/nocuda/clang/omp/debug/static:
 
 build/nocuda/intel/omp/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -683,7 +683,7 @@ build/dpcpp/cpu/release/static:
 warnings:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -704,7 +704,7 @@ warnings:
 no-circular-deps:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -746,7 +746,7 @@ subdir-build:
 clang-tidy:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -766,7 +766,7 @@ clang-tidy:
 iwyu:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -787,7 +787,7 @@ iwyu:
 # For short living branches or PRs, try to detect an open PR
 sonarqube_cov_:
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
@@ -828,7 +828,7 @@ sonarqube_cov_:
 # (the one that was merged).
 sonarqube_cov:
   stage: code_quality
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
@@ -855,7 +855,7 @@ sonarqube_cov:
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
@@ -902,7 +902,7 @@ gh-pages:
 
 threadsanitizer:
   stage: QoS_tools
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - LD_PRELOAD=/usr/local/lib/libomp.so
@@ -926,7 +926,7 @@ threadsanitizer:
 
 leaksanitizer:
   stage: QoS_tools
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
@@ -946,7 +946,7 @@ leaksanitizer:
 
 addresssanitizer:
   stage: QoS_tools
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
@@ -966,7 +966,7 @@ addresssanitizer:
 
 undefinedsanitizer:
   stage: QoS_tools
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
@@ -988,7 +988,7 @@ undefinedsanitizer:
 
 cudamemcheck:
   stage: QoS_tools
-  image: localhost:5000/add_hiprand_cdb07838_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/add_hiprand_fec6ada9_gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
@@ -1027,7 +1027,7 @@ cudamemcheck:
 
 fineci-benchmark-build:
   stage: benchmark-build
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI
@@ -1108,7 +1108,7 @@ fineci-benchmark-build:
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI
@@ -1146,7 +1146,7 @@ fineci-benchmark-cuda:
 
 new-issue-on-failure:
   stage: on-failure
-  image: localhost:5000/add_hiprand_cdb07838_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/add_hiprand_fec6ada9_gko-nocuda-gnu9-llvm8
   script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20in%20${CI_PROJECT_NAME}%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels&description=${CI_PIPELINE_URL}"
   when: on_failure
   only:

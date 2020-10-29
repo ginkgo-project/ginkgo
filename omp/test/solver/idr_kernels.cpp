@@ -75,22 +75,13 @@ protected:
 
         mtx = gen_mtx(123, 123);
 
-        std::ofstream outfile;
-        outfile.open("test.mtx");
-        outfile << std::setprecision(20);
-
-        gko::write(outfile, mtx.get(), gko::layout_type::coordinate);
-
-        outfile.close();
-
         d_mtx = Mtx::create(omp);
-        // make_diag_dominant(mtx.get());
         d_mtx->copy_from(mtx.get());
         omp_idr_factory =
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(10u).on(omp),
+                    gko::stop::Iteration::build().with_max_iters(1u).on(omp),
                     gko::stop::RelativeResidualNorm<>::build()
                         .with_tolerance(1e-13)
                         .on(omp))
@@ -100,7 +91,7 @@ protected:
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(10u).on(ref),
+                    gko::stop::Iteration::build().with_max_iters(1u).on(ref),
                     gko::stop::RelativeResidualNorm<>::build()
                         .with_tolerance(1e-13)
                         .on(ref))
@@ -315,20 +306,13 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
+TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
 
-    auto bus = gko::read<Csr>(std::ifstream("1138_bus.mtx"), ref,
-                              std::make_shared<Csr::classical>());
-    auto d_bus = Csr::create(omp, std::make_shared<Csr::classical>());
-    d_bus->copy_from(bus.get());
-
-    m = bus->get_size()[0];
-
-    auto ref_solver = ref_idr_factory->generate(gko::share(bus));
-    auto omp_solver = omp_idr_factory->generate(gko::share(d_bus));
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto omp_solver = omp_idr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = Mtx::create(omp);
@@ -339,66 +323,56 @@ TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
 
-    /*auto res = Mtx::create(omp, gko::dim<2>{123,1});
-    auto one_op = gko::initialize<Mtx>({1.}, omp);
-    auto neg_one_op = gko::initialize<Mtx>({-1.}, omp);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
 
-    res->copy_from(d_b.get());
-    d_mtx->apply(neg_one_op.get(), d_x.get(), one_op.get(), res.get());
 
-    auto d_resnorm = Mtx::create(omp, gko::dim<2>{1, 1});
-    res->compute_norm2(d_resnorm.get());
+TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 1;
 
-    res->copy_from(b.get());
-    mtx->apply(neg_one_op.get(), x.get(), one_op.get(), res.get());
+    omp_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(omp),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(omp))
+            .on(omp);
 
-    auto resnorm = Mtx::create(ref, gko::dim<2>{1, 1});
-    res->compute_norm2(resnorm.get());
+    ref_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(ref))
+            .on(ref);
 
-    std::cout << "INITIAL RESIDUAL NORM REF: " << resnorm->at(0,0) << ", INITIAL
-    RESIDUAL NORM OMP: " << d_resnorm->at(0, 0) << "\n";
-
-    b->compute_norm2(resnorm.get());
-    d_b->compute_norm2(d_resnorm.get());
-
-    std::cout << "B NORM REF: " << resnorm->at(0,0) << ", B NORM OMP: " <<
-    d_resnorm->at(0,0) << "\n";
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto omp_solver = omp_idr_factory->generate(d_mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(omp);
+    auto d_x = Mtx::create(omp);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
-
-    res->copy_from(d_b.get());
-    d_mtx->apply(neg_one_op.get(), d_x.get(), one_op.get(), res.get());
-    res->compute_norm2(d_resnorm.get());
-
-    res->copy_from(b.get());
-    mtx->apply(neg_one_op.get(), x.get(), one_op.get(), res.get());
-    res->compute_norm2(resnorm.get());
-
-    std::cout << "RESIDUAL NORM REF: " << resnorm->at(0,0) << ", RESIDUAL NORM
-    OMP: " << d_resnorm->at(0, 0) << "\n";
-
-    std::ofstream outfile;
-    outfile.open("refresult.mtx");
-    outfile << std::setprecision(20);
-
-    gko::write(outfile, x.get(), gko::layout_type::coordinate);
-
-    outfile.close();
-
-    outfile.open("rhs.mtx");
-    outfile << std::setprecision(20);
-
-    gko::write(outfile, b.get(), gko::layout_type::coordinate);
-
-    outfile.close();*/
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
-/*TEST_F(Idr, IdrApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
@@ -416,7 +390,51 @@ TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
-}*/
+}
+
+
+TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 16;
+
+    omp_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(omp),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(omp))
+            .on(omp);
+
+    ref_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(ref))
+            .on(ref);
+
+    auto omp_solver = omp_idr_factory->generate(d_mtx);
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(omp);
+    auto d_x = Mtx::create(omp);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    omp_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
 
 
 }  // namespace

@@ -143,12 +143,19 @@ protected:
 
         auto exec = factory->get_executor();
 
-        auto dense_r = as<Vector>(args.initial_residual);
         this->starting_tau_ = NormVector::create(
             exec, dim<2>{1, args.initial_residual->get_size()[1]});
         this->u_dense_tau_ =
             NormVector::create_with_config_of(this->starting_tau_.get());
-        dense_r->compute_norm2(this->starting_tau_.get());
+        if (dynamic_cast<const matrix::Dense<to_complex<ValueType>> *>(
+                args.initial_residual)) {
+            auto dense_r =
+                as<matrix::Dense<to_complex<ValueType>>>(args.initial_residual);
+            dense_r->compute_norm2(this->starting_tau_.get());
+        } else {
+            auto dense_r = as<Vector>(args.initial_residual);
+            dense_r->compute_norm2(this->starting_tau_.get());
+        }
     }
 };
 
@@ -203,12 +210,18 @@ protected:
 
         auto exec = factory->get_executor();
 
-        auto dense_rhs = as<Vector>(args.b);
         this->starting_tau_ =
             NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         this->u_dense_tau_ =
             NormVector::create_with_config_of(this->starting_tau_.get());
-        dense_rhs->compute_norm2(this->starting_tau_.get());
+        if (dynamic_cast<const matrix::Dense<to_complex<ValueType>> *>(
+                args.b.get())) {
+            auto dense_rhs = as<matrix::Dense<to_complex<ValueType>>>(args.b);
+            dense_rhs->compute_norm2(this->starting_tau_.get());
+        } else {
+            auto dense_rhs = as<Vector>(args.b);
+            dense_rhs->compute_norm2(this->starting_tau_.get());
+        }
     }
 };
 
