@@ -301,10 +301,11 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
+TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
+
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
@@ -322,7 +323,51 @@ TEST_F(Idr, IdrApplyOneRHSIsEquivalentToRef)
 }
 
 
-TEST_F(Idr, IdrApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 1;
+
+    cuda_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(cuda),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(cuda))
+            .on(cuda);
+
+    ref_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(ref))
+            .on(ref);
+
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(cuda);
+    auto d_x = Mtx::create(cuda);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    cuda_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
+
+
+TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
@@ -338,8 +383,52 @@ TEST_F(Idr, IdrApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-12);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+}
+
+
+TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 16;
+
+    cuda_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(cuda),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(cuda))
+            .on(cuda);
+
+    ref_idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
+                gko::stop::RelativeResidualNorm<>::build()
+                    .with_tolerance(1e-13)
+                    .on(ref))
+            .on(ref);
+
+    auto cuda_solver = cuda_idr_factory->generate(d_mtx);
+    auto ref_solver = ref_idr_factory->generate(mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(cuda);
+    auto d_x = Mtx::create(cuda);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    cuda_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
