@@ -87,6 +87,9 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+DEFINE_uint32(gmres_restart, 100,
+              "What maximum dimension of the Krylov space to use in GMRES");
+
 DEFINE_bool(random_initial_guess, false,
             "Use a random vector for the initial guess (otherwise use rhs)");
 
@@ -151,7 +154,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
-                   {"gmres", create_solver<gko::solver::Gmres<>>},
+                   {"gmres",
+                    [](std::shared_ptr<const gko::Executor> exec,
+                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                        return gko::solver::Gmres<>::build()
+                            .with_criteria(
+                                gko::stop::ResidualNormReduction<>::build()
+                                    .with_reduction_factor(FLAGS_rel_res_goal)
+                                    .on(exec),
+                                gko::stop::Iteration::build()
+                                    .with_max_iters(FLAGS_max_iters)
+                                    .on(exec))
+                            .with_krylov_dim(FLAGS_gmres_restart)
+                            .with_preconditioner(give(precond))
+                            .on(exec);
+                    }},
                    {"overhead", create_solver<gko::Overhead<>>}};
 
 
