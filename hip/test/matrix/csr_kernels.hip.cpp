@@ -810,8 +810,8 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
     bool is_sorted_hip{};
     bool is_sorted_ref{};
 
-    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
-    is_sorted_hip = uns_mtx.hip->is_sorted_by_column_index();
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_hip = dmtx->is_sorted_by_column_index();
 
     ASSERT_EQ(is_sorted_ref, is_sorted_hip);
 }
