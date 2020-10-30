@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/overhead_linop.hpp"
+#include "ginkgo/core/preconditioner/isai.hpp"
 
 
 // some Ginkgo shortcuts
@@ -68,7 +69,7 @@ DEFINE_string(
     preconditioners, "none",
     "A comma-separated list of preconditioners to use. "
     "Supported values are: none, jacobi, adaptive-jacobi, parict, parilu, "
-    "parilut, ilu, overhead");
+    "parilut, ilu, parict-isai, parilu-isai, parilut-isai, ilu-isai, overhead");
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParICT/ParILU(T)");
@@ -78,9 +79,16 @@ DEFINE_bool(parilut_approx_select, true,
 
 DEFINE_double(parilut_limit, 2.0, "The fill-in limit for ParICT/ParILUT");
 
+DEFINE_int32(
+    isai_power, 1,
+    "Which power of the sparsity structure to use for ISAI preconditioners");
+
 DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
+
+DEFINE_bool(random_initial_guess, false,
+            "Use a random vector for the initial guess (otherwise use rhs)");
 
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
@@ -93,13 +101,14 @@ DEFINE_bool(overhead, false,
 // input validation
 [[noreturn]] void print_config_error_and_exit()
 {
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-                 "\"spmv\": \"<matrix format>\" } },\n"
-              << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
-                 "\"spmv\": \"<matrix format>\" } }\n"
-              << "  ]" << std::endl;
+    std::cerr
+        << "Input has to be a JSON array of matrix configurations:\n"
+        << "  [\n"
+        << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" }, \"rhs\": \"my_file_rhs.mtx\" },\n"
+        << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+           "\"spmv\": \"<matrix format>\" } }\n"
+        << "  ]" << std::endl;
     std::exit(1);
 }
 
@@ -109,7 +118,8 @@ void validate_option_object(const rapidjson::Value &value)
     if (!value.IsObject() || !value.HasMember("optimal") ||
         !value["optimal"].HasMember("spmv") ||
         !value["optimal"]["spmv"].IsString() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
+        !value["filename"].IsString() ||
+        (value.HasMember("rhs") && !value["rhs"].IsString())) {
         print_config_error_and_exit();
     }
 }
@@ -252,6 +262,100 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return std::unique_ptr<ReferenceFactoryWrapper>(
                  new ReferenceFactoryWrapper(f));
          }},
+        {"parict-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIct<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .with_approximate_select(FLAGS_parilut_approx_select)
+                     .with_fill_in_limit(FLAGS_parilut_limit)
+                     .on(exec));
+             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<
+                     gko::preconditioner::LowerIsai<>,
+                     gko::preconditioner::UpperIsai<>>::build()
+                     .with_factorization_factory(fact)
+                     .with_l_solver_factory(lisai)
+                     .with_u_solver_factory(uisai)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"parilu-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlu<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .on(exec));
+             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<
+                     gko::preconditioner::LowerIsai<>,
+                     gko::preconditioner::UpperIsai<>>::build()
+                     .with_factorization_factory(fact)
+                     .with_l_solver_factory(lisai)
+                     .with_u_solver_factory(uisai)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"parilut-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlut<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .with_approximate_select(FLAGS_parilut_approx_select)
+                     .with_fill_in_limit(FLAGS_parilut_limit)
+                     .on(exec));
+             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<
+                     gko::preconditioner::LowerIsai<>,
+                     gko::preconditioner::UpperIsai<>>::build()
+                     .with_factorization_factory(fact)
+                     .with_l_solver_factory(lisai)
+                     .with_u_solver_factory(uisai)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"ilu-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::Ilu<>::build().on(exec));
+             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
+                                         .with_sparsity_power(FLAGS_isai_power)
+                                         .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<
+                     gko::preconditioner::LowerIsai<>,
+                     gko::preconditioner::UpperIsai<>>::build()
+                     .with_factorization_factory(fact)
+                     .with_l_solver_factory(lisai)
+                     .with_u_solver_factory(uisai)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              std::shared_ptr<const gko::LinOpFactory> f =
                  gko::Overhead<>::build().on(exec);
@@ -330,7 +434,7 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "iteration_timestamps",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        if (FLAGS_nrhs == 1 && !FLAGS_overhead) {
+        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
             auto rhs_norm = compute_norm2(lend(b));
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         }
@@ -397,7 +501,7 @@ void solve_system(const std::string &solver_name,
                                      allocator, 1);
 
             // slow run, gets the recurrent and true residuals of each iteration
-            if (FLAGS_nrhs == 1) {
+            if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     exec, lend(system_matrix), b,
@@ -439,7 +543,7 @@ void solve_system(const std::string &solver_name,
             apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                 a_tac - a_tic);
 
-            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1 &&
+            if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
                 !FLAGS_overhead) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
@@ -476,7 +580,7 @@ int main(int argc, char *argv[])
     std::string format =
         std::string() + "  [\n" +
         "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-        "\"spmv\": \"<matrix format>\" } },\n" +
+        "\"spmv\": \"<matrix format>\" }, \"rhs\": \"my_file_rhs.mtx\" },\n" +
         "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
         "\"spmv\": \"<matrix format>\" } }\n" +
         "  ]\n\n" +
@@ -553,12 +657,22 @@ int main(int argc, char *argv[])
                 auto data = gko::read_raw<etype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
-                b = create_matrix<etype>(
-                    exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                    engine);
-                x = create_matrix<etype>(
-                    exec,
-                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+                if (test_case.HasMember("rhs")) {
+                    std::ifstream rhs_fd{test_case["rhs"].GetString()};
+                    b = gko::read<Vec>(rhs_fd, exec);
+                } else {
+                    b = create_matrix<etype>(
+                        exec,
+                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+                }
+                if (FLAGS_random_initial_guess) {
+                    x = create_matrix<etype>(
+                        exec,
+                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                        engine);
+                } else {
+                    x = b->clone();
+                }
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
