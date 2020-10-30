@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace {
@@ -75,7 +76,7 @@ protected:
         std::initializer_list<gko::precision_reduction> block_precisions,
         std::initializer_list<double> condition_numbers,
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
-        double accuracy = 0.1)
+        double accuracy = 0.1, bool skip_sorting = true)
     {
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -101,10 +102,12 @@ protected:
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
                              .with_block_pointers(block_ptrs)
+                             .with_skip_sorting(skip_sorting)
                              .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
+                               .with_skip_sorting(skip_sorting)
                                .on(cuda);
         } else {
             bj_factory = Bj::build()
@@ -112,12 +115,14 @@ protected:
                              .with_block_pointers(block_ptrs)
                              .with_storage_optimization(block_prec)
                              .with_accuracy(accuracy)
+                             .with_skip_sorting(skip_sorting)
                              .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_storage_optimization(block_prec)
                                .with_accuracy(accuracy)
+                               .with_skip_sorting(skip_sorting)
                                .on(cuda);
         }
         b = gko::test::generate_random_matrix<Vec>(
@@ -290,9 +295,22 @@ TEST_F(Jacobi,
 }
 
 
-TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32Sorted)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+}
+
+
+TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32Unsorted)
+{
+    std::ranlux48 engine(42);
+    initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
+    gko::test::unsort_matrix(mtx.get(), engine);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
