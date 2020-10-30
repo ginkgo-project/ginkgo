@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 
+#include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
 #include "matrices/config.hpp"
 
@@ -61,7 +62,7 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
-    std::randlux48 rand_engine;
+    std::ranlux48 rand_engine;
     std::shared_ptr<Csr> csr_ref;
     std::shared_ptr<Csr> csr_hip;
 
@@ -113,15 +114,10 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
     gko::test::unsort_matrix(gko::lend(csr_ref), rand_engine);
     csr_hip->copy_from(gko::lend(csr_ref));
 
-    // TODO: Remove sorting, just for testing here!
-    auto ref_fact = gko::factorization::ParIlu<>::build()
-                        .with_skip_sorting(true)
-                        .on(ref)
-                        ->generate(csr_ref);
-    auto hip_fact = gko::factorization::Ilu<>::build()
-                        .with_skip_sorting(true)
-                        .on(hip)
-                        ->generate(csr_hip);
+    auto ref_fact =
+        gko::factorization::ParIlu<>::build().on(ref)->generate(csr_ref);
+    auto hip_fact =
+        gko::factorization::Ilu<>::build().on(hip)->generate(csr_hip);
 
     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), hip_fact->get_l_factor(),
                         1e-14);
