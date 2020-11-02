@@ -279,6 +279,81 @@ private:
     } data_;
 };
 
+
+// specialization for 1
+template <>
+class thread_block_tile<1> {
+    using mask_type = config::lane_mask_type;
+    static constexpr unsigned Size = 1;
+
+public:
+    template <typename Group>
+    explicit thread_block_tile(const Group &parent_group) : data_{Size, 0}
+    {}
+
+
+    __dpct_inline__ unsigned thread_rank() const noexcept { return data_.rank; }
+
+    __dpct_inline__ unsigned size() const noexcept { return Size; }
+
+    __dpct_inline__ void sync() const noexcept {}
+
+
+#define GKO_DISABLE_SHFL(ShflOpName)                                           \
+    template <typename ValueType, typename SelectorType>                       \
+    __dpct_inline__ ValueType ShflOpName(ValueType var, SelectorType selector) \
+        const noexcept                                                         \
+    {                                                                          \
+        return var;                                                            \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+    GKO_DISABLE_SHFL(shfl);
+    GKO_DISABLE_SHFL(shfl_up);
+    GKO_DISABLE_SHFL(shfl_down);
+    GKO_DISABLE_SHFL(shfl_xor);
+
+    /**
+     * Returns a bitmask containing the value of the given predicate
+     * for all threads in the group.
+     * This means that the ith bit is equal to the predicate of the
+     * thread with thread_rank() == i in the group.
+     * Note that the whole group needs to execute the same operation.
+     */
+    __dpct_inline__ mask_type ballot(int predicate) const noexcept
+    {
+        return (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0);
+    }
+
+    /**
+     * Returns true iff the predicate is true for at least one threads in the
+     * group. Note that the whole group needs to execute the same operation.
+     */
+    __dpct_inline__ bool any(int predicate) const noexcept
+    {
+        return (predicate != 0);
+    }
+
+    /**
+     * Returns true iff the predicate is true for all threads in the group.
+     * Note that the whole group needs to execute the same operation.
+     */
+    __dpct_inline__ bool all(int predicate) const noexcept
+    {
+        return (predicate != 0);
+    }
+
+
+private:
+    struct alignas(8) {
+        unsigned size;
+        unsigned rank;
+    } data_;
+};
+
+
 }  // namespace detail
 
 using detail::thread_block_tile;
@@ -288,6 +363,14 @@ template <unsigned Size, typename Group>
 __dpct_inline__ std::enable_if_t<Size == 8 || Size == 16 || Size == 32,
                                  detail::thread_block_tile<Size>>
     tiled_partition [[intel::reqd_sub_group_size(Size)]] (const Group &group)
+{
+    return detail::thread_block_tile<Size>(group);
+}
+
+
+template <unsigned Size, typename Group>
+__dpct_inline__ std::enable_if_t<Size == 1, detail::thread_block_tile<Size>>
+tiled_partition(const Group &group)
 {
     return detail::thread_block_tile<Size>(group);
 }

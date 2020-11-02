@@ -135,9 +135,10 @@ public:
             int(this->get_size()[1]), oneapi::mkl::index_base::zero,
             csr_->get_row_ptrs(), csr_->get_col_idxs(), csr_->get_values());
         if (optimized) {
+            // need the last argument {} to make sure that it uses USM version.
             oneapi::mkl::sparse::optimize_gemv(
                 *(this->get_gpu_exec()->get_queue()), trans_,
-                this->get_mat_handle());
+                this->get_mat_handle(), {});
         }
     }
 

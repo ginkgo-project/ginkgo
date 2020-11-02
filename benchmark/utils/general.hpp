@@ -432,8 +432,8 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
-        // std::cout << host_absolute_norm->at(0, i) << ", " <<
-        // host_answer_norm->at(0, i) << std::endl;
+        // std::cout << host_absolute_norm->at(0, i) << ", "
+        //           << host_answer_norm->at(0, i) << std::endl;
         max_relative_norm2 =
             std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
                      max_relative_norm2);

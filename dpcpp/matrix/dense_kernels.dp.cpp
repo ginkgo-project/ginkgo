@@ -1200,6 +1200,29 @@ void add_scaled_diag(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 
+namespace {
+
+
+#define GKO_BIND_DOT(ValueType, Func)                                        \
+    void dot(::cl::sycl::queue &exec_queue, std::int64_t n,                  \
+             const ValueType *x, std::int64_t incx, const ValueType *y,      \
+             std::int64_t incy, ValueType *result)                           \
+    {                                                                        \
+        Func(exec_queue, n, x, incx, y, incy, result);                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_DOT(float, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(double, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(std::complex<float>, oneapi::mkl::blas::row_major::dotc);
+GKO_BIND_DOT(std::complex<double>, oneapi::mkl::blas::row_major::dotc);
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *x,
@@ -1209,21 +1232,11 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
     if (!is_complex<ValueType>()) {
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            oneapi::mkl::blas::row_major::dot(
-                *exec->get_queue(), x->get_size()[0],
+            dot(*exec->get_queue(), x->get_size()[0],
                 x->get_const_values() + col, x->get_stride(),
                 y->get_const_values() + col, y->get_stride(),
                 result->get_values() + col);
         }
-        // dotc seems not to have usm version yet.
-        // } else if (is_complex<ValueType>()) {
-        //     for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        //         oneapi::mkl::blas::dotc(
-        //             *exec->get_queue(), x->get_size()[0],
-        //             x->get_const_values() + col, x->get_stride(),
-        //             y->get_const_values() + col, y->get_stride(),
-        //             result->get_values() + col);
-        //     }
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
