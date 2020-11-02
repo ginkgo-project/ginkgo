@@ -149,15 +149,16 @@ void spmv_kernel(
             c[c_ind] = op(temp, c[c_ind]);
         }
     } else {
-        if (tidx < num_worker_per_row * num_rows) {
-            const auto idx_in_worker = item_ct1.get_local_id(1);
-            const auto x = tidx % num_rows;
-            const auto worker_id = tidx / num_rows;
-            const auto step_size = num_worker_per_row * num_thread_per_worker;
-            if (idx_in_worker == 0) {
-                (*storage)[item_ct1.get_local_id(2)] = 0;
-            }
-            item_ct1.barrier();
+        const auto idx_in_worker = item_ct1.get_local_id(1);
+        const auto x = tidx % num_rows;
+        const auto worker_id = tidx / num_rows;
+        const auto step_size = num_worker_per_row * num_thread_per_worker;
+        const bool runable = tidx < num_worker_per_row * num_rows;
+        if (idx_in_worker == 0) {
+            (*storage)[item_ct1.get_local_id(2)] = 0;
+        }
+        item_ct1.barrier();
+        if (runable) {
             ValueType temp = zero<ValueType>();
             for (size_type idx =
                      worker_id * num_thread_per_worker + idx_in_worker;
@@ -172,7 +173,9 @@ void spmv_kernel(
             }
             atomic_add<atomic::local_space>(
                 &((*storage)[item_ct1.get_local_id(2)]), temp);
-            item_ct1.barrier();
+        }
+        item_ct1.barrier();
+        if (runable) {
             if (idx_in_worker == 0) {
                 const auto c_ind = x * c_stride + column_id;
                 if (atomic) {

@@ -141,7 +141,7 @@ std::string format_description =
 #ifdef HAS_INTEL
     "\n"
     "onemkl_csr: benchmark OneMKL with csr.\n"
-    "onemkl_optimize_csr: benchmark OneMKL with optimized csr.\n"
+    "onemkl_optimized_csr: benchmark OneMKL with optimized csr.\n"
 #endif  // HAS_INTEL
     ;
 
