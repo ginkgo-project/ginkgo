@@ -94,6 +94,9 @@ DEFINE_uint32(
 DEFINE_uint32(gmres_restart, 100,
               "What maximum dimension of the Krylov space to use in GMRES");
 
+DEFINE_bool(random_rhs, false,
+            "Use a random vector for the rhs (otherwise use all ones)");
+
 DEFINE_bool(random_initial_guess, false,
             "Use a random vector for the initial guess (otherwise use rhs)");
 
@@ -692,7 +695,8 @@ int main(int argc, char *argv[])
                 } else {
                     b = create_matrix<etype>(
                         exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                        engine, FLAGS_random_rhs);
                 }
                 if (FLAGS_random_initial_guess) {
                     x = create_matrix<etype>(
