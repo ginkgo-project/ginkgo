@@ -60,6 +60,10 @@ DEFINE_uint32(max_iters, 1000,
 
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
+DEFINE_bool(
+    rel_residual, false,
+    "Use relative residual instead of residual reduction stopping criterion");
+
 DEFINE_string(
     solvers, "cg",
     "A comma-separated list of solvers to run. "
@@ -134,13 +138,21 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
     std::shared_ptr<const gko::Executor> exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::build()
-        .with_criteria(gko::stop::ResidualNormReduction<>::build()
+    std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
+    if (FLAGS_rel_residual) {
+        residual_stop = gko::share(gko::stop::RelativeResidualNorm<>::build()
+                                       .with_tolerance(FLAGS_rel_res_goal)
+                                       .on(exec));
+    } else {
+        residual_stop =
+            gko::share(gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(FLAGS_rel_res_goal)
-                           .on(exec),
-                       gko::stop::Iteration::build()
-                           .with_max_iters(FLAGS_max_iters)
-                           .on(exec))
+                           .on(exec));
+    }
+    return SolverType::build()
+        .with_criteria(residual_stop, gko::stop::Iteration::build()
+                                          .with_max_iters(FLAGS_max_iters)
+                                          .on(exec))
         .with_preconditioner(give(precond))
         .on(exec);
 }
