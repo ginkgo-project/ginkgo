@@ -66,7 +66,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> lower_trs_factory;
 };
 
-TYPED_TEST_CASE(LowerTrs, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(LowerTrs, LowerTrsFactoryKnowsItsExecutor)

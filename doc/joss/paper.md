@@ -53,13 +53,13 @@ Ginkgo is a production-ready sparse linear algebra library for high
 performance computing on GPU-centric architectures with a high level of
 performance portability and focuses on software sustainability. 
 
-The library focuses on solving sparse linear systems and accommodates a large variety
-of matrix formats, state-of-the-art iterative (Krylov) solvers and preconditioners, 
-which make the library suitable for a variety of scientific applications. Ginkgo
-supports many architectures such as multi-threaded CPU, NVIDIA GPUs, and AMD GPUs.
-The heavy use of modern C++ features simplifies the addition of new executor
-paradigms and algorithmic functionality without introducing significant
-performance overhead. 
+The library focuses on solving sparse linear systems and accommodates a large
+variety of matrix formats, state-of-the-art iterative (Krylov) solvers and
+preconditioners, which make the library suitable for a variety of scientific
+applications. Ginkgo supports many architectures such as multi-threaded CPU,
+NVIDIA GPUs, AMD GPUs, and Intel CPU/GPUs. The heavy use of modern C++ features
+simplifies the addition of new executor paradigms and algorithmic functionality
+without introducing significant performance overhead.
 
 Solving linear systems is usually one of the most computationally
 and memory intensive aspects of any application. Hence there has been a significant

@@ -58,8 +58,7 @@ int main(int argc, char *argv[])
 
     // Figure out where to run the code
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor]"
-                  << std::endl;
+        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
 
@@ -77,6 +76,11 @@ int main(int argc, char *argv[])
              [] {
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
                                                  true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 

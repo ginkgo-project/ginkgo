@@ -147,8 +147,8 @@ collection. For details, see the [available benchmark options](### 5: Available
 benchmark options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be ran.
-* `EXECUTOR={reference,cuda,hip,omp}` - select the executor and platform the
-    benchmarks should be ran on.
+* `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
+    the benchmarks should be ran on.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...).
 * `SEGMENTS=<N>` - Split the benchmarked matrix space into `<N>` segments. If
@@ -256,8 +256,8 @@ The supported environment variables are described in the following list:
                  benchmark.
     *   `preconditioner` - Runs the preconditioner benchmarks on artificially
                  generated block-diagonal matrices.
-* `EXECUTOR={reference,cuda,hip,omp}` - select the executor and platform the
-    benchmarks should be ran on. Default is `cuda`.
+* `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
+    the benchmarks should be ran on. Default is `cuda`.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...) and not overwrite previous results. Default is
     `unknown`.

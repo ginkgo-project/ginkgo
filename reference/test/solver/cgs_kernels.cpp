@@ -97,7 +97,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> cgs_factory_big;
 };
 
-TYPED_TEST_CASE(Cgs, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Cgs, gko::test::ValueTypes);
 
 
 TYPED_TEST(Cgs, SolvesDenseSystem)

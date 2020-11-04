@@ -69,6 +69,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${DIR_BASE}/omp
         ${DIR_BASE}/cuda
         ${DIR_BASE}/hip
+        ${DIR_BASE}/dpcpp
         ${DIR_BASE}/reference
         )
     set(doxygen_image_path "")

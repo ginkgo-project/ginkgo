@@ -212,6 +212,13 @@ public:
      */
     version hip_version;
 
+    /**
+     * Contains version information of the DPC++ module.
+     *
+     * This is the version of the static/shared library called "ginkgo_dpcpp".
+     */
+    version dpcpp_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
@@ -229,13 +236,16 @@ private:
 
     static version get_hip_version() noexcept;
 
+    static version get_dpcpp_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
           cuda_version{get_cuda_version()},
-          hip_version{get_hip_version()}
+          hip_version{get_hip_version()},
+          dpcpp_version{get_dpcpp_version()}
     {}
 };
 

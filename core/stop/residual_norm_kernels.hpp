@@ -99,6 +99,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace residual_norm
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 }  // namespace kernels

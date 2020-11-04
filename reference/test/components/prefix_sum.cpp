@@ -62,7 +62,7 @@ protected:
     std::vector<index_type> expected;
 };
 
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes);
 
 
 TYPED_TEST(PrefixSum, Works)

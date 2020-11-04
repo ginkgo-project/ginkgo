@@ -98,6 +98,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace rcm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace rcm
+}  // namespace dpcpp
+
+
 namespace reference {
 namespace rcm {
 
