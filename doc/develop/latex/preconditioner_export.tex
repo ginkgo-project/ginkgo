@@ -21,6 +21,7 @@ This example shows how to explicitly generate and store preconditioners for a gi
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <memory>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
@@ -32,8 +33,13 @@ This example shows how to explicitly generate and store preconditioners for a gi
 \DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(}
 \DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
 \DoxyCodeLine{               \}\},}
-\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"}, [] \{}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{               [] \{}
 \DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"dpcpp"}, [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(}
 \DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
 \DoxyCodeLine{               \}\}\};}
 \DoxyCodeLine{}
@@ -71,7 +77,7 @@ print usage message
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
-\DoxyCodeLine{              << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] "}}
 \DoxyCodeLine{                 \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
 \DoxyCodeLine{                 \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Jacobi parameters: [<max-\/block-\/size>] [<accuracy>] "}}
@@ -322,7 +328,7 @@ This is the expected output\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{Usage: ./preconditioner-\/export <reference|omp|cuda|hip> [<matrix-\/file>] [<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/isai] [<preconditioner args>]}
+\DoxyCodeLine{Usage: ./preconditioner-\/export <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] [<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/isai] [<preconditioner args>]}
 \DoxyCodeLine{Jacobi parameters: [<\mbox{\hyperlink{namespacegko_af1812df45c6ec07780d579a12b64c753}{max}}-\/block-\/size>] [<accuracy>] [<storage-\/optimization:\textcolor{keyword}{auto}|0|1|2>]}
 \DoxyCodeLine{ParILU parameters: [<iteration-\/count>]}
 \DoxyCodeLine{ParILUT parameters: [<iteration-\/count>] [<fill-\/in-\/limit>]}
@@ -389,6 +395,7 @@ When specifying an executor\+:
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <memory>}}
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
@@ -400,8 +407,13 @@ When specifying an executor\+:
 \DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(}
 \DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
 \DoxyCodeLine{               \}\},}
-\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"}, [] \{}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{               [] \{}
 \DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"dpcpp"}, [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(}
 \DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
 \DoxyCodeLine{               \}\}\};}
 \DoxyCodeLine{}
@@ -432,7 +444,7 @@ When specifying an executor\+:
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
 \DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
-\DoxyCodeLine{                  << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{" <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] "}}
 \DoxyCodeLine{                     \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
 \DoxyCodeLine{                     \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}
 \DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Jacobi parameters: [<max-\/block-\/size>] [<accuracy>] "}}

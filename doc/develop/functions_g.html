@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211309633 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -199,6 +199,7 @@ $(function() {
 </li>
 <li>get_device_id()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1DpcppExecutor.html#aefdd7095f2d18ff8e4ab8354006f305b">gko::DpcppExecutor</a>
 , <a class="el" href="classgko_1_1HipExecutor.html#a37a35665c3983e56105c6acea9de73c6">gko::HipExecutor</a>
 </li>
 <li>get_ell()
@@ -257,9 +258,16 @@ $(function() {
 </li>
 <li>get_master()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a59a618e0d48b42fe699e9d4cf347b491">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1DpcppExecutor.html#ac9a28c1178bde1244960a2bdd6c7e7a9">gko::DpcppExecutor</a>
 , <a class="el" href="classgko_1_1Executor.html#acaec4f999d52fc71e5e5a3d3ad93609c">gko::Executor</a>
 , <a class="el" href="classgko_1_1HipExecutor.html#aad8e01fc70095ad5df48a02da9555400">gko::HipExecutor</a>
 , <a class="el" href="classgko_1_1OmpExecutor.html#a5b83349e601d473cf8768c0bdbcaca8c">gko::OmpExecutor</a>
+</li>
+<li>get_max_workgroup_size()
+: <a class="el" href="classgko_1_1DpcppExecutor.html#a702cf49fb65b0867a00c6841d5e2b373">gko::DpcppExecutor</a>
+</li>
+<li>get_max_workitem_sizes()
+: <a class="el" href="classgko_1_1DpcppExecutor.html#ae88efd8a0bf731150c7036b89a9c3109">gko::DpcppExecutor</a>
 </li>
 <li>get_minor_version()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aa7d7a5cd7aeb38b8ab8fe3e4d1538481">gko::CudaExecutor</a>
@@ -278,8 +286,12 @@ $(function() {
 <li>get_num_columns()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1column__limit.html#ae950e0c9f6be62fe23400cbe2f5e9cfb">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::column_limit</a>
 </li>
+<li>get_num_computing_units()
+: <a class="el" href="classgko_1_1DpcppExecutor.html#a15bccf2c4baebe32d5c8ce3d1ad27474">gko::DpcppExecutor</a>
+</li>
 <li>get_num_devices()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1DpcppExecutor.html#adf306338233c8e8aca0dec96aefe5d93">gko::DpcppExecutor</a>
 , <a class="el" href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor</a>
 </li>
 <li>get_num_elems()
@@ -414,6 +426,9 @@ $(function() {
 </li>
 <li>get_stride_factor()
 : <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a34c7942cac3db5a9c4c0b609d2a5540b">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_subgroup_sizes()
+: <a class="el" href="classgko_1_1DpcppExecutor.html#a9cb3395e6ecc15fcce575f55e5694d24">gko::DpcppExecutor</a>
 </li>
 <li>get_system_matrix()
 : <a class="el" href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg&lt; ValueType &gt;</a>

@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['openmp_20executor_1571',['OpenMP Executor',['../group__exec__omp.html',1,'']]]
+  ['linear_20operators_1583',['Linear Operators',['../group__LinOp.html',1,'']]],
+  ['logging_1584',['Logging',['../group__log.html',1,'']]]
 ];

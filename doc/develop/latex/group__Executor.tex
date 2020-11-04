@@ -18,6 +18,8 @@ Collaboration diagram for Executors\+:
 \item 
 \mbox{\hyperlink{group__exec__cuda}{C\+U\+D\+A Executor}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the C\+U\+DA executor in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__exec__dpcpp}{D\+P\+C++ Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the D\+P\+C++ executor in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__exec__hip}{H\+I\+P Executor}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the H\+IP executor in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__exec__omp}{Open\+M\+P Executor}}
@@ -40,7 +42,9 @@ class \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko\+::\+Reference\+Execut
 class \mbox{\hyperlink{classgko_1_1CudaExecutor}{gko\+::\+Cuda\+Executor}}
 \begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the C\+U\+DA device. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1HipExecutor}{gko\+::\+Hip\+Executor}}
-\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1DpcppExecutor}{gko\+::\+Dpcpp\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents a D\+P\+C++ enhanced device. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Macros}
 \begin{DoxyCompactItemize}
 \item 
@@ -59,6 +63,7 @@ The first step in using the Ginkgo library consists of creating an executor. Exe
 \item \mbox{\hyperlink{group__exec__omp}{Open\+MP Executor}} specifies that the data should be stored and the associated operations executed on an Open\+M\+P-\/supporting device (e.\+g. host C\+PU);
 \item \mbox{\hyperlink{group__exec__cuda}{C\+U\+DA Executor}} specifies that the data should be stored and the operations executed on the N\+V\+I\+D\+IA G\+PU accelerator;
 \item \mbox{\hyperlink{group__exec__hip}{H\+IP Executor}} uses the H\+IP library to compile code for either N\+V\+I\+D\+IA or A\+MD G\+PU accelerator;
+\item \mbox{\hyperlink{group__exec__dpcpp}{D\+P\+C++ Executor}} uses the D\+P\+C++ compiler for any D\+P\+C++ supported hardware (e.\+g. Intel C\+P\+Us, G\+PU, F\+P\+G\+As, ...);
 \item \mbox{\hyperlink{group__exec__ref}{Reference Executor}} executes a non-\/optimized reference implementation, which can be used to debug the library. 
 \end{DoxyItemize}
 
@@ -75,7 +80,7 @@ Binds a set of device-\/specific kernels to an Operation.
 
 It also defines a helper function which creates the associated operation. Any input arguments passed to the helper function are forwarded to the kernel when the operation is executed.
 
-The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D\+E\+V\+\_\+\+T\+Y\+PE} namespace, where {\ttfamily D\+E\+V\+\_\+\+T\+Y\+PE} is replaced by {\ttfamily omp}, {\ttfamily cuda}, {\ttfamily hip} and {\ttfamily reference}.
+The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D\+E\+V\+\_\+\+T\+Y\+PE} namespace, where {\ttfamily D\+E\+V\+\_\+\+T\+Y\+PE} is replaced by {\ttfamily omp}, {\ttfamily cuda}, {\ttfamily hip}, {\ttfamily dpcpp} and {\ttfamily reference}.
 
 
 \begin{DoxyParams}{Parameters}
@@ -106,6 +111,11 @@ The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D
 \DoxyCodeLine{     \textcolor{comment}{// hip code}}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{\}}
+\DoxyCodeLine{\textcolor{keyword}{namespace }dpcpp \{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
+\DoxyCodeLine{     \textcolor{comment}{// dpcpp code}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\}}
 \DoxyCodeLine{\textcolor{keyword}{namespace }reference \{}
 \DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
 \DoxyCodeLine{    \textcolor{comment}{// reference code}}
@@ -120,6 +130,7 @@ The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D
 \DoxyCodeLine{    \textcolor{keyword}{auto} omp = OmpExecutor::create();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} cuda = CudaExecutor::create(omp, 0);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} hip = HipExecutor::create(omp, 0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} dpcpp = DpcppExecutor::create(omp, 0);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} ref = ReferenceExecutor::create();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{comment}{// create the operation}}
@@ -128,6 +139,7 @@ The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D
 \DoxyCodeLine{    omp-\/>run(op);  \textcolor{comment}{// run omp kernel}}
 \DoxyCodeLine{    cuda-\/>run(op);  \textcolor{comment}{// run cuda kernel}}
 \DoxyCodeLine{    hip-\/>run(op);  \textcolor{comment}{// run hip kernel}}
+\DoxyCodeLine{    dpcpp-\/>run(op);  \textcolor{comment}{// run DPC++ kernel}}
 \DoxyCodeLine{    ref-\/>run(op);  \textcolor{comment}{// run reference kernel}}
 \DoxyCodeLine{\}}
 \end{DoxyCode}

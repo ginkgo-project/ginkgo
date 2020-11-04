@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211309633 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -80,14 +80,22 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 </ol>
 <p>By default, all Ginkgo examples are built using CMake.</p>
 <p>An example for building the examples and using Ginkgo as an external library without CMake can be found in the script provided for each example, which should be called with the form: <code>./build.sh PATH_TO_GINKGO_BUILD_DIR </code></p>
-<p>By default, Ginkgo is compiled with at least <code>-DGINKGO_BUILD_REFERENCE=ON</code>. To execute on a GPU, you need to have a GPU on the system and must have compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.</p>
-<p><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
-<p>The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. </p><div class="dotgraph">
+<p>By default, Ginkgo is compiled with at least <code>-DGINKGO_BUILD_REFERENCE=ON</code>. Ginkgo also tries to detect your environment setup (presence of CUDA, ...) to enable the relevant accelerator modules. If you want to target a specific GPU, make sure that Ginkgo is compiled with the accelerator specific module enabled, such as: </p><ol>
+<li>
+<code>-DGINKGO_BUILD_CUDA=ON</code> option for NVIDIA GPUs. </li>
+<li>
+<code>-DGINKGO_BUILD_HIP=ON</code> option for AMD or NVIDIA GPUs. </li>
+<li>
+<p class="startli"><code>-DGINKGO_BUILD_DPCPP=ON</code> option for Intel GPUs (and possibly any other platform). &lt;/ol</p>
+<p class="interli"><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
+<p class="interli"></p>
+<p class="interli">The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. </p><div class="dotgraph">
 <iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="2227" height="550"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
-<p><b>Legend:</b><br  />
+<p class="interli"><b>Legend:</b><br  />
  </p><div class="dotgraph">
 <iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_2.svg" width="951" height="183"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
-<p><a class="anchor" id="list"></a> </p><h3>Example programs </h3>
+<p class="interli"><a class="anchor" id="list"></a> </p><h3>Example programs </h3>
+<p class="interli"></p>
 <table align="center" width="90%">
 <tr valign="top">
 <td width="260px"><a class="el" href="simple_solver.html">The simple-solver program</a> </td><td><p class="starttd">A minimal CG solver in Ginkgo, which reads a matrix from a file. </p>
@@ -158,7 +166,8 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <p class="endtd"></p>
 </td></tr>
 </table>
-<p><a class="anchor" id="topic"></a> </p><h3>Example programs grouped by topics</h3>
+<p class="interli"><a class="anchor" id="topic"></a> </p><h3>Example programs grouped by topics</h3>
+<p class="interli"></p>
 <h4><b>Basic techniques</b></h4>
 <table align="center" width="90%">
 <tr valign="top">
@@ -215,6 +224,8 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <tr valign="top">
 <td>Using ranges in Ginkgo.  </td><td><a class="el" href="ginkgo_ranges.html">The ginkgo-ranges program</a>   </td></tr>
 </table>
+</li>
+</ol>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->

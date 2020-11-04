@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211309633 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -72,6 +72,7 @@ $(function() {
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#friends">Friends</a> &#124;
 <a href="classgko_1_1Executor-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">gko::Executor Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span><div class="ingroups"><a class="el" href="group__Executor.html">Executors</a></div></div>  </div>
@@ -106,10 +107,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1de8e2668b76e66690acf5eef9e8324d"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d">run</a> (const <a class="el" href="classgko_1_1Operation.html">Operation</a> &amp;op) const =0</td></tr>
 <tr class="memdesc:a1de8e2668b76e66690acf5eef9e8324d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runs the specified <a class="el" href="classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices.">Operation</a> using this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>.  <a href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d">More...</a><br /></td></tr>
 <tr class="separator:a1de8e2668b76e66690acf5eef9e8324d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad93eba3ccfa2d9ed5a5f33e34d2a51cc"><td class="memTemplParams" colspan="2">template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip &gt; </td></tr>
-<tr class="memitem:ad93eba3ccfa2d9ed5a5f33e34d2a51cc"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#ad93eba3ccfa2d9ed5a5f33e34d2a51cc">run</a> (const ClosureOmp &amp;op_omp, const ClosureCuda &amp;op_cuda, const ClosureHip &amp;op_hip) const</td></tr>
-<tr class="memdesc:ad93eba3ccfa2d9ed5a5f33e34d2a51cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runs one of the passed in functors, depending on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> type.  <a href="classgko_1_1Executor.html#ad93eba3ccfa2d9ed5a5f33e34d2a51cc">More...</a><br /></td></tr>
-<tr class="separator:ad93eba3ccfa2d9ed5a5f33e34d2a51cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a294787f033b02fd013af087d02a4ae1b"><td class="memTemplParams" colspan="2">template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip , typename ClosureDpcpp &gt; </td></tr>
+<tr class="memitem:a294787f033b02fd013af087d02a4ae1b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a294787f033b02fd013af087d02a4ae1b">run</a> (const ClosureOmp &amp;op_omp, const ClosureCuda &amp;op_cuda, const ClosureHip &amp;op_hip, const ClosureDpcpp &amp;op_dpcpp) const</td></tr>
+<tr class="memdesc:a294787f033b02fd013af087d02a4ae1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Runs one of the passed in functors, depending on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> type.  <a href="classgko_1_1Executor.html#a294787f033b02fd013af087d02a4ae1b">More...</a><br /></td></tr>
+<tr class="separator:a294787f033b02fd013af087d02a4ae1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="memTemplItemLeft" align="right" valign="top">T *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687">alloc</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_elems) const</td></tr>
 <tr class="memdesc:a5a216c2b1f7ceb8a0190c08941c1c687"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocates memory in this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>.  <a href="classgko_1_1Executor.html#a5a216c2b1f7ceb8a0190c08941c1c687">More...</a><br /></td></tr>
@@ -146,6 +147,21 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <tr class="memitem:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><b>remove_logger</b> (const <a class="el" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger) override</td></tr>
 <tr class="memdesc:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes a logger from the list of subscribed loggers.  <a href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">More...</a><br /></td></tr>
 <tr class="separator:aba5317f8a03956a61d770e9b07fc65cc inherit pub_methods_classgko_1_1log_1_1EnableLogging"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:aabb3902118beb0d94cd4e8030bd8042c"><td class="memItemLeft" align="right" valign="top"><a id="aabb3902118beb0d94cd4e8030bd8042c"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>OmpExecutor</b></td></tr>
+<tr class="separator:aabb3902118beb0d94cd4e8030bd8042c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4caa2db4f412c4f22c15efb8de9d8f3b"><td class="memItemLeft" align="right" valign="top"><a id="a4caa2db4f412c4f22c15efb8de9d8f3b"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>HipExecutor</b></td></tr>
+<tr class="separator:a4caa2db4f412c4f22c15efb8de9d8f3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6c80d748fef0a49fcd31a99a9ec76f4"><td class="memItemLeft" align="right" valign="top"><a id="ad6c80d748fef0a49fcd31a99a9ec76f4"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>DpcppExecutor</b></td></tr>
+<tr class="separator:ad6c80d748fef0a49fcd31a99a9ec76f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af53d80448c39cdc65a153620c091ac47"><td class="memItemLeft" align="right" valign="top"><a id="af53d80448c39cdc65a153620c091ac47"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>CudaExecutor</b></td></tr>
+<tr class="separator:af53d80448c39cdc65a153620c091ac47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The first step in using the Ginkgo library consists of creating an executor. </p>
@@ -154,6 +170,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <li><a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">OmpExecutor</a> specifies that the data should be stored and the associated operations executed on an OpenMP-supporting device (e.g. host CPU);</li>
 <li><a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">CudaExecutor</a> specifies that the data should be stored and the operations executed on the NVIDIA GPU accelerator;</li>
 <li><a class="el" href="classgko_1_1HipExecutor.html" title="This is the Executor subclass which represents the HIP enhanced device.">HipExecutor</a> specifies that the data should be stored and the operations executed on either an NVIDIA or AMD GPU accelerator;</li>
+<li><a class="el" href="classgko_1_1DpcppExecutor.html" title="This is the Executor subclass which represents a DPC++ enhanced device.">DpcppExecutor</a> specifies that the data should be stored and the operations executed on an hardware supporting DPC++;</li>
 <li><a class="el" href="classgko_1_1ReferenceExecutor.html" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...">ReferenceExecutor</a> executes a non-optimized reference implementation, which can be used to debug the library.</li>
 </ul>
 <p>The following code snippet demonstrates the simplest possible use of the Ginkgo library:</p>
@@ -348,6 +365,8 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 
+<p class="reference">References <a class="el" href="classgko_1_1Executor.html#acaec4f999d52fc71e5e5a3d3ad93609c">get_master()</a>.</p>
+
 <p class="reference">Referenced by <a class="el" href="classgko_1_1Executor.html#a45377b6ee4c1d1852ec299ce2133eabb">copy()</a>.</p>
 
 </div>
@@ -458,7 +477,7 @@ template&lt;typename T &gt; </div>
 <p>Returns the master <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">OmpExecutor</a> of this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>. </p>
 <dl class="section return"><dt>Returns</dt><dd>the master <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">OmpExecutor</a> of this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>. </dd></dl>
 
-<p>Implemented in <a class="el" href="classgko_1_1HipExecutor.html#aebcc016b196aad2b8737fbf6244584b4">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a75295b3424224f907958abfa95c66298">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1OmpExecutor.html#ab297a7eba78463784d4d2ca08b03c675">gko::OmpExecutor</a>.</p>
+<p>Implemented in <a class="el" href="classgko_1_1DpcppExecutor.html#acee142f355cc184fd59a25d7ea6e72fc">gko::DpcppExecutor</a>, <a class="el" href="classgko_1_1HipExecutor.html#aebcc016b196aad2b8737fbf6244584b4">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a75295b3424224f907958abfa95c66298">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1OmpExecutor.html#ab297a7eba78463784d4d2ca08b03c675">gko::OmpExecutor</a>.</p>
 
 </div>
 </div>
@@ -488,19 +507,19 @@ template&lt;typename T &gt; </div>
 <p>Returns the master <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">OmpExecutor</a> of this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>. </p>
 <dl class="section return"><dt>Returns</dt><dd>the master <a class="el" href="classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU).">OmpExecutor</a> of this <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a>. </dd></dl>
 
-<p>Implemented in <a class="el" href="classgko_1_1HipExecutor.html#aad8e01fc70095ad5df48a02da9555400">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a59a618e0d48b42fe699e9d4cf347b491">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1OmpExecutor.html#a5b83349e601d473cf8768c0bdbcaca8c">gko::OmpExecutor</a>.</p>
+<p>Implemented in <a class="el" href="classgko_1_1DpcppExecutor.html#ac9a28c1178bde1244960a2bdd6c7e7a9">gko::DpcppExecutor</a>, <a class="el" href="classgko_1_1HipExecutor.html#aad8e01fc70095ad5df48a02da9555400">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a59a618e0d48b42fe699e9d4cf347b491">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1OmpExecutor.html#a5b83349e601d473cf8768c0bdbcaca8c">gko::OmpExecutor</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1Executor.html#ab5ee27c7997a4e109831e27c42242073">copy_val_to_host()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1Executor.html#adf7573e4a7e267fcb821eb9049a1054f">copy_from()</a>, and <a class="el" href="classgko_1_1Executor.html#ab5ee27c7997a4e109831e27c42242073">copy_val_to_host()</a>.</p>
 
 </div>
 </div>
-<a id="ad93eba3ccfa2d9ed5a5f33e34d2a51cc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad93eba3ccfa2d9ed5a5f33e34d2a51cc">&#9670;&nbsp;</a></span>run() <span class="overload">[1/2]</span></h2>
+<a id="a294787f033b02fd013af087d02a4ae1b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a294787f033b02fd013af087d02a4ae1b">&#9670;&nbsp;</a></span>run() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip &gt; </div>
+template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip , typename ClosureDpcpp &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -521,7 +540,13 @@ template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip &gt
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const ClosureHip &amp;&#160;</td>
-          <td class="paramname"><em>op_hip</em>&#160;</td>
+          <td class="paramname"><em>op_hip</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const ClosureDpcpp &amp;&#160;</td>
+          <td class="paramname"><em>op_dpcpp</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -590,9 +615,9 @@ template&lt;typename ClosureOmp , typename ClosureCuda , typename ClosureHip &gt
   </dd>
 </dl>
 
-<p>Implemented in <a class="el" href="classgko_1_1HipExecutor.html#a9407dcb6c1e288e5ec3f80c8d7f581a8">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a32a73a74403376d774933abf9663d59e">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1ReferenceExecutor.html#a82b41b42dbd26e8ac5b0146de79e5d34">gko::ReferenceExecutor</a>.</p>
+<p>Implemented in <a class="el" href="classgko_1_1DpcppExecutor.html#a0ad89379be078c63ba598c6cc0eca570">gko::DpcppExecutor</a>, <a class="el" href="classgko_1_1HipExecutor.html#a9407dcb6c1e288e5ec3f80c8d7f581a8">gko::HipExecutor</a>, <a class="el" href="classgko_1_1CudaExecutor.html#a32a73a74403376d774933abf9663d59e">gko::CudaExecutor</a>, and <a class="el" href="classgko_1_1ReferenceExecutor.html#a82b41b42dbd26e8ac5b0146de79e5d34">gko::ReferenceExecutor</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1Executor.html#ad93eba3ccfa2d9ed5a5f33e34d2a51cc">run()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1Executor.html#a294787f033b02fd013af087d02a4ae1b">run()</a>.</p>
 
 </div>
 </div>

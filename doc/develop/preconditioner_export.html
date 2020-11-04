@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211309633 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -100,6 +100,7 @@ $(function() {
 <div class="line"><span class="preprocessor">#include &lt;functional&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;map&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;memory&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;string&gt;</span></div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -111,8 +112,13 @@ $(function() {
 <div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(</div>
 <div class="line">                       0, gko::ReferenceExecutor::create());</div>
 <div class="line">               }},</div>
-<div class="line">              {<span class="stringliteral">&quot;hip&quot;</span>, [] {</div>
+<div class="line">              {<span class="stringliteral">&quot;hip&quot;</span>,</div>
+<div class="line">               [] {</div>
 <div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(</div>
+<div class="line">                       0, gko::ReferenceExecutor::create());</div>
+<div class="line">               }},</div>
+<div class="line">              {<span class="stringliteral">&quot;dpcpp&quot;</span>, [] {</div>
+<div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1DpcppExecutor.html#ac46044fcb00b2d224b45d93eaf8c579d">gko::DpcppExecutor::create</a>(</div>
 <div class="line">                       0, gko::ReferenceExecutor::create());</div>
 <div class="line">               }}};</div>
 <div class="line"> </div>
@@ -144,7 +150,7 @@ $(function() {
 </div><!-- fragment --><p>print usage message</p>
 <div class="fragment"><div class="line"><span class="keywordflow">if</span> (argc &lt; 2 || executors.find(argv[1]) == executors.end()) {</div>
 <div class="line">    std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: executable&quot;</span></div>
-<div class="line">              &lt;&lt; <span class="stringliteral">&quot; &lt;reference|omp|cuda|hip&gt; [&lt;matrix-file&gt;] &quot;</span></div>
+<div class="line">              &lt;&lt; <span class="stringliteral">&quot; &lt;reference|omp|cuda|hip|dpcpp&gt; [&lt;matrix-file&gt;] &quot;</span></div>
 <div class="line">                 <span class="stringliteral">&quot;[&lt;jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-&quot;</span></div>
 <div class="line">                 <span class="stringliteral">&quot;isai] [&lt;preconditioner args&gt;]\n&quot;</span>;</div>
 <div class="line">    std::cerr &lt;&lt; <span class="stringliteral">&quot;Jacobi parameters: [&lt;max-block-size&gt;] [&lt;accuracy&gt;] &quot;</span></div>
@@ -317,7 +323,7 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --><p> <a class="anchor" id="Results"></a></p><h1>Results</h1>
 <p>This is the expected output:</p>
-<div class="fragment"><div class="line">Usage: ./preconditioner-export &lt;reference|omp|cuda|hip&gt; [&lt;matrix-file&gt;] [&lt;jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-isai] [&lt;preconditioner args&gt;]</div>
+<div class="fragment"><div class="line">Usage: ./preconditioner-export &lt;reference|omp|cuda|hip|dpcpp&gt; [&lt;matrix-file&gt;] [&lt;jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-isai] [&lt;preconditioner args&gt;]</div>
 <div class="line">Jacobi parameters: [&lt;<a class="code" href="namespacegko.html#af1812df45c6ec07780d579a12b64c753">max</a>-block-size&gt;] [&lt;accuracy&gt;] [&lt;storage-optimization:<span class="keyword">auto</span>|0|1|2&gt;]</div>
 <div class="line">ParILU parameters: [&lt;iteration-count&gt;]</div>
 <div class="line">ParILUT parameters: [&lt;iteration-count&gt;] [&lt;fill-in-limit&gt;]</div>
@@ -369,6 +375,7 @@ $(function() {
 <div class="line"><span class="preprocessor">#include &lt;functional&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;map&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;memory&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;string&gt;</span></div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -380,8 +387,13 @@ $(function() {
 <div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(</div>
 <div class="line">                       0, gko::ReferenceExecutor::create());</div>
 <div class="line">               }},</div>
-<div class="line">              {<span class="stringliteral">&quot;hip&quot;</span>, [] {</div>
+<div class="line">              {<span class="stringliteral">&quot;hip&quot;</span>,</div>
+<div class="line">               [] {</div>
 <div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(</div>
+<div class="line">                       0, gko::ReferenceExecutor::create());</div>
+<div class="line">               }},</div>
+<div class="line">              {<span class="stringliteral">&quot;dpcpp&quot;</span>, [] {</div>
+<div class="line">                   <span class="keywordflow">return</span> <a class="code" href="classgko_1_1DpcppExecutor.html#ac46044fcb00b2d224b45d93eaf8c579d">gko::DpcppExecutor::create</a>(</div>
 <div class="line">                       0, gko::ReferenceExecutor::create());</div>
 <div class="line">               }}};</div>
 <div class="line"> </div>
@@ -412,7 +424,7 @@ $(function() {
 <div class="line">{</div>
 <div class="line">    <span class="keywordflow">if</span> (argc &lt; 2 || executors.find(argv[1]) == executors.end()) {</div>
 <div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: executable&quot;</span></div>
-<div class="line">                  &lt;&lt; <span class="stringliteral">&quot; &lt;reference|omp|cuda|hip&gt; [&lt;matrix-file&gt;] &quot;</span></div>
+<div class="line">                  &lt;&lt; <span class="stringliteral">&quot; &lt;reference|omp|cuda|hip|dpcpp&gt; [&lt;matrix-file&gt;] &quot;</span></div>
 <div class="line">                     <span class="stringliteral">&quot;[&lt;jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-&quot;</span></div>
 <div class="line">                     <span class="stringliteral">&quot;isai] [&lt;preconditioner args&gt;]\n&quot;</span>;</div>
 <div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Jacobi parameters: [&lt;max-block-size&gt;] [&lt;accuracy&gt;] &quot;</span></div>
@@ -581,10 +593,10 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1Error_html_a38cf4e9e4463088091a344f218c2dd8f"><div class="ttname"><a href="classgko_1_1Error.html#a38cf4e9e4463088091a344f218c2dd8f">gko::Error::what</a></div><div class="ttdeci">virtual const char * what() const noexcept override</div><div class="ttdoc">Returns a human-readable string with a more detailed description of the error.</div><div class="ttdef"><b>Definition:</b> exception.hpp:103</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
 <div class="ttc" id="aclassgko_1_1HipExecutor_html_abee0dc3dfc064c9edbdc02c2b3b11264"><div class="ttname"><a href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
-<div class="ttc" id="anamespacegko_html_af1812df45c6ec07780d579a12b64c753"><div class="ttname"><a href="namespacegko.html#af1812df45c6ec07780d579a12b64c753">gko::max</a></div><div class="ttdeci">constexpr T max(const T &amp;x, const T &amp;y)</div><div class="ttdoc">Returns the larger of the arguments.</div><div class="ttdef"><b>Definition:</b> math.hpp:777</div></div>
+<div class="ttc" id="anamespacegko_html_af1812df45c6ec07780d579a12b64c753"><div class="ttname"><a href="namespacegko.html#af1812df45c6ec07780d579a12b64c753">gko::max</a></div><div class="ttdeci">constexpr T max(const T &amp;x, const T &amp;y)</div><div class="ttdoc">Returns the larger of the arguments.</div><div class="ttdef"><b>Definition:</b> math.hpp:782</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_aa577135e082f9be20617e9d66209ca25"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1precision__reduction_html_a1fde4dd48fab015698c1616408f3ef81"><div class="ttname"><a href="classgko_1_1precision__reduction.html#a1fde4dd48fab015698c1616408f3ef81">gko::precision_reduction::autodetect</a></div><div class="ttdeci">constexpr static precision_reduction autodetect() noexcept</div><div class="ttdoc">Returns a special encoding which instructs the algorithm to automatically detect the best precision.</div><div class="ttdef"><b>Definition:</b> types.hpp:309</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:846</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:909</div></div>
 <div class="ttc" id="astructgko_1_1factorization_1_1ParIlu_1_1parameters__type_html_acf87db3479a61d53d301101b51e419c6"><div class="ttname"><a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6">gko::factorization::ParIlu::parameters_type::iterations</a></div><div class="ttdeci">size_type iterations</div><div class="ttdoc">The number of iterations the compute kernel will use when doing the factorization.</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:130</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Isai_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Isai.html">gko::preconditioner::Isai</a></div><div class="ttdoc">The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matr...</div><div class="ttdef"><b>Definition:</b> isai.hpp:97</div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
@@ -593,6 +605,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a></div><div class="ttdoc">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal...</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:207</div></div>
 <div class="ttc" id="astructgko_1_1factorization_1_1ParIlut_1_1parameters__type_html_aed39c89593c4e33f8473cc641fc4a44c"><div class="ttname"><a href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#aed39c89593c4e33f8473cc641fc4a44c">gko::factorization::ParIlut::parameters_type::iterations</a></div><div class="ttdeci">size_type iterations</div><div class="ttdoc">The number of total iterations of ParILUT that will be executed.</div><div class="ttdef"><b>Definition:</b> par_ilut.hpp:132</div></div>
 <div class="ttc" id="aclassgko_1_1factorization_1_1ParIlut_html"><div class="ttname"><a href="classgko_1_1factorization_1_1ParIlut.html">gko::factorization::ParIlut</a></div><div class="ttdoc">ParILUT is an incomplete threshold-based LU factorization which is computed in parallel.</div><div class="ttdef"><b>Definition:</b> par_ilut.hpp:99</div></div>
+<div class="ttc" id="aclassgko_1_1DpcppExecutor_html_ac46044fcb00b2d224b45d93eaf8c579d"><div class="ttname"><a href="classgko_1_1DpcppExecutor.html#ac46044fcb00b2d224b45d93eaf8c579d">gko::DpcppExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; DpcppExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, std::string device_type=&quot;all&quot;)</div><div class="ttdoc">Creates a new DpcppExecutor.</div></div>
 <div class="ttc" id="anamespacegko_html_a3ce296f73db0ff398bdea6009a3a5c58"><div class="ttname"><a href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">gko::share</a></div><div class="ttdeci">detail::shared_type&lt; OwningPointer &gt; share(OwningPointer &amp;&amp;p)</div><div class="ttdoc">Marks the object pointed to by p as shared.</div><div class="ttdef"><b>Definition:</b> utils.hpp:210</div></div>
 <div class="ttc" id="aclassgko_1_1factorization_1_1ParIlu_html"><div class="ttname"><a href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu</a></div><div class="ttdoc">ParILU is an incomplete LU factorization which is computed in parallel.</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:95</div></div>
 <div class="ttc" id="aclassgko_1_1WritableToMatrixData_html"><div class="ttname"><a href="classgko_1_1WritableToMatrixData.html">gko::WritableToMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can write its data to a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:562</div></div>

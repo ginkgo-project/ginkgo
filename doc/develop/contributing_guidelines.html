@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211309633 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -118,7 +118,7 @@ Most important stuff (A TL;DR)</h1>
 </ul>
 <h1><a class="anchor" id="autotoc_md20"></a>
 Project structure</h1>
-<p>Ginkgo is divided into a <code>core</code> module with common functionalities independent of the architecture, and several kernel modules (<code>reference</code>, <code>omp</code>, <code>cuda</code>, <code>hip</code>) which contain low-level computational routines for each supported architecture.</p>
+<p>Ginkgo is divided into a <code>core</code> module with common functionalities independent of the architecture, and several kernel modules (<code>reference</code>, <code>omp</code>, <code>cuda</code>, <code>hip</code>, <code>dpcpp</code>) which contain low-level computational routines for each supported architecture.</p>
 <h2><a class="anchor" id="autotoc_md21"></a>
 Extended header files</h2>
 <p>Some header files from the core module have to be extended to include special functionality for specific architectures. An example of this is <code><a class="el" href="math_8hpp_source.html">core/base/math.hpp</a></code>, which has a GPU counterpart in <code>cuda/base/math.hpp</code>. For such files you should always include the version from the module you are working on, and this file will internally include its <code>core</code> counterpart.</p>
@@ -395,7 +395,7 @@ Some general rules.</h2>
 Writing tests for kernels</h2>
 <ul>
 <li>Reference kernels, kernels on the <code>ReferenceExecutor</code>, are meant to be single threaded reference implementations. Therefore, tests for reference kernels need to be performed with data that can be as small as possible. For example, matrices lesser than 5x5 are acceptable. This allows the reviewers to verify the results for exactness with tools such as MATLAB.</li>
-<li>OpenMP, CUDA and HIP kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. In particular for CUDA and HIP, the data size should be at least bigger than the architecture's warp size to ensure there is no corner case in the kernels.</li>
+<li>OpenMP, CUDA, HIP and DPC++ kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. In particular for CUDA, HIP and DPC++ the data size should be at least bigger than the architecture's warp size to ensure there is no corner case in the kernels.</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md59"></a>
 Documentation style</h1>

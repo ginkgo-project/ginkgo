@@ -314,6 +314,11 @@ Figure out where to run the code
 \DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
 \DoxyCodeLine{                                             \textcolor{keyword}{true});}
 \DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"dpcpp"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0,}
+\DoxyCodeLine{                                               \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
 \DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \end{DoxyCode}
 
@@ -620,6 +625,11 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{             [] \{}
 \DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
 \DoxyCodeLine{                                                 \textcolor{keyword}{true});}
+\DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"dpcpp"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0,}
+\DoxyCodeLine{                                                   \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
 \DoxyCodeLine{             \}\},}
 \DoxyCodeLine{            \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \DoxyCodeLine{}

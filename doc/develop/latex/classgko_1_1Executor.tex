@@ -36,7 +36,7 @@ Collaboration diagram for gko\+::Executor\+:
 \item 
 virtual void \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const =0
 \begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Closure\+Omp , typename Closure\+Cuda , typename Closure\+Hip $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_ad93eba3ccfa2d9ed5a5f33e34d2a51cc}{run}} (const Closure\+Omp \&op\+\_\+omp, const Closure\+Cuda \&op\+\_\+cuda, const Closure\+Hip \&op\+\_\+hip) const
+{\footnotesize template$<$typename Closure\+Omp , typename Closure\+Cuda , typename Closure\+Hip , typename Closure\+Dpcpp $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_a294787f033b02fd013af087d02a4ae1b}{run}} (const Closure\+Omp \&op\+\_\+omp, const Closure\+Cuda \&op\+\_\+cuda, const Closure\+Hip \&op\+\_\+hip, const Closure\+Dpcpp \&op\+\_\+dpcpp) const
 \begin{DoxyCompactList}\small\item\em Runs one of the passed in functors, depending on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} type. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\T $\ast$ \mbox{\hyperlink{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}{alloc}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems) const
 \begin{DoxyCompactList}\small\item\em Allocates memory in this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
@@ -55,6 +55,21 @@ virtual std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{E
 \mbox{\Hypertarget{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}\label{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}} 
 virtual void \mbox{\hyperlink{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}{synchronize}} () const =0
 \begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_aabb3902118beb0d94cd4e8030bd8042c}\label{classgko_1_1Executor_aabb3902118beb0d94cd4e8030bd8042c}} 
+class {\bfseries Omp\+Executor}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a4caa2db4f412c4f22c15efb8de9d8f3b}\label{classgko_1_1Executor_a4caa2db4f412c4f22c15efb8de9d8f3b}} 
+class {\bfseries Hip\+Executor}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_ad6c80d748fef0a49fcd31a99a9ec76f4}\label{classgko_1_1Executor_ad6c80d748fef0a49fcd31a99a9ec76f4}} 
+class {\bfseries Dpcpp\+Executor}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_af53d80448c39cdc65a153620c091ac47}\label{classgko_1_1Executor_af53d80448c39cdc65a153620c091ac47}} 
+class {\bfseries Cuda\+Executor}
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -67,6 +82,7 @@ Executors are used to specify the location for the data of linear algebra object
 \item \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} specifies that the data should be stored and the associated operations executed on an Open\+M\+P-\/supporting device (e.\+g. host C\+PU);
 \item \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} specifies that the data should be stored and the operations executed on the N\+V\+I\+D\+IA G\+PU accelerator;
 \item \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} specifies that the data should be stored and the operations executed on either an N\+V\+I\+D\+IA or A\+MD G\+PU accelerator;
+\item \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}} specifies that the data should be stored and the operations executed on an hardware supporting D\+P\+C++;
 \item \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor}} executes a non-\/optimized reference implementation, which can be used to debug the library.
 \end{DoxyItemize}
 
@@ -194,6 +210,10 @@ Copies data from another \mbox{\hyperlink{classgko_1_1Executor}{Executor}}.
 \end{DoxyParams}
 
 
+References get\+\_\+master().
+
+
+
 Referenced by copy().
 
 \mbox{\Hypertarget{classgko_1_1Executor_ab5ee27c7997a4e109831e27c42242073}\label{classgko_1_1Executor_ab5ee27c7997a4e109831e27c42242073}} 
@@ -256,7 +276,7 @@ the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mb
 \end{DoxyReturn}
 
 
-Implemented in \mbox{\hyperlink{classgko_1_1HipExecutor_aebcc016b196aad2b8737fbf6244584b4}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}{gko\+::\+Omp\+Executor}}.
+Implemented in \mbox{\hyperlink{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}{gko\+::\+Dpcpp\+Executor}}, \mbox{\hyperlink{classgko_1_1HipExecutor_aebcc016b196aad2b8737fbf6244584b4}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}{gko\+::\+Omp\+Executor}}.
 
 \mbox{\Hypertarget{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}\label{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}} 
 \index{gko::Executor@{gko::Executor}!get\_master@{get\_master}}
@@ -273,18 +293,18 @@ the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mb
 \end{DoxyReturn}
 
 
-Implemented in \mbox{\hyperlink{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}{gko\+::\+Omp\+Executor}}.
+Implemented in \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac9a28c1178bde1244960a2bdd6c7e7a9}{gko\+::\+Dpcpp\+Executor}}, \mbox{\hyperlink{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}{gko\+::\+Omp\+Executor}}.
 
 
 
-Referenced by copy\+\_\+val\+\_\+to\+\_\+host().
+Referenced by copy\+\_\+from(), and copy\+\_\+val\+\_\+to\+\_\+host().
 
-\mbox{\Hypertarget{classgko_1_1Executor_ad93eba3ccfa2d9ed5a5f33e34d2a51cc}\label{classgko_1_1Executor_ad93eba3ccfa2d9ed5a5f33e34d2a51cc}} 
+\mbox{\Hypertarget{classgko_1_1Executor_a294787f033b02fd013af087d02a4ae1b}\label{classgko_1_1Executor_a294787f033b02fd013af087d02a4ae1b}} 
 \index{gko::Executor@{gko::Executor}!run@{run}}
 \index{run@{run}!gko::Executor@{gko::Executor}}
 \doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename Closure\+Omp , typename Closure\+Cuda , typename Closure\+Hip $>$ \\
-void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const Closure\+Omp \&}]{op\+\_\+omp,  }\item[{const Closure\+Cuda \&}]{op\+\_\+cuda,  }\item[{const Closure\+Hip \&}]{op\+\_\+hip }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+{\footnotesize\ttfamily template$<$typename Closure\+Omp , typename Closure\+Cuda , typename Closure\+Hip , typename Closure\+Dpcpp $>$ \\
+void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const Closure\+Omp \&}]{op\+\_\+omp,  }\item[{const Closure\+Cuda \&}]{op\+\_\+cuda,  }\item[{const Closure\+Hip \&}]{op\+\_\+hip,  }\item[{const Closure\+Dpcpp \&}]{op\+\_\+dpcpp }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -329,7 +349,7 @@ Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using thi
 \end{DoxyParams}
 
 
-Implemented in \mbox{\hyperlink{classgko_1_1HipExecutor_a9407dcb6c1e288e5ec3f80c8d7f581a8}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}{gko\+::\+Reference\+Executor}}.
+Implemented in \mbox{\hyperlink{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}{gko\+::\+Dpcpp\+Executor}}, \mbox{\hyperlink{classgko_1_1HipExecutor_a9407dcb6c1e288e5ec3f80c8d7f581a8}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}{gko\+::\+Reference\+Executor}}.
 
 
 

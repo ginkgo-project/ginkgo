@@ -182,11 +182,11 @@ The interesting part of this example is the apply() routine at line 4 of the fun
 
 {\bfseries Value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{public}:                                                                \(\backslash\)}
-\DoxyCodeLine{    class \_factory\_name;                                               \(\backslash\)}
-\DoxyCodeLine{    struct \_parameters\_name\#\#\_type                                     \(\backslash\)}
-\DoxyCodeLine{        : \mbox{\hyperlink{structgko_1_1enable__parameters__type}{::gko::enable\_parameters\_type}}<\_parameters\_name\#\#\_type,       \(\backslash\)}
-\DoxyCodeLine{                                        \_factory\_name>}
+\DoxyCodeLine{\textcolor{keyword}{public}:                                                                 \(\backslash\)}
+\DoxyCodeLine{    class \_factory\_name;                                                \(\backslash\)}
+\DoxyCodeLine{    struct \_parameters\_name\#\#\_type                                      \(\backslash\)}
+\DoxyCodeLine{        : public ::gko::enable\_parameters\_type<\_parameters\_name\#\#\_type, \(\backslash\)}
+\DoxyCodeLine{                                               \_factory\_name>}
 
 \end{DoxyCode}
 

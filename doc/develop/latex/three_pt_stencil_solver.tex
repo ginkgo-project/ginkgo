@@ -198,6 +198,11 @@ Figure out where to run the code
 \DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
 \DoxyCodeLine{                                             \textcolor{keyword}{true});}
 \DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"dpcpp"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0,}
+\DoxyCodeLine{                                               \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
 \DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \end{DoxyCode}
 
@@ -294,8 +299,8 @@ Print version information
 \DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"-\/-\/help"}) \{}
-\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"}}
-\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
@@ -554,6 +559,11 @@ This is the expected output\+:
 \DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(),}
 \DoxyCodeLine{                                                 \textcolor{keyword}{true});}
 \DoxyCodeLine{             \}\},}
+\DoxyCodeLine{            \{\textcolor{stringliteral}{"dpcpp"},}
+\DoxyCodeLine{             [] \{}
+\DoxyCodeLine{                 \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0,}
+\DoxyCodeLine{                                                   \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{             \}\},}
 \DoxyCodeLine{            \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\}\};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string)();  \textcolor{comment}{// throws if not valid}}
@@ -595,8 +605,8 @@ This is the expected output\+:
 \DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"-\/-\/help"}) \{}
-\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"}}
-\DoxyCodeLine{                  << std::endl;}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{" [executor] [DISCRETIZATION\_POINTS]"} << std::endl;}
 \DoxyCodeLine{        std::exit(-\/1);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}

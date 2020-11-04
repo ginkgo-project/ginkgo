@@ -87,7 +87,7 @@ The benchmark suite can take a number of configuration parameters. Benchmarks ca
 benchmark options}{\texttt{ available benchmark options}}. Here are the most important options\+:
 \begin{DoxyItemize}
 \item {\ttfamily B\+E\+N\+C\+H\+M\+A\+RK=\{spmv, solver, preconditioner\}} -\/ allows to select the type of benchmark to be ran.
-\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp\}} -\/ select the executor and platform the benchmarks should be ran on.
+\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp,dpcpp\}} -\/ select the executor and platform the benchmarks should be ran on.
 \item {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME=$<$name$>$} -\/ a name which will be used to designate this platform (e.\+g. V100, Radeon\+V\+II, ...).
 \item {\ttfamily S\+E\+G\+M\+E\+N\+TS=$<$N$>$} -\/ Split the benchmarked matrix space into {\ttfamily $<$N$>$} segments. If specified, {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID} also has to be set.
 \item {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID=$<$I$>$} -\/ used in combination with the {\ttfamily S\+E\+G\+M\+E\+N\+TS} variable. {\ttfamily $<$I$>$} should be an integer between 1 and {\ttfamily $<$N$>$}, the number of {\ttfamily S\+E\+G\+M\+E\+N\+TS}. If specified, only the {\ttfamily $<$I$>$}-\/th segment of the benchmark suite will be run.
@@ -142,7 +142,7 @@ The supported environment variables are described in the following list\+:
 \item {\ttfamily solver} -\/ Runs the solver benchmarks on the Suite\+Sparse collection. The matrix format is determined by running the {\ttfamily spmv} benchmarks first, and using the fastest format determined by that benchmark.
 \item {\ttfamily preconditioner} -\/ Runs the preconditioner benchmarks on artificially generated block-\/diagonal matrices.
 \end{DoxyItemize}
-\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp\}} -\/ select the executor and platform the benchmarks should be ran on. Default is {\ttfamily cuda}.
+\item {\ttfamily E\+X\+E\+C\+U\+T\+OR=\{reference,cuda,hip,omp,dpcpp\}} -\/ select the executor and platform the benchmarks should be ran on. Default is {\ttfamily cuda}.
 \item {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME=$<$name$>$} -\/ a name which will be used to designate this platform (e.\+g. V100, Radeon\+V\+II, ...) and not overwrite previous results. Default is {\ttfamily unknown}.
 \item {\ttfamily S\+E\+G\+M\+E\+N\+TS=$<$N$>$} -\/ Split the benchmarked matrix space into {\ttfamily $<$N$>$} segments. If specified, {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID} also has to be set. Default is {\ttfamily 1}.
 \item {\ttfamily S\+E\+G\+M\+E\+N\+T\+\_\+\+ID=$<$I$>$} -\/ used in combination with the {\ttfamily S\+E\+G\+M\+E\+N\+TS} variable. {\ttfamily $<$I$>$} should be an integer between 1 and {\ttfamily $<$N$>$}, the number of {\ttfamily S\+E\+G\+M\+E\+N\+TS}. If specified, only the {\ttfamily $<$I$>$}-\/th segment of the benchmark suite will be run. Default is {\ttfamily 1}.

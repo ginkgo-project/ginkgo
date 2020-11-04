@@ -11,12 +11,18 @@ By default, all Ginkgo examples are built using C\+Make.
 
 An example for building the examples and using Ginkgo as an external library without C\+Make can be found in the script provided for each example, which should be called with the form\+: {\ttfamily ./build.sh P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR }
 
-By default, Ginkgo is compiled with at least {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=ON}. To execute on a G\+PU, you need to have a G\+PU on the system and must have compiled Ginkgo with the {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=ON} option.
+By default, Ginkgo is compiled with at least {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=ON}. Ginkgo also tries to detect your environment setup (presence of C\+U\+DA, ...) to enable the relevant accelerator modules. If you want to target a specific G\+PU, make sure that Ginkgo is compiled with the accelerator specific module enabled, such as\+: 
+\begin{DoxyEnumerate}
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=ON} option for N\+V\+I\+D\+IA G\+P\+Us. 
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=ON} option for A\+MD or N\+V\+I\+D\+IA G\+P\+Us. 
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+P\+C\+PP=ON} option for Intel G\+P\+Us (and possibly any other platform). $<$/ol
 
 \label{_graph}%
  \label{Examples_ExampleConnectionGraph}%
 \Hypertarget{Examples_ExampleConnectionGraph}%
  \doxysubsubsection*{Connections between example programs}
+
+
 
 The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. 
 \begin{DoxyImageNoCaption}
@@ -33,6 +39,8 @@ The following graph shows the connections between example programs and how they 
 
 \label{_list}%
  \doxysubsubsection*{Example programs }
+
+
 
 \tabulinesep=1mm
 \begin{longtabu}spread 0pt [c]{*{2}{|X[-1]}|}
@@ -94,6 +102,8 @@ The following graph shows the connections between example programs and how they 
 \label{_topic}%
  \doxysubsubsection*{Example programs grouped by topics}
 
+
+
 \doxyparagraph*{{\bfseries{Basic techniques}}}
 
 \tabulinesep=1mm
@@ -145,3 +155,5 @@ Constructing your own stopping criterion.  &\mbox{\hyperlink{custom_stopping_cri
 \\\cline{1-2}
 Using ranges in Ginkgo.  &\mbox{\hyperlink{ginkgo_ranges}{The ginkgo-\/ranges program}}   \\\cline{1-2}
 \end{longtabu}
+
+\end{DoxyEnumerate}
