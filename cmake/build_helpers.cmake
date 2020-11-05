@@ -156,3 +156,23 @@ function(ginkgo_extract_clang_version CLANG_COMPILER GINKGO_CLANG_VERSION)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver.cpp)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver)
 endfunction()
+
+# Extract the DPC++ version
+function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION)
+    set(DPCPP_VERSION_PROG "#include <CL/sycl.hpp>\n#include <iostream>\n"
+        "int main() {std::cout << __SYCL_COMPILER_VERSION << '\\n'\;"
+        "return 0\;}")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp" ${DPCPP_VERSION_PROG})
+    execute_process(COMMAND ${DPCPP_COMPILER} ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp
+        -o ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver
+        ERROR_VARIABLE DPCPP_EXTRACT_VER_ERROR)
+    execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver
+        OUTPUT_VARIABLE FOUND_DPCPP_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE
+        )
+
+    set (${GINKGO_DPCPP_VERSION} "${FOUND_DPCPP_VERSION}" PARENT_SCOPE)
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp)
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver)
+endfunction()
