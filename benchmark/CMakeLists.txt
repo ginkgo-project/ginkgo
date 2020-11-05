@@ -32,7 +32,9 @@ function(ginkgo_benchmark_hipsp_linops name)
     find_package(Threads REQUIRED)
     find_package(HIP REQUIRED)
     find_package(hipblas REQUIRED)
+    find_package(hiprand REQUIRED)
     find_package(hipsparse REQUIRED)
+    find_package(rocrand REQUIRED)
     target_include_directories("${name}" SYSTEM PRIVATE
         ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
         ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})

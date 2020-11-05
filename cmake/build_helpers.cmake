@@ -92,7 +92,7 @@ function(ginkgo_check_headers target)
             "${CMAKE_CURRENT_SOURCE_DIR}"
             "${GINKGO_HIP_THRUST_PATH}"
             "${HIPBLAS_INCLUDE_DIRS}"
-            "${HIPRAND_INCLUDE_DIRS}"
+            "${hiprand_INCLUDE_DIRS}"
             "${HIPSPARSE_INCLUDE_DIRS}"
             "${ROCPRIM_INCLUDE_DIRS}")
     endif()

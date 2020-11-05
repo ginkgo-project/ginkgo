@@ -208,7 +208,7 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, size_type k,
     for (size_type i = k; i < subspace_dim; i++) {
         const auto p_i = p->get_const_values() + i * p_stride;
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        if (nrhs > 1) {
+        if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
             multidot_kernel<<<grid_dim, block_dim>>>(
                 size, nrhs, as_cuda_type(p_i),

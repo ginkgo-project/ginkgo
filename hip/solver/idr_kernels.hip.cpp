@@ -216,7 +216,7 @@ void update_m(std::shared_ptr<const HipExecutor> exec, size_type k,
     for (size_type i = k; i < subspace_dim; i++) {
         const auto p_i = p->get_const_values() + i * p_stride;
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        if (nrhs > 1) {
+        if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
             hipLaunchKernelGGL(multidot_kernel, grid_dim, block_dim, 0, 0, size,
                                nrhs, as_hip_type(p_i),

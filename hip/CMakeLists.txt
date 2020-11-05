@@ -301,7 +301,7 @@ target_include_directories(ginkgo_hip
     PRIVATE
         ${GINKGO_HIP_THRUST_PATH}
         ${HIPBLAS_INCLUDE_DIRS}
-        ${HIPRAND_INCLUDE_DIRS}
+        ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 

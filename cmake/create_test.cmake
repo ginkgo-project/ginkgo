@@ -160,7 +160,7 @@ function(ginkgo_create_hip_test test_name)
         # Only `exception_helpers` requires thess so far, but it's much easier
         # to put these this way.
         ${HIPBLAS_INCLUDE_DIRS}
-        ${HIPRAND_INCLUDE_DIRS}
+        ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
