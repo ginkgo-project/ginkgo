@@ -74,27 +74,20 @@ protected:
         omp = gko::OmpExecutor::create();
 
         mtx = gen_mtx(123, 123);
-
         d_mtx = Mtx::create(omp);
         d_mtx->copy_from(mtx.get());
         omp_idr_factory =
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(omp),
-                    gko::stop::RelativeResidualNorm<>::build()
-                        .with_tolerance(1e-13)
-                        .on(omp))
+                    gko::stop::Iteration::build().with_max_iters(1u).on(omp))
                 .on(omp);
 
         ref_idr_factory =
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(ref),
-                    gko::stop::RelativeResidualNorm<>::build()
-                        .with_tolerance(1e-13)
-                        .on(ref))
+                    gko::stop::Iteration::build().with_max_iters(1u).on(ref))
                 .on(ref);
     }
 
@@ -224,7 +217,7 @@ protected:
 };
 
 
-/*TEST_F(Idr, IdrInitializeIsEquivalentToRef)
+TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 {
     initialize_data();
 
@@ -235,7 +228,7 @@ protected:
 
     GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
     GKO_ASSERT_MTX_NEAR(p, d_p, 1e-14);
-}*/
+}
 
 
 TEST_F(Idr, IdrStep1IsEquivalentToRef)
@@ -338,10 +331,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(omp),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(omp))
+                gko::stop::Iteration::build().with_max_iters(1u).on(omp))
             .on(omp);
 
     ref_idr_factory =
@@ -349,10 +339,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(ref))
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
 
     auto ref_solver = ref_idr_factory->generate(mtx);
@@ -403,10 +390,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(omp),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(omp))
+                gko::stop::Iteration::build().with_max_iters(1u).on(omp))
             .on(omp);
 
     ref_idr_factory =
@@ -414,10 +398,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(ref))
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
 
     auto omp_solver = omp_idr_factory->generate(d_mtx);
