@@ -327,7 +327,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
 
 
 template <typename ValueType>
-void get_imag(std::shared_ptr<const CudaExecutor> exec,
+void get_imag(std::shared_ptr<const DpcppExecutor> exec,
               const matrix::Dense<ValueType> *source,
               matrix::Dense<remove_complex<ValueType>> *result)
     GKO_NOT_IMPLEMENTED;
