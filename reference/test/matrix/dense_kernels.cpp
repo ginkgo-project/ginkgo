@@ -65,8 +65,8 @@ class Dense : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
-    using ComplexMtx = gko::matrix::Dense<gko::to_complex<value_type>>;
-    using RealMtx = gko::matrix::Dense<gko::remove_complex<value_type>>;
+    using ComplexMtx = gko::to_complex<Mtx>;
+    using RealMtx = gko::remove_complex<Mtx>;
     Dense()
         : exec(gko::ReferenceExecutor::create()),
           mtx1(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
