@@ -282,8 +282,8 @@ The supported environment variables are described in the following list:
     benchmark runs (downloads the collections, creates the result structure,
     etc.) and outputs the list of commands that would normally be run, but does
     not run the benchmarks themselves. Default is `false`.
-* `PRECONDS={jacobi,adaptive-jacobi,ilu,parict,parilu,parilut,none}` the
-    preconditioners to use for either `solver` or `preconditioner` benchmarks.
+* `PRECONDS={jacobi,ilu,parict,parilu,parilut,ilu-isai,parict-isai,parilu-isai,parilut-isai,none}`
+    the preconditioners to use for either `solver` or `preconditioner` benchmarks.
     Multiple options can be passed to this variable. Default is `none`.
 * `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusp_xx,hipsp_xx}` the matrix
     formats to benchmark for the `spmv` phase of the benchmark. Run
@@ -299,5 +299,7 @@ The supported environment variables are described in the following list:
     the solver should stop. The default is `1e-6`.
 * `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
+* `SOLVERS_RHS={unit, random}` - whether to use a vector of all ones or random
+    values as the right-hand side in solver benchmarks. Default is `unit`.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran for the
     solver benchmarks, can be either `0` (off) or `1` (on). The default is `0`.

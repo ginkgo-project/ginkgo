@@ -60,6 +60,17 @@ if [ ! "${DEVICE_ID}" ]; then
     DEVICE_ID="0"
 fi
 
+if [ ! "${SOLVERS_RHS}" ]; then
+    echo "SOLVERS_RHS environment variable not set - assuming \"unit\"" 1>&2
+    SOLVERS_RHS="unit"
+fi
+
+if [ "${SOLVERS_RHS}" == "random" ]; then
+    SOLVERS_RHS_FLAG="--random_rhs=true"
+else
+    SOLVERS_RHS_FLAG="--random_rhs=false"
+fi
+
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
 if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
@@ -167,7 +178,7 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -191,8 +202,8 @@ run_preconditioner_benchmarks() {
             ./preconditioner/preconditioner \
                 --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
-                --max_block_size="${bsize}" \
-                --storage_optimization="${prec}" \
+                --jacobi_max_block_size="${bsize}" \
+                --jacobi_storage="${prec}" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
