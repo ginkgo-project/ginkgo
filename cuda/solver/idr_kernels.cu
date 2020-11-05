@@ -158,7 +158,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec, size_type k,
 
     for (size_type i = 0; i < k; i++) {
         const auto p_i = p->get_const_values() + i * p_stride;
-        if (nrhs > 1) {
+        if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
             multidot_kernel<<<grid_dim, block_dim>>>(

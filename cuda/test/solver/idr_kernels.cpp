@@ -76,20 +76,14 @@ protected:
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(cuda),
-                    gko::stop::ResidualNormReduction<>::build()
-                        .with_reduction_factor(1e-15)
-                        .on(cuda))
+                    gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
                 .on(cuda);
 
         ref_idr_factory =
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
-                    gko::stop::ResidualNormReduction<>::build()
-                        .with_reduction_factor(1e-15)
-                        .on(ref))
+                    gko::stop::Iteration::build().with_max_iters(1u).on(ref))
                 .on(ref);
     }
 
@@ -333,10 +327,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cuda),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(cuda))
+                gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .on(cuda);
 
     ref_idr_factory =
@@ -344,10 +335,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(ref))
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
 
     auto ref_solver = ref_idr_factory->generate(mtx);
@@ -397,22 +385,14 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cuda),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(cuda))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(cuda);
 
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(ref),
-                gko::stop::RelativeResidualNorm<>::build()
-                    .with_tolerance(1e-13)
-                    .on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(ref);
 
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
