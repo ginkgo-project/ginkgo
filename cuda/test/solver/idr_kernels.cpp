@@ -385,14 +385,16 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .on(cuda);
 
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
 
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
