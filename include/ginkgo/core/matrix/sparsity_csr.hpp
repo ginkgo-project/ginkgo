@@ -48,6 +48,9 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType, typename IndexType>
+class Fbcsr;
+
 
 /**
  * SparsityCsr is a matrix format which stores only the sparsity pattern of a
@@ -77,6 +80,7 @@ class SparsityCsr
     friend class EnableCreateMethod<SparsityCsr>;
     friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
+    friend class Fbcsr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<SparsityCsr>::convert_to;
