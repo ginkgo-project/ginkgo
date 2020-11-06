@@ -66,12 +66,23 @@ protected:
     std::unique_ptr<typename Solver::Factory> lower_trs_factory;
 };
 
-TYPED_TEST_CASE(LowerTrs, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(LowerTrs, LowerTrsFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(this->lower_trs_factory->get_executor(), this->exec);
+}
+
+
+TYPED_TEST(LowerTrs, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = gko::matrix::Dense<typename TestFixture::value_type>;
+    std::shared_ptr<Mtx> rectangular_matrix =
+        Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->lower_trs_factory->generate(rectangular_matrix),
+                 gko::DimensionMismatch);
 }
 
 

@@ -27,6 +27,8 @@ option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_DPCPP
+    "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
@@ -72,7 +74,8 @@ option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
-    # Change shared libraries output only if this build has executable program with shared libraries.
+    # Change shared libraries output only if this build has executable program
+    # with shared libraries.
     set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
     option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
     set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
@@ -83,7 +86,7 @@ else()
     set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
 endif()
 
-if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP))
+if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP OR GINKGO_BUILD_DPCPP))
     message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
     set(GINKGO_BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
@@ -127,8 +130,9 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 
-# Find important header files, store the definitions in include/ginkgo/config.h.in
-# For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
+# Find important header files, store the definitions in
+# include/ginkgo/config.h.in For details, see
+# https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
@@ -147,7 +151,8 @@ if(GINKGO_BUILD_HIP)
     if(DEFINED ENV{HIP_PLATFORM})
         set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
     elseif(GINKGO_HIPCONFIG_PATH)
-        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
+        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH}
+            --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
     else()
         message(FATAL_ERROR "No platform could be found for HIP. "
             "Set and export the environment variable HIP_PLATFORM.")
@@ -170,7 +175,8 @@ include(cmake/hip_helpers.cmake)
 include(cmake/install_helpers.cmake)
 include(cmake/windows_helpers.cmake)
 
-# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+# This is modified from
+# https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
     if(BUILD_SHARED_LIBS)
         ginkgo_switch_to_windows_dynamic("CXX")
@@ -203,6 +209,9 @@ if (GINKGO_BUILD_REFERENCE)
 endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
+endif()
+if (GINKGO_BUILD_DPCPP)
+    add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
 # HIP needs to be last because it builds the GINKGO_RPATH_FOR_HIP variable
 # which needs to know the `ginkgo` target.
@@ -271,7 +280,8 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
     ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
 
-# WINDOWS NVCC has " inside the string, add escape charater to avoid config problem.
+# WINDOWS NVCC has " inside the string, add escape character
+# to avoid config problem.
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
@@ -296,7 +306,8 @@ add_custom_target(test_install
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.
-    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in single-configuration generator.
+    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
+    # single-configuration generator.
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>
     COMMAND ${GINKGO_TEST_INSTALL_COMMAND}
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
@@ -309,7 +320,6 @@ set(CPACK_PACKAGE_CONTACT "ginkgo.library@gmail.com")
 include(CPack)
 
 # And finally, print the configuration to screen:
-#
 if(GINKGO_CONFIG_LOG_DETAILED)
     FILE(READ ${PROJECT_BINARY_DIR}/detailed.log GINKGO_LOG_SUMMARY)
 else()

@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -538,6 +539,16 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(const matrix_assembly_data<ValueType, IndexType> &data)
+    {
+        this->read(data.get_ordered_data());
+    }
 };
 
 
@@ -810,12 +821,12 @@ using EnableDefaultLinOpFactory =
  *
  * @ingroup LinOp
  */
-#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
-public:                                                                \
-    class _factory_name;                                               \
-    struct _parameters_name##_type                                     \
-        : ::gko::enable_parameters_type<_parameters_name##_type,       \
-                                        _factory_name>
+#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
+public:                                                                 \
+    class _factory_name;                                                \
+    struct _parameters_name##_type                                      \
+        : public ::gko::enable_parameters_type<_parameters_name##_type, \
+                                               _factory_name>
 
 
 /**
@@ -905,8 +916,8 @@ public:                                                                      \
                                                   _parameters_name##_type> { \
         friend class ::gko::EnablePolymorphicObject<_factory_name,           \
                                                     ::gko::LinOpFactory>;    \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
-                                                   _factory_name>;           \
+        friend struct ::gko::enable_parameters_type<_parameters_name##_type, \
+                                                    _factory_name>;          \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
             : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
                                                _parameters_name##_type>(     \

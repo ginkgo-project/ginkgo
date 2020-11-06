@@ -143,6 +143,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace par_ilut_factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace par_ilut_factorization
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

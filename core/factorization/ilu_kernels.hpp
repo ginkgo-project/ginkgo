@@ -95,6 +95,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace ilu_factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ilu_factorization
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

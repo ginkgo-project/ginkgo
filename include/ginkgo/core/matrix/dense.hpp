@@ -133,6 +133,8 @@ class Dense
 public:
     using EnableLinOp<Dense>::convert_to;
     using EnableLinOp<Dense>::move_to;
+    using ReadableFromMatrixData<ValueType, int32>::read;
+    using ReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -140,6 +142,7 @@ public:
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Dense>;
+    using complex_type = to_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
@@ -252,6 +255,42 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    /**
+     * Creates a complex copy of the original matrix. If the original matrix
+     * was real, the imaginary part of the result will be zero.
+     */
+    std::unique_ptr<complex_type> make_complex() const;
+
+    /**
+     * Writes a complex copy of the original matrix to a given complex matrix.
+     * If the original matrix was real, the imaginary part of the result will
+     * be zero.
+     */
+    void make_complex(Dense<to_complex<ValueType>> *result) const;
+
+    /**
+     * Creates a new real matrix and extracts the real part of the original
+     * matrix into that.
+     */
+    std::unique_ptr<absolute_type> get_real() const;
+
+    /**
+     * Extracts the real part of the original matrix into a given real matrix.
+     */
+    void get_real(Dense<remove_complex<ValueType>> *result) const;
+
+    /**
+     * Creates a new real matrix and extracts the imaginary part of the
+     * original matrix into that.
+     */
+    std::unique_ptr<absolute_type> get_imag() const;
+
+    /**
+     * Extracts the imaginary part of the original matrix into a given real
+     * matrix.
+     */
+    void get_imag(Dense<remove_complex<ValueType>> *result) const;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -439,6 +478,54 @@ public:
                                             const span &columns)
     {
         return create_submatrix(rows, columns, this->get_stride());
+    }
+
+    /*
+     * Create a real view of the (potentially) complex original matrix.
+     * If the original matrix is real, nothing changes. If the original matrix
+     * is complex, the result is created by viewing the complex matrix with as
+     * real with a reinterpret_cast with twice the number of columns and
+     * double the stride.
+     */
+    std::unique_ptr<Dense<remove_complex<ValueType>>> create_real_view()
+    {
+        const auto num_rows = this->get_size()[0];
+        const bool complex = is_complex<ValueType>();
+        const auto num_cols =
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
+        const auto stride =
+            complex ? 2 * this->get_stride() : this->get_stride();
+
+        return Dense<remove_complex<ValueType>>::create(
+            this->get_executor(), dim<2>{num_rows, num_cols},
+            Array<remove_complex<ValueType>>::view(
+                this->get_executor(), num_rows * stride,
+                reinterpret_cast<remove_complex<ValueType> *>(
+                    this->get_values())),
+            stride);
+    }
+
+    /*
+     * @copydoc create_real_view()
+     */
+    std::unique_ptr<const Dense<remove_complex<ValueType>>> create_real_view()
+        const
+    {
+        const auto num_rows = this->get_size()[0];
+        const bool complex = is_complex<ValueType>();
+        const auto num_cols =
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
+        const auto stride =
+            complex ? 2 * this->get_stride() : this->get_stride();
+
+        return Dense<remove_complex<ValueType>>::create(
+            this->get_executor(), dim<2>{num_rows, num_cols},
+            Array<remove_complex<ValueType>>::view(
+                this->get_executor(), num_rows * stride,
+                const_cast<remove_complex<ValueType> *>(
+                    reinterpret_cast<const remove_complex<ValueType> *>(
+                        this->get_const_values()))),
+            stride);
     }
 
 protected:

@@ -87,6 +87,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
 public:
     using EnableLinOp<Ell>::convert_to;
     using EnableLinOp<Ell>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;

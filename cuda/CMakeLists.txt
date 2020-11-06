@@ -98,6 +98,7 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
+    reorder/rcm_kernels.cu
     solver/bicg_kernels.cu
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu
@@ -150,9 +151,6 @@ ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
-
-# Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
-target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}

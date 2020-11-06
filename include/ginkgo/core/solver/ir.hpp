@@ -219,6 +219,7 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_solver) {
             solver_ = parameters_.generated_solver;
             GKO_ASSERT_EQUAL_DIMENSIONS(solver_, this);
@@ -226,7 +227,7 @@ protected:
             solver_ = parameters_.solver->generate(system_matrix_);
         } else {
             solver_ = matrix::Identity<ValueType>::create(this->get_executor(),
-                                                          this->get_size()[0]);
+                                                          this->get_size());
         }
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());

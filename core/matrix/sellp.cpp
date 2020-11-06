@@ -112,9 +112,17 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        sellp::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(sellp::make_spmv(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -122,9 +130,21 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(sellp::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(sellp::make_advanced_spmv(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        auto dense_alpha = as<RealDense>(alpha);
+        auto dense_beta = as<RealDense>(beta);
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
+    }
 }
 
 

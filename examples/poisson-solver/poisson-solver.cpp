@@ -126,8 +126,8 @@ int main(int argc, char *argv[])
     std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] [DISCRETIZATION_POINTS]"
-                  << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " [executor] [DISCRETIZATION_POINTS]" << std::endl;
         std::exit(-1);
     }
 
@@ -149,6 +149,11 @@ int main(int argc, char *argv[])
              [] {
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
                                                  true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 

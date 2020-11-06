@@ -63,7 +63,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_CASE(Permutation, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Permutation, AppliesRowPermutationToDense)

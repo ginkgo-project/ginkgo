@@ -349,7 +349,7 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -1042,8 +1042,7 @@ TYPED_TEST(Csr, SquareMtxIsTransposable)
                  {0.0, 1.5, 2.0}}, this->exec);
     // clang-format on
 
-    auto trans = mtx2->transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(mtx2->transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -1057,8 +1056,7 @@ TYPED_TEST(Csr, SquareMtxIsTransposable)
 TYPED_TEST(Csr, NonSquareMtxIsTransposable)
 {
     using Csr = typename TestFixture::Mtx;
-    auto trans = this->mtx->transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(this->mtx->transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -1080,9 +1078,8 @@ TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto row_permute = p_mtx->row_permute(&permute_idxs);
+    auto row_permute_csr = gko::as<Csr>(p_mtx->row_permute(&permute_idxs));
 
-    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1103,9 +1100,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsRowPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 0}};
 
-    auto row_permute = p_mtx->row_permute(&permute_idxs);
+    auto row_permute_csr = gko::as<Csr>(p_mtx->row_permute(&permute_idxs));
 
-    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1126,9 +1122,8 @@ TYPED_TEST(Csr, SquareMatrixIsColPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto c_permute = p_mtx->column_permute(&permute_idxs);
+    auto c_permute_csr = gko::as<Csr>(p_mtx->column_permute(&permute_idxs));
 
-    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_csr,
                         l({{3.0, 2.0, 1.0},
@@ -1149,9 +1144,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsColPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto c_permute = p_mtx->column_permute(&permute_idxs);
+    auto c_permute_csr = gko::as<Csr>(p_mtx->column_permute(&permute_idxs));
 
-    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_csr,
                         l({{0.0, 2.0, 1.0},
@@ -1172,11 +1166,9 @@ TYPED_TEST(Csr, SquareMatrixIsInverseRowPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_row_permute =
-        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_csr =
-        static_cast<Csr *>(inverse_row_permute.get());
+        gko::as<Csr>(inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs));
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 1.5, 2.0},
@@ -1197,11 +1189,9 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseRowPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 0}};
 
-    auto inverse_row_permute =
-        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_csr =
-        static_cast<Csr *>(inverse_row_permute.get());
+        gko::as<Csr>(inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs));
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1222,10 +1212,9 @@ TYPED_TEST(Csr, SquareMatrixIsInverseColPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_c_permute =
-        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+    auto inverse_c_permute_csr = gko::as<Csr>(
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs));
 
-    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
@@ -1246,10 +1235,9 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseColPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_c_permute =
-        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+    auto inverse_c_permute_csr = gko::as<Csr>(
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs));
 
-    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
@@ -1335,6 +1323,63 @@ TYPED_TEST(Csr, OutplaceAbsolute)
 }
 
 
+TYPED_TEST(Csr, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Csr, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Scal = typename gko::matrix::Dense<value_type>;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Scal>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scal>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
 protected:
@@ -1345,7 +1390,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(CsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
@@ -1361,8 +1406,7 @@ TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
          {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
     // clang-format on
 
-    auto trans = mtx2->conj_transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(mtx2->conj_transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,

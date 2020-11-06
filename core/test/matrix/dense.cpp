@@ -80,7 +80,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
 
-TYPED_TEST_CASE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
 TYPED_TEST(Dense, CanBeEmpty)
@@ -278,6 +278,31 @@ TYPED_TEST(Dense, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
+    gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_num_stored_elements(), 6);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(0, 2), value_type{2.0});
+    ASSERT_EQ(m->at(1, 2), value_type{0.0});
+}
+
+
 TYPED_TEST(Dense, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;
@@ -300,6 +325,42 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
     EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
     EXPECT_EQ(submtx->at(1, 0), value_type{1.5});
     EXPECT_EQ(submtx->at(1, 1), value_type{2.5});
+}
+
+
+TYPED_TEST(Dense, CanCreateRealView)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    auto real_view = this->mtx->create_real_view();
+
+    if (gko::is_complex<value_type>()) {
+        EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
+        EXPECT_EQ(real_view->get_size()[1], 2 * this->mtx->get_size()[1]);
+        EXPECT_EQ(real_view->get_stride(), 2 * this->mtx->get_stride());
+        EXPECT_EQ(real_view->at(0, 0), real_type{1.0});
+        EXPECT_EQ(real_view->at(0, 1), real_type{0.0});
+        EXPECT_EQ(real_view->at(0, 2), real_type{2.0});
+        EXPECT_EQ(real_view->at(0, 3), real_type{0.0});
+        EXPECT_EQ(real_view->at(0, 4), real_type{3.0});
+        EXPECT_EQ(real_view->at(0, 5), real_type{0.0});
+        EXPECT_EQ(real_view->at(1, 0), real_type{1.5});
+        EXPECT_EQ(real_view->at(1, 1), real_type{0.0});
+        EXPECT_EQ(real_view->at(1, 2), real_type{2.5});
+        EXPECT_EQ(real_view->at(1, 3), real_type{0.0});
+        EXPECT_EQ(real_view->at(1, 4), real_type{3.5});
+        EXPECT_EQ(real_view->at(1, 5), real_type{0.0});
+    } else {
+        EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
+        EXPECT_EQ(real_view->get_size()[1], this->mtx->get_size()[1]);
+        EXPECT_EQ(real_view->get_stride(), this->mtx->get_stride());
+        EXPECT_EQ(real_view->at(0, 0), real_type{1.0});
+        EXPECT_EQ(real_view->at(0, 1), real_type{2.0});
+        EXPECT_EQ(real_view->at(0, 2), real_type{3.0});
+        EXPECT_EQ(real_view->at(1, 0), real_type{1.5});
+        EXPECT_EQ(real_view->at(1, 1), real_type{2.5});
+        EXPECT_EQ(real_view->at(1, 2), real_type{3.5});
+    }
 }
 
 

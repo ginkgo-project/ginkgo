@@ -81,7 +81,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_CASE(Sellp, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Sellp, AppliesToDenseVector)
@@ -641,6 +641,63 @@ TYPED_TEST(Sellp, OutplaceAbsolute)
 }
 
 
+TYPED_TEST(Sellp, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Sellp, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Scal = typename gko::matrix::Dense<value_type>;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Scal>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scal>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
 template <typename ValueIndexType>
 class SellpComplex : public ::testing::Test {
 protected:
@@ -651,7 +708,7 @@ protected:
     using Mtx = gko::matrix::Sellp<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(SellpComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(SellpComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(SellpComplex, OutplaceAbsolute)

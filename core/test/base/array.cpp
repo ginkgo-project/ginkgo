@@ -70,7 +70,7 @@ protected:
     gko::Array<T> x;
 };
 
-TYPED_TEST_CASE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
 
 
 TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)

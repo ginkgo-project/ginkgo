@@ -145,6 +145,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
+
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
@@ -437,22 +439,22 @@ public:
         {
             if (warp_size_ > 0) {
                 int multiple = 8;
-                if (nnz >= 2e8) {
+                if (nnz >= static_cast<int64_t>(2e8)) {
                     multiple = 2048;
-                } else if (nnz >= 2e7) {
+                } else if (nnz >= static_cast<int64_t>(2e7)) {
                     multiple = 512;
-                } else if (nnz >= 2e6) {
+                } else if (nnz >= static_cast<int64_t>(2e6)) {
                     multiple = 128;
-                } else if (nnz >= 2e5) {
+                } else if (nnz >= static_cast<int64_t>(2e5)) {
                     multiple = 32;
                 }
 
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
-                    if (nnz >= 1e7) {
+                    if (nnz >= static_cast<int64_t>(1e7)) {
                         multiple = 64;
-                    } else if (nnz >= 1e6) {
+                    } else if (nnz >= static_cast<int64_t>(1e6)) {
                         multiple = 16;
                     }
                 }
@@ -484,13 +486,13 @@ public:
         const index_type nvidia_row_len_limit = 1024;
         /* Use imbalance strategy when the matrix has more more than 1e6 on
          * NVIDIA hardware */
-        const index_type nvidia_nnz_limit = 1e6;
+        const index_type nvidia_nnz_limit{static_cast<index_type>(1e6)};
         /* Use imbalance strategy when the maximum number of nonzero per row is
          * more than 768 on AMD hardware */
         const index_type amd_row_len_limit = 768;
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
-        const index_type amd_nnz_limit = 1e8;
+        const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
 
         /**
          * Creates an automatical strategy.

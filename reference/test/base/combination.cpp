@@ -67,7 +67,7 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
-TYPED_TEST_CASE(Combination, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Combination, gko::test::ValueTypes);
 
 
 TYPED_TEST(Combination, AppliesToVector)

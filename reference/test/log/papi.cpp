@@ -115,7 +115,7 @@ protected:
     int eventset;
 };
 
-TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Papi, gko::test::ValueTypes);
 
 
 TYPED_TEST(Papi, CatchesCriterionCheckCompleted)

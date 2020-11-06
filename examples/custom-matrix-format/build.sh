@@ -14,9 +14,9 @@ CXX="nvcc"
 
 # figure out correct compiler flags
 if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
-    LINK_FLAGS="-lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference -lginkgo_hip -Xlinker -rpath -Xlinker ${THIS_DIR}"
+    LINK_FLAGS="-lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference -lginkgo_dpcpp -lginkgo_hip -Xlinker -rpath -Xlinker ${THIS_DIR}"
 else
-    LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced -lginkgo_hipd -Xlinker -rpath -Xlinker ${THIS_DIR}"
+    LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced -lginkgo_dpcppd -lginkgo_hipd -Xlinker -rpath -Xlinker ${THIS_DIR}"
 fi
 
 

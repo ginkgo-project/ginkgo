@@ -59,8 +59,14 @@ namespace solver {
  * Being a generic solver, it is capable of solving general matrices, including
  * non-s.p.d matrices. Though, the memory and the computational requirement of
  * the BiCG solver are higher than of its s.p.d solver counterpart, it has
- * the capability to solve generic systems. BiCG is the unstable version of
- * BiCGSTAB.
+ * the capability to solve generic systems.
+ *
+ * BiCG is based on the bi-Lanczos tridiagonalization method and in exact
+ * arithmetic should terminate in at most N iterations (2N MV's, with A and A^H).
+ * It forms the basis of many of the cheaper methods such as BiCGSTAB and CGS.
+ *
+ * Reference: R.Fletcher, Conjugate gradient methods for indefinite systems,
+ * doi: 10.1007/BFb0080116
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -162,6 +168,7 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_preconditioner) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
                                         this);
@@ -171,7 +178,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
+                this->get_executor(), this->get_size()));
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));

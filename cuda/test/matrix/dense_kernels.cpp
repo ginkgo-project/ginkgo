@@ -321,6 +321,40 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(cuda);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+    auto dcomplex_x = ComplexMtx::create(cuda);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(complex_b.get(), complex_x.get());
+    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(cuda);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+    auto dcomplex_x = ComplexMtx::create(cuda);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
 TEST_F(Dense, IsTransposable)
 {
     set_up_apply_data();
@@ -606,6 +640,78 @@ TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto dabs_x = dx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_x, dabs_x, 1e-14);
+}
+
+
+TEST_F(Dense, MakeComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto complex_x = x->make_complex();
+    auto dcomplex_x = dx->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
+}
+
+
+TEST_F(Dense, MakeComplexWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto complex_x = ComplexMtx::create(ref, x->get_size());
+    x->make_complex(complex_x.get());
+    auto dcomplex_x = ComplexMtx::create(cuda, x->get_size());
+    dx->make_complex(dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
+}
+
+
+TEST_F(Dense, GetRealIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto real_x = x->get_real();
+    auto dreal_x = dx->get_real();
+
+    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
+}
+
+
+TEST_F(Dense, GetRealWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto real_x = Mtx::create(ref, x->get_size());
+    x->get_real(real_x.get());
+    auto dreal_x = Mtx::create(cuda, dx->get_size());
+    dx->get_real(dreal_x.get());
+
+    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
+}
+
+
+TEST_F(Dense, GetImagIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto imag_x = x->get_imag();
+    auto dimag_x = dx->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
+}
+
+
+TEST_F(Dense, GetImagWithGivenResultIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto imag_x = Mtx::create(ref, x->get_size());
+    x->get_imag(imag_x.get());
+    auto dimag_x = Mtx::create(cuda, dx->get_size());
+    dx->get_imag(dimag_x.get());
+
+    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
 }
 
 

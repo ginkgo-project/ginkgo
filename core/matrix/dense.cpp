@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -87,6 +88,9 @@ GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
 GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
 GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
 GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
+GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
+GKO_REGISTER_OPERATION(get_real, dense::get_real);
+GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 
 }  // namespace dense
@@ -215,8 +219,15 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_simple_apply(
-        this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_simple_apply(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -224,9 +235,18 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_apply(
-        as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-        as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_apply(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        auto dense_alpha = as<Dense<remove_complex<ValueType>>>(alpha);
+        auto dense_beta = as<Dense<remove_complex<ValueType>>>(beta);
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -775,6 +795,84 @@ Dense<ValueType>::compute_absolute() const
     exec->run(dense::make_outplace_absolute_dense(this, abs_dense.get()));
 
     return abs_dense;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::complex_type>
+Dense<ValueType>::make_complex() const
+{
+    auto exec = this->get_executor();
+
+    auto complex_dense = complex_type::create(exec, this->get_size());
+
+    exec->run(dense::make_make_complex(this, complex_dense.get()));
+
+    return complex_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(dense::make_make_complex(
+        this, make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::get_real() const
+{
+    auto exec = this->get_executor();
+
+    auto real_dense = absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_get_real(this, real_dense.get()));
+
+    return real_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(
+        dense::make_get_real(this, make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::get_imag() const
+{
+    auto exec = this->get_executor();
+
+    auto imag_dense = absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_get_imag(this, imag_dense.get()));
+
+    return imag_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::get_imag(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(
+        dense::make_get_imag(this, make_temporary_clone(exec, result).get()));
 }
 
 

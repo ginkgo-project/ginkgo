@@ -94,8 +94,6 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-
     using Vector = matrix::Dense<ValueType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
 

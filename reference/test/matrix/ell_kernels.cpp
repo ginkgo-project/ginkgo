@@ -60,7 +60,6 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using T = value_type;
     using Mtx = gko::matrix::Ell<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
@@ -94,10 +93,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], T{1.0});
-        EXPECT_EQ(v[1], T{3.0});
-        EXPECT_EQ(v[2], T{2.0});
-        EXPECT_EQ(v[3], T{5.0});
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -105,7 +104,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Ell, AppliesToDenseVector)
@@ -638,6 +637,63 @@ TYPED_TEST(Ell, OutplaceAbsolute)
 }
 
 
+TYPED_TEST(Ell, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Ell, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Scal = typename gko::matrix::Dense<value_type>;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Scal>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scal>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
 template <typename ValueIndexType>
 class EllComplex : public ::testing::Test {
 protected:
@@ -648,7 +704,7 @@ protected:
     using Mtx = gko::matrix::Ell<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(EllComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(EllComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(EllComplex, InplaceAbsolute)
