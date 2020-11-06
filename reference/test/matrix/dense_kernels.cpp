@@ -65,6 +65,8 @@ class Dense : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
+    using ComplexMtx = gko::to_complex<Mtx>;
+    using RealMtx = gko::remove_complex<Mtx>;
     Dense()
         : exec(gko::ReferenceExecutor::create()),
           mtx1(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
@@ -2151,11 +2153,163 @@ TYPED_TEST(Dense, AdvancedAppliesToComplex)
 }
 
 
+TYPED_TEST(Dense, MakeComplex)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto complex_mtx = this->mtx5->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0);
+}
+
+
+TYPED_TEST(Dense, MakeComplexWithGivenResult)
+{
+    using T = typename TestFixture::value_type;
+    using ComplexMtx = typename TestFixture::ComplexMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->make_complex(complex_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, this->mtx5, 0);
+}
+
+
+TYPED_TEST(Dense, MakeComplexWithGivenResultFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using ComplexMtx = typename TestFixture::ComplexMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto complex_mtx = ComplexMtx::create(exec);
+
+    ASSERT_THROW(this->mtx5->make_complex(complex_mtx.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, GetReal)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto real_mtx = this->mtx5->get_real();
+
+    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0);
+}
+
+
+TYPED_TEST(Dense, GetRealWithGivenResult)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->get_real(real_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(real_mtx, this->mtx5, 0);
+}
+
+
+TYPED_TEST(Dense, GetRealWithGivenResultFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto real_mtx = RealMtx::create(exec);
+    ASSERT_THROW(this->mtx5->get_real(real_mtx.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, GetImag)
+{
+    using T = typename TestFixture::value_type;
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto imag_mtx = this->mtx5->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}), 0);
+}
+
+
+TYPED_TEST(Dense, GetImagWithGivenResult)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
+    this->mtx5->get_imag(imag_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l({{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}), 0);
+}
+
+
+TYPED_TEST(Dense, GetImagWithGivenResultFailsForWrongDimensions)
+{
+    using T = typename TestFixture::value_type;
+    using RealMtx = typename TestFixture::RealMtx;
+    auto exec = this->mtx5->get_executor();
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+
+    auto imag_mtx = RealMtx::create(exec);
+    ASSERT_THROW(this->mtx5->get_imag(imag_mtx.get()), gko::DimensionMismatch);
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
+    using RealMtx = gko::matrix::Dense<gko::remove_complex<value_type>>;
 };
 
 
@@ -2217,6 +2371,127 @@ TYPED_TEST(DenseComplex, OutplaceAbsolute)
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, MakeComplex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto complex_mtx = mtx->make_complex();
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, mtx, 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, MakeComplexWithGivenResult)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto complex_mtx = Mtx::create(exec, mtx->get_size());
+    mtx->make_complex(complex_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(complex_mtx, mtx, 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetReal)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto real_mtx = mtx->get_real();
+
+    GKO_ASSERT_MTX_NEAR(
+        real_mtx, l({{1.0, 3.0, 0.0}, {-4.0, -1.0, 0.0}, {0.0, 0.0, 2.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetRealWithGivenResult)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using RealMtx = typename TestFixture::RealMtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto real_mtx = RealMtx::create(exec, mtx->get_size());
+    mtx->get_real(real_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        real_mtx, l({{1.0, 3.0, 0.0}, {-4.0, -1.0, 0.0}, {0.0, 0.0, 2.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetImag)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto imag_mtx = mtx->get_imag();
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l({{0.0, 4.0, 2.0}, {-3.0, 0.0, 0.0}, {0.0, -1.5, 0.0}}),
+        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, GetImagWithGivenResult)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using RealMtx = typename TestFixture::RealMtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto imag_mtx = RealMtx::create(exec, mtx->get_size());
+    mtx->get_imag(imag_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        imag_mtx, l({{0.0, 4.0, 2.0}, {-3.0, 0.0, 0.0}, {0.0, -1.5, 0.0}}),
+        0.0);
 }
 
 
