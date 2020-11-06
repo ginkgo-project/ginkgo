@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/211796635 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/212658010 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -111,6 +111,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>mat_data32</b> = <a 
 <tr class="memitem:a7982c70b98f1f7de90f15f72e5f728b5"><td class="memItemLeft" align="right" valign="top"><a id="a7982c70b98f1f7de90f15f72e5f728b5"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>absolute_type</b> = <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;</td></tr>
 <tr class="separator:a7982c70b98f1f7de90f15f72e5f728b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7a004b777d6c178051f19b044b9da56"><td class="memItemLeft" align="right" valign="top"><a id="ab7a004b777d6c178051f19b044b9da56"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>complex_type</b> = <a class="el" href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">to_complex</a>&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;</td></tr>
+<tr class="separator:ab7a004b777d6c178051f19b044b9da56"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67dd271e69cd4ca2942f4cf236fb328e"><td class="memItemLeft" align="right" valign="top"><a id="a67dd271e69cd4ca2942f4cf236fb328e"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>row_major_range</b> = <a class="el" href="classgko_1_1range.html">gko::range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, 2 &gt; &gt;</td></tr>
 <tr class="separator:a67dd271e69cd4ca2942f4cf236fb328e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -343,6 +346,28 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>write</b> (<a class="
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#ac86f11554ae7cd5814852d6e1a0b9d4d">compute_absolute_inplace</a> () override</td></tr>
 <tr class="memdesc:ac86f11554ae7cd5814852d6e1a0b9d4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute absolute inplace on each element. <br /></td></tr>
 <tr class="separator:ac86f11554ae7cd5814852d6e1a0b9d4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a01b9a6f6f3b72f1d2b6044afb0f78791"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; complex_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a01b9a6f6f3b72f1d2b6044afb0f78791">make_complex</a> () const</td></tr>
+<tr class="memdesc:a01b9a6f6f3b72f1d2b6044afb0f78791"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a complex copy of the original matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a01b9a6f6f3b72f1d2b6044afb0f78791">More...</a><br /></td></tr>
+<tr class="separator:a01b9a6f6f3b72f1d2b6044afb0f78791"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a383c1a6ab4fbbaaa1b782e3e4b9f0bbb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a383c1a6ab4fbbaaa1b782e3e4b9f0bbb">make_complex</a> (<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; <a class="el" href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">to_complex</a>&lt; ValueType &gt;&gt; *result) const</td></tr>
+<tr class="memdesc:a383c1a6ab4fbbaaa1b782e3e4b9f0bbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a complex copy of the original matrix to a given complex matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a383c1a6ab4fbbaaa1b782e3e4b9f0bbb">More...</a><br /></td></tr>
+<tr class="separator:a383c1a6ab4fbbaaa1b782e3e4b9f0bbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22aef32e5ef01fc568304f4f2c50e149"><td class="memItemLeft" align="right" valign="top"><a id="a22aef32e5ef01fc568304f4f2c50e149"></a>
+std::unique_ptr&lt; absolute_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a22aef32e5ef01fc568304f4f2c50e149">get_real</a> () const</td></tr>
+<tr class="memdesc:a22aef32e5ef01fc568304f4f2c50e149"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new real matrix and extracts the real part of the original matrix into that. <br /></td></tr>
+<tr class="separator:a22aef32e5ef01fc568304f4f2c50e149"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a522a139c88df694eebaca4417cdec435"><td class="memItemLeft" align="right" valign="top"><a id="a522a139c88df694eebaca4417cdec435"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a522a139c88df694eebaca4417cdec435">get_real</a> (<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; ValueType &gt;&gt; *result) const</td></tr>
+<tr class="memdesc:a522a139c88df694eebaca4417cdec435"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extracts the real part of the original matrix into a given real matrix. <br /></td></tr>
+<tr class="separator:a522a139c88df694eebaca4417cdec435"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab64d0517184c733678626046a143bbb5"><td class="memItemLeft" align="right" valign="top"><a id="ab64d0517184c733678626046a143bbb5"></a>
+std::unique_ptr&lt; absolute_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#ab64d0517184c733678626046a143bbb5">get_imag</a> () const</td></tr>
+<tr class="memdesc:ab64d0517184c733678626046a143bbb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new real matrix and extracts the imaginary part of the original matrix into that. <br /></td></tr>
+<tr class="separator:ab64d0517184c733678626046a143bbb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97c1bc820617b5b4c2088e6854d5451e"><td class="memItemLeft" align="right" valign="top"><a id="a97c1bc820617b5b4c2088e6854d5451e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a97c1bc820617b5b4c2088e6854d5451e">get_imag</a> (<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; <a class="el" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex</a>&lt; ValueType &gt;&gt; *result) const</td></tr>
+<tr class="memdesc:a97c1bc820617b5b4c2088e6854d5451e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extracts the imaginary part of the original matrix into a given real matrix. <br /></td></tr>
+<tr class="separator:a97c1bc820617b5b4c2088e6854d5451e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="memItemLeft" align="right" valign="top">value_type *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a> () noexcept</td></tr>
 <tr class="memdesc:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a pointer to the array of values of the matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">More...</a><br /></td></tr>
 <tr class="separator:a3bc458e02fab8e4c9f60f70bd4d5a4f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1580,6 +1605,51 @@ template&lt;typename ValueType = default_precision&gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new inverse permuted object </dd></dl>
 
 <p>Implements <a class="el" href="classgko_1_1Permutable.html#ab7ff08705706169e29ebd92e9d3b3a8c">gko::Permutable&lt; int64 &gt;</a>.</p>
+
+</div>
+</div>
+<a id="a01b9a6f6f3b72f1d2b6044afb0f78791"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a01b9a6f6f3b72f1d2b6044afb0f78791">&#9670;&nbsp;</a></span>make_complex() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;complex_type&gt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::make_complex </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates a complex copy of the original matrix. </p>
+<p>If the original matrix was real, the imaginary part of the result will be zero. </p>
+
+</div>
+</div>
+<a id="a383c1a6ab4fbbaaa1b782e3e4b9f0bbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a383c1a6ab4fbbaaa1b782e3e4b9f0bbb">&#9670;&nbsp;</a></span>make_complex() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::make_complex </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; <a class="el" href="namespacegko.html#acc281c8ff5bfa4fd6f25afcce466b1af">to_complex</a>&lt; ValueType &gt;&gt; *&#160;</td>
+          <td class="paramname"><em>result</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Writes a complex copy of the original matrix to a given complex matrix. </p>
+<p>If the original matrix was real, the imaginary part of the result will be zero. </p>
 
 </div>
 </div>

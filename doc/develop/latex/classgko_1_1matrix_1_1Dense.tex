@@ -40,6 +40,9 @@ using {\bfseries mat\+\_\+data32} = \mbox{\hyperlink{structgko_1_1matrix__data}{
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7982c70b98f1f7de90f15f72e5f728b5}\label{classgko_1_1matrix_1_1Dense_a7982c70b98f1f7de90f15f72e5f728b5}} 
 using {\bfseries absolute\+\_\+type} = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$
 \item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ab7a004b777d6c178051f19b044b9da56}\label{classgko_1_1matrix_1_1Dense_ab7a004b777d6c178051f19b044b9da56}} 
+using {\bfseries complex\+\_\+type} = \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{to\+\_\+complex}}$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$
+\item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}\label{classgko_1_1matrix_1_1Dense_a67dd271e69cd4ca2942f4cf236fb328e}} 
 using {\bfseries row\+\_\+major\+\_\+range} = \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}}$<$ Value\+Type, 2 $>$ $>$
 \end{DoxyCompactItemize}
@@ -163,6 +166,22 @@ std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1ma
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}\label{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}} 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ac86f11554ae7cd5814852d6e1a0b9d4d}{compute\+\_\+absolute\+\_\+inplace}} () override
 \begin{DoxyCompactList}\small\item\em Compute absolute inplace on each element. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ complex\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a01b9a6f6f3b72f1d2b6044afb0f78791}{make\+\_\+complex}} () const
+\begin{DoxyCompactList}\small\item\em Creates a complex copy of the original matrix. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a383c1a6ab4fbbaaa1b782e3e4b9f0bbb}{make\+\_\+complex}} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{to\+\_\+complex}}$<$ Value\+Type $>$$>$ $\ast$result) const
+\begin{DoxyCompactList}\small\item\em Writes a complex copy of the original matrix to a given complex matrix. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a22aef32e5ef01fc568304f4f2c50e149}\label{classgko_1_1matrix_1_1Dense_a22aef32e5ef01fc568304f4f2c50e149}} 
+std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a22aef32e5ef01fc568304f4f2c50e149}{get\+\_\+real}} () const
+\begin{DoxyCompactList}\small\item\em Creates a new real matrix and extracts the real part of the original matrix into that. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a522a139c88df694eebaca4417cdec435}\label{classgko_1_1matrix_1_1Dense_a522a139c88df694eebaca4417cdec435}} 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a522a139c88df694eebaca4417cdec435}{get\+\_\+real}} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$$>$ $\ast$result) const
+\begin{DoxyCompactList}\small\item\em Extracts the real part of the original matrix into a given real matrix. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ab64d0517184c733678626046a143bbb5}\label{classgko_1_1matrix_1_1Dense_ab64d0517184c733678626046a143bbb5}} 
+std\+::unique\+\_\+ptr$<$ absolute\+\_\+type $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab64d0517184c733678626046a143bbb5}{get\+\_\+imag}} () const
+\begin{DoxyCompactList}\small\item\em Creates a new real matrix and extracts the imaginary part of the original matrix into that. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a97c1bc820617b5b4c2088e6854d5451e}\label{classgko_1_1matrix_1_1Dense_a97c1bc820617b5b4c2088e6854d5451e}} 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a97c1bc820617b5b4c2088e6854d5451e}{get\+\_\+imag}} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$$>$ $\ast$result) const
+\begin{DoxyCompactList}\small\item\em Extracts the imaginary part of the original matrix into a given real matrix. \end{DoxyCompactList}\item 
 value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\+\_\+values}} () noexcept
 \begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
 const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\+\_\+const\+\_\+values}} () const noexcept
@@ -763,7 +782,29 @@ a pointer to the new inverse permuted object
 
 Implements \mbox{\hyperlink{classgko_1_1Permutable_ab7ff08705706169e29ebd92e9d3b3a8c}{gko\+::\+Permutable$<$ int64 $>$}}.
 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}\label{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}} 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a01b9a6f6f3b72f1d2b6044afb0f78791}\label{classgko_1_1matrix_1_1Dense_a01b9a6f6f3b72f1d2b6044afb0f78791}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!make\_complex@{make\_complex}}
+\index{make\_complex@{make\_complex}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{make\_complex()}{make\_complex()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$complex\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::make\+\_\+complex (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Creates a complex copy of the original matrix. 
+
+If the original matrix was real, the imaginary part of the result will be zero. \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a383c1a6ab4fbbaaa1b782e3e4b9f0bbb}\label{classgko_1_1matrix_1_1Dense_a383c1a6ab4fbbaaa1b782e3e4b9f0bbb}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!make\_complex@{make\_complex}}
+\index{make\_complex@{make\_complex}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{make\_complex()}{make\_complex()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::make\+\_\+complex (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{to\+\_\+complex}}$<$ Value\+Type $>$$>$ $\ast$}]{result }\end{DoxyParamCaption}) const}
+
+
+
+Writes a complex copy of the original matrix to a given complex matrix. 
+
+If the original matrix was real, the imaginary part of the result will be zero. \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}\label{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_permute@{row\_permute}}
 \index{row\_permute@{row\_permute}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
 \doxysubsubsection{\texorpdfstring{row\_permute()}{row\_permute()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
