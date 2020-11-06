@@ -700,6 +700,10 @@ std::initializer_list<T> l(std::initializer_list<T> list)
     return list;
 }
 
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
+
 template <typename T>
 T &&l(T &&matrix)
 {
@@ -717,6 +721,11 @@ T *plain_ptr(const std::unique_ptr<T> &ptr)
 {
     return ptr.get();
 }
+
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
 
 template <typename T>
 T plain_ptr(T ptr)
