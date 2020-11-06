@@ -74,14 +74,14 @@ target_sources(ginkgo_cuda
     components/fill_array.cu
     components/precision_conversion.cu
     components/prefix_sum.cu
-    factorization/ilu_kernels.cu
     factorization/factorization_kernels.cu
+    factorization/ilu_kernels.cu
     factorization/par_ict_kernels.cu
     factorization/par_ilu_kernels.cu
     factorization/par_ilut_approx_filter_kernel.cu
     factorization/par_ilut_filter_kernel.cu
-    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_select_common.cu
+    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
     matrix/coo_kernels.cu
@@ -89,6 +89,7 @@ target_sources(ginkgo_cuda
     matrix/dense_kernels.cu
     matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
+    matrix/fbcsr_kernels.cu
     matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu

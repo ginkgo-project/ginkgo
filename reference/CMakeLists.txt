@@ -6,8 +6,8 @@ target_sources(ginkgo_reference
     components/fill_array.cpp
     components/precision_conversion.cpp
     components/prefix_sum.cpp
-    factorization/ilu_kernels.cpp
     factorization/factorization_kernels.cpp
+    factorization/ilu_kernels.cpp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
@@ -16,6 +16,7 @@ target_sources(ginkgo_reference
     matrix/dense_kernels.cpp
     matrix/diagonal_kernels.cpp
     matrix/ell_kernels.cpp
+    matrix/fbcsr_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
