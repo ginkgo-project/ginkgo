@@ -116,16 +116,31 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
     }
 
     const auto &exec = mtx->get_executor();
-    const auto &master = mtx->get_executor()->get_master();
+    auto master = mtx->get_executor()->get_master();
 
+    // If exec is not the master/host, extract the master and perform the
+    // unsorting there, followed by copying it back
     if (exec != master) {
+        constexpr int max_depth{10};  // Max depth that is searched for master
+        bool actual_master_found{false};
+        for (int i = 0; i < max_depth; ++i) {
+            const auto new_master = master->get_master();
+            if (new_master == master) {
+                actual_master_found = true;
+                break;
+            }
+            master = new_master;
+        }
+        if (!actual_master_found) {
+            GKO_NOT_SUPPORTED(exec);
+        }
         auto h_mtx = mtx->clone(master);
         unsort_matrix(lend(h_mtx), engine);
         mtx->copy_from(lend(h_mtx));
         return;
     }
 
-    auto size = mtx->get_size();
+
     auto vals = mtx->get_values();
     auto rows = mtx->get_row_idxs();
     auto cols = mtx->get_col_idxs();
