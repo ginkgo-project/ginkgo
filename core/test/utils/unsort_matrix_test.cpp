@@ -75,10 +75,8 @@ protected:
 
     bool is_coo_matrix_sorted(Coo *mtx)
     {
-        auto size = mtx->get_size();
-        auto vals = mtx->get_values();
-        auto rows = mtx->get_row_idxs();
-        auto cols = mtx->get_col_idxs();
+        auto rows = mtx->get_const_row_idxs();
+        auto cols = mtx->get_const_col_idxs();
         auto nnz = mtx->get_num_stored_elements();
 
         if (nnz <= 0) {
@@ -99,6 +97,30 @@ protected:
         return true;
     }
 
+    bool is_csr_matrix_sorted(Csr *mtx)
+    {
+        auto size = mtx->get_size();
+        auto rows = mtx->get_const_row_ptrs();
+        auto cols = mtx->get_const_col_idxs();
+        auto nnz = mtx->get_num_stored_elements();
+
+        if (nnz <= 0) {
+            return true;
+        }
+
+        for (index_type row = 0; row < size[1]; ++row) {
+            auto prev_col = cols[rows[row]];
+            for (index_type i = rows[row]; i < rows[row + 1]; ++i) {
+                auto cur_col = cols[i];
+                if (prev_col > cur_col) {
+                    return false;
+                }
+                prev_col = cur_col;
+            }
+        }
+        return true;
+    }
+
     std::shared_ptr<const gko::Executor> exec;
     std::ranlux48 rand_engine;
     std::unique_ptr<Dense> mtx;
@@ -110,11 +132,11 @@ TEST_F(UnsortMatrix, CsrWorks)
 {
     auto csr = Csr::create(exec);
     mtx->convert_to(gko::lend(csr));
-    bool was_sorted = csr->is_sorted_by_column_index();
+    bool was_sorted = is_csr_matrix_sorted(gko::lend(csr));
 
     gko::test::unsort_matrix(gko::lend(csr), rand_engine);
 
-    ASSERT_FALSE(csr->is_sorted_by_column_index());
+    ASSERT_FALSE(is_csr_matrix_sorted(gko::lend(csr)));
     ASSERT_TRUE(was_sorted);
     GKO_ASSERT_MTX_NEAR(csr, mtx, 0.);
 }
@@ -124,7 +146,7 @@ TEST_F(UnsortMatrix, CsrWorksWithEmpty)
 {
     auto csr = Csr::create(exec);
     empty->convert_to(gko::lend(csr));
-    bool was_sorted = csr->is_sorted_by_column_index();
+    bool was_sorted = is_csr_matrix_sorted(gko::lend(csr));
 
     gko::test::unsort_matrix(gko::lend(csr), rand_engine);
 

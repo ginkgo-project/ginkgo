@@ -219,7 +219,6 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
         auto editable_csr = csr_type::create(exec);
         as<ConvertibleTo<csr_type>>(system_matrix)
             ->convert_to(lend(editable_csr));
-        // Maybe check if it is sorted first
         editable_csr->sort_by_column_index();
         csr_mtx = decltype(csr_mtx){editable_csr.release(),
                                     std::default_delete<const csr_type>{}};
