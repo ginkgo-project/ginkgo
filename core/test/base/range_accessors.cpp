@@ -474,7 +474,7 @@ protected:
     st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
                                 5.5f, 6.6f, 7.7f, -8.8f};
     reduced_storage1d r1{data, size_1d /*, stride0*/};
-    reduced_storage2d r2{data, size_2d /*, stride1*/};
+    reduced_storage2d r2{data, size_2d, stride1[0]};
     const_reduced_storage1d cr1{data, size_1d, stride0};
     const_reduced_storage2d cr2{data, size_2d, stride1};
 
