@@ -197,6 +197,51 @@ template <typename... Args>
 using are_span_compatible = detail::are_span_compatible_impl<false, Args...>;
 
 
+namespace detail {
+
+
+template <typename ValueType, size_type Iter, size_type N>
+constexpr std::enable_if_t<Iter == N, ValueType> mult_array(const dim<N> &size)
+{
+    return 1;
+}
+template <typename ValueType, size_type Iter, size_type N>
+constexpr std::enable_if_t<Iter <= N - 1, ValueType> mult_array(
+    const dim<N> &size)
+{
+    return size[Iter] * mult_array<ValueType, Iter + 1>(size);
+}
+
+
+template <typename ValueType, int Iter = 1, size_type N, typename... Args>
+constexpr std::enable_if_t<N == 0 || (Iter == N && Iter == sizeof...(Args) + 1),
+                           std::array<ValueType, N == 0 ? 0 : N - 1>>
+extract_factorization(const dim<N> &size, Args... args)
+{
+    return {{args...}};
+}
+
+
+template <typename ValueType, int Iter = 1, size_type N, typename... Args>
+constexpr std::enable_if_t<(Iter < N) && (Iter == sizeof...(Args) + 1),
+                           std::array<ValueType, N - 1>>
+extract_factorization(const dim<N> &size, Args... args)
+{
+    return extract_factorization<ValueType, Iter + 1>(
+        size, args..., mult_array<ValueType, Iter>(size));
+}
+
+
+}  // namespace detail
+
+
+template <typename ValueType, size_type N>
+constexpr auto compute_stride_array(const dim<N> &size)
+{
+    return detail::extract_factorization<ValueType>(size);
+}
+
+
 }  // namespace helper
 }  // namespace accessor
 }  // namespace gko

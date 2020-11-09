@@ -259,32 +259,13 @@ protected:
      * @param size  multidimensional size of the memory
      * @param stride  stride array used for the x-indices
      */
+    /*
     GKO_ATTRIBUTES constexpr reduced_row_major(
         storage_type *storage, gko::dim<dimensionality> size,
         const std::array<const size_type, dimensionality - 1> &stride)
         : storage_{storage}, size_{size}, stride_{stride}
     {}
-
-    /**
-     * Creates the accessor with an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     *
-     * @param storage  pointer to the block of memory containing the storage
-     * @param size  multidimensional size of the memory
-     * @param stride  stride array used for the x-indices
-     */
-    template <typename... Strides>
-    GKO_ATTRIBUTES constexpr reduced_row_major(storage_type *storage,
-                                               gko::dim<dimensionality> size,
-                                               Strides &&... stride)
-        : storage_{storage},
-          size_{size},
-          stride_{std::forward<Strides>(stride)...}
-    {
-        static_assert(sizeof...(Strides) == dimensionality - 1,
-                      "Number of provided Strides must be dimensionality - 1!");
-    }
+    */
 
     /**
      * Creates the accessor with an already allocated storage space with a
@@ -297,8 +278,37 @@ protected:
      */
     GKO_ATTRIBUTES constexpr reduced_row_major(storage_type *storage,
                                                dim<dimensionality> size)
-        : reduced_row_major{storage, size, {{size[1] * size[2], size[2]}}}
+        : reduced_row_major{storage, size,
+                            helper::compute_stride_array<const size_type>(size)}
     {}
+
+    /**
+     * Creates the accessor with an already allocated storage space with a
+     * stride. The first stride is used for computing the index for the first
+     * index, the second stride for the second index, and so on.
+     *
+     * @param storage  pointer to the block of memory containing the storage
+     * @param size  multidimensional size of the memory
+     * @param stride  stride array used for the x-indices
+     */
+    template <typename First, typename... Strides>
+    GKO_ATTRIBUTES constexpr reduced_row_major(storage_type *storage,
+                                               gko::dim<dimensionality> size,
+                                               First &&first_stride,
+                                               Strides &&... strides)
+        : storage_{storage},
+          size_{size},
+          stride_{std::forward<First>(first_stride),
+                  std::forward<Strides>(strides)...}
+    {
+        static_assert(
+            sizeof...(Strides) + 2 == dimensionality ||
+                sizeof...(Strides) == 0 &&
+                    std::is_same<
+                        std::decay_t<First>,
+                        std::array<const size_type, dimensionality - 1>>::value,
+            "Number of provided Strides must be dimensionality - 1!");
+    }
 
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
