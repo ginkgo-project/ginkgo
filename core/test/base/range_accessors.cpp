@@ -473,8 +473,8 @@ protected:
     static constexpr gko::size_type data_elements{8};
     st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
                                 5.5f, 6.6f, 7.7f, -8.8f};
-    reduced_storage1d r1{data, size_1d, stride0};
-    reduced_storage2d r2{data, size_2d, stride1[0]};
+    reduced_storage1d r1{data, size_1d /*, stride0*/};
+    reduced_storage2d r2{data, size_2d /*, stride1*/};
     const_reduced_storage1d cr1{data, size_1d, stride0};
     const_reduced_storage2d cr2{data, size_2d, stride1};
 
@@ -497,6 +497,8 @@ TEST_F(ReducedStorageXd, CanRead)
 {
     EXPECT_EQ(cr1(1), 2.2f);
     EXPECT_EQ(cr2(0, 1), 2.2f);
+    EXPECT_EQ(r1(1), 2.2f);
+    EXPECT_EQ(r2(0, 1), 2.2f);
 }
 
 
