@@ -446,6 +446,60 @@ TEST_F(ReducedStorage3d, CanCreateSubrange2)
 }
 
 
+class ReducedStorageXd : public ::testing::Test {
+protected:
+    using span = gko::span;
+    using ar_type = double;
+    using st_type = float;
+    using size_type = gko::size_type;
+    static constexpr ar_type delta{::r<st_type>::value};
+
+    using accessor1d = gko::accessor::reduced_row_major<1, ar_type, st_type>;
+    using accessor2d = gko::accessor::reduced_row_major<2, ar_type, st_type>;
+    using const_accessor1d =
+        gko::accessor::reduced_row_major<1, ar_type, const st_type>;
+    using const_accessor2d =
+        gko::accessor::reduced_row_major<2, ar_type, const st_type>;
+
+    using reduced_storage1d = gko::range<accessor1d>;
+    using reduced_storage2d = gko::range<accessor2d>;
+    using const_reduced_storage2d = gko::range<const_accessor2d>;
+    using const_reduced_storage1d = gko::range<const_accessor1d>;
+
+    const std::array<const size_type, 0> stride0{};
+    const std::array<const size_type, 1> stride1{4};
+    const gko::dim<1> size_1d{8u};
+    const gko::dim<2> size_2d{2u, 4u};
+    static constexpr gko::size_type data_elements{8};
+    st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
+                                5.5f, 6.6f, 7.7f, -8.8f};
+    reduced_storage1d r1{data, size_1d, stride0};
+    reduced_storage2d r2{data, size_2d, stride1[0]};
+    const_reduced_storage1d cr1{data, size_1d, stride0};
+    const_reduced_storage2d cr2{data, size_2d, stride1};
+
+    void data_equal_except_for(int idx)
+    {
+        // clang-format off
+        if (idx != 0) { EXPECT_EQ(data[0], 1.1f); }
+        if (idx != 1) { EXPECT_EQ(data[1], 2.2f); }
+        if (idx != 2) { EXPECT_EQ(data[2], 3.3f); }
+        if (idx != 3) { EXPECT_EQ(data[3], 4.4f); }
+        if (idx != 4) { EXPECT_EQ(data[4], 5.5f); }
+        if (idx != 5) { EXPECT_EQ(data[5], 6.6f); }
+        if (idx != 6) { EXPECT_EQ(data[6], 7.7f); }
+        if (idx != 7) { EXPECT_EQ(data[7], -8.8f); }
+        // clang-format on
+    }
+};
+
+TEST_F(ReducedStorageXd, CanRead)
+{
+    EXPECT_EQ(cr1(1), 2.2f);
+    EXPECT_EQ(cr2(0, 1), 2.2f);
+}
+
+
 class ScaledReducedStorage3d : public ::testing::Test {
 protected:
     using span = gko::span;
@@ -457,9 +511,10 @@ protected:
     static constexpr ar_type delta{::r<ar_type>::value};
 
     using accessor =
-        gko::accessor::scaled_reduced_row_major<3, ar_type, st_type>;
+        gko::accessor::scaled_reduced_row_major<3, ar_type, st_type, 0b0101>;
     using const_accessor =
-        gko::accessor::scaled_reduced_row_major<3, ar_type, const st_type>;
+        gko::accessor::scaled_reduced_row_major<3, ar_type, const st_type,
+                                                0b0101>;
 
     using reduced_storage = gko::range<accessor>;
     using const_reduced_storage = gko::range<const_accessor>;
@@ -593,7 +648,7 @@ TEST_F(ScaledReducedStorage3d, Subrange)
 
 TEST_F(ScaledReducedStorage3d, CanWriteScale)
 {
-    r->write_scalar(0, 0, 10.);
+    r->write_scalar(10., 0, 0, 0);
 
     EXPECT_EQ(r(0, 0, 0), 100.);
     EXPECT_EQ(r(0, 0, 1), 22.);
@@ -608,8 +663,8 @@ TEST_F(ScaledReducedStorage3d, CanWriteScale)
 
 TEST_F(ScaledReducedStorage3d, CanReadScale)
 {
-    EXPECT_EQ(r->read_scalar(0, 0), 1.);
-    EXPECT_EQ(r->read_scalar(0, 1), 2.);
+    EXPECT_EQ(r->read_scalar(0, 0, 0), 1.);
+    EXPECT_EQ(r->read_scalar(0, 0, 1), 2.);
 }
 
 
