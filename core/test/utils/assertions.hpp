@@ -679,6 +679,14 @@ template <typename LinOp1, typename LinOp2>
 namespace detail {
 
 
+/*
+ * Ignore warning from GCC related to returning local lists and their lifetime
+ */
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
+
 template <typename T>
 std::initializer_list<std::initializer_list<T>> l(
     std::initializer_list<std::initializer_list<T>> list)
@@ -691,6 +699,10 @@ std::initializer_list<T> l(std::initializer_list<T> list)
 {
     return list;
 }
+
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
 
 template <typename T>
 T &&l(T &&matrix)
@@ -710,11 +722,20 @@ T *plain_ptr(const std::unique_ptr<T> &ptr)
     return ptr.get();
 }
 
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
+
 template <typename T>
 T plain_ptr(T ptr)
 {
     return ptr;
 }
+
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
 
 
 }  // namespace detail
