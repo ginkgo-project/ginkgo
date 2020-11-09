@@ -259,13 +259,26 @@ protected:
      * @param size  multidimensional size of the memory
      * @param stride  stride array used for the x-indices
      */
-    /*
     GKO_ATTRIBUTES constexpr reduced_row_major(
         storage_type *storage, gko::dim<dimensionality> size,
         const std::array<const size_type, dimensionality - 1> &stride)
         : storage_{storage}, size_{size}, stride_{stride}
     {}
-    */
+
+    /**
+     * Creates the accessor with an already allocated storage space with a
+     * stride. The first stride is used for computing the index for the first
+     * index, the second stride for the second index, and so on.
+     *
+     * @param storage  pointer to the block of memory containing the storage
+     * @param size  multidimensional size of the memory
+     * @param stride  stride array used for the x-indices
+     */
+    GKO_ATTRIBUTES constexpr reduced_row_major(
+        storage_type *storage, gko::dim<dimensionality> size,
+        std::array<const size_type, dimensionality - 1> &&stride)
+        : storage_{storage}, size_{size}, stride_{stride}
+    {}
 
     /**
      * Creates the accessor with an already allocated storage space with a
@@ -291,23 +304,16 @@ protected:
      * @param size  multidimensional size of the memory
      * @param stride  stride array used for the x-indices
      */
-    template <typename First, typename... Strides>
+    template <typename... Strides>
     GKO_ATTRIBUTES constexpr reduced_row_major(storage_type *storage,
                                                gko::dim<dimensionality> size,
-                                               First &&first_stride,
                                                Strides &&... strides)
         : storage_{storage},
           size_{size},
-          stride_{std::forward<First>(first_stride),
-                  std::forward<Strides>(strides)...}
+          stride_{std::forward<Strides>(strides)...}
     {
-        static_assert(
-            sizeof...(Strides) + 2 == dimensionality ||
-                sizeof...(Strides) == 0 &&
-                    std::is_same<
-                        std::decay_t<First>,
-                        std::array<const size_type, dimensionality - 1>>::value,
-            "Number of provided Strides must be dimensionality - 1!");
+        static_assert(sizeof...(Strides) + 1 == dimensionality,
+                      "Number of provided Strides must be dimensionality - 1!");
     }
 
     /**
