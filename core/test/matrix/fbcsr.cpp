@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fixed_block.hpp"
+#include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -60,63 +61,26 @@ protected:
 
     Fbcsr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::dim<2>{6, 12}, 36, 3,
-                          std::make_shared<matstr::classical<Mtx>>()))
+          fbsample(
+              std::static_pointer_cast<const gko::ReferenceExecutor>(exec)),
+          mtx(fbsample.generate_fbcsr())
     {
-        const int bs = 3;
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        index_type *const s = mtx->get_srow();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 4;
-        c[0] = 1;
-        c[1] = 3;
-        c[2] = 0;
-        c[3] = 2;
-
-        gko::blockutils::DenseBlocksView<value_type, index_type> vals(v, bs,
-                                                                      bs);
-
-        if (mtx->get_size()[0] % bs != 0)
-            throw gko::BadDimension(__FILE__, __LINE__, __func__, "test fbcsr",
-                                    mtx->get_size()[0], mtx->get_size()[1],
-                                    "block size does not divide the size!");
-
-        for (index_type ibrow = 0; ibrow < mtx->get_size()[0] / bs; ibrow++) {
-            const index_type *const browptr = mtx->get_row_ptrs();
-            for (index_type inz = browptr[ibrow]; inz < browptr[ibrow + 1];
-                 inz++) {
-                const index_type bcolind = mtx->get_col_idxs()[inz];
-                const value_type base = (ibrow + 1) * (bcolind + 1);
-                for (int ival = 0; ival < bs; ival++)
-                    for (int jval = 0; jval < bs; jval++)
-                        vals(inz, ival, jval) =
-                            base + static_cast<gko::remove_complex<value_type>>(
-                                       ival * bs + jval);
-            }
-        }
-
-        // Some of the entries are set to zero
-        vals(0, 2, 0) = gko::zero<value_type>();
-        vals(0, 2, 2) = gko::zero<value_type>();
-        vals(3, 0, 0) = gko::zero<value_type>();
-
-        for (index_type is = 0; is < mtx->get_num_srow_elements(); is++)
-            s[is] = 0;
-
         // backup for move tests
+        const value_type *const v = mtx->get_values();
+        const index_type *const c = mtx->get_col_idxs();
+        const index_type *const r = mtx->get_row_ptrs();
         orig_size = mtx->get_size();
-        orig_rowptrs.resize(3);
-        orig_colinds.resize(4);
-        orig_vals.resize(36);
-        for (index_type i = 0; i < 3; i++) orig_rowptrs[i] = r[i];
-        for (index_type i = 0; i < 4; i++) orig_colinds[i] = c[i];
-        for (index_type i = 0; i < 36; i++) orig_vals[i] = v[i];
+        orig_rowptrs.resize(fbsample.nbrows + 1);
+        orig_colinds.resize(fbsample.nbnz);
+        orig_vals.resize(fbsample.nnz);
+        for (index_type i = 0; i < fbsample.nbrows + 1; i++)
+            orig_rowptrs[i] = r[i];
+        for (index_type i = 0; i < fbsample.nbnz; i++) orig_colinds[i] = c[i];
+        for (index_type i = 0; i < fbsample.nnz; i++) orig_vals[i] = v[i];
     }
 
     std::shared_ptr<const gko::Executor> exec;
+    const gko::testing::FbcsrSample<value_type, index_type> fbsample;
     std::unique_ptr<Mtx> mtx;
 
     gko::dim<2> orig_size;
@@ -156,8 +120,6 @@ protected:
         }
 
         ASSERT_EQ(m->get_num_srow_elements(), 0);
-        // for(index_type is = 0; is < mtx->get_num_srow_elements(); is++)
-        //     ASSERT_EQ(s[is], 0);
     }
 
     void assert_empty(const Mtx *m)
@@ -173,6 +135,60 @@ protected:
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+
+    std::unique_ptr<const Mtx> fbmtx = this->fbsample.generate_fbcsr();
+    std::unique_ptr<const Csr> csmtx = this->fbsample.generate_csr();
+    std::unique_ptr<const Dense> dmtx = this->fbsample.generate_dense();
+    const int bs = this->fbsample.bs;
+    ASSERT_EQ(bs, fbmtx->get_block_size());
+
+    gko::blockutils::DenseBlocksView<const value_type, index_type> fbvals(
+        fbmtx->get_const_values(), bs, bs);
+
+    for (index_type ibrow = 0; ibrow < this->fbsample.nbrows; ibrow++) {
+        const index_type *const browptr = fbmtx->get_row_ptrs();
+        const index_type numblocksbrow = browptr[ibrow + 1] - browptr[ibrow];
+        for (index_type irow = ibrow * bs; irow < ibrow * bs + bs; irow++) {
+            const index_type rowstart =
+                browptr[ibrow] * bs * bs +
+                (irow - ibrow * bs) * numblocksbrow * bs;
+            ASSERT_EQ(csmtx->get_const_row_ptrs()[irow], rowstart);
+        }
+
+        const index_type *const bcolinds = fbmtx->get_col_idxs();
+
+        for (index_type ibnz = browptr[ibrow]; ibnz < browptr[ibrow + 1];
+             ibnz++) {
+            const index_type bcol = bcolinds[ibnz];
+            const index_type blkoffset_frombrowstart = ibnz - browptr[ibrow];
+
+            for (int ib = 0; ib < bs; ib++) {
+                const index_type row = ibrow * bs + ib;
+                const index_type inz_rowstart =
+                    csmtx->get_const_row_ptrs()[row] +
+                    blkoffset_frombrowstart * bs;
+
+                for (int jb = 0; jb < bs; jb++) {
+                    const index_type col = bcol * bs + jb;
+                    const index_type inz = inz_rowstart + jb;
+                    ASSERT_EQ(col, csmtx->get_const_col_idxs()[inz]);
+                    ASSERT_EQ(fbvals(ibnz, ib, jb),
+                              csmtx->get_const_values()[inz]);
+                    ASSERT_EQ(fbvals(ibnz, ib, jb), dmtx->at(row, col));
+                }
+            }
+        }
+    }
+}
 
 
 TYPED_TEST(Fbcsr, KnowsItsSize)
@@ -203,35 +219,16 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    using size_type = gko::size_type;
 
-    constexpr int bs = 3;
-    constexpr index_type nbrows = 2;
-    constexpr index_type nbcols = 4;
-    constexpr index_type bnnz = 4;
-    value_type values[bnnz * bs * bs];
-    index_type col_idxs[] = {1, 3, 0, 2};
-    index_type row_ptrs[] = {0, 2, 4};
-
-    gko::blockutils::DenseBlocksView<value_type, index_type> vals(values, bs,
-                                                                  bs);
-
-    for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
-        for (index_type inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
-             inz++) {
-            const index_type bcolind = col_idxs[inz];
-            const value_type base = (ibrow + 1) * (bcolind + 1);
-            for (int ival = 0; ival < bs; ival++)
-                for (int jval = 0; jval < bs; jval++)
-                    vals(inz, ival, jval) =
-                        base + static_cast<gko::remove_complex<value_type>>(
-                                   ival * bs + jval);
-        }
-    }
-
-    // Some of the entries are set to zero
-    vals(0, 2, 0) = gko::zero<value_type>();
-    vals(0, 2, 2) = gko::zero<value_type>();
-    vals(3, 0, 0) = gko::zero<value_type>();
+    const int bs = this->fbsample.bs;
+    const size_type nbrows = this->fbsample.nbrows;
+    const size_type nbcols = this->fbsample.nbcols;
+    const size_type bnnz = this->fbsample.nbnz;
+    std::unique_ptr<Mtx> refmat = this->fbsample.generate_fbcsr();
+    value_type *const values = refmat->get_values();
+    index_type *const col_idxs = refmat->get_col_idxs();
+    index_type *const row_ptrs = refmat->get_row_ptrs();
 
     auto mtx = gko::matrix::Fbcsr<value_type, index_type>::create(
         this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,
@@ -244,7 +241,6 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    // ASSERT_EQ(mtx->get_const_srow()[0], 0);
 }
 
 
@@ -293,27 +289,12 @@ TYPED_TEST(Fbcsr, CanBeCleared)
 
 TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
 {
-    // TODO (script:fbcsr): change the code imported from matrix/csr if needed
     using Mtx = typename TestFixture::Mtx;
     auto m =
         Mtx::create(this->exec, std::make_shared<matstr::classical<Mtx>>());
-    m->set_block_size(3);
+    m->set_block_size(this->fbsample.bs);
 
-    // Assuming row-major blocks
-    m->read(
-        {{6, 12}, {{0, 3, 2.0},   {0, 4, 3.0},  {0, 5, 4.0},  {1, 3, 5.0},
-                   {1, 4, 6.0},   {1, 5, 7.0},  {2, 4, 9.0},
-
-                   {0, 9, 4.0},   {0, 10, 5.0}, {0, 11, 6.0}, {1, 9, 7.0},
-                   {1, 10, 8.0},  {1, 11, 9.0}, {2, 9, 10.0}, {2, 10, 11.0},
-                   {2, 11, 12.0},
-
-                   {3, 0, 2.0},   {3, 1, 3.0},  {3, 2, 4.0},  {4, 0, 5.0},
-                   {4, 1, 6.0},   {4, 2, 7.0},  {5, 0, 8.0},  {5, 1, 9.0},
-                   {5, 2, 10.0},
-
-                   {3, 7, 7.0},   {3, 8, 8.0},  {4, 6, 9.0},  {4, 7, 10.0},
-                   {4, 8, 11.0},  {5, 6, 12.0}, {5, 7, 13.0}, {5, 8, 14.0}}});
+    m->read(this->fbsample.generate_matrix_data());
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -329,49 +310,14 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
     this->mtx->write(data);
     data.ensure_row_major_order();
 
-    ASSERT_EQ(data.size, gko::dim<2>(6, 12));
-    ASSERT_EQ(data.nonzeros.size(), 36);
-    EXPECT_EQ(data.nonzeros[0], tpl(0, 3, value_type{2.0}));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 4, value_type{3.0}));
-    EXPECT_EQ(data.nonzeros[2], tpl(0, 5, value_type{4.0}));
-    EXPECT_EQ(data.nonzeros[3], tpl(0, 9, value_type{4.0}));
-    EXPECT_EQ(data.nonzeros[4], tpl(0, 10, value_type{5.0}));
-    EXPECT_EQ(data.nonzeros[5], tpl(0, 11, value_type{6.0}));
+    gko::matrix_data<value_type, index_type> refdata =
+        this->fbsample.generate_matrix_data_with_explicit_zeros();
+    refdata.ensure_row_major_order();
 
-    EXPECT_EQ(data.nonzeros[6], tpl(1, 3, value_type{5.0}));
-    EXPECT_EQ(data.nonzeros[7], tpl(1, 4, value_type{6.0}));
-    EXPECT_EQ(data.nonzeros[8], tpl(1, 5, value_type{7.0}));
-    EXPECT_EQ(data.nonzeros[9], tpl(1, 9, value_type{7.0}));
-    EXPECT_EQ(data.nonzeros[10], tpl(1, 10, value_type{8.0}));
-    EXPECT_EQ(data.nonzeros[11], tpl(1, 11, value_type{9.0}));
-
-    EXPECT_EQ(data.nonzeros[12], tpl(2, 3, value_type{0.0}));
-    EXPECT_EQ(data.nonzeros[13], tpl(2, 4, value_type{9.0}));
-    EXPECT_EQ(data.nonzeros[14], tpl(2, 5, value_type{0.0}));
-    EXPECT_EQ(data.nonzeros[15], tpl(2, 9, value_type{10.0}));
-    EXPECT_EQ(data.nonzeros[16], tpl(2, 10, value_type{11.0}));
-    EXPECT_EQ(data.nonzeros[17], tpl(2, 11, value_type{12.0}));
-
-    EXPECT_EQ(data.nonzeros[18], tpl(3, 0, value_type{2.0}));
-    EXPECT_EQ(data.nonzeros[19], tpl(3, 1, value_type{3.0}));
-    EXPECT_EQ(data.nonzeros[20], tpl(3, 2, value_type{4.0}));
-    EXPECT_EQ(data.nonzeros[21], tpl(3, 6, value_type{0.0}));
-    EXPECT_EQ(data.nonzeros[22], tpl(3, 7, value_type{7.0}));
-    EXPECT_EQ(data.nonzeros[23], tpl(3, 8, value_type{8.0}));
-
-    EXPECT_EQ(data.nonzeros[24], tpl(4, 0, value_type{5.0}));
-    EXPECT_EQ(data.nonzeros[25], tpl(4, 1, value_type{6.0}));
-    EXPECT_EQ(data.nonzeros[26], tpl(4, 2, value_type{7.0}));
-    EXPECT_EQ(data.nonzeros[27], tpl(4, 6, value_type{9.0}));
-    EXPECT_EQ(data.nonzeros[28], tpl(4, 7, value_type{10.0}));
-    EXPECT_EQ(data.nonzeros[29], tpl(4, 8, value_type{11.0}));
-
-    EXPECT_EQ(data.nonzeros[30], tpl(5, 0, value_type{8.0}));
-    EXPECT_EQ(data.nonzeros[31], tpl(5, 1, value_type{9.0}));
-    EXPECT_EQ(data.nonzeros[32], tpl(5, 2, value_type{10.0}));
-    EXPECT_EQ(data.nonzeros[33], tpl(5, 6, value_type{12.0}));
-    EXPECT_EQ(data.nonzeros[34], tpl(5, 7, value_type{13.0}));
-    EXPECT_EQ(data.nonzeros[35], tpl(5, 8, value_type{14.0}));
+    ASSERT_EQ(data.size, refdata.size);
+    ASSERT_EQ(data.nonzeros.size(), refdata.nonzeros.size());
+    for (size_t i = 0; i < data.nonzeros.size(); i++)
+        ASSERT_EQ(data.nonzeros[i], refdata.nonzeros[i]);
 }
 
 
