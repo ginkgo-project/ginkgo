@@ -522,8 +522,8 @@ protected:
     using const_reduced_storage2d = gko::range<const_accessor2d>;
     using const_reduced_storage1d = gko::range<const_accessor1d>;
 
-    const std::array<const size_type, 0> stride0{};
-    const std::array<const size_type, 1> stride1{4};
+    const std::array<const size_type, 0> stride0{{}};
+    const std::array<const size_type, 1> stride1{{4}};
     const gko::dim<1> size_1d{8u};
     const gko::dim<2> size_2d{2u, 4u};
     static constexpr gko::size_type data_elements{8};
@@ -548,6 +548,7 @@ protected:
         // clang-format on
     }
 };
+
 
 TEST_F(ReducedStorageXd, CanRead)
 {
@@ -921,8 +922,8 @@ protected:
     using const_reduced_storage2d = gko::range<const_accessor2d>;
     using const_reduced_storage1d = gko::range<const_accessor1d>;
 
-    const std::array<const size_type, 0> stride0{};
-    const std::array<const size_type, 1> stride1{4};
+    const std::array<const size_type, 0> stride0{{}};
+    const std::array<const size_type, 1> stride1{{4}};
     const gko::dim<1> size_1d{8u};
     const gko::dim<2> size_2d{2u, 4u};
 
@@ -965,6 +966,7 @@ protected:
         // clang-format on
     }
 };
+
 
 TEST_F(ScaledReducedStorageXd, CanRead)
 {

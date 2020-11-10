@@ -403,7 +403,6 @@ public:
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
-
 private:
     storage_type *const GKO_RESTRICT ptr_;
     const arithmetic_type scalar_;

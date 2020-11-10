@@ -213,6 +213,7 @@ mult_array(const dim<N> &size)
 {
     return 1;
 }
+
 template <typename ValueType, size_type Iter, size_type N>
 constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<Iter + 1 <= N, ValueType>
 mult_array(const dim<N> &size)
@@ -303,7 +304,6 @@ spans_in_size(const dim<N> &size)
 {
     return 0;
 }
-
 
 template <size_type Iter, size_type N, typename First, typename... Remaining>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<(Iter < N), int>
