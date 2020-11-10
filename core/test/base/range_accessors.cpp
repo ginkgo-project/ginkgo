@@ -140,12 +140,14 @@ TEST_F(RowMajorAccessor, CanAssignSubranges)
 }
 
 
+template <typename ArithmeticStorageType>
 class ReducedStorage3d : public ::testing::Test {
 protected:
-    using span = gko::span;
-    using ar_type = double;
-    using st_type = double;
-    static constexpr ar_type delta{::r<st_type>::value};
+    using ar_type =
+        typename std::tuple_element<0, decltype(ArithmeticStorageType{})>::type;
+    using st_type =
+        typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
+    static constexpr ar_type delta{::r<st_type>::value * 2};
 
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
@@ -188,262 +190,309 @@ protected:
     {
         // Test for equality is fine here since they should not be modified
         // clang-format off
-        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), 1.0);     }
-        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), 2.01);    }
-        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), -1.02);   }
-        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), 3.03);    }
-        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), 4.04);    }
-        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), -2.05);   }
-        if (ignore != t(1, 0, 0)) { EXPECT_EQ(a(1, 0, 0), 5.06);    }
-        if (ignore != t(1, 0, 1)) { EXPECT_EQ(a(1, 0, 1), 6.07);    }
-        if (ignore != t(1, 1, 0)) { EXPECT_EQ(a(1, 1, 0), 2.08);    }
-        if (ignore != t(1, 1, 1)) { EXPECT_EQ(a(1, 1, 1), 3.09);    }
-        if (ignore != t(1, 2, 0)) { EXPECT_EQ(a(1, 2, 0), -1.1);    }
-        if (ignore != t(1, 2, 1)) { EXPECT_EQ(a(1, 2, 1), -9.11);   }
-        if (ignore != t(2, 0, 0)) { EXPECT_EQ(a(2, 0, 0), -2.12);   }
-        if (ignore != t(2, 0, 1)) { EXPECT_EQ(a(2, 0, 1), 2.13);    }
-        if (ignore != t(2, 1, 0)) { EXPECT_EQ(a(2, 1, 0), 0.14);    }
-        if (ignore != t(2, 1, 1)) { EXPECT_EQ(a(2, 1, 1), 15.15);   }
-        if (ignore != t(2, 2, 0)) { EXPECT_EQ(a(2, 2, 0), -9.16);   }
-        if (ignore != t(2, 2, 1)) { EXPECT_EQ(a(2, 2, 1), 8.17);    }
-        if (ignore != t(3, 0, 0)) { EXPECT_EQ(a(3, 0, 0), 7.18);    }
-        if (ignore != t(3, 0, 1)) { EXPECT_EQ(a(3, 0, 1), -6.19);   }
-        if (ignore != t(3, 1, 0)) { EXPECT_EQ(a(3, 1, 0), 5.2);     }
-        if (ignore != t(3, 1, 1)) { EXPECT_EQ(a(3, 1, 1), -4.21);   }
-        if (ignore != t(3, 2, 0)) { EXPECT_EQ(a(3, 2, 0), 3.22);    }
-        if (ignore != t(3, 2, 1)) { EXPECT_EQ(a(3, 2, 1), -2.23);   }
+        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), st_type{1.0});     }
+        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), st_type{2.01});    }
+        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), st_type{-1.02});   }
+        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), st_type{3.03});    }
+        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), st_type{4.04});    }
+        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), st_type{-2.05});   }
+        if (ignore != t(1, 0, 0)) { EXPECT_EQ(a(1, 0, 0), st_type{5.06});    }
+        if (ignore != t(1, 0, 1)) { EXPECT_EQ(a(1, 0, 1), st_type{6.07});    }
+        if (ignore != t(1, 1, 0)) { EXPECT_EQ(a(1, 1, 0), st_type{2.08});    }
+        if (ignore != t(1, 1, 1)) { EXPECT_EQ(a(1, 1, 1), st_type{3.09});    }
+        if (ignore != t(1, 2, 0)) { EXPECT_EQ(a(1, 2, 0), st_type{-1.1});    }
+        if (ignore != t(1, 2, 1)) { EXPECT_EQ(a(1, 2, 1), st_type{-9.11});   }
+        if (ignore != t(2, 0, 0)) { EXPECT_EQ(a(2, 0, 0), st_type{-2.12});   }
+        if (ignore != t(2, 0, 1)) { EXPECT_EQ(a(2, 0, 1), st_type{2.13});    }
+        if (ignore != t(2, 1, 0)) { EXPECT_EQ(a(2, 1, 0), st_type{0.14});    }
+        if (ignore != t(2, 1, 1)) { EXPECT_EQ(a(2, 1, 1), st_type{15.15});   }
+        if (ignore != t(2, 2, 0)) { EXPECT_EQ(a(2, 2, 0), st_type{-9.16});   }
+        if (ignore != t(2, 2, 1)) { EXPECT_EQ(a(2, 2, 1), st_type{8.17});    }
+        if (ignore != t(3, 0, 0)) { EXPECT_EQ(a(3, 0, 0), st_type{7.18});    }
+        if (ignore != t(3, 0, 1)) { EXPECT_EQ(a(3, 0, 1), st_type{-6.19});   }
+        if (ignore != t(3, 1, 0)) { EXPECT_EQ(a(3, 1, 0), st_type{5.2});     }
+        if (ignore != t(3, 1, 1)) { EXPECT_EQ(a(3, 1, 1), st_type{-4.21});   }
+        if (ignore != t(3, 2, 0)) { EXPECT_EQ(a(3, 2, 0), st_type{3.22});    }
+        if (ignore != t(3, 2, 1)) { EXPECT_EQ(a(3, 2, 1), st_type{-2.23});   }
         // clang-format on
     }
 };
 
+using ReducedStorage3dTypes =
+    ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
+                     std::tuple<float, float>
+                     /*,
+                     std::tuple<std::complex<double>, std::complex<double>>,
+                     std::tuple<std::complex<double>, std::complex<float>>,
+                     std::tuple<std::complex<float>, std::complex<float>>
+                     */
+                     >;
 
-TEST_F(ReducedStorage3d, CorrectLengths)
+TYPED_TEST_SUITE(ReducedStorage3d, ReducedStorage3dTypes);
+
+
+TYPED_TEST(ReducedStorage3d, CorrectLengths)
 {
-    EXPECT_EQ(r.length(0), size[0]);
-    EXPECT_EQ(r.length(1), size[1]);
-    EXPECT_EQ(r.length(2), size[2]);
-    EXPECT_EQ(r.length(3), 1);
-    EXPECT_EQ(r->get_size(), size);
+    EXPECT_EQ(this->r.length(0), this->size[0]);
+    EXPECT_EQ(this->r.length(1), this->size[1]);
+    EXPECT_EQ(this->r.length(2), this->size[2]);
+    EXPECT_EQ(this->r.length(3), 1);
+    EXPECT_EQ(this->r->get_size(), this->size);
 }
 
 
-TEST_F(ReducedStorage3d, CorrectStride)
+TYPED_TEST(ReducedStorage3d, CorrectStride)
 {
-    EXPECT_EQ(r->get_stride()[0], size[1] * size[2]);
-    EXPECT_EQ(r->get_stride().at(0), size[1] * size[2]);
-    EXPECT_EQ(r->get_stride()[1], size[2]);
-    EXPECT_EQ(r->get_stride().at(1), size[2]);
+    EXPECT_EQ(this->r->get_stride()[0], this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_stride().at(0), this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_stride()[1], this->size[2]);
+    EXPECT_EQ(this->r->get_stride().at(1), this->size[2]);
 }
 
 
-TEST_F(ReducedStorage3d, CorrectStorage)
+TYPED_TEST(ReducedStorage3d, CorrectStorage)
 {
-    EXPECT_EQ(r->get_stored_data(), data);
-    EXPECT_EQ(r->get_const_storage(), data);
+    EXPECT_EQ(this->r->get_stored_data(), this->data);
+    EXPECT_EQ(this->r->get_const_storage(), this->data);
 }
 
 
-TEST_F(ReducedStorage3d, CanReadData)
+TYPED_TEST(ReducedStorage3d, CanReadData)
 {
-    check_accessor_correctness(r);
-    check_accessor_correctness(cr);
+    this->check_accessor_correctness(this->r);
+    this->check_accessor_correctness(this->cr);
 }
 
 
-TEST_F(ReducedStorage3d, CopyFrom)
+TYPED_TEST(ReducedStorage3d, CopyFrom)
 {
-    st_type data2[data_elements];
-    reduced_storage cpy(data2, size);
+    using st_type = typename TestFixture::st_type;
+    using reduced_storage = typename TestFixture::reduced_storage;
+    st_type data2[this->data_elements];
+    reduced_storage cpy(data2, this->size);
 
     // Do not use this in regular code since the implementation is slow
-    cpy = r;
+    cpy = this->r;
 
-    check_accessor_correctness(cpy);
+    this->check_accessor_correctness(cpy);
 }
 
 
-TEST_F(ReducedStorage3d, CanImplicitlyConvertToConst)
+TYPED_TEST(ReducedStorage3d, CanImplicitlyConvertToConst)
 {
-    const_reduced_storage const_rs = r->to_const();
-    const_reduced_storage const_rs2 = cr;
+    using const_reduced_storage = typename TestFixture::const_reduced_storage;
 
-    check_accessor_correctness(const_rs);
-    check_accessor_correctness(const_rs2);
+    const_reduced_storage const_rs = this->r->to_const();
+    const_reduced_storage const_rs2 = this->cr;
+
+    this->check_accessor_correctness(const_rs);
+    this->check_accessor_correctness(const_rs2);
 }
 
 
-TEST_F(ReducedStorage3d, ToConstWorks)
+TYPED_TEST(ReducedStorage3d, ToConstWorks)
 {
-    auto cr2 = r->to_const();
+    using const_reduced_storage = typename TestFixture::const_reduced_storage;
+
+    auto cr2 = this->r->to_const();
 
     static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
                   "Types must be equal!");
-    check_accessor_correctness(cr2);
+    this->check_accessor_correctness(cr2);
 }
 
 
-TEST_F(ReducedStorage3d, CanWriteData)
+TYPED_TEST(ReducedStorage3d, CanWriteData)
 {
-    r(0, 1, 0) = 100.2;
+    using t = typename TestFixture::t;
 
-    check_accessor_correctness(r, t(0, 1, 0));
-    EXPECT_EQ(r(0, 1, 0), 100.2);
+    this->r(0, 1, 0) = 100.25;
+
+    this->check_accessor_correctness(this->r, t(0, 1, 0));
+    EXPECT_NEAR(this->r(0, 1, 0), 100.25, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Assignment)
+TYPED_TEST(ReducedStorage3d, Assignment)
 {
-    r(0, 0, 1) = 10.2;
+    using t = typename TestFixture::t;
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), 10.2, delta);
+    this->r(0, 0, 1) = 10.2;
+
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), 10.2, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Assignment2)
+TYPED_TEST(ReducedStorage3d, Assignment2)
 {
-    r(0, 0, 1) = r(0, 1, 0);
+    using t = typename TestFixture::t;
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), -1.02, delta);
+    this->r(0, 0, 1) = this->r(0, 1, 0);
+
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), -1.02, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Addition)
+TYPED_TEST(ReducedStorage3d, Addition)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 10.2 + 2.01;
 
-    auto result = r(0, 0, 1) + 10.2;
-    r(0, 0, 1) += 10.2;
+    auto result = this->r(0, 0, 1) + ar_type{10.2};
+    this->r(0, 0, 1) += 10.2;
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Addition2)
+TYPED_TEST(ReducedStorage3d, Addition2)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 2.01 + -1.02;
 
-    auto result = r(0, 0, 1) + r(0, 1, 0);
-    r(0, 0, 1) += r(0, 1, 0);
+    auto result = this->r(0, 0, 1) + this->r(0, 1, 0);
+    this->r(0, 0, 1) += this->r(0, 1, 0);
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Subtraction)
+TYPED_TEST(ReducedStorage3d, Subtraction)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = -2.23 - 1;
 
-    auto result = r(3, 2, 1) - 1.;
-    r(3, 2, 1) -= 1;
+    auto result = this->r(3, 2, 1) - ar_type{1.};
+    this->r(3, 2, 1) -= 1;
 
-    check_accessor_correctness(r, t(3, 2, 1));
-    EXPECT_NEAR(r(3, 2, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(3, 2, 1));
+    EXPECT_NEAR(this->r(3, 2, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Subtraction2)
+TYPED_TEST(ReducedStorage3d, Subtraction2)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 3.22 - -2.23;
 
-    auto result = cr(3, 2, 0) - r(3, 2, 1);
-    r(3, 2, 0) -= r(3, 2, 1);
+    auto result = this->cr(3, 2, 0) - this->r(3, 2, 1);
+    this->r(3, 2, 0) -= this->r(3, 2, 1);
 
-    check_accessor_correctness(r, t(3, 2, 0));
-    EXPECT_NEAR(r(3, 2, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(3, 2, 0));
+    EXPECT_NEAR(this->r(3, 2, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Multiplication)
+TYPED_TEST(ReducedStorage3d, Multiplication)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 1 * 2;
 
-    auto result = r(0, 0, 0) * 2.;
-    r(0, 0, 0) *= 2;
+    auto result = this->r(0, 0, 0) * ar_type{2.};
+    this->r(0, 0, 0) *= 2;
 
-    check_accessor_correctness(r, t(0, 0, 0));
-    EXPECT_NEAR(r(0, 0, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 0));
+    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Multiplication2)
+TYPED_TEST(ReducedStorage3d, Multiplication2)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 2.01 * 3.03;
 
-    auto result = r(0, 0, 1) * cr(0, 1, 1);
-    r(0, 0, 1) *= r(0, 1, 1);
+    auto result = this->r(0, 0, 1) * this->cr(0, 1, 1);
+    this->r(0, 0, 1) *= this->r(0, 1, 1);
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Division)
+TYPED_TEST(ReducedStorage3d, Division)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 2.01 / 2.0;
 
-    auto result = cr(0, 0, 1) / 2.;
-    r(0, 0, 1) /= 2.;
+    auto result = this->cr(0, 0, 1) / ar_type{2.};
+    this->r(0, 0, 1) /= 2.;
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, Division2)
+TYPED_TEST(ReducedStorage3d, Division2)
 {
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
     const ar_type expected = 5.06 / 4.04;
 
-    auto result = r(1, 0, 0) / cr(0, 2, 0);
-    r(1, 0, 0) /= r(0, 2, 0);
+    auto result = this->r(1, 0, 0) / this->cr(0, 2, 0);
+    this->r(1, 0, 0) /= this->r(0, 2, 0);
 
-    check_accessor_correctness(r, t(1, 0, 0));
-    EXPECT_NEAR(r(1, 0, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(1, 0, 0));
+    EXPECT_NEAR(this->r(1, 0, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ReducedStorage3d, UnaryMinus)
+TYPED_TEST(ReducedStorage3d, UnaryMinus)
 {
-    const ar_type neg_expected = r(2, 0, 0);
+    using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
+    const ar_type neg_expected = this->r(2, 0, 0);
     const ar_type expected = -neg_expected;
 
-    auto result = -r(2, 0, 0);
+    auto result = -this->r(2, 0, 0);
 
-    check_accessor_correctness(r);
+    this->check_accessor_correctness(this->r);
     EXPECT_EQ(result, expected);
 }
 
 
-TEST_F(ReducedStorage3d, CanCreateSubrange)
+TYPED_TEST(ReducedStorage3d, CanCreateSubrange)
 {
-    auto subr = r(span{1u, 3u}, span{0u, 2u}, 0u);
+    using st_type = typename TestFixture::st_type;
 
-    EXPECT_EQ(subr(0, 0, 0), 5.06);
-    EXPECT_EQ(subr(0, 1, 0), 2.08);
-    EXPECT_EQ(subr(1, 0, 0), -2.12);
-    EXPECT_EQ(subr(1, 1, 0), 0.14);
+    auto subr = this->r(gko::span{1u, 3u}, gko::span{0u, 2u}, 0u);
+
+    EXPECT_EQ(subr(0, 0, 0), st_type{5.06});
+    EXPECT_EQ(subr(0, 1, 0), st_type{2.08});
+    EXPECT_EQ(subr(1, 0, 0), st_type{-2.12});
+    EXPECT_EQ(subr(1, 1, 0), st_type{0.14});
 }
 
 
-TEST_F(ReducedStorage3d, CanCreateSubrange2)
+TYPED_TEST(ReducedStorage3d, CanCreateSubrange2)
 {
-    auto subr = cr(span{1u, 3u}, span{0u, 2u}, span{0u, 1u});
+    using st_type = typename TestFixture::st_type;
 
-    EXPECT_EQ(subr(0, 0, 0), 5.06);
-    EXPECT_EQ(subr(0, 1, 0), 2.08);
-    EXPECT_EQ(subr(1, 0, 0), -2.12);
-    EXPECT_EQ(subr(1, 1, 0), 0.14);
+    auto subr =
+        this->cr(gko::span{1u, 3u}, gko::span{0u, 2u}, gko::span{0u, 1u});
+
+    EXPECT_EQ(subr(0, 0, 0), st_type{5.06});
+    EXPECT_EQ(subr(0, 1, 0), st_type{2.08});
+    EXPECT_EQ(subr(1, 0, 0), st_type{-2.12});
+    EXPECT_EQ(subr(1, 1, 0), st_type{0.14});
 }
 
 
@@ -527,11 +576,13 @@ TEST_F(ReducedStorageXd, CanWrite2)
 }
 
 
+template <typename ArithmeticStorageType>
 class ScaledReducedStorage3d : public ::testing::Test {
 protected:
-    using span = gko::span;
-    using ar_type = double;
-    using st_type = gko::int32;
+    using ar_type =
+        typename std::tuple_element<0, decltype(ArithmeticStorageType{})>::type;
+    using st_type =
+        typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
 
@@ -571,242 +622,273 @@ protected:
     {
         // Test for equality is fine here since they should not be modified
         // clang-format off
-        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), 10.);   }
-        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), 22.);   }
-        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), -12.);  }
-        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), 26.);   }
-        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), 14.);   }
-        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), -230.); }
-        if (ignore != t(0, 3, 0)) { EXPECT_EQ(a(0, 3, 0), 6.);    }
-        if (ignore != t(0, 3, 1)) { EXPECT_EQ(a(0, 3, 1), 154.);  }
+        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), ar_type{10.});   }
+        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), ar_type{22.});   }
+        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), ar_type{-12.});  }
+        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), ar_type{26.});   }
+        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), ar_type{14.});   }
+        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), ar_type{-230.}); }
+        if (ignore != t(0, 3, 0)) { EXPECT_EQ(a(0, 3, 0), ar_type{6.});    }
+        if (ignore != t(0, 3, 1)) { EXPECT_EQ(a(0, 3, 1), ar_type{154.});  }
         // clang-format on
     }
 };
 
+using ScaledReducedStorage3dTypes = ::testing::Types<
+    std::tuple<double, gko::int64>, std::tuple<double, gko::int32>,
+    std::tuple<double, gko::int16>, std::tuple<float, gko::int32>,
+    std::tuple<float, gko::int16>>;
 
-TEST_F(ScaledReducedStorage3d, CorrectLengths)
+TYPED_TEST_SUITE(ScaledReducedStorage3d, ScaledReducedStorage3dTypes);
+
+
+TYPED_TEST(ScaledReducedStorage3d, CorrectLengths)
 {
-    EXPECT_EQ(r.length(0), size[0]);
-    EXPECT_EQ(r.length(1), size[1]);
-    EXPECT_EQ(r.length(2), size[2]);
-    EXPECT_EQ(r.length(3), 1);
-    EXPECT_EQ(r->get_size(), size);
+    EXPECT_EQ(this->r.length(0), this->size[0]);
+    EXPECT_EQ(this->r.length(1), this->size[1]);
+    EXPECT_EQ(this->r.length(2), this->size[2]);
+    EXPECT_EQ(this->r.length(3), 1);
+    EXPECT_EQ(this->r->get_size(), this->size);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CorrectStride)
+TYPED_TEST(ScaledReducedStorage3d, CorrectStride)
 {
-    EXPECT_EQ(r->get_stride()[0], size[1] * size[2]);
-    EXPECT_EQ(r->get_stride().at(0), size[1] * size[2]);
-    EXPECT_EQ(r->get_stride()[1], size[2]);
-    EXPECT_EQ(r->get_stride().at(1), size[2]);
+    EXPECT_EQ(this->r->get_stride()[0], this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_stride().at(0), this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_stride()[1], this->size[2]);
+    EXPECT_EQ(this->r->get_stride().at(1), this->size[2]);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CorrectStorage)
+TYPED_TEST(ScaledReducedStorage3d, CorrectStorage)
 {
-    EXPECT_EQ(r->get_stored_data(), data);
-    EXPECT_EQ(r->get_const_storage(), data);
+    EXPECT_EQ(this->r->get_stored_data(), this->data);
+    EXPECT_EQ(this->r->get_const_storage(), this->data);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CorrectScale)
+TYPED_TEST(ScaledReducedStorage3d, CorrectScale)
 {
-    EXPECT_EQ(r->get_scalar(), scalar);
-    EXPECT_EQ(r->get_const_scalar(), scalar);
+    EXPECT_EQ(this->r->get_scalar(), this->scalar);
+    EXPECT_EQ(this->r->get_const_scalar(), this->scalar);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CanReadData)
+TYPED_TEST(ScaledReducedStorage3d, CanReadData)
 {
-    check_accessor_correctness(r);
-    check_accessor_correctness(cr);
+    this->check_accessor_correctness(this->r);
+    this->check_accessor_correctness(this->cr);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CopyFrom)
+TYPED_TEST(ScaledReducedStorage3d, CopyFrom)
 {
-    st_type data2[data_elements];
-    ar_type scale2[scalar_elements];
-    reduced_storage cpy(data2, scale2, size);
+    using ar_type = typename TestFixture::ar_type;
+    using st_type = typename TestFixture::st_type;
+    using reduced_storage = typename TestFixture::reduced_storage;
+    st_type data2[this->data_elements];
+    ar_type scale2[this->scalar_elements];
+    reduced_storage cpy(data2, scale2, this->size);
 
     // Do not use this in regular code since the implementation is slow
-    cpy = r;
+    cpy = this->r;
 
-    check_accessor_correctness(cpy);
+    this->check_accessor_correctness(cpy);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CanImplicitlyConvertToConst)
+TYPED_TEST(ScaledReducedStorage3d, CanImplicitlyConvertToConst)
 {
-    const_reduced_storage const_rs = r->to_const();
-    const_reduced_storage const_rs2 = cr;
+    using const_reduced_storage = typename TestFixture::const_reduced_storage;
 
-    check_accessor_correctness(const_rs);
-    check_accessor_correctness(const_rs2);
+    const_reduced_storage const_rs = this->r->to_const();
+    const_reduced_storage const_rs2 = this->cr;
+
+    this->check_accessor_correctness(const_rs);
+    this->check_accessor_correctness(const_rs2);
 }
 
 
-TEST_F(ScaledReducedStorage3d, ToConstWorks)
+TYPED_TEST(ScaledReducedStorage3d, ToConstWorks)
 {
-    auto cr2 = r->to_const();
+    using const_reduced_storage = typename TestFixture::const_reduced_storage;
+    auto cr2 = this->r->to_const();
 
     static_assert(std::is_same<decltype(cr2), const_reduced_storage>::value,
                   "Types must be equal!");
-    check_accessor_correctness(cr2);
+    this->check_accessor_correctness(cr2);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CanRead)
+TYPED_TEST(ScaledReducedStorage3d, CanRead)
 {
-    check_accessor_correctness(cr);
-    check_accessor_correctness(r);
+    this->check_accessor_correctness(this->cr);
+    this->check_accessor_correctness(this->r);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Subrange)
+TYPED_TEST(ScaledReducedStorage3d, Subrange)
 {
-    auto subr = cr(0u, gko::span{0u, 2u}, 1u);
+    auto subr = this->cr(0u, gko::span{0u, 2u}, 1u);
 
     EXPECT_EQ(subr(0, 0, 0), 22.);
     EXPECT_EQ(subr(0, 1, 0), 26.);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CanWriteScale)
+TYPED_TEST(ScaledReducedStorage3d, CanWriteScale)
 {
-    r->write_scalar(10., 0, 0, 0);
+    this->r->write_scalar(10., 0, 0, 0);
 
-    EXPECT_EQ(r(0, 0, 0), 100.);
-    EXPECT_EQ(r(0, 0, 1), 22.);
-    EXPECT_EQ(r(0, 1, 0), -120.);
-    EXPECT_EQ(r(0, 1, 1), 26.);
-    EXPECT_EQ(r(0, 2, 0), 140.);
-    EXPECT_EQ(r(0, 2, 1), -230.);
-    EXPECT_EQ(r(0, 3, 0), 60.);
-    EXPECT_EQ(r(0, 3, 1), 154.);
+    EXPECT_EQ(this->r(0, 0, 0), 100.);
+    EXPECT_EQ(this->r(0, 0, 1), 22.);
+    EXPECT_EQ(this->r(0, 1, 0), -120.);
+    EXPECT_EQ(this->r(0, 1, 1), 26.);
+    EXPECT_EQ(this->r(0, 2, 0), 140.);
+    EXPECT_EQ(this->r(0, 2, 1), -230.);
+    EXPECT_EQ(this->r(0, 3, 0), 60.);
+    EXPECT_EQ(this->r(0, 3, 1), 154.);
 }
 
 
-TEST_F(ScaledReducedStorage3d, CanReadScale)
+TYPED_TEST(ScaledReducedStorage3d, CanReadScale)
 {
-    EXPECT_EQ(r->read_scalar(0, 0, 0), 1.);
-    EXPECT_EQ(r->read_scalar(0, 0, 1), 2.);
+    EXPECT_EQ(this->r->read_scalar(0, 0, 0), 1.);
+    EXPECT_EQ(this->r->read_scalar(0, 0, 1), 2.);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Addition)
+TYPED_TEST(ScaledReducedStorage3d, Addition)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 10. + 3.;
 
-    const auto result = cr(0, 0, 0) + 3.;
-    r(0, 0, 0) += 3.;
+    const auto result = this->cr(0, 0, 0) + 3.;
+    this->r(0, 0, 0) += 3.;
 
-    check_accessor_correctness(r, t(0, 0, 0));
-    EXPECT_NEAR(r(0, 0, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 0));
+    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Addition2)
+TYPED_TEST(ScaledReducedStorage3d, Addition2)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 10. + 22.;
 
-    const auto result = cr(0, 0, 0) + r(0, 0, 1);
-    r(0, 0, 0) += cr(0, 0, 1);
+    const auto result = this->cr(0, 0, 0) + this->r(0, 0, 1);
+    this->r(0, 0, 0) += this->cr(0, 0, 1);
 
-    check_accessor_correctness(r, t(0, 0, 0));
-    EXPECT_NEAR(r(0, 0, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 0));
+    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Subtraction)
+TYPED_TEST(ScaledReducedStorage3d, Subtraction)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 22. - 2.;
 
-    const auto result = cr(0, 0, 1) - 2.;
-    r(0, 0, 1) -= 2.;
+    const auto result = this->cr(0, 0, 1) - 2.;
+    this->r(0, 0, 1) -= 2.;
 
-    check_accessor_correctness(r, t(0, 0, 1));
-    EXPECT_NEAR(r(0, 0, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 1));
+    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Subtraction2)
+TYPED_TEST(ScaledReducedStorage3d, Subtraction2)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = -12. - 26.;
 
-    const auto result = cr(0, 1, 0) - r(0, 1, 1);
-    r(0, 1, 0) -= r(0, 1, 1);
+    const auto result = this->cr(0, 1, 0) - this->r(0, 1, 1);
+    this->r(0, 1, 0) -= this->r(0, 1, 1);
 
-    check_accessor_correctness(r, t(0, 1, 0));
-    EXPECT_NEAR(r(0, 1, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 1, 0));
+    EXPECT_NEAR(this->r(0, 1, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Multiplication)
+TYPED_TEST(ScaledReducedStorage3d, Multiplication)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 26. * 3.;
 
-    const auto result = cr(0, 1, 1) * 3.;
-    r(0, 1, 1) *= 3.;
+    const auto result = this->cr(0, 1, 1) * 3.;
+    this->r(0, 1, 1) *= 3.;
 
-    check_accessor_correctness(r, t(0, 1, 1));
-    EXPECT_NEAR(r(0, 1, 1), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 1, 1));
+    EXPECT_NEAR(this->r(0, 1, 1), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Multiplication2)
+TYPED_TEST(ScaledReducedStorage3d, Multiplication2)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 14. * 10.;
 
-    const auto result = r(0, 2, 0) * r(0, 0, 0);
-    r(0, 2, 0) *= r(0, 0, 0);
+    const auto result = this->r(0, 2, 0) * this->r(0, 0, 0);
+    this->r(0, 2, 0) *= this->r(0, 0, 0);
 
-    check_accessor_correctness(r, t(0, 2, 0));
-    EXPECT_NEAR(r(0, 2, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 2, 0));
+    EXPECT_NEAR(this->r(0, 2, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Division)
+TYPED_TEST(ScaledReducedStorage3d, Division)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = 10. / 2.;
 
-    const auto result = cr(0, 0, 0) / 2.;
-    r(0, 0, 0) /= 2.;
+    const auto result = this->cr(0, 0, 0) / 2.;
+    this->r(0, 0, 0) /= 2.;
 
-    check_accessor_correctness(r, t(0, 0, 0));
-    EXPECT_NEAR(r(0, 0, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 0, 0));
+    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, Division2)
+TYPED_TEST(ScaledReducedStorage3d, Division2)
 {
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
     const ar_type expected = -12. / 6.;
 
-    const auto result = r(0, 1, 0) / r(0, 3, 0);
-    r(0, 1, 0) /= r(0, 3, 0);
+    const auto result = this->r(0, 1, 0) / this->r(0, 3, 0);
+    this->r(0, 1, 0) /= this->r(0, 3, 0);
 
-    check_accessor_correctness(r, t(0, 1, 0));
-    EXPECT_NEAR(r(0, 1, 0), expected, delta);
-    EXPECT_NEAR(result, expected, delta);
+    this->check_accessor_correctness(this->r, t(0, 1, 0));
+    EXPECT_NEAR(this->r(0, 1, 0), expected, this->delta);
+    EXPECT_NEAR(result, expected, this->delta);
 }
 
 
-TEST_F(ScaledReducedStorage3d, UnaryMinus)
+TYPED_TEST(ScaledReducedStorage3d, UnaryMinus)
 {
-    const ar_type neg_expected = r(0, 1, 1);
+    using ar_type = typename TestFixture::ar_type;
+    using t = typename TestFixture::t;
+    const ar_type neg_expected = this->r(0, 1, 1);
     const ar_type expected = -neg_expected;
 
-    auto result = -r(0, 1, 1);
+    auto result = -this->r(0, 1, 1);
 
-    check_accessor_correctness(r);
+    this->check_accessor_correctness(this->r);
     EXPECT_EQ(result, expected);
 }
 
