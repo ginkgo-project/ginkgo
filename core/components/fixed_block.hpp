@@ -66,7 +66,7 @@ public:
 };
 
 template <typename IndexType>
-int getNumFixedBlocks(const int block_size, const IndexType size)
+IndexType getNumFixedBlocks(const int block_size, const IndexType size)
 {
     if (size % block_size != 0)
         throw BlockSizeError<IndexType>(__FILE__, __LINE__, block_size, size);
@@ -112,14 +112,6 @@ private:
     ValueType vals[nrows * ncols];
 };
 
-
-/// Two-dimensional square block
-// template <typename ValueType, int size>
-// using FixedBlock = FixedRectangularBlock<ValueType, size, size>;
-
-/// Fixed-size column vector
-// template <typename ValueType, int size>
-// using FixedSegment = FixedRectangularBlock<ValueType, size, 1>;
 
 /// A lightweight dynamic block type for the host space
 template <typename ValueType>
@@ -180,7 +172,11 @@ private:
     value_type *vals_;
 };
 
-/// A view into a an array of dense of dense blocks of some runtime-defined size
+/// A view into a an array of dense blocks of some runtime-defined size
+/** Note that accessing BSR values using this type of view abstracts away the
+ * storage layout within the individual blocks, as long as all blocks use the
+ * same layout. For now, row-major blocks are assumed.
+ */
 template <typename ValueType, typename IndexType = int32>
 class DenseBlocksView final {
 public:
