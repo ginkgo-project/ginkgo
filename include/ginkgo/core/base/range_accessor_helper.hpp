@@ -65,11 +65,11 @@ template <typename IndexType, int32 total_dim, int32 current_iter = total_dim>
 struct row_major_index {
     static constexpr int32 current_dim{total_dim - current_iter};
     template <typename FirstType, typename... Indices>
-    static constexpr IndexType compute(
-        const dim<total_dim> &size,
-        const std::array<IndexType, (total_dim > 1 ? total_dim - 1 : 0)>
-            &stride,
-        FirstType &&first, Indices &&... idxs)
+    static constexpr GKO_ATTRIBUTES GKO_INLINE IndexType
+    compute(const dim<total_dim> &size,
+            const std::array<IndexType, (total_dim > 1 ? total_dim - 1 : 0)>
+                &stride,
+            FirstType &&first, Indices &&... idxs)
     {
         return GKO_ASSERT(first < size[current_dim]),
                first * stride[current_dim] +
@@ -82,10 +82,10 @@ template <typename IndexType, int32 total_dim>
 struct row_major_index<IndexType, total_dim, 1> {
     static constexpr int32 current_dim{total_dim - 1};
     template <typename FirstType>
-    static constexpr IndexType compute(
-        const dim<total_dim> &size,
-        const std::array<IndexType, (total_dim > 1 ? total_dim - 1 : 0)>,
-        FirstType &&first)
+    static constexpr GKO_ATTRIBUTES GKO_INLINE IndexType
+    compute(const dim<total_dim> &size,
+            const std::array<IndexType, (total_dim > 1 ? total_dim - 1 : 0)>,
+            FirstType &&first)
     {
         return GKO_ASSERT(first < size[current_dim]), first;
     }
@@ -117,10 +117,10 @@ struct row_major_mask_index {
                                              current_scalar == total_dim - 1};
 
     template <typename... Args>
-    static constexpr IndexType compute(
-        const dim<total_dim> &size,
-        const std::array<IndexType, stride_size> &stride,
-        std::tuple<Args...> indices)
+    static constexpr GKO_ATTRIBUTES GKO_INLINE IndexType
+    compute(const dim<total_dim> &size,
+            const std::array<IndexType, stride_size> &stride,
+            std::tuple<Args...> indices)
     {
         return GKO_ASSERT(std::get<current_dim>(indices) < size[current_dim]),
                (use_current_stride
@@ -144,10 +144,10 @@ struct row_major_mask_index<IndexType, total_dim, mask, 0, current_scalar> {
                                              current_scalar == total_dim - 1};
 
     template <typename... Args>
-    static constexpr IndexType compute(
-        const dim<total_dim> &size,
-        const std::array<IndexType, stride_size> &stride,
-        std::tuple<Args...> indices)
+    static constexpr GKO_ATTRIBUTES GKO_INLINE IndexType
+    compute(const dim<total_dim> &size,
+            const std::array<IndexType, stride_size> &stride,
+            std::tuple<Args...> indices)
     {
         return GKO_ASSERT(std::get<current_dim>(indices) < size[current_dim]),
                (use_current_stride
@@ -158,6 +158,9 @@ struct row_major_mask_index<IndexType, total_dim, mask, 0, current_scalar> {
 };
 
 
+/**
+ * Evaluates if all Args fulfill std::is_integral
+ */
 template <typename... Args>
 struct are_all_integral : public std::true_type {
 };
@@ -193,6 +196,10 @@ struct are_span_compatible_impl<has_span, First, Args...>
 }  // namespace detail
 
 
+/**
+ * Evaluates if at least one type of Args is a gko::span and the others either
+ * also gko::span or fulfill std::is_integral
+ */
 template <typename... Args>
 using are_span_compatible = detail::are_span_compatible_impl<false, Args...>;
 
@@ -201,30 +208,32 @@ namespace detail {
 
 
 template <typename ValueType, size_type Iter, size_type N>
-constexpr std::enable_if_t<Iter == N, ValueType> mult_array(const dim<N> &size)
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<Iter == N, ValueType>
+mult_array(const dim<N> &size)
 {
     return 1;
 }
 template <typename ValueType, size_type Iter, size_type N>
-constexpr std::enable_if_t<Iter <= N - 1, ValueType> mult_array(
-    const dim<N> &size)
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<Iter + 1 <= N, ValueType>
+mult_array(const dim<N> &size)
 {
     return size[Iter] * mult_array<ValueType, Iter + 1>(size);
 }
 
 
-template <typename ValueType, int Iter = 1, size_type N, typename... Args>
-constexpr std::enable_if_t<N == 0 || (Iter == N && Iter == sizeof...(Args) + 1),
-                           std::array<ValueType, N == 0 ? 0 : N - 1>>
-extract_factorization(const dim<N> &size, Args... args)
+template <typename ValueType, size_type Iter = 1, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<N == 0 || (Iter == N && Iter == sizeof...(Args) + 1),
+                     std::array<ValueType, N == 0 ? 0 : N - 1>>
+    extract_factorization(const dim<N> &size, Args... args)
 {
     return {{args...}};
 }
 
 
-template <typename ValueType, int Iter = 1, size_type N, typename... Args>
-constexpr std::enable_if_t<(Iter < N) && (Iter == sizeof...(Args) + 1),
-                           std::array<ValueType, N - 1>>
+template <typename ValueType, size_type Iter = 1, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<
+    (Iter < N) && (Iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
 extract_factorization(const dim<N> &size, Args... args)
 {
     return extract_factorization<ValueType, Iter + 1>(
@@ -235,10 +244,87 @@ extract_factorization(const dim<N> &size, Args... args)
 }  // namespace detail
 
 
+/**
+ * Computes the default stride array from a size, assuming there is no padding
+ */
 template <typename ValueType, size_type N>
-constexpr auto compute_stride_array(const dim<N> &size)
+constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_stride_array(
+    const dim<N> &size)
 {
     return detail::extract_factorization<ValueType>(size);
+}
+
+
+namespace detail {
+
+
+template <size_type Iter, size_type N, typename Callable, typename... Indices>
+GKO_ATTRIBUTES std::enable_if_t<Iter == N> multidim_for_each_impl(
+    const dim<N> &size, Callable &&callable, Indices... indices)
+{
+    static_assert(Iter == sizeof...(Indices),
+                  "Number arguments must match current iteration!");
+    callable(indices...);
+}
+
+template <size_type Iter, size_type N, typename Callable, typename... Indices>
+GKO_ATTRIBUTES std::enable_if_t<(Iter < N)> multidim_for_each_impl(
+    const dim<N> &size, Callable &&callable, Indices... indices)
+{
+    static_assert(Iter == sizeof...(Indices),
+                  "Number arguments must match current iteration!");
+    for (size_type i = 0; i < size[Iter]; ++i) {
+        multidim_for_each_impl<Iter + 1>(size, std::forward<Callable>(callable),
+                                         indices..., i);
+    }
+}
+
+
+}  // namespace detail
+
+
+/**
+ * Creates a recursive for-loop for each dimension and calls dest(indices...) =
+ * source(indices...)
+ */
+template <size_type N, typename Callable>
+GKO_ATTRIBUTES void multidim_for_each(const dim<N> &size, Callable &&callable)
+{
+    detail::multidim_for_each_impl<0>(size, std::forward<Callable>(callable));
+}
+
+
+namespace detail {
+
+
+template <size_type Iter, size_type N>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<Iter == N, int>
+spans_in_size(const dim<N> &size)
+{
+    return 0;
+}
+
+
+template <size_type Iter, size_type N, typename First, typename... Remaining>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<(Iter < N), int>
+spans_in_size(const dim<N> &size, First &&first, Remaining &&... remaining)
+{
+    static_assert(sizeof...(Remaining) + 1 == N - Iter,
+                  "Number of remaining spans must be equal to N - Iter");
+    return GKO_ASSERT(span{first}.is_valid()),
+           GKO_ASSERT(span{first} <= span{size[Iter]}),
+           spans_in_size<Iter + 1>(size, std::forward<Remaining>(remaining)...);
+}
+
+
+}  // namespace detail
+
+
+template <size_type N, typename... Spans>
+GKO_ATTRIBUTES GKO_INLINE constexpr int validate_spans(const dim<N> &size,
+                                                       Spans... spans)
+{
+    return detail::spans_in_size<0>(size, std::forward<Spans>(spans)...);
 }
 
 
