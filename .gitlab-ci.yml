@@ -158,7 +158,6 @@ build/cuda90/gcc/all/debug/shared:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
@@ -179,7 +178,6 @@ build/cuda90/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -199,7 +197,6 @@ build/cuda91/gcc/all/debug/static:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -220,7 +217,6 @@ build/cuda91/clang/all/release/shared:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
   only:
