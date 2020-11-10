@@ -244,6 +244,27 @@ void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 //}
 
 
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const GKO_NOT_IMPLEMENTED;
+//{
+// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+//    auto exec = this->get_executor();
+//    auto tmp = Dense<ValueType>::create(exec, this->get_size());
+//    exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
+//    tmp->move_to(result);
+//}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+    GKO_NOT_IMPLEMENTED;
+//{
+// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+//    this->convert_to(result);
+//}
+
+
 // template <typename ValueType, typename IndexType>
 // void Fbcsr<ValueType, IndexType>::convert_to(
 //     Hybrid<ValueType, IndexType> *result) const
