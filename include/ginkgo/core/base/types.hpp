@@ -94,7 +94,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * Encapsules all arguments in one macro, so a comma inside an argument (e.g.
+ * Encapsulates all arguments in one macro, so a comma inside an argument (e.g.
  * std::tuple<int, float>) still works as an argument and is not considered as
  * multiple arguments.
  */
