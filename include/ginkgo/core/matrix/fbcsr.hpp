@@ -49,6 +49,9 @@ template <typename ValueType>
 class Dense;
 
 template <typename ValueType, typename IndexType>
+class Csr;
+
+template <typename ValueType, typename IndexType>
 class Coo;
 
 template <typename ValueType, typename IndexType>
@@ -122,6 +125,7 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public EnableCreateMethod<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
+              public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ConvertibleTo<Coo<ValueType, IndexType>>,
               // public ConvertibleTo<Ell<ValueType, IndexType>>,
               // public ConvertibleTo<Hybrid<ValueType, IndexType>>,
@@ -192,6 +196,10 @@ public:
     void convert_to(Dense<ValueType> *other) const override;
 
     void move_to(Dense<ValueType> *other) override;
+
+    void convert_to(Csr<ValueType, IndexType> *result) const override;
+
+    void move_to(Csr<ValueType, IndexType> *result) override;
 
     void convert_to(Coo<ValueType, IndexType> *result) const override;
 
