@@ -427,7 +427,7 @@ TEST_F(ReducedStorage3d, UnaryMinus)
 
 TEST_F(ReducedStorage3d, CanCreateSubrange)
 {
-    auto subr = r(span{1, 3}, span{0, 2}, 0);
+    auto subr = r(span{1u, 3u}, span{0u, 2u}, 0u);
 
     EXPECT_EQ(subr(0, 0, 0), 5.06);
     EXPECT_EQ(subr(0, 1, 0), 2.08);
@@ -438,7 +438,7 @@ TEST_F(ReducedStorage3d, CanCreateSubrange)
 
 TEST_F(ReducedStorage3d, CanCreateSubrange2)
 {
-    auto subr = cr(span{1, 3}, span{0, 2}, span{0, 1});
+    auto subr = cr(span{1u, 3u}, span{0u, 2u}, span{0u, 1u});
 
     EXPECT_EQ(subr(0, 0, 0), 5.06);
     EXPECT_EQ(subr(0, 1, 0), 2.08);
@@ -666,7 +666,7 @@ TEST_F(ScaledReducedStorage3d, CanRead)
 
 TEST_F(ScaledReducedStorage3d, Subrange)
 {
-    auto subr = cr(0, gko::span{0, 2}, 1);
+    auto subr = cr(0u, gko::span{0u, 2u}, 1u);
 
     EXPECT_EQ(subr(0, 0, 0), 22.);
     EXPECT_EQ(subr(0, 1, 0), 26.);

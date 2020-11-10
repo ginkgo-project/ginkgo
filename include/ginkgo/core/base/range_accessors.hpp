@@ -366,14 +366,9 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        // TODO add proper copy_from implementation independent of size!!!
-        for (size_type i = 0; i < size_[0]; ++i) {
-            for (size_type j = 0; j < size_[1]; ++j) {
-                for (size_type k = 0; k < size_[2]; ++k) {
-                    (*this)(i, j, k) = other(i, j, k);
-                }
-            }
-        }
+        helper::multidim_for_each(size_, [&](auto... indices) {
+            (*this)(indices...) = other(indices...);
+        });
     }
 
     /**
@@ -408,26 +403,12 @@ public:
         range<reduced_row_major>>
     operator()(SpanTypes &&... spans) const
     {
-        // TODO: Add validation check for spans!
-        return range<reduced_row_major>{
-            storage_ + compute_index((static_cast<span>(spans).begin)...),
-            dim<dimensionality>{(static_cast<span>(spans).end -
-                                 static_cast<span>(spans).begin)...},
-            stride_};
-        /*
-        return GKO_ASSERT(x_span.is_valid()), GKO_ASSERT(y_span.is_valid()),
-               GKO_ASSERT(z_span.is_valid()),
-               GKO_ASSERT(x_span <= span{size_[0]}),
-               GKO_ASSERT(y_span <= span{size_[1]}),
-               GKO_ASSERT(z_span <= span{size_[2]}),
-               range<reduced_row_major>(
-                   storage_ +
-                       compute_index(x_span.begin, y_span.begin, z_span.begin),
-                   dim<dimensionality>{x_span.end - x_span.begin,
-                                       y_span.end - y_span.begin,
-                                       z_span.end - z_span.begin},
-                   stride_[0], stride_[1]);
-        */
+        return helper::validate_spans(size_, spans...),
+               range<reduced_row_major>{
+                   storage_ + compute_index((span{spans}.begin)...),
+                   dim<dimensionality>{
+                       (span{spans}.end - span{spans}.begin)...},
+                   stride_};
     }
 
     /**
@@ -570,7 +551,6 @@ private:
  *                     on.
  *
  * @note  This class only manages the accesses and not the memory itself.
- * @note  Currently, only Dimensionality = 3 is supported.
  */
 template <int Dimensionality, typename ArithmeticType, typename StorageType,
           int32 ScalarMask>
@@ -748,19 +728,10 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        // TODO add proper copy_from implementation independent of size!!!
-        for (size_type i = 0; i < this->size_[0]; ++i) {
-            for (size_type k = 0; k < this->size_[2]; ++k) {
-                this->write_scalar(other.read_scalar(i, 0, k), i, 0, k);
-            }
-        }
-        for (size_type i = 0; i < this->size_[0]; ++i) {
-            for (size_type j = 0; j < this->size_[1]; ++j) {
-                for (size_type k = 0; k < this->size_[2]; ++k) {
-                    (*this)(i, j, k) = other(i, j, k);
-                }
-            }
-        }
+        helper::multidim_for_each(size_, [&](auto... indices) {
+            this->write_scalar(other.read_scalar(indices...), indices...);
+            (*this)(indices...) = other(indices...);
+        });
     }
 
     /**
@@ -796,31 +767,13 @@ public:
         range<scaled_reduced_row_major>>
     operator()(SpanTypes &&... spans) const
     {
-        // TODO: Add validation check for spans!
-        return range<scaled_reduced_row_major>{
-            storage_ + compute_index((static_cast<span>(spans).begin)...),
-            scalar_ + compute_scalar_index(static_cast<span>(spans).begin...),
-            dim<dimensionality>{(static_cast<span>(spans).end -
-                                 static_cast<span>(spans).begin)...},
-            stride_};
-        /*
-            return GKO_ASSERT(x_span.is_valid()), GKO_ASSERT(y_span.is_valid()),
-                   GKO_ASSERT(z_span.is_valid()),
-                   GKO_ASSERT(x_span <= span{this->size_[0]}),
-                   GKO_ASSERT(y_span <= span{this->size_[1]}),
-                   GKO_ASSERT(z_span <= span{this->size_[2]}),
-                   range<scaled_reduced_row_major>(
-                       this->storage_ + this->compute_index(x_span.begin,
-                                                            y_span.begin,
-                                                            z_span.begin),
-                       this->scalar_ + this->compute_scalar_index(x_span.begin,
-                                                                  y_span.begin,
-                                                                  z_span.begin),
-                       dim<dimensionality>{x_span.end - x_span.begin,
-                                           y_span.end - y_span.begin,
-                                           z_span.end - z_span.begin},
-                       this->stride_[0], this->stride_[1]);
-        */
+        return helper::validate_spans(size_, spans...),
+               range<scaled_reduced_row_major>{
+                   storage_ + compute_index((span{spans}.begin)...),
+                   scalar_ + compute_scalar_index(span{spans}.begin...),
+                   dim<dimensionality>{
+                       (span{spans}.end - span{spans}.begin)...},
+                   stride_};
     }
 
     /**
