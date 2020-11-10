@@ -94,14 +94,14 @@ DEFINE_bool(overhead, false,
 // input validation
 [[noreturn]] void print_config_error_and_exit()
 {
-    std::cerr
-        << "Input has to be a JSON array of matrix configurations:\n"
-        << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-           "\"spmv\": \"<matrix format>\" }, \"rhs\": \"my_file_rhs.mtx\" },\n"
-        << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
-           "\"spmv\": \"<matrix format>\" } }\n"
-        << "  ]" << std::endl;
+    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
+              << "  [\n"
+              << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" },\n"
+                 "      \"rhs\": \"my_file_rhs.mtx\" },\n"
+              << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
+                 "\"spmv\": \"<matrix format>\" } }\n"
+              << "  ]" << std::endl;
     std::exit(1);
 }
 
@@ -386,7 +386,8 @@ int main(int argc, char *argv[])
     std::string format =
         std::string() + "  [\n" +
         "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-        "\"spmv\": \"<matrix format>\" }, \"rhs\": \"my_file_rhs.mtx\" },\n" +
+        "\"spmv\": \"<matrix format>\" },\n"
+        "      \"rhs\": \"my_file_rhs.mtx\" },\n" +
         "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
         "\"spmv\": \"<matrix format>\" } }\n" +
         "  ]\n\n" +
