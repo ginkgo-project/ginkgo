@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <tuple>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/dim.hpp>
@@ -460,6 +461,12 @@ protected:
         gko::accessor::reduced_row_major<1, ar_type, const st_type>;
     using const_accessor2d =
         gko::accessor::reduced_row_major<2, ar_type, const st_type>;
+    static_assert(std::is_same<const_accessor1d,
+                               typename accessor1d::const_accessor>::value,
+                  "Const accessors must be the same!");
+    static_assert(std::is_same<const_accessor2d,
+                               typename accessor2d::const_accessor>::value,
+                  "Const accessors must be the same!");
 
     using reduced_storage1d = gko::range<accessor1d>;
     using reduced_storage2d = gko::range<accessor2d>;
@@ -473,7 +480,7 @@ protected:
     static constexpr gko::size_type data_elements{8};
     st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
                                 5.5f, 6.6f, 7.7f, -8.8f};
-    reduced_storage1d r1{data, size_1d /*, stride0*/};
+    reduced_storage1d r1{data, size_1d};
     reduced_storage2d r2{data, size_2d, stride1[0]};
     const_reduced_storage1d cr1{data, size_1d, stride0};
     const_reduced_storage2d cr2{data, size_2d, stride1};
@@ -499,6 +506,24 @@ TEST_F(ReducedStorageXd, CanRead)
     EXPECT_EQ(cr2(0, 1), 2.2f);
     EXPECT_EQ(r1(1), 2.2f);
     EXPECT_EQ(r2(0, 1), 2.2f);
+}
+
+
+TEST_F(ReducedStorageXd, CanWrite1)
+{
+    r1(2) = 0.25;
+
+    data_equal_except_for(2);
+    EXPECT_EQ(r1(2), 0.25);  // expect exact since easy to store
+}
+
+
+TEST_F(ReducedStorageXd, CanWrite2)
+{
+    r2(1, 1) = 0.75;
+
+    data_equal_except_for(5);
+    EXPECT_EQ(r2(1, 1), 0.75);  // expect exact since easy to store
 }
 
 
@@ -783,6 +808,108 @@ TEST_F(ScaledReducedStorage3d, UnaryMinus)
 
     check_accessor_correctness(r);
     EXPECT_EQ(result, expected);
+}
+
+
+class ScaledReducedStorageXd : public ::testing::Test {
+protected:
+    using span = gko::span;
+    using ar_type = double;
+    using st_type = int;
+    using size_type = gko::size_type;
+    static constexpr ar_type delta{0.1};
+
+    using accessor1d =
+        gko::accessor::scaled_reduced_row_major<1, ar_type, st_type, 1>;
+    using accessor2d =
+        gko::accessor::scaled_reduced_row_major<2, ar_type, st_type, 2>;
+    using const_accessor1d =
+        gko::accessor::scaled_reduced_row_major<1, ar_type, const st_type, 1>;
+    using const_accessor2d =
+        gko::accessor::scaled_reduced_row_major<2, ar_type, const st_type, 2>;
+    static_assert(std::is_same<const_accessor1d,
+                               typename accessor1d::const_accessor>::value,
+                  "Const accessors must be the same!");
+    static_assert(std::is_same<const_accessor2d,
+                               typename accessor2d::const_accessor>::value,
+                  "Const accessors must be the same!");
+
+    using reduced_storage1d = gko::range<accessor1d>;
+    using reduced_storage2d = gko::range<accessor2d>;
+    using const_reduced_storage2d = gko::range<const_accessor2d>;
+    using const_reduced_storage1d = gko::range<const_accessor1d>;
+
+    const std::array<const size_type, 0> stride0{};
+    const std::array<const size_type, 1> stride1{4};
+    const gko::dim<1> size_1d{8u};
+    const gko::dim<2> size_2d{2u, 4u};
+
+    static constexpr gko::size_type data_elements{8};
+    st_type data[data_elements]{11, 22, 33, 44, 55, 66, 77, -88};
+    const double default_scalar{.1};
+    ar_type scalar[data_elements]{
+        default_scalar, default_scalar, default_scalar, default_scalar,
+        default_scalar, default_scalar, default_scalar, default_scalar};
+
+    reduced_storage1d r1{data, scalar, size_1d};
+    reduced_storage2d r2{data, scalar, size_2d, stride1[0]};
+    const_reduced_storage1d cr1{data, scalar, size_1d, stride0};
+    const_reduced_storage2d cr2{data, scalar, size_2d, stride1};
+
+    void data_equal_except_for(int idx)
+    {
+        // clang-format off
+        if (idx != 0) { EXPECT_EQ(data[0], 11); }
+        if (idx != 1) { EXPECT_EQ(data[1], 22); }
+        if (idx != 2) { EXPECT_EQ(data[2], 33); }
+        if (idx != 3) { EXPECT_EQ(data[3], 44); }
+        if (idx != 4) { EXPECT_EQ(data[4], 55); }
+        if (idx != 5) { EXPECT_EQ(data[5], 66); }
+        if (idx != 6) { EXPECT_EQ(data[6], 77); }
+        if (idx != 7) { EXPECT_EQ(data[7], -88); }
+        // clang-format on
+    }
+    void scalar_equal_except_for(int idx)
+    {
+        // clang-format off
+        if (idx != 0) { EXPECT_EQ(scalar[0], default_scalar); }
+        if (idx != 1) { EXPECT_EQ(scalar[1], default_scalar); }
+        if (idx != 2) { EXPECT_EQ(scalar[2], default_scalar); }
+        if (idx != 3) { EXPECT_EQ(scalar[3], default_scalar); }
+        if (idx != 4) { EXPECT_EQ(scalar[4], default_scalar); }
+        if (idx != 5) { EXPECT_EQ(scalar[5], default_scalar); }
+        if (idx != 6) { EXPECT_EQ(scalar[6], default_scalar); }
+        if (idx != 7) { EXPECT_EQ(scalar[7], default_scalar); }
+        // clang-format on
+    }
+};
+
+TEST_F(ScaledReducedStorageXd, CanRead)
+{
+    EXPECT_NEAR(cr1(1), 2.2, delta);
+    EXPECT_NEAR(cr2(0, 1), 2.2, delta);
+    EXPECT_NEAR(r1(1), 2.2, delta);
+    EXPECT_NEAR(r2(0, 1), 2.2, delta);
+}
+
+
+TEST_F(ScaledReducedStorageXd, CanWrite1)
+{
+    r1(2) = 0.2;
+
+    data_equal_except_for(2);
+    scalar_equal_except_for(99);
+    EXPECT_NEAR(r1(2), 0.2, delta);
+}
+
+
+TEST_F(ScaledReducedStorageXd, CanWrite2)
+{
+    r2(1, 1) = 0.7;
+
+    data_equal_except_for(5);
+    scalar_equal_except_for(99);
+    EXPECT_NEAR(r2(1, 1), 0.7, delta);
 }
 
 
