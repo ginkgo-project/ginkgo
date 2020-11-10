@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/overhead_linop.hpp"
+#include "benchmark/utils/preconditioners.hpp"
+#include "ginkgo/core/preconditioner/isai.hpp"
 
 
 // some Ginkgo shortcuts
@@ -59,28 +61,27 @@ DEFINE_uint32(max_iters, 1000,
 
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
+DEFINE_bool(
+    rel_residual, false,
+    "Use relative residual instead of residual reduction stopping criterion");
+
 DEFINE_string(
     solvers, "cg",
     "A comma-separated list of solvers to run. "
     "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, overhead");
 
-DEFINE_string(
-    preconditioners, "none",
-    "A comma-separated list of preconditioners to use. "
-    "Supported values are: none, jacobi, adaptive-jacobi, parict, parilu, "
-    "parilut, ilu, overhead");
-
-DEFINE_uint32(parilu_iterations, 5,
-              "The number of iterations for ParICT/ParILU(T)");
-
-DEFINE_bool(parilut_approx_select, true,
-            "Use approximate selection for ParICT/ParILUT");
-
-DEFINE_double(parilut_limit, 2.0, "The fill-in limit for ParICT/ParILUT");
-
 DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
+
+DEFINE_uint32(gmres_restart, 100,
+              "What maximum dimension of the Krylov space to use in GMRES");
+
+DEFINE_bool(random_rhs, false,
+            "Use a random vector for the rhs (otherwise use all ones)");
+
+DEFINE_bool(random_initial_guess, false,
+            "Use a random vector for the initial guess (otherwise use rhs)");
 
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
@@ -96,7 +97,8 @@ DEFINE_bool(overhead, false,
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-                 "\"spmv\": \"<matrix format>\" } },\n"
+                 "\"spmv\": \"<matrix format>\" },\n"
+                 "      \"rhs\": \"my_file_rhs.mtx\" },\n"
               << "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
@@ -109,7 +111,8 @@ void validate_option_object(const rapidjson::Value &value)
     if (!value.IsObject() || !value.HasMember("optimal") ||
         !value["optimal"].HasMember("spmv") ||
         !value["optimal"]["spmv"].IsString() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
+        !value["filename"].IsString() ||
+        (value.HasMember("rhs") && !value["rhs"].IsString())) {
         print_config_error_and_exit();
     }
 }
@@ -121,13 +124,21 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
     std::shared_ptr<const gko::Executor> exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::build()
-        .with_criteria(gko::stop::ResidualNormReduction<>::build()
+    std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
+    if (FLAGS_rel_residual) {
+        residual_stop = gko::share(gko::stop::RelativeResidualNorm<>::build()
+                                       .with_tolerance(FLAGS_rel_res_goal)
+                                       .on(exec));
+    } else {
+        residual_stop =
+            gko::share(gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(FLAGS_rel_res_goal)
-                           .on(exec),
-                       gko::stop::Iteration::build()
-                           .with_max_iters(FLAGS_max_iters)
-                           .on(exec))
+                           .on(exec));
+    }
+    return SolverType::build()
+        .with_criteria(residual_stop, gko::stop::Iteration::build()
+                                          .with_max_iters(FLAGS_max_iters)
+                                          .on(exec))
         .with_preconditioner(give(precond))
         .on(exec);
 }
@@ -141,123 +152,22 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
-                   {"gmres", create_solver<gko::solver::Gmres<>>},
+                   {"gmres",
+                    [](std::shared_ptr<const gko::Executor> exec,
+                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                        return gko::solver::Gmres<>::build()
+                            .with_criteria(
+                                gko::stop::ResidualNormReduction<>::build()
+                                    .with_reduction_factor(FLAGS_rel_res_goal)
+                                    .on(exec),
+                                gko::stop::Iteration::build()
+                                    .with_max_iters(FLAGS_max_iters)
+                                    .on(exec))
+                            .with_krylov_dim(FLAGS_gmres_restart)
+                            .with_preconditioner(give(precond))
+                            .on(exec);
+                    }},
                    {"overhead", create_solver<gko::Overhead<>>}};
-
-
-// TODO: Workaround until GPU matrix conversions are implemented
-//       The factory will wrap another factory, and make sure that the
-//       input operator is copied to the reference executor, and then sent
-//       through the generate function
-struct ReferenceFactoryWrapper
-    : gko::EnablePolymorphicObject<ReferenceFactoryWrapper, gko::LinOpFactory> {
-    ReferenceFactoryWrapper(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnablePolymorphicObject<ReferenceFactoryWrapper,
-                                       gko::LinOpFactory>(exec)
-    {}
-
-    ReferenceFactoryWrapper(std::shared_ptr<const gko::LinOpFactory> f)
-        : gko::EnablePolymorphicObject<ReferenceFactoryWrapper,
-                                       gko::LinOpFactory>(f->get_executor()),
-          base_factory{f}
-    {}
-
-    std::shared_ptr<const gko::Executor> exec{gko::ReferenceExecutor::create()};
-    std::shared_ptr<const gko::LinOpFactory> base_factory;
-
-protected:
-    std::unique_ptr<gko::LinOp> generate_impl(
-        std::shared_ptr<const gko::LinOp> op) const override
-    {
-        return base_factory->generate(gko::clone(exec, op));
-    }
-};
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor>)>>
-    precond_factory{
-        {"none",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::matrix::IdentityFactory<>::create(exec);
-         }},
-        {"jacobi",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Jacobi<>::build().on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"adaptive-jacobi",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Jacobi<>::build()
-                     .with_storage_optimization(
-                         gko::precision_reduction::autodetect())
-                     .on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"parict",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIct<>::build()
-                     .with_iterations(FLAGS_parilu_iterations)
-                     .with_approximate_select(FLAGS_parilut_approx_select)
-                     .with_fill_in_limit(FLAGS_parilut_limit)
-                     .on(exec));
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Ilu<>::build()
-                     .with_factorization_factory(fact)
-                     .on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"parilu",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlu<>::build()
-                     .with_iterations(FLAGS_parilu_iterations)
-                     .on(exec));
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Ilu<>::build()
-                     .with_factorization_factory(fact)
-                     .on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"parilut",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlut<>::build()
-                     .with_iterations(FLAGS_parilu_iterations)
-                     .with_approximate_select(FLAGS_parilut_approx_select)
-                     .with_fill_in_limit(FLAGS_parilut_limit)
-                     .on(exec));
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Ilu<>::build()
-                     .with_factorization_factory(fact)
-                     .on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"ilu",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::Ilu<>::build().on(exec));
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::preconditioner::Ilu<>::build()
-                     .with_factorization_factory(fact)
-                     .on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }},
-        {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
-             std::shared_ptr<const gko::LinOpFactory> f =
-                 gko::Overhead<>::build().on(exec);
-             return std::unique_ptr<ReferenceFactoryWrapper>(
-                 new ReferenceFactoryWrapper(f));
-         }}};
 
 
 void write_precond_info(const gko::LinOp *precond,
@@ -330,7 +240,7 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "iteration_timestamps",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        if (FLAGS_nrhs == 1 && !FLAGS_overhead) {
+        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
             auto rhs_norm = compute_norm2(lend(b));
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         }
@@ -397,7 +307,7 @@ void solve_system(const std::string &solver_name,
                                      allocator, 1);
 
             // slow run, gets the recurrent and true residuals of each iteration
-            if (FLAGS_nrhs == 1) {
+            if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     exec, lend(system_matrix), b,
@@ -439,7 +349,7 @@ void solve_system(const std::string &solver_name,
             apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                 a_tac - a_tic);
 
-            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1 &&
+            if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
                 !FLAGS_overhead) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
@@ -476,7 +386,8 @@ int main(int argc, char *argv[])
     std::string format =
         std::string() + "  [\n" +
         "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
-        "\"spmv\": \"<matrix format>\" } },\n" +
+        "\"spmv\": \"<matrix format>\" },\n"
+        "      \"rhs\": \"my_file_rhs.mtx\" },\n" +
         "    { \"filename\": \"my_file2.mtx\", \"optimal\": { "
         "\"spmv\": \"<matrix format>\" } }\n" +
         "  ]\n\n" +
@@ -553,12 +464,23 @@ int main(int argc, char *argv[])
                 auto data = gko::read_raw<etype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
-                b = create_matrix<etype>(
-                    exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                    engine);
-                x = create_matrix<etype>(
-                    exec,
-                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+                if (test_case.HasMember("rhs")) {
+                    std::ifstream rhs_fd{test_case["rhs"].GetString()};
+                    b = gko::read<Vec>(rhs_fd, exec);
+                } else {
+                    b = create_matrix<etype>(
+                        exec,
+                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                        engine, FLAGS_random_rhs);
+                }
+                if (FLAGS_random_initial_guess) {
+                    x = create_matrix<etype>(
+                        exec,
+                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                        engine);
+                } else {
+                    x = b->clone();
+                }
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
