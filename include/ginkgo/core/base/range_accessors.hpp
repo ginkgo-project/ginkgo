@@ -244,6 +244,9 @@ public:
     using const_accessor =
         reduced_row_major<dimensionality, arithmetic_type, const storage_type>;
 
+    static_assert(Dimensionality >= 1,
+                  "Dimensionality must be a positive number!");
+
     friend class range<reduced_row_major>;
 
 protected:
@@ -257,7 +260,7 @@ protected:
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
-     * @param stride  stride array used for the x-indices
+     * @param stride  stride array used for memory accesses
      */
     GKO_ATTRIBUTES constexpr reduced_row_major(
         storage_type *storage, gko::dim<dimensionality> size,
@@ -272,7 +275,7 @@ protected:
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
-     * @param stride  stride array used for the x-indices
+     * @param stride  stride array used for memory accesses
      */
     GKO_ATTRIBUTES constexpr reduced_row_major(
         storage_type *storage, gko::dim<dimensionality> size,
@@ -284,7 +287,7 @@ protected:
      * Creates the accessor with an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
-     * It is assumed that accesses are without a stride.
+     * It is assumed that accesses are without padding.
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
@@ -302,7 +305,7 @@ protected:
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
-     * @param stride  stride array used for the x-indices
+     * @param strides  strides used for memory accesses
      */
     template <typename... Strides>
     GKO_ATTRIBUTES constexpr reduced_row_major(storage_type *storage,
@@ -363,6 +366,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
+        // TODO add proper copy_from implementation independent of size!!!
         for (size_type i = 0; i < size_[0]; ++i) {
             for (size_type j = 0; j < size_[1]; ++j) {
                 for (size_type k = 0; k < size_[2]; ++k) {
@@ -505,7 +509,8 @@ template <int Dimensionality, typename Accessor, typename ScaleType>
 struct enable_write_scalar<Dimensionality, Accessor, ScaleType, false> {
     static_assert(!std::is_const<ScaleType>::value,
                   "This class must NOT have a constant ScaleType!");
-    static_assert(Dimensionality == 3, "Only Dimensionality 3 supported!");
+    static_assert(Dimensionality >= 1,
+                  "Dimensionality must be a positive number!");
 
     using scalar_type = ScaleType;
 
@@ -588,6 +593,8 @@ public:
         scaled_reduced_row_major<dimensionality, arithmetic_type,
                                  const storage_type, ScalarMask>;
 
+    static_assert(Dimensionality >= 1,
+                  "Dimensionality must be a positive number!");
     static_assert(dimensionality <= 32,
                   "Only Dimensionality <= 32 is currently supported");
 
@@ -608,36 +615,13 @@ public:
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param scalar  pointer to the block of memory containing the scalar
-     * values. Memory required is size[0] * stride1.
+     *                values.
      * @param size  multidimensional size of the memory
-     * @param stride0  stride used for the x-indices
-     * @param stride1  stride used for the y-indices
-     */
-    GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
-                                                      scalar_type *scalar,
-                                                      dim<dimensionality> size,
-                                                      size_type stride0,
-                                                      size_type stride1)
-        : storage_{storage},
-          scalar_{scalar},
-          size_{size},
-          stride_{stride0, stride1}
-    {}
-    /**
-     * Creates the accessor with an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     *
-     * @param storage  pointer to the block of memory containing the storage
-     * @param scalar  pointer to the block of memory containing the scalar
-     * values. Memory required is size[0] * stride1.
-     * @param size  multidimensional size of the memory
-     * @param stride  stride array of size dimensionality - 1, used for the
-     * x-indices
+     * @param stride  strides used for memory accesses
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
-        std::array<const size_type, dimensionality - 1> stride)
+        const std::array<const size_type, dimensionality - 1> &stride)
         : storage_{storage}, scalar_{scalar}, size_{size}, stride_{stride}
     {}
 
@@ -645,19 +629,62 @@ public:
      * Creates the accessor with an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
-     * It is assumed that accesses are without a stride.
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param scalar  pointer to the block of memory containing the scalar
-     * values. Memory required is size[0] * size[1].
+     *                values.
+     * @param size  multidimensional size of the memory
+     * @param stride  strides used for memory accesses
+     */
+    GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
+        storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
+        std::array<const size_type, dimensionality - 1> &&stride)
+        : storage_{storage}, scalar_{scalar}, size_{size}, stride_{stride}
+    {}
+
+    /**
+     * Creates the accessor with an already allocated storage space with a
+     * stride. The first stride is used for computing the index for the first
+     * index, the second stride for the second index, and so on.
+     * It is assumed that accesses are without padding.
+     *
+     * @param storage  pointer to the block of memory containing the storage
+     * @param scalar  pointer to the block of memory containing the scalar
+     *                values.
      * @param size  multidimensional size of the memory
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
                                                       scalar_type *scalar,
                                                       dim<dimensionality> size)
-        : scaled_reduced_row_major{storage, scalar, size, size[1] * size[2],
-                                   size[2]}
+        : scaled_reduced_row_major{
+              storage, scalar, size,
+              helper::compute_stride_array<const size_type>(size)}
     {}
+
+    /**
+     * Creates the accessor with an already allocated storage space with a
+     * stride. The first stride is used for computing the index for the first
+     * index, the second stride for the second index, and so on.
+     *
+     * @param storage  pointer to the block of memory containing the storage
+     * @param scalar  pointer to the block of memory containing the scalar
+     *                values.
+     * @param size  multidimensional size of the memory
+     * @param strides  strides used for memory accesses
+     */
+    template <typename... Strides>
+    GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
+                                                      scalar_type *scalar,
+                                                      dim<dimensionality> size,
+                                                      Strides &&... strides)
+        : storage_{storage},
+          scalar_{scalar},
+          size_{size},
+          stride_{std::forward<Strides>(strides)...}
+    {
+        static_assert(sizeof...(Strides) + 1 == dimensionality,
+                      "Number of provided Strides must be dimensionality - 1!");
+    }
 
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
@@ -674,15 +701,13 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr range<const_accessor> to_const() const
     {
-        return range<const_accessor>{storage_, scalar_, size_, stride_[0],
-                                     stride_[1]};
+        return range<const_accessor>{storage_, scalar_, size_, stride_};
     }
 
     /**
      * Reads the scalar value at the given indices.
      *
-     * @param x  x index
-     * @param y  y index
+     * @param indices  indices which data to access
      *
      * @returns the scalar value at the given indices.
      */
@@ -723,6 +748,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
+        // TODO add proper copy_from implementation independent of size!!!
         for (size_type i = 0; i < this->size_[0]; ++i) {
             for (size_type k = 0; k < this->size_[2]; ++k) {
                 this->write_scalar(other.read_scalar(i, 0, k), i, 0, k);
@@ -750,7 +776,7 @@ public:
     GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
         helper::are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
+    operator()(Indices... indices) const
     {
         return reference_type{
             this->storage_ + compute_index(std::forward<Indices>(indices)...),
@@ -862,11 +888,16 @@ public:
     }
 
 protected:
-    GKO_ATTRIBUTES constexpr GKO_INLINE size_type
-    compute_index(size_type x, size_type y, size_type z) const
+    template <typename... Indices>
+    GKO_ATTRIBUTES GKO_INLINE constexpr size_type compute_index(
+        Indices &&... indices) const
     {
-        return GKO_ASSERT(x < size_[0]), GKO_ASSERT(y < size_[1]),
-               GKO_ASSERT(z < size_[2]), x * stride_[0] + y * stride_[1] + z;
+        static_assert(sizeof...(Indices) == dimensionality,
+                      "Number of indices must match dimensionality!");
+        return helper::row_major_index<
+            const size_type, dimensionality>::compute(size_, stride_,
+                                                      std::forward<Indices>(
+                                                          indices)...);
     }
 
     template <typename... Indices>
@@ -879,8 +910,6 @@ protected:
             const size_type, dimensionality,
             scalar_mask>::compute(size_, stride_,
                                   std::forward_as_tuple(indices...));
-        // return GKO_ASSERT(x < size_[0]), GKO_ASSERT(z < size_[2]),
-        //       x * stride_[1] + z;
     }
 
     storage_type *storage_;
