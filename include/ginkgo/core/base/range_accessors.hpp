@@ -219,11 +219,11 @@ public:
 /**
  * The reduced_row_major class allows a storage format that is different from
  * the arithmetic format (which is returned from the brace operator).
- * As storage, the storage_type is used.
+ * As storage, the StorageType is used.
  *
- * This accessor uses row-major access, meaning neighboring z coordinates are
- * next to each other in memory, followed by y coordinates and then x
- * coordinates.
+ * This accessor uses row-major access. For example for three dimensions,
+ * neighboring z coordinates are next to each other in memory, followed by y
+ * coordinates and then x coordinates.
  *
  * @tparam Dimensionality  The number of dimensions managed by this accessor
  *
@@ -254,7 +254,7 @@ protected:
         reference_class::reduced_storage<arithmetic_type, storage_type>;
 
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -269,7 +269,7 @@ protected:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -284,10 +284,8 @@ protected:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     * It is assumed that accesses are without padding.
+     * Creates the accessor for an already allocated storage space.
+     * It is assumed that all accesses are without padding.
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
@@ -299,7 +297,7 @@ protected:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -530,11 +528,11 @@ private:
  * from the arithmetic format (which is returned from the brace operator).
  * Additionally, a scalar is used when reading and writing data to allow for
  * a shift in range.
- * As storage, the storage_type is used.
+ * As storage, the StorageType is used.
  *
- * This accessor uses row-major access, meaning neighboring z coordinates are
- * next to each other in memory, followed by y coordinates and then x
- * coordinates.
+ * This accessor uses row-major access. For example, for three dimensions,
+ * neighboring z coordinates are next to each other in memory, followed by y
+ * coordinates and then x coordinates.
  *
  * @tparam Dimensionality  The number of dimensions managed by this accessor
  *
@@ -589,7 +587,7 @@ protected:
 
 public:
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -597,7 +595,7 @@ public:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      * @param size  multidimensional size of the memory
-     * @param stride  strides used for memory accesses
+     * @param stride  stride array used for memory accesses
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
@@ -606,7 +604,7 @@ public:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -614,7 +612,7 @@ public:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      * @param size  multidimensional size of the memory
-     * @param stride  strides used for memory accesses
+     * @param stride  stride array used for memory accesses
      */
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
@@ -623,10 +621,8 @@ public:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     * It is assumed that accesses are without padding.
+     * Creates the accessor for an already allocated storage space.
+     * It is assumed that all accesses are without padding.
      *
      * @param storage  pointer to the block of memory containing the storage
      * @param scalar  pointer to the block of memory containing the scalar
@@ -642,7 +638,7 @@ public:
     {}
 
     /**
-     * Creates the accessor with an already allocated storage space with a
+     * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
      * index, the second stride for the second index, and so on.
      *
@@ -650,7 +646,7 @@ public:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      * @param size  multidimensional size of the memory
-     * @param strides  strides used for memory accesses
+     * @param strides  stride array used for memory accesses
      */
     template <typename... Strides>
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(storage_type *storage,
@@ -674,10 +670,10 @@ public:
     {}
 
     /**
-     * Creates a reduced_row_major range which contains a read-only version of
-     * the current accessor.
+     * Creates a scaled_reduced_row_major range which contains a read-only
+     * version of the current accessor.
      *
-     * @returns  a reduced_row_major major range which is read-only.
+     * @returns  a scaled_reduced_row_major major range which is read-only.
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr range<const_accessor> to_const() const
     {
