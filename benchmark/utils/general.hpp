@@ -311,11 +311,15 @@ std::unique_ptr<vec<ValueType>> create_matrix(
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine &engine)
+    RandomEngine &engine, bool random = true)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(
-        size, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    if (random) {
+        res->read(gko::matrix_data<ValueType>(
+            size, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    } else {
+        res->read(gko::matrix_data<ValueType>(size, gko::one<ValueType>()));
+    }
     return res;
 }
 
