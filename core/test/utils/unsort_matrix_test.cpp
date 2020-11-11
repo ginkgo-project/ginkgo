@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cmath>
+#include <memory>
 #include <random>
 
 
@@ -64,14 +65,34 @@ protected:
     UnsortMatrix()
         : exec(gko::ReferenceExecutor::create()),
           rand_engine(42),
-          mtx(gko::initialize<Dense>({{1, 2, 0, 0, 0},
-                                      {0, 0, 0, 0, 0},
-                                      {3, 4, 5, 6, 0},
-                                      {0, 0, 7, 0, 0},
-                                      {0, 0, 8, 9, 10}},
-                                     exec)),
-          empty(Dense::create(exec, gko::dim<2>(0, 0)))
+          /*
+           */
+          csr_empty(Csr::create(exec, gko::dim<2>(0, 0))),
+          coo_empty(Coo::create(exec, gko::dim<2>(0, 0)))
     {}
+    /*
+     Matrix used for both CSR and COO:
+              1, 2, 0, 0, 0
+              0, 0, 0, 0, 0
+              3, 4, 5, 6, 0
+              0, 0, 7, 0, 0
+              0, 0, 8, 9, 10
+     */
+    std::unique_ptr<Csr> get_sorted_csr()
+    {
+        return Csr::create(exec, gko::dim<2>{5, 5},
+                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
+                           I<index_type>{0, 2, 2, 6, 7, 10});
+    }
+
+    std::unique_ptr<Coo> get_sorted_coo()
+    {
+        return Coo::create(exec, gko::dim<2>{5, 5},
+                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
+                           I<index_type>{0, 0, 2, 2, 2, 2, 3, 4, 4, 4});
+    }
 
     bool is_coo_matrix_sorted(Coo *mtx)
     {
@@ -123,62 +144,58 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::ranlux48 rand_engine;
-    std::unique_ptr<Dense> mtx;
-    std::unique_ptr<Dense> empty;
+    std::unique_ptr<Csr> csr_empty;
+    std::unique_ptr<Coo> coo_empty;
 };
 
 
 TEST_F(UnsortMatrix, CsrWorks)
 {
-    auto csr = Csr::create(exec);
-    mtx->convert_to(gko::lend(csr));
+    auto csr = get_sorted_csr();
+    const auto ref_mtx = get_sorted_csr();
     bool was_sorted = is_csr_matrix_sorted(gko::lend(csr));
 
     gko::test::unsort_matrix(gko::lend(csr), rand_engine);
 
     ASSERT_FALSE(is_csr_matrix_sorted(gko::lend(csr)));
     ASSERT_TRUE(was_sorted);
-    GKO_ASSERT_MTX_NEAR(csr, mtx, 0.);
+    GKO_ASSERT_MTX_NEAR(csr, ref_mtx, 0.);
 }
 
 
 TEST_F(UnsortMatrix, CsrWorksWithEmpty)
 {
-    auto csr = Csr::create(exec);
-    empty->convert_to(gko::lend(csr));
-    bool was_sorted = is_csr_matrix_sorted(gko::lend(csr));
+    const bool was_sorted = is_csr_matrix_sorted(gko::lend(csr_empty));
 
-    gko::test::unsort_matrix(gko::lend(csr), rand_engine);
+    gko::test::unsort_matrix(gko::lend(csr_empty), rand_engine);
 
     ASSERT_TRUE(was_sorted);
-    GKO_ASSERT_MTX_NEAR(csr, empty, 0.);
+    ASSERT_EQ(csr_empty->get_num_stored_elements(), 0);
 }
 
 
 TEST_F(UnsortMatrix, CooWorks)
 {
-    auto coo = Coo::create(exec);
-    mtx->convert_to(gko::lend(coo));
+    auto coo = get_sorted_coo();
+    const auto ref_mtx = get_sorted_coo();
     const bool was_sorted = is_coo_matrix_sorted(gko::lend(coo));
 
     gko::test::unsort_matrix(gko::lend(coo), rand_engine);
 
     ASSERT_FALSE(is_coo_matrix_sorted(gko::lend(coo)));
     ASSERT_TRUE(was_sorted);
-    GKO_ASSERT_MTX_NEAR(coo, mtx, 0.);
+    GKO_ASSERT_MTX_NEAR(coo, ref_mtx, 0.);
 }
 
 
 TEST_F(UnsortMatrix, CooWorksWithEmpty)
 {
-    auto coo = Coo::create(exec);
-    empty->convert_to(gko::lend(coo));
-    const bool was_sorted = is_coo_matrix_sorted(gko::lend(coo));
+    const bool was_sorted = is_coo_matrix_sorted(gko::lend(coo_empty));
 
-    gko::test::unsort_matrix(gko::lend(coo), rand_engine);
+    gko::test::unsort_matrix(gko::lend(coo_empty), rand_engine);
 
     ASSERT_TRUE(was_sorted);
-    GKO_ASSERT_MTX_NEAR(coo, empty, 0.);
+    ASSERT_EQ(coo_empty->get_num_stored_elements(), 0);
 }
 
 
