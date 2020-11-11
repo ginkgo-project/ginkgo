@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/matrix_strategies.hpp>
 
+#include <algorithm>
+
 #include "core/components/fixed_block.hpp"
 #include "fbcsr_sample.hpp"
 
@@ -276,6 +278,40 @@ gko::matrix_data<ValueType, IndexType> FbcsrSample<
                               {3, 6, 0.0},  {3, 7, 7.0},   {3, 8, 8.0},
                               {4, 6, 9.0},  {4, 7, 10.0},  {4, 8, 11.0},
                               {5, 6, 12.0}, {5, 7, 13.0},  {5, 8, 14.0}}});
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Coo<ValueType, IndexType>>
+FbcsrSample<ValueType, IndexType>::generate_coo() const
+{
+    gko::matrix_data<ValueType, IndexType> mdata =
+        generate_matrix_data_with_explicit_zeros();
+
+    using nztype =
+        typename gko::matrix_data<ValueType, IndexType>::nonzero_type;
+    std::sort(mdata.nonzeros.begin(), mdata.nonzeros.end(),
+              [](const nztype &a, const nztype &b) {
+                  if (a.row < b.row)
+                      return true;
+                  else if (a.row > b.row)
+                      return false;
+                  else if (a.column < b.column)
+                      return true;
+                  else
+                      return false;
+              });
+
+    gko::Array<IndexType> rowidx(exec, nnz);
+    gko::Array<IndexType> colidx(exec, nnz);
+    gko::Array<ValueType> values(exec, nnz);
+    for (size_t i = 0; i < mdata.nonzeros.size(); i++) {
+        rowidx.get_data()[i] = mdata.nonzeros[i].row;
+        colidx.get_data()[i] = mdata.nonzeros[i].column;
+        values.get_data()[i] = mdata.nonzeros[i].value;
+    }
+    auto mat =
+        Coo::create(exec, gko::dim<2>{nrows, ncols}, values, colidx, rowidx);
+    return mat;
 }
 
 #define GKO_DECLARE_FBCSR_TEST_SAMPLE(ValueType, IndexType) \
