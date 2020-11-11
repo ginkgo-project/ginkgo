@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_TEST_FBCSR_SAMPLE_HPP
 
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
@@ -53,6 +54,7 @@ public:
     using index_type = IndexType;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using MatData = gko::matrix_data<value_type, index_type>;
 
@@ -64,6 +66,11 @@ public:
     std::unique_ptr<Csr> generate_csr() const;
 
     std::unique_ptr<Dense> generate_dense() const;
+
+    /// Returns the matrix in COO format keeping explicit nonzeros
+    /** The nonzeros are sorted by row and column.
+     */
+    std::unique_ptr<Coo> generate_coo() const;
 
     MatData generate_matrix_data() const;
 

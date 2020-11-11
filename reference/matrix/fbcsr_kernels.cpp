@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <iostream>
 #include <iterator>
 #include <numeric>
 #include <utility>
@@ -369,14 +368,13 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPGEAM_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+// template <typename IndexType>
+// void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
+//                               const IndexType *ptrs, size_type num_rows,
+//                               IndexType *idxs)
+// {
 //    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
-//}
+// }
 
 
 template <typename ValueType, typename IndexType>
@@ -384,15 +382,6 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType> *source,
                     matrix::Coo<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto num_rows = result->get_size()[0];
-//
-//    auto row_idxs = result->get_row_idxs();
-//    const auto source_row_ptrs = source->get_const_row_ptrs();
-//
-//    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL);

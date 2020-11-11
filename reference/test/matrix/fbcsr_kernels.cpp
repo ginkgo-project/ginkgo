@@ -91,7 +91,8 @@ protected:
           mtx(fbsample.generate_fbcsr()),
           refmtx(fbsample.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
-          refdenmtx(fbsample.generate_dense())
+          refdenmtx(fbsample.generate_dense()),
+          refcoomtx(fbsample.generate_coo())
     {}
 
     // void create_mtx3(Mtx *sorted, Mtx *unsorted)
@@ -133,24 +134,16 @@ protected:
 
     void assert_equal_to_mtx(const Coo *m)
     {
-        // auto v = m->get_const_values();
-        // auto c = m->get_const_col_idxs();
-        // auto r = m->get_const_row_idxs();
-
-        // ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        // ASSERT_EQ(m->get_num_stored_elements(), 4);
-        // EXPECT_EQ(r[0], 0);
-        // EXPECT_EQ(r[1], 0);
-        // EXPECT_EQ(r[2], 0);
-        // EXPECT_EQ(r[3], 1);
-        // EXPECT_EQ(c[0], 0);
-        // EXPECT_EQ(c[1], 1);
-        // EXPECT_EQ(c[2], 2);
-        // EXPECT_EQ(c[3], 1);
-        // EXPECT_EQ(v[0], value_type{1.0});
-        // EXPECT_EQ(v[1], value_type{3.0});
-        // EXPECT_EQ(v[2], value_type{2.0});
-        // EXPECT_EQ(v[3], value_type{5.0});
+        ASSERT_EQ(m->get_size(), refcoomtx->get_size());
+        ASSERT_EQ(m->get_num_stored_elements(),
+                  refcoomtx->get_num_stored_elements());
+        for (index_type i = 0; i < m->get_num_stored_elements(); i++) {
+            ASSERT_EQ(m->get_const_row_idxs()[i],
+                      refcoomtx->get_const_row_idxs[i]);
+            ASSERT_EQ(m->get_const_col_idxs()[i],
+                      refcoomtx->get_const_col_idxs[i]);
+            ASSERT_EQ(m->get_const_values()[i], refcoomtx->get_const_values[i]);
+        }
     }
 
     void assert_equal_to_mtx(const SparsityCsr *m)
@@ -175,6 +168,7 @@ protected:
     const std::unique_ptr<const Mtx> refmtx;
     const std::unique_ptr<const Csr> refcsrmtx;
     const std::unique_ptr<const Dense> refdenmtx;
+    const std::unique_ptr<const Coo> refcoomtx;
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
@@ -494,30 +488,26 @@ TYPED_TEST(Fbcsr, MovesToCsr)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsToCoo)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+// TYPED_TEST(Fbcsr, ConvertsToCoo)
+// {
 //    using Coo = typename TestFixture::Coo;
 //    auto coo_mtx = Coo::create(this->mtx->get_executor());
-//
+
 //    this->mtx->convert_to(coo_mtx.get());
-//
+
 //    this->assert_equal_to_mtx(coo_mtx.get());
-//}
+// }
 
 
-TYPED_TEST(Fbcsr, MovesToCoo)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+// TYPED_TEST(Fbcsr, MovesToCoo)
+// {
 //    using Coo = typename TestFixture::Coo;
 //    auto coo_mtx = Coo::create(this->mtx->get_executor());
-//
+
 //    this->mtx->move_to(coo_mtx.get());
-//
+
 //    this->assert_equal_to_mtx(coo_mtx.get());
-//}
+// }
 
 
 // TYPED_TEST(Fbcsr, ConvertsToSellp)
@@ -710,40 +700,36 @@ TYPED_TEST(Fbcsr, MovesEmptyToDense)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToCoo)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+// TYPED_TEST(Fbcsr, ConvertsEmptyToCoo)
+// {
 //    using ValueType = typename TestFixture::value_type;
 //    using IndexType = typename TestFixture::index_type;
 //    using Fbcsr = typename TestFixture::Mtx;
 //    using Coo = gko::matrix::Coo<ValueType, IndexType>;
 //    auto empty = Fbcsr::create(this->exec);
 //    auto res = Coo::create(this->exec);
-//
+
 //    empty->convert_to(res.get());
-//
+
 //    ASSERT_EQ(res->get_num_stored_elements(), 0);
 //    ASSERT_FALSE(res->get_size());
-//}
+// }
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToCoo)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
+// TYPED_TEST(Fbcsr, MovesEmptyToCoo)
+// {
 //    using ValueType = typename TestFixture::value_type;
 //    using IndexType = typename TestFixture::index_type;
 //    using Fbcsr = typename TestFixture::Mtx;
 //    using Coo = gko::matrix::Coo<ValueType, IndexType>;
 //    auto empty = Fbcsr::create(this->exec);
 //    auto res = Coo::create(this->exec);
-//
+
 //    empty->move_to(res.get());
-//
+
 //    ASSERT_EQ(res->get_num_stored_elements(), 0);
 //    ASSERT_FALSE(res->get_size());
-//}
+// }
 
 
 // TYPED_TEST(Fbcsr, ConvertsEmptyToEll)
