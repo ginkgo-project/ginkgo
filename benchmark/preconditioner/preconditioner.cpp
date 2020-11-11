@@ -45,110 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-// Command-line arguments
-DEFINE_uint32(max_block_size, 32,
-              "Maximal block size of the block-Jacobi preconditioner");
-
-DEFINE_uint32(num_iterations, 5,
-              "Number of iterations for the ParICT/ParILU(T) preconditioner");
-
-DEFINE_bool(
-    approx_select, true,
-    "Use approximate selection for the threshold filtering in ParICT/ParILUT");
-
-DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParICT/ParILUT");
-
-DEFINE_string(preconditioners, "jacobi,parilu,parilut,ilu",
-              "A comma-separated list of preconditioners to run."
-              "Supported values are: jacobi, parict, parilu, parilut, ilu");
-
-DEFINE_string(storage_optimization, "0,0",
-              "Defines the kind of storage optimization to perform on "
-              "preconditioners that support it. Supported values are: "
-              "autodetect and <X>,<Y> where <X> and <Y> are the input "
-              "parameters used to construct a precision_reduction object.");
-
-DEFINE_double(accuracy, 1e-1,
-              "This value is used as the accuracy flag of the adaptive Jacobi "
-              "preconditioner.");
 
 
 // some shortcuts
 using etype = double;
-
-
-// parses the storage optimization command line argument
-gko::precision_reduction parse_storage_optimization(const std::string &flag)
-{
-    if (flag == "autodetect") {
-        return gko::precision_reduction::autodetect();
-    }
-    const auto parts = split(flag, ',');
-    if (parts.size() != 2) {
-        throw std::runtime_error(
-            "storage_optimization has to be a list of two integers");
-    }
-    return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
-}
-
-
-// preconditioner mapping
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor> exec)>>
-    precond_factory{
-        {"jacobi",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<etype>::build()
-                 .with_max_block_size(FLAGS_max_block_size)
-                 .with_storage_optimization(
-                     parse_storage_optimization(FLAGS_storage_optimization))
-                 .with_accuracy(FLAGS_accuracy)
-                 .on(exec);
-         }},
-        {"parict",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ict_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIct<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .with_approximate_select(FLAGS_approx_select)
-                     .with_fill_in_limit(FLAGS_fill_limit)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ict_fact)
-                 .on(exec);
-         }},
-        {"parilu",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlu<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilu_fact)
-                 .on(exec);
-         }},
-        {"parilut",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilut_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlut<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .with_approximate_select(FLAGS_approx_select)
-                     .with_fill_in_limit(FLAGS_fill_limit)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilut_fact)
-                 .on(exec);
-         }},
-        {"ilu", [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::Ilu<etype>::build().on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilu_fact)
-                 .on(exec);
-         }}};
 
 
 // preconditioner generation and application
@@ -159,31 +61,59 @@ std::string encode_parameters(const char *precond_name)
         {"jacobi",
          [] {
              std::ostringstream oss;
-             oss << "jacobi-" << FLAGS_max_block_size << "-"
-                 << FLAGS_storage_optimization;
+             oss << "jacobi-" << FLAGS_jacobi_max_block_size << "-"
+                 << FLAGS_jacobi_storage;
              return oss.str();
          }},
         {"parict",
          [] {
              std::ostringstream oss;
-             oss << "parict-" << FLAGS_num_iterations << '-'
-                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             oss << "parict-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
              return oss.str();
          }},
         {"parilu",
          [] {
              std::ostringstream oss;
-             oss << "parilu-" << FLAGS_num_iterations;
+             oss << "parilu-" << FLAGS_parilu_iterations;
              return oss.str();
          }},
         {"parilut",
          [] {
              std::ostringstream oss;
-             oss << "parilut-" << FLAGS_num_iterations << '-'
-                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             oss << "parilut-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
              return oss.str();
          }},
-        {"ilu", [] { return std::string{"ilu"}; }}};
+        {"parict-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilu-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilu-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilut-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilut-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"ilu-isai", [] {
+             return std::string{"ilu-isai-"} + std::to_string(FLAGS_isai_power);
+         }}};
+    if (encoder.find(precond_name) == encoder.end()) {
+        return precond_name;
+    }
     return encoder[precond_name]();
 }
 
