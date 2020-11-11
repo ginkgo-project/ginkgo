@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/fbcsr_kernels.hpp"
+#include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -74,8 +75,10 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Sellp = gko::matrix::Sellp<value_type, index_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Ell = gko::matrix::Ell<value_type, index_type>;
@@ -84,174 +87,70 @@ protected:
 
     Fbcsr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4, mat_bs,
-                          std::make_shared<matstr::load_balance<Mtx>>(2))),
-          mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5, mat_bs,
-                           std::make_shared<matstr::classical<Mtx>>())),
-          mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7, mat_bs,
-                                  std::make_shared<matstr::classical<Mtx>>())),
-          mtx3_unsorted(Mtx::create(exec, gko::dim<2>(3, 3), 7, mat_bs,
-                                    std::make_shared<matstr::classical<Mtx>>()))
+          fbsample(exec),
+          mtx(fbsample.generate_fbcsr()),
+          refmtx(fbsample.generate_fbcsr()),
+          refcsrmtx(fbsample.generate_csr()),
+          refdenmtx(fbsample.generate_dense())
+    {}
+
+    // void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    // {
+    //     /* For both versions (sorted and unsorted), this matrix is stored:
+    //      * 0  2  1
+    //      * 3  1  8
+    //      * 2  0  3
+    //      * The unsorted matrix will have the (value, column) pair per row not
+    //      * sorted, which we still consider a valid FBCSR format.
+    //      */
+    // }
+
+    void assert_equal_to_mtx(const Csr *const m)
     {
-        this->create_mtx(mtx.get());
-        this->create_mtx2(mtx2.get());
-        this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
+        ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
+        ASSERT_EQ(m->get_num_stored_elements(),
+                  refcsrmtx->get_num_stored_elements());
+        for (index_type i = 0; i < m->get_size()[0] + 1; i++)
+            ASSERT_EQ(m->get_const_row_ptrs()[i],
+                      refcsrmtx->get_const_row_ptrs()[i]);
+        for (index_type i = 0; i < m->get_num_stored_elements(); i++) {
+            ASSERT_EQ(m->get_const_col_idxs()[i],
+                      refcsrmtx->get_const_col_idxs()[i]);
+            ASSERT_EQ(m->get_const_values()[i],
+                      refcsrmtx->get_const_values()[i]);
+        }
     }
 
-    void create_mtx(Mtx *m)
-    {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
-        auto *s = m->get_srow();
-        /*
-         * 1   3   2
-         * 0   5   0
-         */
-        r[0] = 0;
-        r[1] = 3;
-        r[2] = 4;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
-        s[0] = 0;
-    }
-
-    void create_mtx2(Mtx *m)
-    {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
-        // It keeps an explict zero
-        /*
-         *  1    3   2
-         * {0}   5   0
-         */
-        r[0] = 0;
-        r[1] = 3;
-        r[2] = 5;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 0;
-        c[4] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 0.0;
-        v[4] = 5.0;
-    }
-
-    void create_mtx3(Mtx *sorted, Mtx *unsorted)
-    {
-        auto vals_s = sorted->get_values();
-        auto cols_s = sorted->get_col_idxs();
-        auto rows_s = sorted->get_row_ptrs();
-        auto vals_u = unsorted->get_values();
-        auto cols_u = unsorted->get_col_idxs();
-        auto rows_u = unsorted->get_row_ptrs();
-        /* For both versions (sorted and unsorted), this matrix is stored:
-         * 0  2  1
-         * 3  1  8
-         * 2  0  3
-         * The unsorted matrix will have the (value, column) pair per row not
-         * sorted, which we still consider a valid FBCSR format.
-         */
-        rows_s[0] = 0;
-        rows_s[1] = 2;
-        rows_s[2] = 5;
-        rows_s[3] = 7;
-        rows_u[0] = 0;
-        rows_u[1] = 2;
-        rows_u[2] = 5;
-        rows_u[3] = 7;
-
-        vals_s[0] = 2.;
-        vals_s[1] = 1.;
-        vals_s[2] = 3.;
-        vals_s[3] = 1.;
-        vals_s[4] = 8.;
-        vals_s[5] = 2.;
-        vals_s[6] = 3.;
-        // Each row is stored rotated once to the left
-        vals_u[0] = 1.;
-        vals_u[1] = 2.;
-        vals_u[2] = 1.;
-        vals_u[3] = 8.;
-        vals_u[4] = 3.;
-        vals_u[5] = 3.;
-        vals_u[6] = 2.;
-
-        cols_s[0] = 1;
-        cols_s[1] = 2;
-        cols_s[2] = 0;
-        cols_s[3] = 1;
-        cols_s[4] = 2;
-        cols_s[5] = 0;
-        cols_s[6] = 2;
-        // The same applies for the columns
-        cols_u[0] = 2;
-        cols_u[1] = 1;
-        cols_u[2] = 1;
-        cols_u[3] = 2;
-        cols_u[4] = 0;
-        cols_u[5] = 2;
-        cols_u[6] = 0;
-    }
+    // void assert_equal_to_mtx(const Dense *const m)
+    // {
+    //     ASSERT_EQ(m->get_size(), refdenmtx->get_size());
+    //     ASSERT_EQ(m->get_num_stored_elements(),
+    //     refdenmtx->get_num_stored_elements()); for(index_type i = 0; i <
+    //     m->get_size()[0]; i++)
+    //         for(index_type j = 0; j < m->get_size()[1]; j++)
+    //             ASSERT_EQ(m->at(i,j), refdenmtx->at(i,j));
+    // }
 
     void assert_equal_to_mtx(const Coo *m)
     {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_idxs();
+        // auto v = m->get_const_values();
+        // auto c = m->get_const_col_idxs();
+        // auto r = m->get_const_row_idxs();
 
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 0);
-        EXPECT_EQ(r[2], 0);
-        EXPECT_EQ(r[3], 1);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{3.0});
-        EXPECT_EQ(v[2], value_type{2.0});
-        EXPECT_EQ(v[3], value_type{5.0});
-    }
-
-    void assert_equal_to_mtx(const Sellp *m)
-    {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto slice_sets = m->get_const_slice_sets();
-        auto slice_lengths = m->get_const_slice_lengths();
-        auto stride_factor = m->get_stride_factor();
-        auto slice_size = m->get_slice_size();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(stride_factor, 1);
-        ASSERT_EQ(slice_size, 64);
-        EXPECT_EQ(slice_sets[0], 0);
-        EXPECT_EQ(slice_lengths[0], 3);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[64], 1);
-        EXPECT_EQ(c[65], 0);
-        EXPECT_EQ(c[128], 2);
-        EXPECT_EQ(c[129], 0);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{5.0});
-        EXPECT_EQ(v[64], value_type{3.0});
-        EXPECT_EQ(v[65], value_type{0.0});
-        EXPECT_EQ(v[128], value_type{2.0});
-        EXPECT_EQ(v[129], value_type{0.0});
+        // ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        // ASSERT_EQ(m->get_num_stored_elements(), 4);
+        // EXPECT_EQ(r[0], 0);
+        // EXPECT_EQ(r[1], 0);
+        // EXPECT_EQ(r[2], 0);
+        // EXPECT_EQ(r[3], 1);
+        // EXPECT_EQ(c[0], 0);
+        // EXPECT_EQ(c[1], 1);
+        // EXPECT_EQ(c[2], 2);
+        // EXPECT_EQ(c[3], 1);
+        // EXPECT_EQ(v[0], value_type{1.0});
+        // EXPECT_EQ(v[1], value_type{3.0});
+        // EXPECT_EQ(v[2], value_type{2.0});
+        // EXPECT_EQ(v[3], value_type{5.0});
     }
 
     void assert_equal_to_mtx(const SparsityCsr *m)
@@ -270,89 +169,12 @@ protected:
         EXPECT_EQ(c[3], 1);
     }
 
-    void assert_equal_to_mtx(const Ell *m)
-    {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 6);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 0);
-        EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], 0);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{5.0});
-        EXPECT_EQ(v[2], value_type{3.0});
-        EXPECT_EQ(v[3], value_type{0.0});
-        EXPECT_EQ(v[4], value_type{2.0});
-        EXPECT_EQ(v[5], value_type{0.0});
-    }
-
-    void assert_equal_to_mtx(const Hybrid *m)
-    {
-        auto v = m->get_const_coo_values();
-        auto c = m->get_const_coo_col_idxs();
-        auto r = m->get_const_coo_row_idxs();
-        auto n = m->get_ell_num_stored_elements_per_row();
-        auto p = m->get_ell_stride();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(m->get_coo_num_stored_elements(), 4);
-        EXPECT_EQ(n, 0);
-        EXPECT_EQ(p, 2);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 0);
-        EXPECT_EQ(r[2], 0);
-        EXPECT_EQ(r[3], 1);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{3.0});
-        EXPECT_EQ(v[2], value_type{2.0});
-        EXPECT_EQ(v[3], value_type{5.0});
-    }
-
-    void assert_equal_to_mtx2(const Hybrid *m)
-    {
-        auto v = m->get_const_coo_values();
-        auto c = m->get_const_coo_col_idxs();
-        auto r = m->get_const_coo_row_idxs();
-        auto n = m->get_ell_num_stored_elements_per_row();
-        auto p = m->get_ell_stride();
-        auto ell_v = m->get_const_ell_values();
-        auto ell_c = m->get_const_ell_col_idxs();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        // Test Coo values
-        ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(c[0], 2);
-        EXPECT_EQ(v[0], value_type{2.0});
-        // Test Ell values
-        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
-        EXPECT_EQ(n, 2);
-        EXPECT_EQ(p, 2);
-        EXPECT_EQ(ell_v[0], value_type{1});
-        EXPECT_EQ(ell_v[1], value_type{0});
-        EXPECT_EQ(ell_v[2], value_type{3});
-        EXPECT_EQ(ell_v[3], value_type{5});
-        EXPECT_EQ(ell_c[0], 0);
-        EXPECT_EQ(ell_c[1], 0);
-        EXPECT_EQ(ell_c[2], 1);
-        EXPECT_EQ(ell_c[3], 1);
-    }
-
     std::shared_ptr<const gko::ReferenceExecutor> exec;
+    const gko::testing::FbcsrSample<value_type, index_type> fbsample;
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Mtx> mtx2;
-    std::unique_ptr<Mtx> mtx3_sorted;
-    std::unique_ptr<Mtx> mtx3_unsorted;
+    const std::unique_ptr<const Mtx> refmtx;
+    const std::unique_ptr<const Csr> refcsrmtx;
+    const std::unique_ptr<const Dense> refdenmtx;
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
@@ -627,33 +449,49 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Fbcsr, ConvertsToDense)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Dense = typename TestFixture::Vec;
-//    auto dense_mtx = Dense::create(this->mtx->get_executor());
-//    auto dense_other = gko::initialize<Dense>(
-//        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
-//
-//    this->mtx->convert_to(dense_mtx.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
-//}
+{
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+
+    this->mtx->convert_to(dense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx, this->refdenmtx, 0.0);
+}
 
 
 TYPED_TEST(Fbcsr, MovesToDense)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Dense = typename TestFixture::Vec;
-//    auto dense_mtx = Dense::create(this->mtx->get_executor());
-//    auto dense_other = gko::initialize<Dense>(
-//        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
-//
-//    this->mtx->move_to(dense_mtx.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
-//}
+{
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+
+    this->mtx->move_to(dense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx, this->refdenmtx, 0.0);
+}
+
+
+TYPED_TEST(Fbcsr, ConvertsToCsr)
+{
+    using Csr = typename TestFixture::Csr;
+    auto csr_mtx = Csr::create(this->mtx->get_executor(),
+                               std::make_shared<typename Csr::classical>());
+
+    this->mtx->convert_to(csr_mtx.get());
+
+    this->assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TYPED_TEST(Fbcsr, MovesToCsr)
+{
+    using Csr = typename TestFixture::Csr;
+    auto csr_mtx = Csr::create(this->mtx->get_executor(),
+                               std::make_shared<typename Csr::classical>());
+
+    this->mtx->move_to(csr_mtx.get());
+
+    this->assert_equal_to_mtx(csr_mtx.get());
+}
 
 
 TYPED_TEST(Fbcsr, ConvertsToCoo)
@@ -682,8 +520,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsToSellp)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsToSellp)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Sellp = typename TestFixture::Sellp;
@@ -695,8 +533,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesToSellp)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesToSellp)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Sellp = typename TestFixture::Sellp;
@@ -711,12 +549,12 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsToSparsityFbcsr)
+TYPED_TEST(Fbcsr, ConvertsToSparsityCsr)
 GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using SparsityFbcsr = typename TestFixture::SparsityFbcsr;
-//    auto sparsity_mtx = SparsityFbcsr::create(this->mtx->get_executor());
+//    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 //
 //    this->mtx->convert_to(sparsity_mtx.get());
 //
@@ -724,13 +562,13 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesToSparsityFbcsr)
+TYPED_TEST(Fbcsr, MovesToSparsityCsr)
 GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using SparsityFbcsr = typename TestFixture::SparsityFbcsr;
 //    using Fbcsr = typename TestFixture::Mtx;
-//    auto sparsity_mtx = SparsityFbcsr::create(this->mtx->get_executor());
+//    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 //    auto fbcsr_ref = Fbcsr::create(this->mtx->get_executor());
 //
 //    fbcsr_ref->copy_from(this->mtx.get());
@@ -740,8 +578,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsToHybridAutomatically)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsToHybridAutomatically)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Hybrid = typename TestFixture::Hybrid;
@@ -753,8 +591,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesToHybridAutomatically)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesToHybridAutomatically)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Hybrid = typename TestFixture::Hybrid;
@@ -769,8 +607,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsToHybridByColumn2)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsToHybridByColumn2)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Hybrid = typename TestFixture::Hybrid;
@@ -784,8 +622,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesToHybridByColumn2)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesToHybridByColumn2)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Hybrid = typename TestFixture::Hybrid;
@@ -845,35 +683,31 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Fbcsr, ConvertsEmptyToDense)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using ValueType = typename TestFixture::value_type;
-//    using Fbcsr = typename TestFixture::Mtx;
-//    using Dense = gko::matrix::Dense<ValueType>;
-//    auto empty = Fbcsr::create(this->exec);
-//    auto res = Dense::create(this->exec);
-//
-//    empty->convert_to(res.get());
-//
-//    ASSERT_FALSE(res->get_size());
-//}
+{
+    using ValueType = typename TestFixture::value_type;
+    using Fbcsr = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    auto empty = Fbcsr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
 
 
 TYPED_TEST(Fbcsr, MovesEmptyToDense)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using ValueType = typename TestFixture::value_type;
-//    using Fbcsr = typename TestFixture::Mtx;
-//    using Dense = gko::matrix::Dense<ValueType>;
-//    auto empty = Fbcsr::create(this->exec);
-//    auto res = Dense::create(this->exec);
-//
-//    empty->move_to(res.get());
-//
-//    ASSERT_FALSE(res->get_size());
-//}
+{
+    using ValueType = typename TestFixture::value_type;
+    using Fbcsr = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    auto empty = Fbcsr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
 
 
 TYPED_TEST(Fbcsr, ConvertsEmptyToCoo)
@@ -912,8 +746,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToEll)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsEmptyToEll)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -930,8 +764,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToEll)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesEmptyToEll)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -948,8 +782,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToSellp)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsEmptyToSellp)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -967,8 +801,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToSellp)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesEmptyToSellp)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -986,7 +820,7 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToSparsityFbcsr)
+TYPED_TEST(Fbcsr, ConvertsEmptyToSparsityCsr)
 GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
@@ -1005,7 +839,7 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToSparsityFbcsr)
+TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
 GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
@@ -1024,8 +858,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToHybrid)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsEmptyToHybrid)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -1042,8 +876,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToHybrid)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesEmptyToHybrid)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using ValueType = typename TestFixture::value_type;
@@ -1090,8 +924,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, ConvertsToEll)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, ConvertsToEll)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Ell = typename TestFixture::Ell;
@@ -1106,8 +940,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, MovesToEll)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, MovesToEll)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Ell = typename TestFixture::Ell;

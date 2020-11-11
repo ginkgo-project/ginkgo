@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -92,6 +93,11 @@ namespace kernels {
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
                           const matrix::Fbcsr<ValueType, IndexType> *source, \
                           matrix::Dense<ValueType> *result)
+
+#define GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
+                        const matrix::Fbcsr<ValueType, IndexType> *source, \
+                        matrix::Csr<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)      \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,       \
@@ -195,6 +201,8 @@ namespace kernels {
     GKO_DECLARE_FBCSR_SPGEAM_KERNEL(ValueType, IndexType);                     \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                          \
