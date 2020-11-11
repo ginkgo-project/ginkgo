@@ -67,6 +67,7 @@ GKO_REGISTER_OPERATION(spgemm, fbcsr::spgemm);
 // GKO_REGISTER_OPERATION(advanced_spgemm, fbcsr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, fbcsr::spgeam);
 GKO_REGISTER_OPERATION(convert_to_coo, fbcsr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
 // GKO_REGISTER_OPERATION(convert_to_sellp, fbcsr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, fbcsr::calculate_total_cols);
@@ -225,44 +226,39 @@ void Fbcsr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType> *result)
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-//    exec->run(fbcsr::make_convert_to_dense(this, tmp.get()));
-//    tmp->move_to(result);
-//}
+{
+    auto exec = this->get_executor();
+    auto tmp = Dense<ValueType>::create(exec, this->get_size());
+    exec->run(fbcsr::make_convert_to_dense(this, tmp.get()));
+    tmp->move_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
+{
+    this->convert_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-//    exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
-//    tmp->move_to(result);
-//}
+    Csr<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
+    exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
+    tmp->move_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
+{
+    this->convert_to(result);
+}
 
 
 // template <typename ValueType, typename IndexType>
