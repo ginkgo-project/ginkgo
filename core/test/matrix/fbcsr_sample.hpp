@@ -44,6 +44,8 @@ namespace testing {
 
 
 /// Generates the same sample block CSR matrix in different formats
+/** This currently a 6 x 12 matrix with 3x3 blocks.
+ */
 template <typename ValueType, typename IndexType>
 class FbcsrSample {
 public:
