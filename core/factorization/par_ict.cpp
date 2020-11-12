@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -175,30 +176,14 @@ ParIct<ValueType, IndexType>::generate_l_lt(
     const auto exec = this->get_executor();
 
     // convert and/or sort the matrix if necessary
-    std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
-    auto csr_system_matrix =
-        dynamic_cast<const CsrMatrix *>(system_matrix.get());
-    if (csr_system_matrix == nullptr ||
-        csr_system_matrix->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-            ->convert_to(csr_system_matrix_unique_ptr.get());
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
-    if (!parameters_.skip_sorting) {
-        if (csr_system_matrix_unique_ptr == nullptr) {
-            csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-            csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
-        }
-        csr_system_matrix_unique_ptr->sort_by_column_index();
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
+    auto csr_system_matrix = convert_to_with_sorting<CsrMatrix>(
+        exec, system_matrix, parameters_.skip_sorting);
 
     // initialize the L matrix data structures
     const auto num_rows = csr_system_matrix->get_size()[0];
     Array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
-    exec->run(make_initialize_row_ptrs_l(csr_system_matrix, l_row_ptrs));
+    exec->run(make_initialize_row_ptrs_l(csr_system_matrix.get(), l_row_ptrs));
 
     auto l_nnz =
         static_cast<size_type>(exec->copy_val_to_host(l_row_ptrs + num_rows));
@@ -209,14 +194,14 @@ ParIct<ValueType, IndexType>::generate_l_lt(
                                std::move(l_row_ptrs_array));
 
     // initialize L
-    exec->run(make_initialize_l(csr_system_matrix, l.get(), true));
+    exec->run(make_initialize_l(csr_system_matrix.get(), l.get(), true));
 
     // compute limit #nnz for L
     auto l_nnz_limit =
         static_cast<IndexType>(l_nnz * parameters_.fill_in_limit);
 
     ParIctState<ValueType, IndexType> state{exec,
-                                            csr_system_matrix,
+                                            csr_system_matrix.get(),
                                             std::move(l),
                                             l_nnz_limit,
                                             parameters_.approximate_select,
