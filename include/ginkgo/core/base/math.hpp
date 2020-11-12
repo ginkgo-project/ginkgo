@@ -914,12 +914,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
 abs(const T &x)
 {
 #ifdef CL_SYCL_LANGUAGE_VERSION
-    // FIXME: This implementation is due to two DPC++ issues
-    // 1) plain `sqrt` call evaluates to `std::sqrt` which fails on GPUs
-    // 2) DPC++ GPUs require the OpenCL backend (`SYCL_BE=OPENCL`) to support
-    //    complex multiplication, on top of extra binary objects. For now, we
-    //    avoid this issue with the current implementation.
-    return cl::sycl::sqrt(real(x) * real(x) + imag(x) * imag(x));
+    // FIXME: This implementation is due to a DPC++ issue:
+    // plain `sqrt` call evaluates to `std::sqrt` which fails on GPUs
+    return cl::sycl::sqrt(squared_norm(x));
 #else
     return sqrt(squared_norm(x));
 #endif
