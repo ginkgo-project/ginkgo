@@ -69,7 +69,6 @@ protected:
         cuda = gko::CudaExecutor::create(0, ref);
 
         mtx = gen_mtx(123, 123);
-        make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(cuda);
         d_mtx->copy_from(mtx.get());
         cuda_idr_factory =
