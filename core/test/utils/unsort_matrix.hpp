@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -88,8 +89,6 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType> *mtx,
 
 // Plan for now: shuffle values and column indices to unsort the given matrix
 // without changing the represented matrix.
-// Note: This expects COO to be properly sorted by row index (which is required
-//       by the Ginkgo COO format)
 template <typename ValueType, typename IndexType, typename RandomEngine>
 void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
                    RandomEngine &&engine)
@@ -112,25 +111,15 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
         mtx->copy_from(lend(h_mtx));
         return;
     }
+    matrix_data<value_type, index_type> data;
+    mtx->write(data);
+    auto &nonzeros = data.nonzeros;
+    using nz_type = typename decltype(data)::nonzero_type;
 
-    auto vals = mtx->get_values();
-    auto rows = mtx->get_row_idxs();
-    auto cols = mtx->get_col_idxs();
-
-    auto current_row = rows[0];
-    for (IndexType i = 0; i < nnz;) {
-        auto start = i;
-        while (i < nnz && rows[i] == current_row) {
-            ++i;
-        }
-        current_row = rows[i];
-        auto end = i;
-        auto iterator = gko::detail::IteratorFactory<IndexType, ValueType>(
-            cols + start, vals + start, end - start);
-        // since the row entries are supposed to be the same, there is no need
-        // to swap
-        std::shuffle(iterator.begin(), iterator.end(), engine);
-    }
+    std::shuffle(nonzeros.begin(), nonzeros.end(), engine);
+    std::stable_sort(nonzeros.begin(), nonzeros.end(),
+                     [](nz_type a, nz_type b) { return a.row < b.row; });
+    mtx->read(data);
 }
 
 
