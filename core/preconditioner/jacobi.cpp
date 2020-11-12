@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/base/utils.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -210,19 +211,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
-    decltype(copy_and_convert_to<csr_type>(exec, system_matrix)) csr_mtx{};
-
-    if (skip_sorting) {
-        csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
-            exec, system_matrix);
-    } else {
-        auto editable_csr = csr_type::create(exec);
-        as<ConvertibleTo<csr_type>>(system_matrix)
-            ->convert_to(lend(editable_csr));
-        editable_csr->sort_by_column_index();
-        csr_mtx = decltype(csr_mtx){editable_csr.release(),
-                                    std::default_delete<const csr_type>{}};
-    }
+    auto csr_mtx =
+        convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting);
 
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(csr_mtx.get());
