@@ -106,13 +106,13 @@ struct row_major_index<IndexType, total_dim, 1> {
  * compute(stride, tuple(x1, x2, x3, x4))
  * -> x4 + x2 * stride[2] + x1 * stride[1]
  */
-template <typename IndexType, int32 total_dim, int32 mask,
+template <typename IndexType, int32 total_dim, size_type mask,
           int32 current_dim = total_dim - 1,
           int32 current_scalar = total_dim - 1>
 struct row_major_mask_index {
-    static constexpr int32 msb_mask{static_cast<int32>(1)};
+    static constexpr size_type msb_mask{size_type{1} << current_dim};
     static constexpr int32 stride_size = total_dim > 1 ? total_dim - 1 : 0;
-    static constexpr int32 use_current_stride{mask & static_cast<int32>(1)};
+    static constexpr bool use_current_stride = mask & msb_mask;
     static constexpr bool is_last_stride_dim{stride_size == 0 ||
                                              current_scalar == total_dim - 1};
 
@@ -128,18 +128,20 @@ struct row_major_mask_index {
                           (is_last_stride_dim ? 1 : stride[current_scalar])
                     : 0) +
                    row_major_mask_index<
-                       IndexType, total_dim, (mask >> 1), current_dim - 1,
+                       IndexType, total_dim, mask, current_dim - 1,
                        current_scalar - use_current_stride>::compute(size,
                                                                      stride,
                                                                      indices);
     }
 };
 
-template <typename IndexType, int32 total_dim, int32 mask, int32 current_scalar>
+template <typename IndexType, int32 total_dim, size_type mask,
+          int32 current_scalar>
 struct row_major_mask_index<IndexType, total_dim, mask, 0, current_scalar> {
-    static constexpr int32 stride_size = total_dim > 1 ? total_dim - 1 : 0;
-    static constexpr int32 use_current_stride{mask & static_cast<int32>(1)};
     static constexpr int32 current_dim{0};
+    static constexpr size_type msb_mask{size_type{1}};
+    static constexpr int32 stride_size = total_dim > 1 ? total_dim - 1 : 0;
+    static constexpr bool use_current_stride{mask & msb_mask};
     static constexpr bool is_last_stride_dim{stride_size == 0 ||
                                              current_scalar == total_dim - 1};
 
@@ -222,6 +224,32 @@ mult_array(const dim<N> &size)
 }
 
 
+template <typename ValueType, size_type Iter, size_type mask, size_type N>
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<Iter == N, ValueType>
+mult_masked_array(const dim<N> &size)
+{
+    return 1;
+}
+
+// in case corresponding bit is set
+template <typename ValueType, size_type Iter, size_type mask, size_type N>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<Iter + 1 <= N && (mask & size_type{1}), ValueType>
+    mult_masked_array(const dim<N> &size)
+{
+    return size[Iter] * mult_array<ValueType, Iter + 1>(size);
+}
+
+// in case corresponding bit is NOT set
+template <typename ValueType, size_type Iter, size_type mask, size_type N>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<Iter + 1 <= N && ((mask & size_type{1}) == 0), ValueType>
+    mult_masked_array(const dim<N> &size)
+{
+    return mult_array<ValueType, Iter + 1, (mask >> 1)>(size);
+}
+
+
 template <typename ValueType, size_type Iter = 1, size_type N, typename... Args>
 constexpr GKO_ATTRIBUTES GKO_INLINE
     std::enable_if_t<N == 0 || (Iter == N && Iter == sizeof...(Args) + 1),
@@ -231,13 +259,47 @@ constexpr GKO_ATTRIBUTES GKO_INLINE
     return {{args...}};
 }
 
-
 template <typename ValueType, size_type Iter = 1, size_type N, typename... Args>
 constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<
     (Iter < N) && (Iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
 extract_factorization(const dim<N> &size, Args... args)
 {
     return extract_factorization<ValueType, Iter + 1>(
+        size, args..., mult_array<ValueType, Iter>(size));
+}
+
+
+template <typename ValueType, size_type Iter = 1, size_type mask,
+          size_type res_size, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<N == 0 || (Iter == N && res_size == sizeof...(Args) + 1),
+                     std::array<ValueType, res_size>>
+    extract_masked_factorization(const dim<N> &size, Args... args)
+{
+    return {{args...}};
+}
+
+// In case the corresponding bit is set
+template <typename ValueType, size_type Iter = 1, size_type mask,
+          size_type res_size, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<
+    (Iter < N) && (Iter == sizeof...(Args) + 1) && (mask & size_type{1}),
+    std::array<ValueType, res_size>>
+extract_factorization(const dim<N> &size, Args... args)
+{
+    return extract_masked_factorization<ValueType, Iter + 1>(
+        size, args..., mult_array<ValueType, Iter>(size));
+}
+
+// In case the corresponding bit is NOT set
+template <typename ValueType, size_type Iter = 1, size_type mask,
+          size_type res_size, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<
+    (Iter < N) && (Iter == sizeof...(Args) + 1) && ((mask & size_type{1}) == 0),
+    std::array<ValueType, res_size>>
+extract_factorization(const dim<N> &size, Args... args)
+{
+    return extract_masked_factorization<ValueType, Iter + 1>(
         size, args..., mult_array<ValueType, Iter>(size));
 }
 
@@ -325,6 +387,35 @@ GKO_ATTRIBUTES GKO_INLINE constexpr int validate_spans(const dim<N> &size,
                                                        Spans... spans)
 {
     return detail::spans_in_size<0>(size, std::forward<Spans>(spans)...);
+}
+
+
+namespace detail {
+
+
+template <int32 mask, size_type N, size_type Iter = 0>
+constexpr std::enable_if_t<Iter == N, size_type>
+count_mask_dimensionality_impl()
+{
+    return 0;
+}
+
+template <int32 mask, size_type N, size_type Iter = 0>
+constexpr std::enable_if_t<(Iter < N), size_type>
+count_mask_dimensionality_impl()
+{
+    return (mask & int32{1}) +
+           count_mask_dimensionality_impl<(mask >> 1), N, Iter + 1>();
+}
+
+
+}  // namespace detail
+
+
+template <int32 mask, size_type N>
+constexpr size_type count_mask_dimensionality()
+{
+    return detail::count_mask_dimensionality_impl<mask, N>();
 }
 
 
