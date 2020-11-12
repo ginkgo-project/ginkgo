@@ -181,6 +181,38 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
+    Fbcsr<ValueType, IndexType> *result) const
+{
+    bool same_executor = this->get_executor() == result->get_executor();
+    // NOTE: as soon as strategies are improved, this can be reverted
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->startrow_ = this->startrow_;
+    result->set_size(this->get_size());
+    result->bs_ = this->bs_;
+    if (!same_executor) {
+        convert_strategy_helper(result);
+    } else {
+        result->set_strategy(std::move(this->get_strategy()->copy()));
+    }
+    // END NOTE
+}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType> *result)
+{
+    bool same_executor = this->get_executor() == result->get_executor();
+    EnableLinOp<Fbcsr>::move_to(result);
+    if (!same_executor) {
+        matrix_strategy::strategy_rebuild_helper(result);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::convert_to(
     Fbcsr<next_precision<ValueType>, IndexType> *const result) const
 {
     result->values_ = this->values_;
@@ -705,6 +737,73 @@ Fbcsr<ValueType, IndexType>::compute_absolute() const GKO_NOT_IMPLEMENTED;
 //    convert_strategy_helper(abs_fbcsr.get());
 //    return abs_fbcsr;
 //}
+
+
+// TODO clean this up as soon as we improve strategy_type
+template <typename ValueType, typename IndexType>
+template <typename FbcsrType>
+void Fbcsr<ValueType, IndexType>::convert_strategy_helper(
+    FbcsrType *result) const
+{
+    auto strat = this->get_strategy().get();
+    std::shared_ptr<typename matrix_strategy::strategy_type<FbcsrType>>
+        new_strat;
+    using classical = matrix_strategy::classical<FbcsrType>;
+    using load_balance = matrix_strategy::load_balance<FbcsrType>;
+    using automatic = matrix_strategy::automatic<FbcsrType>;
+
+    if (dynamic_cast<classical *>(strat)) {
+        new_strat = std::make_shared<classical>();
+    } else {
+        auto rexec = result->get_executor();
+        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(rexec);
+        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+        auto lb = dynamic_cast<load_balance *>(strat);
+        if (cuda_exec) {
+            if (lb) {
+                new_strat = std::make_shared<load_balance>(cuda_exec);
+            } else {
+                new_strat = std::make_shared<automatic>(cuda_exec);
+            }
+        } else if (hip_exec) {
+            if (lb) {
+                new_strat = std::make_shared<load_balance>(hip_exec);
+            } else {
+                new_strat = std::make_shared<automatic>(hip_exec);
+            }
+        } else {
+            // Try to preserve this executor's configuration
+            auto this_cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                this->get_executor());
+            auto this_hip_exec = std::dynamic_pointer_cast<const HipExecutor>(
+                this->get_executor());
+            if (this_cuda_exec) {
+                if (lb) {
+                    new_strat = std::make_shared<load_balance>(this_cuda_exec);
+                } else {
+                    new_strat = std::make_shared<automatic>(this_cuda_exec);
+                }
+            } else if (this_hip_exec) {
+                if (lb) {
+                    new_strat = std::make_shared<load_balance>(this_hip_exec);
+                } else {
+                    new_strat = std::make_shared<automatic>(this_hip_exec);
+                }
+            } else {
+                // We had a load balance or automatic strategy from a non
+                // HIP or Cuda executor and are moving to a non HIP or Cuda
+                // executor.
+                // FIXME this creates a long delay
+                if (lb) {
+                    new_strat = std::make_shared<load_balance>();
+                } else {
+                    new_strat = std::make_shared<automatic>();
+                }
+            }
+        }
+    }
+    result->set_strategy(new_strat);
+}
 
 
 #define GKO_DECLARE_FBCSR_MATRIX(ValueType, IndexType) \
