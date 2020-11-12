@@ -268,7 +268,7 @@ TYPED_TEST(ReducedStorage3d, CopyFrom)
 {
     using st_type = typename TestFixture::st_type;
     using reduced_storage = typename TestFixture::reduced_storage;
-    st_type data2[this->data_elements];
+    st_type data2[TestFixture::data_elements];
     reduced_storage cpy(data2, this->size);
 
     // Do not use this in regular code since the implementation is slow
@@ -309,7 +309,7 @@ TYPED_TEST(ReducedStorage3d, CanWriteData)
     this->r(0, 1, 0) = 100.25;
 
     this->check_accessor_correctness(this->r, t(0, 1, 0));
-    EXPECT_NEAR(this->r(0, 1, 0), 100.25, this->delta);
+    EXPECT_NEAR(this->r(0, 1, 0), 100.25, TestFixture::delta);
 }
 
 
@@ -320,7 +320,7 @@ TYPED_TEST(ReducedStorage3d, Assignment)
     this->r(0, 0, 1) = 10.2;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), 10.2, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), 10.2, TestFixture::delta);
 }
 
 
@@ -331,7 +331,7 @@ TYPED_TEST(ReducedStorage3d, Assignment2)
     this->r(0, 0, 1) = this->r(0, 1, 0);
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), -1.02, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), -1.02, TestFixture::delta);
 }
 
 
@@ -345,8 +345,8 @@ TYPED_TEST(ReducedStorage3d, Addition)
     this->r(0, 0, 1) += 10.2;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -360,8 +360,8 @@ TYPED_TEST(ReducedStorage3d, Addition2)
     this->r(0, 0, 1) += this->r(0, 1, 0);
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -375,8 +375,8 @@ TYPED_TEST(ReducedStorage3d, Subtraction)
     this->r(3, 2, 1) -= 1;
 
     this->check_accessor_correctness(this->r, t(3, 2, 1));
-    EXPECT_NEAR(this->r(3, 2, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(3, 2, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -390,8 +390,8 @@ TYPED_TEST(ReducedStorage3d, Subtraction2)
     this->r(3, 2, 0) -= this->r(3, 2, 1);
 
     this->check_accessor_correctness(this->r, t(3, 2, 0));
-    EXPECT_NEAR(this->r(3, 2, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(3, 2, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -405,8 +405,8 @@ TYPED_TEST(ReducedStorage3d, Multiplication)
     this->r(0, 0, 0) *= 2;
 
     this->check_accessor_correctness(this->r, t(0, 0, 0));
-    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -420,8 +420,8 @@ TYPED_TEST(ReducedStorage3d, Multiplication2)
     this->r(0, 0, 1) *= this->r(0, 1, 1);
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -435,8 +435,8 @@ TYPED_TEST(ReducedStorage3d, Division)
     this->r(0, 0, 1) /= 2.;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -450,8 +450,8 @@ TYPED_TEST(ReducedStorage3d, Division2)
     this->r(1, 0, 0) /= this->r(0, 2, 0);
 
     this->check_accessor_correctness(this->r, t(1, 0, 0));
-    EXPECT_NEAR(this->r(1, 0, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(1, 0, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -688,8 +688,8 @@ TYPED_TEST(ScaledReducedStorage3d, CopyFrom)
     using ar_type = typename TestFixture::ar_type;
     using st_type = typename TestFixture::st_type;
     using reduced_storage = typename TestFixture::reduced_storage;
-    st_type data2[this->data_elements];
-    ar_type scale2[this->scalar_elements];
+    st_type data2[TestFixture::data_elements];
+    ar_type scale2[TestFixture::scalar_elements];
     reduced_storage cpy(data2, scale2, this->size);
 
     // Do not use this in regular code since the implementation is slow
@@ -770,8 +770,8 @@ TYPED_TEST(ScaledReducedStorage3d, Addition)
     this->r(0, 0, 0) += 3.;
 
     this->check_accessor_correctness(this->r, t(0, 0, 0));
-    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -785,8 +785,8 @@ TYPED_TEST(ScaledReducedStorage3d, Addition2)
     this->r(0, 0, 0) += this->cr(0, 0, 1);
 
     this->check_accessor_correctness(this->r, t(0, 0, 0));
-    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -800,8 +800,8 @@ TYPED_TEST(ScaledReducedStorage3d, Subtraction)
     this->r(0, 0, 1) -= 2.;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -815,8 +815,8 @@ TYPED_TEST(ScaledReducedStorage3d, Subtraction2)
     this->r(0, 1, 0) -= this->r(0, 1, 1);
 
     this->check_accessor_correctness(this->r, t(0, 1, 0));
-    EXPECT_NEAR(this->r(0, 1, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 1, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -830,8 +830,8 @@ TYPED_TEST(ScaledReducedStorage3d, Multiplication)
     this->r(0, 1, 1) *= 3.;
 
     this->check_accessor_correctness(this->r, t(0, 1, 1));
-    EXPECT_NEAR(this->r(0, 1, 1), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 1, 1), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -845,8 +845,8 @@ TYPED_TEST(ScaledReducedStorage3d, Multiplication2)
     this->r(0, 2, 0) *= this->r(0, 0, 0);
 
     this->check_accessor_correctness(this->r, t(0, 2, 0));
-    EXPECT_NEAR(this->r(0, 2, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 2, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -860,8 +860,8 @@ TYPED_TEST(ScaledReducedStorage3d, Division)
     this->r(0, 0, 0) /= 2.;
 
     this->check_accessor_correctness(this->r, t(0, 0, 0));
-    EXPECT_NEAR(this->r(0, 0, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 0, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 
@@ -875,8 +875,8 @@ TYPED_TEST(ScaledReducedStorage3d, Division2)
     this->r(0, 1, 0) /= this->r(0, 3, 0);
 
     this->check_accessor_correctness(this->r, t(0, 1, 0));
-    EXPECT_NEAR(this->r(0, 1, 0), expected, this->delta);
-    EXPECT_NEAR(result, expected, this->delta);
+    EXPECT_NEAR(this->r(0, 1, 0), expected, TestFixture::delta);
+    EXPECT_NEAR(result, expected, TestFixture::delta);
 }
 
 

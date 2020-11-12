@@ -384,7 +384,7 @@ public:
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices &&... indices) const
     {
-        return reference_type{this->storage_ +
+        return reference_type{storage_ +
                               compute_index(std::forward<Indices>(indices)...)};
     }
 
@@ -600,7 +600,10 @@ public:
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
         const std::array<const size_type, dimensionality - 1> &stride)
-        : storage_{storage}, scalar_{scalar}, size_{size}, stride_{stride}
+        : storage_{storage},
+          scalar_{scalar},
+          size_{size},
+          storage_stride_{stride}
     {}
 
     /**
@@ -617,7 +620,10 @@ public:
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         storage_type *storage, scalar_type *scalar, dim<dimensionality> size,
         std::array<const size_type, dimensionality - 1> &&stride)
-        : storage_{storage}, scalar_{scalar}, size_{size}, stride_{stride}
+        : storage_{storage},
+          scalar_{scalar},
+          size_{size},
+          storage_stride_{stride}
     {}
 
     /**
@@ -656,7 +662,7 @@ public:
         : storage_{storage},
           scalar_{scalar},
           size_{size},
-          stride_{std::forward<Strides>(strides)...}
+          storage_stride_{std::forward<Strides>(strides)...}
     {
         static_assert(sizeof...(Strides) + 1 == dimensionality,
                       "Number of provided Strides must be dimensionality - 1!");
@@ -677,7 +683,7 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr range<const_accessor> to_const() const
     {
-        return range<const_accessor>{storage_, scalar_, size_, stride_};
+        return range<const_accessor>{storage_, scalar_, size_, storage_stride_};
     }
 
     /**
@@ -746,7 +752,7 @@ public:
     operator()(Indices... indices) const
     {
         return reference_type{
-            this->storage_ + compute_index(std::forward<Indices>(indices)...),
+            storage_ + compute_index(std::forward<Indices>(indices)...),
             read_scalar(std::forward<Indices>(indices)...)};
     }
 
@@ -769,7 +775,7 @@ public:
                    scalar_ + compute_scalar_index(span{spans}.begin...),
                    dim<dimensionality>{
                        (span{spans}.end - span{spans}.begin)...},
-                   stride_};
+                   storage_stride_};
     }
 
     /**
@@ -791,7 +797,7 @@ public:
     GKO_INLINE constexpr const std::array<const size_type, dimensionality - 1>
         &get_stride() const
     {
-        return stride_;
+        return storage_stride_;
     }
 
     /**
@@ -822,7 +828,7 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type *get_scalar() const
     {
-        return this->scalar_;
+        return scalar_;
     }
 
     /**
@@ -833,7 +839,7 @@ public:
     GKO_ATTRIBUTES GKO_INLINE constexpr const scalar_type *get_const_scalar()
         const
     {
-        return this->scalar_;
+        return scalar_;
     }
 
 protected:
@@ -844,7 +850,7 @@ protected:
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
         return helper::row_major_index<
-            const size_type, dimensionality>::compute(size_, stride_,
+            const size_type, dimensionality>::compute(size_, storage_stride_,
                                                       std::forward<Indices>(
                                                           indices)...);
     }
@@ -857,14 +863,14 @@ protected:
                       "Number of indices must match dimensionality!");
         return helper::row_major_mask_index<
             const size_type, dimensionality,
-            scalar_mask>::compute(size_, stride_,
+            scalar_mask>::compute(size_, storage_stride_,
                                   std::forward_as_tuple(indices...));
     }
 
     storage_type *storage_;
     scalar_type *scalar_;
     const dim<dimensionality> size_;
-    const std::array<const size_type, dimensionality - 1> stride_;
+    const std::array<const size_type, dimensionality - 1> storage_stride_;
 };
 
 
