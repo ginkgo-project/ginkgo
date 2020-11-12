@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 namespace gko {
 namespace testing {
@@ -57,6 +58,7 @@ public:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using MatData = gko::matrix_data<value_type, index_type>;
+    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
 
     FbcsrSample(std::shared_ptr<const gko::ReferenceExecutor> exec);
 
@@ -71,6 +73,8 @@ public:
     /** The nonzeros are sorted by row and column.
      */
     std::unique_ptr<Coo> generate_coo() const;
+
+    std::unique_ptr<SparCsr> generate_sparsity_csr() const;
 
     MatData generate_matrix_data() const;
 
