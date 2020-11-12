@@ -314,6 +314,20 @@ FbcsrSample<ValueType, IndexType>::generate_coo() const
     return mat;
 }
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
+FbcsrSample<ValueType, IndexType>::generate_sparsity_csr() const
+{
+    gko::Array<IndexType> colids(exec, nbnz);
+    gko::Array<IndexType> rowptrs(exec, nbrows + 1);
+    const std::unique_ptr<const Fbcsr> fbmat = generate_fbcsr();
+    for (index_type i = 0; i < nbrows + 1; i++)
+        rowptrs.get_data()[i] = fbmat->get_row_ptrs()[i];
+    for (index_type i = 0; i < nbnz; i++)
+        colids.get_data()[i] = fbmat->get_col_idxs()[i];
+    return SparCsr::create(exec, gko::dim<2>{nbrows, nbcols}, colids, rowptrs);
+}
+
 #define GKO_DECLARE_FBCSR_TEST_SAMPLE(ValueType, IndexType) \
     class FbcsrSample<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_TEST_SAMPLE);

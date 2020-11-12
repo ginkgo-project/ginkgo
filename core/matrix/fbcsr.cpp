@@ -332,16 +332,17 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *result) const
 {
+    using gko::blockutils::getNumFixedBlocks;
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements());
+        exec,
+        gko::dim<2>{getNumFixedBlocks(bs_, this->get_size()[0]),
+                    getNumFixedBlocks(bs_, this->get_size()[1])},
+        getNumFixedBlocks(bs_ * bs_, this->get_num_stored_elements()));
+
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;
-    // if (result->value_.get_data()) {
-    //     tmp->value_ = result->value_;
-    // } else {
     tmp->value_ = gko::Array<ValueType>(exec, {one<ValueType>()});
-    // }
     tmp->move_to(result);
 }
 
