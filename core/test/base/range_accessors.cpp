@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <type_traits>
 
+#include <iostream>
+
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -181,8 +183,8 @@ protected:
         3.22, -2.23
     };
     // clang-format on
-    reduced_storage r{data, size};
-    const_reduced_storage cr{data, size};
+    reduced_storage r{size, data};
+    const_reduced_storage cr{size, data};
 
     template <typename Accessor>
     static void check_accessor_correctness(
@@ -269,7 +271,7 @@ TYPED_TEST(ReducedStorage3d, CopyFrom)
     using st_type = typename TestFixture::st_type;
     using reduced_storage = typename TestFixture::reduced_storage;
     st_type data2[TestFixture::data_elements];
-    reduced_storage cpy(data2, this->size);
+    reduced_storage cpy(this->size, data2);
 
     // Do not use this in regular code since the implementation is slow
     cpy = this->r;
@@ -522,17 +524,17 @@ protected:
     using const_reduced_storage2d = gko::range<const_accessor2d>;
     using const_reduced_storage1d = gko::range<const_accessor1d>;
 
-    const std::array<const size_type, 0> stride0{{}};
-    const std::array<const size_type, 1> stride1{{4}};
+    const std::array<size_type, 0> stride0{{}};
+    const std::array<size_type, 1> stride1{{4}};
     const gko::dim<1> size_1d{8u};
     const gko::dim<2> size_2d{2u, 4u};
     static constexpr gko::size_type data_elements{8};
     st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
                                 5.5f, 6.6f, 7.7f, -8.8f};
-    reduced_storage1d r1{data, size_1d};
-    reduced_storage2d r2{data, size_2d, stride1[0]};
-    const_reduced_storage1d cr1{data, size_1d, stride0};
-    const_reduced_storage2d cr2{data, size_2d, stride1};
+    reduced_storage1d r1{size_1d, data};
+    reduced_storage2d r2{size_2d, data, stride1[0]};
+    const_reduced_storage1d cr1{size_1d, data, stride0};
+    const_reduced_storage2d cr2{size_2d, data, stride1};
 
     void data_equal_except_for(int idx)
     {
@@ -612,8 +614,8 @@ protected:
         1., 2.,
     };
     // clang-format on
-    reduced_storage r{data, scalar, size};
-    const_reduced_storage cr{data, scalar, size};
+    reduced_storage r{size, data, scalar};
+    const_reduced_storage cr{size, data, scalar};
 
     template <typename Accessor>
     static void check_accessor_correctness(
@@ -690,7 +692,7 @@ TYPED_TEST(ScaledReducedStorage3d, CopyFrom)
     using reduced_storage = typename TestFixture::reduced_storage;
     st_type data2[TestFixture::data_elements];
     ar_type scale2[TestFixture::scalar_elements];
-    reduced_storage cpy(data2, scale2, this->size);
+    reduced_storage cpy(this->size, data2, scale2);
 
     // Do not use this in regular code since the implementation is slow
     cpy = this->r;
@@ -922,8 +924,9 @@ protected:
     using const_reduced_storage2d = gko::range<const_accessor2d>;
     using const_reduced_storage1d = gko::range<const_accessor1d>;
 
-    const std::array<const size_type, 0> stride0{{}};
-    const std::array<const size_type, 1> stride1{{4}};
+    const std::array<size_type, 0> stride0{{}};
+    const std::array<size_type, 1> stride1{{4}};
+    const size_type stride1nc[1] = {4};
     const gko::dim<1> size_1d{8u};
     const gko::dim<2> size_2d{2u, 4u};
 
@@ -934,10 +937,10 @@ protected:
         default_scalar, default_scalar, default_scalar, default_scalar,
         default_scalar, default_scalar, default_scalar, default_scalar};
 
-    reduced_storage1d r1{data, scalar, size_1d};
-    reduced_storage2d r2{data, scalar, size_2d, stride1[0]};
-    const_reduced_storage1d cr1{data, scalar, size_1d, stride0};
-    const_reduced_storage2d cr2{data, scalar, size_2d, stride1};
+    reduced_storage1d r1{size_1d, data, scalar};
+    reduced_storage2d r2{size_2d, data, stride1, scalar};
+    const_reduced_storage1d cr1{size_1d, data, stride0, scalar};
+    const_reduced_storage2d cr2{size_2d, data, stride1, scalar};
 
     void data_equal_except_for(int idx)
     {
