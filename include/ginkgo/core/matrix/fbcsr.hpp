@@ -217,6 +217,10 @@ public:
 
     // void move_to(Sellp<ValueType, IndexType> *result) override;
 
+    /// Get the block sparsity pattern in CSR-like format
+    /** Note that the actual non-zero values are never copied;
+     * the result always has a value array of size 1 with the value 1.
+     */
     void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
 
     void move_to(SparsityCsr<ValueType, IndexType> *result) override;
