@@ -80,7 +80,7 @@ protected:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Sellp = gko::matrix::Sellp<value_type, index_type>;
-    using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
+    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Ell = gko::matrix::Ell<value_type, index_type>;
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
@@ -92,7 +92,8 @@ protected:
           refmtx(fbsample.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
           refdenmtx(fbsample.generate_dense()),
-          refcoomtx(fbsample.generate_coo())
+          refcoomtx(fbsample.generate_coo()),
+          refspcmtx(fbsample.generate_sparsity_csr())
     {}
 
     // void create_mtx3(Mtx *sorted, Mtx *unsorted)
@@ -146,20 +147,17 @@ protected:
         }
     }
 
-    void assert_equal_to_mtx(const SparsityCsr *m)
+    void assert_equal_to_mtx(const SparCsr *m)
     {
-        auto *c = m->get_const_col_idxs();
-        auto *r = m->get_const_row_ptrs();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_nonzeros(), 4);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 3);
-        EXPECT_EQ(r[2], 4);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
+        ASSERT_EQ(m->get_size(), refspcmtx->get_size());
+        ASSERT_EQ(m->get_num_nonzeros(), refspcmtx->get_num_nonzeros());
+        for (index_type i = 0; i < m->get_size()[0] + 1; i++)
+            ASSERT_EQ(m->get_const_row_ptrs()[i],
+                      refspcmtx->get_const_row_ptrs()[i]);
+        for (index_type i = 0; i < m->get_num_nonzeros(); i++) {
+            ASSERT_EQ(m->get_const_col_idxs()[i],
+                      refspcmtx->get_const_col_idxs()[i]);
+        }
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -169,6 +167,7 @@ protected:
     const std::unique_ptr<const Csr> refcsrmtx;
     const std::unique_ptr<const Dense> refdenmtx;
     const std::unique_ptr<const Coo> refcoomtx;
+    const std::unique_ptr<const SparCsr> refspcmtx;
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
@@ -540,32 +539,28 @@ TYPED_TEST(Fbcsr, MovesToCsr)
 
 
 TYPED_TEST(Fbcsr, ConvertsToSparsityCsr)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using SparsityFbcsr = typename TestFixture::SparsityFbcsr;
-//    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
-//
-//    this->mtx->convert_to(sparsity_mtx.get());
-//
-//    this->assert_equal_to_mtx(sparsity_mtx.get());
-//}
+{
+    using SparsityCsr = typename TestFixture::SparCsr;
+    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
+
+    this->mtx->convert_to(sparsity_mtx.get());
+
+    this->assert_equal_to_mtx(sparsity_mtx.get());
+}
 
 
 TYPED_TEST(Fbcsr, MovesToSparsityCsr)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using SparsityFbcsr = typename TestFixture::SparsityFbcsr;
-//    using Fbcsr = typename TestFixture::Mtx;
-//    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
-//    auto fbcsr_ref = Fbcsr::create(this->mtx->get_executor());
-//
-//    fbcsr_ref->copy_from(this->mtx.get());
-//    fbcsr_ref->move_to(sparsity_mtx.get());
-//
-//    this->assert_equal_to_mtx(sparsity_mtx.get());
-//}
+{
+    using SparsityCsr = typename TestFixture::SparCsr;
+    using Fbcsr = typename TestFixture::Mtx;
+    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
+    // auto fbcsr_ref = Fbcsr::create(this->mtx->get_executor());
+
+    // fbcsr_ref->copy_from(this->mtx.get());
+    this->mtx->move_to(sparsity_mtx.get());
+
+    this->assert_equal_to_mtx(sparsity_mtx.get());
+}
 
 
 // TYPED_TEST(Fbcsr, ConvertsToHybridAutomatically)
@@ -807,41 +802,37 @@ TYPED_TEST(Fbcsr, MovesEmptyToDense)
 
 
 TYPED_TEST(Fbcsr, ConvertsEmptyToSparsityCsr)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using ValueType = typename TestFixture::value_type;
-//    using IndexType = typename TestFixture::index_type;
-//    using Fbcsr = typename TestFixture::Mtx;
-//    using SparsityFbcsr = gko::matrix::SparsityFbcsr<ValueType, IndexType>;
-//    auto empty = Fbcsr::create(this->exec);
-//    empty->get_row_ptrs()[0] = 0;
-//    auto res = SparsityFbcsr::create(this->exec);
-//
-//    empty->convert_to(res.get());
-//
-//    ASSERT_EQ(res->get_num_nonzeros(), 0);
-//    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-//}
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Mtx;
+    using SparCsr = typename TestFixture::SparCsr;
+    auto empty = Fbcsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparCsr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
 
 
 TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using ValueType = typename TestFixture::value_type;
-//    using IndexType = typename TestFixture::index_type;
-//    using Fbcsr = typename TestFixture::Mtx;
-//    using SparsityFbcsr = gko::matrix::SparsityFbcsr<ValueType, IndexType>;
-//    auto empty = Fbcsr::create(this->exec);
-//    empty->get_row_ptrs()[0] = 0;
-//    auto res = SparsityFbcsr::create(this->exec);
-//
-//    empty->move_to(res.get());
-//
-//    ASSERT_EQ(res->get_num_nonzeros(), 0);
-//    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-//}
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Mtx;
+    using SparCsr = typename TestFixture::SparCsr;
+    auto empty = Fbcsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparCsr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
 
 
 // TYPED_TEST(Fbcsr, ConvertsEmptyToHybrid)
