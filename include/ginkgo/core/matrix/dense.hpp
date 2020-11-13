@@ -232,6 +232,16 @@ public:
     std::unique_ptr<LinOp> row_permute(
         const Array<int64> *permutation_indices) const override;
 
+    std::unique_ptr<Dense> row_gather(const Array<int32> *gather_indices) const;
+
+    std::unique_ptr<Dense> row_gather(const Array<int64> *gather_indices) const;
+
+    void row_gather(const Array<int32> *gather_indices,
+                    Dense *row_gathered) const;
+
+    void row_gather(const Array<int64> *gather_indices,
+                    Dense *row_gathered) const;
+
     std::unique_ptr<LinOp> column_permute(
         const Array<int32> *permutation_indices) const override;
 
