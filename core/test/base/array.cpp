@@ -263,6 +263,38 @@ TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 }
 
 
+TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
+{
+    auto tmp_clone = make_temporary_clone(this->exec, &this->x);
+
+    ASSERT_EQ(tmp_clone.get(), &this->x);
+}
+
+
+TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
+{
+    auto omp = gko::OmpExecutor::create();
+
+    auto tmp_clone = make_temporary_clone(omp, &this->x);
+
+    this->assert_equal_to_original_x(*tmp_clone.get());
+    ASSERT_NE(tmp_clone.get(), &this->x);
+}
+
+
+TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
+{
+    auto omp = gko::OmpExecutor::create();
+
+    {
+        auto tmp_clone = make_temporary_clone(omp, &this->x);
+        this->x.get_data()[0] = 0;
+    }
+
+    this->assert_equal_to_original_x(this->x);
+}
+
+
 TYPED_TEST(Array, CanBeCleared)
 {
     this->x.clear();
