@@ -62,9 +62,9 @@ namespace fbcsr {
 
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
-// GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, fbcsr::spgemm);
-// GKO_REGISTER_OPERATION(advanced_spgemm, fbcsr::advanced_spgemm);
+GKO_REGISTER_OPERATION(advanced_spgemm, fbcsr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, fbcsr::spgeam);
 GKO_REGISTER_OPERATION(convert_to_coo, fbcsr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
@@ -131,7 +131,6 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {
-    // TODO (script:fbcsr): change the code imported from matrix/csr if needed
     using Dense = Dense<ValueType>;
     using TFbcsr = Fbcsr<ValueType, IndexType>;
     if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
@@ -151,32 +150,29 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Dense = Dense<ValueType>;
-//    using TFbcsr = Fbcsr<ValueType, IndexType>;
-//    if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
-//        // if b is a FBCSR matrix, we compute a SpGeMM
-//        auto x_fbcsr = as<TFbcsr>(x);
-//        auto x_copy = x_fbcsr->clone();
-//        this->get_executor()->run(
-//            fbcsr::make_advanced_spgemm(as<Dense>(alpha), this, b_fbcsr,
-//                                      as<Dense>(beta), x_copy.get(),
-//                                      x_fbcsr));
-//    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
-//        // if b is an identity matrix, we compute an SpGEAM
-//        auto x_fbcsr = as<TFbcsr>(x);
-//        auto x_copy = x_fbcsr->clone();
-//        this->get_executor()->run(fbcsr::make_spgeam(
-//            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_fbcsr));
-//    } else {
-//        // otherwise we assume that b is dense and compute a SpMV/SpMM
-//        this->get_executor()->run(
-//            fbcsr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
-//                                    as<Dense>(beta), as<Dense>(x)));
-//    }
-//}
+{
+    using Dense = Dense<ValueType>;
+    using TFbcsr = Fbcsr<ValueType, IndexType>;
+    if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
+        // if b is a FBCSR matrix, we compute a SpGeMM
+        auto x_fbcsr = as<TFbcsr>(x);
+        auto x_copy = x_fbcsr->clone();
+        this->get_executor()->run(fbcsr::make_advanced_spgemm(
+            as<Dense>(alpha), this, b_fbcsr, as<Dense>(beta), x_copy.get(),
+            x_fbcsr));
+    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
+        // if b is an identity matrix, we compute an SpGEAM
+        auto x_fbcsr = as<TFbcsr>(x);
+        auto x_copy = x_fbcsr->clone();
+        this->get_executor()->run(fbcsr::make_spgeam(
+            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_fbcsr));
+    } else {
+        // otherwise we assume that b is dense and compute a SpMV/SpMM
+        this->get_executor()->run(
+            fbcsr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
+                                      as<Dense>(beta), as<Dense>(x)));
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -692,18 +688,17 @@ bool Fbcsr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>
-Fbcsr<ValueType, IndexType>::extract_diagonal() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//
-//    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-//    auto diag = Diagonal<ValueType>::create(exec, diag_size);
-//    exec->run(fbcsr::make_fill_array(diag->get_values(), diag->get_size()[0],
-//                                   zero<ValueType>()));
-//    exec->run(fbcsr::make_extract_diagonal(this, lend(diag)));
-//    return diag;
-//}
+Fbcsr<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(fbcsr::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                     zero<ValueType>()));
+    exec->run(fbcsr::make_extract_diagonal(this, lend(diag)));
+    return diag;
+}
 
 
 template <typename ValueType, typename IndexType>

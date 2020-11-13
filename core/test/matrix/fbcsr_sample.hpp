@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -47,6 +48,7 @@ namespace testing {
 
 /// Generates the same sample block CSR matrix in different formats
 /** This currently a 6 x 12 matrix with 3x3 blocks.
+ * Assumes that the layout within each block is row-major.
  */
 template <typename ValueType, typename IndexType>
 class FbcsrSample {
@@ -79,6 +81,65 @@ public:
     MatData generate_matrix_data() const;
 
     MatData generate_matrix_data_with_explicit_zeros() const;
+
+    /// Returns an array containing number of stored values in each row
+    ///  (not block-row)
+    gko::Array<index_type> getNonzerosPerRow() const;
+
+    const size_type nrows;
+    const size_type ncols;
+    const size_type nnz;
+    const size_type nbrows;
+    const size_type nbcols;
+    const size_type nbnz;
+    const int bs;
+    const std::shared_ptr<const gko::Executor> exec;
+};
+
+/// Generates the a sample block CSR matrix in different formats
+/** This currently a 6 x 8 matrix with 2x2 blocks.
+ */
+template <typename ValueType, typename IndexType>
+class FbcsrSample2 {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using MatData = gko::matrix_data<value_type, index_type>;
+    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
+    using Diagonal = gko::matrix::Diagonal<value_type>;
+
+    FbcsrSample2(std::shared_ptr<const gko::ReferenceExecutor> exec);
+
+    std::unique_ptr<Fbcsr> generate_fbcsr() const;
+
+    std::unique_ptr<Diagonal> extract_diagonal() const;
+
+    void apply(const Dense *x, Dense *y) const;
+
+    // std::unique_ptr<Csr> generate_csr() const;
+
+    // std::unique_ptr<Dense> generate_dense() const;
+
+    // std::unique_ptr<Coo> generate_coo() const;
+
+    // std::unique_ptr<SparCsr> generate_sparsity_csr() const;
+
+    // MatData generate_matrix_data() const;
+
+    // MatData generate_matrix_data_with_explicit_zeros() const;
+
+    gko::Array<index_type> getNonzerosPerRow() const;
+
+    template <typename U>
+    inline constexpr ValueType sct(U u) const
+    {
+        return static_cast<ValueType>(u);
+    }
+
 
     const size_type nrows;
     const size_type ncols;
