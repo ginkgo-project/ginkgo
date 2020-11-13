@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fixed_block.hpp"
 #include "fbcsr_sample.hpp"
 
+#define FBCSR_TEST_OFFSET 0.000011118888
+
 namespace gko {
 namespace testing {
 
@@ -103,6 +105,9 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
     vals(0, 2, 0) = gko::zero<value_type>();
     vals(0, 2, 2) = gko::zero<value_type>();
     vals(3, 0, 0) = gko::zero<value_type>();
+
+    v[34] += FBCSR_TEST_OFFSET;
+    v[35] += FBCSR_TEST_OFFSET;
 
     for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
@@ -209,6 +214,9 @@ FbcsrSample<ValueType, IndexType>::generate_csr() const
     csrvals[34] = 13;
     csrvals[35] = 14;
 
+    csrvals[34] += FBCSR_TEST_OFFSET;
+    csrvals[35] += FBCSR_TEST_OFFSET;
+
     return csrm;
 }
 
@@ -233,6 +241,8 @@ FbcsrSample<ValueType, IndexType>::generate_dense() const
         }
 
     densem->at(2, 3) = densem->at(2, 5) = densem->at(3, 6) = 0.0;
+    densem->at(5, 7) += FBCSR_TEST_OFFSET;
+    densem->at(5, 8) += FBCSR_TEST_OFFSET;
 
     return densem;
 }
@@ -242,20 +252,43 @@ template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType>
 FbcsrSample<ValueType, IndexType>::generate_matrix_data() const
 {
-    return MatData(
-        {{6, 12}, {{0, 3, 2.0},   {0, 4, 3.0},  {0, 5, 4.0},  {1, 3, 5.0},
-                   {1, 4, 6.0},   {1, 5, 7.0},  {2, 4, 9.0},
+    return MatData({{6, 12},
+                    {{0, 3, 2.0},
+                     {0, 4, 3.0},
+                     {0, 5, 4.0},
+                     {1, 3, 5.0},
+                     {1, 4, 6.0},
+                     {1, 5, 7.0},
+                     {2, 4, 9.0},
 
-                   {0, 9, 4.0},   {0, 10, 5.0}, {0, 11, 6.0}, {1, 9, 7.0},
-                   {1, 10, 8.0},  {1, 11, 9.0}, {2, 9, 10.0}, {2, 10, 11.0},
-                   {2, 11, 12.0},
+                     {0, 9, 4.0},
+                     {0, 10, 5.0},
+                     {0, 11, 6.0},
+                     {1, 9, 7.0},
+                     {1, 10, 8.0},
+                     {1, 11, 9.0},
+                     {2, 9, 10.0},
+                     {2, 10, 11.0},
+                     {2, 11, 12.0},
 
-                   {3, 0, 2.0},   {3, 1, 3.0},  {3, 2, 4.0},  {4, 0, 5.0},
-                   {4, 1, 6.0},   {4, 2, 7.0},  {5, 0, 8.0},  {5, 1, 9.0},
-                   {5, 2, 10.0},
+                     {3, 0, 2.0},
+                     {3, 1, 3.0},
+                     {3, 2, 4.0},
+                     {4, 0, 5.0},
+                     {4, 1, 6.0},
+                     {4, 2, 7.0},
+                     {5, 0, 8.0},
+                     {5, 1, 9.0},
+                     {5, 2, 10.0},
 
-                   {3, 7, 7.0},   {3, 8, 8.0},  {4, 6, 9.0},  {4, 7, 10.0},
-                   {4, 8, 11.0},  {5, 6, 12.0}, {5, 7, 13.0}, {5, 8, 14.0}}});
+                     {3, 7, 7.0},
+                     {3, 8, 8.0},
+                     {4, 6, 9.0},
+                     {4, 7, 10.0},
+                     {4, 8, 11.0},
+                     {5, 6, 12.0},
+                     {5, 7, 13.0 + FBCSR_TEST_OFFSET},
+                     {5, 8, 14.0 + FBCSR_TEST_OFFSET}}});
 }
 
 // Assuming row-major blocks
@@ -263,21 +296,46 @@ template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> FbcsrSample<
     ValueType, IndexType>::generate_matrix_data_with_explicit_zeros() const
 {
-    return MatData({{6, 12}, {{0, 3, 2.0},  {0, 4, 3.0},   {0, 5, 4.0},
-                              {1, 3, 5.0},  {1, 4, 6.0},   {1, 5, 7.0},
-                              {2, 3, 0.0},  {2, 4, 9.0},   {2, 5, 0.0},
+    return MatData({{6, 12},
+                    {{0, 3, 2.0},
+                     {0, 4, 3.0},
+                     {0, 5, 4.0},
+                     {1, 3, 5.0},
+                     {1, 4, 6.0},
+                     {1, 5, 7.0},
+                     {2, 3, 0.0},
+                     {2, 4, 9.0},
+                     {2, 5, 0.0},
 
-                              {0, 9, 4.0},  {0, 10, 5.0},  {0, 11, 6.0},
-                              {1, 9, 7.0},  {1, 10, 8.0},  {1, 11, 9.0},
-                              {2, 9, 10.0}, {2, 10, 11.0}, {2, 11, 12.0},
+                     {0, 9, 4.0},
+                     {0, 10, 5.0},
+                     {0, 11, 6.0},
+                     {1, 9, 7.0},
+                     {1, 10, 8.0},
+                     {1, 11, 9.0},
+                     {2, 9, 10.0},
+                     {2, 10, 11.0},
+                     {2, 11, 12.0},
 
-                              {3, 0, 2.0},  {3, 1, 3.0},   {3, 2, 4.0},
-                              {4, 0, 5.0},  {4, 1, 6.0},   {4, 2, 7.0},
-                              {5, 0, 8.0},  {5, 1, 9.0},   {5, 2, 10.0},
+                     {3, 0, 2.0},
+                     {3, 1, 3.0},
+                     {3, 2, 4.0},
+                     {4, 0, 5.0},
+                     {4, 1, 6.0},
+                     {4, 2, 7.0},
+                     {5, 0, 8.0},
+                     {5, 1, 9.0},
+                     {5, 2, 10.0},
 
-                              {3, 6, 0.0},  {3, 7, 7.0},   {3, 8, 8.0},
-                              {4, 6, 9.0},  {4, 7, 10.0},  {4, 8, 11.0},
-                              {5, 6, 12.0}, {5, 7, 13.0},  {5, 8, 14.0}}});
+                     {3, 6, 0.0},
+                     {3, 7, 7.0},
+                     {3, 8, 8.0},
+                     {4, 6, 9.0},
+                     {4, 7, 10.0},
+                     {4, 8, 11.0},
+                     {5, 6, 12.0},
+                     {5, 7, 13.0 + FBCSR_TEST_OFFSET},
+                     {5, 8, 14.0 + FBCSR_TEST_OFFSET}}});
 }
 
 template <typename ValueType, typename IndexType>
@@ -328,9 +386,127 @@ FbcsrSample<ValueType, IndexType>::generate_sparsity_csr() const
     return SparCsr::create(exec, gko::dim<2>{nbrows, nbcols}, colids, rowptrs);
 }
 
+template <typename ValueType, typename IndexType>
+gko::Array<IndexType> FbcsrSample<ValueType, IndexType>::getNonzerosPerRow()
+    const
+{
+    return gko::Array<index_type>(exec, {6, 6, 6, 6, 6, 6});
+}
+
 #define GKO_DECLARE_FBCSR_TEST_SAMPLE(ValueType, IndexType) \
     class FbcsrSample<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_TEST_SAMPLE);
+
+
+template <typename ValueType, typename IndexType>
+FbcsrSample2<ValueType, IndexType>::FbcsrSample2(
+    const std::shared_ptr<const gko::ReferenceExecutor> rexec)
+    : nrows{6},
+      ncols{8},
+      nnz{16},
+      nbrows{3},
+      nbcols{4},
+      nbnz{4},
+      bs{2},
+      exec(rexec)
+{}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSample2<ValueType, IndexType>::generate_fbcsr() const
+{
+    std::unique_ptr<Fbcsr> mtx =
+        Fbcsr::create(exec,
+                      gko::dim<2>{static_cast<size_type>(nrows),
+                                  static_cast<size_type>(ncols)},
+                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+
+    value_type *const v = mtx->get_values();
+    index_type *const c = mtx->get_col_idxs();
+    index_type *const r = mtx->get_row_ptrs();
+    index_type *const s = mtx->get_srow();
+    r[0] = 0;
+    r[1] = 1;
+    r[2] = 3;
+    r[3] = 4;
+    c[0] = 0;
+    c[1] = 0;
+    c[2] = 3;
+    c[3] = 2;
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+
+    v[0] = 1;
+    v[1] = 2;
+    v[2] = 3;
+    v[3] = 0;
+    v[10] = 0;
+    v[11] = 0;
+    v[12] = -12;
+    v[13] = -1;
+    v[14] = -2;
+    v[15] = -11;
+
+    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
+
+    return mtx;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Diagonal<ValueType>>
+FbcsrSample2<ValueType, IndexType>::extract_diagonal() const
+{
+    gko::Array<ValueType> dvals(exec, nrows);
+    ValueType *const dv = dvals.get_data();
+    dv[0] = 1;
+    dv[1] = 0;
+    dv[2] = 0;
+    dv[3] = 0;
+    dv[4] = -12;
+    dv[5] = -11;
+    return Diagonal::create(exec, nrows, dvals);
+}
+
+template <typename ValueType, typename IndexType>
+gko::Array<IndexType> FbcsrSample2<ValueType, IndexType>::getNonzerosPerRow()
+    const
+{
+    return gko::Array<index_type>(exec, {2, 2, 4, 4, 2, 2});
+}
+
+template <typename ValueType, typename IndexType>
+void FbcsrSample2<ValueType, IndexType>::apply(
+    const gko::matrix::Dense<ValueType> *const x,
+    gko::matrix::Dense<ValueType> *const y) const
+{
+    if (x->get_size()[0] != ncols)
+        throw gko::BadDimension(__FILE__, __LINE__, __func__, "spmv", nrows,
+                                ncols, "");
+    if (y->get_size()[0] != nrows)
+        throw gko::BadDimension(__FILE__, __LINE__, __func__, "spmv", nrows,
+                                ncols, "");
+    if (x->get_size()[1] != y->get_size()[1])
+        throw gko::BadDimension(__FILE__, __LINE__, __func__, "spmv", nrows,
+                                ncols, "");
+
+    const ValueType defv = sct(0.15 + FBCSR_TEST_OFFSET);
+
+    // ValueType *const yvals = y->get_data();
+    // const ValueType *const xvals = x->get_const_data();
+    for (index_type k = 0; k < x->get_size()[1]; k++) {
+        y->at(0, k) = sct(1.0) * x->at(0, k) + sct(2.0) * x->at(1, k);
+        y->at(1, k) = sct(3.0) * x->at(0, k);
+        y->at(2, k) =
+            defv * (x->at(0, k) + x->at(1, k) + x->at(6, k) + x->at(7, k));
+        y->at(3, k) = defv * (x->at(0, k) + x->at(1, k));
+        y->at(4, k) = sct(-12.0) * x->at(4, k) - x->at(5, k);
+        y->at(5, k) = sct(-2.0) * x->at(4, k) + sct(-11.0) * x->at(5, k);
+    }
+}
+
+#define GKO_DECLARE_FBCSR_TEST_SAMPLE_2(ValueType, IndexType) \
+    class FbcsrSample2<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_TEST_SAMPLE_2);
 
 }  // namespace testing
 }  // namespace gko
