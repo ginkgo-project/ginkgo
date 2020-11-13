@@ -725,7 +725,7 @@ no-circular-deps:
 subdir-build:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/add_hiprand_8d042b48_gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
