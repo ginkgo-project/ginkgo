@@ -83,17 +83,21 @@ protected:
     using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Ell = gko::matrix::Ell<value_type, index_type>;
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
+    using Diag = gko::matrix::Diagonal<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
 
     Fbcsr()
         : exec(gko::ReferenceExecutor::create()),
           fbsample(exec),
+          fbsample2(exec),
           mtx(fbsample.generate_fbcsr()),
           refmtx(fbsample.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
           refdenmtx(fbsample.generate_dense()),
           refcoomtx(fbsample.generate_coo()),
-          refspcmtx(fbsample.generate_sparsity_csr())
+          refspcmtx(fbsample.generate_sparsity_csr()),
+          mtx2(fbsample2.generate_fbcsr()),
+          m2diag(fbsample2.extract_diagonal())
     {}
 
     // void create_mtx3(Mtx *sorted, Mtx *unsorted)
@@ -162,90 +166,174 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     const gko::testing::FbcsrSample<value_type, index_type> fbsample;
+    const gko::testing::FbcsrSample2<value_type, index_type> fbsample2;
     std::unique_ptr<Mtx> mtx;
     const std::unique_ptr<const Mtx> refmtx;
     const std::unique_ptr<const Csr> refcsrmtx;
     const std::unique_ptr<const Dense> refdenmtx;
     const std::unique_ptr<const Coo> refcoomtx;
     const std::unique_ptr<const SparCsr> refspcmtx;
+    const std::unique_ptr<const Mtx> mtx2;
+    const std::unique_ptr<const Diag> m2diag;
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
 
 
+template <typename T>
+constexpr T get_some_number()
+{
+    return static_cast<T>(1.2);
+}
+
+template <typename T>
+constexpr typename std::enable_if_t<gko::is_complex<T>> get_some_number()
+{
+    using RT = gko::remove_complex<T>;
+    return {static_cast<RT>(1.2), static_cast<RT>(3.4)};
+}
+
+
 TYPED_TEST(Fbcsr, AppliesToDenseVector)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    using T = typename TestFixture::value_type;
-//    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
-//    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
-//
-//    this->mtx->apply(x.get(), y.get());
-//
-//    EXPECT_EQ(y->at(0), T{13.0});
-//    EXPECT_EQ(y->at(1), T{5.0});
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    const index_type nrows = this->mtx2->get_size()[0];
+    const index_type ncols = this->mtx2->get_size()[1];
+    auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
+    T *const xvals = x->get_values();
+    for (index_type i = 0; i < ncols; i++)
+        // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
+        xvals[i] = (i + 1.0) * (i + 1.0);
+    auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
+    auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
+
+    this->mtx2->apply(x.get(), y.get());
+
+    this->fbsample2.apply(x.get(), yref.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
 
 
 TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    using T = typename TestFixture::value_type;
-//    auto x = gko::initialize<Vec>(
-//        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
-//    auto y = Vec::create(this->exec, gko::dim<2>{2});
-//
-//    this->mtx->apply(x.get(), y.get());
-//
-//    EXPECT_EQ(y->at(0, 0), T{13.0});
-//    EXPECT_EQ(y->at(1, 0), T{5.0});
-//    EXPECT_EQ(y->at(0, 1), T{3.5});
-//    EXPECT_EQ(y->at(1, 1), T{-7.5});
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    const gko::size_type nrows = this->mtx2->get_size()[0];
+    const gko::size_type ncols = this->mtx2->get_size()[1];
+    const gko::size_type nvecs = 3;
+    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
+
+    for (index_type i = 0; i < ncols; i++)
+        for (index_type j = 0; j < nvecs; j++)
+            x->at(i, j) = (static_cast<T>(3.0 * i) + get_some_number<T>()) /
+                          static_cast<T>(j + 1.0);
+    auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+    auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+
+    this->mtx2->apply(x.get(), y.get());
+
+    this->fbsample2.apply(x.get(), yref.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
 
 
 TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    using T = typename TestFixture::value_type;
-//    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
-//    auto beta = gko::initialize<Vec>({2.0}, this->exec);
-//    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
-//    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
-//
-//    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
-//
-//    EXPECT_EQ(y->at(0), T{-11.0});
-//    EXPECT_EQ(y->at(1), T{-1.0});
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    constexpr T alphav = -1.0;
+    constexpr T betav = 2.0;
+    auto alpha = gko::initialize<Vec>({alphav}, this->exec);
+    auto beta = gko::initialize<Vec>({betav}, this->exec);
+
+    const gko::size_type nrows = this->mtx2->get_size()[0];
+    const gko::size_type ncols = this->mtx2->get_size()[1];
+    auto x = Vec::create(this->exec, gko::dim<2>{ncols, 1});
+    auto y = Vec::create(this->exec, gko::dim<2>{nrows, 1});
+
+    for (index_type i = 0; i < ncols; i++) {
+        // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
+        x->at(i, 0) = (i + 1.0) * (i + 1.0);
+    }
+    for (index_type i = 0; i < nrows; i++) {
+        y->at(i, 0) = static_cast<T>(std::sin(2 * 3.14 * (i + 0.1) / nrows)) +
+                      get_some_number<T>();
+    }
+
+    auto yref = Vec::create(this->exec, gko::dim<2>{nrows, 1});
+    yref = y->clone();
+
+    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    auto prod = Vec::create(this->exec, gko::dim<2>{nrows, 1});
+    this->fbsample2.apply(x.get(), prod.get());
+
+    yref->scale(beta.get());
+    yref->add_scaled(alpha.get(), prod.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
 
 
 TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    using T = typename TestFixture::value_type;
-//    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
-//    auto beta = gko::initialize<Vec>({2.0}, this->exec);
-//    auto x = gko::initialize<Vec>(
-//        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
-//    auto y =
-//        gko::initialize<Vec>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
-//
-//    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
-//
-//    EXPECT_EQ(y->at(0, 0), T{-11.0});
-//    EXPECT_EQ(y->at(1, 0), T{-1.0});
-//    EXPECT_EQ(y->at(0, 1), T{-2.5});
-//    EXPECT_EQ(y->at(1, 1), T{4.5});
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    constexpr T alphav = -1.0;
+    constexpr T betav = 2.0;
+    auto alpha = gko::initialize<Vec>({alphav}, this->exec);
+    auto beta = gko::initialize<Vec>({betav}, this->exec);
+
+    const gko::size_type nrows = this->mtx2->get_size()[0];
+    const gko::size_type ncols = this->mtx2->get_size()[1];
+    const gko::size_type nvecs = 3;
+    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
+    auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+
+    for (index_type i = 0; i < ncols; i++)
+        for (index_type j = 0; j < nvecs; j++) {
+            // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
+            x->at(i, j) = (i + 1.0) / (j + 1.0);
+        }
+    for (index_type i = 0; i < nrows; i++)
+        for (index_type j = 0; j < nvecs; j++) {
+            y->at(i, j) =
+                static_cast<T>(std::sin(2 * 3.14 * (i + j + 0.1) / nrows)) +
+                get_some_number<T>();
+        }
+
+    auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+    yref = y->clone();
+
+    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    auto prod = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
+    this->fbsample2.apply(x.get(), prod.get());
+
+    yref->scale(beta.get());
+    yref->add_scaled(alpha.get(), prod.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
 
 
 TYPED_TEST(Fbcsr, AppliesToFbcsrMatrix)
@@ -862,22 +950,24 @@ TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
 
 
 TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
-//
-//    gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
-//        this->exec, this->mtx.get(), &row_nnz);
-//
-//    auto row_nnz_val = row_nnz.get_data();
-//    ASSERT_EQ(row_nnz_val[0], 3);
-//    ASSERT_EQ(row_nnz_val[1], 1);
-//}
+{
+    using IndexType = typename TestFixture::index_type;
+
+    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx2->get_size()[0]);
+
+    gko::kernels::reference::fbcsr ::calculate_nonzeros_per_row(
+        this->exec, this->mtx2.get(), &row_nnz);
+
+    auto row_nnz_val = row_nnz.get_data();
+    const gko::Array<IndexType> refrnnz = this->fbsample2.getNonzerosPerRow();
+    ASSERT_EQ(row_nnz.get_num_elems(), refrnnz.get_num_elems());
+    for (gko::size_type i = 0; i < this->mtx2->get_size()[0]; i++)
+        ASSERT_EQ(row_nnz_val[i], refrnnz.get_const_data()[i]);
+}
 
 
-TYPED_TEST(Fbcsr, CalculatesTotalCols)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, CalculatesTotalCols)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    gko::size_type total_cols;
@@ -1173,21 +1263,22 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    ASSERT_TRUE(this->mtx->is_sorted_by_column_index());
-//    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
-//    ASSERT_TRUE(this->mtx3_sorted->is_sorted_by_column_index());
-//}
+{
+    ASSERT_TRUE(this->mtx->is_sorted_by_column_index());
+}
 
 
 TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    ASSERT_FALSE(this->mtx3_unsorted->is_sorted_by_column_index());
-//}
+{
+    using Fbcsr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+
+    // auto cpmat = Fbcsr::create(this->exec, this->mtx->get_strategy());
+    auto cpmat = this->mtx->clone();
+    index_type *const colinds = cpmat->get_col_idxs();
+    std::swap(colinds[0], colinds[1]);
+    ASSERT_FALSE(cpmat->is_sorted_by_column_index());
+}
 
 
 TYPED_TEST(Fbcsr, SortSortedMatrix)
@@ -1215,19 +1306,16 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Fbcsr, ExtractsDiagonal)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using T = typename TestFixture::value_type;
-//    auto matrix = this->mtx3_unsorted->clone();
-//    auto diag = matrix->extract_diagonal();
-//
-//    ASSERT_EQ(diag->get_size()[0], 3);
-//    ASSERT_EQ(diag->get_size()[1], 3);
-//    ASSERT_EQ(diag->get_values()[0], T{0.});
-//    ASSERT_EQ(diag->get_values()[1], T{1.});
-//    ASSERT_EQ(diag->get_values()[2], T{3.});
-//}
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx2->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(this->m2diag->get_size(), diag->get_size());
+    for (gko::size_type i = 0; i < this->m2diag->get_size()[0]; i++)
+        ASSERT_EQ(this->m2diag->get_const_values()[i],
+                  diag->get_const_values()[i]);
+}
 
 
 TYPED_TEST(Fbcsr, InplaceAbsolute)
