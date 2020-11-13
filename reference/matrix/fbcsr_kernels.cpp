@@ -70,63 +70,87 @@ namespace fbcsr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Fbcsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto row_ptrs = a->get_const_row_ptrs();
-//    auto col_idxs = a->get_const_col_idxs();
-//    auto vals = a->get_const_values();
-//
-//    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-//        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-//            c->at(row, j) = zero<ValueType>();
-//        }
-//        for (size_type k = row_ptrs[row];
-//             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-//            auto val = vals[k];
-//            auto col = col_idxs[k];
-//            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-//                c->at(row, j) += val * b->at(col, j);
-//            }
-//        }
-//    }
-//}
+void spmv(const std::shared_ptr<const ReferenceExecutor> exec,
+          const matrix::Fbcsr<ValueType, IndexType> *const a,
+          const matrix::Dense<ValueType> *const b,
+          matrix::Dense<ValueType> *const c)
+{
+    const int bs = a->get_block_size();
+    const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const IndexType nbrows =
+        gko::blockutils::getNumFixedBlocks(bs, a->get_size()[0]);
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+        vals, bs, bs);
+
+    ValueType *const cvals = c->get_values();
+
+    for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+        const IndexType crowblkend = (ibrow + 1) * bs * nvecs;
+        for (IndexType i = ibrow * bs * nvecs; i < crowblkend; i++)
+            cvals[i] = zero<ValueType>();
+
+        for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+             ++inz) {
+            for (int ib = 0; ib < bs; ib++) {
+                const IndexType row = ibrow * bs + ib;
+                for (int jb = 0; jb < bs; jb++) {
+                    const auto val = avalues(inz, ib, jb);
+                    const auto col = col_idxs[inz] * bs + jb;
+                    for (size_type j = 0; j < nvecs; ++j)
+                        c->at(row, j) += val * b->at(col, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Fbcsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto row_ptrs = a->get_const_row_ptrs();
-//    auto col_idxs = a->get_const_col_idxs();
-//    auto vals = a->get_const_values();
-//    auto valpha = alpha->at(0, 0);
-//    auto vbeta = beta->at(0, 0);
-//
-//    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-//        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-//            c->at(row, j) *= vbeta;
-//        }
-//        for (size_type k = row_ptrs[row];
-//             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-//            auto val = vals[k];
-//            auto col = col_idxs[k];
-//            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-//                c->at(row, j) += valpha * val * b->at(col, j);
-//            }
-//        }
-//    }
-//}
+void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType> *const alpha,
+                   const matrix::Fbcsr<ValueType, IndexType> *const a,
+                   const matrix::Dense<ValueType> *const b,
+                   const matrix::Dense<ValueType> *const beta,
+                   matrix::Dense<ValueType> *const c)
+{
+    const int bs = a->get_block_size();
+    const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const IndexType nbrows =
+        gko::blockutils::getNumFixedBlocks(bs, a->get_size()[0]);
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+        vals, bs, bs);
+
+    ValueType *const cvals = c->get_values();
+
+    for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+        const IndexType crowblkend = (ibrow + 1) * bs * nvecs;
+        for (IndexType i = ibrow * bs * nvecs; i < crowblkend; i++)
+            cvals[i] *= vbeta;
+
+        for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+             ++inz) {
+            for (int ib = 0; ib < bs; ib++) {
+                const IndexType row = ibrow * bs + ib;
+                for (int jb = 0; jb < bs; jb++) {
+                    const auto val = avalues(inz, ib, jb);
+                    const auto col = col_idxs[inz] * bs + jb;
+                    for (size_type j = 0; j < nvecs; ++j)
+                        c->at(row, j) += valpha * val * b->at(col, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
@@ -933,16 +957,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *source,
-    Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto row_ptrs = source->get_const_row_ptrs();
-//    auto row_nnz_val = result->get_data();
-//    for (size_type i = 0; i < result->get_num_elems(); i++) {
-//        row_nnz_val[i] = row_ptrs[i + 1] - row_ptrs[i];
-//    }
-//}
+    const matrix::Fbcsr<ValueType, IndexType> *source, Array<size_type> *result)
+{
+    const auto row_ptrs = source->get_const_row_ptrs();
+    auto row_nnz_val = result->get_data();
+    const int bs = source->get_block_size();
+    assert(result->get_num_elems() == source->get_size()[0]);
+
+    for (size_type i = 0; i < result->get_num_elems(); i++) {
+        const size_type ibrow = i / bs;
+        row_nnz_val[i] = (row_ptrs[ibrow + 1] - row_ptrs[ibrow]) * bs;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -974,24 +1000,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto row_ptrs = to_check->get_const_row_ptrs();
-//    const auto col_idxs = to_check->get_const_col_idxs();
-//    const auto size = to_check->get_size();
-//    for (size_type i = 0; i < size[0]; ++i) {
-//        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
-//            if (col_idxs[idx - 1] > col_idxs[idx]) {
-//                *is_sorted = false;
-//                return;
-//            }
-//        }
-//    }
-//    *is_sorted = true;
-//    return;
-//}
+    const matrix::Fbcsr<ValueType, IndexType> *const to_check,
+    bool *const is_sorted)
+{
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto col_idxs = to_check->get_const_col_idxs();
+    const auto size = to_check->get_size();
+    const int bs = to_check->get_block_size();
+    const size_type nbrows = gko::blockutils::getNumFixedBlocks(bs, size[0]);
+
+    for (size_type i = 0; i < nbrows; ++i) {
+        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+            if (col_idxs[idx - 1] > col_idxs[idx]) {
+                *is_sorted = false;
+                return;
+            }
+        }
+    }
+    *is_sorted = true;
+    return;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
@@ -999,25 +1027,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto row_ptrs = orig->get_const_row_ptrs();
-//    const auto col_idxs = orig->get_const_col_idxs();
-//    const auto values = orig->get_const_values();
-//    const auto diag_size = diag->get_size()[0];
-//    auto diag_values = diag->get_values();
-//
-//    for (size_type row = 0; row < diag_size; ++row) {
-//        for (size_type idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
-//            if (col_idxs[idx] == row) {
-//                diag_values[row] = values[idx];
-//                break;
-//            }
-//        }
-//    }
-//}
+                      const matrix::Fbcsr<ValueType, IndexType> *const orig,
+                      matrix::Diagonal<ValueType> *const diag)
+{
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto col_idxs = orig->get_const_col_idxs();
+    const auto values = orig->get_const_values();
+    const int bs = orig->get_block_size();
+    const size_type diag_size = diag->get_size()[0];
+    const size_type nbrows =
+        gko::blockutils::getNumFixedBlocks(bs, orig->get_size()[0]);
+    auto diag_values = diag->get_values();
+    assert(diag_size == orig->get_size()[0]);
+
+    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> vblocks(
+        values, bs, bs);
+
+    for (size_type ibrow = 0; ibrow < nbrows; ++ibrow) {
+        for (size_type idx = row_ptrs[ibrow]; idx < row_ptrs[ibrow + 1];
+             ++idx) {
+            if (col_idxs[idx] == ibrow) {
+                for (int ib = 0; ib < bs; ib++)
+                    diag_values[ibrow * bs + ib] = vblocks(idx, ib, ib);
+                break;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);
