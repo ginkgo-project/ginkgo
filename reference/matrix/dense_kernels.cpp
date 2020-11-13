@@ -600,21 +600,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 const matrix::Dense<ValueType> *orig,
-                 matrix::Dense<ValueType> *row_permuted)
+void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
+                const Array<IndexType> *row_indices,
+                const matrix::Dense<ValueType> *orig,
+                matrix::Dense<ValueType> *row_gathered)
 {
-    auto perm = permutation_indices->get_const_data();
-    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+    auto rows = row_indices->get_const_data();
+    for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            row_permuted->at(i, j) = orig->at(perm[i], j);
+            row_gathered->at(i, j) = orig->at(rows[i], j);
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_ROW_PERMUTE_KERNEL);
+    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

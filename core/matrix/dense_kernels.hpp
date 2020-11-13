@@ -143,11 +143,11 @@ namespace kernels {
                         const matrix::Dense<_type> *orig,            \
                         matrix::Dense<_type> *trans)
 
-#define GKO_DECLARE_DENSE_ROW_PERMUTE_KERNEL(_vtype, _itype)      \
-    void row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                     const Array<_itype> *permutation_indices,    \
-                     const matrix::Dense<_vtype> *orig,           \
-                     matrix::Dense<_vtype> *row_permuted)
+#define GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(_vtype, _itype)      \
+    void row_gather(std::shared_ptr<const DefaultExecutor> exec, \
+                    const Array<_itype> *gather_indices,         \
+                    const matrix::Dense<_vtype> *orig,           \
+                    matrix::Dense<_vtype> *row_gathered)
 
 #define GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)      \
     void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
@@ -238,7 +238,7 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                     \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);             \
+    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \

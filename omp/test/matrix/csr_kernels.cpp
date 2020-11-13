@@ -128,9 +128,7 @@ protected:
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         rpermute_idxs = std::make_unique<Arr>(ref, tmp.begin(), tmp.end());
-        drpermute_idxs = std::make_unique<Arr>(omp, tmp.begin(), tmp.end());
         cpermute_idxs = std::make_unique<Arr>(ref, tmp2.begin(), tmp2.end());
-        dcpermute_idxs = std::make_unique<Arr>(omp, tmp2.begin(), tmp2.end());
     }
 
     struct matrix_pair {
@@ -173,9 +171,7 @@ protected:
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
     std::unique_ptr<Arr> rpermute_idxs;
-    std::unique_ptr<Arr> drpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
-    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -474,7 +470,7 @@ TEST_F(Csr, IsRowPermutable)
     set_up_apply_data();
 
     auto r_permute = gko::as<Mtx>(mtx->row_permute(rpermute_idxs.get()));
-    auto dr_permute = gko::as<Mtx>(dmtx->row_permute(drpermute_idxs.get()));
+    auto dr_permute = gko::as<Mtx>(dmtx->row_permute(rpermute_idxs.get()));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(r_permute, dr_permute);
     GKO_ASSERT_MTX_NEAR(r_permute, dr_permute, 0);
@@ -486,7 +482,7 @@ TEST_F(Csr, IsColPermutable)
     set_up_apply_data();
 
     auto c_permute = gko::as<Mtx>(mtx->column_permute(cpermute_idxs.get()));
-    auto dc_permute = gko::as<Mtx>(dmtx->column_permute(dcpermute_idxs.get()));
+    auto dc_permute = gko::as<Mtx>(dmtx->column_permute(cpermute_idxs.get()));
 
     ASSERT_TRUE(dc_permute->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(c_permute, dc_permute);
@@ -501,7 +497,7 @@ TEST_F(Csr, IsInverseRowPermutable)
     auto inverse_r_permute =
         gko::as<Mtx>(mtx->inverse_row_permute(rpermute_idxs.get()));
     auto d_inverse_r_permute =
-        gko::as<Mtx>(dmtx->inverse_row_permute(drpermute_idxs.get()));
+        gko::as<Mtx>(dmtx->inverse_row_permute(rpermute_idxs.get()));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse_r_permute, d_inverse_r_permute);
     GKO_ASSERT_MTX_NEAR(inverse_r_permute, d_inverse_r_permute, 0);
@@ -515,7 +511,7 @@ TEST_F(Csr, IsInverseColPermutable)
     auto inverse_c_permute =
         gko::as<Mtx>(mtx->inverse_column_permute(cpermute_idxs.get()));
     auto d_inverse_c_permute =
-        gko::as<Mtx>(dmtx->inverse_column_permute(dcpermute_idxs.get()));
+        gko::as<Mtx>(dmtx->inverse_column_permute(cpermute_idxs.get()));
 
     ASSERT_TRUE(d_inverse_c_permute->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse_c_permute, d_inverse_c_permute);
