@@ -556,18 +556,16 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::transpose() const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    auto trans_cpy =
-//        Fbcsr::create(exec, gko::transpose(this->get_size()),
-//                    this->get_num_stored_elements(), this->get_strategy());
-//
-//    exec->run(fbcsr::make_transpose(this, trans_cpy.get()));
-//    trans_cpy->make_srow();
-//    return std::move(trans_cpy);
-//}
+{
+    auto exec = this->get_executor();
+    auto trans_cpy = Fbcsr::create(exec, gko::transpose(this->get_size()),
+                                   this->get_num_stored_elements(), bs_,
+                                   this->get_strategy());
+
+    exec->run(fbcsr::make_transpose(this, trans_cpy.get()));
+    trans_cpy->make_srow();
+    return std::move(trans_cpy);
+}
 
 
 template <typename ValueType, typename IndexType>

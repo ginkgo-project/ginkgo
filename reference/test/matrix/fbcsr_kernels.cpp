@@ -90,6 +90,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           fbsample(exec),
           fbsample2(exec),
+          fbsamplesquare(exec),
           mtx(fbsample.generate_fbcsr()),
           refmtx(fbsample.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
@@ -97,7 +98,8 @@ protected:
           refcoomtx(fbsample.generate_coo()),
           refspcmtx(fbsample.generate_sparsity_csr()),
           mtx2(fbsample2.generate_fbcsr()),
-          m2diag(fbsample2.extract_diagonal())
+          m2diag(fbsample2.extract_diagonal()),
+          mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
     // void create_mtx3(Mtx *sorted, Mtx *unsorted)
@@ -167,6 +169,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     const gko::testing::FbcsrSample<value_type, index_type> fbsample;
     const gko::testing::FbcsrSample2<value_type, index_type> fbsample2;
+    const gko::testing::FbcsrSampleSquare<value_type, index_type>
+        fbsamplesquare;
     std::unique_ptr<Mtx> mtx;
     const std::unique_ptr<const Mtx> refmtx;
     const std::unique_ptr<const Csr> refcsrmtx;
@@ -175,6 +179,7 @@ protected:
     const std::unique_ptr<const SparCsr> refspcmtx;
     const std::unique_ptr<const Mtx> mtx2;
     const std::unique_ptr<const Diag> m2diag;
+    const std::unique_ptr<const Mtx> mtxsq;
 };
 
 TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
@@ -336,8 +341,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesToFbcsrMatrix)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, AppliesToFbcsrMatrix)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using T = typename TestFixture::value_type;
@@ -369,8 +374,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, AppliesLinearCombinationToFbcsrMatrix)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, AppliesLinearCombinationToFbcsrMatrix)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Vec = typename TestFixture::Vec;
@@ -407,8 +412,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, AppliesLinearCombinationToIdentityMatrix)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, AppliesLinearCombinationToIdentityMatrix)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using T = typename TestFixture::value_type;
@@ -442,39 +447,33 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Fbcsr, ApplyFailsOnWrongInnerDimension)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{2});
-//    auto y = Vec::create(this->exec, gko::dim<2>{2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{this->fbsample.nrows});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
 TYPED_TEST(Fbcsr, ApplyFailsOnWrongNumberOfRows)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
-//    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{this->fbsample.ncols, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
 TYPED_TEST(Fbcsr, ApplyFailsOnWrongNumberOfCols)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{3});
-//    auto y = Vec::create(this->exec, gko::dim<2>{2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{this->fbsample.ncols, 3});
+    auto y = Vec::create(this->exec, gko::dim<2>{this->fbsample.nrows, 2});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
 TYPED_TEST(Fbcsr, ConvertsToPrecision)
@@ -1014,27 +1013,15 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 
 
 TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Fbcsr = typename TestFixture::Mtx;
-//    // clang-format off
-//    auto mtx2 = gko::initialize<Fbcsr>(
-//                {{1.0, 3.0, 2.0},
-//                 {0.0, 5.0, 0.0},
-//                 {0.0, 1.5, 2.0}}, this->exec);
-//    // clang-format on
-//
-//    auto trans = mtx2->transpose();
-//    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr,
-//                    l({{1.0, 0.0, 0.0},
-//                       {3.0, 5.0, 1.5},
-//                       {2.0, 0.0, 2.0}}), 0.0);
-//    // clang-format on
-//}
+{
+    using Fbcsr = typename TestFixture::Mtx;
+    auto reftmtx = this->fbsamplesquare.generate_transpose_fbcsr();
+
+    auto trans = this->mtxsq->transpose();
+    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+
+    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx, 0.0);
+}
 
 
 TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)

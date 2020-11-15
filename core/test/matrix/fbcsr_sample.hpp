@@ -120,18 +120,6 @@ public:
 
     void apply(const Dense *x, Dense *y) const;
 
-    // std::unique_ptr<Csr> generate_csr() const;
-
-    // std::unique_ptr<Dense> generate_dense() const;
-
-    // std::unique_ptr<Coo> generate_coo() const;
-
-    // std::unique_ptr<SparCsr> generate_sparsity_csr() const;
-
-    // MatData generate_matrix_data() const;
-
-    // MatData generate_matrix_data_with_explicit_zeros() const;
-
     gko::Array<index_type> getNonzerosPerRow() const;
 
     template <typename U>
@@ -140,6 +128,32 @@ public:
         return static_cast<ValueType>(u);
     }
 
+
+    const size_type nrows;
+    const size_type ncols;
+    const size_type nnz;
+    const size_type nbrows;
+    const size_type nbcols;
+    const size_type nbnz;
+    const int bs;
+    const std::shared_ptr<const gko::Executor> exec;
+};
+
+/// Generates the a sample block CSR square matrix in different formats
+/** This currently a 4 x 4 matrix with 2x2 blocks.
+ */
+template <typename ValueType, typename IndexType>
+class FbcsrSampleSquare {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+
+    FbcsrSampleSquare(std::shared_ptr<const gko::ReferenceExecutor> exec);
+
+    std::unique_ptr<Fbcsr> generate_fbcsr() const;
+
+    std::unique_ptr<Fbcsr> generate_transpose_fbcsr() const;
 
     const size_type nrows;
     const size_type ncols;
