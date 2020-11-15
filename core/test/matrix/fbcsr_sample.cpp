@@ -508,5 +508,82 @@ void FbcsrSample2<ValueType, IndexType>::apply(
     class FbcsrSample2<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_TEST_SAMPLE_2);
 
+
+template <typename ValueType, typename IndexType>
+FbcsrSampleSquare<ValueType, IndexType>::FbcsrSampleSquare(
+    const std::shared_ptr<const gko::ReferenceExecutor> rexec)
+    : nrows{4},
+      ncols{4},
+      nnz{8},
+      nbrows{2},
+      nbcols{2},
+      nbnz{2},
+      bs{2},
+      exec(rexec)
+{}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSampleSquare<ValueType, IndexType>::generate_fbcsr() const
+{
+    std::unique_ptr<Fbcsr> mtx =
+        Fbcsr::create(exec,
+                      gko::dim<2>{static_cast<size_type>(nrows),
+                                  static_cast<size_type>(ncols)},
+                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+
+    value_type *const v = mtx->get_values();
+    index_type *const c = mtx->get_col_idxs();
+    index_type *const r = mtx->get_row_ptrs();
+    index_type *const s = mtx->get_srow();
+    r[0] = 0;
+    r[1] = 1;
+    r[2] = 2;
+    c[0] = 1;
+    c[1] = 1;
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = i;
+
+    return mtx;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSampleSquare<ValueType, IndexType>::generate_transpose_fbcsr() const
+{
+    std::unique_ptr<Fbcsr> mtx =
+        Fbcsr::create(exec,
+                      gko::dim<2>{static_cast<size_type>(nrows),
+                                  static_cast<size_type>(ncols)},
+                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+
+    value_type *const v = mtx->get_values();
+    index_type *const c = mtx->get_col_idxs();
+    index_type *const r = mtx->get_row_ptrs();
+    index_type *const s = mtx->get_srow();
+    r[0] = 0;
+    r[1] = 0;
+    r[2] = 2;
+    c[0] = 0;
+    c[1] = 1;
+
+    gko::blockutils::DenseBlocksView<value_type, index_type> vals(v, bs, bs);
+    vals(0, 0, 0) = 0;
+    vals(0, 0, 1) = 2;
+    vals(0, 1, 0) = 1;
+    vals(0, 1, 1) = 3;
+    vals(1, 0, 0) = 4;
+    vals(1, 0, 1) = 6;
+    vals(1, 1, 0) = 5;
+    vals(1, 1, 1) = 7;
+
+    return mtx;
+}
+
+#define GKO_DECLARE_FBCSR_TEST_SAMPLE_SQUARE(ValueType, IndexType) \
+    class FbcsrSampleSquare<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_TEST_SAMPLE_SQUARE);
+
 }  // namespace testing
 }  // namespace gko
