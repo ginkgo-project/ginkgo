@@ -120,21 +120,6 @@ public:
 
     void apply(const Dense *x, Dense *y) const;
 
-<<<<<<< HEAD
-    // std::unique_ptr<Csr> generate_csr() const;
-
-    // std::unique_ptr<Dense> generate_dense() const;
-
-    // std::unique_ptr<Coo> generate_coo() const;
-
-    // std::unique_ptr<SparCsr> generate_sparsity_csr() const;
-
-    // MatData generate_matrix_data() const;
-
-    // MatData generate_matrix_data_with_explicit_zeros() const;
-
-=======
->>>>>>> 1644fb894fb8765398f14227fcd270a80fd91986
     gko::Array<index_type> getNonzerosPerRow() const;
 
     template <typename U>
