@@ -116,6 +116,8 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const;
 
+    std::unique_ptr<Fbcsr> generate_transpose_fbcsr() const;
+
     std::unique_ptr<Diagonal> extract_diagonal() const;
 
     void apply(const Dense *x, Dense *y) const;
