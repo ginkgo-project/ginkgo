@@ -310,7 +310,7 @@ TYPED_TEST(ReducedStorage3d, CanCreateWithStride)
     using ar_type = typename TestFixture::ar_type;
     using st_type = typename TestFixture::st_type;
     auto size = gko::dim<3>{2, 2, 2};
-    auto stride = std::array<gko::size_type, 2>{12, 2};
+    auto stride = std::array<gko::size_type, 2>{{12, 2}};
 
     auto range = reduced_storage{size, this->data, stride};
     range(1, 1, 0) = ar_type{2.};
@@ -636,8 +636,8 @@ protected:
         1., 2., 3., 4., 5., 6., 7., 8.
     };
     // clang-format on
-    const std::array<gko::size_type, 2> storage_stride{8, 2};
-    const std::array<gko::size_type, 1> scalar_stride{2};
+    const std::array<gko::size_type, 2> storage_stride{{8, 2}};
+    const std::array<gko::size_type, 1> scalar_stride{{2}};
     reduced_storage r{size, data, storage_stride, scalar, scalar_stride};
     const_reduced_storage cr{size, data, scalar};
 
@@ -756,8 +756,8 @@ TYPED_TEST(ScaledReducedStorage3d, CanCreateWithStride)
     using reduced_storage = typename TestFixture::reduced_storage;
     using ar_type = typename TestFixture::ar_type;
     gko::dim<3> size{2, 1, 2};
-    std::array<gko::size_type, 2> stride_storage{5, 2};
-    std::array<gko::size_type, 1> stride_scalar{4};
+    std::array<gko::size_type, 2> stride_storage{{5, 2}};
+    std::array<gko::size_type, 1> stride_scalar{{4}};
 
     reduced_storage range{size, this->data, stride_storage, this->scalar,
                           stride_scalar};
