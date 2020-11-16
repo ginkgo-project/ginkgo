@@ -266,20 +266,7 @@ protected:
     GKO_ATTRIBUTES constexpr reduced_row_major(gko::dim<dimensionality> size,
                                                storage_type *storage,
                                                storage_stride_type stride)
-        : size_{size}, storage_{storage}, stride_{stride}
-    {}
-
-    /**
-     * Creates the accessor for an already allocated storage space.
-     * It is assumed that all accesses are without padding.
-     *
-     * @param storage  pointer to the block of memory containing the storage
-     * @param size  multidimensional size of the memory
-     */
-    GKO_ATTRIBUTES constexpr reduced_row_major(dim<dimensionality> size,
-                                               storage_type *storage)
-        : reduced_row_major{size, storage,
-                            helper::compute_stride_array<size_type>(size)}
+        : size_{size}, storage_{storage}, stride_(stride)
     {}
 
     /**
@@ -295,13 +282,26 @@ protected:
     GKO_ATTRIBUTES constexpr reduced_row_major(gko::dim<dimensionality> size,
                                                storage_type *storage,
                                                Strides &&... strides)
-        : size_{size},
-          storage_{storage},
-          stride_{std::forward<Strides>(strides)...}
+        : reduced_row_major{
+              size, storage,
+              storage_stride_type{{std::forward<Strides>(strides)...}}}
     {
         static_assert(sizeof...(Strides) + 1 == dimensionality,
                       "Number of provided Strides must be dimensionality - 1!");
     }
+
+    /**
+     * Creates the accessor for an already allocated storage space.
+     * It is assumed that all accesses are without padding.
+     *
+     * @param storage  pointer to the block of memory containing the storage
+     * @param size  multidimensional size of the memory
+     */
+    GKO_ATTRIBUTES constexpr reduced_row_major(dim<dimensionality> size,
+                                               storage_type *storage)
+        : reduced_row_major{size, storage,
+                            helper::compute_stride_array<size_type>(size)}
+    {}
 
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
@@ -595,9 +595,9 @@ protected:
         scalar_stride_type scalar_stride)
         : size_{size},
           storage_{storage},
-          storage_stride_{storage_stride},
+          storage_stride_(storage_stride),
           scalar_{scalar},
-          scalar_stride_{scalar_stride}
+          scalar_stride_(scalar_stride)
     {}
 
     /**
@@ -614,12 +614,11 @@ protected:
     GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
         dim<dimensionality> size, storage_type *storage,
         storage_stride_type stride, scalar_type *scalar)
-        : size_{size},
-          storage_{storage},
-          storage_stride_{stride},
-          scalar_{scalar},
-          scalar_stride_{helper::compute_masked_stride_array<
-              size_type, scalar_mask, scalar_stride_dim, dimensionality>(size)}
+        : scaled_reduced_row_major{
+              size, storage, stride, scalar,
+              helper::compute_masked_stride_array<
+                  size_type, scalar_mask, scalar_stride_dim, dimensionality>(
+                  size)}
     {}
 
     /**
