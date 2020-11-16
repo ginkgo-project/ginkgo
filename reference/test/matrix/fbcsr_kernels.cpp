@@ -1025,20 +1025,15 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 
 
 TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Fbcsr = typename TestFixture::Mtx;
-//    auto trans = this->mtx->transpose();
-//    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr,
-//                    l({{1.0, 0.0},
-//                       {3.0, 5.0},
-//                       {2.0, 0.0}}), 0.0);
-//    // clang-format on
-//}
+{
+    using Fbcsr = typename TestFixture::Mtx;
+    auto reftmtx = this->fbsample2.generate_transpose_fbcsr();
+
+    auto trans = this->mtx2->transpose();
+    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+
+    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx, 0.0);
+}
 
 
 TYPED_TEST(Fbcsr, SquareMatrixIsRowPermutable)
