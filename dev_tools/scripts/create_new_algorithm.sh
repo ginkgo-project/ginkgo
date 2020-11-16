@@ -99,10 +99,12 @@ TEMPLATE_FILES=(
     "${name}_kernels.cpp"
     "${name}_*.[ch]*"
     "${name}_kernels.hip.cpp"
+    "${name}_kernels.dp.cpp"
     "${name}.cpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
+    "${name}_kernels.*"
     "${name}_kernels.*"
 )
 CMAKE_FILES=(
@@ -113,11 +115,13 @@ CMAKE_FILES=(
     "omp/CMakeLists.txt"
     "cuda/CMakeLists.txt"
     "hip/CMakeLists.txt"
+    "dpcpp/CMakeLists.txt"
     "core/test/$source_type/CMakeLists.txt"
     "reference/test/$source_type/CMakeLists.txt"
     "omp/test/$source_type/CMakeLists.txt"
     "cuda/test/$source_type/CMakeLists.txt"
     "hip/test/$source_type/CMakeLists.txt"
+    "dpcpp/test/$source_type/CMakeLists.txt"
 )
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
@@ -127,11 +131,13 @@ TEMPLATE_FILES_LOCATIONS=(
     "omp/$source_type"
     "cuda/$source_type"
     "hip/$source_type"
+    "dpcpp/$source_type"
     "core/test/$source_type"
     "reference/test/$source_type"
     "omp/test/$source_type"
     "cuda/test/$source_type"
     "hip/test/$source_type"
+    "dpcpp/test/$source_type"
 )
 TEMPLATE_FILES_TYPES=(
     "$source_type file"
@@ -141,11 +147,13 @@ TEMPLATE_FILES_TYPES=(
     "OpenMP kernel file"
     "CUDA kernel file"
     "HIP kernel file"
+    "DPC++ kernel file"
     "unit tests for ${name} $source_type"
     "unit tests for ${name} reference kernels"
     "unit tests for ${name} OMP kernels"
     "unit tests for ${name} CUDA kernels"
     "unit tests for ${name} HIP kernels"
+    "unit tests for ${name} DPC++ kernels"
 )
 TEMPLATE_FILES_DESCRIPTIONS=(
     "This is where the ${name} algorithm needs to be implemented."
@@ -155,11 +163,13 @@ TEMPLATE_FILES_DESCRIPTIONS=(
     "OMP kernels for ${name} need to be implemented here."
     "CUDA kernels for ${name} need to be implemented here."
     "HIP kernels for ${name} need to be implemented here."
+    "DPC++ kernels for ${name} need to be implemented here."
     "This is where core related unit tests should be implemented, i.e. relating to the interface without executor usage."
     "This is where tests with the Reference executor should be implemented. Usually, this means comparing against previously known values."
     "This is where tests with the OpenMP executor should be implemented. Usually, this means comparing against a Reference execution."
     "This is where tests with the CUDA executor should be implemented. Usually, this means comparing against a Reference execution."
     "This is where tests with the HIP executor should be implemented. Usually, this means comparing against a Reference execution."
+    "This is where tests with the DPC++ executor should be implemented. Usually, this means comparing against a Reference execution."
 )
 
 mkdir ${TMPDIR}
@@ -387,6 +397,10 @@ then
     echo ""                                                   | tee -a todo_${name}.txt
     echo "hip/CMakeLists.txt"                                 | tee -a todo_${name}.txt
     echo "hip/test/${source_type}/CMakeLists.txt"             | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "dpcpp/CMakeLists.txt"                               | tee -a todo_${name}.txt
+    echo "dpcpp/test/${source_type}/CMakeLists.txt"           | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
     echo "The following header file has to be modified:"      | tee -a todo_${name}.txt
