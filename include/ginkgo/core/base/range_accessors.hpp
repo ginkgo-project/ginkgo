@@ -443,7 +443,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::row_major_index<size_type, dimensionality>::compute(
+        return helper::compute_storage_index<size_type, dimensionality>(
             size_, stride_, std::forward<Indices>(indices)...);
     }
 
@@ -584,6 +584,29 @@ protected:
      *
      * @param size  multidimensional size of the memory
      * @param storage  pointer to the block of memory containing the storage
+     * @param storage_stride  stride array used for memory accesses to storage
+     * @param scalar  pointer to the block of memory containing the scalar
+     *                values.
+     * @param scalar_stride  stride array used for memory accesses to scalar
+     */
+    GKO_ATTRIBUTES constexpr scaled_reduced_row_major(
+        dim<dimensionality> size, storage_type *storage,
+        storage_stride_type storage_stride, scalar_type *scalar,
+        scalar_stride_type scalar_stride)
+        : size_{size},
+          storage_{storage},
+          storage_stride_{storage_stride},
+          scalar_{scalar},
+          scalar_stride_{scalar_stride}
+    {}
+
+    /**
+     * Creates the accessor for an already allocated storage space with a
+     * stride. The first stride is used for computing the index for the first
+     * index, the second stride for the second index, and so on.
+     *
+     * @param size  multidimensional size of the memory
+     * @param storage  pointer to the block of memory containing the storage
      * @param stride  stride array used for memory accesses to storage
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
@@ -595,7 +618,8 @@ protected:
           storage_{storage},
           storage_stride_{stride},
           scalar_{scalar},
-          scalar_stride_{}  // TODO
+          scalar_stride_{helper::compute_masked_stride_array<
+              size_type, scalar_mask, scalar_stride_dim, dimensionality>(size)}
     {}
 
     /**
@@ -631,7 +655,8 @@ public:
      */
     GKO_ATTRIBUTES GKO_INLINE constexpr range<const_accessor> to_const() const
     {
-        return range<const_accessor>{size_, storage_, storage_stride_, scalar_};
+        return range<const_accessor>{size_, storage_, storage_stride_, scalar_,
+                                     scalar_stride_};
     }
 
     /**
@@ -723,7 +748,8 @@ public:
                        (span{spans}.end - span{spans}.begin)...},
                    storage_ + compute_index((span{spans}.begin)...),
                    storage_stride_,
-                   scalar_ + compute_scalar_index(span{spans}.begin...)};
+                   scalar_ + compute_scalar_index(span{spans}.begin...),
+                   scalar_stride_};
     }
 
     /**
@@ -737,14 +763,27 @@ public:
     }
 
     /**
-     * Returns a pointer to a stride array of size dimensionality - 1
+     * Returns a const reference to the storage stride array of size
+     * dimensionality - 1
      *
-     * @returns returns a pointer to a stride array of size dimensionality - 1
+     * @returns a const reference to the storage stride array of size
+     * dimensionality - 1
      */
     GKO_ATTRIBUTES
-    GKO_INLINE constexpr const storage_stride_type &get_stride() const
+    GKO_INLINE constexpr const storage_stride_type &get_storage_stride() const
     {
         return storage_stride_;
+    }
+
+    /**
+     * Returns a const reference to the scalar stride array
+     *
+     * @returns a const reference to the scalar stride array
+     */
+    GKO_ATTRIBUTES
+    GKO_INLINE constexpr const scalar_stride_type &get_scalar_stride() const
+    {
+        return scalar_stride_;
     }
 
     /**
@@ -796,7 +835,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::row_major_index<size_type, dimensionality>::compute(
+        return helper::compute_storage_index<size_type, dimensionality>(
             size_, storage_stride_, std::forward<Indices>(indices)...);
     }
 
@@ -806,10 +845,9 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::row_major_mask_index<
-            size_type, dimensionality,
-            scalar_mask>::compute(size_, storage_stride_,
-                                  std::forward_as_tuple(indices...));
+        return helper::compute_masked_index<size_type, scalar_mask,
+                                            scalar_stride_dim>(
+            size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
 
     const dim<dimensionality> size_;

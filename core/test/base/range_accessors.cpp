@@ -304,6 +304,28 @@ TYPED_TEST(ReducedStorage3d, ToConstWorks)
 }
 
 
+TYPED_TEST(ReducedStorage3d, CanCreateWithStride)
+{
+    using reduced_storage = typename TestFixture::reduced_storage;
+    using ar_type = typename TestFixture::ar_type;
+    using st_type = typename TestFixture::st_type;
+    auto size = gko::dim<3>{2, 2, 2};
+    auto stride = std::array<gko::size_type, 2>{12, 2};
+
+    auto range = reduced_storage{size, this->data, stride};
+    range(1, 1, 0) = ar_type{2.};
+
+    EXPECT_EQ(range(0, 0, 0), st_type{1.0});
+    EXPECT_EQ(range(0, 0, 1), st_type{2.01});
+    EXPECT_EQ(range(0, 1, 0), st_type{-1.02});
+    EXPECT_EQ(range(0, 1, 1), st_type{3.03});
+    EXPECT_EQ(range(1, 0, 0), st_type{-2.12});
+    EXPECT_EQ(range(1, 0, 1), st_type{2.13});
+    EXPECT_EQ(range(1, 1, 0), st_type{2.});
+    EXPECT_EQ(range(1, 1, 1), st_type{15.15});
+}
+
+
 TYPED_TEST(ReducedStorage3d, CanWriteData)
 {
     using t = typename TestFixture::t;
@@ -611,10 +633,12 @@ protected:
         6, 77
     };
     ar_type scalar[scalar_elements]{
-        1., 2.,
+        1., 2., 3., 4., 5., 6., 7., 8.
     };
     // clang-format on
-    reduced_storage r{size, data, scalar};
+    const std::array<gko::size_type, 2> storage_stride{8, 2};
+    const std::array<gko::size_type, 1> scalar_stride{2};
+    reduced_storage r{size, data, storage_stride, scalar, scalar_stride};
     const_reduced_storage cr{size, data, scalar};
 
     template <typename Accessor>
@@ -657,10 +681,13 @@ TYPED_TEST(ScaledReducedStorage3d, CorrectLengths)
 
 TYPED_TEST(ScaledReducedStorage3d, CorrectStride)
 {
-    EXPECT_EQ(this->r->get_stride()[0], this->size[1] * this->size[2]);
-    EXPECT_EQ(this->r->get_stride().at(0), this->size[1] * this->size[2]);
-    EXPECT_EQ(this->r->get_stride()[1], this->size[2]);
-    EXPECT_EQ(this->r->get_stride().at(1), this->size[2]);
+    EXPECT_EQ(this->r->get_storage_stride()[0], this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_storage_stride().at(0),
+              this->size[1] * this->size[2]);
+    EXPECT_EQ(this->r->get_storage_stride()[1], this->size[2]);
+    EXPECT_EQ(this->r->get_storage_stride().at(1), this->size[2]);
+    EXPECT_EQ(this->r->get_scalar_stride(), this->scalar_stride);
+    EXPECT_EQ(this->r->get_scalar_stride(), this->scalar_stride);
 }
 
 
@@ -724,10 +751,22 @@ TYPED_TEST(ScaledReducedStorage3d, ToConstWorks)
 }
 
 
-TYPED_TEST(ScaledReducedStorage3d, CanRead)
+TYPED_TEST(ScaledReducedStorage3d, CanCreateWithStride)
 {
-    this->check_accessor_correctness(this->cr);
-    this->check_accessor_correctness(this->r);
+    using reduced_storage = typename TestFixture::reduced_storage;
+    using ar_type = typename TestFixture::ar_type;
+    gko::dim<3> size{2, 1, 2};
+    std::array<gko::size_type, 2> stride_storage{5, 2};
+    std::array<gko::size_type, 1> stride_scalar{4};
+
+    reduced_storage range{size, this->data, stride_storage, this->scalar,
+                          stride_scalar};
+    range(1, 0, 0) = ar_type{15};
+
+    EXPECT_EQ(range(0, 0, 0), ar_type{10});
+    EXPECT_EQ(range(0, 0, 1), ar_type{22});
+    EXPECT_EQ(range(1, 0, 0), ar_type{15});
+    EXPECT_EQ(range(1, 0, 1), ar_type{36});
 }
 
 
@@ -907,11 +946,11 @@ protected:
     using accessor1d =
         gko::accessor::scaled_reduced_row_major<1, ar_type, st_type, 1>;
     using accessor2d =
-        gko::accessor::scaled_reduced_row_major<2, ar_type, st_type, 2>;
+        gko::accessor::scaled_reduced_row_major<2, ar_type, st_type, 3>;
     using const_accessor1d =
         gko::accessor::scaled_reduced_row_major<1, ar_type, const st_type, 1>;
     using const_accessor2d =
-        gko::accessor::scaled_reduced_row_major<2, ar_type, const st_type, 2>;
+        gko::accessor::scaled_reduced_row_major<2, ar_type, const st_type, 3>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -926,46 +965,44 @@ protected:
 
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
-    const size_type stride1nc[1] = {4};
+    const std::array<size_type, 1> stride_sc{{5}};
     const gko::dim<1> size_1d{8u};
-    const gko::dim<2> size_2d{2u, 4u};
+    const gko::dim<2> size_2d{2u, 2u};
 
     static constexpr gko::size_type data_elements{8};
-    st_type data[data_elements]{11, 22, 33, 44, 55, 66, 77, -88};
-    const double default_scalar{.1};
-    ar_type scalar[data_elements]{
-        default_scalar, default_scalar, default_scalar, default_scalar,
-        default_scalar, default_scalar, default_scalar, default_scalar};
+    st_type data[data_elements]{10, 22, 32, 44, 54, 66, 76, -88};
+    ar_type scalar[data_elements]{1e0,  5e-1, 1e-1, 5e-2,
+                                  1e-2, 5e-3, 1e-3, 5e-4};
 
     reduced_storage1d r1{size_1d, data, scalar};
-    reduced_storage2d r2{size_2d, data, stride1, scalar};
+    reduced_storage2d r2{size_2d, data, stride1, scalar, stride_sc};
     const_reduced_storage1d cr1{size_1d, data, stride0, scalar};
-    const_reduced_storage2d cr2{size_2d, data, stride1, scalar};
+    const_reduced_storage2d cr2{size_2d, data, stride1, scalar, stride_sc};
 
     void data_equal_except_for(int idx)
     {
         // clang-format off
-        if (idx != 0) { EXPECT_EQ(data[0], 11); }
+        if (idx != 0) { EXPECT_EQ(data[0], 10); }
         if (idx != 1) { EXPECT_EQ(data[1], 22); }
-        if (idx != 2) { EXPECT_EQ(data[2], 33); }
+        if (idx != 2) { EXPECT_EQ(data[2], 32); }
         if (idx != 3) { EXPECT_EQ(data[3], 44); }
-        if (idx != 4) { EXPECT_EQ(data[4], 55); }
+        if (idx != 4) { EXPECT_EQ(data[4], 54); }
         if (idx != 5) { EXPECT_EQ(data[5], 66); }
-        if (idx != 6) { EXPECT_EQ(data[6], 77); }
+        if (idx != 6) { EXPECT_EQ(data[6], 76); }
         if (idx != 7) { EXPECT_EQ(data[7], -88); }
         // clang-format on
     }
     void scalar_equal_except_for(int idx)
     {
         // clang-format off
-        if (idx != 0) { EXPECT_EQ(scalar[0], default_scalar); }
-        if (idx != 1) { EXPECT_EQ(scalar[1], default_scalar); }
-        if (idx != 2) { EXPECT_EQ(scalar[2], default_scalar); }
-        if (idx != 3) { EXPECT_EQ(scalar[3], default_scalar); }
-        if (idx != 4) { EXPECT_EQ(scalar[4], default_scalar); }
-        if (idx != 5) { EXPECT_EQ(scalar[5], default_scalar); }
-        if (idx != 6) { EXPECT_EQ(scalar[6], default_scalar); }
-        if (idx != 7) { EXPECT_EQ(scalar[7], default_scalar); }
+        if (idx != 0) { EXPECT_EQ(scalar[0], ar_type{1e0}); }
+        if (idx != 1) { EXPECT_EQ(scalar[1], ar_type{5e-1}); }
+        if (idx != 2) { EXPECT_EQ(scalar[2], ar_type{1e-1}); }
+        if (idx != 3) { EXPECT_EQ(scalar[3], ar_type{5e-2}); }
+        if (idx != 4) { EXPECT_EQ(scalar[4], ar_type{1e-2}); }
+        if (idx != 5) { EXPECT_EQ(scalar[5], ar_type{5e-3}); }
+        if (idx != 6) { EXPECT_EQ(scalar[6], ar_type{1e-3}); }
+        if (idx != 7) { EXPECT_EQ(scalar[7], ar_type{5e-4}); }
         // clang-format on
     }
 };
@@ -973,10 +1010,12 @@ protected:
 
 TEST_F(ScaledReducedStorageXd, CanRead)
 {
-    EXPECT_NEAR(cr1(1), 2.2, delta);
-    EXPECT_NEAR(cr2(0, 1), 2.2, delta);
-    EXPECT_NEAR(r1(1), 2.2, delta);
-    EXPECT_NEAR(r2(0, 1), 2.2, delta);
+    EXPECT_NEAR(cr1(1), 11., delta);
+    EXPECT_NEAR(cr2(0, 1), 11., delta);
+    EXPECT_NEAR(cr2(1, 1), 66e-3, delta);
+    EXPECT_NEAR(r1(1), 11., delta);
+    EXPECT_NEAR(r2(0, 1), 11., delta);
+    EXPECT_NEAR(r2(1, 1), 66e-3, delta);
 }
 
 
@@ -992,11 +1031,11 @@ TEST_F(ScaledReducedStorageXd, CanWrite1)
 
 TEST_F(ScaledReducedStorageXd, CanWrite2)
 {
-    r2(1, 1) = 0.7;
+    r2(1, 1) = 0.5;
 
     data_equal_except_for(5);
     scalar_equal_except_for(99);
-    EXPECT_NEAR(r2(1, 1), 0.7, delta);
+    EXPECT_NEAR(r2(1, 1), 0.5, delta);
 }
 
 
