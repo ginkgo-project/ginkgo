@@ -652,62 +652,74 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_ELL_KERNEL);
 
 
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_fbcsr_to_csc(size_type num_rows, const IndexType *row_ptrs,
-                                 const IndexType *col_idxs,
-                                 const ValueType *fbcsr_vals,
-                                 IndexType *row_idxs, IndexType *col_ptrs,
-                                 ValueType *csc_vals,
-                                 UnaryOperator op) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    for (size_type row = 0; row < num_rows; ++row) {
-//        for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-//            const auto dest_idx = col_ptrs[col_idxs[i]]++;
-//            row_idxs[dest_idx] = row;
-//            csc_vals[dest_idx] = op(fbcsr_vals[i]);
-//        }
-//    }
-//}
+template <typename ValueType, typename IndexType, typename UnaryOperator,
+          bool transpose_blocks>
+void convert_fbcsr_to_fbcsc(const size_type num_blk_rows, const int blksz,
+                            const IndexType *const row_ptrs,
+                            const IndexType *const col_idxs,
+                            const ValueType *const fbcsr_vals,
+                            IndexType *const row_idxs,
+                            IndexType *const col_ptrs,
+                            ValueType *const csc_vals, UnaryOperator op)
+{
+    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> rvalues(
+        fbcsr_vals, blksz, blksz);
+    gko::blockutils::DenseBlocksView<ValueType, IndexType> cvalues(
+        csc_vals, blksz, blksz);
+    for (size_type brow = 0; brow < num_blk_rows; ++brow) {
+        for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
+            const auto dest_idx = col_ptrs[col_idxs[i]]++;
+            row_idxs[dest_idx] = brow;
+            for (int ib = 0; ib < blksz; ib++)
+                for (int jb = 0; jb < blksz; jb++)
+                    // csc_vals[dest_idx] = op(fbcsr_vals[i]);
+                    cvalues(dest_idx, ib, jb) =
+                        op(transpose_blocks ? rvalues(i, jb, ib)
+                                            : rvalues(i, ib, jb));
+        }
+    }
+}
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
-                             matrix::Fbcsr<ValueType, IndexType> *trans,
-                             const matrix::Fbcsr<ValueType, IndexType> *orig,
-                             UnaryOperator op) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto trans_row_ptrs = trans->get_row_ptrs();
-//    auto orig_row_ptrs = orig->get_const_row_ptrs();
-//    auto trans_col_idxs = trans->get_col_idxs();
-//    auto orig_col_idxs = orig->get_const_col_idxs();
-//    auto trans_vals = trans->get_values();
-//    auto orig_vals = orig->get_const_values();
-//
-//    auto orig_num_cols = orig->get_size()[1];
-//    auto orig_num_rows = orig->get_size()[0];
-//    auto orig_nnz = orig_row_ptrs[orig_num_rows];
-//
-//    trans_row_ptrs[0] = 0;
-//    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-//                         orig_num_cols);
-//
-//    convert_fbcsr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
-//    orig_vals,
-//                       trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
-//}
+void transpose_and_transform(
+    const std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::Fbcsr<ValueType, IndexType> *const trans,
+    const matrix::Fbcsr<ValueType, IndexType> *const orig, UnaryOperator op)
+{
+    const int bs = orig->get_block_size();
+    auto trans_row_ptrs = trans->get_row_ptrs();
+    auto orig_row_ptrs = orig->get_const_row_ptrs();
+    auto trans_col_idxs = trans->get_col_idxs();
+    auto orig_col_idxs = orig->get_const_col_idxs();
+    auto trans_vals = trans->get_values();
+    auto orig_vals = orig->get_const_values();
+
+    auto orig_num_cols = orig->get_size()[1];
+    const size_type nbcols =
+        gko::blockutils::getNumFixedBlocks(bs, orig_num_cols);
+    auto orig_num_rows = orig->get_size()[0];
+    const size_type nbrows =
+        gko::blockutils::getNumFixedBlocks(bs, orig_num_rows);
+    auto orig_nbnz = orig_row_ptrs[nbrows];
+
+    trans_row_ptrs[0] = 0;
+    convert_idxs_to_ptrs(orig_col_idxs, orig_nbnz, trans_row_ptrs + 1, nbcols);
+
+    convert_fbcsr_to_fbcsc<ValueType, IndexType, UnaryOperator, true>(
+        nbrows, bs, orig_row_ptrs, orig_col_idxs, orig_vals, trans_col_idxs,
+        trans_row_ptrs + 1, trans_vals, op);
+}
 
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                const matrix::Fbcsr<ValueType, IndexType> *orig,
-               matrix::Fbcsr<ValueType, IndexType> *trans) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    transpose_and_transform(exec, trans, orig,
-//                            [](const ValueType x) { return x; });
-//}
+               matrix::Fbcsr<ValueType, IndexType> *trans)
+{
+    transpose_and_transform(exec, trans, orig,
+                            [](const ValueType x) { return x; });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL);

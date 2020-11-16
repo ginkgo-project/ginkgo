@@ -3,6 +3,9 @@ if (NOT GKO_CAN_COMPILE_DPCPP)
         "${CMAKE_CXX_COMPILER} cannot compile DPC++ code!")
 endif()
 
+ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
+set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
+
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -42,7 +45,8 @@ target_sources(ginkgo_dpcpp
 
 ginkgo_compile_features(ginkgo_dpcpp)
 
-set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl)
+set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl -fsycl-device-lib=libc)
+set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 
