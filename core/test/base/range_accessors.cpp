@@ -681,13 +681,8 @@ TYPED_TEST(ScaledReducedStorage3d, CorrectLengths)
 
 TYPED_TEST(ScaledReducedStorage3d, CorrectStride)
 {
-    EXPECT_EQ(this->r->get_storage_stride()[0], this->size[1] * this->size[2]);
-    EXPECT_EQ(this->r->get_storage_stride().at(0),
-              this->size[1] * this->size[2]);
-    EXPECT_EQ(this->r->get_storage_stride()[1], this->size[2]);
-    EXPECT_EQ(this->r->get_storage_stride().at(1), this->size[2]);
     EXPECT_EQ(this->r->get_scalar_stride(), this->scalar_stride);
-    EXPECT_EQ(this->r->get_scalar_stride(), this->scalar_stride);
+    EXPECT_EQ(this->r->get_storage_stride(), this->storage_stride);
 }
 
 
