@@ -349,7 +349,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto... indices) {
+        helper::multidim_for_each(size_, [this, &other](auto... indices) {
             (*this)(indices...) = other(indices...);
         });
     }
@@ -442,6 +442,7 @@ protected:
             size_, stride_, std::forward<Indices>(indices)...);
     }
 
+private:
     const dim<dimensionality> size_;
     storage_type *storage_;
     const storage_stride_type stride_;
@@ -696,7 +697,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto... indices) {
+        helper::multidim_for_each(size_, [this, &other](auto... indices) {
             // especially inefficient if mask has not all bits set
             this->write_scalar(other.read_scalar(indices...), indices...);
             (*this)(indices...) = other(indices...);
@@ -837,6 +838,7 @@ protected:
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
 
+private:
     const dim<dimensionality> size_;
     storage_type *storage_;
     const storage_stride_type storage_stride_;

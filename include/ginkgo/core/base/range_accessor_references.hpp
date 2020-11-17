@@ -173,7 +173,7 @@ struct enable_reference_operators {
     GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
 #undef GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
 
-    // TODO test if comparison operators need to be overloaded as well
+    // TODO Add overloads for comparison operators if needed
 
     friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES
         arithmetic_type
@@ -233,7 +233,7 @@ public:
     // Forbid copy construction
     reduced_storage(const reduced_storage &) = delete;
 
-    constexpr GKO_ATTRIBUTES reduced_storage(
+    constexpr explicit GKO_ATTRIBUTES reduced_storage(
         storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
@@ -245,6 +245,7 @@ public:
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
+        noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
@@ -254,12 +255,15 @@ public:
     constexpr GKO_ATTRIBUTES arithmetic_type
     operator=(const reduced_storage &ref) &&
     {
-        return std::move(*this) = static_cast<arithmetic_type>(ref);
+        std::move(*this) = static_cast<arithmetic_type>(ref);
+        return static_cast<arithmetic_type>(*this);
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type operator=(reduced_storage &&ref) &&
+        noexcept
     {
-        return std::move(*this) = static_cast<arithmetic_type>(ref);
+        std::move(*this) = static_cast<arithmetic_type>(ref);
+        return static_cast<arithmetic_type>(*this);
     }
 
 private:
@@ -287,7 +291,7 @@ public:
 
     reduced_storage &operator=(reduced_storage &&) = delete;
 
-    constexpr GKO_ATTRIBUTES reduced_storage(
+    constexpr explicit GKO_ATTRIBUTES reduced_storage(
         storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
@@ -340,7 +344,7 @@ public:
     // Forbid copy construction
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
 
-    constexpr GKO_ATTRIBUTES scaled_reduced_storage(
+    constexpr explicit GKO_ATTRIBUTES scaled_reduced_storage(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
@@ -352,6 +356,7 @@ public:
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
+        noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
@@ -361,13 +366,16 @@ public:
     constexpr GKO_ATTRIBUTES arithmetic_type
     operator=(const scaled_reduced_storage &ref) &&
     {
-        return std::move(*this) = static_cast<arithmetic_type>(ref);
+        std::move(*this) = static_cast<arithmetic_type>(ref);
+        return static_cast<arithmetic_type>(*this);
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type
-    operator=(scaled_reduced_storage &&ref) &&
+        operator=(scaled_reduced_storage &&ref) &&
+        noexcept
     {
-        return std::move(*this) = static_cast<arithmetic_type>(ref);
+        std::move(*this) = static_cast<arithmetic_type>(ref);
+        return static_cast<arithmetic_type>(*this);
     }
 
 private:
@@ -397,7 +405,7 @@ public:
 
     scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
-    constexpr GKO_ATTRIBUTES scaled_reduced_storage(
+    constexpr explicit GKO_ATTRIBUTES scaled_reduced_storage(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
