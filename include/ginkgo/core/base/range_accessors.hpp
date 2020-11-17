@@ -349,7 +349,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto &&... indices) {
+        helper::multidim_for_each(size_, [&](auto... indices) {
             (*this)(indices...) = other(indices...);
         });
     }
@@ -384,7 +384,7 @@ public:
     constexpr GKO_ATTRIBUTES
         std::enable_if_t<helper::are_span_compatible<SpanTypes...>::value,
                          range<reduced_row_major>>
-        operator()(SpanTypes &&... spans) const
+        operator()(SpanTypes... spans) const
     {
         return helper::validate_spans(size_, spans...),
                range<reduced_row_major>{
@@ -696,7 +696,8 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto &&... indices) {
+        helper::multidim_for_each(size_, [&](auto... indices) {
+            // especially inefficient if mask has not all bits set
             this->write_scalar(other.read_scalar(indices...), indices...);
             (*this)(indices...) = other(indices...);
         });
@@ -715,7 +716,7 @@ public:
     constexpr GKO_ATTRIBUTES std::enable_if_t<
         helper::are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
+    operator()(Indices... indices) const
     {
         return reference_type{storage_ + compute_index(indices...),
                               read_scalar(indices...)};
@@ -732,7 +733,7 @@ public:
     constexpr GKO_ATTRIBUTES
         std::enable_if_t<helper::are_span_compatible<SpanTypes...>::value,
                          range<scaled_reduced_row_major>>
-        operator()(SpanTypes &&... spans) const
+        operator()(SpanTypes... spans) const
     {
         return helper::validate_spans(size_, spans...),
                range<scaled_reduced_row_major>{
