@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 // CUDA TOOLKIT < 11 does not support constexpr in combination with
