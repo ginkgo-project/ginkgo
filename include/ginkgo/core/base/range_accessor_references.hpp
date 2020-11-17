@@ -90,17 +90,17 @@ struct has_cast_operator<
  * overloaded `operator value_type()`.
  */
 template <typename ValueType, typename Ref>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
-    has_cast_operator<Ref, ValueType>::value, ValueType>
-to_value_type(const Ref &ref)
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<has_cast_operator<Ref, ValueType>::value, ValueType>
+    to_value_type(const Ref &ref)
 {
     return ref.Ref::operator ValueType();
 }
 
 template <typename ValueType, typename Ref>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
-    !has_cast_operator<Ref, ValueType>::value, ValueType>
-to_value_type(const Ref &ref)
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<!has_cast_operator<Ref, ValueType>::value, ValueType>
+    to_value_type(const Ref &ref)
 {
     return static_cast<ValueType>(ref);
 }
@@ -127,20 +127,20 @@ struct enable_reference_operators {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
 #define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                  \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
         arithmetic_type                                              \
         operator _op(const Reference &ref1, const Reference &ref2)   \
     {                                                                \
         return to_value_type<arithmetic_type>(ref1)                  \
             _op to_value_type<arithmetic_type>(ref2);                \
     }                                                                \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
         arithmetic_type                                              \
         operator _op(const Reference &ref, const arithmetic_type &a) \
     {                                                                \
         return to_value_type<arithmetic_type>(ref) _op a;            \
     }                                                                \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
         arithmetic_type                                              \
         operator _op(const arithmetic_type &a, const Reference &ref) \
     {                                                                \
@@ -153,14 +153,14 @@ struct enable_reference_operators {
 #undef GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
 #define GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)             \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR        \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES        \
         arithmetic_type                                                    \
         _oper(Reference &&ref1, const Reference &ref2)                     \
     {                                                                      \
         return std::move(ref1) = to_value_type<arithmetic_type>(ref1)      \
                    _op to_value_type<arithmetic_type>(ref2);               \
     }                                                                      \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR        \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES        \
         arithmetic_type                                                    \
         _oper(Reference &&ref, const arithmetic_type &a)                   \
     {                                                                      \
@@ -175,13 +175,16 @@ struct enable_reference_operators {
 
     // TODO test if comparison operators need to be overloaded as well
 
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES
         arithmetic_type
         operator-(const Reference &ref)
     {
         return -to_value_type<arithmetic_type>(ref);
     }
 };
+
+// There is no more need for this macro in this file
+#undef GKO_ENABLE_REFERENCE_CONSTEXPR
 
 
 }  // namespace detail
@@ -230,33 +233,31 @@ public:
     // Forbid copy construction
     reduced_storage(const reduced_storage &) = delete;
 
-    GKO_ATTRIBUTES constexpr reduced_storage(
+    constexpr GKO_ATTRIBUTES reduced_storage(
         storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
+    constexpr GKO_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        arithmetic_type val) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
         return val;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        const reduced_storage &ref) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(const reduced_storage &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        reduced_storage &&ref) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(reduced_storage &&ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -286,12 +287,12 @@ public:
 
     reduced_storage &operator=(reduced_storage &&) = delete;
 
-    GKO_ATTRIBUTES constexpr reduced_storage(
+    constexpr GKO_ATTRIBUTES reduced_storage(
         storage_type *const GKO_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
+    constexpr GKO_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
@@ -339,33 +340,32 @@ public:
     // Forbid copy construction
     scaled_reduced_storage(const scaled_reduced_storage &) = delete;
 
-    GKO_ATTRIBUTES constexpr scaled_reduced_storage(
+    constexpr GKO_ATTRIBUTES scaled_reduced_storage(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
+    constexpr GKO_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        arithmetic_type val) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
         return val;
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        const scaled_reduced_storage &ref) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(const scaled_reduced_storage &ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
-        scaled_reduced_storage &&ref) &&
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(scaled_reduced_storage &&ref) &&
     {
         return std::move(*this) = static_cast<arithmetic_type>(ref);
     }
@@ -397,12 +397,12 @@ public:
 
     scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
-    GKO_ATTRIBUTES constexpr scaled_reduced_storage(
+    constexpr GKO_ATTRIBUTES scaled_reduced_storage(
         storage_type *const GKO_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
-    GKO_ATTRIBUTES GKO_INLINE constexpr operator arithmetic_type() const
+    constexpr GKO_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type *const GKO_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
