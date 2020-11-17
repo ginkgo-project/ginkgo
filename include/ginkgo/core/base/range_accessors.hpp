@@ -281,7 +281,7 @@ protected:
     template <typename... Strides>
     GKO_ATTRIBUTES constexpr reduced_row_major(gko::dim<dimensionality> size,
                                                storage_type *storage,
-                                               Strides &&... strides)
+                                               Strides &&...strides)
         : reduced_row_major{
               size, storage,
               storage_stride_type{{std::forward<Strides>(strides)...}}}
@@ -350,7 +350,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto... indices) {
+        helper::multidim_for_each(size_, [&](auto &&...indices) {
             (*this)(indices...) = other(indices...);
         });
     }
@@ -368,7 +368,7 @@ public:
     GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
         helper::are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
+    operator()(Indices &&...indices) const
     {
         return reference_type{storage_ +
                               compute_index(std::forward<Indices>(indices)...)};
@@ -385,7 +385,7 @@ public:
     GKO_ATTRIBUTES constexpr std::enable_if_t<
         helper::are_span_compatible<SpanTypes...>::value,
         range<reduced_row_major>>
-    operator()(SpanTypes &&... spans) const
+    operator()(SpanTypes &&...spans) const
     {
         return helper::validate_spans(size_, spans...),
                range<reduced_row_major>{
@@ -439,7 +439,7 @@ public:
 protected:
     template <typename... Indices>
     GKO_ATTRIBUTES GKO_INLINE constexpr size_type compute_index(
-        Indices &&... indices) const
+        Indices &&...indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
@@ -485,7 +485,7 @@ struct enable_write_scalar<Dimensionality, Accessor, ScaleType, false> {
      */
     template <typename... Indices>
     GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type write_scalar(
-        scalar_type value, Indices &&... indices) const
+        scalar_type value, Indices &&...indices) const
     {
         static_assert(sizeof...(Indices) == Dimensionality,
                       "Number of indices must match dimensionality!");
@@ -667,7 +667,7 @@ public:
      */
     template <typename... Indices>
     GKO_ATTRIBUTES GKO_INLINE constexpr scalar_type read_scalar(
-        Indices &&... indices) const
+        Indices &&...indices) const
     {
         const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
         return rest_scalar[compute_scalar_index(
@@ -702,7 +702,7 @@ public:
     template <typename OtherAccessor>
     GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
     {
-        helper::multidim_for_each(size_, [&](auto... indices) {
+        helper::multidim_for_each(size_, [&](auto &&...indices) {
             this->write_scalar(other.read_scalar(indices...), indices...);
             (*this)(indices...) = other(indices...);
         });
@@ -721,11 +721,10 @@ public:
     GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<
         helper::are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices... indices) const
+    operator()(Indices &&...indices) const
     {
-        return reference_type{
-            storage_ + compute_index(std::forward<Indices>(indices)...),
-            read_scalar(std::forward<Indices>(indices)...)};
+        return reference_type{storage_ + compute_index(indices...),
+                              read_scalar(indices...)};
     }
 
     /**
@@ -739,7 +738,7 @@ public:
     GKO_ATTRIBUTES constexpr std::enable_if_t<
         helper::are_span_compatible<SpanTypes...>::value,
         range<scaled_reduced_row_major>>
-    operator()(SpanTypes &&... spans) const
+    operator()(SpanTypes &&...spans) const
     {
         return helper::validate_spans(size_, spans...),
                range<scaled_reduced_row_major>{
@@ -830,7 +829,7 @@ public:
 protected:
     template <typename... Indices>
     GKO_ATTRIBUTES GKO_INLINE constexpr size_type compute_index(
-        Indices &&... indices) const
+        Indices &&...indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
@@ -840,7 +839,7 @@ protected:
 
     template <typename... Indices>
     GKO_ATTRIBUTES constexpr GKO_INLINE size_type
-    compute_scalar_index(Indices &&... indices) const
+    compute_scalar_index(Indices &&...indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
