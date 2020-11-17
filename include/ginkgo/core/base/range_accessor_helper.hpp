@@ -76,7 +76,7 @@ struct row_major_helper_s {
     compute(const dim<total_dim> &size,
             const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>
                 &stride,
-            FirstType &&first, Indices &&... idxs)
+            FirstType first, Indices &&... idxs)
     {
         // The ASSERT size check must NOT be indexed with `dim_idx` directy,
         // otherwise, it leads to a linker error. The reason is likely that
@@ -233,7 +233,7 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
     compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First &&first,
+                const std::array<ValueType, stride_size> &stride, First first,
                 Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
@@ -285,7 +285,7 @@ struct row_major_masked_helper_s<ValueType, mask, 0, stride_size, dim_idx,
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
     compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First &&first,
+                const std::array<ValueType, stride_size> &stride, First first,
                 Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
@@ -336,7 +336,7 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
     compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First &&,
+                const std::array<ValueType, stride_size> &stride, First,
                 Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
@@ -462,7 +462,7 @@ namespace detail {
 
 template <size_type iter, size_type N, typename Callable, typename... Indices>
 GKO_ATTRIBUTES std::enable_if_t<iter == N> multidim_for_each_impl(
-    const dim<N> &, Callable &&callable, Indices &&... indices)
+    const dim<N> &, Callable callable, Indices &&... indices)
 {
     static_assert(iter == sizeof...(Indices),
                   "Number arguments must match current iteration!");
@@ -471,7 +471,7 @@ GKO_ATTRIBUTES std::enable_if_t<iter == N> multidim_for_each_impl(
 
 template <size_type iter, size_type N, typename Callable, typename... Indices>
 GKO_ATTRIBUTES std::enable_if_t<(iter < N)> multidim_for_each_impl(
-    const dim<N> &size, Callable &&callable, Indices... indices)
+    const dim<N> &size, Callable &&callable, Indices &&... indices)
 {
     static_assert(iter == sizeof...(Indices),
                   "Number arguments must match current iteration!");
@@ -508,7 +508,7 @@ constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, int> spans_in_size(
 
 template <size_type iter, size_type N, typename First, typename... Remaining>
 constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), int> spans_in_size(
-    const dim<N> &size, First &&first, Remaining &&... remaining)
+    const dim<N> &size, First first, Remaining &&... remaining)
 {
     static_assert(sizeof...(Remaining) + 1 == N - iter,
                   "Number of remaining spans must be equal to N - iter");
