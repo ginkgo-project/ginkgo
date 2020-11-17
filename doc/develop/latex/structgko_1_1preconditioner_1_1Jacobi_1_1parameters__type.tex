@@ -19,6 +19,9 @@ Collaboration diagram for gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a419884da2b13ca5bd6869f6b7bc9f803}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a419884da2b13ca5bd6869f6b7bc9f803}} 
 {\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+max\+\_\+block\+\_\+stride} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
 \item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_abfa5c7e60a2af424ef0f921eb935f28a}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_abfa5c7e60a2af424ef0f921eb935f28a}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+skip\+\_\+sorting} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcff7eaefaa97847ecd499577f5eecc}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcff7eaefaa97847ecd499577f5eecc}} 
 {\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+block\+\_\+pointers} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
 \item 
@@ -35,6 +38,8 @@ Collaboration diagram for gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\
 \begin{DoxyCompactList}\small\item\em Maximal size of diagonal blocks. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a042df68c54ea721101c4b064ed450a1f}{max\+\_\+block\+\_\+stride}} \{ 0u \}
 \begin{DoxyCompactList}\small\item\em Stride between two columns of a block (as number of elements). \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_adfc8ea4f7d80b7de39b396dbbc1e5654}{skip\+\_\+sorting}} \{ false \}
+\begin{DoxyCompactList}\small\item\em {\ttfamily true} means it is known that the matrix given to this factory will be sorted first by row, then by column index, {\ttfamily false} means it is unknown or not sorted, so an additional sorting step will be performed during the preconditioner generation (it will not change the matrix given). \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ index\+\_\+type $>$ \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab70db5d25c2efd13579170b28218ea66}{block\+\_\+pointers}} \{ nullptr \}
 \begin{DoxyCompactList}\small\item\em Starting (row / column) indexes of individual blocks. \end{DoxyCompactList}\item 
 storage\+\_\+optimization\+\_\+type \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}{storage\+\_\+optimization}} \{ \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}(0, 0) \}
@@ -120,7 +125,20 @@ Should be a multiple of cache line size for best performance.
 \begin{DoxyNote}{Note}
 If this value is 0, it uses 64 in hip A\+MD but 32 in N\+V\+I\+D\+IA or reference executor. The allowed value\+: 0, 64 for A\+MD and 0, 32 for N\+V\+I\+D\+IA 
 \end{DoxyNote}
-\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}} 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_adfc8ea4f7d80b7de39b396dbbc1e5654}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_adfc8ea4f7d80b7de39b396dbbc1e5654}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!skip\_sorting@{skip\_sorting}}
+\index{skip\_sorting@{skip\_sorting}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{skip\_sorting}{skip\_sorting}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::skip\+\_\+sorting \{ false \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+{\ttfamily true} means it is known that the matrix given to this factory will be sorted first by row, then by column index, {\ttfamily false} means it is unknown or not sorted, so an additional sorting step will be performed during the preconditioner generation (it will not change the matrix given). 
+
+The matrix must be sorted for this preconditioner to work.
+
+The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, this preconditioner might be incorrect. \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}} 
 \index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!storage\_optimization@{storage\_optimization}}
 \index{storage\_optimization@{storage\_optimization}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
 \doxysubsubsection{\texorpdfstring{storage\_optimization}{storage\_optimization}}
