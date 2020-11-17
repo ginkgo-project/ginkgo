@@ -78,6 +78,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_jacobi_storage))
                  .with_accuracy(FLAGS_jacobi_accuracy)
+                 .with_skip_sorting(true)
                  .on(exec);
          }},
         {"parict",
@@ -87,6 +88,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
+                     .with_skip_sorting(true)
                      .on(exec));
              return gko::preconditioner::Ilu<>::build()
                  .with_factorization_factory(fact)
@@ -97,6 +99,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              auto fact =
                  gko::share(gko::factorization::ParIlu<>::build()
                                 .with_iterations(FLAGS_parilu_iterations)
+                                .with_skip_sorting(true)
                                 .on(exec));
              return gko::preconditioner::Ilu<>::build()
                  .with_factorization_factory(fact)
@@ -109,6 +112,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
+                     .with_skip_sorting(true)
                      .on(exec));
              return gko::preconditioner::Ilu<>::build()
                  .with_factorization_factory(fact)
@@ -129,6 +133,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
+                     .with_skip_sorting(true)
                      .on(exec));
              auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
                                          .with_sparsity_power(FLAGS_isai_power)
@@ -149,6 +154,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              auto fact =
                  gko::share(gko::factorization::ParIlu<>::build()
                                 .with_iterations(FLAGS_parilu_iterations)
+                                .with_skip_sorting(true)
                                 .on(exec));
              auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
                                          .with_sparsity_power(FLAGS_isai_power)
@@ -171,6 +177,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
+                     .with_skip_sorting(true)
                      .on(exec));
              auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
                                          .with_sparsity_power(FLAGS_isai_power)

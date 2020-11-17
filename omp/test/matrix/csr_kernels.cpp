@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace {
@@ -139,25 +140,11 @@ protected:
 
     matrix_pair gen_unsorted_mtx()
     {
-        constexpr int min_nnz_per_row = 2;  // Must be at least 2
+        constexpr int min_nnz_per_row{2};
         auto local_mtx_ref =
             gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
-        for (size_t row = 0; row < mtx_size[0]; ++row) {
-            const auto row_ptrs = local_mtx_ref->get_const_row_ptrs();
-            const auto start_row = row_ptrs[row];
-            auto col_idx = local_mtx_ref->get_col_idxs() + start_row;
-            auto vals = local_mtx_ref->get_values() + start_row;
-            const auto nnz_in_this_row = row_ptrs[row + 1] - row_ptrs[row];
-            auto swap_idx_dist =
-                std::uniform_int_distribution<>(0, nnz_in_this_row - 1);
-            // shuffle `nnz_in_this_row / 2` times
-            for (size_t perm = 0; perm < nnz_in_this_row; perm += 2) {
-                const auto idx1 = swap_idx_dist(rand_engine);
-                const auto idx2 = swap_idx_dist(rand_engine);
-                std::swap(col_idx[idx1], col_idx[idx2]);
-                std::swap(vals[idx1], vals[idx2]);
-            }
-        }
+        gko::test::unsort_matrix(gko::lend(local_mtx_ref), rand_engine);
+
         auto local_mtx_omp = Mtx::create(omp);
         local_mtx_omp->copy_from(local_mtx_ref.get());
 
@@ -220,6 +207,18 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefUnsorted)
+{
+    set_up_apply_data(3);
+    auto pair = gen_unsorted_mtx();
+
+    pair.ref->apply(y.get(), expected.get());
+    pair.omp->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

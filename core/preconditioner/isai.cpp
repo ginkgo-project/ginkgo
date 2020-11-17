@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
 
@@ -60,48 +61,6 @@ GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
 
 
 }  // namespace isai
-
-
-/**
- * @internal
- *
- * Helper function that converts the given matrix to the (const) CSR format with
- * additional sorting.
- *
- * If the given matrix was already sorted, is on the same executor and with a
- * dynamic type of `const Csr`, the same pointer is returned with an empty
- * deleter.
- * In all other cases, a new matrix is created, which stores the converted Csr
- * matrix.
- * If `skip_sorting` is false, the matrix will be sorted by column index,
- * otherwise, it will not be sorted.
- */
-template <typename Csr>
-std::shared_ptr<const Csr> convert_to_csr_and_sort(
-    std::shared_ptr<const Executor> &exec, std::shared_ptr<const LinOp> mtx,
-    bool skip_sorting)
-{
-    static_assert(
-        std::is_same<Csr, matrix::Csr<typename Csr::value_type,
-                                      typename Csr::index_type>>::value,
-        "The given `Csr` type must be of type `matrix::Csr`!");
-    if (skip_sorting && exec == mtx->get_executor()) {
-        auto csr_mtx = std::dynamic_pointer_cast<const Csr>(mtx);
-        if (csr_mtx) {
-            // Here, we can just forward the pointer with an empty deleter
-            // since it is already sorted and in the correct format
-            return csr_mtx;
-        }
-    }
-    auto copy = Csr::create(exec);
-    as<ConvertibleTo<Csr>>(mtx)->convert_to(lend(copy));
-    // Here, we assume that a sorted matrix converted to CSR will also be
-    // sorted
-    if (!skip_sorting) {
-        copy->sort_by_column_index();
-    }
-    return {std::move(copy)};
-}
 
 
 /**
@@ -156,7 +115,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
-    auto to_invert = convert_to_csr_and_sort<Csr>(exec, input, skip_sorting);
+    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
     auto inverted = extend_sparsity(exec, to_invert, power);
     auto num_rows = inverted->get_size()[0];
     auto is_lower = IsaiType == isai_type::lower;
