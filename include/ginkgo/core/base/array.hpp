@@ -600,9 +600,9 @@ public:
     copy_back_deleter(pointer original) : original_{original} {}
 
     /**
-     * Deletes the object.
+     * Copies back the pointed-to object to the original and deletes it.
      *
-     * @param ptr  pointer to the object being deleted
+     * @param ptr  pointer to the object to be copied back and deleted
      */
     void operator()(pointer ptr) const
     {

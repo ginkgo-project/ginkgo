@@ -288,6 +288,8 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 
     {
         auto tmp_clone = make_temporary_clone(omp, &this->x);
+        // change x, so it no longer matches the original x
+        // the copy-back will overwrite it again with the correct value
         this->x.get_data()[0] = 0;
     }
 
