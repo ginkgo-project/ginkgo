@@ -76,7 +76,7 @@ struct row_major_helper_s {
     compute(const dim<total_dim> &size,
             const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>
                 &stride,
-            FirstType &&first, Indices &&...idxs)
+            FirstType &&first, Indices &&... idxs)
     {
         // The ASSERT size check must NOT be indexed with `dim_idx` directy,
         // otherwise, it leads to a linker error. The reason is likely that
@@ -105,16 +105,16 @@ struct row_major_helper_s<ValueType, total_dim, total_dim> {
 
 template <typename ValueType, size_type iter, size_type N>
 constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<iter == N, ValueType>
-mult_array(const dim<N> &)
+mult_size_upwards(const dim<N> &)
 {
     return 1;
 }
 
 template <typename ValueType, size_type iter, size_type N>
 constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<(iter < N), ValueType>
-mult_array(const dim<N> &size)
+mult_size_upwards(const dim<N> &size)
 {
-    return size[iter] * mult_array<ValueType, iter + 1>(size);
+    return size[iter] * mult_size_upwards<ValueType, iter + 1>(size);
 }
 
 
@@ -122,7 +122,7 @@ template <typename ValueType, size_type iter = 1, size_type N, typename... Args>
 constexpr GKO_ATTRIBUTES GKO_INLINE
     std::enable_if_t<N == 0 || (iter == N && iter == sizeof...(Args) + 1),
                      std::array<ValueType, N == 0 ? 0 : N - 1>>
-    extract_factorization(const dim<N> &, Args &&...args)
+    compute_default_stride_array(const dim<N> &, Args &&... args)
 {
     return {{std::forward<Args>(args)...}};
 }
@@ -130,10 +130,11 @@ constexpr GKO_ATTRIBUTES GKO_INLINE
 template <typename ValueType, size_type iter = 1, size_type N, typename... Args>
 constexpr GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<
     (iter < N) && (iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
-extract_factorization(const dim<N> &size, Args &&...args)
+compute_default_stride_array(const dim<N> &size, Args &&... args)
 {
-    return extract_factorization<ValueType, iter + 1>(
-        size, std::forward<Args>(args)..., mult_array<ValueType, iter>(size));
+    return compute_default_stride_array<ValueType, iter + 1>(
+        size, std::forward<Args>(args)...,
+        mult_size_upwards<ValueType, iter>(size));
 }
 
 
@@ -148,7 +149,7 @@ template <typename ValueType, size_type total_dim, typename... Indices>
 constexpr GKO_ATTRIBUTES GKO_INLINE ValueType compute_storage_index(
     const dim<total_dim> &size,
     const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)> &stride,
-    Indices &&...idxs)
+    Indices &&... idxs)
 {
     return detail::row_major_helper_s<ValueType, total_dim>::compute(
         size, stride, std::forward<Indices>(idxs)...);
@@ -160,10 +161,10 @@ constexpr GKO_ATTRIBUTES GKO_INLINE ValueType compute_storage_index(
  * padding
  */
 template <typename ValueType, size_type N>
-constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_stride_array(
+constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_default_stride_array(
     const dim<N> &size)
 {
-    return detail::extract_factorization<ValueType>(size);
+    return detail::compute_default_stride_array<ValueType>(size);
 }
 
 
@@ -193,7 +194,8 @@ template <typename ValueType, size_type mask, size_type set_bits_processed,
                               ? static_cast<bool>(mask &(
                                     size_type{1} << (total_dim - 1 - dim_idx)))
                               : false>
-struct row_major_masked_helper_s {};
+struct row_major_masked_helper_s {
+};
 
 
 // bit for current dimensionality is set
@@ -213,28 +215,28 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     template <typename... Args>
     static constexpr GKO_ATTRIBUTES GKO_INLINE
         std::array<ValueType, stride_size>
-        build_stride(const dim<total_dim> &size, Args &&...args)
+        build_stride(const dim<total_dim> &size, Args &&... args)
     {
         return row_major_masked_helper_s<
             ValueType, mask, set_bits_processed + 1, stride_size, dim_idx + 1,
             total_dim>::build_stride(size, std::forward<Args>(args)...,
-                                     mult_array(size));
+                                     mult_size_upwards(size));
     }
 
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
-    mult_array(const dim<total_dim> &size)
+    mult_size_upwards(const dim<total_dim> &size)
     {
         return size[dim_idx] *
                row_major_masked_helper_s<
                    ValueType, mask, set_bits_processed + 1, stride_size,
-                   dim_idx + 1, total_dim>::mult_array(size);
+                   dim_idx + 1, total_dim>::mult_size_upwards(size);
     }
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
     compute_idx(const dim<total_dim> &size,
                 const std::array<ValueType, stride_size> &stride, First &&first,
-                Indices &&...idxs)
+                Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
@@ -268,7 +270,7 @@ struct row_major_masked_helper_s<ValueType, mask, 0, stride_size, dim_idx,
     template <typename... Args>
     static constexpr GKO_ATTRIBUTES GKO_INLINE
         std::array<ValueType, stride_size>
-        build_stride(const dim<total_dim> &size, Args &&...args)
+        build_stride(const dim<total_dim> &size, Args &&... args)
     {
         return row_major_masked_helper_s<
             ValueType, mask, set_bits_processed + 1, stride_size, dim_idx + 1,
@@ -276,18 +278,18 @@ struct row_major_masked_helper_s<ValueType, mask, 0, stride_size, dim_idx,
     }
 
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
-    mult_array(const dim<total_dim> &size)
+    mult_size_upwards(const dim<total_dim> &size)
     {
         return row_major_masked_helper_s<
             ValueType, mask, set_bits_processed + 1, stride_size, dim_idx + 1,
-            total_dim>::mult_array(size);
+            total_dim>::mult_size_upwards(size);
     }
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
     compute_idx(const dim<total_dim> &size,
                 const std::array<ValueType, stride_size> &stride, First &&first,
-                Indices &&...idxs)
+                Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
@@ -320,7 +322,7 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     template <typename... Args>
     static constexpr GKO_ATTRIBUTES GKO_INLINE
         std::array<ValueType, stride_size>
-        build_stride(const dim<total_dim> &size, Args &&...args)
+        build_stride(const dim<total_dim> &size, Args &&... args)
     {
         return row_major_masked_helper_s<
             ValueType, mask, set_bits_processed, stride_size, dim_idx + 1,
@@ -328,18 +330,18 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     }
 
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
-    mult_array(const dim<total_dim> &size)
+    mult_size_upwards(const dim<total_dim> &size)
     {
         return row_major_masked_helper_s<ValueType, mask, set_bits_processed,
                                          stride_size, dim_idx + 1,
-                                         total_dim>::mult_array(size);
+                                         total_dim>::mult_size_upwards(size);
     }
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
     compute_idx(const dim<total_dim> &size,
                 const std::array<ValueType, stride_size> &stride, First &&,
-                Indices &&...idxs)
+                Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
@@ -362,12 +364,12 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
     template <typename... Args>
     static constexpr GKO_ATTRIBUTES GKO_INLINE
         std::array<ValueType, stride_size>
-        build_stride(const dim<total_dim> &, Args &&...args)
+        build_stride(const dim<total_dim> &, Args &&... args)
     {
         return {{std::forward<Args>(args)...}};
     }
     static constexpr GKO_ATTRIBUTES GKO_INLINE ValueType
-    mult_array(const dim<total_dim> &)
+    mult_size_upwards(const dim<total_dim> &)
     {
         return 1;
     }
@@ -391,7 +393,7 @@ template <typename ValueType, size_type mask, size_type stride_size,
           size_type total_dim, typename... Indices>
 constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_masked_index(
     const dim<total_dim> &size,
-    const std::array<ValueType, stride_size> &stride, Indices &&...idxs)
+    const std::array<ValueType, stride_size> &stride, Indices &&... idxs)
 {
     return detail::row_major_masked_helper_s<
         ValueType, mask, 0, stride_size, 0,
@@ -406,7 +408,7 @@ constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_masked_index(
  */
 template <typename ValueType, size_type mask, size_type stride_size,
           size_type total_dim>
-constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_masked_stride_array(
+constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_default_masked_stride_array(
     const dim<total_dim> &size)
 {
     return detail::row_major_masked_helper_s<ValueType, mask, 0, stride_size, 0,
@@ -418,13 +420,15 @@ constexpr GKO_ATTRIBUTES GKO_INLINE auto compute_masked_stride_array(
  * Evaluates if all Args fulfill std::is_integral
  */
 template <typename... Args>
-struct are_all_integral : public std::true_type {};
+struct are_all_integral : public std::true_type {
+};
 
 template <typename First, typename... Args>
 struct are_all_integral<First, Args...>
     : public std::conditional<std::is_integral<std::decay_t<First>>::value,
                               are_all_integral<Args...>,
-                              std::false_type>::type {};
+                              std::false_type>::type {
+};
 
 
 namespace detail {
@@ -432,7 +436,8 @@ namespace detail {
 
 template <bool has_span, typename... Args>
 struct are_span_compatible_impl
-    : public std::integral_constant<bool, has_span> {};
+    : public std::integral_constant<bool, has_span> {
+};
 
 template <bool has_span, typename First, typename... Args>
 struct are_span_compatible_impl<has_span, First, Args...>
@@ -442,7 +447,8 @@ struct are_span_compatible_impl<has_span, First, Args...>
           are_span_compatible_impl<
               has_span || std::is_same<std::decay_t<First>, span>::value,
               Args...>,
-          std::false_type>::type {};
+          std::false_type>::type {
+};
 
 
 }  // namespace detail
@@ -461,7 +467,7 @@ namespace detail {
 
 template <size_type iter, size_type N, typename Callable, typename... Indices>
 GKO_ATTRIBUTES std::enable_if_t<iter == N> multidim_for_each_impl(
-    const dim<N> &, Callable &&callable, Indices &&...indices)
+    const dim<N> &, Callable &&callable, Indices &&... indices)
 {
     static_assert(iter == sizeof...(Indices),
                   "Number arguments must match current iteration!");
@@ -507,7 +513,7 @@ spans_in_size(const dim<N> &)
 
 template <size_type iter, size_type N, typename First, typename... Remaining>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<(iter < N), int>
-spans_in_size(const dim<N> &size, First &&first, Remaining &&...remaining)
+spans_in_size(const dim<N> &size, First &&first, Remaining &&... remaining)
 {
     static_assert(sizeof...(Remaining) + 1 == N - iter,
                   "Number of remaining spans must be equal to N - iter");
@@ -522,7 +528,7 @@ spans_in_size(const dim<N> &size, First &&first, Remaining &&...remaining)
 
 template <size_type N, typename... Spans>
 GKO_ATTRIBUTES GKO_INLINE constexpr int validate_spans(const dim<N> &size,
-                                                       Spans &&...spans)
+                                                       Spans &&... spans)
 {
     return detail::spans_in_size<0>(size, std::forward<Spans>(spans)...);
 }

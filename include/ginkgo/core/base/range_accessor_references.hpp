@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GKO_ENABLE_REFERENCE_CONSTEXPR constexpr
 
-#endif
+#endif  // __CUDA_ARCH__ && __CUDACC_VER_MAJOR__ && __CUDACC_VER_MAJOR__ < 11
 
 
 namespace gko {
@@ -113,43 +113,43 @@ to_value_type(const Ref &ref)
  * All assignment operators expect an rvalue reference (Reference &&) for
  * the Reference class in order to prevent copying the Reference object.
  *
- * @tparam Reference  The reference class this mixin provides operator
- * overloads for. The reference class needs to overload the cast operator
- * to ValueType
+ * @tparam Reference  The reference class this mixin provides operator overloads
+ *                    for. The reference class needs to overload the cast
+ *                    operatorto ValueType
  *
  * @tparam ArithmeticType  arithmetic type the Reference class is supposed
- * to represent.
+ *         to represent.
  *
  * @warning  This struct should only be used by reference classes.
  */
 template <typename Reference, typename ArithmeticType>
-struct enable_reference {
+struct enable_reference_operators {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
-#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_oper, _op)          \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
-        arithmetic_type                                             \
-        _oper(const Reference &ref1, const Reference &ref2)         \
-    {                                                               \
-        return to_value_type<arithmetic_type>(ref1)                 \
-            _op to_value_type<arithmetic_type>(ref2);               \
-    }                                                               \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
-        arithmetic_type                                             \
-        _oper(const Reference &ref, const arithmetic_type &a)       \
-    {                                                               \
-        return to_value_type<arithmetic_type>(ref) _op a;           \
-    }                                                               \
-    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR \
-        arithmetic_type                                             \
-        _oper(const arithmetic_type &a, const Reference &ref)       \
-    {                                                               \
-        return a _op to_value_type<arithmetic_type>(ref);           \
+#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                  \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+        arithmetic_type                                              \
+        operator _op(const Reference &ref1, const Reference &ref2)   \
+    {                                                                \
+        return to_value_type<arithmetic_type>(ref1)                  \
+            _op to_value_type<arithmetic_type>(ref2);                \
+    }                                                                \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+        arithmetic_type                                              \
+        operator _op(const Reference &ref, const arithmetic_type &a) \
+    {                                                                \
+        return to_value_type<arithmetic_type>(ref) _op a;            \
+    }                                                                \
+    friend GKO_ATTRIBUTES GKO_INLINE GKO_ENABLE_REFERENCE_CONSTEXPR  \
+        arithmetic_type                                              \
+        operator _op(const arithmetic_type &a, const Reference &ref) \
+    {                                                                \
+        return a _op to_value_type<arithmetic_type>(ref);            \
     }
-    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator*, *)
-    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator/, /)
-    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator+, +)
-    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(operator-, -)
+    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(*)
+    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(/)
+    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(+)
+    GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(-)
 #undef GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
 #define GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)             \
@@ -190,7 +190,7 @@ struct enable_reference {
 /**
  * This namespace contains reference classes used inside accessors.
  *
- * @warning  These classes should not be used by anything else but accessors.
+ * @warning These classes should only be used by accessors.
  */
 namespace reference_class {
 
@@ -202,17 +202,18 @@ namespace reference_class {
  * Copying this reference is disabled, but move construction is possible to
  * allow for an additional layer (like gko::range).
  * The assignment operator only works for an rvalue reference (&&) to
- * prevent accidental copying the reference and working on a reference.
+ * prevent accidentally copying the reference and working on a reference.
  *
  * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
- * the type which is used for input and output of this class.
+ *                         the type which is used for input and output of this
+ *                         class.
  *
  * @tparam StorageType  Type actually used as a storage, which is converted
- * to ArithmeticType before usage
+ *                      to ArithmeticType before usage
  */
 template <typename ArithmeticType, typename StorageType>
 class reduced_storage
-    : public detail::enable_reference<
+    : public detail::enable_reference_operators<
           reduced_storage<ArithmeticType, StorageType>, ArithmeticType> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
@@ -244,7 +245,8 @@ public:
         arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
-        return *r_ptr = static_cast<storage_type>(val);
+        *r_ptr = static_cast<storage_type>(val);
+        return val;
     }
 
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
@@ -266,7 +268,7 @@ private:
 // Specialization for const storage_type to prevent `operator=`
 template <typename ArithmeticType, typename StorageType>
 class reduced_storage<ArithmeticType, const StorageType>
-    : public detail::enable_reference<
+    : public detail::enable_reference_operators<
           reduced_storage<ArithmeticType, const StorageType>, ArithmeticType> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
@@ -313,14 +315,15 @@ private:
  * prevent accidental copying the reference and working on a reference.
  *
  * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
- * the type which is used for input and output of this class.
+ *                         the type which is used for input and output of this
+ *                         class.
  *
  * @tparam StorageType  Type actually used as a storage, which is converted
- * to ArithmeticType before usage
+ *                      to ArithmeticType before usage
  */
 template <typename ArithmeticType, typename StorageType>
 class scaled_reduced_storage
-    : public detail::enable_reference<
+    : public detail::enable_reference_operators<
           scaled_reduced_storage<ArithmeticType, StorageType>, ArithmeticType> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
@@ -351,7 +354,8 @@ public:
         arithmetic_type val) &&
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
-        return *r_ptr = static_cast<storage_type>(val / scalar_), val;
+        *r_ptr = static_cast<storage_type>(val / scalar_);
+        return val;
     }
 
     GKO_ATTRIBUTES GKO_INLINE constexpr arithmetic_type operator=(
@@ -374,7 +378,7 @@ private:
 // Specialization for constant storage_type (no `operator=`)
 template <typename ArithmeticType, typename StorageType>
 class scaled_reduced_storage<ArithmeticType, const StorageType>
-    : public detail::enable_reference<
+    : public detail::enable_reference_operators<
           scaled_reduced_storage<ArithmeticType, const StorageType>,
           ArithmeticType> {
 public:
