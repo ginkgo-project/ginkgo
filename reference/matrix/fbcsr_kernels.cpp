@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -78,7 +79,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     const int bs = a->get_block_size();
     const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
     const IndexType nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, a->get_size()[0]);
+        gko::blockutils::getNumBlocks(bs, a->get_size()[0]);
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
@@ -121,7 +122,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     const int bs = a->get_block_size();
     const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
     const IndexType nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, a->get_size()[0]);
+        gko::blockutils::getNumBlocks(bs, a->get_size()[0]);
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
@@ -417,9 +418,9 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor> exec,
 {
     const int bs = source->get_block_size();
     const size_type nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, source->get_size()[0]);
+        gko::blockutils::getNumBlocks(bs, source->get_size()[0]);
     const size_type nbcols =
-        gko::blockutils::getNumFixedBlocks(bs, source->get_size()[1]);
+        gko::blockutils::getNumBlocks(bs, source->get_size()[1]);
     const IndexType *const row_ptrs = source->get_const_row_ptrs();
     const IndexType *const col_idxs = source->get_const_col_idxs();
     const ValueType *const vals = source->get_const_values();
@@ -457,9 +458,9 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor> exec,
 {
     const int bs = source->get_block_size();
     const size_type nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, source->get_size()[0]);
+        gko::blockutils::getNumBlocks(bs, source->get_size()[0]);
     const size_type nbcols =
-        gko::blockutils::getNumFixedBlocks(bs, source->get_size()[1]);
+        gko::blockutils::getNumBlocks(bs, source->get_size()[1]);
     const IndexType *const browptrs = source->get_const_row_ptrs();
     const IndexType *const bcolinds = source->get_const_col_idxs();
     const ValueType *const bvals = source->get_const_values();
@@ -696,11 +697,9 @@ void transpose_and_transform(
     auto orig_vals = orig->get_const_values();
 
     auto orig_num_cols = orig->get_size()[1];
-    const size_type nbcols =
-        gko::blockutils::getNumFixedBlocks(bs, orig_num_cols);
+    const size_type nbcols = gko::blockutils::getNumBlocks(bs, orig_num_cols);
     auto orig_num_rows = orig->get_size()[0];
-    const size_type nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, orig_num_rows);
+    const size_type nbrows = gko::blockutils::getNumBlocks(bs, orig_num_rows);
     auto orig_nbnz = orig_row_ptrs[nbrows];
 
     trans_row_ptrs[0] = 0;
@@ -1019,7 +1018,7 @@ void is_sorted_by_column_index(
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
     const int bs = to_check->get_block_size();
-    const size_type nbrows = gko::blockutils::getNumFixedBlocks(bs, size[0]);
+    const size_type nbrows = gko::blockutils::getNumBlocks(bs, size[0]);
 
     for (size_type i = 0; i < nbrows; ++i) {
         for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
@@ -1048,7 +1047,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const int bs = orig->get_block_size();
     const size_type diag_size = diag->get_size()[0];
     const size_type nbrows =
-        gko::blockutils::getNumFixedBlocks(bs, orig->get_size()[0]);
+        gko::blockutils::getNumBlocks(bs, orig->get_size()[0]);
     auto diag_values = diag->get_values();
     assert(diag_size == orig->get_size()[0]);
 
