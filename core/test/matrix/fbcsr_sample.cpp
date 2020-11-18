@@ -40,11 +40,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FBCSR_TEST_OFFSET 0.000011118888
 
+#define FBCSR_TEST_C_MAG 0.1 + FBCSR_TEST_OFFSET
+#define FBCSR_TEST_IMAGINARY \
+    sct(std::complex<remove_complex<ValueType>>(0, FBCSR_TEST_C_MAG))
+
 namespace gko {
 namespace testing {
 
 
 namespace matstr = gko::matrix::matrix_strategy;
+
+/// Generates a copu of the given matrix with a different scalar type
+/** \tparam AbsValueType The scalar type of the output matrix
+ */
+template <typename FbcsrType, typename AbsValueType>
+static std::unique_ptr<
+    gko::matrix::Fbcsr<AbsValueType, typename FbcsrType::index_type>>
+generate_acopy_impl(const FbcsrType *const mat)
+{
+    // using AbsValueType = typename gko::remove_complex<ValueType>;
+    using index_type = typename FbcsrType::index_type;
+    using value_type = typename FbcsrType::value_type;
+    using AbsFbcsr = gko::matrix::Fbcsr<AbsValueType, index_type>;
+    using classical = matstr::classical<AbsFbcsr>;
+
+    std::shared_ptr<const ReferenceExecutor> exec =
+        std::dynamic_pointer_cast<const ReferenceExecutor>(mat->get_executor());
+
+    std::unique_ptr<AbsFbcsr> amat =
+        AbsFbcsr::create(exec, mat->get_size(), mat->get_num_stored_elements(),
+                         mat->get_block_size(), std::make_shared<classical>());
+
+    const index_type *const colidxs = mat->get_col_idxs();
+    const index_type *const rowptrs = mat->get_row_ptrs();
+    index_type *const acolidxs = amat->get_col_idxs();
+    index_type *const arowptrs = amat->get_row_ptrs();
+    // blockutils
+    for (index_type i = 0;
+         i < mat->get_num_stored_elements() /
+                 (mat->get_block_size() * mat->get_block_size());
+         i++)
+        acolidxs[i] = colidxs[i];
+    // blockutils
+    for (index_type i = 0; i < mat->get_size()[0] / mat->get_block_size() + 1;
+         i++)
+        arowptrs[i] = rowptrs[i];
+
+    return amat;
+}
+
 
 template <typename ValueType, typename IndexType>
 FbcsrSample<ValueType, IndexType>::FbcsrSample(
@@ -88,6 +132,7 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
                                 mtx->get_size()[0], mtx->get_size()[1],
                                 "block size does not divide the size!");
 
+    // blockutils
     for (index_type ibrow = 0; ibrow < mtx->get_size()[0] / bs; ibrow++) {
         const index_type *const browptr = mtx->get_row_ptrs();
         for (index_type inz = browptr[ibrow]; inz < browptr[ibrow + 1]; inz++) {
@@ -106,12 +151,68 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
     vals(0, 2, 2) = gko::zero<value_type>();
     vals(3, 0, 0) = gko::zero<value_type>();
 
-    v[34] += FBCSR_TEST_OFFSET;
-    v[35] += FBCSR_TEST_OFFSET;
+    v[34] += FBCSR_TEST_IMAGINARY;
+    v[35] += FBCSR_TEST_IMAGINARY;
 
     for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
+}
+
+template <typename ValueType, typename IndexType>
+template <typename FbcsrType>
+void FbcsrSample<ValueType, IndexType>::correct_abs_for_complex_values(
+    FbcsrType *const amat) const
+{
+    using out_value_type = typename FbcsrType::value_type;
+    using outreal_type = remove_complex<out_value_type>;
+    out_value_type *const avals = amat->get_values();
+    if (is_complex<ValueType>()) {
+        auto mo = static_cast<outreal_type>(FBCSR_TEST_C_MAG);
+        avals[34] = sqrt(pow(static_cast<outreal_type>(13.0), 2) +
+                         pow(static_cast<outreal_type>(mo), 2));
+        avals[35] = sqrt(pow(static_cast<outreal_type>(14.0), 2) +
+                         pow(static_cast<outreal_type>(mo), 2));
+    }
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<remove_complex<ValueType>, IndexType>>
+FbcsrSample<ValueType, IndexType>::generate_abs_fbcsr_abstype() const
+{
+    using AbsValueType = typename gko::remove_complex<ValueType>;
+    using AbsFbcsr = gko::matrix::Fbcsr<AbsValueType, IndexType>;
+
+    const std::unique_ptr<const Fbcsr> mat = generate_fbcsr();
+    std::unique_ptr<AbsFbcsr> amat =
+        generate_acopy_impl<Fbcsr, AbsValueType>(mat.get());
+
+    AbsValueType *const avals = amat->get_values();
+    const ValueType *const vals = mat->get_values();
+    for (IndexType i = 0; i < amat->get_num_stored_elements(); i++)
+        avals[i] = abs(vals[i]);
+
+    correct_abs_for_complex_values(amat.get());
+
+    return amat;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSample<ValueType, IndexType>::generate_abs_fbcsr() const
+{
+    const std::unique_ptr<const Fbcsr> mat = generate_fbcsr();
+    std::unique_ptr<Fbcsr> amat =
+        generate_acopy_impl<Fbcsr, ValueType>(mat.get());
+
+    ValueType *const avals = amat->get_values();
+    const ValueType *const vals = mat->get_values();
+    for (IndexType i = 0; i < amat->get_num_stored_elements(); i++)
+        avals[i] = abs(vals[i]);
+
+    correct_abs_for_complex_values(amat.get());
+
+    return amat;
 }
 
 template <typename ValueType, typename IndexType>
@@ -214,8 +315,8 @@ FbcsrSample<ValueType, IndexType>::generate_csr() const
     csrvals[34] = 13;
     csrvals[35] = 14;
 
-    csrvals[34] += FBCSR_TEST_OFFSET;
-    csrvals[35] += FBCSR_TEST_OFFSET;
+    csrvals[34] += FBCSR_TEST_IMAGINARY;
+    csrvals[35] += FBCSR_TEST_IMAGINARY;
 
     return csrm;
 }
@@ -241,8 +342,8 @@ FbcsrSample<ValueType, IndexType>::generate_dense() const
         }
 
     densem->at(2, 3) = densem->at(2, 5) = densem->at(3, 6) = 0.0;
-    densem->at(5, 7) += FBCSR_TEST_OFFSET;
-    densem->at(5, 8) += FBCSR_TEST_OFFSET;
+    densem->at(5, 7) += FBCSR_TEST_IMAGINARY;
+    densem->at(5, 8) += FBCSR_TEST_IMAGINARY;
 
     return densem;
 }
@@ -287,8 +388,8 @@ FbcsrSample<ValueType, IndexType>::generate_matrix_data() const
                      {4, 7, 10.0},
                      {4, 8, 11.0},
                      {5, 6, 12.0},
-                     {5, 7, 13.0 + FBCSR_TEST_OFFSET},
-                     {5, 8, 14.0 + FBCSR_TEST_OFFSET}}});
+                     {5, 7, sct(13.0) + FBCSR_TEST_IMAGINARY},
+                     {5, 8, sct(14.0) + FBCSR_TEST_IMAGINARY}}});
 }
 
 // Assuming row-major blocks
@@ -334,8 +435,8 @@ gko::matrix_data<ValueType, IndexType> FbcsrSample<
                      {4, 7, 10.0},
                      {4, 8, 11.0},
                      {5, 6, 12.0},
-                     {5, 7, 13.0 + FBCSR_TEST_OFFSET},
-                     {5, 8, 14.0 + FBCSR_TEST_OFFSET}}});
+                     {5, 7, sct(13.0) + FBCSR_TEST_IMAGINARY},
+                     {5, 8, sct(14.0) + FBCSR_TEST_IMAGINARY}}});
 }
 
 template <typename ValueType, typename IndexType>
@@ -450,6 +551,59 @@ FbcsrSample2<ValueType, IndexType>::generate_fbcsr() const
     for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<remove_complex<ValueType>, IndexType>>
+FbcsrSample2<ValueType, IndexType>::generate_abs_fbcsr_abstype() const
+{
+    using AbsValueType = typename gko::remove_complex<ValueType>;
+    using AbsFbcsr = gko::matrix::Fbcsr<AbsValueType, IndexType>;
+
+    const std::unique_ptr<const Fbcsr> mat = generate_fbcsr();
+    std::unique_ptr<AbsFbcsr> amat =
+        generate_acopy_impl<Fbcsr, AbsValueType>(mat.get());
+
+    AbsValueType *const v = amat->get_values();
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+    v[0] = 1;
+    v[1] = 2;
+    v[2] = 3;
+    v[3] = 0;
+    v[10] = 0;
+    v[11] = 0;
+    v[12] = 12;
+    v[13] = 1;
+    v[14] = 2;
+    v[15] = 11;
+
+    return amat;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSample2<ValueType, IndexType>::generate_abs_fbcsr() const
+{
+    const std::unique_ptr<const Fbcsr> mat = generate_fbcsr();
+    std::unique_ptr<Fbcsr> amat =
+        generate_acopy_impl<Fbcsr, ValueType>(mat.get());
+
+    ValueType *const v = amat->get_values();
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+    v[0] = 1.0;
+    v[1] = 2.0;
+    v[2] = 3.0;
+    v[3] = 0.0;
+    v[10] = 0.0;
+    v[11] = 0.0;
+    v[12] = 12.0;
+    v[13] = 1.0;
+    v[14] = 2.0;
+    v[15] = 11.0;
+
+    return amat;
 }
 
 template <typename ValueType, typename IndexType>
