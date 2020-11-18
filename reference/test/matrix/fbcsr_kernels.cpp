@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 
 
 #include <gtest/gtest.h>
@@ -63,9 +64,6 @@ namespace {
 
 
 namespace matstr = gko::matrix::matrix_strategy;
-
-
-constexpr int mat_bs = 1;
 
 
 template <typename ValueIndexType>
@@ -192,7 +190,7 @@ constexpr T get_some_number()
 }
 
 template <typename T>
-constexpr typename std::enable_if_t<gko::is_complex<T>> get_some_number()
+constexpr typename std::enable_if_t<gko::is_complex<T>, T> get_some_number()
 {
     using RT = gko::remove_complex<T>;
     return {static_cast<RT>(1.2), static_cast<RT>(3.4)};
@@ -1301,35 +1299,35 @@ TYPED_TEST(Fbcsr, ExtractsDiagonal)
 
 
 TYPED_TEST(Fbcsr, InplaceAbsolute)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto mtx = gko::initialize<Mtx>(
-//        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
-//
-//    mtx->compute_absolute_inplace();
-//
-//    GKO_ASSERT_MTX_NEAR(
-//        mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
-//}
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = this->fbsample2.generate_fbcsr();
+    const std::unique_ptr<const Mtx> refabs =
+        this->fbsample2.generate_abs_fbcsr();
+
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type *const refvals = refabs->get_const_values();
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, refabs, 0.0);
+}
 
 
 TYPED_TEST(Fbcsr, OutplaceAbsolute)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    auto mtx = gko::initialize<Mtx>(
-//        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
-//
-//    auto abs_mtx = mtx->compute_absolute();
-//
-//    GKO_ASSERT_MTX_NEAR(
-//        abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
-//    ASSERT_EQ(mtx->get_strategy()->get_name(),
-//              abs_mtx->get_strategy()->get_name());
-//}
+{
+    using Mtx = typename TestFixture::Mtx;
+    using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
+
+    auto mtx = this->fbsample2.generate_fbcsr();
+    const std::unique_ptr<const AbsMtx> refabs =
+        this->fbsample2.generate_abs_fbcsr_abstype();
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, refabs, 0.0);
+}
 
 
 template <typename ValueIndexType>
@@ -1373,49 +1371,47 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(FbcsrComplex, InplaceAbsolute)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using T = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    auto exec = gko::ReferenceExecutor::create();
-//    // clang-format off
-//    auto mtx = gko::initialize<Mtx>(
-//        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-//         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-//         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-//    // clang-format on
-//
-//    mtx->compute_absolute_inplace();
-//
-//    GKO_ASSERT_MTX_NEAR(
-//        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-//}
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::testing::FbcsrSample<value_type, index_type> fbsample(
+        gko::ReferenceExecutor::create());
+    auto mtx = fbsample.generate_fbcsr();
+
+    std::cout << " Generated fbcsr: " << mtx->get_values()[34] << ", "
+              << mtx->get_values()[35] << std::endl;
+
+    const std::unique_ptr<const Mtx> refabs = fbsample.generate_abs_fbcsr();
+
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type *const refvals = refabs->get_const_values();
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, refabs, 0.0);
+}
 
 
 TYPED_TEST(FbcsrComplex, OutplaceAbsolute)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Mtx = typename TestFixture::Mtx;
-//    using T = typename TestFixture::value_type;
-//    using index_type = typename TestFixture::index_type;
-//    auto exec = gko::ReferenceExecutor::create();
-//    // clang-format off
-//    auto mtx = gko::initialize<Mtx>(
-//        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
-//         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
-//         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
-//    // clang-format on
-//
-//    auto abs_mtx = mtx->compute_absolute();
-//
-//    GKO_ASSERT_MTX_NEAR(
-//        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-//    ASSERT_EQ(mtx->get_strategy()->get_name(),
-//              abs_mtx->get_strategy()->get_name());
-//}
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
+
+    gko::testing::FbcsrSample<value_type, index_type> fbsample(
+        gko::ReferenceExecutor::create());
+
+    auto mtx = fbsample.generate_fbcsr();
+    const std::unique_ptr<const AbsMtx> refabs =
+        fbsample.generate_abs_fbcsr_abstype();
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, refabs, 0.0);
+}
 
 
 }  // namespace

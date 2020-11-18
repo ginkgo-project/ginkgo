@@ -674,14 +674,12 @@ void Fbcsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 bool Fbcsr<ValueType, IndexType>::is_sorted_by_column_index() const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    bool is_sorted;
-//    exec->run(fbcsr::make_is_sorted_by_column_index(this, &is_sorted));
-//    return is_sorted;
-//}
+{
+    auto exec = this->get_executor();
+    bool is_sorted;
+    exec->run(fbcsr::make_is_sorted_by_column_index(this, &is_sorted));
+    return is_sorted;
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -701,35 +699,33 @@ Fbcsr<ValueType, IndexType>::extract_diagonal() const
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::compute_absolute_inplace()
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//
-//    exec->run(fbcsr::make_inplace_absolute_array(
-//        this->get_values(), this->get_num_stored_elements()));
-//}
+{
+    auto exec = this->get_executor();
+
+    exec->run(fbcsr::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Fbcsr<ValueType, IndexType>::absolute_type>
-Fbcsr<ValueType, IndexType>::compute_absolute() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//
-//    auto abs_fbcsr = absolute_type::create(exec, this->get_size(),
-//                                         this->get_num_stored_elements());
-//
-//    abs_fbcsr->col_idxs_ = col_idxs_;
-//    abs_fbcsr->row_ptrs_ = row_ptrs_;
-//    exec->run(fbcsr::make_outplace_absolute_array(this->get_const_values(),
-//                                                this->get_num_stored_elements(),
-//                                                abs_fbcsr->get_values()));
-//
-//    convert_strategy_helper(abs_fbcsr.get());
-//    return abs_fbcsr;
-//}
+Fbcsr<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_fbcsr = absolute_type::create(exec, this->get_size(),
+                                           this->get_num_stored_elements(),
+                                           this->get_block_size());
+
+    abs_fbcsr->col_idxs_ = col_idxs_;
+    abs_fbcsr->row_ptrs_ = row_ptrs_;
+    exec->run(fbcsr::make_outplace_absolute_array(
+        this->get_const_values(), this->get_num_stored_elements(),
+        abs_fbcsr->get_values()));
+
+    convert_strategy_helper(abs_fbcsr.get());
+    return abs_fbcsr;
+}
 
 
 // TODO clean this up as soon as we improve strategy_type
