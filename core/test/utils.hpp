@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/extended_float.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 
@@ -92,23 +93,28 @@ using ComplexValueIndexTypes =
                      std::tuple<std::complex<double>, gko::int64>>;
 
 
-template <typename T>
+template <typename Precision, typename OutputType>
 struct reduction_factor {
-    static constexpr gko::remove_complex<T> value =
-        std::is_same<gko::remove_complex<T>, float>::value ? 1.0e-7 : 1.0e-14;
+    static constexpr remove_complex<OutputType> value =
+        std::is_same<gko::remove_complex<Precision>, gko::half>::value
+            ? 1.0e-2
+            : std::is_same<gko::remove_complex<Precision>, float>::value
+                  ? 1.0e-6
+                  : 1.0e-14;
 };
 
 
-template <typename T>
-constexpr gko::remove_complex<T> reduction_factor<T>::value;
+template <typename Precision, typename OutputType>
+constexpr remove_complex<OutputType>
+    reduction_factor<Precision, OutputType>::value;
 
 
 }  // namespace test
 }  // namespace gko
 
 
-template <typename T>
-using r = typename gko::test::reduction_factor<T>;
+template <typename Precision, typename OutputType = Precision>
+using r = typename gko::test::reduction_factor<Precision, OutputType>;
 
 
 template <typename T>

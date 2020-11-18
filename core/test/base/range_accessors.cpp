@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/extended_float.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -149,7 +150,9 @@ protected:
         typename std::tuple_element<0, decltype(ArithmeticStorageType{})>::type;
     using st_type =
         typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
-    static constexpr ar_type delta{::r<st_type>::value * 2};
+    static constexpr ar_type delta{std::is_same<ar_type, st_type>::value
+                                       ? 0
+                                       : ::r<st_type, ar_type>::value};
 
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
@@ -186,43 +189,53 @@ protected:
     reduced_storage r{size, data};
     const_reduced_storage cr{size, data};
 
+    // Casts val first to `st_type`, then to `ar_type` in order to be allowed
+    // to test for equality
+    template <typename T>
+    static ar_type c_st_ar(T val)
+    {
+        return static_cast<ar_type>(static_cast<st_type>(val));
+    }
+
     template <typename Accessor>
-    static void check_accessor_correctness(
-        const Accessor &a, std::tuple<int, int, int> ignore = t(99, 99, 99))
+    void check_accessor_correctness(const Accessor &a,
+                                    std::tuple<int, int, int> ignore = t(99, 99,
+                                                                         99))
     {
         // Test for equality is fine here since they should not be modified
         // clang-format off
-        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), st_type{1.0});     }
-        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), st_type{2.01});    }
-        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), st_type{-1.02});   }
-        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), st_type{3.03});    }
-        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), st_type{4.04});    }
-        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), st_type{-2.05});   }
-        if (ignore != t(1, 0, 0)) { EXPECT_EQ(a(1, 0, 0), st_type{5.06});    }
-        if (ignore != t(1, 0, 1)) { EXPECT_EQ(a(1, 0, 1), st_type{6.07});    }
-        if (ignore != t(1, 1, 0)) { EXPECT_EQ(a(1, 1, 0), st_type{2.08});    }
-        if (ignore != t(1, 1, 1)) { EXPECT_EQ(a(1, 1, 1), st_type{3.09});    }
-        if (ignore != t(1, 2, 0)) { EXPECT_EQ(a(1, 2, 0), st_type{-1.1});    }
-        if (ignore != t(1, 2, 1)) { EXPECT_EQ(a(1, 2, 1), st_type{-9.11});   }
-        if (ignore != t(2, 0, 0)) { EXPECT_EQ(a(2, 0, 0), st_type{-2.12});   }
-        if (ignore != t(2, 0, 1)) { EXPECT_EQ(a(2, 0, 1), st_type{2.13});    }
-        if (ignore != t(2, 1, 0)) { EXPECT_EQ(a(2, 1, 0), st_type{0.14});    }
-        if (ignore != t(2, 1, 1)) { EXPECT_EQ(a(2, 1, 1), st_type{15.15});   }
-        if (ignore != t(2, 2, 0)) { EXPECT_EQ(a(2, 2, 0), st_type{-9.16});   }
-        if (ignore != t(2, 2, 1)) { EXPECT_EQ(a(2, 2, 1), st_type{8.17});    }
-        if (ignore != t(3, 0, 0)) { EXPECT_EQ(a(3, 0, 0), st_type{7.18});    }
-        if (ignore != t(3, 0, 1)) { EXPECT_EQ(a(3, 0, 1), st_type{-6.19});   }
-        if (ignore != t(3, 1, 0)) { EXPECT_EQ(a(3, 1, 0), st_type{5.2});     }
-        if (ignore != t(3, 1, 1)) { EXPECT_EQ(a(3, 1, 1), st_type{-4.21});   }
-        if (ignore != t(3, 2, 0)) { EXPECT_EQ(a(3, 2, 0), st_type{3.22});    }
-        if (ignore != t(3, 2, 1)) { EXPECT_EQ(a(3, 2, 1), st_type{-2.23});   }
+        if (ignore != t(0, 0, 0)) { EXPECT_EQ(a(0, 0, 0), c_st_ar(1.0));     }
+        if (ignore != t(0, 0, 1)) { EXPECT_EQ(a(0, 0, 1), c_st_ar(2.01));    }
+        if (ignore != t(0, 1, 0)) { EXPECT_EQ(a(0, 1, 0), c_st_ar(-1.02));   }
+        if (ignore != t(0, 1, 1)) { EXPECT_EQ(a(0, 1, 1), c_st_ar(3.03));    }
+        if (ignore != t(0, 2, 0)) { EXPECT_EQ(a(0, 2, 0), c_st_ar(4.04));    }
+        if (ignore != t(0, 2, 1)) { EXPECT_EQ(a(0, 2, 1), c_st_ar(-2.05));   }
+        if (ignore != t(1, 0, 0)) { EXPECT_EQ(a(1, 0, 0), c_st_ar(5.06));    }
+        if (ignore != t(1, 0, 1)) { EXPECT_EQ(a(1, 0, 1), c_st_ar(6.07));    }
+        if (ignore != t(1, 1, 0)) { EXPECT_EQ(a(1, 1, 0), c_st_ar(2.08));    }
+        if (ignore != t(1, 1, 1)) { EXPECT_EQ(a(1, 1, 1), c_st_ar(3.09));    }
+        if (ignore != t(1, 2, 0)) { EXPECT_EQ(a(1, 2, 0), c_st_ar(-1.1));    }
+        if (ignore != t(1, 2, 1)) { EXPECT_EQ(a(1, 2, 1), c_st_ar(-9.11));   }
+        if (ignore != t(2, 0, 0)) { EXPECT_EQ(a(2, 0, 0), c_st_ar(-2.12));   }
+        if (ignore != t(2, 0, 1)) { EXPECT_EQ(a(2, 0, 1), c_st_ar(2.13));    }
+        if (ignore != t(2, 1, 0)) { EXPECT_EQ(a(2, 1, 0), c_st_ar(0.14));    }
+        if (ignore != t(2, 1, 1)) { EXPECT_EQ(a(2, 1, 1), c_st_ar(15.15));   }
+        if (ignore != t(2, 2, 0)) { EXPECT_EQ(a(2, 2, 0), c_st_ar(-9.16));   }
+        if (ignore != t(2, 2, 1)) { EXPECT_EQ(a(2, 2, 1), c_st_ar(8.17));    }
+        if (ignore != t(3, 0, 0)) { EXPECT_EQ(a(3, 0, 0), c_st_ar(7.18));    }
+        if (ignore != t(3, 0, 1)) { EXPECT_EQ(a(3, 0, 1), c_st_ar(-6.19));   }
+        if (ignore != t(3, 1, 0)) { EXPECT_EQ(a(3, 1, 0), c_st_ar(5.2));     }
+        if (ignore != t(3, 1, 1)) { EXPECT_EQ(a(3, 1, 1), c_st_ar(-4.21));   }
+        if (ignore != t(3, 2, 0)) { EXPECT_EQ(a(3, 2, 0), c_st_ar(3.22));    }
+        if (ignore != t(3, 2, 1)) { EXPECT_EQ(a(3, 2, 1), c_st_ar(-2.23));   }
         // clang-format on
     }
 };
 
 using ReducedStorage3dTypes =
     ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
-                     std::tuple<float, float>
+                     std::tuple<float, float>, std::tuple<double, gko::half>,
+                     std::tuple<float, gko::half>
                      /*,
                      std::tuple<std::complex<double>, std::complex<double>>,
                      std::tuple<std::complex<double>, std::complex<float>>,
@@ -308,21 +321,20 @@ TYPED_TEST(ReducedStorage3d, CanCreateWithStride)
 {
     using reduced_storage = typename TestFixture::reduced_storage;
     using ar_type = typename TestFixture::ar_type;
-    using st_type = typename TestFixture::st_type;
     auto size = gko::dim<3>{2, 2, 2};
     auto stride = std::array<gko::size_type, 2>{{12, 2}};
 
     auto range = reduced_storage{size, this->data, stride};
     range(1, 1, 0) = ar_type{2.};
 
-    EXPECT_EQ(range(0, 0, 0), st_type{1.0});
-    EXPECT_EQ(range(0, 0, 1), st_type{2.01});
-    EXPECT_EQ(range(0, 1, 0), st_type{-1.02});
-    EXPECT_EQ(range(0, 1, 1), st_type{3.03});
-    EXPECT_EQ(range(1, 0, 0), st_type{-2.12});
-    EXPECT_EQ(range(1, 0, 1), st_type{2.13});
-    EXPECT_EQ(range(1, 1, 0), st_type{2.});
-    EXPECT_EQ(range(1, 1, 1), st_type{15.15});
+    EXPECT_EQ(range(0, 0, 0), this->c_st_ar(1.0));
+    EXPECT_EQ(range(0, 0, 1), this->c_st_ar(2.01));
+    EXPECT_EQ(range(0, 1, 0), this->c_st_ar(-1.02));
+    EXPECT_EQ(range(0, 1, 1), this->c_st_ar(3.03));
+    EXPECT_EQ(range(1, 0, 0), this->c_st_ar(-2.12));
+    EXPECT_EQ(range(1, 0, 1), this->c_st_ar(2.13));
+    EXPECT_EQ(range(1, 1, 0), this->c_st_ar(2.));
+    EXPECT_EQ(range(1, 1, 1), this->c_st_ar(15.15));
 }
 
 
@@ -340,22 +352,26 @@ TYPED_TEST(ReducedStorage3d, CanWriteData)
 TYPED_TEST(ReducedStorage3d, Assignment)
 {
     using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
+    const ar_type expected = 1.2;
 
-    this->r(0, 0, 1) = 10.2;
+    this->r(0, 0, 1) = expected;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), 10.2, TestFixture::delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
 }
 
 
 TYPED_TEST(ReducedStorage3d, Assignment2)
 {
     using t = typename TestFixture::t;
+    using ar_type = typename TestFixture::ar_type;
+    const ar_type expected = -1.02;
 
     this->r(0, 0, 1) = this->r(0, 1, 0);
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
-    EXPECT_NEAR(this->r(0, 0, 1), -1.02, TestFixture::delta);
+    EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
 }
 
 
@@ -363,10 +379,10 @@ TYPED_TEST(ReducedStorage3d, Addition)
 {
     using t = typename TestFixture::t;
     using ar_type = typename TestFixture::ar_type;
-    const ar_type expected = 10.2 + 2.01;
+    const ar_type expected = 1.2 + 2.01;
 
-    auto result = this->r(0, 0, 1) + ar_type{10.2};
-    this->r(0, 0, 1) += 10.2;
+    auto result = this->r(0, 0, 1) + ar_type{1.2};
+    this->r(0, 0, 1) += 1.2;
 
     this->check_accessor_correctness(this->r, t(0, 0, 1));
     EXPECT_NEAR(this->r(0, 0, 1), expected, TestFixture::delta);
@@ -495,28 +511,24 @@ TYPED_TEST(ReducedStorage3d, UnaryMinus)
 
 TYPED_TEST(ReducedStorage3d, CanCreateSubrange)
 {
-    using st_type = typename TestFixture::st_type;
-
     auto subr = this->r(gko::span{1u, 3u}, gko::span{0u, 2u}, 0u);
 
-    EXPECT_EQ(subr(0, 0, 0), st_type{5.06});
-    EXPECT_EQ(subr(0, 1, 0), st_type{2.08});
-    EXPECT_EQ(subr(1, 0, 0), st_type{-2.12});
-    EXPECT_EQ(subr(1, 1, 0), st_type{0.14});
+    EXPECT_EQ(subr(0, 0, 0), this->c_st_ar(5.06));
+    EXPECT_EQ(subr(0, 1, 0), this->c_st_ar(2.08));
+    EXPECT_EQ(subr(1, 0, 0), this->c_st_ar(-2.12));
+    EXPECT_EQ(subr(1, 1, 0), this->c_st_ar(0.14));
 }
 
 
 TYPED_TEST(ReducedStorage3d, CanCreateSubrange2)
 {
-    using st_type = typename TestFixture::st_type;
-
     auto subr =
         this->cr(gko::span{1u, 3u}, gko::span{0u, 2u}, gko::span{0u, 1u});
 
-    EXPECT_EQ(subr(0, 0, 0), st_type{5.06});
-    EXPECT_EQ(subr(0, 1, 0), st_type{2.08});
-    EXPECT_EQ(subr(1, 0, 0), st_type{-2.12});
-    EXPECT_EQ(subr(1, 1, 0), st_type{0.14});
+    EXPECT_EQ(subr(0, 0, 0), this->c_st_ar(5.06));
+    EXPECT_EQ(subr(0, 1, 0), this->c_st_ar(2.08));
+    EXPECT_EQ(subr(1, 0, 0), this->c_st_ar(-2.12));
+    EXPECT_EQ(subr(1, 1, 0), this->c_st_ar(0.14));
 }
 
 
@@ -558,17 +570,23 @@ protected:
     const_reduced_storage1d cr1{size_1d, data, stride0};
     const_reduced_storage2d cr2{size_2d, data, stride1};
 
+    template <typename T>
+    static ar_type c_st_ar(T val)
+    {
+        return static_cast<ar_type>(static_cast<st_type>(val));
+    }
+
     void data_equal_except_for(int idx)
     {
         // clang-format off
-        if (idx != 0) { EXPECT_EQ(data[0], 1.1f); }
-        if (idx != 1) { EXPECT_EQ(data[1], 2.2f); }
-        if (idx != 2) { EXPECT_EQ(data[2], 3.3f); }
-        if (idx != 3) { EXPECT_EQ(data[3], 4.4f); }
-        if (idx != 4) { EXPECT_EQ(data[4], 5.5f); }
-        if (idx != 5) { EXPECT_EQ(data[5], 6.6f); }
-        if (idx != 6) { EXPECT_EQ(data[6], 7.7f); }
-        if (idx != 7) { EXPECT_EQ(data[7], -8.8f); }
+        if (idx != 0) { EXPECT_EQ(data[0], c_st_ar(1.1)); }
+        if (idx != 1) { EXPECT_EQ(data[1], c_st_ar(2.2)); }
+        if (idx != 2) { EXPECT_EQ(data[2], c_st_ar(3.3)); }
+        if (idx != 3) { EXPECT_EQ(data[3], c_st_ar(4.4)); }
+        if (idx != 4) { EXPECT_EQ(data[4], c_st_ar(5.5)); }
+        if (idx != 5) { EXPECT_EQ(data[5], c_st_ar(6.6)); }
+        if (idx != 6) { EXPECT_EQ(data[6], c_st_ar(7.7)); }
+        if (idx != 7) { EXPECT_EQ(data[7], c_st_ar(-8.8)); }
         // clang-format on
     }
 };
@@ -576,10 +594,10 @@ protected:
 
 TEST_F(ReducedStorageXd, CanRead)
 {
-    EXPECT_EQ(cr1(1), 2.2f);
-    EXPECT_EQ(cr2(0, 1), 2.2f);
-    EXPECT_EQ(r1(1), 2.2f);
-    EXPECT_EQ(r2(0, 1), 2.2f);
+    EXPECT_EQ(cr1(1), this->c_st_ar(2.2));
+    EXPECT_EQ(cr2(0, 1), this->c_st_ar(2.2));
+    EXPECT_EQ(r1(1), this->c_st_ar(2.2));
+    EXPECT_EQ(r2(0, 1), this->c_st_ar(2.2));
 }
 
 
@@ -776,16 +794,18 @@ TYPED_TEST(ScaledReducedStorage3d, Subrange)
 
 TYPED_TEST(ScaledReducedStorage3d, CanWriteScale)
 {
+    using ar_type = typename TestFixture::ar_type;
+
     this->r->write_scalar(10., 0, 0, 0);
 
-    EXPECT_EQ(this->r(0, 0, 0), 100.);
-    EXPECT_EQ(this->r(0, 0, 1), 22.);
-    EXPECT_EQ(this->r(0, 1, 0), -120.);
-    EXPECT_EQ(this->r(0, 1, 1), 26.);
-    EXPECT_EQ(this->r(0, 2, 0), 140.);
-    EXPECT_EQ(this->r(0, 2, 1), -230.);
-    EXPECT_EQ(this->r(0, 3, 0), 60.);
-    EXPECT_EQ(this->r(0, 3, 1), 154.);
+    EXPECT_EQ(this->r(0, 0, 0), ar_type{100.});
+    EXPECT_EQ(this->r(0, 0, 1), ar_type{22.});
+    EXPECT_EQ(this->r(0, 1, 0), ar_type{-120.});
+    EXPECT_EQ(this->r(0, 1, 1), ar_type{26.});
+    EXPECT_EQ(this->r(0, 2, 0), ar_type{140.});
+    EXPECT_EQ(this->r(0, 2, 1), ar_type{-230.});
+    EXPECT_EQ(this->r(0, 3, 0), ar_type{60.});
+    EXPECT_EQ(this->r(0, 3, 1), ar_type{154.});
 }
 
 
