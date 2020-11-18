@@ -104,27 +104,14 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    std::shared_ptr<strategy_type> strategy)
     : EnableLinOp<Fbcsr>(exec, size),
       bs_{block_size},
+      nbcols_{gko::blockutils::getNumBlocks(block_size, size[1])},
       values_(exec, num_nonzeros),
-      col_idxs_(exec, gko::blockutils::getNumFixedBlocks(
-                          block_size * block_size, num_nonzeros)),
-      row_ptrs_(exec,
-                gko::blockutils::getNumFixedBlocks(block_size, size[0]) + 1),
+      col_idxs_(exec, gko::blockutils::getNumBlocks(block_size * block_size,
+                                                    num_nonzeros)),
+      row_ptrs_(exec, gko::blockutils::getNumBlocks(block_size, size[0]) + 1),
       startrow_(exec, strategy->calc_size(num_nonzeros)),
       strategy_(strategy->copy())
-{
-    if (size[0] % bs_ != 0)
-        throw gko::BadDimension(__FILE__, __LINE__, __func__, "construct",
-                                size[0], size[1],
-                                "block size does not divide the dim 0!");
-    if (size[1] % bs_ != 0)
-        throw gko::BadDimension(__FILE__, __LINE__, __func__, "construct",
-                                size[0], size[1],
-                                "block size does not divide the dim 1!");
-    if (num_nonzeros % (bs_ * bs_) != 0)
-        throw gko::BadDimension(__FILE__, __LINE__, __func__, "construct",
-                                size[0], size[1],
-                                "block size^2 does not divide NNZ!");
-}
+{}
 
 
 template <typename ValueType, typename IndexType>
@@ -360,13 +347,13 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *result) const
 {
-    using gko::blockutils::getNumFixedBlocks;
+    using gko::blockutils::getNumBlocks;
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
         exec,
-        gko::dim<2>{getNumFixedBlocks(bs_, this->get_size()[0]),
-                    getNumFixedBlocks(bs_, this->get_size()[1])},
-        getNumFixedBlocks(bs_ * bs_, this->get_num_stored_elements()));
+        gko::dim<2>{getNumBlocks(bs_, this->get_size()[0]),
+                    getNumBlocks(bs_, this->get_size()[1])},
+        getNumBlocks(bs_ * bs_, this->get_num_stored_elements()));
 
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;

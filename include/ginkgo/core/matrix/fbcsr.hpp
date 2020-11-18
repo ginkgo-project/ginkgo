@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -376,6 +377,13 @@ public:
 
     void set_block_size(const int block_size) { bs_ = block_size; }
 
+    index_type get_num_block_rows() const
+    {
+        return row_ptrs_.get_num_elems() - 1;
+    }
+
+    index_type get_num_block_cols() const { return nbcols_; }
+
 protected:
     using classical = matrix_strategy::classical<Fbcsr<value_type, index_type>>;
 
@@ -434,6 +442,7 @@ protected:
         std::shared_ptr<strategy_type> strategy = std::make_shared<classical>())
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
+          nbcols_{gko::blockutils::getNumBlocks(block_size, size[1])},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
@@ -461,12 +470,13 @@ protected:
     void make_srow()
     {
         startrow_.resize_and_reset(
-            strategy_->calc_size(values_.get_num_elems() / bs_ / bs_));
+            strategy_->calc_size(col_idxs_.get_num_elems()));
         strategy_->process(row_ptrs_, &startrow_);
     }
 
 private:
-    int bs_;  ///< Block size
+    int bs_;            ///< Block size
+    size_type nbcols_;  ///< Number of block-columns
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
