@@ -422,7 +422,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
 
 
 template <size_type block_size, typename IndexType, typename ValueType>
-__global__ __launch_bounds__(block_size) void row_permute(
+__global__ __launch_bounds__(block_size) void row_gather(
     size_type num_rows, size_type num_cols,
     const IndexType *__restrict__ perm_idxs, const ValueType *__restrict__ orig,
     size_type stride_orig, ValueType *__restrict__ result,

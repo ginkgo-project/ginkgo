@@ -412,8 +412,9 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
 
-    exec->run(csr::make_row_permute(permutation_indices->get_const_data(), this,
-                                    permute_cpy.get()));
+    exec->run(csr::make_row_permute(
+        make_temporary_clone(exec, permutation_indices)->get_const_data(), this,
+        permute_cpy.get()));
     permute_cpy->make_srow();
     return std::move(permute_cpy);
 }
@@ -431,7 +432,8 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
     Array<IndexType> inv_permutation(exec, this->get_size()[1]);
 
     exec->run(csr::make_invert_permutation(
-        this->get_size()[1], permutation_indices->get_const_data(),
+        this->get_size()[1],
+        make_temporary_clone(exec, permutation_indices)->get_const_data(),
         inv_permutation.get_data()));
     exec->run(csr::make_inverse_column_permute(inv_permutation.get_const_data(),
                                                this, permute_cpy.get()));
@@ -453,8 +455,9 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
                     this->get_strategy());
 
     exec->run(csr::make_inverse_row_permute(
-        inverse_permutation_indices->get_const_data(), this,
-        inverse_permute_cpy.get()));
+        make_temporary_clone(exec, inverse_permutation_indices)
+            ->get_const_data(),
+        this, inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
     return std::move(inverse_permute_cpy);
 }
@@ -472,8 +475,9 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
                     this->get_strategy());
 
     exec->run(csr::make_inverse_column_permute(
-        inverse_permutation_indices->get_const_data(), this,
-        inverse_permute_cpy.get()));
+        make_temporary_clone(exec, inverse_permutation_indices)
+            ->get_const_data(),
+        this, inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
     inverse_permute_cpy->sort_by_column_index();
     return std::move(inverse_permute_cpy);

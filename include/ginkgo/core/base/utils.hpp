@@ -432,6 +432,9 @@ public:
 };
 
 
+namespace detail {
+
+
 /**
  * A copy_back_deleter is a type of deleter that copies the data to an
  * internally referenced object before performing the deletion.
@@ -490,6 +493,16 @@ private:
 };
 
 
+template <typename T>
+struct temporary_clone_helper {
+    static std::unique_ptr<T> create(std::shared_ptr<const Executor> exec,
+                                     T *ptr)
+    {
+        return gko::clone(std::move(exec), ptr);
+    }
+};
+
+
 /**
  * A temporary_clone is a special smart pointer-like object that is designed to
  * hold an object temporarily copied to another executor.
@@ -517,12 +530,14 @@ public:
     {
         if (ptr->get_executor() == exec) {
             // just use the object we already have
-            handle_ = handle_type(ptr, [](pointer) {});
+            handle_ = handle_type(ptr, null_deleter<T>());
         } else {
             // clone the object to the new executor and make sure it's copied
             // back before we delete it
-            handle_ = handle_type(gko::clone(std::move(exec), ptr).release(),
-                                  copy_back_deleter<T>(ptr));
+            handle_ = handle_type(
+                temporary_clone_helper<T>::create(std::move(exec), ptr)
+                    .release(),
+                copy_back_deleter<T>(ptr));
         }
     }
 
@@ -548,6 +563,9 @@ private:
 };
 
 
+}  // namespace detail
+
+
 /**
  * Creates a temporary_clone.
  *
@@ -559,10 +577,10 @@ private:
  * @param ptr  a pointer to the object of which the clone will be created
  */
 template <typename T>
-temporary_clone<T> make_temporary_clone(std::shared_ptr<const Executor> exec,
-                                        T *ptr)
+detail::temporary_clone<T> make_temporary_clone(
+    std::shared_ptr<const Executor> exec, T *ptr)
 {
-    return temporary_clone<T>(std::move(exec), ptr);
+    return detail::temporary_clone<T>(std::move(exec), ptr);
 }
 
 

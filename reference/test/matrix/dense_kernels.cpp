@@ -1718,6 +1718,92 @@ TYPED_TEST(Dense, NonSquareMatrixIsTransposable)
 }
 
 
+TYPED_TEST(Dense, SquareMatrixCanGatherRows)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+
+    auto row_gathered = this->mtx5->row_gather(&permute_idxs);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_gathered,
+                        l({{-2.0, 2.0, 4.5},
+                           {1.0, -1.0, -0.5}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
+TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 3});
+
+    this->mtx5->row_gather(&permute_idxs, row_gathered.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_gathered,
+                        l({{-2.0, 2.0, 4.5},
+                           {1.0, -1.0, -0.5}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
+TYPED_TEST(Dense, SquareMatrixCanGatherRows64)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+
+    auto row_gathered = this->mtx5->row_gather(&permute_idxs);
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_gathered,
+                        l({{-2.0, 2.0, 4.5},
+                           {1.0, -1.0, -0.5}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
+TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
+    auto row_gathered = Mtx::create(exec, gko::dim<2>{2, 3});
+
+    this->mtx5->row_gather(&permute_idxs, row_gathered.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_gathered,
+                        l({{-2.0, 2.0, 4.5},
+                           {1.0, -1.0, -0.5}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 {
     // clang-format off
