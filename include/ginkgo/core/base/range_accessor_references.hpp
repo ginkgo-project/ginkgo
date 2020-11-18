@@ -126,25 +126,22 @@ template <typename Reference, typename ArithmeticType>
 struct enable_reference_operators {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
-#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                  \
-    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
-        arithmetic_type                                              \
-        operator _op(const Reference &ref1, const Reference &ref2)   \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref1)                  \
-            _op to_value_type<arithmetic_type>(ref2);                \
-    }                                                                \
-    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
-        arithmetic_type                                              \
-        operator _op(const Reference &ref, const arithmetic_type &a) \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref) _op a;            \
-    }                                                                \
-    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES  \
-        arithmetic_type                                              \
-        operator _op(const arithmetic_type &a, const Reference &ref) \
-    {                                                                \
-        return a _op to_value_type<arithmetic_type>(ref);            \
+#define GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                      \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES auto \
+    operator _op(const Reference &ref1, const Reference &ref2)           \
+    {                                                                    \
+        return to_value_type<arithmetic_type>(ref1)                      \
+            _op to_value_type<arithmetic_type>(ref2);                    \
+    }                                                                    \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES auto \
+    operator _op(const Reference &ref, const arithmetic_type &a)         \
+    {                                                                    \
+        return to_value_type<arithmetic_type>(ref) _op a;                \
+    }                                                                    \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES auto \
+    operator _op(const arithmetic_type &a, const Reference &ref)         \
+    {                                                                    \
+        return a _op to_value_type<arithmetic_type>(ref);                \
     }
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(*)
     GKO_REFERENCE_BINARY_OPERATOR_OVERLOAD(/)

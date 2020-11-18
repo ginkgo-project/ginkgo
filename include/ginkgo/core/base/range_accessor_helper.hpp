@@ -96,7 +96,7 @@ struct row_major_helper_s<ValueType, total_dim, total_dim> {
     static constexpr GKO_ATTRIBUTES ValueType
     compute(const dim<total_dim> &size,
             const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>,
-            FirstType &&first)
+            FirstType first)
     {
         return GKO_ASSERT(first < size[total_dim - 1]), first;
     }
