@@ -55,6 +55,7 @@ class FbcsrSample {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using absvalue_type = remove_complex<value_type>;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
@@ -86,6 +87,12 @@ public:
     ///  (not block-row)
     gko::Array<index_type> getNonzerosPerRow() const;
 
+    std::unique_ptr<Fbcsr> generate_abs_fbcsr() const;
+
+    std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
+    generate_abs_fbcsr_abstype() const;
+
+
     const size_type nrows;
     const size_type ncols;
     const size_type nnz;
@@ -94,6 +101,32 @@ public:
     const size_type nbnz;
     const int bs;
     const std::shared_ptr<const gko::Executor> exec;
+
+private:
+    // template <typename AbsValueType>
+    // void
+    // correct_abs_for_complex(gko::matrix::Fbcsr<AbsValueType,IndexType> *amat)
+    //     const;
+    template <typename FbcsrType>
+    void correct_abs_for_complex_values(FbcsrType *const mat) const;
+
+    /// Enables complex data to be used for complex instantiations...
+    template <typename U>
+    constexpr std::enable_if_t<!is_complex<U>() || is_complex<ValueType>(),
+                               ValueType>
+    sct(U u) const
+    {
+        return static_cast<ValueType>(u);
+    }
+
+    /// ... while ignoring imaginary parts for real instantiations
+    template <typename U>
+    constexpr std::enable_if_t<is_complex<U>() && !is_complex<ValueType>(),
+                               ValueType>
+    sct(U u) const
+    {
+        return static_cast<ValueType>(u.real());
+    }
 };
 
 /// Generates the a sample block CSR matrix in different formats
@@ -124,6 +157,12 @@ public:
 
     gko::Array<index_type> getNonzerosPerRow() const;
 
+    std::unique_ptr<Fbcsr> generate_abs_fbcsr() const;
+
+    std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
+    generate_abs_fbcsr_abstype() const;
+
+    /// Enables use of literals to instantiate value data
     template <typename U>
     inline constexpr ValueType sct(U u) const
     {
