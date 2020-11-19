@@ -100,17 +100,6 @@ protected:
           mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
-    // void create_mtx3(Mtx *sorted, Mtx *unsorted)
-    // {
-    //     /* For both versions (sorted and unsorted), this matrix is stored:
-    //      * 0  2  1
-    //      * 3  1  8
-    //      * 2  0  3
-    //      * The unsorted matrix will have the (value, column) pair per row not
-    //      * sorted, which we still consider a valid FBCSR format.
-    //      */
-    // }
-
     void assert_equal_to_mtx(const Csr *const m)
     {
         ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
@@ -126,16 +115,6 @@ protected:
                       refcsrmtx->get_const_values()[i]);
         }
     }
-
-    // void assert_equal_to_mtx(const Dense *const m)
-    // {
-    //     ASSERT_EQ(m->get_size(), refdenmtx->get_size());
-    //     ASSERT_EQ(m->get_num_stored_elements(),
-    //     refdenmtx->get_num_stored_elements()); for(index_type i = 0; i <
-    //     m->get_size()[0]; i++)
-    //         for(index_type j = 0; j < m->get_size()[1]; j++)
-    //             ASSERT_EQ(m->at(i,j), refdenmtx->at(i,j));
-    // }
 
     void assert_equal_to_mtx(const Coo *m)
     {
@@ -1034,8 +1013,8 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
 }
 
 
-TYPED_TEST(Fbcsr, SquareMatrixIsRowPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, SquareMatrixIsRowPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1060,8 +1039,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, NonSquareMatrixIsRowPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, NonSquareMatrixIsRowPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1084,8 +1063,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, SquareMatrixIsColPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, SquareMatrixIsColPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1110,8 +1089,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, NonSquareMatrixIsColPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, NonSquareMatrixIsColPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1134,8 +1113,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, SquareMatrixIsInverseRowPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, SquareMatrixIsInverseRowPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1162,8 +1141,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, NonSquareMatrixIsInverseRowPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, NonSquareMatrixIsInverseRowPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1188,8 +1167,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, SquareMatrixIsInverseColPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, SquareMatrixIsInverseColPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1216,8 +1195,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(Fbcsr, NonSquareMatrixIsInverseColPermutable)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, NonSquareMatrixIsInverseColPermutable)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    using Fbcsr = typename TestFixture::Mtx;
@@ -1261,20 +1240,18 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
 }
 
 
-TYPED_TEST(Fbcsr, SortSortedMatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto matrix = this->mtx3_sorted->clone();
-//
+// TYPED_TEST(Fbcsr, SortSortedMatrix)
+// {
+//    auto matrix = this->mtx->clone();
+
 //    matrix->sort_by_column_index();
-//
-//    GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
-//}
+
+//    GKO_ASSERT_MTX_NEAR(matrix, this->mtx, 0.0);
+// }
 
 
-TYPED_TEST(Fbcsr, SortUnsortedMatrix)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(Fbcsr, SortUnsortedMatrix)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    auto matrix = this->mtx3_unsorted->clone();
@@ -1344,30 +1321,22 @@ TYPED_TEST_CASE(FbcsrComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    using Fbcsr = typename TestFixture::Mtx;
-//    using T = typename TestFixture::value_type;
-//
-//    auto exec = gko::ReferenceExecutor::create();
-//    // clang-format off
-//    auto mtx2 = gko::initialize<Fbcsr>(
-//        {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
-//         {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
-//         {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
-//    // clang-format on
-//
-//    auto trans = mtx2->conj_transpose();
-//    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr,
-//                        l({{T{1.0, - 2.0}, T{0.0, 0.0}, T{0.0, 0.0}},
-//                           {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
-//                           {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
-//    // clang-format on
-//}
+{
+    using Fbcsr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto exec = gko::ReferenceExecutor::create();
+    gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
+    std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
+    std::unique_ptr<const Fbcsr> reftrans =
+        csample.generate_conjtranspose_fbcsr();
+
+    auto trans = mtx->conj_transpose();
+    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+
+    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftrans, 0.0);
+}
 
 
 TYPED_TEST(FbcsrComplex, InplaceAbsolute)

@@ -49,6 +49,7 @@ namespace testing {
 /// Generates the same sample block CSR matrix in different formats
 /** This currently a 6 x 12 matrix with 3x3 blocks.
  * Assumes that the layout within each block is row-major.
+ * Generates complex data when instantiated with a complex value type.
  */
 template <typename ValueType, typename IndexType>
 class FbcsrSample {
@@ -103,10 +104,6 @@ public:
     const std::shared_ptr<const gko::Executor> exec;
 
 private:
-    // template <typename AbsValueType>
-    // void
-    // correct_abs_for_complex(gko::matrix::Fbcsr<AbsValueType,IndexType> *amat)
-    //     const;
     template <typename FbcsrType>
     void correct_abs_for_complex_values(FbcsrType *const mat) const;
 
@@ -195,6 +192,41 @@ public:
     std::unique_ptr<Fbcsr> generate_fbcsr() const;
 
     std::unique_ptr<Fbcsr> generate_transpose_fbcsr() const;
+
+    const size_type nrows;
+    const size_type ncols;
+    const size_type nnz;
+    const size_type nbrows;
+    const size_type nbcols;
+    const size_type nbnz;
+    const int bs;
+    const std::shared_ptr<const gko::Executor> exec;
+};
+
+/// Generates the a sample block CSR matrix with complex values
+/** This currently a 6 x 8 matrix with 2x2 blocks.
+ */
+template <typename ValueType, typename IndexType>
+class FbcsrSampleComplex {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using MatData = gko::matrix_data<value_type, index_type>;
+    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
+    using Diagonal = gko::matrix::Diagonal<value_type>;
+
+    static_assert(is_complex<ValueType>(), "Only for complex types!");
+
+    FbcsrSampleComplex(std::shared_ptr<const gko::ReferenceExecutor> exec);
+
+    std::unique_ptr<Fbcsr> generate_fbcsr() const;
+
+    std::unique_ptr<Fbcsr> generate_conjtranspose_fbcsr() const;
+
 
     const size_type nrows;
     const size_type ncols;
