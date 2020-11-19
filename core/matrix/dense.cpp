@@ -1265,6 +1265,33 @@ void Dense<ValueType>::get_imag(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_local_view()
+{
+    auto local_exec =
+        as<MpiExecutor>(this->get_executor())->get_local_executor();
+    return Dense::create(
+        local_exec, this->get_size(),
+        Array<ValueType>::view(local_exec, this->values_.get_num_elems(),
+                               this->get_values()),
+        this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_local_view()
+    const
+{
+    auto local_exec =
+        as<MpiExecutor>(this->get_executor())->get_local_executor();
+    return Dense::create(local_exec, this->get_local_size(),
+                         Array<ValueType>::view(
+                             local_exec, this->values_.get_num_elems(),
+                             const_cast<ValueType *>(this->get_const_values())),
+                         this->get_stride());
+}
+
+
 #define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
