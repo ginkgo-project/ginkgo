@@ -781,5 +781,109 @@ FbcsrSampleSquare<ValueType, IndexType>::generate_transpose_fbcsr() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TEST_SAMPLE_SQUARE);
 
+
+template <typename ValueType, typename IndexType>
+FbcsrSampleComplex<ValueType, IndexType>::FbcsrSampleComplex(
+    const std::shared_ptr<const gko::ReferenceExecutor> rexec)
+    : nrows{6},
+      ncols{8},
+      nnz{16},
+      nbrows{3},
+      nbcols{4},
+      nbnz{4},
+      bs{2},
+      exec(rexec)
+{}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSampleComplex<ValueType, IndexType>::generate_fbcsr() const
+{
+    std::unique_ptr<Fbcsr> mtx =
+        Fbcsr::create(exec,
+                      gko::dim<2>{static_cast<size_type>(nrows),
+                                  static_cast<size_type>(ncols)},
+                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+
+    value_type *const v = mtx->get_values();
+    index_type *const c = mtx->get_col_idxs();
+    index_type *const r = mtx->get_row_ptrs();
+    index_type *const s = mtx->get_srow();
+    r[0] = 0;
+    r[1] = 1;
+    r[2] = 3;
+    r[3] = 4;
+    c[0] = 0;
+    c[1] = 0;
+    c[2] = 3;
+    c[3] = 2;
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+
+    using namespace std::complex_literals;
+    v[0] = 1.0 + 1.15i;
+    v[1] = 2.0 + 2.15i;
+    v[2] = 3.0 - 3.15i;
+    v[3] = 0.0 - 0.15i;
+    v[10] = 0.0;
+    v[11] = 0.0;
+    v[12] = -12.0 + 12.15i;
+    v[13] = -1.0 + 1.15i;
+    v[14] = -2.0 - 2.15i;
+    v[15] = -11.0 - 11.15i;
+
+    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
+
+    return mtx;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<gko::matrix::Fbcsr<ValueType, IndexType>>
+FbcsrSampleComplex<ValueType, IndexType>::generate_conjtranspose_fbcsr() const
+{
+    std::unique_ptr<Fbcsr> mtx =
+        Fbcsr::create(exec,
+                      gko::dim<2>{static_cast<size_type>(ncols),
+                                  static_cast<size_type>(nrows)},
+                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+
+    value_type *const v = mtx->get_values();
+    index_type *const c = mtx->get_col_idxs();
+    index_type *const r = mtx->get_row_ptrs();
+    index_type *const s = mtx->get_srow();
+    r[0] = 0;
+    r[1] = 2;
+    r[2] = 2;
+    r[3] = 3;
+    r[4] = 4;
+    c[0] = 0;
+    c[1] = 1;
+    c[2] = 2;
+    c[3] = 1;
+
+    for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+
+    using namespace std::complex_literals;
+    v[0] = 1.0 - 1.15i;
+    v[1] = 3.0 + 3.15i;
+    v[2] = 2.0 - 2.15i;
+    v[3] = 0.0 + 0.15i;
+    v[8] = -12.0 - 12.15i;
+    v[9] = -2.0 + 2.15i;
+    v[10] = -1.0 - 1.15i;
+    v[11] = -11.0 + 11.15i;
+    v[13] = 0;
+    v[15] = 0;
+
+    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
+
+    return mtx;
+}
+
+template class FbcsrSampleComplex<std::complex<float>, int>;
+template class FbcsrSampleComplex<std::complex<double>, int>;
+template class FbcsrSampleComplex<std::complex<float>, long>;
+template class FbcsrSampleComplex<std::complex<double>, long>;
+
 }  // namespace testing
 }  // namespace gko
