@@ -147,6 +147,14 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_aeee1695589ffafcdff32950dde5eab52}{row\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$permutation\+\_\+indices) const override
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a5eb042462d750c84908fb5a3fac62dd5}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$gather\+\_\+indices) const
+\begin{DoxyCompactList}\small\item\em Create a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix consisting of the given rows from this matrix. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a075300eaaaffbc2c8f548417d2fe9baa}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$gather\+\_\+indices) const
+\begin{DoxyCompactList}\small\item\em Create a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix consisting of the given rows from this matrix. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a8a9b55a44c458c5940f2219b208d07e1}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$gather\+\_\+indices, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $\ast$row\+\_\+gathered) const
+\begin{DoxyCompactList}\small\item\em Copies the given rows from this matrix into {\ttfamily row\+\_\+gathered} \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ac34e8187d6680e200e743dee62e02555}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$gather\+\_\+indices, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $\ast$row\+\_\+gathered) const
+\begin{DoxyCompactList}\small\item\em Copies the given rows from this matrix into {\ttfamily row\+\_\+gathered} \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a109d52e8106978de5b4306169b5fb414}{column\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$permutation\+\_\+indices) const override
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the column permutation of the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a4fb7205bb0932ccd95be8daeef602935}{column\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$permutation\+\_\+indices) const override
@@ -208,15 +216,12 @@ void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a97fd354c4a26814586cd256b5f0d7
 \begin{DoxyCompactList}\small\item\em Computes the Euclidian (L$^\wedge$2) norm of this matrix. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}{create\+\_\+submatrix}} (const \mbox{\hyperlink{structgko_1_1span}{span}} \&rows, const \mbox{\hyperlink{structgko_1_1span}{span}} \&columns, const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} stride)
 \begin{DoxyCompactList}\small\item\em Create a submatrix from the original matrix. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}\label{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}} 
-std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ {\bfseries create\+\_\+submatrix} (const \mbox{\hyperlink{structgko_1_1span}{span}} \&rows, const \mbox{\hyperlink{structgko_1_1span}{span}} \&columns)
-\item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a42971e5349decc17ec015a8548ce9f11}\label{classgko_1_1matrix_1_1Dense_a42971e5349decc17ec015a8548ce9f11}} 
-std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$ $>$ {\bfseries create\+\_\+real\+\_\+view} ()
-\item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a6b1dd07ea313ed8299a6e37c386d337e}\label{classgko_1_1matrix_1_1Dense_a6b1dd07ea313ed8299a6e37c386d337e}} 
-std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$ $>$ {\bfseries create\+\_\+real\+\_\+view} () const
-\end{DoxyCompactItemize}
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}{create\+\_\+submatrix}} (const \mbox{\hyperlink{structgko_1_1span}{span}} \&rows, const \mbox{\hyperlink{structgko_1_1span}{span}} \&columns)
+\begin{DoxyCompactList}\small\item\em Create a submatrix from the original matrix. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a42971e5349decc17ec015a8548ce9f11}{create\+\_\+real\+\_\+view}} ()
+\begin{DoxyCompactList}\small\item\em Create a real view of the (potentially) complex original matrix. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a6b1dd07ea313ed8299a6e37c386d337e}{create\+\_\+real\+\_\+view}} () const
+\begin{DoxyCompactList}\small\item\em Create a real view of the (potentially) complex original matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -549,10 +554,62 @@ a pointer to the new conjugate transposed object
 
 Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a42971e5349decc17ec015a8548ce9f11}\label{classgko_1_1matrix_1_1Dense_a42971e5349decc17ec015a8548ce9f11}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_real\_view@{create\_real\_view}}
+\index{create\_real\_view@{create\_real\_view}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create\_real\_view()}{create\_real\_view()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$Value\+Type$>$ $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Create a real view of the (potentially) complex original matrix. 
+
+If the original matrix is real, nothing changes. If the original matrix is complex, the result is created by viewing the complex matrix with as real with a reinterpret\+\_\+cast with twice the number of columns and double the stride. 
+
+References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), gko\+::\+Lin\+Op\+::get\+\_\+size(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a6b1dd07ea313ed8299a6e37c386d337e}\label{classgko_1_1matrix_1_1Dense_a6b1dd07ea313ed8299a6e37c386d337e}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_real\_view@{create\_real\_view}}
+\index{create\_real\_view@{create\_real\_view}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create\_real\_view()}{create\_real\_view()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$Value\+Type$>$ $>$ $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Create a real view of the (potentially) complex original matrix. 
+
+If the original matrix is real, nothing changes. If the original matrix is complex, the result is created by viewing the complex matrix with as real with a reinterpret\+\_\+cast with twice the number of columns and double the stride. 
+
+References gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), gko\+::\+Lin\+Op\+::get\+\_\+size(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}\label{classgko_1_1matrix_1_1Dense_a621650dbf619a21aafb8cc311dd14bc9}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_submatrix@{create\_submatrix}}
+\index{create\_submatrix@{create\_submatrix}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create\_submatrix()}{create\_submatrix()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+submatrix (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1span}{span}} \&}]{rows,  }\item[{const \mbox{\hyperlink{structgko_1_1span}{span}} \&}]{columns }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Create a submatrix from the original matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em rows} & row span \\
+\hline
+{\em columns} & column span \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride().
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}\label{classgko_1_1matrix_1_1Dense_ad606073cc426e9164bb2445354f22366}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_submatrix@{create\_submatrix}}
 \index{create\_submatrix@{create\_submatrix}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
-\doxysubsubsection{\texorpdfstring{create\_submatrix()}{create\_submatrix()}}
+\doxysubsubsection{\texorpdfstring{create\_submatrix()}{create\_submatrix()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
 std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+submatrix (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1span}{span}} \&}]{rows,  }\item[{const \mbox{\hyperlink{structgko_1_1span}{span}} \&}]{columns,  }\item[{const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{stride }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
@@ -574,6 +631,10 @@ Warning\+: defining stride for this create\+\_\+submatrix method might cause wro
 
 
 References gko\+::span\+::begin, gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), gko\+::\+Lin\+Op\+::get\+\_\+size(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), and gko\+::\+Array$<$ Value\+Type $>$\+::view().
+
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}\label{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_with\_config\_of@{create\_with\_config\_of}}
@@ -632,6 +693,10 @@ This is the constant version of the function, which can be significantly more me
 
 References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
 
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view().
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7a6ce578c683841591718134e1ccd1b9}\label{classgko_1_1matrix_1_1Dense_a7a6ce578c683841591718134e1ccd1b9}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!get\_num\_stored\_elements@{get\_num\_stored\_elements}}
 \index{get\_num\_stored\_elements@{get\_num\_stored\_elements}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
@@ -666,7 +731,7 @@ the stride of the matrix.
 \end{DoxyReturn}
 
 
-Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}\label{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!get\_values@{get\_values}}
@@ -688,7 +753,7 @@ References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
 
 
 
-Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a21c73a155056b857ac2b930f6f30af78}\label{classgko_1_1matrix_1_1Dense_a21c73a155056b857ac2b930f6f30af78}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!inverse\_column\_permute@{inverse\_column\_permute}}
@@ -804,7 +869,81 @@ void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$
 
 Writes a complex copy of the original matrix to a given complex matrix. 
 
-If the original matrix was real, the imaginary part of the result will be zero. \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}\label{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}} 
+If the original matrix was real, the imaginary part of the result will be zero. \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a5eb042462d750c84908fb5a3fac62dd5}\label{classgko_1_1matrix_1_1Dense_a5eb042462d750c84908fb5a3fac62dd5}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_gather@{row\_gather}}
+\index{row\_gather@{row\_gather}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{row\_gather()}{row\_gather()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::row\+\_\+gather (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$}]{gather\+\_\+indices }\end{DoxyParamCaption}) const}
+
+
+
+Create a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix consisting of the given rows from this matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gather\+\_\+indices} & pointer to an array containing row indices from this matrix. It may contain duplicates. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix on the same executor with the same number of columns and {\ttfamily gather\+\_\+indices-\/$>$get\+\_\+num\+\_\+elems()} rows containing the gathered rows from this matrix\+: {\ttfamily output(i,j) = input(gather\+\_\+indices(i), j)} 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a8a9b55a44c458c5940f2219b208d07e1}\label{classgko_1_1matrix_1_1Dense_a8a9b55a44c458c5940f2219b208d07e1}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_gather@{row\_gather}}
+\index{row\_gather@{row\_gather}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{row\_gather()}{row\_gather()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::row\+\_\+gather (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$}]{gather\+\_\+indices,  }\item[{\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$}]{row\+\_\+gathered }\end{DoxyParamCaption}) const}
+
+
+
+Copies the given rows from this matrix into {\ttfamily row\+\_\+gathered} 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gather\+\_\+indices} & pointer to an array containing row indices from this matrix. It may contain duplicates. \\
+\hline
+{\em row\+\_\+gathered} & pointer to a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix that will store the gathered rows\+: {\ttfamily output(i,j) = input(gather\+\_\+indices(i), j)} It must have the same number of columns as this matrix and {\ttfamily gather\+\_\+indices-\/$>$get\+\_\+num\+\_\+elems()} rows. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a075300eaaaffbc2c8f548417d2fe9baa}\label{classgko_1_1matrix_1_1Dense_a075300eaaaffbc2c8f548417d2fe9baa}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_gather@{row\_gather}}
+\index{row\_gather@{row\_gather}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{row\_gather()}{row\_gather()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::row\+\_\+gather (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$}]{gather\+\_\+indices }\end{DoxyParamCaption}) const}
+
+
+
+Create a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix consisting of the given rows from this matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gather\+\_\+indices} & pointer to an array containing row indices from this matrix. It may contain duplicates. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix on the same executor with the same number of columns and {\ttfamily gather\+\_\+indices-\/$>$get\+\_\+num\+\_\+elems()} rows containing the gathered rows from this matrix\+: {\ttfamily output(i,j) = input(gather\+\_\+indices(i), j)} 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ac34e8187d6680e200e743dee62e02555}\label{classgko_1_1matrix_1_1Dense_ac34e8187d6680e200e743dee62e02555}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_gather@{row\_gather}}
+\index{row\_gather@{row\_gather}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{row\_gather()}{row\_gather()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::row\+\_\+gather (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$}]{gather\+\_\+indices,  }\item[{\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$}]{row\+\_\+gathered }\end{DoxyParamCaption}) const}
+
+
+
+Copies the given rows from this matrix into {\ttfamily row\+\_\+gathered} 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gather\+\_\+indices} & pointer to an array containing row indices from this matrix. It may contain duplicates. \\
+\hline
+{\em row\+\_\+gathered} & pointer to a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix that will store the gathered rows\+: {\ttfamily output(i,j) = input(gather\+\_\+indices(i), j)} It must have the same number of columns as this matrix and {\ttfamily gather\+\_\+indices-\/$>$get\+\_\+num\+\_\+elems()} rows. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}\label{classgko_1_1matrix_1_1Dense_a685cf7dd460327568c1a65a676395a84}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!row\_permute@{row\_permute}}
 \index{row\_permute@{row\_permute}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
 \doxysubsubsection{\texorpdfstring{row\_permute()}{row\_permute()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}

@@ -49,10 +49,6 @@ class \mbox{\hyperlink{classgko_1_1Composition}{Composition}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... }\end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1ConvertibleTo}{Convertible\+To}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1ConvertibleTo}{Convertible\+To}} interface is used to mark that the implementer can be converted to the object of Result\+Type. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}}
-\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}} is a type of deleter that copies the data to an internally referenced object before performing the deletion. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classgko_1_1copy__back__deleter_3_01const_01T_01_4}{copy\+\_\+back\+\_\+deleter$<$ const T $>$}}
-\item 
 struct \mbox{\hyperlink{structgko_1_1cpx__real__type}{cpx\+\_\+real\+\_\+type}}
 \begin{DoxyCompactList}\small\item\em Access the underlying real type of a complex number. \end{DoxyCompactList}\item 
 struct {\bfseries cpx\+\_\+real\+\_\+type$<$ std\+::complex$<$ T $>$ $>$}
@@ -157,8 +153,6 @@ class \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}}
 \begin{DoxyCompactList}\small\item\em This class is used to keep track of the stopping status of one vector. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1StreamError}{Stream\+Error}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1StreamError}{Stream\+Error}} is thrown if accessing a stream failed. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}
-\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}} is a special smart pointer-\/like object that is designed to hold an object temporarily copied to another executor. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}}
 \begin{DoxyCompactList}\small\item\em Linear operators which support transposition should implement the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} interface. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1truncated}{truncated}}
@@ -657,8 +651,8 @@ constexpr bool \mbox{\hyperlink{namespacegko_a61d408b4cd77aae6cac7a40c8307fddb}{
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion of a shared\+\_\+ptr. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T , typename U $>$ }\\std\+::shared\+\_\+ptr$<$ const typename std\+::decay$<$ T $>$\+::type $>$ \mbox{\hyperlink{namespacegko_a78a5f4822744132cfc4a21439f19a67a}{as}} (std\+::shared\+\_\+ptr$<$ const U $>$ obj)
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion of a shared\+\_\+ptr. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}$<$ T $>$ \mbox{\hyperlink{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}{make\+\_\+temporary\+\_\+clone}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, T $\ast$ptr)
-\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\detail\+::temporary\+\_\+clone$<$ T $>$ \mbox{\hyperlink{namespacegko_a2166ec09e3e8a0ef437aee9c2b97f422}{make\+\_\+temporary\+\_\+clone}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, T $\ast$ptr)
+\begin{DoxyCompactList}\small\item\em Creates a temporary\+\_\+clone. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}\label{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}} 
 bool {\bfseries operator==} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
 \item 
@@ -1033,10 +1027,6 @@ The pointee (i.\+e. {\ttfamily $\ast$p}) needs to have a clone method that retur
 \begin{DoxyNote}{Note}
 The difference between this function and directly calling Lin\+Op\+::clone() is that this one preserves the static type of the object. 
 \end{DoxyNote}
-
-
-Referenced by gko\+::temporary\+\_\+clone$<$ T $>$\+::temporary\+\_\+clone().
-
 \mbox{\Hypertarget{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}\label{namespacegko_a13b00a9dd24aa08d4495762d89f3762a}} 
 \index{gko@{gko}!clone@{clone}}
 \index{clone@{clone}!gko@{gko}}
@@ -1474,18 +1464,18 @@ Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}
 \begin{DoxyNote}{Note}
 This is the overload for non-\/owning (plain) pointers, that just returns {\ttfamily p}. 
 \end{DoxyNote}
-\mbox{\Hypertarget{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}\label{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}} 
+\mbox{\Hypertarget{namespacegko_a2166ec09e3e8a0ef437aee9c2b97f422}\label{namespacegko_a2166ec09e3e8a0ef437aee9c2b97f422}} 
 \index{gko@{gko}!make\_temporary\_clone@{make\_temporary\_clone}}
 \index{make\_temporary\_clone@{make\_temporary\_clone}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{make\_temporary\_clone()}{make\_temporary\_clone()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-\mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}$<$T$>$ gko\+::make\+\_\+temporary\+\_\+clone (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{T $\ast$}]{ptr }\end{DoxyParamCaption})}
+detail\+::temporary\+\_\+clone$<$T$>$ gko\+::make\+\_\+temporary\+\_\+clone (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{T $\ast$}]{ptr }\end{DoxyParamCaption})}
 
 
 
-Creates a \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}. 
+Creates a temporary\+\_\+clone. 
 
-This is a helper function which avoids the need to explicitly specify the type of the object, as would be the case if using the constructor of \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}.
+This is a helper function which avoids the need to explicitly specify the type of the object, as would be the case if using the constructor of temporary\+\_\+clone.
 
 
 \begin{DoxyParams}{Parameters}

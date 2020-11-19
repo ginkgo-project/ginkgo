@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/216962478 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/218189553 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -369,10 +369,52 @@ $(function() {
 <div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;};</div>
 <div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160; </div>
 <div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160; </div>
-<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;<span class="keyword">namespace </span>detail {</div>
 <div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160; </div>
 <div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160; </div>
-<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_ARRAY_HPP_</span></div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;<span class="keyword">struct </span>temporary_clone_helper&lt;Array&lt;T&gt;&gt; {</div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    <span class="keyword">static</span> std::unique_ptr&lt;Array&lt;T&gt;&gt; create(</div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;        std::shared_ptr&lt;const Executor&gt; exec, Array&lt;T&gt; *ptr)</div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;    {</div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;        <span class="keywordflow">return</span> std::make_unique&lt;Array&lt;T&gt;&gt;(std::move(exec), *ptr);</div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;    }</div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;};</div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160; </div>
+<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160;<span class="keyword">struct </span>temporary_clone_helper&lt;const Array&lt;T&gt;&gt; {</div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;    <span class="keyword">static</span> std::unique_ptr&lt;const Array&lt;T&gt;&gt; create(</div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;        std::shared_ptr&lt;const Executor&gt; exec, <span class="keyword">const</span> Array&lt;T&gt; *ptr)</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;    {</div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;        <span class="keywordflow">return</span> std::make_unique&lt;const Array&lt;T&gt;&gt;(std::move(exec), *ptr);</div>
+<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;    }</div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;};</div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160; </div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160; </div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;<span class="comment">// specialization for non-constant arrays, copying back via assignment</span></div>
+<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;<span class="keyword">class </span>copy_back_deleter&lt;Array&lt;T&gt;&gt; {</div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;    <span class="keyword">using</span> pointer = Array&lt;T&gt; *;</div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160; </div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;    copy_back_deleter(pointer original) : original_{original} {}</div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160; </div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;    <span class="keywordtype">void</span> operator()(pointer ptr)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;        *original_ = *ptr;</div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;        <span class="keyword">delete</span> ptr;</div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;    }</div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160; </div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;    pointer original_;</div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160;};</div>
+<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160; </div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160; </div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;}  <span class="comment">// namespace detail</span></div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160; </div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160; </div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_ARRAY_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1executor__deleter_html"><div class="ttname"><a href="classgko_1_1executor__deleter.html">gko::executor_deleter</a></div><div class="ttdoc">This is a deleter that uses an executor's free method to deallocate the data.</div><div class="ttdef"><b>Definition:</b> executor.hpp:762</div></div>
 <div class="ttc" id="aclassgko_1_1Array_html_a5a46e0920b649cdb062f5e415922d1aa"><div class="ttname"><a href="classgko_1_1Array.html#a5a46e0920b649cdb062f5e415922d1aa">gko::Array::get_const_data</a></div><div class="ttdeci">const value_type * get_const_data() const noexcept</div><div class="ttdoc">Returns a constant pointer to the block of memory used to store the elements of the Array.</div><div class="ttdef"><b>Definition:</b> array.hpp:505</div></div>
