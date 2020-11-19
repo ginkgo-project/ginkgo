@@ -78,8 +78,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor> exec,
 {
     const int bs = a->get_block_size();
     const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
-    const IndexType nbrows =
-        gko::blockutils::getNumBlocks(bs, a->get_size()[0]);
+    const IndexType nbrows = a->get_num_block_rows();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
@@ -121,8 +120,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
 {
     const int bs = a->get_block_size();
     const IndexType nvecs = static_cast<IndexType>(b->get_size()[1]);
-    const IndexType nbrows =
-        gko::blockutils::getNumBlocks(bs, a->get_size()[0]);
+    const IndexType nbrows = a->get_num_block_rows();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
@@ -417,10 +415,8 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Dense<ValueType> *const result)
 {
     const int bs = source->get_block_size();
-    const size_type nbrows =
-        gko::blockutils::getNumBlocks(bs, source->get_size()[0]);
-    const size_type nbcols =
-        gko::blockutils::getNumBlocks(bs, source->get_size()[1]);
+    const size_type nbrows = source->get_num_block_rows();
+    const size_type nbcols = source->get_num_block_cols();
     const IndexType *const row_ptrs = source->get_const_row_ptrs();
     const IndexType *const col_idxs = source->get_const_col_idxs();
     const ValueType *const vals = source->get_const_values();
@@ -457,10 +453,8 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *const result)
 {
     const int bs = source->get_block_size();
-    const size_type nbrows =
-        gko::blockutils::getNumBlocks(bs, source->get_size()[0]);
-    const size_type nbcols =
-        gko::blockutils::getNumBlocks(bs, source->get_size()[1]);
+    const size_type nbrows = source->get_num_block_rows();
+    const size_type nbcols = source->get_num_block_cols();
     const IndexType *const browptrs = source->get_const_row_ptrs();
     const IndexType *const bcolinds = source->get_const_col_idxs();
     const ValueType *const bvals = source->get_const_values();
@@ -697,9 +691,9 @@ void transpose_and_transform(
     auto orig_vals = orig->get_const_values();
 
     auto orig_num_cols = orig->get_size()[1];
-    const size_type nbcols = gko::blockutils::getNumBlocks(bs, orig_num_cols);
+    const size_type nbcols = orig->get_num_block_cols();
     auto orig_num_rows = orig->get_size()[0];
-    const size_type nbrows = gko::blockutils::getNumBlocks(bs, orig_num_rows);
+    const size_type nbrows = orig->get_num_block_rows();
     auto orig_nbnz = orig_row_ptrs[nbrows];
 
     trans_row_ptrs[0] = 0;
@@ -728,12 +722,10 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType> *orig,
                     matrix::Fbcsr<ValueType, IndexType> *trans)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    transpose_and_transform(exec, trans, orig,
-//                            [](const ValueType x) { return conj(x); });
-//}
+{
+    transpose_and_transform(exec, trans, orig,
+                            [](const ValueType x) { return conj(x); });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
@@ -742,20 +734,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *source,
-    size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto num_rows = source->get_size()[0];
-//    const auto row_ptrs = source->get_const_row_ptrs();
-//    IndexType max_nnz = 0;
-//
-//    for (size_type i = 0; i < num_rows; i++) {
-//        max_nnz = std::max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
-//    }
-//
-//    *result = max_nnz;
-//}
+    const matrix::Fbcsr<ValueType, IndexType> *source, size_type *const result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto row_ptrs = source->get_const_row_ptrs();
+    const int bs = source->get_block_size();
+    IndexType max_nnz = 0;
+
+    for (size_type i = 0; i < num_rows; i++) {
+        const size_type ibrow = i / bs;
+        max_nnz =
+            std::max((row_ptrs[ibrow + 1] - row_ptrs[ibrow]) * bs, max_nnz);
+    }
+
+    *result = max_nnz;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
@@ -1018,7 +1011,7 @@ void is_sorted_by_column_index(
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
     const int bs = to_check->get_block_size();
-    const size_type nbrows = gko::blockutils::getNumBlocks(bs, size[0]);
+    const size_type nbrows = to_check->get_num_block_rows();
 
     for (size_type i = 0; i < nbrows; ++i) {
         for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
@@ -1046,8 +1039,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto values = orig->get_const_values();
     const int bs = orig->get_block_size();
     const size_type diag_size = diag->get_size()[0];
-    const size_type nbrows =
-        gko::blockutils::getNumBlocks(bs, orig->get_size()[0]);
+    const size_type nbrows = orig->get_num_block_rows();
     auto diag_values = diag->get_values();
     assert(diag_size == orig->get_size()[0]);
 
