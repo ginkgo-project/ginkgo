@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "core/solver/idr_kernels.hpp"
 
+
 namespace gko {
 namespace solver {
 namespace idr {
@@ -143,7 +144,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(m.get(), subspace_vectors.get(),
+    exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
                                    deterministic_, &stop_status));
 
     // omega = 1
@@ -186,16 +187,16 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         // f = P^H * residual
 
         for (size_type k = 0; k < subspace_dim_; k++) {
-            exec->run(idr::make_step_1(k, m.get(), f.get(), residual.get(),
-                                       g.get(), c.get(), v.get(),
-                                       &stop_status));
+            exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
+                                       residual.get(), g.get(), c.get(),
+                                       v.get(), &stop_status));
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - c_k * g_k - ... - c_s * g_s
 
             get_preconditioner()->apply(v.get(), helper.get());
 
-            exec->run(idr::make_step_2(k, omega.get(), helper.get(), c.get(),
-                                       u.get(), &stop_status));
+            exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
+                                       c.get(), u.get(), &stop_status));
             // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
 
             auto u_k = u->create_submatrix(span{0, problem_size},
@@ -204,7 +205,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
 
-            exec->run(idr::make_step_3(k, subspace_vectors.get(), g.get(),
+            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
                                        alpha.get(), residual.get(), dense_x,
                                        &stop_status));
@@ -226,12 +227,12 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         system_matrix_->apply(helper.get(), t.get());
 
         t->compute_dot(residual.get(), omega.get());
-        // t->compute_norm2(t_norm.get());
         t->compute_dot(t.get(), tht.get());
         residual->compute_norm2(residual_norm.get());
 
-        exec->run(idr::make_compute_omega(
-            kappa_, tht.get(), residual_norm.get(), omega.get(), &stop_status));
+        exec->run(idr::make_compute_omega(nrhs, kappa_, tht.get(),
+                                          residual_norm.get(), omega.get(),
+                                          &stop_status));
 
         t->scale(subspace_neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());

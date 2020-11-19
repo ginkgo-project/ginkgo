@@ -133,6 +133,60 @@ public:
         stop_criterion_factory_ = std::move(other);
     }
 
+    /**
+     * Gets the subspace dimension of the solver.
+     *
+     * @return the subspace Dimension*/
+    size_type get_subspace_dim() const { return subspace_dim_; }
+
+    /**
+     * Sets the subspace dimension of the solver.
+     *
+     * @param other  the new subspace Dimension*/
+    void set_subspace_dim(const size_type other) { subspace_dim_ = other; }
+
+    /**
+     * Gets the kappa parameter of the solver.
+     *
+     * @return the kappa parameter
+     */
+    remove_complex<ValueType> get_kappa() const { return kappa_; }
+
+    /**
+     * Sets the kappa parameter of the solver.
+     *
+     * @param other  the new kappa parameter
+     */
+    void set_kappa(const remove_complex<ValueType> other) { kappa_ = other; }
+
+    /**
+     * Gets the deterministic parameter of the solver.
+     *
+     * @return the deterministic parameter
+     */
+    bool get_deterministic() const { return deterministic_; }
+
+    /**
+     * Sets the deterministic parameter of the solver.
+     *
+     * @param other  the new deterministic parameter
+     */
+    void set_deterministic(const bool other) { deterministic_ = other; }
+
+    /**
+     * Gets the complex_subspace parameter of the solver.
+     *
+     * @return the complex_subspace parameter
+     */
+    bool get_complex_subspace() const { return complex_subspace_; }
+
+    /**
+     * Sets the complex_subspace parameter of the solver.
+     *
+     * @param other  the new complex_subspace parameter
+     */
+    void set_complex_subpsace(const bool other) { complex_subspace_ = other; }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -164,7 +218,7 @@ public:
          * Threshold to determine if Av_n and v_n are too close to being
          * perpendicular.
          * This is considered to be the case if
-         * |(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa
+         * $|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa$
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
 

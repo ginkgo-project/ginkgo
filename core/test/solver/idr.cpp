@@ -142,6 +142,7 @@ TYPED_TEST(Idr, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
+
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
@@ -154,6 +155,7 @@ TYPED_TEST(Idr, CanBeCloned)
 TYPED_TEST(Idr, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
+
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
@@ -288,6 +290,156 @@ TYPED_TEST(Idr, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), idr_precond.get());
+}
+
+
+TYPED_TEST(Idr, CanSetSubspaceDim)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto idr_factory =
+        Solver::build()
+            .with_subspace_dim(8u)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+            .on(this->exec);
+    auto solver = idr_factory->generate(this->mtx);
+    auto subspace_dim = solver->get_subspace_dim();
+
+    ASSERT_EQ(subspace_dim, 8u);
+}
+
+
+TYPED_TEST(Idr, CanSetSubspaceDimAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto idr_factory =
+        Solver::build().with_criteria(init_crit).with_subspace_dim(10u).on(
+            this->exec);
+
+    ASSERT_EQ(idr_factory->get_parameters().subspace_dim, 10);
+
+    auto solver = idr_factory->generate(this->mtx);
+
+    solver->set_subspace_dim(20);
+
+    ASSERT_EQ(solver->get_subspace_dim(), 20);
+}
+
+
+TYPED_TEST(Idr, CanSetKappa)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    auto idr_factory =
+        Solver::build()
+            .with_kappa(real_type{0.05})
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+            .on(this->exec);
+    auto solver = idr_factory->generate(this->mtx);
+    auto kappa = solver->get_kappa();
+
+    ASSERT_EQ(kappa, real_type{0.05});
+}
+
+
+TYPED_TEST(Idr, CanSetKappaAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto idr_factory = Solver::build()
+                           .with_criteria(init_crit)
+                           .with_kappa(real_type{0.05})
+                           .on(this->exec);
+
+    ASSERT_EQ(idr_factory->get_parameters().kappa, real_type{0.05});
+
+    auto solver = idr_factory->generate(this->mtx);
+
+    solver->set_kappa(real_type{0.3});
+
+    ASSERT_EQ(solver->get_kappa(), real_type{0.3});
+}
+
+
+TYPED_TEST(Idr, CanSetDeterministic)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto idr_factory =
+        Solver::build()
+            .with_deterministic(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+            .on(this->exec);
+    auto solver = idr_factory->generate(this->mtx);
+    auto deterministic = solver->get_deterministic();
+
+    ASSERT_EQ(deterministic, true);
+}
+
+
+TYPED_TEST(Idr, CanSetDeterministicAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto idr_factory =
+        Solver::build().with_criteria(init_crit).with_deterministic(true).on(
+            this->exec);
+
+    ASSERT_EQ(idr_factory->get_parameters().deterministic, true);
+
+    auto solver = idr_factory->generate(this->mtx);
+
+    solver->set_deterministic(false);
+
+    ASSERT_EQ(solver->get_deterministic(), false);
+}
+
+
+TYPED_TEST(Idr, CanSetComplexSubspace)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto idr_factory =
+        Solver::build()
+            .with_complex_subspace(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+            .on(this->exec);
+    auto solver = idr_factory->generate(this->mtx);
+    auto complex_subspace = solver->get_complex_subspace();
+
+    ASSERT_EQ(complex_subspace, true);
+}
+
+
+TYPED_TEST(Idr, CanSetComplexSubspaceAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto idr_factory =
+        Solver::build().with_criteria(init_crit).with_complex_subspace(true).on(
+            this->exec);
+
+    ASSERT_EQ(idr_factory->get_parameters().complex_subspace, true);
+
+    auto solver = idr_factory->generate(this->mtx);
+
+    solver->set_complex_subpsace(false);
+
+    ASSERT_EQ(solver->get_complex_subspace(), false);
 }
 
 

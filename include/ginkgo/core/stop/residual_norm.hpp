@@ -62,6 +62,7 @@ class ResidualNorm
     friend class EnablePolymorphicObject<ResidualNorm<ValueType>, Criterion>;
 
 public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
 
@@ -111,6 +112,7 @@ private:
 template <typename ValueType = default_precision>
 class ResidualNormReduction : public ResidualNorm<ValueType> {
 public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
 
@@ -147,10 +149,8 @@ protected:
             exec, dim<2>{1, args.initial_residual->get_size()[1]});
         this->u_dense_tau_ =
             NormVector::create_with_config_of(this->starting_tau_.get());
-        if (dynamic_cast<const matrix::Dense<to_complex<ValueType>> *>(
-                args.initial_residual)) {
-            auto dense_r =
-                as<matrix::Dense<to_complex<ValueType>>>(args.initial_residual);
+        if (dynamic_cast<const ComplexVector *>(args.initial_residual)) {
+            auto dense_r = as<ComplexVector>(args.initial_residual);
             dense_r->compute_norm2(this->starting_tau_.get());
         } else {
             auto dense_r = as<Vector>(args.initial_residual);
@@ -178,6 +178,7 @@ protected:
 template <typename ValueType = default_precision>
 class RelativeResidualNorm : public ResidualNorm<ValueType> {
 public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
 
@@ -214,9 +215,8 @@ protected:
             NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         this->u_dense_tau_ =
             NormVector::create_with_config_of(this->starting_tau_.get());
-        if (dynamic_cast<const matrix::Dense<to_complex<ValueType>> *>(
-                args.b.get())) {
-            auto dense_rhs = as<matrix::Dense<to_complex<ValueType>>>(args.b);
+        if (dynamic_cast<const ComplexVector *>(args.b.get())) {
+            auto dense_rhs = as<ComplexVector>(args.b);
             dense_rhs->compute_norm2(this->starting_tau_.get());
         } else {
             auto dense_rhs = as<Vector>(args.b);

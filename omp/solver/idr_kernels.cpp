@@ -62,12 +62,12 @@ namespace {
 
 
 template <typename ValueType>
-void solve_lower_triangular(const matrix::Dense<ValueType> *m,
+void solve_lower_triangular(const size_type nrhs,
+                            const matrix::Dense<ValueType> *m,
                             const matrix::Dense<ValueType> *f,
                             matrix::Dense<ValueType> *c,
                             const Array<stopping_status> *stop_status)
 {
-    const auto nrhs = m->get_size()[1] / m->get_size()[0];
 #pragma omp parallel for
     for (size_type i = 0; i < f->get_size()[1]; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -86,13 +86,13 @@ void solve_lower_triangular(const matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
-void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
+void update_g_and_u(const size_type nrhs, const size_type k,
+                    const matrix::Dense<ValueType> *p,
                     const matrix::Dense<ValueType> *m,
                     matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
                     matrix::Dense<ValueType> *u,
                     const Array<stopping_status> *stop_status)
 {
-    const auto nrhs = m->get_size()[1] / m->get_size()[0];
 #pragma omp parallel for
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -139,13 +139,12 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const OmpExecutor> exec,
+void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType> *m,
                 matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
                 Array<stopping_status> *stop_status)
 {
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
-    const auto nrhs = m->get_size()[1] / m->get_size()[0];
 
     // Initialize M
 #pragma omp parallel for
@@ -206,8 +205,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type k,
-            const matrix::Dense<ValueType> *m,
+void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
+            const size_type k, const matrix::Dense<ValueType> *m,
             const matrix::Dense<ValueType> *f,
             const matrix::Dense<ValueType> *residual,
             const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *c,
@@ -215,10 +214,9 @@ void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type k,
             const Array<stopping_status> *stop_status)
 {
     const auto m_size = m->get_size();
-    const auto nrhs = f->get_size()[1];
 
     // Compute c = M \ f
-    solve_lower_triangular(m, f, c, stop_status);
+    solve_lower_triangular(nrhs, m, f, c, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -241,13 +239,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type k,
-            const matrix::Dense<ValueType> *omega,
+void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
+            const size_type k, const matrix::Dense<ValueType> *omega,
             const matrix::Dense<ValueType> *preconditioned_vector,
             const matrix::Dense<ValueType> *c, matrix::Dense<ValueType> *u,
             const Array<stopping_status> *stop_status)
 {
-    const auto nrhs = omega->get_size()[1];
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
@@ -268,17 +265,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type k,
-            const matrix::Dense<ValueType> *p, matrix::Dense<ValueType> *g,
-            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
-            matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *residual,
-            matrix::Dense<ValueType> *x,
+void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
+            const size_type k, const matrix::Dense<ValueType> *p,
+            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
+            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
+            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *,
+            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
-    const auto nrhs = x->get_size()[1];
-
-    update_g_and_u(k, p, m, g, g_k, u, stop_status);
+    update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -317,13 +312,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 template <typename ValueType>
 void compute_omega(
-    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
     const matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
-    for (size_type i = 0; i < omega->get_size()[1]; i++) {
+    for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }

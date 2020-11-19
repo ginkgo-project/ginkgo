@@ -104,7 +104,7 @@ protected:
     void initialize_data()
     {
         int size = 597;
-        int nrhs = 17;
+        nrhs = 17;
         int s = 4;
         x = gen_mtx(size, nrhs);
         b = gen_mtx(size, nrhs);
@@ -116,6 +116,7 @@ protected:
         c = gen_mtx(s, nrhs);
         v = gen_mtx(size, nrhs);
         p = gen_mtx(s, size);
+        alpha = gen_mtx(1, nrhs);
         omega = gen_mtx(1, nrhs);
         tht = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
@@ -135,6 +136,7 @@ protected:
         d_c = Mtx::create(cuda);
         d_v = Mtx::create(cuda);
         d_p = Mtx::create(cuda);
+        d_alpha = Mtx::create(cuda);
         d_omega = Mtx::create(cuda);
         d_tht = Mtx::create(cuda);
         d_residual_norm = Mtx::create(cuda);
@@ -151,6 +153,7 @@ protected:
         d_c->copy_from(c.get());
         d_v->copy_from(v.get());
         d_p->copy_from(p.get());
+        d_alpha->copy_from(alpha.get());
         d_omega->copy_from(omega.get());
         d_tht->copy_from(tht.get());
         d_residual_norm->copy_from(residual_norm.get());
@@ -180,7 +183,9 @@ protected:
     std::unique_ptr<Solver::Factory> cuda_idr_factory;
     std::unique_ptr<Solver::Factory> ref_idr_factory;
 
-    std::unique_ptr<Mtx> x;
+    gko::size_type nrhs,
+
+        std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
     std::unique_ptr<Mtx> m;
@@ -190,6 +195,7 @@ protected:
     std::unique_ptr<Mtx> c;
     std::unique_ptr<Mtx> v;
     std::unique_ptr<Mtx> p;
+    std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> omega;
     std::unique_ptr<Mtx> tht;
     std::unique_ptr<Mtx> residual_norm;
@@ -205,6 +211,7 @@ protected:
     std::unique_ptr<Mtx> d_c;
     std::unique_ptr<Mtx> d_v;
     std::unique_ptr<Mtx> d_p;
+    std::unique_ptr<Mtx> d_alpha;
     std::unique_ptr<Mtx> d_omega;
     std::unique_ptr<Mtx> d_tht;
     std::unique_ptr<Mtx> d_residual_norm;
@@ -216,9 +223,9 @@ TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::idr::initialize(ref, m.get(), p.get(), true,
+    gko::kernels::reference::idr::initialize(ref, nrhs, m.get(), p.get(), true,
                                              stop_status.get());
-    gko::kernels::cuda::idr::initialize(cuda, d_m.get(), d_p.get(), true,
+    gko::kernels::cuda::idr::initialize(cuda, nrhs, d_m.get(), d_p.get(), true,
                                         d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
@@ -231,11 +238,11 @@ TEST_F(Idr, IdrStep1IsEquivalentToRef)
     initialize_data();
 
     gko::size_type k = 2;
-    gko::kernels::reference::idr::step_1(ref, k, m.get(), f.get(), r.get(),
-                                         g.get(), c.get(), v.get(),
+    gko::kernels::reference::idr::step_1(ref, nrhs, k, m.get(), f.get(),
+                                         r.get(), g.get(), c.get(), v.get(),
                                          stop_status.get());
-    gko::kernels::cuda::idr::step_1(cuda, k, d_m.get(), d_f.get(), d_r.get(),
-                                    d_g.get(), d_c.get(), d_v.get(),
+    gko::kernels::cuda::idr::step_1(cuda, nrhs, k, d_m.get(), d_f.get(),
+                                    d_r.get(), d_g.get(), d_c.get(), d_v.get(),
                                     d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(c, d_c, 1e-14);
@@ -248,9 +255,9 @@ TEST_F(Idr, IdrStep2IsEquivalentToRef)
     initialize_data();
 
     gko::size_type k = 2;
-    gko::kernels::reference::idr::step_2(ref, k, omega.get(), v.get(), c.get(),
-                                         u.get(), stop_status.get());
-    gko::kernels::cuda::idr::step_2(cuda, k, d_omega.get(), d_v.get(),
+    gko::kernels::reference::idr::step_2(ref, nrhs, k, omega.get(), v.get(),
+                                         c.get(), u.get(), stop_status.get());
+    gko::kernels::cuda::idr::step_2(cuda, nrhs, k, d_omega.get(), d_v.get(),
                                     d_c.get(), d_u.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
@@ -262,14 +269,15 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
     initialize_data();
 
     gko::size_type k = 2;
-    gko::kernels::reference::idr::step_3(ref, k, p.get(), g.get(), v.get(),
-                                         u.get(), m.get(), f.get(), omega.get(),
-                                         r.get(), x.get(), stop_status.get());
+    gko::kernels::reference::idr::step_3(
+        ref, nrhs, k, p.get(), g.get(), v.get(), u.get(), m.get(), f.get(),
+        alpha.get(), r.get(), x.get(), stop_status.get());
     gko::kernels::cuda::idr::step_3(
-        cuda, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
-        d_f.get(), d_omega.get(), d_r.get(), d_x.get(), d_stop_status.get());
+        cuda, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
+        d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(g, d_g, 1e-14);
+    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
     GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
     GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
     GKO_ASSERT_MTX_NEAR(f, d_f, 1e-14);
@@ -283,10 +291,10 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
     initialize_data();
 
     double kappa = 0.7;
-    gko::kernels::reference::idr::compute_omega(ref, kappa, tht.get(),
+    gko::kernels::reference::idr::compute_omega(ref, nrhs, kappa, tht.get(),
                                                 residual_norm.get(),
                                                 omega.get(), stop_status.get());
-    gko::kernels::cuda::idr::compute_omega(cuda, kappa, d_tht.get(),
+    gko::kernels::cuda::idr::compute_omega(cuda, nrhs, kappa, d_tht.get(),
                                            d_residual_norm.get(), d_omega.get(),
                                            d_stop_status.get());
 
@@ -298,7 +306,6 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
-
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
@@ -320,7 +327,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
-
     cuda_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -328,7 +334,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .on(cuda);
-
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -336,7 +341,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
-
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
@@ -379,7 +383,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
-
     cuda_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -387,7 +390,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .on(cuda);
-
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -395,7 +397,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
-
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto b = gen_mtx(m, n);
