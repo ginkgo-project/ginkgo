@@ -65,10 +65,10 @@ DEFINE_bool(
     rel_residual, false,
     "Use relative residual instead of residual reduction stopping criterion");
 
-DEFINE_string(
-    solvers, "cg",
-    "A comma-separated list of solvers to run. "
-    "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, overhead");
+DEFINE_string(solvers, "cg",
+              "A comma-separated list of solvers to run. "
+              "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, "
+              "lower_trs, upper_trs, overhead");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -165,6 +165,20 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                     .on(exec))
                             .with_krylov_dim(FLAGS_gmres_restart)
                             .with_preconditioner(give(precond))
+                            .on(exec);
+                    }},
+                   {"lower_trs",
+                    [](std::shared_ptr<const gko::Executor> exec,
+                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                        return gko::solver::LowerTrs<>::build()
+                            .with_num_rhs(FLAGS_nrhs)
+                            .on(exec);
+                    }},
+                   {"upper_trs",
+                    [](std::shared_ptr<const gko::Executor> exec,
+                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                        return gko::solver::UpperTrs<>::build()
+                            .with_num_rhs(FLAGS_nrhs)
                             .on(exec);
                     }},
                    {"overhead", create_solver<gko::Overhead<>>}};
