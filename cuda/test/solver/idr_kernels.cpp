@@ -183,9 +183,9 @@ protected:
     std::unique_ptr<Solver::Factory> cuda_idr_factory;
     std::unique_ptr<Solver::Factory> ref_idr_factory;
 
-    gko::size_type nrhs,
+    gko::size_type nrhs;
 
-        std::unique_ptr<Mtx> x;
+    std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
     std::unique_ptr<Mtx> m;
