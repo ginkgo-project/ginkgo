@@ -77,7 +77,7 @@ void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
         auto b_end = b_row_ptrs[row + 1];
         auto total_size = (a_end - a_begin) + (b_end - b_begin);
         bool skip{};
-        auto local_data = begin_cb(row);
+        auto local_data = begin_cb(static_cast<IndexType>(row));
         for (IndexType i = 0; i < total_size; ++i) {
             if (skip) {
                 skip = false;

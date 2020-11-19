@@ -116,9 +116,9 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
         return 0;
     }
     size_type num_blocks = 1;
-    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    auto current_block_size = block_ptrs[1] - block_ptrs[0];
     for (size_type i = 1; i < num_natural_blocks; ++i) {
-        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        const auto block_size = block_ptrs[i + 1] - block_ptrs[i];
         if (current_block_size + block_size <= max_block_size) {
             current_block_size += block_size;
         } else {
@@ -170,7 +170,7 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
-        for (int i = start; i < end; ++i) {
+        for (auto i = start; i < end; ++i) {
             const auto col = col_idxs[i] - block_start;
             if (0 <= col && col < block_size) {
                 block[row * stride + col] = vals[i];
@@ -359,7 +359,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
         vector<Array<IndexType>> perm(group_size, {}, exec);
         vector<uint32> pr_descriptors(group_size, uint32{} - 1, exec);
         // extract group of blocks, invert them, figure out storage precision
-        for (size_type b = 0; b < group_size; ++b) {
+        for (IndexType b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
                 break;
             }
@@ -413,7 +413,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                             [](uint32 x, uint32 y) { return x & y; }));
 
         // store the blocks
-        for (size_type b = 0; b < group_size; ++b) {
+        for (IndexType b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
                 break;
             }

@@ -44,7 +44,7 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
     IndexType partial_sum{};
-    for (IndexType i = 0; i < num_entries; ++i) {
+    for (size_type i = 0; i < num_entries; ++i) {
         auto nnz = counts[i];
         counts[i] = partial_sum;
         partial_sum += nnz;
