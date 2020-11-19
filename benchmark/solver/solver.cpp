@@ -169,14 +169,14 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                     }},
                    {"lower_trs",
                     [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                       std::shared_ptr<const gko::LinOpFactory>) {
                         return gko::solver::LowerTrs<>::build()
                             .with_num_rhs(FLAGS_nrhs)
                             .on(exec);
                     }},
                    {"upper_trs",
                     [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                       std::shared_ptr<const gko::LinOpFactory>) {
                         return gko::solver::UpperTrs<>::build()
                             .with_num_rhs(FLAGS_nrhs)
                             .on(exec);
