@@ -218,7 +218,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        c_row_ptrs[a_row] = local_col_idxs.size();
+        c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
     // build row pointers
@@ -272,7 +272,7 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
         local_col_idxs.clear();
         spgemm_insert_row(local_col_idxs, d, a_row);
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        c_row_ptrs[a_row] = local_col_idxs.size();
+        c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
     // build row pointers
@@ -429,7 +429,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     const auto source_col_idxs = source->get_const_col_idxs();
     const auto source_values = source->get_const_values();
 
-    int slice_num = ceildiv(num_rows, slice_size);
+    auto slice_num = ceildiv(num_rows, slice_size);
     slice_sets[0] = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {

@@ -121,8 +121,8 @@ public:
         /**
          * Factor by which the residual norm will be reduced
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(reduction_factor,
-                                                               1e-15);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
     };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
@@ -187,8 +187,8 @@ public:
         /**
          * Relative residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(tolerance,
-                                                               1e-15);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            tolerance, static_cast<remove_complex<ValueType>>(1e-15));
     };
     GKO_ENABLE_CRITERION_FACTORY(RelativeResidualNorm<ValueType>, parameters,
                                  Factory);
@@ -251,8 +251,8 @@ public:
         /**
          * Absolute residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(tolerance,
-                                                               1e-15);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            tolerance, static_cast<remove_complex<ValueType>>(1e-15));
     };
     GKO_ENABLE_CRITERION_FACTORY(AbsoluteResidualNorm<ValueType>, parameters,
                                  Factory);

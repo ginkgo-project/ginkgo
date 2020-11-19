@@ -383,7 +383,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     auto stride_factor = (result->get_stride_factor() == 0)
                              ? matrix::default_stride_factor
                              : result->get_stride_factor();
-    int slice_num = ceildiv(num_rows, slice_size);
+    auto slice_num = ceildiv(num_rows, slice_size);
     slice_sets[0] = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {

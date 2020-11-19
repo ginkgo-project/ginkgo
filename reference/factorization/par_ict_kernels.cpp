@@ -77,8 +77,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto a_vals = a->get_const_values();
 
     for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1];
-             ++l_nz) {
+        for (auto l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1]; ++l_nz) {
             auto col = l_col_idxs[l_nz];
             // find value from A
             auto a_begin = a_row_ptrs[row];

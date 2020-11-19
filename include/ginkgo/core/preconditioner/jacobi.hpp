@@ -484,7 +484,8 @@ public:
          * accuracy to a value as close as possible to `dropout` will result in
          * optimal memory savings, while not degrading the quality of solution.
          */
-        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(accuracy, 1e-1);
+        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
+            accuracy, static_cast<remove_complex<value_type>>(1e-1));
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

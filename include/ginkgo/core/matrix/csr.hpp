@@ -239,9 +239,9 @@ public:
             }
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             max_length_per_row_ = 0;
-            for (index_type i = 1; i < num_rows + 1; i++) {
+            for (size_type i = 0; i < num_rows; i++) {
                 max_length_per_row_ = std::max(max_length_per_row_,
-                                               row_ptrs[i] - row_ptrs[i - 1]);
+                                               row_ptrs[i + 1] - row_ptrs[i]);
             }
         }
 
@@ -461,7 +461,7 @@ public:
 #endif  // GINKGO_HIP_PLATFORM_HCC
 
                 auto nwarps = nwarps_ * multiple;
-                return min(ceildiv(nnz, warp_size_), int64_t(nwarps));
+                return min(ceildiv(nnz, warp_size_), nwarps);
             } else {
                 return 0;
             }
@@ -577,8 +577,8 @@ public:
                 this->set_name(actual_strategy.get_name());
             } else {
                 index_type maxnum = 0;
-                for (index_type i = 1; i < num_rows + 1; i++) {
-                    maxnum = std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
+                for (size_type i = 0; i < num_rows; i++) {
+                    maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);
                 }
                 if (maxnum > row_len_limit) {
                     load_balance actual_strategy(nwarps_, warp_size_,
