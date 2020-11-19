@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_RANGE_ACCESSOR_REFERENCES_HPP_
-#define GKO_CORE_BASE_RANGE_ACCESSOR_REFERENCES_HPP_
+#ifndef GKO_CORE_BASE_ACCESSOR_REFERENCES_HPP_
+#define GKO_CORE_BASE_ACCESSOR_REFERENCES_HPP_
 
 
 #include <type_traits>
@@ -67,15 +67,13 @@ namespace detail {
 
 // tests if the cast operator to `ValueType` is present
 template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_cast_operator : std::false_type {
-};
+struct has_cast_operator : std::false_type {};
 
 template <typename Ref, typename ValueType>
 struct has_cast_operator<
     Ref, ValueType,
     xstd::void_t<decltype(std::declval<Ref>().Ref::operator ValueType())>>
-    : std::true_type {
-};
+    : std::true_type {};
 
 
 /**
@@ -243,8 +241,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(arithmetic_type val) &&noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
@@ -258,8 +256,8 @@ public:
         return static_cast<arithmetic_type>(*this);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(reduced_storage &&ref) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(reduced_storage &&ref) &&noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
@@ -354,8 +352,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(arithmetic_type val) &&noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
@@ -370,8 +368,7 @@ public:
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type
-        operator=(scaled_reduced_storage &&ref) &&
-        noexcept
+    operator=(scaled_reduced_storage &&ref) &&noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
@@ -426,4 +423,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_RANGE_ACCESSOR_REFERENCES_HPP_
+#endif  // GKO_CORE_BASE_ACCESSOR_REFERENCES_HPP_

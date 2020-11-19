@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_RANGE_ACCESSOR_HELPER_HPP_
-#define GKO_CORE_BASE_RANGE_ACCESSOR_HELPER_HPP_
+#ifndef GKO_CORE_BASE_ACCESSOR_HELPER_HPP_
+#define GKO_CORE_BASE_ACCESSOR_HELPER_HPP_
 
 #include <array>
 #include <tuple>
@@ -53,8 +53,6 @@ namespace accessor {
  * without notice.
  */
 namespace helper {
-
-
 namespace detail {
 
 
@@ -193,8 +191,7 @@ template <typename ValueType, size_type mask, size_type set_bits_processed,
                               ? static_cast<bool>(mask &(
                                     size_type{1} << (total_dim - 1 - dim_idx)))
                               : false>
-struct row_major_masked_helper_s {
-};
+struct row_major_masked_helper_s {};
 
 
 // bit for current dimensionality is set
@@ -415,15 +412,13 @@ constexpr GKO_ATTRIBUTES auto compute_default_masked_stride_array(
  * Evaluates if all Args fulfill std::is_integral
  */
 template <typename... Args>
-struct are_all_integral : public std::true_type {
-};
+struct are_all_integral : public std::true_type {};
 
 template <typename First, typename... Args>
 struct are_all_integral<First, Args...>
     : public std::conditional<std::is_integral<std::decay_t<First>>::value,
                               are_all_integral<Args...>,
-                              std::false_type>::type {
-};
+                              std::false_type>::type {};
 
 
 namespace detail {
@@ -431,8 +426,7 @@ namespace detail {
 
 template <bool has_span, typename... Args>
 struct are_span_compatible_impl
-    : public std::integral_constant<bool, has_span> {
-};
+    : public std::integral_constant<bool, has_span> {};
 
 template <bool has_span, typename First, typename... Args>
 struct are_span_compatible_impl<has_span, First, Args...>
@@ -442,8 +436,7 @@ struct are_span_compatible_impl<has_span, First, Args...>
           are_span_compatible_impl<
               has_span || std::is_same<std::decay_t<First>, span>::value,
               Args...>,
-          std::false_type>::type {
-};
+          std::false_type>::type {};
 
 
 }  // namespace detail
@@ -563,4 +556,4 @@ constexpr size_type count_mask_dimensionality()
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_RANGE_ACCESSOR_HELPER_HPP_
+#endif  // GKO_CORE_BASE_ACCESSOR_HELPER_HPP_
