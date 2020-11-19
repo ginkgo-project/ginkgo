@@ -75,7 +75,7 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(calculate_total_cols, dense::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
-GKO_REGISTER_OPERATION(row_permute, dense::row_permute);
+GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
@@ -646,23 +646,9 @@ std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     auto exec = this->get_executor();
     auto permute_cpy = Dense::create(exec, this->get_size());
 
-    exec->run(
-        dense::make_row_permute(permutation_indices, this, permute_cpy.get()));
-
-    return std::move(permute_cpy);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
-    const Array<int32> *permutation_indices) const
-{
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-    auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_column_permute(permutation_indices, this,
-                                         permute_cpy.get()));
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
 
     return std::move(permute_cpy);
 }
@@ -676,8 +662,84 @@ std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     auto exec = this->get_executor();
     auto permute_cpy = Dense::create(exec, this->get_size());
 
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+    const Array<int32> *row_indices) const
+{
+    auto exec = this->get_executor();
+    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    auto row_gathered = Dense::create(exec, out_dim);
+
     exec->run(
-        dense::make_row_permute(permutation_indices, this, permute_cpy.get()));
+        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
+                               this, row_gathered.get()));
+    return row_gathered;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+    const Array<int64> *row_indices) const
+{
+    auto exec = this->get_executor();
+    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    auto row_gathered = Dense::create(exec, out_dim);
+
+    exec->run(
+        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
+                               this, row_gathered.get()));
+    return row_gathered;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int32> *row_indices,
+                                  Dense<ValueType> *row_gathered) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
+
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, row_indices).get(), this,
+        make_temporary_clone(exec, row_gathered).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int64> *row_indices,
+                                  Dense<ValueType> *row_gathered) const
+{
+    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
+
+    auto exec = this->get_executor();
+
+    this->get_executor()->run(dense::make_row_gather(
+        make_temporary_clone(exec, row_indices).get(), this,
+        make_temporary_clone(exec, row_gathered).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+    const Array<int32> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
 
     return std::move(permute_cpy);
 }
@@ -691,8 +753,9 @@ std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     auto exec = this->get_executor();
     auto permute_cpy = Dense::create(exec, this->get_size());
 
-    exec->run(dense::make_column_permute(permutation_indices, this,
-                                         permute_cpy.get()));
+    exec->run(dense::make_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
 
     return std::move(permute_cpy);
 }
@@ -707,8 +770,26 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     auto exec = this->get_executor();
     auto inverse_permute_cpy = Dense::create(exec, this->get_size());
 
-    exec->run(dense::make_inverse_row_permute(inverse_permutation_indices, this,
-                                              inverse_permute_cpy.get()));
+    exec->run(dense::make_inverse_row_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
+
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
+    const Array<int64> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_inverse_row_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
 
     return std::move(inverse_permute_cpy);
 }
@@ -724,23 +805,8 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     auto inverse_permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_inverse_column_permute(
-        inverse_permutation_indices, this, inverse_permute_cpy.get()));
-
-    return std::move(inverse_permute_cpy);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
-    const Array<int64> *inverse_permutation_indices) const
-{
-    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
-                  this->get_size()[0]);
-    auto exec = this->get_executor();
-    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_inverse_row_permute(inverse_permutation_indices, this,
-                                              inverse_permute_cpy.get()));
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
 
     return std::move(inverse_permute_cpy);
 }
@@ -756,7 +822,8 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     auto inverse_permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_inverse_column_permute(
-        inverse_permutation_indices, this, inverse_permute_cpy.get()));
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
 
     return std::move(inverse_permute_cpy);
 }

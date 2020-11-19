@@ -626,25 +626,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 const matrix::Dense<ValueType> *orig,
-                 matrix::Dense<ValueType> *row_permuted)
+void row_gather(std::shared_ptr<const HipExecutor> exec,
+                const Array<IndexType> *row_indices,
+                const matrix::Dense<ValueType> *orig,
+                matrix::Dense<ValueType> *row_gathered)
 {
     constexpr auto block_size = default_block_size;
+    auto out_num_rows = row_indices->get_num_elems();
     const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+        ceildiv(out_num_rows * orig->get_size()[1], block_size);
     const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
     hipLaunchKernelGGL(
-        kernel::row_permute<block_size>, dim3(grid_dim), dim3(block_dim), 0, 0,
-        orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
+        kernel::row_gather<block_size>, dim3(grid_dim), dim3(block_dim), 0, 0,
+        out_num_rows, orig->get_size()[1],
+        as_hip_type(row_indices->get_const_data()),
         as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(row_permuted->get_values()), row_permuted->get_stride());
+        as_hip_type(row_gathered->get_values()), row_gathered->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_ROW_PERMUTE_KERNEL);
+    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

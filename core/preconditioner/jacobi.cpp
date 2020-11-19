@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 
+#include <memory>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -42,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/base/utils.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -201,12 +205,14 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
+void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
+                                            bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
-    const auto csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
-        exec, system_matrix);
+    auto csr_mtx =
+        convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting);
 
     if (parameters_.block_pointers.get_data() == nullptr) {
         this->detect_blocks(csr_mtx.get());

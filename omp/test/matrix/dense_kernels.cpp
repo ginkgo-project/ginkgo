@@ -150,14 +150,17 @@ protected:
         std::vector<int> tmp2(x->get_size()[1], 0);
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        std::vector<int> tmp3(x->get_size()[0] / 10);
+        std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
+        for (auto &i : tmp3) {
+            i = row_dist(rng);
+        }
         rpermute_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
-        drpermute_idxs =
-            std::unique_ptr<Arr>(new Arr{omp, tmp.begin(), tmp.end()});
         cpermute_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
-        dcpermute_idxs =
-            std::unique_ptr<Arr>(new Arr{omp, tmp2.begin(), tmp2.end()});
+        rgather_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -178,9 +181,8 @@ protected:
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
     std::unique_ptr<Arr> rpermute_idxs;
-    std::unique_ptr<Arr> drpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
-    std::unique_ptr<Arr> dcpermute_idxs;
+    std::unique_ptr<Arr> rgather_idxs;
 };
 
 
@@ -681,11 +683,39 @@ TEST_F(Dense, IsConjugateTransposable)
 }
 
 
+TEST_F(Dense, CanGatherRows)
+{
+    set_up_apply_data();
+
+    auto r_gather = x->row_gather(rgather_idxs.get());
+    auto dr_gather = dx->row_gather(rgather_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
+TEST_F(Dense, CanGatherRowsIntoDense)
+{
+    set_up_apply_data();
+    auto gather_size =
+        gko::dim<2>{rgather_idxs->get_num_elems(), x->get_size()[1]};
+    auto r_gather = Mtx::create(ref, gather_size);
+    // test make_temporary_clone and non-default stride
+    auto dr_gather = Mtx::create(ref, gather_size, x->get_size()[1] + 2);
+
+    x->row_gather(rgather_idxs.get(), r_gather.get());
+    dx->row_gather(rgather_idxs.get(), dr_gather.get());
+
+    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
 TEST_F(Dense, IsRowPermutable)
 {
     set_up_apply_data();
+
     auto r_permute = x->row_permute(rpermute_idxs.get());
-    auto dr_permute = dx->row_permute(drpermute_idxs.get());
+    auto dr_permute = dx->row_permute(rpermute_idxs.get());
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
                         static_cast<Mtx *>(dr_permute.get()), 0);
@@ -695,8 +725,9 @@ TEST_F(Dense, IsRowPermutable)
 TEST_F(Dense, IsColPermutable)
 {
     set_up_apply_data();
+
     auto c_permute = x->column_permute(cpermute_idxs.get());
-    auto dc_permute = dx->column_permute(dcpermute_idxs.get());
+    auto dc_permute = dx->column_permute(cpermute_idxs.get());
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
                         static_cast<Mtx *>(dc_permute.get()), 0);
@@ -706,8 +737,9 @@ TEST_F(Dense, IsColPermutable)
 TEST_F(Dense, IsInverseRowPermutable)
 {
     set_up_apply_data();
+
     auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
-    auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
+    auto d_inverse_r_permute = dx->inverse_row_permute(rpermute_idxs.get());
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
                         static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
@@ -717,8 +749,9 @@ TEST_F(Dense, IsInverseRowPermutable)
 TEST_F(Dense, IsInverseColPermutable)
 {
     set_up_apply_data();
+
     auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
-    auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
+    auto d_inverse_c_permute = dx->inverse_column_permute(cpermute_idxs.get());
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
                         static_cast<Mtx *>(d_inverse_c_permute.get()), 0);

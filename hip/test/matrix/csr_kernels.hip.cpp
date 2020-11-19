@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -124,9 +125,7 @@ protected:
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         rpermute_idxs = std::make_unique<Arr>(ref, tmp.begin(), tmp.end());
-        drpermute_idxs = std::make_unique<Arr>(hip, tmp.begin(), tmp.end());
         cpermute_idxs = std::make_unique<Arr>(ref, tmp2.begin(), tmp2.end());
-        dcpermute_idxs = std::make_unique<Arr>(hip, tmp2.begin(), tmp2.end());
     }
 
     void set_up_apply_complex_data(
@@ -139,36 +138,10 @@ protected:
         complex_dmtx->copy_from(complex_mtx.get());
     }
 
-    struct matrix_pair {
-        std::unique_ptr<Mtx> ref;
-        std::unique_ptr<Mtx> hip;
-    };
-
-    matrix_pair gen_unsorted_mtx()
+    void unsort_mtx()
     {
-        constexpr int min_nnz_per_row = 2;  // Must be at least 2
-        auto local_mtx_ref =
-            gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
-        for (size_t row = 0; row < mtx_size[0]; ++row) {
-            const auto row_ptrs = local_mtx_ref->get_const_row_ptrs();
-            const auto start_row = row_ptrs[row];
-            auto col_idx = local_mtx_ref->get_col_idxs() + start_row;
-            auto vals = local_mtx_ref->get_values() + start_row;
-            const auto nnz_in_this_row = row_ptrs[row + 1] - row_ptrs[row];
-            auto swap_idx_dist =
-                std::uniform_int_distribution<>(0, nnz_in_this_row - 1);
-            // shuffle `nnz_in_this_row / 2` times
-            for (size_t perm = 0; perm < nnz_in_this_row; perm += 2) {
-                const auto idx1 = swap_idx_dist(rand_engine);
-                const auto idx2 = swap_idx_dist(rand_engine);
-                std::swap(col_idx[idx1], col_idx[idx2]);
-                std::swap(vals[idx1], vals[idx2]);
-            }
-        }
-        auto local_mtx_hip = Mtx::create(hip);
-        local_mtx_hip->copy_from(local_mtx_ref.get());
-
-        return {std::move(local_mtx_ref), std::move(local_mtx_hip)};
+        gko::test::unsort_matrix(mtx.get(), rand_engine);
+        dmtx->copy_from(mtx.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -193,9 +166,7 @@ protected:
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
     std::unique_ptr<Arr> rpermute_idxs;
-    std::unique_ptr<Arr> drpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
-    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -211,6 +182,18 @@ TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
+    unsort_mtx();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -241,6 +224,18 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithHipsparse)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithHipsparseUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    unsort_mtx();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithHipsparse)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -255,6 +250,18 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithHipsparse)
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data(std::make_shared<Mtx::merge_path>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
+    unsort_mtx();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -285,6 +292,18 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    unsort_mtx();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
@@ -299,6 +318,18 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    unsort_mtx();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -706,7 +737,7 @@ TEST_F(Csr, IsRowPermutable)
     set_up_apply_data(std::make_shared<Mtx::classical>());
 
     auto r_permute = gko::as<Mtx>(mtx->row_permute(rpermute_idxs.get()));
-    auto dr_permute = gko::as<Mtx>(dmtx->row_permute(drpermute_idxs.get()));
+    auto dr_permute = gko::as<Mtx>(dmtx->row_permute(rpermute_idxs.get()));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(r_permute, dr_permute);
     GKO_ASSERT_MTX_NEAR(r_permute, dr_permute, 0);
@@ -718,7 +749,7 @@ TEST_F(Csr, IsColPermutable)
     set_up_apply_data(std::make_shared<Mtx::classical>());
 
     auto c_permute = gko::as<Mtx>(mtx->column_permute(cpermute_idxs.get()));
-    auto dc_permute = gko::as<Mtx>(dmtx->column_permute(dcpermute_idxs.get()));
+    auto dc_permute = gko::as<Mtx>(dmtx->column_permute(cpermute_idxs.get()));
 
     ASSERT_TRUE(dc_permute->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(c_permute, dc_permute);
@@ -733,7 +764,7 @@ TEST_F(Csr, IsInverseRowPermutable)
     auto inverse_r_permute =
         gko::as<Mtx>(mtx->inverse_row_permute(rpermute_idxs.get()));
     auto d_inverse_r_permute =
-        gko::as<Mtx>(dmtx->inverse_row_permute(drpermute_idxs.get()));
+        gko::as<Mtx>(dmtx->inverse_row_permute(rpermute_idxs.get()));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse_r_permute, d_inverse_r_permute);
     GKO_ASSERT_MTX_NEAR(inverse_r_permute, d_inverse_r_permute, 0);
@@ -747,7 +778,7 @@ TEST_F(Csr, IsInverseColPermutable)
     auto inverse_c_permute =
         gko::as<Mtx>(mtx->inverse_column_permute(cpermute_idxs.get()));
     auto d_inverse_c_permute =
-        gko::as<Mtx>(dmtx->inverse_column_permute(dcpermute_idxs.get()));
+        gko::as<Mtx>(dmtx->inverse_column_permute(cpermute_idxs.get()));
 
     ASSERT_TRUE(d_inverse_c_permute->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse_c_permute, d_inverse_c_permute);
@@ -770,12 +801,13 @@ TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 {
-    auto uns_mtx = gen_unsorted_mtx();
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    unsort_mtx();
     bool is_sorted_hip{};
     bool is_sorted_ref{};
 
-    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
-    is_sorted_hip = uns_mtx.hip->is_sorted_by_column_index();
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_hip = dmtx->is_sorted_by_column_index();
 
     ASSERT_EQ(is_sorted_ref, is_sorted_hip);
 }
@@ -795,13 +827,14 @@ TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 {
-    auto uns_mtx = gen_unsorted_mtx();
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    unsort_mtx();
 
-    uns_mtx.ref->sort_by_column_index();
-    uns_mtx.hip->sort_by_column_index();
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
 
     // Values must be unchanged, therefore, tolerance is `0`
-    GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.hip, 0);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
 
 

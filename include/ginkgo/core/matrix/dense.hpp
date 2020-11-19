@@ -232,6 +232,43 @@ public:
     std::unique_ptr<LinOp> row_permute(
         const Array<int64> *permutation_indices) const override;
 
+    /**
+     * Create a Dense matrix consisting of the given rows from this matrix.
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @return  Dense matrix on the same executor with the same number of
+     *          columns and `gather_indices->get_num_elems()` rows containing
+     *          the gathered rows from this matrix:
+     *          `output(i,j) = input(gather_indices(i), j)`
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int32> *gather_indices) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*) const
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int64> *gather_indices) const;
+
+    /**
+     * Copies the given rows from this matrix into `row_gathered`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param row_gathered  pointer to a Dense matrix that will store the
+     *                      gathered rows:
+     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
+    void row_gather(const Array<int32> *gather_indices,
+                    Dense *row_gathered) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*, Dense*) const
+     */
+    void row_gather(const Array<int64> *gather_indices,
+                    Dense *row_gathered) const;
+
     std::unique_ptr<LinOp> column_permute(
         const Array<int32> *permutation_indices) const override;
 
@@ -468,7 +505,7 @@ public:
             stride);
     }
 
-    /*
+    /**
      * Create a submatrix from the original matrix.
      *
      * @param rows     row span
@@ -480,7 +517,7 @@ public:
         return create_submatrix(rows, columns, this->get_stride());
     }
 
-    /*
+    /**
      * Create a real view of the (potentially) complex original matrix.
      * If the original matrix is real, nothing changes. If the original matrix
      * is complex, the result is created by viewing the complex matrix with as
@@ -505,7 +542,7 @@ public:
             stride);
     }
 
-    /*
+    /**
      * @copydoc create_real_view()
      */
     std::unique_ptr<const Dense<remove_complex<ValueType>>> create_real_view()
