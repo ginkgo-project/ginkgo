@@ -261,7 +261,7 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const HipExecutor> exec,
+void initialize(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType> *m,
                 matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
                 Array<stopping_status> *stop_status)
