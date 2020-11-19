@@ -155,6 +155,7 @@ find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
 find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
+# At the moment, for hiprand to work also rocrand is required.
 find_package(rocrand REQUIRED)
 find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
     PATHS "${HIP_PATH}/../include"

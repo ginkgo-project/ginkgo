@@ -59,10 +59,8 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        if (dynamic_cast<const matrix::Dense<to_complex<ValueType>> *>(
-                updater.residual_)) {
-            auto *dense_r =
-                as<matrix::Dense<to_complex<ValueType>>>(updater.residual_);
+        if (dynamic_cast<const ComplexVector *>(updater.residual_)) {
+            auto *dense_r = as<ComplexVector>(updater.residual_);
             dense_r->compute_norm2(u_dense_tau_.get());
         } else {
             auto *dense_r = as<Vector>(updater.residual_);

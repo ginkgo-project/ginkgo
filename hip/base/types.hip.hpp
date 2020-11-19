@@ -95,6 +95,7 @@ struct hiplibs_type_impl<thrust::complex<T>> {
     using type = typename hiplibs_type_impl<std::complex<T>>::type;
 };
 
+
 template <typename T>
 struct hipblas_type_impl {
     using type = T;
@@ -134,6 +135,7 @@ template <typename T>
 struct hipblas_type_impl<thrust::complex<T>> {
     using type = typename hipblas_type_impl<std::complex<T>>::type;
 };
+
 
 template <typename T>
 struct hip_type_impl {

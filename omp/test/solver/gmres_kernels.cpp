@@ -125,7 +125,7 @@ protected:
 
     void initialize_data()
     {
-        int m = 5;  // 97;
+        int m = 597;
         int n = 43;
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);

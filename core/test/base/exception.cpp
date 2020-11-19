@@ -122,6 +122,14 @@ TEST(ExceptionClasses, HipblasErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, HiprandErrorReturnsCorrectWhatMessage)
+{
+    gko::HipblasError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, HipsparseErrorReturnsCorrectWhatMessage)
 {
     gko::HipsparseError error("test_file.cpp", 123, "test_func", 1);
