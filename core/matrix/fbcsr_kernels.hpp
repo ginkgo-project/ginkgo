@@ -137,27 +137,21 @@ namespace kernels {
 
 #define GKO_DECLARE_FBCSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
     void row_permute(std::shared_ptr<const DefaultExecutor> exec,     \
-                     const Array<IndexType> *permutation_indices,     \
+                     const IndexType *permutation_indices,            \
                      const matrix::Fbcsr<ValueType, IndexType> *orig, \
                      matrix::Fbcsr<ValueType, IndexType> *row_permuted)
-
-#define GKO_DECLARE_FBCSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)    \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const Array<IndexType> *permutation_indices,     \
-                        const matrix::Fbcsr<ValueType, IndexType> *orig, \
-                        matrix::Fbcsr<ValueType, IndexType> *column_permuted)
 
 #define GKO_DECLARE_FBCSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType) \
     void inverse_row_permute(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const Array<IndexType> *permutation_indices,                       \
+        const IndexType *permutation_indices,                              \
         const matrix::Fbcsr<ValueType, IndexType> *orig,                   \
         matrix::Fbcsr<ValueType, IndexType> *row_permuted)
 
 #define GKO_DECLARE_FBCSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
     void inverse_column_permute(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const Array<IndexType> *permutation_indices,                          \
+        const IndexType > *permutation_indices,                               \
         const matrix::Fbcsr<ValueType, IndexType> *orig,                      \
         matrix::Fbcsr<ValueType, IndexType> *column_permuted)
 
@@ -219,8 +213,6 @@ namespace kernels {
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                          \
