@@ -226,7 +226,7 @@ public:
 
     template <typename T>
     void alltoallv(const T *in, T *out, size_type multiplier,
-                   const int *send_ofs, const int *recv_ofs)
+                   const int *send_ofs, const int *recv_ofs) const
     {
         auto type = mpi_type_impl<T>::type();
         multiplier *= mpi_type_impl<T>::multiplier;
@@ -245,6 +245,8 @@ public:
             MPI_Isend(in + recv_begin, recv_size * multiplier, type, dst_rank,
                       tag, this->get_comm(), &requests[dst_rank + mpi_size]);
         }
+        std::vector<MPI_Status> statuses(2 * mpi_size);
+        MPI_Waitall(2 * mpi_size, requests.data(), statuses.data());
     }
 
 protected:
@@ -279,6 +281,12 @@ protected:
     }
 
     void raw_copy_to(const HipExecutor *dst_exec, size_type, const void *,
+                     void *) const override
+    {
+        GKO_NOT_SUPPORTED(dst_exec);
+    }
+
+    void raw_copy_to(const DpcppExecutor *dst_exec, size_type, const void *,
                      void *) const override
     {
         GKO_NOT_SUPPORTED(dst_exec);

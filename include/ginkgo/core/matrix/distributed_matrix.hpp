@@ -16,6 +16,9 @@ class DistributedMatrix
     : public EnableLinOp<DistributedMatrix<ValueType, IndexType>>,
       public EnableCreateMethod<DistributedMatrix<ValueType, IndexType>>,
       public ReadableFromMatrixData<ValueType, IndexType> {
+    friend class EnableCreateMethod<DistributedMatrix>;
+    friend class EnablePolymorphicObject<DistributedMatrix, LinOp>;
+
 public:
     void read(const matrix_data<ValueType, IndexType> &data)
     {
@@ -34,16 +37,16 @@ public:
         auto map_to_local = [&](IndexType i) { return i - local_begin; };
         for (auto entry : data.nonzeros) {
             if (is_local(entry.row)) {
-                if (is_local(entry.col)) {
+                if (is_local(entry.column)) {
                     // map row + col directly
-                    diag_data.nonzeros.emplace(map_to_local(entry.row),
-                                               map_to_local(entry.column),
-                                               entry.value);
+                    diag_data.nonzeros.emplace_back(map_to_local(entry.row),
+                                                    map_to_local(entry.column),
+                                                    entry.value);
                 } else {
                     // map row directly, defer mapping col
-                    offdiag_col_set.emplace(entry.col);
-                    offdiag_data.nonzeros.emplace(map_to_local(entry.row),
-                                                  entry.column, entry.value);
+                    offdiag_col_set.emplace(entry.column);
+                    offdiag_data.nonzeros.emplace_back(
+                        map_to_local(entry.row), entry.column, entry.value);
                 }
             }
         }
@@ -77,18 +80,22 @@ protected:
     using Vec = Dense<ValueType>;
     using Mtx = Csr<ValueType, IndexType>;
 
-    DistributedMatrix(std::shared_ptr<MpiExecutor> exec)
-        : EnableLinOp<DistributedMatrix<ValueType, IndexType>>{exec, dim<2>{}},
-          row_part_ranges_{exec->get_size() + 1},
-          send_offsets_{exec->get_size() + 1},
-          recv_offsets_{exec->get_size() + 1},
+    DistributedMatrix(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<DistributedMatrix<ValueType, IndexType>>{as<MpiExecutor>(
+                                                                   exec),
+                                                               dim<2>{}},
           gather_idxs_{exec},
-          one_scalar_{initialize<Vec>(exec, {one<ValueType>()})},
+          one_scalar_{initialize<Vec>({one<ValueType>()}, exec)},
           send_buffer_{exec},
           recv_buffer_{exec},
           diag_mtx_{Mtx::create(exec)},
           offdiag_mtx_{Mtx::create(exec)}
-    {}
+    {
+        auto mpi_size = get_mpi_exec()->get_size();
+        row_part_ranges_.resize(mpi_size + 1);
+        send_offsets_.resize(mpi_size + 1);
+        recv_offsets_.resize(mpi_size + 1);
+    }
 
     void build_communication(const std::vector<IndexType> &cols)
     {
@@ -118,7 +125,7 @@ protected:
         gather_idxs_ = std::move(host_gather_idxs);
     }
 
-    std::unique_ptr<Vec> communicate(Vec *local_b)
+    std::unique_ptr<Vec> communicate(const Vec *local_b) const
     {
         auto mpi_exec = get_mpi_exec();
         auto local_exec = mpi_exec->get_local();
@@ -134,30 +141,31 @@ protected:
                         Array<ValueType>::view(local_exec, send_size,
                                                send_buffer_.get_data()),
                         num_cols);
-        local_b->row_permute(&gather_idxs_, send_view);
+        local_b->row_gather(&gather_idxs_, send_view.get());
         auto recv_view =
             Vec::create(local_exec, send_dim,
                         Array<ValueType>::view(local_exec, send_size,
                                                send_buffer_.get_data()),
                         num_cols);
-        mpi_exec->alltoallv(send_buffer_->get_const_data(),
-                            recv_buffer_->get_data(), num_cols,
+        mpi_exec->alltoallv(send_buffer_.get_const_data(),
+                            recv_buffer_.get_data(), num_cols,
                             send_offsets_.data(), recv_offsets_.data());
+        return recv_view;
     }
 
-    void apply_impl(LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp *b, LinOp *x) const override
     {
         auto local_b = as<Vec>(b)->create_local_view();
         auto local_x = as<Vec>(x)->create_local_view();
-        auto num_cols = b->get_size()[1];
         // assert matching local dimensions/partition size
         diag_mtx_->apply(local_b.get(), local_x.get());
         // gather data into send_buffer
-        offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                            one_scalar_.get(), local_x);
+        auto recv_view = this->communicate(local_b.get());
+        offdiag_mtx_->apply(one_scalar_.get(), recv_view.get(),
+                            one_scalar_.get(), local_x.get());
     }
 
-    void apply_impl(LinOp *alpha, LinOp *b, LinOp *beta,
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
         auto mpi_exec = get_mpi_exec();
@@ -168,9 +176,10 @@ protected:
         // assert matching local dimensions/partition size
         diag_mtx_->apply(local_alpha.get(), local_b.get(), local_beta.get(),
                          local_x.get());
-        // communicate recv_buffer_
-        offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                            local_beta.get(), local_x);
+        // gather data into send_buffer
+        auto recv_view = this->communicate(local_b.get());
+        offdiag_mtx_->apply(one_scalar_.get(), recv_view.get(),
+                            one_scalar_.get(), local_x.get());
     }
 
 private:
@@ -178,11 +187,11 @@ private:
     std::vector<int> send_offsets_;
     std::vector<int> recv_offsets_;
     Array<IndexType> gather_idxs_;
-    std::unique_ptr<Vec> one_scalar_;
+    std::shared_ptr<Vec> one_scalar_;
     mutable Array<ValueType> send_buffer_;
     mutable Array<ValueType> recv_buffer_;
-    std::unique_ptr<LinOp> diag_mtx_;
-    std::unique_ptr<LinOp> offdiag_mtx_;
+    std::shared_ptr<LinOp> diag_mtx_;
+    std::shared_ptr<LinOp> offdiag_mtx_;
 };
 
 }  // namespace matrix
