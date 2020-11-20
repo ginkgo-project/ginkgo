@@ -1,0 +1,60 @@
+on: 
+  issue_comment:
+    types: [created]
+name: OnCommentPR
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v2
+      with:
+        ref: develop
+        fetch-depth: 0
+    - name: Add appropriate labels
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: .github/label.sh
+  check_format:
+    name: check-format
+    runs-on: ubuntu-18.04
+    if: github.event.issue.pull_request != '' && github.event.comment.body == 'check-format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v2
+      with:
+        ref: develop
+        fetch-depth: 0
+    - name: Check the code formatting
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: .github/check-format.sh
+  format:
+    name: format
+    runs-on: ubuntu-18.04
+    if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v2
+      with:
+        ref: develop
+        fetch-depth: 0
+    - name: Format the code
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: .github/format.sh
+  rebase:
+    name: rebase
+    if: github.event.issue.pull_request != '' && github.event.comment.body == 'rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v2
+      with:
+        ref: develop
+        fetch-depth: 0
+    - name: Automatic Rebase
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: .github/rebase.sh
