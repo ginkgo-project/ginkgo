@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mpi_executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -1268,8 +1269,7 @@ void Dense<ValueType>::get_imag(
 template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_local_view()
 {
-    auto local_exec =
-        as<MpiExecutor>(this->get_executor())->get_local_executor();
+    auto local_exec = as<MpiExecutor>(this->get_executor())->get_local();
     return Dense::create(
         local_exec, this->get_size(),
         Array<ValueType>::view(local_exec, this->values_.get_num_elems(),
@@ -1282,9 +1282,8 @@ template <typename ValueType>
 std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_local_view()
     const
 {
-    auto local_exec =
-        as<MpiExecutor>(this->get_executor())->get_local_executor();
-    return Dense::create(local_exec, this->get_local_size(),
+    auto local_exec = as<MpiExecutor>(this->get_executor())->get_local();
+    return Dense::create(local_exec, this->get_size(),
                          Array<ValueType>::view(
                              local_exec, this->values_.get_num_elems(),
                              const_cast<ValueType *>(this->get_const_values())),
