@@ -707,8 +707,8 @@ void transpose_and_transform(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::Fbcsr<ValueType, IndexType> *orig,
-               matrix::Fbcsr<ValueType, IndexType> *trans)
+               const matrix::Fbcsr<ValueType, IndexType> *const orig,
+               matrix::Fbcsr<ValueType, IndexType> *const trans)
 {
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return x; });
@@ -720,8 +720,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *orig,
-                    matrix::Fbcsr<ValueType, IndexType> *trans)
+                    const matrix::Fbcsr<ValueType, IndexType> *const orig,
+                    matrix::Fbcsr<ValueType, IndexType> *const trans)
 {
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return conj(x); });
@@ -734,7 +734,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *source, size_type *const result)
+    const matrix::Fbcsr<ValueType, IndexType> *const source,
+    size_type *const result)
 {
     const auto num_rows = source->get_size()[0];
     const auto row_ptrs = source->get_const_row_ptrs();
@@ -814,7 +815,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_permute_impl(std::shared_ptr<const ReferenceExecutor> exec,
-                      const Array<IndexType> *permutation_indices,
+                      const IndexType *const permutation_indices,
                       const matrix::Fbcsr<ValueType, IndexType> *orig,
                       matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -857,7 +858,7 @@ void row_permute_impl(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
+                 const IndexType *const permutation_indices,
                  const matrix::Fbcsr<ValueType, IndexType> *orig,
                  matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -872,7 +873,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
+                         const IndexType *const permutation_indices,
                          const matrix::Fbcsr<ValueType, IndexType> *orig,
                          matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -893,10 +894,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void column_permute_impl(const Array<IndexType> *permutation_indices,
-                         const matrix::Fbcsr<ValueType, IndexType> *orig,
-                         matrix::Fbcsr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
+void column_permute_impl(const IndexType *const permutation_indices,
+                         const matrix::Fbcsr<ValueType, IndexType> *const orig,
+                         matrix::Fbcsr<ValueType, IndexType>
+                             *const column_permuted) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    auto perm = permutation_indices->get_const_data();
@@ -924,7 +925,7 @@ void column_permute_impl(const Array<IndexType> *permutation_indices,
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
+                    const IndexType *permutation_indices,
                     const matrix::Fbcsr<ValueType, IndexType> *orig,
                     matrix::Fbcsr<ValueType, IndexType> *column_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -939,16 +940,14 @@ void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
 //    column_permute_impl(&inv_perm, orig, column_permuted);
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_COLUMN_PERMUTE_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const Array<IndexType> *permutation_indices,
-    const matrix::Fbcsr<ValueType, IndexType> *orig,
-    matrix::Fbcsr<ValueType, IndexType> *column_permuted) GKO_NOT_IMPLEMENTED;
+    const IndexType *const permutation_indices,
+    const matrix::Fbcsr<ValueType, IndexType> *const orig,
+    matrix::Fbcsr<ValueType, IndexType> *const column_permuted)
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:fbcsr): change the code imported from matrix/csr if needed
 //    column_permute_impl(permutation_indices, orig, column_permuted);
