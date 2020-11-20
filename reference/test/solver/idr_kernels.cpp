@@ -256,7 +256,6 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
 
     solver->apply(b.get(), x.get());
 
-
     auto one_op = gko::initialize<gko::matrix::Dense<value_type>>(
         {gko::one<value_type>()}, this->exec);
     auto neg_one_op = gko::initialize<gko::matrix::Dense<value_type>>(
