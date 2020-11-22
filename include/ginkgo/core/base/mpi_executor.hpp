@@ -123,7 +123,7 @@ struct mpi_type_impl<double> {
 
 template <typename T>
 struct mpi_type_impl<std::complex<T>> {
-    static MPI_Datatype type() { return mpi_type_impl<T>::value; }
+    static MPI_Datatype type() { return mpi_type_impl<T>::type(); }
     constexpr static int multiplier = 2;
 };
 

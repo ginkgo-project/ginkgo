@@ -154,6 +154,20 @@ __global__ __launch_bounds__(block_size) void finalize_sqrt_reduce_computation(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void compute_sqrt(
+    size_type num_rows, size_type num_cols, size_type stride, ValueType *values)
+{
+    auto idx = thread::get_thread_id_flat();
+    auto row = idx / num_cols;
+    auto col = idx % num_cols;
+    if (row < num_rows) {
+        auto i = row * stride + col;
+        values[i] = sqrt(values[i]);
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     size_type num_rows, size_type num_cols, size_type stride,
