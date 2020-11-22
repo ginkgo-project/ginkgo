@@ -68,6 +68,7 @@ GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
+GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
@@ -295,9 +296,23 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    exec->run(dense::make_compute_dot(
-        this, make_temporary_conversion<ValueType>(b).get(),
-        make_temporary_conversion<ValueType>(result).get()));
+    auto dense_b = make_temporary_conversion<ValueType>(b);
+    auto dense_res = make_temporary_conversion<ValueType>(result);
+    exec->run(dense::make_compute_dot(this, dense_b.get(), dense_res.get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const LinOp *b,
+                                             LinOp *result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_b = make_temporary_conversion<ValueType>(b);
+    auto dense_res = make_temporary_conversion<ValueType>(result);
+    exec->run(
+        dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get()));
 }
 
 
@@ -306,9 +321,9 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    exec->run(dense::make_compute_norm2(
-        this,
-        make_temporary_conversion<remove_complex<ValueType>>(result).get()));
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    exec->run(dense::make_compute_norm2(this, dense_res.get()));
 }
 
 

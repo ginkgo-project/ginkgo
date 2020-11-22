@@ -434,6 +434,36 @@ TYPED_TEST(Dense, ComputesDotMixed)
 }
 
 
+TYPED_TEST(Dense, ComputesConjDot)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
+
+    this->mtx1->compute_conj_dot(this->mtx3.get(), result.get());
+
+    EXPECT_EQ(result->at(0, 0), T{1.75});
+    EXPECT_EQ(result->at(0, 1), T{7.75});
+    ASSERT_EQ(result->at(0, 2), T{17.75});
+}
+
+
+TYPED_TEST(Dense, ComputesConjDotMixed)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using MixedT = typename MixedMtx::value_type;
+    auto mmtx3 = MixedMtx::create(this->exec);
+    this->mtx3->convert_to(mmtx3.get());
+    auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
+
+    this->mtx1->compute_conj_dot(this->mtx3.get(), result.get());
+
+    EXPECT_EQ(result->at(0, 0), MixedT{1.75});
+    EXPECT_EQ(result->at(0, 1), MixedT{7.75});
+    ASSERT_EQ(result->at(0, 2), MixedT{17.75});
+}
+
+
 TYPED_TEST(Dense, ComputesNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -469,7 +499,7 @@ TYPED_TEST(Dense, ComputesNorm2Mixed)
 }
 
 
-TYPED_TEST(Dense, ComputDotFailsOnWrongInputSize)
+TYPED_TEST(Dense, ComputeDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
@@ -479,12 +509,32 @@ TYPED_TEST(Dense, ComputDotFailsOnWrongInputSize)
 }
 
 
-TYPED_TEST(Dense, ComputDotFailsOnWrongResultSize)
+TYPED_TEST(Dense, ComputeDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
 
     ASSERT_THROW(this->mtx1->compute_dot(this->mtx3.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, ComputeConjDotFailsOnWrongInputSize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 3});
+
+    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx2.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, ComputeConjDotFailsOnWrongResultSize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
+
+    ASSERT_THROW(this->mtx1->compute_conj_dot(this->mtx3.get(), result.get()),
                  gko::DimensionMismatch);
 }
 
