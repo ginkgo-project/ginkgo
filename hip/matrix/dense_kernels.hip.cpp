@@ -243,7 +243,8 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(y->get_const_values() + col), y->get_stride(),
                 as_hip_type(work.get_data()));
             hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::finalize_dot_computation<block_size>),
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sum_reduce_computation<block_size>),
                 dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
                 as_hip_type(work.get_const_data()),
                 as_hip_type(result->get_values() + col));
@@ -252,6 +253,42 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Dense<ValueType> *x,
+                      const matrix::Dense<ValueType> *y,
+                      matrix::Dense<ValueType> *result)
+{
+    // TODO: these are tuning parameters obtained experimentally, once
+    // we decide how to handle this uniformly, they should be modified
+    // appropriately
+    constexpr auto work_per_thread = 32;
+    constexpr auto block_size = 1024;
+
+    constexpr auto work_per_block = work_per_thread * block_size;
+    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    Array<ValueType> work(exec, grid_dim.x);
+    // TODO: write a kernel which does this more efficiently
+    for (size_type col = 0; col < x->get_size()[1]; ++col) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::compute_partial_conj_dot<block_size>),
+            dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
+            as_hip_type(x->get_const_values() + col), x->get_stride(),
+            as_hip_type(y->get_const_values() + col), y->get_stride(),
+            as_hip_type(work.get_data()));
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::finalize_sum_reduce_computation<block_size>),
+            dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
+            as_hip_type(work.get_const_data()),
+            as_hip_type(result->get_values() + col));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 
 template <typename ValueType>
@@ -286,7 +323,8 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(x->get_const_values() + col), x->get_stride(),
                 as_hip_type(work.get_data()));
             hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::finalize_norm2_computation<block_size>),
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sqrt_reduce_computation<block_size>),
                 dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
                 as_hip_type(work.get_const_data()),
                 as_hip_type(result->get_values() + col));
