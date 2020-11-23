@@ -75,14 +75,15 @@ class FbcsrBuilder;
 
 
 /**
- * FBCSR is a matrix format which stores only the nonzero coefficients by
- * compressing each row of the matrix (compressed sparse row format).
+ * FBCSR is a matrix format meant for matrices having a natural block structure
+ * made up of small, dense, disjoint blocks. It is similar to CSR \sa Csr.
  * However, unlike Csr, each non-zero location stores a small dense block of
  * entries having a constant size. This reduces the number of integers that need
  * to be stored in order to refer to a given non-zero entry, and enables
  * efficient implementation of certain block methods.
  *
- * The entries within each dense block are stored row-major.
+ * The block size is expected to be known in advance and passed to the
+ * constructor.
  *
  * @note The total number of rows and the number of columns are expected to be
  *   divisible by the block size.
@@ -112,7 +113,8 @@ class FbcsrBuilder;
  * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
  * ```
  * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
- * by column index, otherwise the algorithms will produce incorrect results.
+ * by block-column index, otherwise the algorithms will produce incorrect
+ * results.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -128,9 +130,6 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ConvertibleTo<Coo<ValueType, IndexType>>,
-              // public ConvertibleTo<Ell<ValueType, IndexType>>,
-              // public ConvertibleTo<Hybrid<ValueType, IndexType>>,
-              // public ConvertibleTo<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
               public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, IndexType>,
@@ -143,9 +142,6 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
-    // friend class Ell<ValueType, IndexType>;
-    // friend class Hybrid<ValueType, IndexType>;
-    // friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class FbcsrBuilder<ValueType, IndexType>;
     friend class Fbcsr<to_complex<ValueType>, IndexType>;

@@ -75,13 +75,13 @@ generate_acopy_impl(const FbcsrType *const mat)
     const index_type *const rowptrs = mat->get_row_ptrs();
     index_type *const acolidxs = amat->get_col_idxs();
     index_type *const arowptrs = amat->get_row_ptrs();
-    // blockutils
+
     for (index_type i = 0;
          i < mat->get_num_stored_elements() /
                  (mat->get_block_size() * mat->get_block_size());
          i++)
         acolidxs[i] = colidxs[i];
-    // blockutils
+
     for (index_type i = 0; i < mat->get_size()[0] / mat->get_block_size() + 1;
          i++)
         arowptrs[i] = rowptrs[i];
@@ -132,8 +132,7 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
                                 mtx->get_size()[0], mtx->get_size()[1],
                                 "block size does not divide the size!");
 
-    // blockutils
-    for (index_type ibrow = 0; ibrow < mtx->get_size()[0] / bs; ibrow++) {
+    for (index_type ibrow = 0; ibrow < mtx->get_num_block_rows(); ibrow++) {
         const index_type *const browptr = mtx->get_row_ptrs();
         for (index_type inz = browptr[ibrow]; inz < browptr[ibrow + 1]; inz++) {
             const index_type bcolind = mtx->get_col_idxs()[inz];
@@ -778,6 +777,7 @@ FbcsrSampleSquare<ValueType, IndexType>::generate_transpose_fbcsr() const
 
 #define GKO_DECLARE_FBCSR_TEST_SAMPLE_SQUARE(ValueType, IndexType) \
     class FbcsrSampleSquare<ValueType, IndexType>
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TEST_SAMPLE_SQUARE);
 

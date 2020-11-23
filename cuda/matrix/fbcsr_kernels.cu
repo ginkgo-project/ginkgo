@@ -1203,7 +1203,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const CudaExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
+                 const IndexType *permutation_indices,
                  const matrix::Fbcsr<ValueType, IndexType> *orig,
                  matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -1213,19 +1213,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const CudaExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Fbcsr<ValueType, IndexType> *orig,
-                    matrix::Fbcsr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
+                         const IndexType *permutation_indices,
                          const matrix::Fbcsr<ValueType, IndexType> *orig,
                          matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -1237,7 +1226,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(
     std::shared_ptr<const CudaExecutor> exec,
-    const Array<IndexType> *permutation_indices,
+    const IndexType *permutation_indices,
     const matrix::Fbcsr<ValueType, IndexType> *orig,
     matrix::Fbcsr<ValueType, IndexType> *column_permuted) GKO_NOT_IMPLEMENTED;
 

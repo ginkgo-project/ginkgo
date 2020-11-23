@@ -22,7 +22,6 @@ target_sources(ginkgo
     log/stream.cpp
     matrix/coo.cpp
     matrix/csr.cpp
-    matrix/fbcsr.cpp
     matrix/dense.cpp
     matrix/diagonal.cpp
     matrix/ell.cpp
