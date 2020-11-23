@@ -684,7 +684,7 @@ void row_permute_impl(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const OmpExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
+                 const IndexType *permutation_indices,
                  const matrix::Fbcsr<ValueType, IndexType> *orig,
                  matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -699,7 +699,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
+                         const IndexType *permutation_indices,
                          const matrix::Fbcsr<ValueType, IndexType> *orig,
                          matrix::Fbcsr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
@@ -752,31 +752,9 @@ void column_permute_impl(const Array<IndexType> *permutation_indices,
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const OmpExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Fbcsr<ValueType, IndexType> *orig,
-                    matrix::Fbcsr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto perm = permutation_indices->get_const_data();
-//    Array<IndexType> inv_perm(*permutation_indices);
-//    auto iperm = inv_perm.get_data();
-//#pragma omp parallel for
-//    for (size_type ind = 0; ind < inv_perm.get_num_elems(); ++ind) {
-//        iperm[perm[ind]] = ind;
-//    }
-//    column_permute_impl(&inv_perm, orig, column_permuted);
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void inverse_column_permute(
     std::shared_ptr<const OmpExecutor> exec,
-    const Array<IndexType> *permutation_indices,
+    const IndexType *permutation_indices,
     const matrix::Fbcsr<ValueType, IndexType> *orig,
     matrix::Fbcsr<ValueType, IndexType> *column_permuted) GKO_NOT_IMPLEMENTED;
 //{
