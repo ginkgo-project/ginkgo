@@ -151,7 +151,7 @@ namespace kernels {
 #define GKO_DECLARE_FBCSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
     void inverse_column_permute(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const IndexType > *permutation_indices,                               \
+        const IndexType *permutation_indices,                                 \
         const matrix::Fbcsr<ValueType, IndexType> *orig,                      \
         matrix::Fbcsr<ValueType, IndexType> *column_permuted)
 
