@@ -69,10 +69,7 @@ GKO_REGISTER_OPERATION(spgeam, fbcsr::spgeam);
 GKO_REGISTER_OPERATION(convert_to_coo, fbcsr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
-// GKO_REGISTER_OPERATION(convert_to_sellp, fbcsr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, fbcsr::calculate_total_cols);
-// GKO_REGISTER_OPERATION(convert_to_ell, fbcsr::convert_to_ell);
-// GKO_REGISTER_OPERATION(convert_to_hybrid, fbcsr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, fbcsr::conj_transpose);
 GKO_REGISTER_OPERATION(row_permute, fbcsr::row_permute);
@@ -275,73 +272,6 @@ void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 }
 
 
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::convert_to(
-//     Hybrid<ValueType, IndexType> *result) const
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    Array<size_type> row_nnz(exec, this->get_size()[0]);
-//
-//    size_type ell_lim = zero<size_type>();
-//    size_type coo_lim = zero<size_type>();
-//    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim,
-//    &coo_lim); const auto max_nnz_per_row =
-//        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
-//    const auto stride = std::max(result->get_ell_stride(),
-//    this->get_size()[0]); const auto coo_nnz =
-//        std::max(result->get_coo_num_stored_elements(), coo_lim);
-//    auto tmp = Hybrid<ValueType, IndexType>::create(
-//        exec, this->get_size(), max_nnz_per_row, stride, coo_nnz,
-//        result->get_strategy());
-//    exec->run(fbcsr::make_convert_to_hybrid(this, tmp.get()));
-//    tmp->move_to(result);
-//}
-
-
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::move_to(Hybrid<ValueType, IndexType>
-// *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
-
-
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::convert_to(
-//     Sellp<ValueType, IndexType> *result) const
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    const auto stride_factor = (result->get_stride_factor() == 0)
-//                                   ? default_stride_factor
-//                                   : result->get_stride_factor();
-//    const auto slice_size = (result->get_slice_size() == 0)
-//                                ? default_slice_size
-//                                : result->get_slice_size();
-//    size_type total_cols = 0;
-//    exec->run(fbcsr::make_calculate_total_cols(this, &total_cols,
-//    stride_factor,
-//                                             slice_size));
-//    auto tmp = Sellp<ValueType, IndexType>::create(
-//        exec, this->get_size(), slice_size, stride_factor, total_cols);
-//    exec->run(fbcsr::make_convert_to_sellp(this, tmp.get()));
-//    tmp->move_to(result);
-//}
-
-
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType>
-// *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
-
-
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *result) const
@@ -369,31 +299,6 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::convert_to(
-//     Ell<ValueType, IndexType> *result) const
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    size_type max_nnz_per_row;
-//    exec->run(fbcsr::make_calculate_max_nnz_per_row(this, &max_nnz_per_row));
-//    auto tmp = Ell<ValueType, IndexType>::create(exec, this->get_size(),
-//                                                 max_nnz_per_row);
-//    exec->run(fbcsr::make_convert_to_ell(this, tmp.get()));
-//    tmp->move_to(result);
-//}
-
-
-// template <typename ValueType, typename IndexType>
-// void Fbcsr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType> *result)
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
-
-
 /* Within blocks, the storage order is row-major.
  * Currently, this implementation is sequential and has complexity O(n log n)
  * assuming nnz = O(n).
@@ -410,7 +315,6 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     const index_type nnz = static_cast<index_type>(data.nonzeros.size());
 
     const int bs = this->bs_;
-    // GKO_ASSERT_EQ(nnz%(this->bs_*this->bs_), 0);
 
     using Blk_t = blockutils::DenseBlock<value_type>;
 
@@ -429,7 +333,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
         }
     };
 
-    auto create_block_set = [nnz, bs](const mat_data &data) {
+    auto create_block_map = [nnz, bs](const mat_data &data) {
         std::map<FbEntry, Blk_t, FbLess> blocks;
         for (index_type inz = 0; inz < nnz; inz++) {
             const index_type row = data.nonzeros[inz].row;
@@ -441,9 +345,6 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
             const index_type blockrow = row / bs;
             const index_type blockcol = col / bs;
 
-            // const typename std::map<FbEntry,Blk_t,FbLess>::iterator it
-            //     = blocks.find(FbEntry{row/bs, col/bs,
-            //     DenseBlock<value_type>()});
             Blk_t &nnzblk = blocks[{blockrow, blockcol}];
             if (nnzblk.size() == 0) {
                 nnzblk.resize(bs, bs);
@@ -452,14 +353,14 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
             } else {
                 if (nnzblk(localrow, localcol) != gko::zero<value_type>())
                     throw Error(__FILE__, __LINE__,
-                                "Error in reading fixed block CSR matrix!");
+                                "Error: re-visited the same non-zero!");
                 nnzblk(localrow, localcol) = val;
             }
         }
         return blocks;
     };
 
-    const std::map<FbEntry, Blk_t, FbLess> blocks = create_block_set(data);
+    const std::map<FbEntry, Blk_t, FbLess> blocks = create_block_map(data);
 
     auto tmp = Fbcsr::create(this->get_executor()->get_master(), data.size,
                              blocks.size() * bs * bs, bs, this->get_strategy());
@@ -477,9 +378,8 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
             throw gko::OutOfBoundsError(__FILE__, __LINE__, cur_brow,
                                         num_brows);
 
-        // set block-column index and block values
         tmp->col_idxs_.get_data()[cur_bnz] = it->first.block_column;
-        // vals
+
         for (int ibr = 0; ibr < bs; ibr++)
             for (int jbr = 0; jbr < bs; jbr++)
                 values(cur_bnz, ibr, jbr) = it->second(ibr, jbr);
@@ -497,6 +397,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
 
     tmp->row_ptrs_.get_data()[++cur_brow] =
         static_cast<index_type>(blocks.size());
+
     assert(cur_brow == tmp->get_size()[0] / bs);
 
     tmp->make_srow();

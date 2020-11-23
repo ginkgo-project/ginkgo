@@ -132,7 +132,6 @@ public:
     void zero()
     {
         for (int i = 0; i < nrows_ * ncols_; i++)
-            // vals_[i] = gko::zero<value_type>();
             vals_[i] = static_cast<value_type>(0);
     }
 
