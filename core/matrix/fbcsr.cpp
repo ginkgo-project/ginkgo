@@ -76,7 +76,6 @@ GKO_REGISTER_OPERATION(calculate_total_cols, fbcsr::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, fbcsr::conj_transpose);
 GKO_REGISTER_OPERATION(row_permute, fbcsr::row_permute);
-GKO_REGISTER_OPERATION(column_permute, fbcsr::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, fbcsr::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, fbcsr::inverse_column_permute);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
