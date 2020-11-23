@@ -688,14 +688,14 @@ namespace detail {
 #endif
 
 template <typename T>
-std::initializer_list<std::initializer_list<T>> l(
-    std::initializer_list<std::initializer_list<T>> list)
+const std::initializer_list<std::initializer_list<T>> &l(
+    const std::initializer_list<std::initializer_list<T>> &list)
 {
     return list;
 }
 
 template <typename T>
-std::initializer_list<T> l(std::initializer_list<T> list)
+const std::initializer_list<T> &l(const std::initializer_list<T> &list)
 {
     return list;
 }
@@ -728,7 +728,20 @@ T *plain_ptr(const std::unique_ptr<T> &ptr)
 #endif
 
 template <typename T>
-T plain_ptr(T ptr)
+const std::initializer_list<T> &plain_ptr(const std::initializer_list<T> &ptr)
+{
+    return ptr;
+}
+
+template <typename T>
+const std::initializer_list<std::initializer_list<T>> &plain_ptr(
+    const std::initializer_list<std::initializer_list<T>> &ptr)
+{
+    return ptr;
+}
+
+template <typename T>
+T *plain_ptr(T *ptr)
 {
     return ptr;
 }

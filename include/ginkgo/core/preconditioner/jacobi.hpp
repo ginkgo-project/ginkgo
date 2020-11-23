@@ -107,8 +107,8 @@ struct block_interleaved_storage_scheme {
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
      */
-    GKO_ATTRIBUTES size_type compute_storage_space(size_type num_blocks) const
-        noexcept
+    GKO_ATTRIBUTES size_type
+    compute_storage_space(size_type num_blocks) const noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
@@ -146,8 +146,8 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
-        noexcept
+    GKO_ATTRIBUTES IndexType
+    get_global_block_offset(IndexType block_id) const noexcept
     {
         return this->get_group_offset(block_id) +
                this->get_block_offset(block_id);
@@ -312,6 +312,25 @@ public:
          *       for NVIDIA
          */
         uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_stride, 0u);
+
+        /**
+         * @brief `true` means it is known that the matrix given to this
+         *        factory will be sorted first by row, then by column index,
+         *        `false` means it is unknown or not sorted, so an additional
+         *        sorting step will be performed during the preconditioner
+         *        generation (it will not change the matrix given).
+         *        The matrix must be sorted for this preconditioner to work.
+         *
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this preconditioner might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -509,7 +528,7 @@ protected:
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
-        this->generate(lend(system_matrix));
+        this->generate(lend(system_matrix), parameters_.skip_sorting);
     }
 
     /**
@@ -559,8 +578,11 @@ protected:
      *
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner
+     * @param skip_sorting  determines if the sorting of system_matrix can be
+     *                      skipped (therefore, marking that it is already
+     *                      sorted)
      */
-    void generate(const LinOp *system_matrix);
+    void generate(const LinOp *system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the

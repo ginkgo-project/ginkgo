@@ -1,3 +1,7 @@
+if (GINKGO_HIP_PLATFORM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
+    message(FATAL_ERROR "Ginkgo HIP backend requires CUDA >= 9.2.")
+endif()
+
 if(NOT DEFINED ROCM_PATH)
     if(DEFINED ENV{ROCM_PATH})
         set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "Path to which ROCM has been installed")
@@ -195,11 +199,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     endif()
 
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-    # merged at commit ed12b3df5d26
-    if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
-        set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
-    endif()
+    set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
 
     if (GINKGO_HIP_PLATFROM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION
             MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
@@ -267,7 +267,7 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     endif()
     target_link_libraries(ginkgo_hip PRIVATE hip::device)
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-    find_package(CUDA 9.0 REQUIRED)
+    find_package(CUDA 9.2 REQUIRED)
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
     set(HIP_CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
 endif()

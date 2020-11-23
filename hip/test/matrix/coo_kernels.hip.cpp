@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/coo_kernels.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -104,6 +105,12 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    void unsort_mtx()
+    {
+        gko::test::unsort_matrix(mtx.get(), rand_engine);
+        dmtx->copy_from(mtx.get());
+    }
+
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
@@ -127,6 +134,18 @@ protected:
 TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, SimpleApplyIsEquivalentToRefUnsorted)
+{
+    set_up_apply_data();
+    unsort_mtx();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
