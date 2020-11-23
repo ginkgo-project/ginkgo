@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
 
 
 using etype = double;
@@ -75,21 +76,17 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
             exec->synchronize();
             matrix_to->clear();
         }
-        std::chrono::nanoseconds time(0);
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
         // timed run
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             exec->synchronize();
-            auto tic = std::chrono::steady_clock::now();
+            timer->tic();
             matrix_to->copy_from(matrix_from);
-            exec->synchronize();
-            auto toc = std::chrono::steady_clock::now();
-            time +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+            timer->toc();
             matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          static_cast<double>(time.count()) / FLAGS_repetitions,
-                          allocator);
+                          timer->get_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,

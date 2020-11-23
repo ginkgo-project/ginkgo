@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/overhead_linop.hpp"
 #include "benchmark/utils/preconditioners.hpp"
+#include "benchmark/utils/timer.hpp"
 
 
 // some Ginkgo shortcuts
@@ -355,33 +356,22 @@ void solve_system(const std::string &solver_name,
         }
 
         // timed run
-        std::chrono::nanoseconds apply_time(0);
-        std::chrono::nanoseconds generate_time(0);
+        auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
+        auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
 
             exec->synchronize();
-            auto g_tic = std::chrono::steady_clock::now();
-
+            generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = solver_factory.at(solver_name)(exec, give(precond))
                               ->generate(system_matrix);
+            generate_timer->toc();
 
             exec->synchronize();
-            auto g_tac = std::chrono::steady_clock::now();
-            generate_time +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
-                                                                     g_tic);
-
-            exec->synchronize();
-            auto a_tic = std::chrono::steady_clock::now();
-
+            apply_timer->tic();
             solver->apply(lend(b), lend(x_clone));
-
-            exec->synchronize();
-            auto a_tac = std::chrono::steady_clock::now();
-            apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                a_tac - a_tic);
+            apply_timer->toc();
 
             if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
                 !FLAGS_overhead) {
@@ -391,14 +381,10 @@ void solve_system(const std::string &solver_name,
                                   allocator);
             }
         }
-        add_or_set_member(
-            solver_json["generate"], "time",
-            static_cast<double>(generate_time.count()) / FLAGS_repetitions,
-            allocator);
-        add_or_set_member(
-            solver_json["apply"], "time",
-            static_cast<double>(apply_time.count()) / FLAGS_repetitions,
-            allocator);
+        add_or_set_member(solver_json["generate"], "time",
+                          generate_timer->get_average_time(), allocator);
+        add_or_set_member(solver_json["apply"], "time",
+                          apply_timer->get_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);

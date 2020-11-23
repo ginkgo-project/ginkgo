@@ -71,6 +71,11 @@ else
     SOLVERS_RHS_FLAG="--random_rhs=false"
 fi
 
+if [ ! "${GPU_TIMER}" ]; then
+    echo "GPU_TIMER    environment variable not set - assuming \"false\"" 1>&2
+    GPU_TIMER="false"
+fi
+
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
 if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
@@ -144,7 +149,7 @@ run_conversion_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
+                --device_id="${DEVICE_ID}" --gpu_time=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -160,7 +165,7 @@ run_spmv_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
+                --device_id="${DEVICE_ID}" --gpu_time=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -178,7 +183,7 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" --gpu_time=${GPU_TIMER} \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -204,7 +209,7 @@ run_preconditioner_benchmarks() {
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
                 --jacobi_max_block_size="${bsize}" \
                 --jacobi_storage="${prec}" \
-                --device_id="${DEVICE_ID}" \
+                --device_id="${DEVICE_ID}" --gpu_time=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
         done
