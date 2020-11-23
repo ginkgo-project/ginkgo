@@ -279,7 +279,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const Array<IndexType> *perm,
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
     const matrix::Fbcsr<ValueType, IndexType> *orig,
     matrix::Fbcsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
 
