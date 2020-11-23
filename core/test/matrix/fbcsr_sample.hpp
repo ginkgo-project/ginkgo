@@ -161,7 +161,7 @@ public:
 
     /// Enables use of literals to instantiate value data
     template <typename U>
-    inline constexpr ValueType sct(U u) const
+    constexpr ValueType sct(U u) const
     {
         return static_cast<ValueType>(u);
     }
