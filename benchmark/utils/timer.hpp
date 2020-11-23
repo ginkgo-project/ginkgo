@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <gflags/gflags.h>
+
+
 #ifdef HAS_CUDA
 
 
@@ -60,6 +63,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #endif  // HAS_CUDA
+
+
+DEFINE_bool(gpu_timer, false,
+            "use gpu timer based on event. It is valid only when "
+            "executor is cuda or hip");
 
 
 class Timer {
@@ -88,6 +96,13 @@ public:
     {
         return static_cast<double>(this->get_total_time()) /
                this->get_tictoc_num();
+    }
+
+    void clear()
+    {
+        duration_ns_.clear();
+        tic_called_ = false;
+        total_duration_ns_ = 0;
     }
 
     Timer() : tic_called_(false), total_duration_ns_(0) {}
