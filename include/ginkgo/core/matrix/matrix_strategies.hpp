@@ -49,7 +49,7 @@ template <typename MtxType>
 class automatic;
 
 /**
- * strategy_type is to decide how to set the fbcsr algorithm.
+ * strategy_type is to decide how map the work-items to execution units
  *
  * The practical strategy method should inherit strategy_type and implement
  * its `process`, `calc_size` function and the corresponding device kernel.
