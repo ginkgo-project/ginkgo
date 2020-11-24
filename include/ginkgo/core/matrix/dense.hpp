@@ -688,8 +688,10 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride}
     {
-        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                             values_.get_num_elems());
+        if (size[0] > 0 && size[1] > 0) {
+            GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
+                                 values_.get_num_elems());
+        }
     }
 
     /**
