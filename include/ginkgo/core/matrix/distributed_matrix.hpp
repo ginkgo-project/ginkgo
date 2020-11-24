@@ -52,12 +52,20 @@ class DistributedMatrix
     friend class EnablePolymorphicObject<DistributedMatrix, LinOp>;
 
 public:
-    void read(const matrix_data<ValueType, IndexType> &data)
+    void read(const matrix_data<ValueType, IndexType> &data) override
     {
-        IndexType local_begin;
-        IndexType local_end;
-        auto local_size = local_end - local_begin;
-        auto global_size = this->get_size()[1];
+        auto mpi_exec = this->get_mpi_exec();
+        size_type part_size = ceildiv(data.size[0], mpi_exec->get_size());
+        for (int i = 0; i < mpi_exec->get_size(); ++i) {
+            row_part_ranges_[i] = part_size * i;
+        }
+        row_part_ranges_.back() = data.size[0];
+        IndexType local_begin = part_size * mpi_exec->get_rank();
+        IndexType local_end =
+            std::min<IndexType>(local_begin + part_size, data.size[0]);
+        auto local_size = static_cast<size_type>(local_end - local_begin);
+        auto global_size = data.size[1];
+        this->set_size(dim<2>{local_size, local_size});
         matrix_data<ValueType, IndexType> diag_data(
             dim<2>{local_size, local_size});
         matrix_data<ValueType, IndexType> offdiag_data(
@@ -101,6 +109,7 @@ public:
         using Readable = ReadableFromMatrixData<ValueType, IndexType>;
         as<Readable>(diag_mtx_.get())->read(diag_data);
         as<Readable>(offdiag_mtx_.get())->read(offdiag_data);
+        this->build_communication(offdiag_cols, global_size);
     }
 
     const MpiExecutor *get_mpi_exec() const
@@ -116,12 +125,13 @@ protected:
         : EnableLinOp<DistributedMatrix<ValueType, IndexType>>{as<MpiExecutor>(
                                                                    exec),
                                                                dim<2>{}},
-          gather_idxs_{exec},
-          one_scalar_{initialize<Vec>({one<ValueType>()}, exec)},
-          send_buffer_{exec},
-          recv_buffer_{exec},
-          diag_mtx_{Mtx::create(exec)},
-          offdiag_mtx_{Mtx::create(exec)}
+          gather_idxs_{get_mpi_exec()->get_local()},
+          one_scalar_{
+              initialize<Vec>({one<ValueType>()}, get_mpi_exec()->get_local())},
+          send_buffer_{get_mpi_exec()->get_local()},
+          recv_buffer_{get_mpi_exec()->get_local()},
+          diag_mtx_{Mtx::create(get_mpi_exec()->get_local())},
+          offdiag_mtx_{Mtx::create(get_mpi_exec()->get_local())}
     {
         auto mpi_size = get_mpi_exec()->get_size();
         row_part_ranges_.resize(mpi_size + 1);
@@ -129,17 +139,19 @@ protected:
         recv_offsets_.resize(mpi_size + 1);
     }
 
-    void build_communication(const std::vector<IndexType> &cols)
+    void build_communication(const std::vector<IndexType> &cols,
+                             size_type global_size)
     {
         const MpiExecutor *mpi_exec = get_mpi_exec();
         auto mpi_size = mpi_exec->get_size();
         auto mpi_rank = mpi_exec->get_rank();
+
         auto col_begin = cols.begin();
         auto col_cur = col_begin;
         auto col_end = cols.end();
         for (int src_rank = 0; src_rank < mpi_size; ++src_rank) {
-            // find the size of src_rank's columns
-            auto col_next = std::upper_bound(col_cur, col_end,
+            // find iterator one past the last column from this rank
+            auto col_next = std::lower_bound(col_cur, col_end,
                                              row_part_ranges_[src_rank + 1]);
             recv_offsets_[src_rank + 1] = std::distance(col_cur, col_next);
             col_cur = col_next;
@@ -149,21 +161,40 @@ protected:
                          send_offsets_.begin());
         std::partial_sum(recv_offsets_.begin(), recv_offsets_.end(),
                          recv_offsets_.begin());
-        Array<IndexType> host_gather_idxs{mpi_exec->get_master(),
-                                          send_offsets_.back()};
+
+        Array<IndexType> host_gather_idxs{
+            mpi_exec->get_local()->get_master(),
+            static_cast<size_type>(send_offsets_.back())};
         GKO_ASSERT(recv_offsets_.back() == cols.size());
+        // okay, this is tricky: recv_offsets relates to the
         mpi_exec->alltoallv(cols.data(), host_gather_idxs.get_data(), 1,
-                            send_offsets_.data(), recv_offsets_.data());
+                            recv_offsets_.data(), send_offsets_.data());
+
+        size_type part_size = ceildiv(global_size, mpi_exec->get_size());
+        IndexType local_begin = part_size * mpi_exec->get_rank();
+        IndexType local_end =
+            std::min<IndexType>(local_begin + part_size, global_size);
+        auto is_local = [&](IndexType i) {
+            return i >= local_begin && i < local_end;
+        };
+        auto map_to_local = [&](IndexType i) { return i - local_begin; };
+        for (size_type i = 0; i < send_offsets_.back(); ++i) {
+            auto &col = host_gather_idxs.get_data()[i];
+            GKO_ASSERT(is_local(col));
+            col = map_to_local(col);
+        }
         gather_idxs_ = std::move(host_gather_idxs);
     }
 
     std::unique_ptr<Vec> communicate(const Vec *local_b) const
     {
-        auto mpi_exec = get_mpi_exec();
+        auto mpi_exec = this->get_mpi_exec();
         auto local_exec = mpi_exec->get_local();
         auto num_cols = local_b->get_size()[1];
-        auto send_dim = dim<2>{send_offsets_.back(), num_cols};
-        auto recv_dim = dim<2>{recv_offsets_.back(), num_cols};
+        auto send_dim =
+            dim<2>{static_cast<size_type>(send_offsets_.back()), num_cols};
+        auto recv_dim =
+            dim<2>{static_cast<size_type>(recv_offsets_.back()), num_cols};
         auto send_size = send_dim[0] * send_dim[1];
         auto recv_size = recv_dim[0] * recv_dim[1];
         send_buffer_.resize_and_reset(send_size);
@@ -175,9 +206,9 @@ protected:
                         num_cols);
         local_b->row_gather(&gather_idxs_, send_view.get());
         auto recv_view =
-            Vec::create(local_exec, send_dim,
-                        Array<ValueType>::view(local_exec, send_size,
-                                               send_buffer_.get_data()),
+            Vec::create(local_exec, recv_dim,
+                        Array<ValueType>::view(local_exec, recv_size,
+                                               recv_buffer_.get_data()),
                         num_cols);
         mpi_exec->alltoallv(send_buffer_.get_const_data(),
                             recv_buffer_.get_data(), num_cols,
@@ -210,7 +241,7 @@ protected:
                          local_x.get());
         // gather data into send_buffer
         auto recv_view = this->communicate(local_b.get());
-        offdiag_mtx_->apply(one_scalar_.get(), recv_view.get(),
+        offdiag_mtx_->apply(local_alpha.get(), recv_view.get(),
                             one_scalar_.get(), local_x.get());
     }
 
