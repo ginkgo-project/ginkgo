@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char *argv[])
 {
+    MPI_Init(&argc, &argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
@@ -108,5 +109,30 @@ int main(int argc, char *argv[])
         exec_map.at(executor_string)();  // throws if not valid
     const auto mpi_exec = gko::MpiExecutor::create(local_exec, MPI_COMM_WORLD);
 
-    const auto A = dist_mtx::create(mpi_exec);
+    std::ifstream a_stream{"data/A.mtx"};
+    auto A = gko::read<dist_mtx>(a_stream, mpi_exec);
+    std::ifstream x_stream{"data/x.mtx"};
+    auto x_full = gko::read<vec>(x_stream, mpi_exec);
+    std::ifstream b_stream{"data/b.mtx"};
+    auto b_full = gko::read<vec>(b_stream, mpi_exec);
+    auto size = x_full->get_size()[0];
+    auto local_size = gko::ceildiv(size, mpi_exec->get_size());
+    auto local_begin = local_size * mpi_exec->get_rank();
+    auto local_end = std::min<gko::size_type>(local_begin + local_size, size);
+    gko::Array<gko::int32> local_rows{mpi_exec->get_master(),
+                                      local_end - local_begin};
+    for (auto i = local_begin; i < local_end; ++i) {
+        local_rows.get_data()[i - local_begin] = i;
+    }
+    auto x = x_full->row_gather(&local_rows);
+    auto b = b_full->row_gather(&local_rows);
+
+    auto one = gko::initialize<vec>({1.0}, mpi_exec);
+    auto minus_one = gko::initialize<vec>({-1.0}, mpi_exec);
+    A->apply(lend(one), lend(x), lend(minus_one), lend(b));
+    auto result = gko::initialize<vec>({0.0}, mpi_exec->get_master());
+    b->compute_norm2(lend(result));
+    std::cout << *result->get_values() << std::endl;
+
+    MPI_Finalize();
 }
