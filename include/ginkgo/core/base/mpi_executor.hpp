@@ -236,14 +236,16 @@ public:
         for (int src_rank = 0; src_rank < mpi_size; ++src_rank) {
             auto recv_begin = recv_ofs[src_rank];
             auto recv_size = recv_ofs[src_rank + 1] - recv_begin;
-            MPI_Irecv(out + recv_begin, recv_size * multiplier, type, src_rank,
-                      tag, this->get_comm(), &requests[src_rank]);
+            MPI_Irecv(out + recv_begin * multiplier, recv_size * multiplier,
+                      type, src_rank, tag, this->get_comm(),
+                      &requests[src_rank]);
         }
         for (int dst_rank = 0; dst_rank < mpi_size; ++dst_rank) {
             auto send_begin = send_ofs[dst_rank];
             auto send_size = send_ofs[dst_rank + 1] - send_begin;
-            MPI_Isend(in + send_begin, send_size * multiplier, type, dst_rank,
-                      tag, this->get_comm(), &requests[dst_rank + mpi_size]);
+            MPI_Isend(in + send_begin * multiplier, send_size * multiplier,
+                      type, dst_rank, tag, this->get_comm(),
+                      &requests[dst_rank + mpi_size]);
         }
         std::vector<MPI_Status> statuses(2 * mpi_size);
         MPI_Waitall(2 * mpi_size, requests.data(), statuses.data());
