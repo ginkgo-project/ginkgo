@@ -52,7 +52,7 @@ LABELS=$LABELS$(label_match type:solver /solver/)
 LABELS=$LABELS$(label_match type:stopping-criteria /stop/)
 
 # if all mod: labels present: replace by mod:all
-LABELS=$(echo "$LABELS" | sed 's/.*mod:.*mod:.*mod:.*mod:.*mod:[^"]*"\]/[]+["mod:all"]/')
+LABELS=$(echo "$LABELS" | sed 's/.*mod:.*mod:.*mod:.*mod:.*mod:.*mod:[^"]*"\]/[]+["mod:all"]/')
 
 PATCH_BODY=$(jq -rn "{labels:($OLD_LABELS + $LABELS | unique)}")
 api_patch "$ISSUE_URL" "$PATCH_BODY" > /dev/null
