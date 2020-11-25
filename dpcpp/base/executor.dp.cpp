@@ -80,7 +80,7 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
 bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     auto device = detail::get_devices(
-        dest_exec->getdevice_type())[dest_exec->get_device_id()];
+        dest_exec->get_device_type())[dest_exec->get_device_id()];
     return device.is_host() || device.is_cpu();
 }
 
@@ -177,9 +177,11 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
     auto device = detail::get_devices(device_type_)[device_id_];
     auto other_device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
-    return device.get_info<cl::sycl::info::device::device_type>() ==
-               other_device.get_info<cl::sycl::info::device::device_type>() &&
-           device.get() == other_device.get();
+    return ((device.is_host() || device.is_cpu()) &&
+            (other_device.is_host() || other_device.is_cpu())) ||
+           (device.get_info<cl::sycl::info::device::device_type>() ==
+                other_device.get_info<cl::sycl::info::device::device_type>() &&
+            device.get() == other_device.get());
 }
 
 
@@ -200,11 +202,13 @@ void DpcppExecutor::set_device_property()
 {
     assert(device_id_ < DpcppExecutor::get_num_devices(device_type_));
     auto device = detail::get_devices(device_type_)[device_id_];
-    try {
-        subgroup_sizes_ =
-            device.get_info<cl::sycl::info::device::sub_group_sizes>();
-    } catch (cl::sycl::runtime_error &err) {
-        GKO_NOT_SUPPORTED(device);
+    if (!device.is_host()) {
+        try {
+            subgroup_sizes_ =
+                device.get_info<cl::sycl::info::device::sub_group_sizes>();
+        } catch (cl::sycl::runtime_error &err) {
+            GKO_NOT_SUPPORTED(device);
+        }
     }
     num_computing_units_ =
         device.get_info<sycl::info::device::max_compute_units>();
@@ -214,10 +218,8 @@ void DpcppExecutor::set_device_property()
     for (std::size_t i = 0; i < 3; i++) {
         max_workitem_sizes_.push_back(max_workitem_sizes[i]);
     }
-    if (!device.is_host()) {
-        max_workgroup_size_ =
-            device.get_info<sycl::info::device::max_work_group_size>();
-    }
+    max_workgroup_size_ =
+        device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.

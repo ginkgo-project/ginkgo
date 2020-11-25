@@ -140,7 +140,7 @@ public:
      */
     explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr)
     {
-        if (*ptr->get_executor() == *exec) {
+        if (ptr->get_executor()->memory_accessible(exec)) {
             // just use the object we already have
             handle_ = handle_type(ptr, null_deleter<T>());
         } else {

@@ -480,56 +480,67 @@ TEST(Executor, CanVerifyMemory)
     auto omp = gko::OmpExecutor::create();
     auto hip = gko::HipExecutor::create(0, omp);
     auto cuda = gko::CudaExecutor::create(0, omp);
-    auto cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-    auto host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
-    auto gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
     auto omp2 = gko::OmpExecutor::create();
     auto hip2 = gko::HipExecutor::create(0, omp);
     auto cuda2 = gko::CudaExecutor::create(0, omp);
-    std::shared_ptr<gko::HipExecutor> hip_1 = gko::HipExecutor::create(1, omp);
-    std::shared_ptr<gko::CudaExecutor> cuda_1 =
-        gko::CudaExecutor::create(1, omp);
+    auto hip_1 = gko::HipExecutor::create(1, omp);
+    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+    std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
+    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
+    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
+    if (gko::DpcppExecutor::get_num_devices("host"))
+        host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
+    if (gko::DpcppExecutor::get_num_devices("cpu"))
+        cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+    if (gko::DpcppExecutor::get_num_devices("gpu"))
+        gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
 
-    ASSERT_EQ(true, *ref == *omp);
-    ASSERT_EQ(true, *omp == *ref);
-    ASSERT_EQ(false, *ref == *hip);
-    ASSERT_EQ(false, *hip == *ref);
-    ASSERT_EQ(false, *omp == *hip);
-    ASSERT_EQ(false, *hip == *omp);
-    ASSERT_EQ(false, *ref == *cuda);
-    ASSERT_EQ(false, *cuda == *ref);
-    ASSERT_EQ(false, *omp == *cuda);
-    ASSERT_EQ(false, *cuda == *omp);
-    ASSERT_EQ(true, *cpu_dpcpp == *ref);
-    ASSERT_EQ(true, *host_dpcpp == *ref);
-    ASSERT_EQ(false, *gpu_dpcpp == *ref);
-    ASSERT_EQ(true, *ref == *cpu_dpcpp);
-    ASSERT_EQ(true, *ref == *host_dpcpp);
-    ASSERT_EQ(false, *ref == *gpu_dpcpp);
-    ASSERT_EQ(true, *cpu_dpcpp == *omp);
-    ASSERT_EQ(true, *host_dpcpp == *omp);
-    ASSERT_EQ(false, *gpu_dpcpp == *omp);
-    ASSERT_EQ(true, *omp == *cpu_dpcpp);
-    ASSERT_EQ(true, *omp == *host_dpcpp);
-    ASSERT_EQ(false, *omp == *gpu_dpcpp);
+    ASSERT_EQ(true, ref->memory_accessible(omp));
+    ASSERT_EQ(true, omp->memory_accessible(ref));
+    ASSERT_EQ(false, ref->memory_accessible(hip));
+    ASSERT_EQ(false, hip->memory_accessible(ref));
+    ASSERT_EQ(false, omp->memory_accessible(hip));
+    ASSERT_EQ(false, hip->memory_accessible(omp));
+    ASSERT_EQ(false, ref->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(ref));
+    ASSERT_EQ(false, omp->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(omp));
+    if (gko::DpcppExecutor::get_num_devices("host")) {
+        ASSERT_EQ(true, host_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(true, ref->memory_accessible(host_dpcpp));
+        ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
+    }
+    if (gko::DpcppExecutor::get_num_devices("cpu")) {
+        ASSERT_EQ(true, ref->memory_accessible(cpu_dpcpp));
+        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
+    }
+    if (gko::DpcppExecutor::get_num_devices("gpu")) {
+        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(gpu_dpcpp));
+        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(false, omp->memory_accessible(gpu_dpcpp));
+    }
 #if GINKGO_HIP_PLATFORM_NVCC
-    ASSERT_EQ(true, *hip == *cuda);
-    ASSERT_EQ(true, *cuda == *hip);
-    ASSERT_EQ(true, *hip_1 == *cuda_1);
-    ASSERT_EQ(true, *cuda_1 == *hip_1);
+    ASSERT_EQ(true, hip->memory_accessible(cuda));
+    ASSERT_EQ(true, cuda->memory_accessible(hip));
+    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
 #else
-    ASSERT_EQ(false, *hip == *cuda);
-    ASSERT_EQ(false, *cuda == *hip);
-    ASSERT_EQ(false, *hip_1 == *cuda_1);
-    ASSERT_EQ(false, *cuda_1 == *hip_1);
+    ASSERT_EQ(false, hip->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(hip));
+    ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
 #endif
-    ASSERT_EQ(true, *omp == *omp2);
-    ASSERT_EQ(true, *hip == *hip2);
-    ASSERT_EQ(true, *cuda == *cuda2);
-    ASSERT_EQ(false, *hip == *hip_1);
-    ASSERT_EQ(false, *cuda == *hip_1);
-    ASSERT_EQ(false, *cuda == *cuda_1);
-    ASSERT_EQ(false, *hip == *cuda_1);
+    ASSERT_EQ(true, omp->memory_accessible(omp2));
+    ASSERT_EQ(true, hip->memory_accessible(hip2));
+    ASSERT_EQ(true, cuda->memory_accessible(cuda2));
+    ASSERT_EQ(false, hip->memory_accessible(hip_1));
+    ASSERT_EQ(false, cuda->memory_accessible(hip_1));
+    ASSERT_EQ(false, cuda->memory_accessible(cuda_1));
+    ASSERT_EQ(false, hip->memory_accessible(cuda_1));
 }
 
 
