@@ -284,7 +284,7 @@ TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
 }
 
 
-TYPED_TEST(Array, CanDoesNotCopyBackTemporaryCloneBetweenSameMemory)
+TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
 {
     auto omp = gko::OmpExecutor::create();
 

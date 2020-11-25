@@ -634,14 +634,15 @@ public:
     virtual void synchronize() const = 0;
 
     /**
-     * Overload the equal-to operator which verifies whether the executors share
-     * the same memory.
+     * Verifies whether the executors share the same memory.
      *
      * @param other  the other Executor to compare against
+     *
+     * @return whether the executors this and other share the same memory.
      */
-    bool operator==(const Executor &other) const
+    bool memory_accessible(const std::shared_ptr<const Executor> &other) const
     {
-        return this->verify_memory_from(other);
+        return this->verify_memory_from(other.get());
     }
 
 protected:
@@ -702,7 +703,7 @@ protected:
      *
      * @return whether this executor and src_exec share the same memory.
      */
-    virtual bool verify_memory_from(const Executor &src_exec) const = 0;
+    virtual bool verify_memory_from(const Executor *src_exec) const = 0;
 
 /**
  * @internal
@@ -718,7 +719,7 @@ protected:
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_VERIFY_MEMORY_TO);
 
-    GKO_ENABLE_VERIFY_MEMORY_TO(ReferenceExecutor);
+    GKO_ENABLE_VERIFY_MEMORY_TO(ReferenceExecutor, ref);
 
 #undef GKO_ENABLE_VERIFY_MEMORY_TO
 
@@ -870,9 +871,9 @@ protected:
         src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
-    bool verify_memory_from(const Executor &src_exec) const override
+    bool verify_memory_from(const Executor *src_exec) const override
     {
-        return src_exec.verify_memory_to(self());
+        return src_exec->verify_memory_to(self());
     }
 
 private:
