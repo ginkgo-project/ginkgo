@@ -55,8 +55,13 @@ public:
 };
 
 
-/** Returns the quotient of the second arg divided by the first
- * but throws when they don't divide
+/**
+ * Computes the number of blocks
+ *
+ * @param block_size The size of each block
+ * @param size The total size of some array/vector
+ * @return The quotient of the size divided by the block size
+ *         but throws when they don't divide
  */
 template <typename IndexType>
 IndexType getNumBlocks(const int block_size, const IndexType size)

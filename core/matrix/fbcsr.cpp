@@ -121,8 +121,10 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                             const LinOp *beta, LinOp *x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
+                                             const LinOp *const b,
+                                             const LinOp *const beta,
+                                             LinOp *const x) const
 {
     using Dense = Dense<ValueType>;
     using TFbcsr = Fbcsr<ValueType, IndexType>;
@@ -143,7 +145,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<ValueType, IndexType> *result) const
+    Fbcsr<ValueType, IndexType> *const result) const
 {
     bool same_executor = this->get_executor() == result->get_executor();
     // NOTE: as soon as strategies are improved, this can be reverted
@@ -163,7 +165,8 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType> *result)
+void Fbcsr<ValueType, IndexType>::move_to(
+    Fbcsr<ValueType, IndexType> *const result)
 {
     bool same_executor = this->get_executor() == result->get_executor();
     EnableLinOp<Fbcsr>::move_to(result);
@@ -188,14 +191,15 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision<ValueType>, IndexType> *result)
+    Fbcsr<next_precision<ValueType>, IndexType> *const result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Fbcsr<ValueType, IndexType>::convert_to(
+    Dense<ValueType> *const result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -205,7 +209,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *const result)
 {
     this->convert_to(result);
 }
@@ -225,7 +229,8 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+void Fbcsr<ValueType, IndexType>::move_to(
+    Csr<ValueType, IndexType> *const result)
 {
     this->convert_to(result);
 }
@@ -233,7 +238,7 @@ void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    SparsityCsr<ValueType, IndexType> *result) const
+    SparsityCsr<ValueType, IndexType> *const result) const
 {
     using gko::blockutils::getNumBlocks;
     auto exec = this->get_executor();
@@ -252,7 +257,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    SparsityCsr<ValueType, IndexType> *result)
+    SparsityCsr<ValueType, IndexType> *const result)
 {
     this->convert_to(result);
 }
@@ -497,7 +502,7 @@ Fbcsr<ValueType, IndexType>::compute_absolute() const
 template <typename ValueType, typename IndexType>
 template <typename FbcsrType>
 void Fbcsr<ValueType, IndexType>::convert_strategy_helper(
-    FbcsrType *result) const
+    FbcsrType *const result) const
 {
     auto strat = this->get_strategy().get();
     std::shared_ptr<typename matrix_strategy::strategy_type<FbcsrType>>

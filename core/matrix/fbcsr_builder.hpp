@@ -53,16 +53,18 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class FbcsrBuilder {
 public:
     /**
-     * Returns the column index array of the CSR matrix.
+     * @return The column index array of the CSR matrix.
      */
     Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
-     * Returns the value array of the CSR matrix.
+     * @return The value array of the CSR matrix.
      */
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
-    /// Returns the (uniform) block size
+    /**
+     * @return The (uniform) block size
+     */
     int get_block_size() const { return matrix_->bs_; }
 
     /**
