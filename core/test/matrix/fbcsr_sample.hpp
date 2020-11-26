@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_MATRIX_TEST_FBCSR_SAMPLE_HPP
 #define GKO_CORE_MATRIX_TEST_FBCSR_SAMPLE_HPP
 
+
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -42,12 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+
 namespace gko {
 namespace testing {
 
 
-/// Generates the same sample block CSR matrix in different formats
-/** This currently a 6 x 12 matrix with 3x3 blocks.
+/** Generates the same sample block CSR matrix in different formats
+ *
+ * This currently a 6 x 12 matrix with 3x3 blocks.
  * Assumes that the layout within each block is row-major.
  * Generates complex data when instantiated with a complex value type.
  */
@@ -66,22 +69,48 @@ public:
 
     FbcsrSample(std::shared_ptr<const gko::ReferenceExecutor> exec);
 
+    /**
+     * @return The sample matrix in FBCSR format
+     */
     std::unique_ptr<Fbcsr> generate_fbcsr() const;
 
-    /// Generates CSR matrix equal to the BSR matrix. Keeps explicit zeros.
+    /**
+     * @return Sample matrix in CSR format
+     *
+     * Keeps explicit zeros.
+     */
     std::unique_ptr<Csr> generate_csr() const;
 
+    /**
+     * @return Sample matrix as dense
+     */
     std::unique_ptr<Dense> generate_dense() const;
 
-    /// Returns the matrix in COO format keeping explicit nonzeros
-    /** The nonzeros are sorted by row and column.
+    /**
+     * @return The matrix in COO format keeping explicit nonzeros
+     *
+     * The nonzeros are sorted by row and column.
      */
     std::unique_ptr<Coo> generate_coo() const;
 
+    /**
+     * @return Sparsity structure of the matrix
+     */
     std::unique_ptr<SparCsr> generate_sparsity_csr() const;
 
+    /**
+     * @return Array of COO triplets that represent the matrix
+     *
+     * @note The order of the triplets assumes the blocks are stored row-major
+     */
     MatData generate_matrix_data() const;
 
+    /**
+     * @return Array of COO triplets that represent the matrix; includes
+     *         explicit zeros
+     *
+     * @note The order of the triplets assumes the blocks are stored row-major
+     */
     MatData generate_matrix_data_with_explicit_zeros() const;
 
     /// Returns an array containing number of stored values in each row
@@ -126,8 +155,9 @@ private:
     }
 };
 
-/// Generates the a sample block CSR matrix in different formats
-/** This currently a 6 x 8 matrix with 2x2 blocks.
+/**
+ * Generates a sample block CSR matrix in different formats.
+ * 6 x 8 matrix with 2x2 blocks.
  */
 template <typename ValueType, typename IndexType>
 class FbcsrSample2 {
@@ -135,11 +165,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
-    using MatData = gko::matrix_data<value_type, index_type>;
-    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
 
     FbcsrSample2(std::shared_ptr<const gko::ReferenceExecutor> exec);
@@ -154,8 +180,15 @@ public:
 
     gko::Array<index_type> getNonzerosPerRow() const;
 
+    /**
+     * @return FBCSR matrix with absolute values of respective entries
+     */
     std::unique_ptr<Fbcsr> generate_abs_fbcsr() const;
 
+    /**
+     * @return FBCSR matrix with real scalar type,
+     *         with absolute values of respective entries
+     */
     std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
     generate_abs_fbcsr_abstype() const;
 
@@ -203,8 +236,9 @@ public:
     const std::shared_ptr<const gko::Executor> exec;
 };
 
-/// Generates the a sample block CSR matrix with complex values
-/** This currently a 6 x 8 matrix with 2x2 blocks.
+/**
+ * Generates the a sample block CSR matrix with complex values
+ * This is a 6 x 8 matrix with 2x2 blocks.
  */
 template <typename ValueType, typename IndexType>
 class FbcsrSampleComplex {
@@ -212,12 +246,6 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
-    using MatData = gko::matrix_data<value_type, index_type>;
-    using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
-    using Diagonal = gko::matrix::Diagonal<value_type>;
 
     static_assert(is_complex<ValueType>(), "Only for complex types!");
 

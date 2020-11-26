@@ -50,15 +50,15 @@ namespace testing {
 
 namespace matstr = gko::matrix::matrix_strategy;
 
-/// Generates a copu of the given matrix with a different scalar type
-/** \tparam AbsValueType The scalar type of the output matrix
+/** Generates a copy of the given matrix with a different scalar type
+ *
+ * \tparam AbsValueType The scalar type of the output matrix
  */
 template <typename FbcsrType, typename AbsValueType>
 static std::unique_ptr<
     gko::matrix::Fbcsr<AbsValueType, typename FbcsrType::index_type>>
 generate_acopy_impl(const FbcsrType *const mat)
 {
-    // using AbsValueType = typename gko::remove_complex<ValueType>;
     using index_type = typename FbcsrType::index_type;
     using value_type = typename FbcsrType::value_type;
     using AbsFbcsr = gko::matrix::Fbcsr<AbsValueType, index_type>;
@@ -686,8 +686,6 @@ void FbcsrSample2<ValueType, IndexType>::apply(
 
     const ValueType defv = sct(0.15 + FBCSR_TEST_OFFSET);
 
-    // ValueType *const yvals = y->get_data();
-    // const ValueType *const xvals = x->get_const_data();
     for (index_type k = 0; k < x->get_size()[1]; k++) {
         y->at(0, k) = sct(1.0) * x->at(0, k) + sct(2.0) * x->at(1, k);
         y->at(1, k) = sct(3.0) * x->at(0, k);
