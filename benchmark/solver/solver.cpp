@@ -67,7 +67,7 @@ DEFINE_bool(
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, "
+              "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, idr, "
               "lower_trs, upper_trs, overhead");
 
 DEFINE_uint32(

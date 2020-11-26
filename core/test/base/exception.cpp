@@ -90,6 +90,14 @@ TEST(ExceptionClasses, CublasErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, CurandErrorReturnsCorrectWhatMessage)
+{
+    gko::CurandError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, CusparseErrorReturnsCorrectWhatMessage)
 {
     gko::CusparseError error("test_file.cpp", 123, "test_func", 1);
@@ -107,6 +115,14 @@ TEST(ExceptionClasses, HipErrorReturnsCorrectWhatMessage)
 
 
 TEST(ExceptionClasses, HipblasErrorReturnsCorrectWhatMessage)
+{
+    gko::HipblasError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
+TEST(ExceptionClasses, HiprandErrorReturnsCorrectWhatMessage)
 {
     gko::HipblasError error("test_file.cpp", 123, "test_func", 1);
     std::string expected = "test_file.cpp:123: test_func: ";

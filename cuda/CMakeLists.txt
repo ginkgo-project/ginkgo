@@ -63,6 +63,8 @@ find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CURAND curand
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
@@ -74,14 +76,14 @@ target_sources(ginkgo_cuda
     components/fill_array.cu
     components/precision_conversion.cu
     components/prefix_sum.cu
-    factorization/ilu_kernels.cu
     factorization/factorization_kernels.cu
+    factorization/ilu_kernels.cu
     factorization/par_ict_kernels.cu
     factorization/par_ilu_kernels.cu
     factorization/par_ilut_approx_filter_kernel.cu
     factorization/par_ilut_filter_kernel.cu
-    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_select_common.cu
+    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
     matrix/coo_kernels.cu
@@ -104,6 +106,7 @@ target_sources(ginkgo_cuda
     solver/cgs_kernels.cu
     solver/fcg_kernels.cu
     solver/gmres_kernels.cu
+    solver/idr_kernels.cu
     solver/ir_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
@@ -149,7 +152,7 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_CO
 ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}

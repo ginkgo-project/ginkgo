@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <curand.h>
 #include <cusparse.h>
 
 
@@ -65,6 +66,18 @@ TEST(AssertNoCublasErrors, ThrowsOnError)
 TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoCurandErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_CURAND_ERRORS(1), gko::CurandError);
+}
+
+
+TEST(AssertNoCurandErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CURAND_ERRORS(CURAND_STATUS_SUCCESS));
 }
 
 

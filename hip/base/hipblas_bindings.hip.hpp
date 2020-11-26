@@ -91,15 +91,11 @@ struct is_supported<float> : std::true_type {};
 template <>
 struct is_supported<double> : std::true_type {};
 
-// hipblas supports part of complex function version is >= 0.19, but the version
-// is not set now.
-/* not implemented
 template <>
 struct is_supported<std::complex<float>> : std::true_type {};
 
 template <>
 struct is_supported<std::complex<double>> : std::true_type {};
-*/
 
 
 #define GKO_BIND_HIPBLAS_GEMM(ValueType, HipblasName)                        \
@@ -110,9 +106,9 @@ struct is_supported<std::complex<double>> : std::true_type {};
                      ValueType *c, int ldc)                                  \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
-            handle, transa, transb, m, n, k, as_hiplibs_type(alpha),         \
-            as_hiplibs_type(a), lda, as_hiplibs_type(b), ldb,                \
-            as_hiplibs_type(beta), as_hiplibs_type(c), ldc));                \
+            handle, transa, transb, m, n, k, as_hipblas_type(alpha),         \
+            as_hipblas_type(a), lda, as_hipblas_type(b), ldb,                \
+            as_hipblas_type(beta), as_hipblas_type(c), ldc));                \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -120,10 +116,9 @@ struct is_supported<std::complex<double>> : std::true_type {};
 
 GKO_BIND_HIPBLAS_GEMM(float, hipblasSgemm);
 GKO_BIND_HIPBLAS_GEMM(double, hipblasDgemm);
-/* not implemented
 GKO_BIND_HIPBLAS_GEMM(std::complex<float>, hipblasCgemm);
 GKO_BIND_HIPBLAS_GEMM(std::complex<double>, hipblasZgemm);
-*/
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
 
@@ -138,9 +133,9 @@ GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
                      ValueType *c, int ldc)                                   \
     {                                                                         \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                         \
-            HipblasName(handle, transa, transb, m, n, as_hiplibs_type(alpha), \
-                        as_hiplibs_type(a), lda, as_hiplibs_type(beta),       \
-                        as_hiplibs_type(b), ldb, as_hiplibs_type(c), ldc));   \
+            HipblasName(handle, transa, transb, m, n, as_hipblas_type(alpha), \
+                        as_hipblas_type(a), lda, as_hipblas_type(beta),       \
+                        as_hipblas_type(b), ldb, as_hipblas_type(c), ldc));   \
     }                                                                         \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
@@ -160,7 +155,7 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
                      ValueType *x, int incx)                                 \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
-            handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), incx));   \
+            handle, n, as_hipblas_type(alpha), as_hipblas_type(x), incx));   \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -168,10 +163,9 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_SCAL(float, hipblasSscal);
 GKO_BIND_HIPBLAS_SCAL(double, hipblasDscal);
-/* not implemented
 GKO_BIND_HIPBLAS_SCAL(std::complex<float>, hipblasCscal);
 GKO_BIND_HIPBLAS_SCAL(std::complex<double>, hipblasZscal);
-*/
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
@@ -183,8 +177,8 @@ GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
                      const ValueType *x, int incx, ValueType *y, int incy)     \
     {                                                                          \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
-            HipblasName(handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), \
-                        incx, as_hiplibs_type(y), incy));                      \
+            HipblasName(handle, n, as_hipblas_type(alpha), as_hipblas_type(x), \
+                        incx, as_hipblas_type(y), incy));                      \
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
@@ -192,10 +186,9 @@ GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_AXPY(float, hipblasSaxpy);
 GKO_BIND_HIPBLAS_AXPY(double, hipblasDaxpy);
-/* not implemented
 GKO_BIND_HIPBLAS_AXPY(std::complex<float>, hipblasCaxpy);
 GKO_BIND_HIPBLAS_AXPY(std::complex<double>, hipblasZaxpy);
-*/
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
@@ -207,8 +200,8 @@ GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
                     int incx, const ValueType *y, int incy, ValueType *result) \
     {                                                                          \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
-            HipblasName(handle, n, as_hiplibs_type(x), incx,                   \
-                        as_hiplibs_type(y), incy, as_hiplibs_type(result)));   \
+            HipblasName(handle, n, as_hipblas_type(x), incx,                   \
+                        as_hipblas_type(y), incy, as_hipblas_type(result)));   \
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
@@ -216,10 +209,9 @@ GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_DOT(float, hipblasSdot);
 GKO_BIND_HIPBLAS_DOT(double, hipblasDdot);
-/* not implemented
 GKO_BIND_HIPBLAS_DOT(std::complex<float>, hipblasCdotc);
 GKO_BIND_HIPBLAS_DOT(std::complex<double>, hipblasZdotc);
-*/
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
@@ -231,7 +223,7 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
                       int incx, remove_complex<ValueType> *result)           \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
-            handle, n, as_hiplibs_type(x), incx, as_hiplibs_type(result)));  \
+            handle, n, as_hipblas_type(x), incx, as_hipblas_type(result)));  \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -239,10 +231,9 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_NORM2(float, hipblasSnrm2);
 GKO_BIND_HIPBLAS_NORM2(double, hipblasDnrm2);
-/* not implemented
 GKO_BIND_HIPBLAS_NORM2(std::complex<float>, hipblasScnrm2);
 GKO_BIND_HIPBLAS_NORM2(std::complex<double>, hipblasDznrm2);
-*/
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);
 

@@ -95,6 +95,48 @@ struct hiplibs_type_impl<thrust::complex<T>> {
     using type = typename hiplibs_type_impl<std::complex<T>>::type;
 };
 
+
+template <typename T>
+struct hipblas_type_impl {
+    using type = T;
+};
+
+template <typename T>
+struct hipblas_type_impl<T *> {
+    using type = typename hipblas_type_impl<T>::type *;
+};
+
+template <typename T>
+struct hipblas_type_impl<T &> {
+    using type = typename hipblas_type_impl<T>::type &;
+};
+
+template <typename T>
+struct hipblas_type_impl<const T> {
+    using type = const typename hipblas_type_impl<T>::type;
+};
+
+template <typename T>
+struct hipblas_type_impl<volatile T> {
+    using type = volatile typename hipblas_type_impl<T>::type;
+};
+
+template <>
+struct hipblas_type_impl<std::complex<float>> {
+    using type = hipblasComplex;
+};
+
+template <>
+struct hipblas_type_impl<std::complex<double>> {
+    using type = hipblasDoubleComplex;
+};
+
+template <typename T>
+struct hipblas_type_impl<thrust::complex<T>> {
+    using type = typename hipblas_type_impl<std::complex<T>>::type;
+};
+
+
 template <typename T>
 struct hip_type_impl {
     using type = T;
@@ -249,6 +291,30 @@ template <typename T>
 inline hiplibs_type<T> as_hiplibs_type(T val)
 {
     return reinterpret_cast<hiplibs_type<T>>(val);
+}
+
+
+/**
+ * This is an alias for equivalent of type T used in the HIPBLAS library.
+ *
+ * @tparam T  a type
+ */
+template <typename T>
+using hipblas_type = typename detail::hipblas_type_impl<T>::type;
+
+
+/**
+ * Reinterprets the passed in value as an equivalent type used by the HIPBLAS
+ * library.
+ *
+ * @param val  the value to reinterpret
+ *
+ * @return `val` reinterpreted to type used by HIP libraries
+ */
+template <typename T>
+inline hipblas_type<T> as_hipblas_type(T val)
+{
+    return reinterpret_cast<hipblas_type<T>>(val);
 }
 
 
