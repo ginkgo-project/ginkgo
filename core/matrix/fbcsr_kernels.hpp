@@ -66,29 +66,6 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,         \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_FBCSR_SPGEMM_KERNEL(ValueType, IndexType) \
-    void spgemm(std::shared_ptr<const DefaultExecutor> exec,  \
-                const matrix::Fbcsr<ValueType, IndexType> *a, \
-                const matrix::Fbcsr<ValueType, IndexType> *b, \
-                matrix::Fbcsr<ValueType, IndexType> *c)
-
-#define GKO_DECLARE_FBCSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType) \
-    void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,  \
-                         const matrix::Dense<ValueType> *alpha,        \
-                         const matrix::Fbcsr<ValueType, IndexType> *a, \
-                         const matrix::Fbcsr<ValueType, IndexType> *b, \
-                         const matrix::Dense<ValueType> *beta,         \
-                         const matrix::Fbcsr<ValueType, IndexType> *d, \
-                         matrix::Fbcsr<ValueType, IndexType> *c)
-
-#define GKO_DECLARE_FBCSR_SPGEAM_KERNEL(ValueType, IndexType) \
-    void spgeam(std::shared_ptr<const DefaultExecutor> exec,  \
-                const matrix::Dense<ValueType> *alpha,        \
-                const matrix::Fbcsr<ValueType, IndexType> *a, \
-                const matrix::Dense<ValueType> *beta,         \
-                const matrix::Fbcsr<ValueType, IndexType> *b, \
-                matrix::Fbcsr<ValueType, IndexType> *c)
-
 #define GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
                           const matrix::Fbcsr<ValueType, IndexType> *source, \
@@ -99,32 +76,6 @@ namespace kernels {
                         const matrix::Fbcsr<ValueType, IndexType> *source, \
                         matrix::Csr<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)      \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,       \
-                        const matrix::Fbcsr<ValueType, IndexType> *source, \
-                        matrix::Coo<ValueType, IndexType> *result)
-
-#define GKO_DECLARE_FBCSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
-    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,       \
-                        const matrix::Fbcsr<ValueType, IndexType> *source, \
-                        matrix::Ell<ValueType, IndexType> *result)
-
-#define GKO_DECLARE_FBCSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType)      \
-    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,       \
-                           const matrix::Fbcsr<ValueType, IndexType> *source, \
-                           matrix::Hybrid<ValueType, IndexType> *result)
-
-#define GKO_DECLARE_FBCSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)      \
-    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,       \
-                          const matrix::Fbcsr<ValueType, IndexType> *source, \
-                          matrix::Sellp<ValueType, IndexType> *result)
-
-#define GKO_DECLARE_FBCSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)   \
-    void calculate_total_cols(                                                \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Fbcsr<ValueType, IndexType> *source, size_type *result, \
-        size_type stride_factor, size_type slice_size)
-
 #define GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType)    \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,     \
                    const matrix::Fbcsr<ValueType, IndexType> *orig, \
@@ -134,26 +85,6 @@ namespace kernels {
     void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Fbcsr<ValueType, IndexType> *orig, \
                         matrix::Fbcsr<ValueType, IndexType> *trans)
-
-#define GKO_DECLARE_FBCSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
-    void row_permute(std::shared_ptr<const DefaultExecutor> exec,     \
-                     const IndexType *permutation_indices,            \
-                     const matrix::Fbcsr<ValueType, IndexType> *orig, \
-                     matrix::Fbcsr<ValueType, IndexType> *row_permuted)
-
-#define GKO_DECLARE_FBCSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType) \
-    void inverse_row_permute(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const IndexType *permutation_indices,                              \
-        const matrix::Fbcsr<ValueType, IndexType> *orig,                   \
-        matrix::Fbcsr<ValueType, IndexType> *row_permuted)
-
-#define GKO_DECLARE_FBCSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
-    void inverse_column_permute(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const IndexType *permutation_indices,                                 \
-        const matrix::Fbcsr<ValueType, IndexType> *orig,                      \
-        matrix::Fbcsr<ValueType, IndexType> *column_permuted)
 
 #define GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, \
                                                            IndexType) \
@@ -188,35 +119,13 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_SPGEMM_KERNEL(ValueType, IndexType);                     \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_SPGEAM_KERNEL(ValueType, IndexType);                     \
-    template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType);                  \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                          \

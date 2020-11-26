@@ -63,18 +63,10 @@ namespace fbcsr {
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
-GKO_REGISTER_OPERATION(spgemm, fbcsr::spgemm);
-GKO_REGISTER_OPERATION(advanced_spgemm, fbcsr::advanced_spgemm);
-GKO_REGISTER_OPERATION(spgeam, fbcsr::spgeam);
-GKO_REGISTER_OPERATION(convert_to_coo, fbcsr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
-GKO_REGISTER_OPERATION(calculate_total_cols, fbcsr::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, fbcsr::conj_transpose);
-GKO_REGISTER_OPERATION(row_permute, fbcsr::row_permute);
-GKO_REGISTER_OPERATION(inverse_row_permute, fbcsr::inverse_row_permute);
-GKO_REGISTER_OPERATION(inverse_column_permute, fbcsr::inverse_column_permute);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        fbcsr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -120,8 +112,6 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
         // if b is a FBCSR matrix, we compute a SpGeMM
         throw /*::gko::*/ NotImplemented(__FILE__, __LINE__,
                                          "SpGeMM for Fbcsr");
-        auto x_fbcsr = as<TFbcsr>(x);
-        this->get_executor()->run(fbcsr::make_spgemm(this, b_fbcsr, x_fbcsr));
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -138,17 +128,10 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
     using TFbcsr = Fbcsr<ValueType, IndexType>;
     if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
-        auto x_fbcsr = as<TFbcsr>(x);
-        auto x_copy = x_fbcsr->clone();
-        this->get_executor()->run(fbcsr::make_advanced_spgemm(
-            as<Dense>(alpha), this, b_fbcsr, as<Dense>(beta), x_copy.get(),
-            x_fbcsr));
+        throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
-        auto x_fbcsr = as<TFbcsr>(x);
-        auto x_copy = x_fbcsr->clone();
-        this->get_executor()->run(fbcsr::make_spgeam(
-            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_fbcsr));
+        throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -209,30 +192,6 @@ void Fbcsr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
-
-
-template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::convert_to(
-    Coo<ValueType, IndexType> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    auto tmp = Coo<ValueType, IndexType>::create(
-//        exec, this->get_size(), this->get_num_stored_elements());
-//    tmp->values_ = this->values_;
-//    tmp->col_idxs_ = this->col_idxs_;
-//    exec->run(fbcsr::make_convert_to_coo(this, tmp.get()));
-//    tmp->move_to(result);
-//}
-
-
-template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    this->convert_to(result);
-//}
 
 
 template <typename ValueType, typename IndexType>
@@ -467,85 +426,6 @@ std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::conj_transpose() const
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::row_permute(
-    const Array<IndexType> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy =
-//        Fbcsr::create(exec, this->get_size(), this->get_num_stored_elements(),
-//                    this->get_strategy());
-//
-//    exec->run(
-//        fbcsr::make_row_permute(permutation_indices, this,
-//        permute_cpy.get()));
-//    permute_cpy->make_srow();
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::column_permute(
-    const Array<IndexType> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy =
-//        Fbcsr::create(exec, this->get_size(), this->get_num_stored_elements(),
-//                    this->get_strategy());
-//
-//    exec->run(
-//        fbcsr::make_column_permute(permutation_indices, this,
-//        permute_cpy.get()));
-//    permute_cpy->make_srow();
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::inverse_row_permute(
-    const Array<IndexType> *inverse_permutation_indices) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
-//                  this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy =
-//        Fbcsr::create(exec, this->get_size(), this->get_num_stored_elements(),
-//                    this->get_strategy());
-//
-//    exec->run(fbcsr::make_inverse_row_permute(inverse_permutation_indices,
-//    this,
-//                                            inverse_permute_cpy.get()));
-//    inverse_permute_cpy->make_srow();
-//    return std::move(inverse_permute_cpy);
-//}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::inverse_column_permute(
-    const Array<IndexType> *inverse_permutation_indices) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
-//                  this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy =
-//        Fbcsr::create(exec, this->get_size(), this->get_num_stored_elements(),
-//                    this->get_strategy());
-//
-//    exec->run(fbcsr::make_inverse_column_permute(
-//        inverse_permutation_indices, this, inverse_permute_cpy.get()));
-//    inverse_permute_cpy->make_srow();
-//    return std::move(inverse_permute_cpy);
-//}
 
 
 template <typename ValueType, typename IndexType>
