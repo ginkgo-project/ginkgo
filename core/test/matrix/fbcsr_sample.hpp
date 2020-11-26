@@ -113,12 +113,20 @@ public:
      */
     MatData generate_matrix_data_with_explicit_zeros() const;
 
-    /// Returns an array containing number of stored values in each row
-    ///  (not block-row)
+    /**
+     *  @return An array containing number of stored values in each row
+     */
     gko::Array<index_type> getNonzerosPerRow() const;
 
+    /**
+     * @return FBCSR matrix with absolute values of respective entries
+     */
     std::unique_ptr<Fbcsr> generate_abs_fbcsr() const;
 
+    /**
+     * @return FBCSR matrix with real scalar type,
+     *         with absolute values of respective entries
+     */
     std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
     generate_abs_fbcsr_abstype() const;
 
@@ -180,15 +188,8 @@ public:
 
     gko::Array<index_type> getNonzerosPerRow() const;
 
-    /**
-     * @return FBCSR matrix with absolute values of respective entries
-     */
     std::unique_ptr<Fbcsr> generate_abs_fbcsr() const;
 
-    /**
-     * @return FBCSR matrix with real scalar type,
-     *         with absolute values of respective entries
-     */
     std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
     generate_abs_fbcsr_abstype() const;
 
