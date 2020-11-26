@@ -62,27 +62,27 @@ __global__ __launch_bounds__(default_block_size) void ict_sweep(
     auto a_val = has_a ? a_vals[a_idx] : zero<ValueType>();
     auto l_row_begin = l_row_ptrs[row];
     auto l_row_size = l_row_ptrs[row + 1] - l_row_begin;
-    auto lt_col_begin = l_row_ptrs[col];
-    auto lt_col_size = l_row_ptrs[col + 1] - lt_col_begin;
+    auto lh_col_begin = l_row_ptrs[col];
+    auto lh_col_size = l_row_ptrs[col + 1] - lh_col_begin;
     ValueType sum{};
-    IndexType lt_nz{};
+    IndexType lh_nz{};
     auto last_entry = col;
     group_merge<subwarp_size>(
-        l_col_idxs + l_row_begin, l_row_size, l_col_idxs + lt_col_begin,
-        lt_col_size, subwarp,
-        [&](IndexType l_idx, IndexType l_col, IndexType lt_idx,
-            IndexType lt_row, IndexType, bool) {
+        l_col_idxs + l_row_begin, l_row_size, l_col_idxs + lh_col_begin,
+        lh_col_size, subwarp,
+        [&](IndexType l_idx, IndexType l_col, IndexType lh_idx,
+            IndexType lh_row, IndexType, bool) {
             // we don't need to use the `bool valid` because last_entry is
             // already a smaller sentinel value than the one used in group_merge
-            if (l_col == lt_row && l_col < last_entry) {
-                sum +=
-                    l_vals[l_idx + l_row_begin] * l_vals[lt_idx + lt_col_begin];
+            if (l_col == lh_row && l_col < last_entry) {
+                sum += l_vals[l_idx + l_row_begin] *
+                       conj(l_vals[lh_idx + lh_col_begin]);
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(lt_row == row);
+            auto found_transp = subwarp.ballot(lh_row == row);
             if (found_transp) {
-                lt_nz =
-                    subwarp.shfl(lt_idx + lt_col_begin, ffs(found_transp) - 1);
+                lh_nz =
+                    subwarp.shfl(lh_idx + lh_col_begin, ffs(found_transp) - 1);
             }
             return true;
         });

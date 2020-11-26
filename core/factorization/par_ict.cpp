@@ -110,9 +110,9 @@ struct ParIctState {
     // current lower factor L
     std::unique_ptr<CsrMatrix> l;
     // current upper factor L^H
-    std::unique_ptr<CsrMatrix> lt;
+    std::unique_ptr<CsrMatrix> lh;
     // current product L * L^H
-    std::unique_ptr<CsrMatrix> llt;
+    std::unique_ptr<CsrMatrix> llh;
     // temporary lower factor L' before filtering
     std::unique_ptr<CsrMatrix> l_new;
     // lower factor L currently being updated with asynchronous iterations
@@ -124,14 +124,14 @@ struct ParIctState {
     // strategy to be used by the lower factor
     std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
     // strategy to be used by the upper factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> lt_strategy;
+    std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy;
 
     ParIctState(std::shared_ptr<const Executor> exec_in,
                 const CsrMatrix *system_matrix_in,
                 std::unique_ptr<CsrMatrix> l_in, IndexType l_nnz_limit,
                 bool use_approx_select,
                 std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
-                std::shared_ptr<typename CsrMatrix::strategy_type> lt_strategy_)
+                std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy_)
         : exec{std::move(exec_in)},
           l_nnz_limit{l_nnz_limit},
           use_approx_select{use_approx_select},
@@ -140,22 +140,22 @@ struct ParIctState {
           selection_tmp{exec},
           selection_tmp2{exec},
           l_strategy{std::move(l_strategy_)},
-          lt_strategy{std::move(lt_strategy_)}
+          lh_strategy{std::move(lh_strategy_)}
     {
         auto mtx_size = system_matrix->get_size();
         auto l_nnz = l->get_num_stored_elements();
-        lt = CsrMatrix::create(exec, mtx_size, l_nnz);
-        llt = CsrMatrix::create(exec, mtx_size);
+        lh = CsrMatrix::create(exec, mtx_size, l_nnz);
+        llh = CsrMatrix::create(exec, mtx_size);
         l_new = CsrMatrix::create(exec, mtx_size);
         l_coo = CooMatrix::create(exec, mtx_size);
-        exec->run(make_csr_conj_transpose(l.get(), lt.get()));
+        exec->run(make_csr_conj_transpose(l.get(), lh.get()));
     }
 
     std::unique_ptr<Composition<ValueType>> to_factors() &&
     {
         l->set_strategy(l_strategy);
-        lt->set_strategy(lt_strategy);
-        return Composition<ValueType>::create(std::move(l), std::move(lt));
+        lh->set_strategy(lh_strategy);
+        return Composition<ValueType>::create(std::move(l), std::move(lh));
     }
 
     void iterate();
@@ -220,11 +220,11 @@ template <typename ValueType, typename IndexType>
 void ParIctState<ValueType, IndexType>::iterate()
 {
     // compute L * L^H
-    exec->run(make_spgemm(l.get(), lt.get(), llt.get()));
+    exec->run(make_spgemm(l.get(), lh.get(), llh.get()));
 
     // add new candidates to L' factor
     exec->run(
-        make_add_candidates(llt.get(), system_matrix, l.get(), l_new.get()));
+        make_add_candidates(llh.get(), system_matrix, l.get(), l_new.get()));
 
     // update L(COO), L'^H sizes and pointers
     {
@@ -273,11 +273,11 @@ void ParIctState<ValueType, IndexType>::iterate()
     // convert L to L^H
     {
         auto l_nnz = l->get_num_stored_elements();
-        CsrBuilder lt_builder{lt.get()};
+        CsrBuilder lt_builder{lh.get()};
         lt_builder.get_col_idx_array().resize_and_reset(l_nnz);
         lt_builder.get_value_array().resize_and_reset(l_nnz);
     }
-    exec->run(make_csr_conj_transpose(l.get(), lt.get()));
+    exec->run(make_csr_conj_transpose(l.get(), lh.get()));
 }
 
 

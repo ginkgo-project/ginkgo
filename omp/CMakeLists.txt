@@ -9,7 +9,9 @@ target_sources(ginkgo_omp
     components/precision_conversion.cpp
     components/prefix_sum.cpp
     factorization/factorization_kernels.cpp
+    factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
+    factorization/par_ic_kernels.cpp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp

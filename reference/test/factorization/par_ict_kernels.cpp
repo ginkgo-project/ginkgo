@@ -113,7 +113,7 @@ protected:
                                       {0., 0., 3., 0.},
                                       {-2., 0., -3., 4.}},
                                      ref)),
-          mtx_llt(gko::initialize<Csr>({{1., 1., 0., -2.},
+          mtx_llh(gko::initialize<Csr>({{1., 1., 0., -2.},
                                         {1., 5., 0., -2.},
                                         {0., 0., 9., -9.},
                                         {-2., -2., -9., 29.}},
@@ -158,7 +158,7 @@ protected:
     std::unique_ptr<Csr> mtx_l_system;
     std::unique_ptr<Csr> mtx_init;
     std::unique_ptr<Csr> mtx_l;
-    std::unique_ptr<Csr> mtx_llt;
+    std::unique_ptr<Csr> mtx_llh;
     std::unique_ptr<Csr> mtx_l_init_expect;
     std::unique_ptr<Csr> mtx_l_add_expect;
     std::unique_ptr<Csr> mtx_l_it_expect;
@@ -213,7 +213,7 @@ TYPED_TEST(ParIct, KernelAddCandidates)
     auto res_mtx_l = Csr::create(this->exec, this->mtx_system->get_size());
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, this->mtx_llt.get(), this->mtx_system.get(),
+        this->ref, this->mtx_llh.get(), this->mtx_system.get(),
         this->mtx_l.get(), res_mtx_l.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_add_expect);
@@ -273,7 +273,7 @@ TYPED_TEST(ParIct, SetStrategies)
     ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
               l_strategy->get_name());
     ASSERT_EQ(factory->get_parameters().lt_strategy, lt_strategy);
-    ASSERT_EQ(fact->get_lt_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(fact->get_lh_factor()->get_strategy()->get_name(),
               lt_strategy->get_name());
 }
 
@@ -285,7 +285,7 @@ TYPED_TEST(ParIct, IsConsistentWithComposition)
     auto lin_op_l_factor =
         static_cast<const gko::LinOp *>(gko::lend(fact->get_l_factor()));
     auto lin_op_lt_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_lt_factor()));
+        static_cast<const gko::LinOp *>(gko::lend(fact->get_lh_factor()));
     auto first_operator = gko::lend(fact->get_operators()[0]);
     auto second_operator = gko::lend(fact->get_operators()[1]);
 
@@ -299,7 +299,7 @@ TYPED_TEST(ParIct, GenerateIdentity)
     auto fact = this->fact_fact->generate(this->identity);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), this->identity, this->tol);
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(), this->identity, this->tol);
 }
 
 
@@ -311,7 +311,7 @@ TYPED_TEST(ParIct, GenerateDenseIdentity)
     auto fact = this->fact_fact->generate(gko::share(dense_id));
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), this->identity, this->tol);
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(), this->identity, this->tol);
 }
 
 
@@ -327,7 +327,7 @@ TYPED_TEST(ParIct, GenerateWithExactSmallLimit)
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_small_expect,
                         this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
                         gko::as<Csr>(this->mtx_l_small_expect->transpose()),
                         this->tol);
 }
@@ -345,7 +345,7 @@ TYPED_TEST(ParIct, GenerateWithApproxSmallLimit)
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_small_expect,
                         this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
                         gko::as<Csr>(this->mtx_l_small_expect->transpose()),
                         this->tol);
 }
@@ -363,7 +363,7 @@ TYPED_TEST(ParIct, GenerateWithExactLargeLimit)
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_large_expect,
                         this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
                         gko::as<Csr>(this->mtx_l_large_expect->transpose()),
                         this->tol);
 }
@@ -381,7 +381,7 @@ TYPED_TEST(ParIct, GenerateWithApproxLargeLimit)
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_large_expect,
                         this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
                         gko::as<Csr>(this->mtx_l_large_expect->transpose()),
                         this->tol);
 }
