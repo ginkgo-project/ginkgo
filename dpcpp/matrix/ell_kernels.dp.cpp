@@ -80,7 +80,10 @@ namespace ell {
 
 constexpr int default_block_size = 256;
 
-constexpr Config default_config = config_set(default_block_size, 16);
+constexpr Config default_config =
+    config_set(default_block_size, config::warp_size);
+constexpr auto default_config_list =
+    ::gko::syn::value_list<Config, default_config>();
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
 /**
@@ -355,8 +358,7 @@ void initialize_zero_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 }
 
 
-template <Config config = default_config, typename ValueType,
-          typename IndexType>
+template <Config config, typename ValueType, typename IndexType>
 void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
                    const IndexType *__restrict__ col_idxs,
                    const ValueType *__restrict__ values,
@@ -373,8 +375,7 @@ void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
     }
 }
 
-template <Config config = default_config, typename ValueType,
-          typename IndexType>
+template <Config config, typename ValueType, typename IndexType>
 void fill_in_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                    sycl::queue *stream, size_type num_rows, size_type nnz,
                    size_type source_stride, const IndexType *col_idxs,
@@ -406,7 +407,7 @@ void fill_in_dense_CONFIG(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                           const ValueType *values, size_type result_stride,
                           ValueType *result)
 {
-    auto config_list = ::gko::syn::value_list<Config, default_config>();
+    auto config_list = default_config_list;
     auto exec_config = exec->get_config();
     fill_in_dense_CONFIG(
         config_list,
