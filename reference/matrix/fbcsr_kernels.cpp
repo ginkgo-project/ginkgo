@@ -43,11 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "core/base/allocator.hpp"
@@ -55,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fixed_block.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
-#include "reference/components/fbcsr_spgeam.hpp"
 #include "reference/components/format_conversion.hpp"
 
 

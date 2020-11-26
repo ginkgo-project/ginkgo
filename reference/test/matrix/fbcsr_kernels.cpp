@@ -44,14 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/matrix_strategies.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
@@ -75,12 +71,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
-    using Sellp = gko::matrix::Sellp<value_type, index_type>;
     using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
-    using Ell = gko::matrix::Ell<value_type, index_type>;
-    using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
 
@@ -93,7 +85,6 @@ protected:
           refmtx(fbsample.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
           refdenmtx(fbsample.generate_dense()),
-          refcoomtx(fbsample.generate_coo()),
           refspcmtx(fbsample.generate_sparsity_csr()),
           mtx2(fbsample2.generate_fbcsr()),
           m2diag(fbsample2.extract_diagonal()),
@@ -113,20 +104,6 @@ protected:
                       refcsrmtx->get_const_col_idxs()[i]);
             ASSERT_EQ(m->get_const_values()[i],
                       refcsrmtx->get_const_values()[i]);
-        }
-    }
-
-    void assert_equal_to_mtx(const Coo *m)
-    {
-        ASSERT_EQ(m->get_size(), refcoomtx->get_size());
-        ASSERT_EQ(m->get_num_stored_elements(),
-                  refcoomtx->get_num_stored_elements());
-        for (index_type i = 0; i < m->get_num_stored_elements(); i++) {
-            ASSERT_EQ(m->get_const_row_idxs()[i],
-                      refcoomtx->get_const_row_idxs[i]);
-            ASSERT_EQ(m->get_const_col_idxs()[i],
-                      refcoomtx->get_const_col_idxs[i]);
-            ASSERT_EQ(m->get_const_values()[i], refcoomtx->get_const_values[i]);
         }
     }
 
@@ -152,7 +129,6 @@ protected:
     const std::unique_ptr<const Mtx> refmtx;
     const std::unique_ptr<const Csr> refcsrmtx;
     const std::unique_ptr<const Dense> refdenmtx;
-    const std::unique_ptr<const Coo> refcoomtx;
     const std::unique_ptr<const SparCsr> refspcmtx;
     const std::unique_ptr<const Mtx> mtx2;
     const std::unique_ptr<const Diag> m2diag;

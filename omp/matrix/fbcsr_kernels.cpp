@@ -44,17 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
-#include "omp/components/fbcsr_spgeam.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
