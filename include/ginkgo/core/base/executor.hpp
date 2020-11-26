@@ -1313,6 +1313,14 @@ public:
         return this->get_exec_info().minor;
     }
 
+
+    /**
+     * Get the kernel Config
+     */
+    Config get_config() const noexcept {
+        return config_set(1024, 32);
+    }
+
     /**
      * Get the cublas handle for this executor
      *
