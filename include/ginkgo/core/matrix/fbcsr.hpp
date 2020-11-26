@@ -161,16 +161,19 @@ public:
 
     void move_to(Csr<ValueType, IndexType> *result) override;
 
-    /// Get the block sparsity pattern in CSR-like format
-    /** Note that the actual non-zero values are never copied;
+    /**
+     * Get the block sparsity pattern in CSR-like format
+     *
+     * Note that the actual non-zero values are never copied;
      * the result always has a value array of size 1 with the value 1.
      */
     void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
 
     void move_to(SparsityCsr<ValueType, IndexType> *result) override;
 
-    /// Convert COO data into block CSR
-    /** @warning Unlike Csr::read, here explicit non-zeros are NOT dropped.
+    /** Convert COO data into block CSR
+     *
+     * @warning Unlike Csr::read, here explicit non-zeros are NOT dropped.
      */
     void read(const mat_data &data) override;
 
@@ -200,13 +203,13 @@ public:
     bool is_sorted_by_column_index() const;
 
     /**
-     * Returns the values of the matrix.
-     *
-     * @return the values of the matrix.
+     * @return The values of the matrix.
      */
     value_type *get_values() noexcept { return values_.get_data(); }
 
-    /// @see Fbcsr::get_const_values()
+    /**
+     * @see Fbcsr::get_const_values()
+     */
     const value_type *get_values() const noexcept
     {
         return values_.get_const_data();
@@ -225,13 +228,13 @@ public:
     }
 
     /**
-     * Returns the column indexes of the matrix.
-     *
-     * @return the column indexes of the matrix.
+     * @return The column indexes of the matrix.
      */
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
-    /// @see Fbcsr::get_const_col_idxs()
+    /**
+     * @see Fbcsr::get_const_col_idxs()
+     */
     const index_type *get_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
@@ -250,13 +253,13 @@ public:
     }
 
     /**
-     * Returns the row pointers of the matrix.
-     *
-     * @return the row pointers of the matrix.
+     * @return The row pointers of the matrix.
      */
     index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
-    /// @see Fbcsr::get_const_row_ptrs()
+    /**
+     * @see Fbcsr::get_const_row_ptrs()
+     */
     const index_type *get_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
@@ -275,12 +278,13 @@ public:
     }
 
     /**
-     * Returns the starting rows.
-     *
-     * @return the starting rows.
+     * @return The starting row for each 'team' of threads
      */
     index_type *get_srow() noexcept { return startrow_.get_data(); }
 
+    /**
+     * @see get_const_srow
+     */
     const index_type *get_srow() const noexcept
     {
         return startrow_.get_const_data();
@@ -299,9 +303,7 @@ public:
     }
 
     /**
-     * Returns the number of the srow stored elements (involved warps)
-     *
-     * @return the number of the srow stored elements (involved warps)
+     * @return The number of the srow stored elements (involved warps)
      */
     size_type get_num_srow_elements() const noexcept
     {
@@ -318,9 +320,8 @@ public:
         return values_.get_num_elems();
     }
 
-    /** Returns the strategy
-     *
-     * @return the strategy
+    /**
+     * @return The strategy
      */
     std::shared_ptr<strategy_type> get_strategy() const noexcept
     {
@@ -338,15 +339,29 @@ public:
         this->make_srow();
     }
 
+    /**
+     * @return The fixed block size for this matrix
+     */
     int get_block_size() const { return bs_; }
 
+    /**
+     * Set the fixed block size for this matrix
+     *
+     * @param block_size The block size
+     */
     void set_block_size(const int block_size) { bs_ = block_size; }
 
+    /**
+     * @return The number of block-rows in the matrix
+     */
     index_type get_num_block_rows() const
     {
         return row_ptrs_.get_num_elems() - 1;
     }
 
+    /**
+     * @return The number of block-columns in the matrix
+     */
     index_type get_num_block_cols() const { return nbcols_; }
 
 protected:
@@ -430,7 +445,7 @@ protected:
     void convert_strategy_helper(FbcsrType *result) const;
 
     /**
-     * Computes srow. It should be run after changing any row_ptrs_ value.
+     * Computes srow. It should be run after changing any row pointer.
      */
     void make_srow()
     {

@@ -43,24 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
-#include "core/matrix/dense_kernels.hpp"
-#include "core/matrix/fbcsr_builder.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/intrinsics.cuh"
-#include "cuda/components/merging.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/segment_scan.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -116,13 +99,6 @@ template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
                               IndexType *idxs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto grid_dim = ceildiv(num_rows, default_block_size);
-//
-//    kernel::convert_row_ptrs_to_idxs<<<grid_dim, default_block_size>>>(
-//        num_rows, as_cuda_type(ptrs), as_cuda_type(idxs));
-//}
 
 
 template <typename ValueType, typename IndexType>
@@ -168,31 +144,6 @@ void calculate_max_nnz_per_row(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *source,
     size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto num_rows = source->get_size()[0];
-//
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//    auto block_results = Array<size_type>(exec, default_block_size);
-//    auto d_result = Array<size_type>(exec, 1);
-//
-//    const auto grid_dim = ceildiv(num_rows, default_block_size);
-//    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-//        num_rows, as_cuda_type(source->get_const_row_ptrs()),
-//        as_cuda_type(nnz_per_row.get_data()));
-//
-//    const auto n = ceildiv(num_rows, default_block_size);
-//    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-//    kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
-//        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-//        as_cuda_type(block_results.get_data()));
-//
-//    kernel::reduce_max_nnz<<<1, default_block_size>>>(
-//        reduce_dim, as_cuda_type(block_results.get_const_data()),
-//        as_cuda_type(d_result.get_data()));
-//
-//    *result = exec->copy_val_to_host(d_result.get_const_data());
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
@@ -203,15 +154,6 @@ void calculate_nonzeros_per_row(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *source,
     Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto num_rows = source->get_size()[0];
-//    auto row_ptrs = source->get_const_row_ptrs();
-//    auto grid_dim = ceildiv(num_rows, default_block_size);
-//
-//    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-//        num_rows, as_cuda_type(row_ptrs), as_cuda_type(result->get_data()));
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -231,19 +173,6 @@ void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *to_check,
     bool *is_sorted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    *is_sorted = true;
-//    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
-//    auto gpu_array = Array<bool>{exec, cpu_array};
-//    auto block_size = default_block_size;
-//    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
-//    auto num_blocks = ceildiv(num_rows, block_size);
-//    kernel::check_unsorted<<<num_blocks, block_size>>>(
-//        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-//        num_rows, gpu_array.get_data());
-//    cpu_array = gpu_array;
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
