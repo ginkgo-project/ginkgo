@@ -70,6 +70,8 @@ namespace ell {
 
 constexpr int default_block_size = 512;
 
+constexpr Config default_config = config_set(default_block_size, config::warp_size);
+
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
 /**

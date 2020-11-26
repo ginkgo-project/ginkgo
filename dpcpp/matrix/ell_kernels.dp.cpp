@@ -80,6 +80,7 @@ namespace ell {
 
 constexpr int default_block_size = 256;
 
+constexpr Config default_config = config_set(default_block_size, 16);
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
 /**
@@ -354,7 +355,8 @@ void initialize_zero_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 }
 
 
-template <typename ValueType, typename IndexType>
+template <Config config = default_config, typename ValueType,
+          typename IndexType>
 void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
                    const IndexType *__restrict__ col_idxs,
                    const ValueType *__restrict__ values,
@@ -371,7 +373,8 @@ void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
     }
 }
 
-template <typename ValueType, typename IndexType>
+template <Config config = default_config, typename ValueType,
+          typename IndexType>
 void fill_in_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                    sycl::queue *stream, size_type num_rows, size_type nnz,
                    size_type source_stride, const IndexType *col_idxs,
@@ -384,11 +387,37 @@ void fill_in_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
                          [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_dense(num_rows, nnz, source_stride,
-                                           col_idxs, values, result_stride,
-                                           result, item_ct1);
+                             fill_in_dense<config>(
+                                 num_rows, nnz, source_stride, col_idxs, values,
+                                 result_stride, result, item_ct1);
                          });
     });
+}
+
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(fill_in_dense_CONFIG, fill_in_dense)
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense_CONFIG(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                          sycl::queue *stream,
+                          std::shared_ptr<const DpcppExecutor> exec,
+                          size_type num_rows, size_type nnz,
+                          size_type source_stride, const IndexType *col_idxs,
+                          const ValueType *values, size_type result_stride,
+                          ValueType *result)
+{
+    auto config_list = ::gko::syn::value_list<Config, default_config>();
+    auto exec_config = exec->get_config();
+    fill_in_dense_CONFIG(
+        config_list,
+        [&exec_config](Config config) {
+            return (get_warp_size(exec_config) == get_warp_size(config)) &&
+                   (get_block_size(exec_config) >= get_block_size(config));
+        },
+        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
+        ::gko::syn::value_list<size_type>(), ::gko::syn::type_list<>(), grid,
+        block, dynamic_shared_memory, stream, num_rows, nnz, source_stride,
+        col_idxs, values, result_stride, result);
 }
 
 
@@ -559,7 +588,6 @@ void abstract_spmv(syn::value_list<int, info>,
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
     if (alpha == nullptr && beta == nullptr) {
-        // functioname spmv<num_thread_per_worker,atomic>
         kernel::spmv<num_thread_per_worker, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
             num_worker_per_row, a->get_const_values(), a->get_const_col_idxs(),
@@ -567,7 +595,6 @@ void abstract_spmv(syn::value_list<int, info>,
             b->get_const_values(), b->get_stride(), c->get_values(),
             c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
-        // functioname spmv<num_thread_per_worker,atomic>
         kernel::spmv<num_thread_per_worker, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
             num_worker_per_row, alpha->get_const_values(),
@@ -704,17 +731,15 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                           config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
-    // functioname initialize_zero_dense
     kernel::initialize_zero_dense(init_grid_dim, block_size, 0,
                                   exec->get_queue(), num_rows, num_cols,
                                   result_stride, result->get_values());
 
     const auto grid_dim = ceildiv(num_rows, default_block_size);
-    // functioname fill_in_dense
-    kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                          num_rows, source->get_num_stored_elements_per_row(),
-                          source_stride, col_idxs, vals, result_stride,
-                          result->get_values());
+    kernel::fill_in_dense_CONFIG(
+        grid_dim, default_block_size, 0, exec->get_queue(), exec, num_rows,
+        source->get_num_stored_elements_per_row(), source_stride, col_idxs,
+        vals, result_stride, result->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -739,7 +764,6 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(default_block_size, config::warp_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
-    // functioname count_nnz_per_row
     kernel::count_nnz_per_row(grid_dim_nnz, default_block_size, 0,
                               exec->get_queue(), num_rows, max_nnz_per_row,
                               stride, source->get_const_values(), row_ptrs);
@@ -748,7 +772,6 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
-    // functioname fill_in_csr
     kernel::fill_in_csr(
         grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
         max_nnz_per_row, stride, source->get_const_values(),
@@ -789,7 +812,6 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
     const auto warp_size = config::warp_size;
     const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
 
-    // functioname count_nnz_per_row
     kernel::count_nnz_per_row(grid_dim, default_block_size, 0,
                               exec->get_queue(), num_rows, max_nnz_per_row,
                               stride, values, result->get_data());
@@ -814,7 +836,6 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     const auto orig_col_idxs = orig->get_const_col_idxs();
     auto diag_values = diag->get_values();
 
-    // functioname extract_diagonal
     kernel::extract_diagonal(
         num_blocks, default_block_size, 0, exec->get_queue(), diag_size,
         max_nnz_per_row, orig_stride, orig_values, orig_col_idxs, diag_values);

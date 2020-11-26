@@ -169,8 +169,9 @@ __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+template <Config config = default_config, typename ValueType,
+          typename IndexType>
+__global__ __launch_bounds__(get_block_size(config)) void fill_in_dense(
     size_type num_rows, size_type nnz, size_type source_stride,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, size_type result_stride,

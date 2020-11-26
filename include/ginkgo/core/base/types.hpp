@@ -186,6 +186,26 @@ using default_precision = double;
 
 
 /**
+ * Config type
+ */
+using Config = int;
+
+constexpr int config_scaler = 1000;
+
+constexpr Config config_set(int block_size, int warp_size) {
+    return block_size * config_scaler + warp_size;
+}
+
+constexpr int get_warp_size(Config config_set) {
+    return config_set % config_scaler;
+}
+
+constexpr int get_block_size(Config config_set) {
+    return config_set / config_scaler;
+}
+
+
+/**
  * Number of bits in a byte
  */
 constexpr size_type byte_size = CHAR_BIT;
