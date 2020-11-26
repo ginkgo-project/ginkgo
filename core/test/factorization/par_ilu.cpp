@@ -39,20 +39,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "core/test/utils.hpp"
-
-
 namespace {
 
 
-template <typename ValueIndexType>
 class ParIlu : public ::testing::Test {
 public:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using value_type = double;
+    using index_type = gko::int32;
     using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
+    using strategy_type = ilu_factory_type::matrix_type::classical;
 
 protected:
     ParIlu() : ref(gko::ReferenceExecutor::create()) {}
@@ -60,38 +55,73 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes);
 
-
-TYPED_TEST(ParIlu, SetIterations)
+TEST_F(ParIlu, SetIterations)
 {
-    auto factory =
-        TestFixture::ilu_factory_type::build().with_iterations(5u).on(
-            this->ref);
+    auto factory = ilu_factory_type::build().with_iterations(5u).on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 5u);
 }
 
 
-TYPED_TEST(ParIlu, SetSkip)
+TEST_F(ParIlu, SetSkip)
 {
     auto factory =
-        TestFixture::ilu_factory_type::build().with_skip_sorting(true).on(
-            this->ref);
+        ilu_factory_type::build().with_skip_sorting(true).on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().skip_sorting, true);
 }
 
 
-TYPED_TEST(ParIlu, SetEverything)
+TEST_F(ParIlu, SetLStrategy)
 {
-    auto factory = TestFixture::ilu_factory_type::build()
-                       .with_skip_sorting(false)
+    auto strategy = std::make_shared<strategy_type>();
+
+    auto factory =
+        ilu_factory_type::build().with_l_strategy(strategy).on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
+}
+
+
+TEST_F(ParIlu, SetUStrategy)
+{
+    auto strategy = std::make_shared<strategy_type>();
+
+    auto factory =
+        ilu_factory_type::build().with_u_strategy(strategy).on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().u_strategy, strategy);
+}
+
+
+TEST_F(ParIlu, SetDefaults)
+{
+    auto factory = ilu_factory_type::build().on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().iterations, 0u);
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
+    ASSERT_EQ(factory->get_parameters().l_strategy, nullptr);
+    ASSERT_EQ(factory->get_parameters().u_strategy, nullptr);
+}
+
+
+TEST_F(ParIlu, SetEverything)
+{
+    auto strategy = std::make_shared<strategy_type>();
+    auto strategy2 = std::make_shared<strategy_type>();
+
+    auto factory = ilu_factory_type::build()
                        .with_iterations(7u)
+                       .with_skip_sorting(false)
+                       .with_l_strategy(strategy)
+                       .with_u_strategy(strategy2)
                        .on(this->ref);
 
-    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().iterations, 7u);
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
+    ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
+    ASSERT_EQ(factory->get_parameters().u_strategy, strategy2);
 }
 
 

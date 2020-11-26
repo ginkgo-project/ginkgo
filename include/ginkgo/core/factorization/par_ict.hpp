@@ -106,7 +106,7 @@ public:
             this->get_operators()[0]);
     }
 
-    std::shared_ptr<const matrix_type> get_lt_factor() const
+    std::shared_ptr<const matrix_type> get_lh_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
         return std::static_pointer_cast<const matrix_type>(

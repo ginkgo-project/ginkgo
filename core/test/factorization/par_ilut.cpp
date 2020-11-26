@@ -48,6 +48,7 @@ public:
     using index_type = gko::int32;
     using ilut_factory_type =
         gko::factorization::ParIlut<value_type, index_type>;
+    using strategy_type = ilut_factory_type::matrix_type::classical;
 
 protected:
     ParIlut() : ref(gko::ReferenceExecutor::create()) {}
@@ -98,33 +99,64 @@ TEST_F(ParIlut, SetFillIn)
 }
 
 
+TEST_F(ParIlut, SetLStrategy)
+{
+    auto strategy = std::make_shared<strategy_type>();
+
+    auto factory =
+        ilut_factory_type::build().with_l_strategy(strategy).on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
+}
+
+
+TEST_F(ParIlut, SetUStrategy)
+{
+    auto strategy = std::make_shared<strategy_type>();
+
+    auto factory =
+        ilut_factory_type::build().with_u_strategy(strategy).on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().u_strategy, strategy);
+}
+
+
 TEST_F(ParIlut, SetDefaults)
 {
     auto factory = ilut_factory_type::build().on(ref);
 
-    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().iterations, 5u);
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().approximate_select, true);
     ASSERT_EQ(factory->get_parameters().deterministic_sample, false);
     ASSERT_EQ(factory->get_parameters().fill_in_limit, 2.0);
+    ASSERT_EQ(factory->get_parameters().l_strategy, nullptr);
+    ASSERT_EQ(factory->get_parameters().u_strategy, nullptr);
 }
 
 
 TEST_F(ParIlut, SetEverything)
 {
+    auto strategy = std::make_shared<strategy_type>();
+    auto strategy2 = std::make_shared<strategy_type>();
+
     auto factory = ilut_factory_type::build()
-                       .with_skip_sorting(true)
                        .with_iterations(7u)
+                       .with_skip_sorting(true)
                        .with_approximate_select(false)
                        .with_deterministic_sample(true)
                        .with_fill_in_limit(1.2)
+                       .with_l_strategy(strategy)
+                       .with_u_strategy(strategy2)
                        .on(ref);
 
-    ASSERT_EQ(factory->get_parameters().skip_sorting, true);
     ASSERT_EQ(factory->get_parameters().iterations, 7u);
+    ASSERT_EQ(factory->get_parameters().skip_sorting, true);
     ASSERT_EQ(factory->get_parameters().approximate_select, false);
     ASSERT_EQ(factory->get_parameters().deterministic_sample, true);
     ASSERT_EQ(factory->get_parameters().fill_in_limit, 1.2);
+    ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
+    ASSERT_EQ(factory->get_parameters().u_strategy, strategy2);
 }
 
 
