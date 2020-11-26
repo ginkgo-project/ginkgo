@@ -217,7 +217,7 @@ void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *const result)
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+    Csr<ValueType, IndexType> *const result) const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
