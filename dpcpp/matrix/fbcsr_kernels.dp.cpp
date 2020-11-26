@@ -89,80 +89,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row(unordered_set<IndexType> &cols,
-                       const matrix::Fbcsr<ValueType, IndexType> *c,
-                       size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row2(unordered_set<IndexType> &cols,
-                        const matrix::Fbcsr<ValueType, IndexType> *a,
-                        const matrix::Fbcsr<ValueType, IndexType> *b,
-                        size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
-                           const matrix::Fbcsr<ValueType, IndexType> *c,
-                           ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
-                            const matrix::Fbcsr<ValueType, IndexType> *a,
-                            const matrix::Fbcsr<ValueType, IndexType> *b,
-                            ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Fbcsr<ValueType, IndexType> *a,
-            const matrix::Fbcsr<ValueType, IndexType> *b,
-            matrix::Fbcsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Fbcsr<ValueType, IndexType> *a,
-                     const matrix::Fbcsr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Fbcsr<ValueType, IndexType> *d,
-                     matrix::Fbcsr<ValueType, IndexType> *c)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_ADVANCED_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Fbcsr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Fbcsr<ValueType, IndexType> *b,
-            matrix::Fbcsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPGEAM_KERNEL);
-
-
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
                               IndexType *idxs) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_COO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -182,26 +112,6 @@ void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
@@ -240,16 +150,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::Fbcsr<ValueType, IndexType> *source,
-                          size_type *result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_TOTAL_COLS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *source,
@@ -257,54 +157,6 @@ void calculate_max_nnz_per_row(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Fbcsr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_HYBRID_KERNEL);
-
-
-// template <typename IndexType>
-// void invert_permutation(std::shared_ptr<const DpcppExecutor> exec,
-//                         size_type size, const IndexType *permutation_indices,
-//                         IndexType *inv_permutation) GKO_NOT_IMPLEMENTED;
-
-// GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::Fbcsr<ValueType, IndexType> *orig,
-    matrix::Fbcsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::Fbcsr<ValueType, IndexType> *orig,
-    matrix::Fbcsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::Fbcsr<ValueType, IndexType> *orig,
-    matrix::Fbcsr<ValueType, IndexType> *column_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

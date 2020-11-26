@@ -53,18 +53,6 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType, typename IndexType>
-class Coo;
-
-template <typename ValueType, typename IndexType>
-class Ell;
-
-template <typename ValueType, typename IndexType>
-class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class Sellp;
-
-template <typename ValueType, typename IndexType>
 class SparsityCsr;
 
 template <typename ValueType, typename IndexType>
@@ -129,18 +117,15 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public ConvertibleTo<Coo<ValueType, IndexType>>,
               public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
               public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, IndexType>,
               public WritableToMatrixData<ValueType, IndexType>,
               public Transposable,
-              public Permutable<IndexType>,
               public EnableAbsoluteComputation<
                   remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Fbcsr>;
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
-    friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class FbcsrBuilder<ValueType, IndexType>;
@@ -176,10 +161,6 @@ public:
 
     void move_to(Csr<ValueType, IndexType> *result) override;
 
-    void convert_to(Coo<ValueType, IndexType> *result) const override;
-
-    void move_to(Coo<ValueType, IndexType> *result) override;
-
     /// Get the block sparsity pattern in CSR-like format
     /** Note that the actual non-zero values are never copied;
      * the result always has a value array of size 1 with the value 1.
@@ -198,18 +179,6 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
-
-    std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
