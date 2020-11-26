@@ -49,6 +49,10 @@ namespace blockutils {
  *
  * The primary use is to reinterpret subsets of entries in a big array as
  *  small dense blocks.
+ *
+ * @tparam ValueType The numeric type of entries of the block
+ * @tparam nrows Number of rows
+ * @tparam ncols Number of columns
  */
 template <typename ValueType, int nrows, int ncols>
 class FixedBlock final {
@@ -83,7 +87,11 @@ private:
 };
 
 
-/// A lightweight dynamic block type for the host space
+/**
+ * A lightweight dynamic block type for the host space
+ *
+ * @tparam ValueType The numeric type of entries of the block
+ */
 template <typename ValueType>
 class DenseBlock final {
 public:
@@ -145,6 +153,9 @@ private:
 /** Note that accessing BSR values using this type of view abstracts away the
  * storage layout within the individual blocks, as long as all blocks use the
  * same layout. For now, row-major blocks are assumed.
+ *
+ * @tparam ValueType The numeric type of entries of the block
+ * @tparam IndexType The type of integer used to identify the different blocks
  */
 template <typename ValueType, typename IndexType = int32>
 class DenseBlocksView final {

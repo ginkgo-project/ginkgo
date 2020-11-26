@@ -46,24 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
-#include "core/matrix/dense_kernels.hpp"
-#include "core/matrix/fbcsr_builder.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/merging.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/segment_scan.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
+#include "hip/base/config.hpp"
 
 
 namespace gko {
@@ -158,34 +141,6 @@ void calculate_max_nnz_per_row(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *source,
     size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto num_rows = source->get_size()[0];
-//
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//    auto block_results = Array<size_type>(exec, default_block_size);
-//    auto d_result = Array<size_type>(exec, 1);
-//
-//    const auto grid_dim = ceildiv(num_rows, default_block_size);
-//    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, num_rows,
-//                       as_hip_type(source->get_const_row_ptrs()),
-//                       as_hip_type(nnz_per_row.get_data()));
-//
-//    const auto n = ceildiv(num_rows, default_block_size);
-//    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-//    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(reduce_dim),
-//                       dim3(default_block_size), 0, 0, num_rows,
-//                       as_hip_type(nnz_per_row.get_const_data()),
-//                       as_hip_type(block_results.get_data()));
-//
-//    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(1),
-//                       dim3(default_block_size), 0, 0, reduce_dim,
-//                       as_hip_type(block_results.get_const_data()),
-//                       as_hip_type(d_result.get_data()));
-//
-//    *result = exec->copy_val_to_host(d_result.get_const_data());
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
@@ -196,17 +151,6 @@ void calculate_nonzeros_per_row(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *source,
     Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    const auto num_rows = source->get_size()[0];
-//    auto row_ptrs = source->get_const_row_ptrs();
-//    auto grid_dim = ceildiv(num_rows, default_block_size);
-//
-//    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, num_rows,
-//                       as_hip_type(row_ptrs),
-//                       as_hip_type(result->get_data()));
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -226,20 +170,6 @@ void is_sorted_by_column_index(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *to_check,
     bool *is_sorted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    *is_sorted = true;
-//    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
-//    auto gpu_array = Array<bool>{exec, cpu_array};
-//    auto block_size = default_block_size;
-//    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
-//    auto num_blocks = ceildiv(num_rows, block_size);
-//    hipLaunchKernelGGL(
-//        HIP_KERNEL_NAME(kernel::check_unsorted), dim3(num_blocks),
-//        dim3(block_size), 0, 0, to_check->get_const_row_ptrs(),
-//        to_check->get_const_col_idxs(), num_rows, gpu_array.get_data());
-//    cpu_array = gpu_array;
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
