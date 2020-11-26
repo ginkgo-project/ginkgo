@@ -53,12 +53,12 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class FbcsrBuilder {
 public:
     /**
-     * @return The column index array of the CSR matrix.
+     * @return The column index array of the matrix.
      */
     Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
-     * @return The value array of the CSR matrix.
+     * @return The value array of the matrix.
      */
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
@@ -68,7 +68,8 @@ public:
     int get_block_size() const { return matrix_->bs_; }
 
     /**
-     * Initializes a CsrBuilder from an existing CSR matrix.
+     * @param matrix An existing FBCSR matrix
+     *        for which intrusive access is needed
      */
     explicit FbcsrBuilder(Fbcsr<ValueType, IndexType> *const matrix)
         : matrix_{matrix}
