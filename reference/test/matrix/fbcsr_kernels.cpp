@@ -135,7 +135,7 @@ protected:
     const std::unique_ptr<const Mtx> mtxsq;
 };
 
-TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
 
 
 template <typename T>
@@ -656,7 +656,7 @@ protected:
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(FbcsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)

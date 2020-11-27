@@ -64,7 +64,7 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_CASE(FbcsrBuilder, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrBuilder, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(FbcsrBuilder, ReturnsCorrectArrays)
