@@ -1,10 +1,6 @@
 #!/bin/bash
 
-source $(dirname "${BASH_SOURCE[0]}")/bot-pr-comment-base.sh
-
-if [[ "$PR_MERGED" == "true" ]]; then
-  bot_error "PR already merged!"
-fi
+source .github/bot-pr-base.sh
 
 git remote add base "$BASE_URL"
 git remote add fork "$HEAD_URL"
@@ -19,9 +15,7 @@ LOCAL_BRANCH=rebase-tmp-$HEAD_BRANCH
 git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
 
 # do the rebase
-git rebase base/$BASE_BRANCH 2>&1 || bot_error "Rebasing failed"
+git rebase base/$BASE_BRANCH 2>&1 || bot_error "Rebase failed, see the related [Action]($JOB_URL) for details"
 
 # push back
 git push --force-with-lease fork $LOCAL_BRANCH:$HEAD_BRANCH 2>&1 || bot_error "Cannot push rebased branch, are edits for maintainers allowed?"
-
-bot_comment "Rebasing succeeded"

@@ -1,4 +1,4 @@
-on: 
+on:
   issue_comment:
     types: [created]
 name: OnCommentPR
@@ -15,7 +15,7 @@ jobs:
     - name: Add appropriate labels
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: .github/label.sh
+      run: cp .github/label.sh /tmp && /tmp/label.sh
   check_format:
     name: check-format
     runs-on: ubuntu-18.04
@@ -26,10 +26,16 @@ jobs:
       with:
         ref: develop
         fetch-depth: 0
-    - name: Check the code formatting
+    - name: Check for formatting changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: .github/check-format.sh
+      run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
+    - name: Upload code formatting patch
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+          name: patch
+          path: format.patch
   format:
     name: format
     runs-on: ubuntu-18.04
@@ -40,10 +46,10 @@ jobs:
       with:
         ref: develop
         fetch-depth: 0
-    - name: Format the code
+    - name: Commit formatting changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: .github/format.sh
+      run: cp .github/format.sh /tmp && /tmp/format.sh
   rebase:
     name: rebase
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
@@ -57,4 +63,4 @@ jobs:
     - name: Automatic Rebase
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: .github/rebase.sh
+      run: cp .github/rebase.sh /tmp && /tmp/rebase.sh

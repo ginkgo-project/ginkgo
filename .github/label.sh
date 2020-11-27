@@ -1,20 +1,6 @@
 #!/bin/bash
 
-source $(dirname "${BASH_SOURCE[0]}")/bot-base.sh
-
-echo -n "Collecting information on triggering PR"
-PR_URL=$(jq -r .pull_request.url "$GITHUB_EVENT_PATH")
-if [[ "$PR_URL" == "null" ]]; then
-  echo -n ...
-  PR_URL=$(jq -er .issue.pull_request.url "$GITHUB_EVENT_PATH")
-  echo -n .
-  ISSUE_URL=$(jq -er .issue.url "$GITHUB_EVENT_PATH")
-  echo .
-else
-  echo -n .
-  ISSUE_URL=$(jq -er .pull_request.issue_url "$GITHUB_EVENT_PATH")
-  echo .
-fi
+source .github/bot-pr-base.sh
 
 echo "Retrieving PR file list"
 PR_FILES=$(api_get "$PR_URL/files?&per_page=1000" | jq -er '.[] | .filename')

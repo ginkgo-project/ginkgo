@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
+
 convert_header () {
     local regex="^(#include )(<|\")(.*)(\"|>)$"
     if [[ $@ =~ ${regex} ]]; then
@@ -10,7 +12,7 @@ convert_header () {
             else
                 echo "#include \"${header_file}\""
             fi
-        elif [ "${header_file}" = "matrices/config.hpp" ]; then 
+        elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
         else
             echo "#include <${header_file}>"
@@ -23,7 +25,7 @@ convert_header () {
 get_header_def () {
     local regex="\.(hpp|cuh)"
     if [[ $@ =~ $regex ]]; then
-        local def=$(echo "$@" | sed -E "s~include/ginkgo/~~g;s~/|\.~_~g")
+        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~/|\.~_~g")
         def=$(echo GKO_${def^^}_)
         echo $def
     else
@@ -249,7 +251,7 @@ fi
 # Write the main header and give warnning if there are multiple matches
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
-    clang-format -i -style=file ${BEFORE}
+    "${CLANG_FORMAT}" -i -style=file ${BEFORE}
     if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
         echo "Warning $1: there are multiple main header matchings"
     fi
@@ -261,7 +263,7 @@ if [ -f "${BEFORE}" ]; then
     rm "${BEFORE}"
 fi
 
-# Arrange the remain files and give 
+# Arrange the remain files and give
 if [ -f "${CONTENT}" ]; then
     add_regroup
     if [ "${HAS_HIP_RUNTIME}" = "true" ]; then
@@ -273,14 +275,14 @@ if [ -f "${CONTENT}" ]; then
         if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
             head -n -1 temp > ${CONTENT}
             echo "#endif  // $HEADER_DEF" >> ${CONTENT}
-        else 
+        else
             echo "Warning $1: Found the begin header_def but did not find the end of header_def"
             cat temp > ${CONTENT}
         fi
     else
         cat temp > "${CONTENT}"
     fi
-    clang-format -i -style=file "${CONTENT}"
+    "${CLANG_FORMAT}" -i -style=file "${CONTENT}"
     rm temp
     remove_regroup
     PREV_INC=0
