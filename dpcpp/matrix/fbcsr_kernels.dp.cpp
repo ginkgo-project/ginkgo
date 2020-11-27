@@ -33,28 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/fbcsr_kernels.hpp"
 
 
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-
 #include <CL/sycl.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-
-
-#include "core/base/allocator.hpp"
-#include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum.hpp"
-#include "core/matrix/fbcsr_builder.hpp"
-#include "dpcpp/components/format_conversion.dp.hpp"
 
 
 namespace gko {
