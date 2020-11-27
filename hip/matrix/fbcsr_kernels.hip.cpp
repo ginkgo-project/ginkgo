@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "hip/base/config.hpp"
+#include "hip/base/config.hip.hpp"
 
 
 namespace gko {
