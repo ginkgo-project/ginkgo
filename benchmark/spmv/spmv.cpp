@@ -106,7 +106,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             timer->toc();
         }
         add_or_set_member(spmv_case[format_name], "time",
-                          timer->get_average_time(), allocator);
+                          timer->compute_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);

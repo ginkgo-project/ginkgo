@@ -305,3 +305,5 @@ The supported environment variables are described in the following list:
     values as the right-hand side in solver benchmarks. Default is `unit`.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran for the
     solver benchmarks, can be either `0` (off) or `1` (on). The default is `0`.
+* `GPU_TIMER={true, false}` - If set to `true`, use the gpu timer, which is
+    valid for cuda/hip executor, to measure the timing. Default is `false`.
