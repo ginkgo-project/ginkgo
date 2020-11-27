@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1CurandError}{}\doxysection{gko\+::Curand\+Error Class Reference}
+\label{classgko_1_1CurandError}\index{gko::CurandError@{gko::CurandError}}
+
+
+\mbox{\hyperlink{classgko_1_1CurandError}{Curand\+Error}} is thrown when a cu\+R\+A\+ND routine throws a non-\/zero error code.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Curand\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=178pt]{classgko_1_1CurandError__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1CurandError_ab93a52996f5eef8b9a6b9668680cf846}{Curand\+Error}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} error\+\_\+code)
+\begin{DoxyCompactList}\small\item\em Initializes a cu\+R\+A\+ND error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1CurandError}{Curand\+Error}} is thrown when a cu\+R\+A\+ND routine throws a non-\/zero error code. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1CurandError_ab93a52996f5eef8b9a6b9668680cf846}\label{classgko_1_1CurandError_ab93a52996f5eef8b9a6b9668680cf846}} 
+\index{gko::CurandError@{gko::CurandError}!CurandError@{CurandError}}
+\index{CurandError@{CurandError}!gko::CurandError@{gko::CurandError}}
+\doxysubsubsection{\texorpdfstring{CurandError()}{CurandError()}}
+{\footnotesize\ttfamily gko\+::\+Curand\+Error\+::\+Curand\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}}]{error\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a cu\+R\+A\+ND error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the cu\+R\+A\+ND routine that failed \\
+\hline
+{\em error\+\_\+code} & The resulting cu\+R\+A\+ND error code \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp\end{DoxyCompactItemize}

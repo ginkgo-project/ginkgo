@@ -30,11 +30,12 @@
 \form#29:$LUx = b$
 \form#30:$aiU * x$
 \form#31:$aiL * x$
-\form#32:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
-\form#33:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
-\form#34:$x1, ..., xk, $
-\form#35:$ h = 1 / (K + 1)$
-\form#36:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
-\form#37:$`f` $
-\form#38:$`f(x) = 6x`$
-\form#39:$`u(x) = x^3`$
+\form#32:$|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa$
+\form#33:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
+\form#34:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+\form#35:$x1, ..., xk, $
+\form#36:$ h = 1 / (K + 1)$
+\form#37:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+\form#38:$`f` $
+\form#39:$`f(x) = 6x`$
+\form#40:$`u(x) = x^3`$

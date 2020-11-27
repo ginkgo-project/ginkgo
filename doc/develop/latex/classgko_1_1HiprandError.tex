@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1HiprandError}{}\doxysection{gko\+::Hiprand\+Error Class Reference}
+\label{classgko_1_1HiprandError}\index{gko::HiprandError@{gko::HiprandError}}
+
+
+\mbox{\hyperlink{classgko_1_1HiprandError}{Hiprand\+Error}} is thrown when a hip\+R\+A\+ND routine throws a non-\/zero error code.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Hiprand\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=182pt]{classgko_1_1HiprandError__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1HiprandError_af7ee80114b42216f1c0a61a0bd5c9058}{Hiprand\+Error}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} error\+\_\+code)
+\begin{DoxyCompactList}\small\item\em Initializes a hip\+R\+A\+ND error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1HiprandError}{Hiprand\+Error}} is thrown when a hip\+R\+A\+ND routine throws a non-\/zero error code. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1HiprandError_af7ee80114b42216f1c0a61a0bd5c9058}\label{classgko_1_1HiprandError_af7ee80114b42216f1c0a61a0bd5c9058}} 
+\index{gko::HiprandError@{gko::HiprandError}!HiprandError@{HiprandError}}
+\index{HiprandError@{HiprandError}!gko::HiprandError@{gko::HiprandError}}
+\doxysubsubsection{\texorpdfstring{HiprandError()}{HiprandError()}}
+{\footnotesize\ttfamily gko\+::\+Hiprand\+Error\+::\+Hiprand\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}}]{error\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a hip\+R\+A\+ND error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the hip\+R\+A\+ND routine that failed \\
+\hline
+{\em error\+\_\+code} & The resulting hip\+R\+A\+ND error code \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp\end{DoxyCompactItemize}

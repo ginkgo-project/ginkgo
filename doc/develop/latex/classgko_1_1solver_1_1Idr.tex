@@ -1,0 +1,330 @@
+\hypertarget{classgko_1_1solver_1_1Idr}{}\doxysection{gko\+::solver\+::Idr$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Idr}\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+
+
+I\+D\+R(s) is an efficient method for solving large nonsymmetric systems of linear equations.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/idr.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Idr$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Idr__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Idr_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Idr_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a405e28f0e3aa0a90f1a9d8fd269413a8}\label{classgko_1_1solver_1_1Idr_a405e28f0e3aa0a90f1a9d8fd269413a8}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_ac93c3bc65aa8df24d5413c1ef37efc91}\label{classgko_1_1solver_1_1Idr_ac93c3bc65aa8df24d5413c1ef37efc91}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{Idr}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr_ac667c48a4bbe3b2490d540d3951ba5f4}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a21c75c080cce1b1003ae691e4db30598}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a5e869cf20403cba4eace927246e26aa6}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a7f9cb44f63a94d1bc9b94b465cf9348c}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
+\begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a51f32d52eda0a94c24b7d83c1e8f3b3f}{get\+\_\+stop\+\_\+criterion\+\_\+factory}} () const
+\begin{DoxyCompactList}\small\item\em Gets the stopping criterion factory of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a4024732a9f09b06ef458dc820d791b06}{set\+\_\+stop\+\_\+criterion\+\_\+factory}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the stopping criterion of the solver. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Idr_ac265f8be9752fde6368b86a1c9a41570}{get\+\_\+subspace\+\_\+dim}} () const
+\begin{DoxyCompactList}\small\item\em Gets the subspace dimension of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a72dbeb6df1732913721ec61d157a0069}{set\+\_\+subspace\+\_\+dim}} (const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} other)
+\begin{DoxyCompactList}\small\item\em Sets the subspace dimension of the solver. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a3972be1e389b17843fbbe065feccc2ea}{get\+\_\+kappa}} () const
+\begin{DoxyCompactList}\small\item\em Gets the kappa parameter of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a1552bbc46e5961608fe41521b6b846dc}{set\+\_\+kappa}} (const \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the kappa parameter of the solver. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr_ac9bc7b7801121b03df82780be83feecf}{get\+\_\+deterministic}} () const
+\begin{DoxyCompactList}\small\item\em Gets the deterministic parameter of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a72f7124b7acc0bb5a54a7c31e93abffb}{set\+\_\+deterministic}} (const bool other)
+\begin{DoxyCompactList}\small\item\em Sets the deterministic parameter of the solver. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr_ac06361fe669b70c6ab0507e7cd9cfa58}{get\+\_\+complex\+\_\+subspace}} () const
+\begin{DoxyCompactList}\small\item\em Gets the complex\+\_\+subspace parameter of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr_a1e08efc79a76f2e2501b841a9c8f8e2b}{set\+\_\+complex\+\_\+subpsace}} (const bool other)
+\begin{DoxyCompactList}\small\item\em Sets the complex\+\_\+subspace parameter of the solver. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a6159b2c8d271c6ef920db4bc0ee9ea43}\label{classgko_1_1solver_1_1Idr_a6159b2c8d271c6ef920db4bc0ee9ea43}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1Idr_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a1e0c1c411af601c1e711d5929ff3b816}\label{classgko_1_1solver_1_1Idr_a1e0c1c411af601c1e711d5929ff3b816}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Idr_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a21e6b2f8f1c8c1518cb71f037cb6899f}\label{classgko_1_1solver_1_1Idr_a21e6b2f8f1c8c1518cb71f037cb6899f}} 
+class {\bfseries Enable\+Lin\+Op$<$ Idr $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a6c08b391f40b890d18388d03acaae721}\label{classgko_1_1solver_1_1Idr_a6c08b391f40b890d18388d03acaae721}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Idr, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Idr$<$ Value\+Type $>$}
+
+I\+D\+R(s) is an efficient method for solving large nonsymmetric systems of linear equations. 
+
+The implemented version is the one presented in the paper \char`\"{}\+Algorithm 913\+: An elegant I\+D\+R(s) variant that efficiently exploits
+biorthogonality properties\char`\"{} by M. B. Van Gijzen and P. Sonneveld.
+
+The method is based on the induced dimension reduction theorem which provides a way to construct subsequent residuals that lie in a sequence of shrinking subspaces. These subspaces are spanned by s vectors which are first generated randomly and then orthonormalized. They are stored in a dense matrix.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of the elements of the system matrix. \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a7f9cb44f63a94d1bc9b94b465cf9348c}\label{classgko_1_1solver_1_1Idr_a7f9cb44f63a94d1bc9b94b465cf9348c}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}}
+\index{apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{apply\_uses\_initial\_guess()}{apply\_uses\_initial\_guess()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::apply\+\_\+uses\+\_\+initial\+\_\+guess (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Return true as iterative solvers use the data in x as an initial guess. 
+
+\begin{DoxyReturn}{Returns}
+true as iterative solvers use the data in x as an initial guess. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a5e869cf20403cba4eace927246e26aa6}\label{classgko_1_1solver_1_1Idr_a5e869cf20403cba4eace927246e26aa6}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_ac06361fe669b70c6ab0507e7cd9cfa58}\label{classgko_1_1solver_1_1Idr_ac06361fe669b70c6ab0507e7cd9cfa58}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_complex\_subspace@{get\_complex\_subspace}}
+\index{get\_complex\_subspace@{get\_complex\_subspace}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_complex\_subspace()}{get\_complex\_subspace()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+complex\+\_\+subspace (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the complex\+\_\+subspace parameter of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the complex\+\_\+subspace parameter 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_ac9bc7b7801121b03df82780be83feecf}\label{classgko_1_1solver_1_1Idr_ac9bc7b7801121b03df82780be83feecf}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_deterministic@{get\_deterministic}}
+\index{get\_deterministic@{get\_deterministic}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_deterministic()}{get\_deterministic()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+deterministic (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the deterministic parameter of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the deterministic parameter 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a3972be1e389b17843fbbe065feccc2ea}\label{classgko_1_1solver_1_1Idr_a3972be1e389b17843fbbe065feccc2ea}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_kappa@{get\_kappa}}
+\index{get\_kappa@{get\_kappa}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_kappa()}{get\_kappa()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$Value\+Type$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+kappa (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the kappa parameter of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the kappa parameter 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a51f32d52eda0a94c24b7d83c1e8f3b3f}\label{classgko_1_1solver_1_1Idr_a51f32d52eda0a94c24b7d83c1e8f3b3f}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}}
+\index{get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stop\_criterion\_factory()}{get\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the stopping criterion factory of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the stopping criterion factory 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_ac265f8be9752fde6368b86a1c9a41570}\label{classgko_1_1solver_1_1Idr_ac265f8be9752fde6368b86a1c9a41570}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_subspace\_dim@{get\_subspace\_dim}}
+\index{get\_subspace\_dim@{get\_subspace\_dim}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_subspace\_dim()}{get\_subspace\_dim()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+subspace\+\_\+dim (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the subspace dimension of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the subspace Dimension 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_ac667c48a4bbe3b2490d540d3951ba5f4}\label{classgko_1_1solver_1_1Idr_ac667c48a4bbe3b2490d540d3951ba5f4}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a1e08efc79a76f2e2501b841a9c8f8e2b}\label{classgko_1_1solver_1_1Idr_a1e08efc79a76f2e2501b841a9c8f8e2b}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!set\_complex\_subpsace@{set\_complex\_subpsace}}
+\index{set\_complex\_subpsace@{set\_complex\_subpsace}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_complex\_subpsace()}{set\_complex\_subpsace()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::set\+\_\+complex\+\_\+subpsace (\begin{DoxyParamCaption}\item[{const bool}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the complex\+\_\+subspace parameter of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new complex\+\_\+subspace parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a72f7124b7acc0bb5a54a7c31e93abffb}\label{classgko_1_1solver_1_1Idr_a72f7124b7acc0bb5a54a7c31e93abffb}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!set\_deterministic@{set\_deterministic}}
+\index{set\_deterministic@{set\_deterministic}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_deterministic()}{set\_deterministic()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::set\+\_\+deterministic (\begin{DoxyParamCaption}\item[{const bool}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the deterministic parameter of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new deterministic parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a1552bbc46e5961608fe41521b6b846dc}\label{classgko_1_1solver_1_1Idr_a1552bbc46e5961608fe41521b6b846dc}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!set\_kappa@{set\_kappa}}
+\index{set\_kappa@{set\_kappa}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_kappa()}{set\_kappa()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::set\+\_\+kappa (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the kappa parameter of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new kappa parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a4024732a9f09b06ef458dc820d791b06}\label{classgko_1_1solver_1_1Idr_a4024732a9f09b06ef458dc820d791b06}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}}
+\index{set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_stop\_criterion\_factory()}{set\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::set\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the stopping criterion of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new stopping criterion factory \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a72dbeb6df1732913721ec61d157a0069}\label{classgko_1_1solver_1_1Idr_a72dbeb6df1732913721ec61d157a0069}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!set\_subspace\_dim@{set\_subspace\_dim}}
+\index{set\_subspace\_dim@{set\_subspace\_dim}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_subspace\_dim()}{set\_subspace\_dim()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::set\+\_\+subspace\+\_\+dim (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the subspace dimension of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new subspace Dimension \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Idr_a21c75c080cce1b1003ae691e4db30598}\label{classgko_1_1solver_1_1Idr_a21c75c080cce1b1003ae691e4db30598}} 
+\index{gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::solver::Idr$<$ ValueType $>$@{gko::solver::Idr$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Idr}{gko\+::solver\+::\+Idr}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/idr.\+hpp\end{DoxyCompactItemize}

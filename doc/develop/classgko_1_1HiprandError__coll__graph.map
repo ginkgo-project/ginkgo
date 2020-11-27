@@ -1,0 +1,5 @@
+<map id="gko::HiprandError" name="gko::HiprandError">
+<area shape="rect" id="node1" title="HiprandError is thrown when a hipRAND routine throws a non&#45;zero error code." alt="" coords="5,155,141,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="31,80,116,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="16,5,131,32"/>
+</map>

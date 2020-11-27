@@ -1,0 +1,5 @@
+<map id="gko::CurandError" name="gko::CurandError">
+<area shape="rect" id="node1" title="CurandError is thrown when a cuRAND routine throws a non&#45;zero error code." alt="" coords="5,155,136,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="28,80,113,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="13,5,128,32"/>
+</map>
