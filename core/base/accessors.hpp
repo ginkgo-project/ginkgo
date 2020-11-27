@@ -208,7 +208,7 @@ public:
      */
     template <typename... Indices>
     constexpr GKO_ATTRIBUTES std::enable_if_t<
-        helper::are_all_integral<Indices...>::value,
+        are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices &&... indices) const
     {
@@ -558,7 +558,7 @@ public:
      */
     template <typename... Indices>
     constexpr GKO_ATTRIBUTES std::enable_if_t<
-        helper::are_all_integral<Indices...>::value,
+        are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices... indices) const
     {
