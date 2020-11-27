@@ -362,19 +362,6 @@ constexpr GKO_ATTRIBUTES auto compute_default_masked_stride_array(
 }
 
 
-/**
- * Evaluates if all Args fulfill std::is_integral
- */
-template <typename... Args>
-struct are_all_integral : public std::true_type {};
-
-template <typename First, typename... Args>
-struct are_all_integral<First, Args...>
-    : public std::conditional<std::is_integral<std::decay_t<First>>::value,
-                              are_all_integral<Args...>,
-                              std::false_type>::type {};
-
-
 namespace detail {
 
 
