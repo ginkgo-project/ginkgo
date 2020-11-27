@@ -382,9 +382,9 @@ void solve_system(const std::string &solver_name,
             }
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->get_average_time(), allocator);
+                          generate_timer->compute_average_time(), allocator);
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->get_average_time(), allocator);
+                          apply_timer->compute_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);

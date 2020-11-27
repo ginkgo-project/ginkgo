@@ -86,7 +86,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
             matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          timer->get_average_time(), allocator);
+                          timer->compute_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,

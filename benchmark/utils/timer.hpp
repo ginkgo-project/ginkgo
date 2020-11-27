@@ -62,16 +62,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/device_guard.hip.hpp"
 
 
-#endif  // HAS_CUDA
+#endif  // HAS_HIP
 
 
+// Command-line arguments
 DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
 
 
+/**
+ * Timer stores the timing information
+ */
 class Timer {
 public:
+    /**
+     * Start the timer
+     */
     void tic()
     {
         assert(tic_called_ == false);
@@ -79,25 +86,67 @@ public:
         tic_called_ = true;
     }
 
-    std::size_t toc()
+    /**
+     * Finish the timer
+     */
+    void toc()
     {
         assert(tic_called_ == true);
         auto ns = this->toc_impl();
         tic_called_ = false;
         this->add_record(ns);
-        return ns;
     }
 
-    std::size_t get_total_time() { return total_duration_ns_; }
+    /**
+     * Get the summation of each time in nanoseconds.
+     *
+     * @return the nanoseconds of total time
+     */
+    std::int64_t get_total_time() const { return total_duration_ns_; }
 
-    std::size_t get_tictoc_num() { return duration_ns_.size(); }
+    /**
+     * Get the number of repetitions.
+     *
+     * @return the number of repetitions
+     */
+    std::int64_t get_num_repetitions() const { return duration_ns_.size(); }
 
-    double get_average_time()
+    /**
+     * Compute the average time of repetitions in nanoseconds
+     *
+     * @return the average time in nanoseconds
+     */
+    double compute_average_time() const
     {
         return static_cast<double>(this->get_total_time()) /
-               this->get_tictoc_num();
+               this->get_num_repetitions();
     }
 
+    /**
+     * Get the vector containing the time of each repetition in nanoseconds.
+     *
+     * @return the vector of time for each repetition in nanoseconds
+     */
+    std::vector<std::int64_t> get_time_detail() const { return duration_ns_; }
+
+    /**
+     * Get the latest result in nanoseconds. If there is no result yet, return
+     * 0.
+     *
+     * @return the latest result in nanoseconds
+     */
+    std::int64_t get_latest_time() const
+    {
+        if (duration_ns_.size() >= 1) {
+            return duration_ns_.back();
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Clear the results of timer
+     */
     void clear()
     {
         duration_ns_.clear();
@@ -105,29 +154,54 @@ public:
         total_duration_ns_ = 0;
     }
 
+    /**
+     * Create a timer
+     */
     Timer() : tic_called_(false), total_duration_ns_(0) {}
 
 protected:
-    void add_record(std::size_t ns)
+    /**
+     * Put the nanosecond result into vector
+     *
+     * @param ns  the nanosecond result to insert
+     */
+    void add_record(std::int64_t ns)
     {
         // add the result;
         duration_ns_.emplace_back(ns);
         total_duration_ns_ += ns;
     }
 
+    /**
+     * The implementation of tic.
+     */
     virtual void tic_impl() = 0;
 
-    virtual std::size_t toc_impl() = 0;
+    /**
+     * The implementation of toc. Return the nanoseconds result.
+     *
+     * @return the nanoseconds result
+     */
+    virtual std::int64_t toc_impl() = 0;
 
 private:
-    std::vector<std::size_t> duration_ns_;
+    std::vector<std::int64_t> duration_ns_;
     bool tic_called_;
-    std::size_t total_duration_ns_;
+    std::int64_t total_duration_ns_;
 };
 
 
+/**
+ * CpuTimer uses the synchronize of the executor and std::chrono to measure the
+ * timing.
+ */
 class CpuTimer : public Timer {
 public:
+    /**
+     * Create a CpuTimer
+     *
+     * @param exec  Executor associated to the timer
+     */
     CpuTimer(std::shared_ptr<const gko::Executor> exec) : Timer(), exec_(exec)
     {}
 
@@ -138,14 +212,14 @@ protected:
         start_ = std::chrono::steady_clock::now();
     }
 
-    std::size_t toc_impl() override
+    std::int64_t toc_impl() override
     {
         exec_->synchronize();
         auto stop = std::chrono::steady_clock::now();
         auto duration_time =
             std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start_)
                 .count();
-        return static_cast<std::size_t>(duration_time);
+        return duration_time;
     }
 
 private:
@@ -157,12 +231,25 @@ private:
 #ifdef HAS_CUDA
 
 
+/**
+ * CudaTimer uses cuda executor and cudaEvent to measure the timing.
+ */
 class CudaTimer : public Timer {
 public:
+    /**
+     * Create a CudaTimer.
+     *
+     * @param exec  Executor which should be a CudaExecutor
+     */
     CudaTimer(std::shared_ptr<const gko::Executor> exec)
         : CudaTimer(std::dynamic_pointer_cast<const gko::CudaExecutor>(exec))
     {}
 
+    /**
+     * Create a CudaTimer.
+     *
+     * @param exec  CudaExecutor associated to the timer
+     */
     CudaTimer(std::shared_ptr<const gko::CudaExecutor> exec) : Timer()
     {
         assert(exec != nullptr);
@@ -181,7 +268,7 @@ protected:
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(start_));
     }
 
-    std::size_t toc_impl() override
+    std::int64_t toc_impl() override
     {
         gko::cuda::device_guard g{id_};
         // Currently, gko::CudaExecutor always use default stream.
@@ -192,7 +279,7 @@ protected:
         // resolution of around 0.5 microseconds
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaEventElapsedTime(&duration_time, start_, stop_));
-        return static_cast<std::size_t>(duration_time * 1e6);
+        return static_cast<std::int64_t>(duration_time * 1e6);
     }
 
 private:
@@ -209,12 +296,25 @@ private:
 #ifdef HAS_HIP
 
 
+/**
+ * HipTimer uses hip executor and hipEvent to measure the timing.
+ */
 class HipTimer : public Timer {
 public:
+    /**
+     * Create a HipTimer.
+     *
+     * @param exec  Executor which should be a HipExecutor
+     */
     HipTimer(std::shared_ptr<const gko::Executor> exec)
         : HipTimer(std::dynamic_pointer_cast<const gko::HipExecutor>(exec))
     {}
 
+    /**
+     * Create a HipTimer.
+     *
+     * @param exec  HipExecutor associated to the timer
+     */
     HipTimer(std::shared_ptr<const gko::HipExecutor> exec) : Timer()
     {
         assert(exec != nullptr);
@@ -233,7 +333,7 @@ protected:
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
     }
 
-    std::size_t toc_impl() override
+    std::int64_t toc_impl() override
     {
         gko::hip::device_guard g{id_};
         // Currently, gko::HipExecutor always use default stream.
@@ -244,7 +344,7 @@ protected:
         // resolution of around 0.5 microseconds
         GKO_ASSERT_NO_HIP_ERRORS(
             hipEventElapsedTime(&duration_time, start_, stop_));
-        return static_cast<std::size_t>(duration_time * 1e6);
+        return static_cast<std::int64_t>(duration_time * 1e6);
     }
 
 private:
@@ -258,6 +358,13 @@ private:
 #endif  // HAS_HIP
 
 
+/**
+ * Get the timer. If the executor does not support gpu timer, still return the
+ * cpu timer.
+ *
+ * @param exec  Executor associated to the timer
+ * @param use_gpu_timer  whether to use the gpu timer
+ */
 std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
                                  bool use_gpu_timer)
 {
@@ -276,6 +383,6 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
         }
 #endif  // HAS_HIP
     }
-    // Not use gpu_timer or not cuda/hip executor
+    // No cuda/hip executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);
 }
