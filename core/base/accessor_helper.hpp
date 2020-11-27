@@ -101,41 +101,6 @@ struct row_major_helper_s<ValueType, total_dim, total_dim> {
 };
 
 
-template <typename ValueType, size_type iter, size_type N>
-constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, ValueType>
-mult_size_upwards(const dim<N> &)
-{
-    return 1;
-}
-
-template <typename ValueType, size_type iter, size_type N>
-constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), ValueType>
-mult_size_upwards(const dim<N> &size)
-{
-    return size[iter] * mult_size_upwards<ValueType, iter + 1>(size);
-}
-
-
-template <typename ValueType, size_type iter = 1, size_type N, typename... Args>
-constexpr GKO_ATTRIBUTES
-    std::enable_if_t<N == 0 || (iter == N && iter == sizeof...(Args) + 1),
-                     std::array<ValueType, N == 0 ? 0 : N - 1>>
-    compute_default_stride_array(const dim<N> &, Args &&... args)
-{
-    return {{std::forward<Args>(args)...}};
-}
-
-template <typename ValueType, size_type iter = 1, size_type N, typename... Args>
-constexpr GKO_ATTRIBUTES std::enable_if_t<
-    (iter < N) && (iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
-compute_default_stride_array(const dim<N> &size, Args &&... args)
-{
-    return compute_default_stride_array<ValueType, iter + 1>(
-        size, std::forward<Args>(args)...,
-        mult_size_upwards<ValueType, iter>(size));
-}
-
-
 }  // namespace detail
 
 
@@ -151,17 +116,6 @@ constexpr GKO_ATTRIBUTES ValueType compute_storage_index(
 {
     return detail::row_major_helper_s<ValueType, total_dim>::compute(
         size, stride, std::forward<Indices>(idxs)...);
-}
-
-
-/**
- * Computes the default stride array from a size, assuming there is no
- * padding
- */
-template <typename ValueType, size_type N>
-constexpr GKO_ATTRIBUTES auto compute_default_stride_array(const dim<N> &size)
-{
-    return detail::compute_default_stride_array<ValueType>(size);
 }
 
 
