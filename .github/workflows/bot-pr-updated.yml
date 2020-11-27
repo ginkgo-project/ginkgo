@@ -16,4 +16,10 @@ jobs:
       - name: Check for formatting changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: .github/check-format.sh
+        run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
+      - name: Upload code formatting patch
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: patch
+          path: format.patch
