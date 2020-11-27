@@ -134,7 +134,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Fbcsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
