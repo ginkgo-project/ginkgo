@@ -142,9 +142,8 @@ protected:
      */
     constexpr GKO_ATTRIBUTES reduced_row_major(dim<dimensionality> size,
                                                storage_type *storage)
-        : reduced_row_major{
-              size, storage,
-              helper::compute_default_stride_array<size_type>(size)}
+        : reduced_row_major{size, storage,
+                            compute_default_stride_array<size_type>(size)}
     {}
 
     /**
@@ -474,8 +473,8 @@ protected:
                                                       storage_type *storage,
                                                       scalar_type *scalar)
         : scaled_reduced_row_major{
-              size, storage,
-              helper::compute_default_stride_array<size_type>(size), scalar}
+              size, storage, compute_default_stride_array<size_type>(size),
+              scalar}
     {}
 
     /**
