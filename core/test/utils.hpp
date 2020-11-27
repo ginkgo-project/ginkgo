@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <complex>
 #include <initializer_list>
+#include <limits>
 #include <type_traits>
 
 
@@ -95,12 +96,10 @@ using ComplexValueIndexTypes =
 
 template <typename Precision, typename OutputType>
 struct reduction_factor {
-    static constexpr remove_complex<OutputType> value =
-        std::is_same<gko::remove_complex<Precision>, gko::half>::value
-            ? 1.0e-2
-            : std::is_same<gko::remove_complex<Precision>, float>::value
-                  ? 1.0e-6
-                  : 1.0e-14;
+    using nc_output = remove_complex<OutputType>;
+    using nc_precision = remove_complex<Precision>;
+    static constexpr nc_output value{
+        std::numeric_limits<nc_precision>::epsilon() * nc_output{10}};
 };
 
 
