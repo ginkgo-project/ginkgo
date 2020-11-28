@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <ginkgo/core/base/machine_config.hpp>
+#include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -725,6 +725,20 @@ protected:
 
 #undef GKO_ENABLE_VERIFY_MEMORY_TO
 
+    /**
+     * Populates the executor specific info from the global machine topology
+     * object.
+     *
+     * @param mach_topo the machine topology object.
+     */
+    virtual void populate_exec_info(const MachineTopology *mach_topo) = 0;
+
+    struct exec_info {
+        int device_id = -1;
+        int num_cores = 0;
+        int num_work_groups_per_core = 0;
+    };
+
 private:
     /**
      * The LambdaOperation class wraps three functor objects into an
@@ -956,13 +970,10 @@ private:
  * @ingroup Executor
  */
 class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
-                    public std::enable_shared_from_this<OmpExecutor>,
-                    public machine_config::Topology<OmpExecutor> {
+                    public std::enable_shared_from_this<OmpExecutor> {
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
-    using omp_exec_info = machine_config::Topology<OmpExecutor>;
-
     /**
      * Creates a new OmpExecutor.
      */
@@ -977,15 +988,10 @@ public:
 
     void synchronize() const override;
 
-    /**
-     * Get the Executor information for this executor
-     *
-     * @return the executor info (omp_exec_info*) for this executor
-     */
-    omp_exec_info *get_exec_info() const { return exec_info_.get(); }
-
 protected:
-    OmpExecutor() : exec_info_(omp_exec_info::create()) {}
+    OmpExecutor() = default;
+
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
     void *raw_alloc(size_type size) const override;
 
@@ -1004,7 +1010,7 @@ protected:
     bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 
 private:
-    std::unique_ptr<omp_exec_info> exec_info_;
+    exec_info omp_exec_info_;
 };
 
 
@@ -1024,8 +1030,6 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
-    using ref_exec_info = machine_config::Topology<OmpExecutor>;
-
     static std::shared_ptr<ReferenceExecutor> create()
     {
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
@@ -1039,15 +1043,15 @@ public:
         this->template log<log::Logger::operation_completed>(this, &op);
     }
 
-    /**
-     * Get the Executor information for this executor
-     *
-     * @return the executor info (ref_exec_info*) for this executor
-     */
-    ref_exec_info *get_exec_info() const { return exec_info_.get(); }
-
 protected:
-    ReferenceExecutor() : exec_info_(ref_exec_info::create()) {}
+    ReferenceExecutor() = default;
+
+    void populate_exec_info(const MachineTopology *) override
+    {
+        this->ref_exec_info_.device_id = -1;
+        this->ref_exec_info_.num_cores = 1;
+        this->ref_exec_info_.num_work_groups_per_core = 1;
+    }
 
     bool verify_memory_from(const Executor *src_exec) const override
     {
@@ -1065,7 +1069,7 @@ protected:
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 
 private:
-    std::unique_ptr<ref_exec_info> exec_info_;
+    exec_info ref_exec_info_;
 };
 
 
@@ -1084,13 +1088,10 @@ using DefaultExecutor = ReferenceExecutor;
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor>,
-                     public detail::EnableDeviceReset,
-                     public machine_config::Topology<CudaExecutor> {
+                     public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
-    using cuda_exec_info = machine_config::Topology<CudaExecutor>;
-
     /**
      * Creates a new CudaExecutor.
      *
@@ -1102,7 +1103,7 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
 
-    ~CudaExecutor() { decrease_num_execs(this->device_id_); }
+    ~CudaExecutor() { decrease_num_execs(this->cuda_exec_info_.device_id); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1115,7 +1116,10 @@ public:
     /**
      * Get the CUDA device id of the device associated to this executor.
      */
-    int get_device_id() const noexcept { return device_id_; }
+    int get_device_id() const noexcept
+    {
+        return this->cuda_exec_info_.device_id;
+    }
 
     /**
      * Get the number of devices present on the system.
@@ -1125,35 +1129,51 @@ public:
     /**
      * Get the number of warps per SM of this executor.
      */
-    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
+    int get_num_warps_per_sm() const noexcept
+    {
+        return this->cuda_exec_info_.num_work_groups_per_core;
+    }
 
     /**
      * Get the number of multiprocessor of this executor.
      */
-    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+    int get_num_multiprocessor() const noexcept
+    {
+        return this->cuda_exec_info_.num_cores;
+    }
 
     /**
      * Get the number of warps of this executor.
      */
     int get_num_warps() const noexcept
     {
-        return num_multiprocessor_ * num_warps_per_sm_;
+        return this->cuda_exec_info_.num_cores *
+               this->cuda_exec_info_.num_work_groups_per_core;
     }
 
     /**
      * Get the warp size of this executor.
      */
-    int get_warp_size() const noexcept { return warp_size_; }
+    int get_warp_size() const noexcept
+    {
+        return this->cuda_exec_info_.warp_size;
+    }
 
     /**
      * Get the major verion of compute capability.
      */
-    int get_major_version() const noexcept { return major_; }
+    int get_major_version() const noexcept
+    {
+        return this->cuda_exec_info_.major;
+    }
 
     /**
      * Get the minor verion of compute capability.
      */
-    int get_minor_version() const noexcept { return minor_; }
+    int get_minor_version() const noexcept
+    {
+        return this->cuda_exec_info_.minor;
+    }
 
     /**
      * Get the cublas handle for this executor
@@ -1172,13 +1192,6 @@ public:
         return cusparse_handle_.get();
     }
 
-    /**
-     * Get the Executor information for this executor
-     *
-     * @return the executor info (cuda_exec_info*) for this executor
-     */
-    cuda_exec_info *get_exec_info() const { return exec_info_.get(); }
-
 protected:
     void set_gpu_property();
 
@@ -1186,20 +1199,17 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false)
-        : EnableDeviceReset{device_reset},
-          device_id_(device_id),
-          master_(master),
-          num_warps_per_sm_(0),
-          num_multiprocessor_(0),
-          major_(0),
-          minor_(0),
-          warp_size_(0)
+        : EnableDeviceReset{device_reset}, master_(master)
     {
-        assert(device_id < max_devices && device_id >= 0);
+        this->cuda_exec_info_.device_id = device_id;
+        this->cuda_exec_info_.num_cores = 0;
+        this->cuda_exec_info_.num_work_groups_per_core = 0;
+        assert(this->cuda_exec_info_.device_id < max_devices &&
+               this->cuda_exec_info_.device_id >= 0);
         this->set_gpu_property();
         this->init_handles();
-        increase_num_execs(device_id);
-        exec_info_ = cuda_exec_info::create();
+        increase_num_execs(this->cuda_exec_info_.device_id);
+        this->populate_exec_info(get_machine_topology());
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1236,14 +1246,16 @@ protected:
         return num_execs[device_id];
     }
 
+    void populate_exec_info(const MachineTopology *mach_topo) override;
+
 private:
-    int device_id_;
     std::shared_ptr<Executor> master_;
-    int num_warps_per_sm_;
-    int num_multiprocessor_;
-    int major_;
-    int minor_;
-    int warp_size_;
+
+    struct cuda_exec_info : public exec_info {
+        int major;
+        int minor;
+        int warp_size;
+    } cuda_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1253,7 +1265,6 @@ private:
     static constexpr int max_devices = 64;
     static unsigned num_execs[max_devices];
     static std::mutex mutex[max_devices];
-    std::unique_ptr<cuda_exec_info> exec_info_;
 };
 
 
@@ -1272,13 +1283,10 @@ using DefaultExecutor = CudaExecutor;
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
                     public std::enable_shared_from_this<HipExecutor>,
-                    public detail::EnableDeviceReset,
-                    public machine_config::Topology<HipExecutor> {
+                    public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
-    using hip_exec_info = machine_config::Topology<HipExecutor>;
-
     /**
      * Creates a new HipExecutor.
      *
@@ -1290,7 +1298,7 @@ public:
                                                std::shared_ptr<Executor> master,
                                                bool device_reset = false);
 
-    ~HipExecutor() { decrease_num_execs(this->device_id_); }
+    ~HipExecutor() { decrease_num_execs(this->hip_exec_info_.device_id); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1303,7 +1311,10 @@ public:
     /**
      * Get the HIP device id of the device associated to this executor.
      */
-    int get_device_id() const noexcept { return device_id_; }
+    int get_device_id() const noexcept
+    {
+        return this->hip_exec_info_.device_id;
+    }
 
     /**
      * Get the number of devices present on the system.
@@ -1313,35 +1324,51 @@ public:
     /**
      * Get the number of warps per SM of this executor.
      */
-    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
+    int get_num_warps_per_sm() const noexcept
+    {
+        return this->hip_exec_info_.num_work_groups_per_core;
+    }
 
     /**
      * Get the number of multiprocessor of this executor.
      */
-    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+    int get_num_multiprocessor() const noexcept
+    {
+        return this->hip_exec_info_.num_cores;
+    }
 
     /**
      * Get the major verion of compute capability.
      */
-    int get_major_version() const noexcept { return major_; }
+    int get_major_version() const noexcept
+    {
+        return this->hip_exec_info_.major;
+    }
 
     /**
      * Get the minor verion of compute capability.
      */
-    int get_minor_version() const noexcept { return minor_; }
+    int get_minor_version() const noexcept
+    {
+        return this->hip_exec_info_.minor;
+    }
 
     /**
      * Get the number of warps of this executor.
      */
     int get_num_warps() const noexcept
     {
-        return num_multiprocessor_ * num_warps_per_sm_;
+        return this->hip_exec_info_.num_cores *
+               this->hip_exec_info_.num_work_groups_per_core;
     }
 
     /**
      * Get the warp size of this executor.
      */
-    int get_warp_size() const noexcept { return warp_size_; }
+    int get_warp_size() const noexcept
+    {
+        return this->hip_exec_info_.warp_size;
+    }
 
     /**
      * Get the hipblas handle for this executor
@@ -1360,13 +1387,6 @@ public:
         return hipsparse_handle_.get();
     }
 
-    /**
-     * Get the Executor information for this executor
-     *
-     * @return the executor info (hip_exec_info*) for this executor
-     */
-    hip_exec_info *get_exec_info() const { return exec_info_.get(); }
-
 protected:
     void set_gpu_property();
 
@@ -1374,20 +1394,16 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false)
-        : EnableDeviceReset{device_reset},
-          device_id_(device_id),
-          master_(master),
-          num_multiprocessor_(0),
-          num_warps_per_sm_(0),
-          major_(0),
-          minor_(0),
-          warp_size_(0)
+        : EnableDeviceReset{device_reset}, master_(master)
     {
-        assert(device_id < max_devices);
+        this->hip_exec_info_.device_id = device_id;
+        this->hip_exec_info_.num_cores = 0;
+        this->hip_exec_info_.num_work_groups_per_core = 0;
+        assert(this->hip_exec_info_.device_id < max_devices);
         this->set_gpu_property();
         this->init_handles();
-        increase_num_execs(device_id);
-        exec_info_ = hip_exec_info::create();
+        increase_num_execs(this->hip_exec_info_.device_id);
+        this->populate_exec_info(get_machine_topology());
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1424,14 +1440,16 @@ protected:
         return num_execs[device_id];
     }
 
+    void populate_exec_info(const MachineTopology *mach_topo) override;
+
 private:
-    int device_id_;
     std::shared_ptr<Executor> master_;
-    int num_multiprocessor_;
-    int num_warps_per_sm_;
-    int major_;
-    int minor_;
-    int warp_size_;
+
+    struct hip_exec_info : public exec_info {
+        int major = 0;
+        int minor = 0;
+        int warp_size = 0;
+    } hip_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1441,7 +1459,6 @@ private:
     static constexpr int max_devices = 64;
     static int num_execs[max_devices];
     static std::mutex mutex[max_devices];
-    std::unique_ptr<hip_exec_info> exec_info_;
 };
 
 
@@ -1489,7 +1506,7 @@ public:
      *
      * @return the DPCPP device id of the device associated to this executor
      */
-    int get_device_id() const noexcept { return device_id_; }
+    int get_device_id() const noexcept { return dpcpp_exec_info_.device_id; }
 
     ::cl::sycl::queue *get_queue() const { return queue_.get(); }
 
@@ -1509,7 +1526,7 @@ public:
      */
     const std::vector<size_type> &get_subgroup_sizes() const noexcept
     {
-        return subgroup_sizes_;
+        return dpcpp_exec_info_.subgroup_sizes;
     }
 
     /**
@@ -1519,7 +1536,7 @@ public:
      */
     size_type get_num_computing_units() const noexcept
     {
-        return num_computing_units_;
+        return dpcpp_exec_info_.num_computing_units;
     }
 
     /**
@@ -1529,7 +1546,7 @@ public:
      */
     const std::vector<size_type> &get_max_workitem_sizes() const noexcept
     {
-        return max_workitem_sizes_;
+        return dpcpp_exec_info_.max_workitem_sizes;
     }
 
     /**
@@ -1539,7 +1556,7 @@ public:
      */
     size_type get_max_workgroup_size() const noexcept
     {
-        return max_workgroup_size_;
+        return dpcpp_exec_info_.num_work_groups_per_core;
     }
 
     /**
@@ -1554,12 +1571,15 @@ protected:
 
     DpcppExecutor(int device_id, std::shared_ptr<Executor> master,
                   std::string device_type = "all")
-        : device_id_(device_id), master_(master), device_type_(device_type)
+        : master_(master)
     {
-        std::for_each(device_type_.begin(), device_type_.end(),
+        std::for_each(this->dpcpp_exec_info_.device_type.begin(),
+                      this->dpcpp_exec_info_.device_type.end(),
                       [](char &c) { c = std::tolower(c); });
         this->set_device_property();
     }
+
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
     void *raw_alloc(size_type size) const override;
 
@@ -1578,13 +1598,14 @@ protected:
     bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 
 private:
-    int device_id_;
     std::shared_ptr<Executor> master_;
-    std::string device_type_;
-    int num_computing_units_{};
-    std::vector<size_type> subgroup_sizes_{};
-    std::vector<size_type> max_workitem_sizes_{};
-    size_type max_workgroup_size_{};
+
+    struct dpcpp_exec_info : public exec_info {
+        std::string device_type;
+        int num_computing_units;
+        std::vector<size_type> subgroup_sizes{};
+        std::vector<size_type> max_workitem_sizes{};
+    } dpcpp_exec_info_;
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T *)>>;

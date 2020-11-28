@@ -93,6 +93,9 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
+void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+
+
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
     sycl::free(ptr, queue_->get_context());
@@ -193,25 +196,27 @@ void delete_queue(sycl::queue *queue)
 
 void DpcppExecutor::set_device_property()
 {
-    assert(device_id_ < DpcppExecutor::get_num_devices(device_type_));
-    auto device = detail::get_devices(device_type_)[device_id_];
+    assert(dpcpp_exec_info_.device_id <
+           DpcppExecutor::get_num_devices(dpcpp_exec_info_.device_type));
+    auto device = detail::get_devices(
+        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
     if (!device.is_host()) {
         try {
-            subgroup_sizes_ =
+            dpcpp_exec_info_.subgroup_sizes =
                 device.get_info<cl::sycl::info::device::sub_group_sizes>();
         } catch (cl::sycl::runtime_error &err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
-    num_computing_units_ =
+    dpcpp_exec_info_.num_computing_units =
         device.get_info<sycl::info::device::max_compute_units>();
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
     // There is no way to get the dimension of a sycl::id object
     for (std::size_t i = 0; i < 3; i++) {
-        max_workitem_sizes_.push_back(max_workitem_sizes[i]);
+        dpcpp_exec_info_.max_workitem_sizes.push_back(max_workitem_sizes[i]);
     }
-    max_workgroup_size_ =
+    dpcpp_exec_info_.num_work_groups_per_core =
         device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to

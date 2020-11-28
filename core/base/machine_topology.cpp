@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,57 +30,48 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+
+#include <ginkgo/core/base/machine_topology.hpp>
 
 
-#include <cstdlib>
-#include <cstring>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <atomic>
+#include <memory>
+#include <mutex>
 
 
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+namespace detail {
 
 
-void OmpExecutor::raw_free(void *ptr) const noexcept { std::free(ptr); }
+std::shared_ptr<const MachineTopology> machine_topology{};
+std::mutex machine_topology_mutex{};
+std::atomic<bool> initialized_machine_topology{};
 
 
-std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
+}  // namespace detail
+
+
+const MachineTopology *get_machine_topology()
 {
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
-{
-    return this->shared_from_this();
-}
-
-
-void *OmpExecutor::raw_alloc(size_type num_bytes) const
-{
-    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
-}
-
-
-void OmpExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-    if (num_bytes > 0) {
-        std::memcpy(dest_ptr, src_ptr, num_bytes);
+    {
+        if (!detail::initialized_machine_topology.load()) {
+            std::lock_guard<std::mutex> guard(detail::machine_topology_mutex);
+            if (!detail::machine_topology) {
+                detail::machine_topology = MachineTopology::create();
+                detail::initialized_machine_topology.store(true);
+            }
+        }
     }
+    return detail::machine_topology.get();
 }
 
 
-void OmpExecutor::synchronize() const
+std::shared_ptr<const MachineTopology> get_shared_machine_topology()
 {
-    // This is a no-op for single-threaded OMP
-    // TODO: change when adding support for multi-threaded OMP execution
+    get_machine_topology();
+    return detail::machine_topology;
 }
 
 
