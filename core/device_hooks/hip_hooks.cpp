@@ -59,6 +59,9 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
+void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+
+
 void OmpExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(hip);

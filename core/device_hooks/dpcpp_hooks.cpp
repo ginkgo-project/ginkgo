@@ -59,6 +59,9 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
+void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+
+
 void OmpExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);

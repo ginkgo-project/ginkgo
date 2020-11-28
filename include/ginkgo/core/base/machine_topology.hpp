@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_MACHINE_CONFIG_HPP_
-#define GKO_CORE_BASE_MACHINE_CONFIG_HPP_
+#ifndef GKO_CORE_BASE_MACHINE_TOPOLOGY_HPP_
+#define GKO_CORE_BASE_MACHINE_TOPOLOGY_HPP_
 
 
 #include <cassert>
@@ -65,16 +65,17 @@ struct hwloc_topology;
 
 
 namespace gko {
-/**
- * @brief The machine configuration namespace.
- *
- * @ingroup machine_config
- */
-namespace machine_config {
+
+
+class MachineTopology;
+
+extern const MachineTopology *get_machine_topology();
+
+extern std::shared_ptr<const MachineTopology> get_shared_machine_topology();
 
 
 /**
- * The topology class represents the heirarchical topology of a machine,
+ * The machine topology class represents the heirarchical topology of a machine,
  * including NUMA nodes, cores and GPUs. Various infomation of the machine are
  * gathered with the help of the Hardware Locality library (hwloc).
  *
@@ -82,13 +83,14 @@ namespace machine_config {
  * the execution objects. Binding can enhance performance by allowing data to be
  * closer to the executing object.
  */
-template <class Executor>
-class Topology {
+class MachineTopology {
+    friend const MachineTopology *get_machine_topology();
+
 private:
     /**
      * This struct holds the attributes for an object.
      */
-    struct topology_obj_info {
+    struct mach_topo_obj_info {
         /**
          * The hwloc object.
          */
@@ -109,24 +111,25 @@ private:
          * For GPUs, this is their number in the numa
          */
         size_type physical_id;
+
+        /**
+         * The physical_id assigned to the object.
+         * For GPUs, this is their number in the numa
+         */
+        size_type memory_size;
     };
 
 public:
     /**
-     * Creates a new Topology object.
+     * Creates a new MachineTopology object.
      */
-    static std::unique_ptr<Topology> create()
+    static std::shared_ptr<MachineTopology> create()
     {
-        return std::unique_ptr<Topology>(new Topology());
+        return std::shared_ptr<MachineTopology>(new MachineTopology());
     }
 
-    /**
-     * Get the Topology object.
-     *
-     * @return  the topology object.
-     */
-    hwloc_topology *get_topology() const { return this->topo_.get(); }
-
+    MachineTopology(MachineTopology &) = delete;
+    MachineTopology(MachineTopology &&) = delete;
 
     /**
      * Bind the object associated with the id to a core.
@@ -147,7 +150,7 @@ public:
      *
      * @param id  The id of the PU
      */
-    const topology_obj_info &get_pu(size_type id)
+    const mach_topo_obj_info &get_pu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, pus_.size());
         return pus_[id];
@@ -159,7 +162,7 @@ public:
      *
      * @param id  The id of the core
      */
-    const topology_obj_info &get_core(size_type id)
+    const mach_topo_obj_info &get_core(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, cores_.size());
         return cores_[id];
@@ -171,7 +174,7 @@ public:
      *
      * @param id  The id of the gpu
      */
-    const topology_obj_info &get_gpu(size_type id)
+    const mach_topo_obj_info &get_gpu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, gpus_.size());
         return gpus_[id];
@@ -209,10 +212,7 @@ public:
     virtual void load_gpus() {}
 
 protected:
-    Topology(Topology &) = delete;
-    Topology(Topology &&) = delete;
-
-    Topology()
+    MachineTopology()
     {
 #if GKO_HAVE_HWLOC
 
@@ -236,7 +236,8 @@ protected:
     /**
      * A helper function that binds the object with an id.
      */
-    void hwloc_binding_helper(std::vector<topology_obj_info> &obj, size_type id)
+    void hwloc_binding_helper(std::vector<mach_topo_obj_info> &obj,
+                              size_type id)
     {
 #if GKO_HAVE_HWLOC
         auto bitmap = hwloc_bitmap_alloc();
@@ -279,14 +280,14 @@ protected:
     // The objects should be sorted by logical index since hwloc uses logical
     // index with these functions
     void load_objects(hwloc_obj_type_t type,
-                      std::vector<topology_obj_info> &vector)
+                      std::vector<mach_topo_obj_info> &vector)
     {
         unsigned nbcores = hwloc_get_nbobjs_by_type(topo_.get(), type);
         for (unsigned i = 0; i < nbcores; i++) {
             hwloc_obj_t obj = hwloc_get_obj_by_type(topo_.get(), type, i);
             vector.push_back(
-                topology_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
-                                  obj->logical_index, obj->os_index});
+                mach_topo_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
+                                   obj->logical_index, obj->os_index});
         }
     }
 
@@ -309,9 +310,10 @@ protected:
 
 
 private:
-    std::vector<topology_obj_info> gpus_;
-    std::vector<topology_obj_info> pus_;
-    std::vector<topology_obj_info> cores_;
+    std::vector<mach_topo_obj_info> gpus_;
+    std::vector<mach_topo_obj_info> pus_;
+    std::vector<mach_topo_obj_info> cores_;
+    std::vector<mach_topo_obj_info> pci_devices_;
     size_type num_numas_;
 
     template <typename T>
@@ -320,8 +322,7 @@ private:
 };
 
 
-}  // namespace machine_config
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_MACHINE_CONFIG_HPP_
+#endif  // GKO_CORE_BASE_MACHINE_TOPOLOGY_HPP_

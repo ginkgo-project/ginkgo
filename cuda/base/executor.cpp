@@ -54,45 +54,45 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
-namespace machine_config {
+// namespace machine_config {
 
 
-template <>
-void Topology<CudaExecutor>::load_gpus()
-{
-#if GKO_HAVE_HWLOC
-    size_type num_in_numa = 0;
-    int last_numa = 0;
-    auto topology = this->topo_.get();
-    auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
-    for (size_type i = 1; i < n_objs; i++, num_in_numa++) {
-        hwloc_obj_t obj = NULL;
-        while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
-            bool is_gpu = HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type &&
-                          obj->name && !strncmp("cuda", obj->name, 4) &&
-                          atoi(obj->name + 4) == (int)i;
-            if (is_gpu) {
-                while (obj &&
-                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
-                    obj = obj->parent;
-                if (obj && obj->nodeset) {
-                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
-                    if (this_numa != last_numa) {
-                        num_in_numa = 0;
-                    }
-                    this->gpus_.push_back(
-                        topology_obj_info{obj, this_numa, i, num_in_numa});
-                    last_numa = this_numa;
-                }
-            }
-        }
-    }
+// template <>
+// void Topology<CudaExecutor>::load_gpus()
+// {
+// #if GKO_HAVE_HWLOC
+//     size_type num_in_numa = 0;
+//     int last_numa = 0;
+//     auto topology = this->topo_.get();
+//     auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
+//     for (size_type i = 1; i < n_objs; i++, num_in_numa++) {
+//         hwloc_obj_t obj = NULL;
+//         while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
+//             bool is_gpu = HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type &&
+//                           obj->name && !strncmp("cuda", obj->name, 4) &&
+//                           atoi(obj->name + 4) == (int)i;
+//             if (is_gpu) {
+//                 while (obj &&
+//                        (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
+//                     obj = obj->parent;
+//                 if (obj && obj->nodeset) {
+//                     auto this_numa = hwloc_bitmap_first(obj->nodeset);
+//                     if (this_numa != last_numa) {
+//                         num_in_numa = 0;
+//                     }
+//                     this->gpus_.push_back(
+//                         topology_obj_info{obj, this_numa, i, num_in_numa});
+//                     last_numa = this_numa;
+//                 }
+//             }
+//         }
+//     }
 
-#endif
-}
+// #endif
+// }
 
 
-}  // namespace machine_config
+// }  // namespace machine_config
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
@@ -109,6 +109,9 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
             }
         });
 }
+
+
+void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
 
 
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
@@ -129,9 +132,10 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
     if (error_code != cudaSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
-                  << " in " << __func__ << ": " << cudaGetErrorName(error_code)
-                  << ": " << cudaGetErrorString(error_code) << std::endl
+        std::cerr << "Unrecoverable CUDA error on device "
+                  << this->get_device_id() << " in " << __func__ << ": "
+                  << cudaGetErrorName(error_code) << ": "
+                  << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
 #endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
@@ -233,24 +237,31 @@ int CudaExecutor::get_num_devices()
 
 void CudaExecutor::set_gpu_property()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->cuda_exec_info_.device_id < this->get_num_devices() &&
+        this->cuda_exec_info_.device_id >= 0) {
         cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
+            &this->cuda_exec_info_.major, cudaDevAttrComputeCapabilityMajor,
+            this->cuda_exec_info_.device_id));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
+            &this->cuda_exec_info_.minor, cudaDevAttrComputeCapabilityMinor,
+            this->cuda_exec_info_.device_id));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
-        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
-                            kernels::cuda::config::warp_size;
-        warp_size_ = kernels::cuda::config::warp_size;
+            &this->cuda_exec_info_.num_cores, cudaDevAttrMultiProcessorCount,
+            this->cuda_exec_info_.device_id));
+        this->cuda_exec_info_.num_work_groups_per_core =
+            convert_sm_ver_to_cores(this->cuda_exec_info_.major,
+                                    this->cuda_exec_info_.minor) /
+            kernels::cuda::config::warp_size;
+        this->cuda_exec_info_.warp_size = kernels::cuda::config::warp_size;
     }
 }
 
 
 void CudaExecutor::init_handles()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->cuda_exec_info_.device_id < this->get_num_devices() &&
+        this->cuda_exec_info_.device_id >= 0) {
         const auto id = this->get_device_id();
         cuda::device_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(

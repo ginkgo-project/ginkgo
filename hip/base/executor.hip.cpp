@@ -55,48 +55,49 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
-namespace machine_config {
+// namespace machine_config {
 
 
-template <>
-void Topology<HipExecutor>::load_gpus()
-{
-#if GKO_HAVE_HWLOC
-    size_type num_in_numa = 0;
-    int last_numa = 0;
-    auto topology = this->topo_.get();
-    auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
-    for (size_type i = 0; i < n_objs; i++, num_in_numa++) {
-        hwloc_obj_t obj = NULL;
-        while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
-            bool is_gpu = (HWLOC_OBJ_OSDEV_GPU == obj->attr->osdev.type ||
-                           HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type) &&
-                          obj->name &&
-                          (!strncmp("rsmi", obj->name, 4) ||
-                           !strncmp("cuda", obj->name, 4)) &&
-                          atoi(obj->name + 4) == (int)i;
-            if (is_gpu) {
-                while (obj &&
-                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
-                    obj = obj->parent;
-                if (obj && obj->nodeset) {
-                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
-                    if (this_numa != last_numa) {
-                        num_in_numa = 0;
-                    }
-                    this->gpus_.push_back(
-                        topology_obj_info{obj, this_numa, i, num_in_numa});
-                    last_numa = this_numa;
-                }
-            }
-        }
-    }
+// template <>
+// void Topology<HipExecutor>::load_gpus()
+// {
+// #if GKO_HAVE_HWLOC
+//     size_type num_in_numa = 0;
+//     int last_numa = 0;
+//     auto topology = this->topo_.get();
+//     auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
+//     for (size_type i = 0; i < n_objs; i++, num_in_numa++) {
+//         hwloc_obj_t obj = NULL;
+//         while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
+//             bool is_gpu = (HWLOC_OBJ_OSDEV_GPU == obj->attr->osdev.type ||
+//                            HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type)
+//                            &&
+//                           obj->name &&
+//                           (!strncmp("rsmi", obj->name, 4) ||
+//                            !strncmp("cuda", obj->name, 4)) &&
+//                           atoi(obj->name + 4) == (int)i;
+//             if (is_gpu) {
+//                 while (obj &&
+//                        (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
+//                     obj = obj->parent;
+//                 if (obj && obj->nodeset) {
+//                     auto this_numa = hwloc_bitmap_first(obj->nodeset);
+//                     if (this_numa != last_numa) {
+//                         num_in_numa = 0;
+//                     }
+//                     this->gpus_.push_back(
+//                         topology_obj_info{obj, this_numa, i, num_in_numa});
+//                     last_numa = this_numa;
+//                 }
+//             }
+//         }
+//     }
 
-#endif
-}
+// #endif
+// }
 
 
-}  // namespace machine_config
+// }  // namespace machine_config
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
@@ -113,6 +114,9 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
             }
         });
 }
+
+
+void HipExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
 
 
 void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
@@ -133,9 +137,10 @@ void HipExecutor::raw_free(void *ptr) const noexcept
     if (error_code != hipSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable HIP error on device " << this->device_id_
-                  << " in " << __func__ << ": " << hipGetErrorName(error_code)
-                  << ": " << hipGetErrorString(error_code) << std::endl
+        std::cerr << "Unrecoverable HIP error on device "
+                  << this->get_device_id() << " in " << __func__ << ": "
+                  << hipGetErrorName(error_code) << ": "
+                  << hipGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
 #endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
@@ -237,31 +242,37 @@ int HipExecutor::get_num_devices()
 
 void HipExecutor::set_gpu_property()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         hip::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &num_multiprocessor_, hipDeviceAttributeMultiprocessorCount,
-            device_id_));
+            &this->hip_exec_info_.num_cores,
+            hipDeviceAttributeMultiprocessorCount, this->get_device_id()));
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &major_, hipDeviceAttributeComputeCapabilityMajor, device_id_));
+            &this->hip_exec_info_.major,
+            hipDeviceAttributeComputeCapabilityMajor, this->get_device_id()));
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &minor_, hipDeviceAttributeComputeCapabilityMinor, device_id_));
+            &this->hip_exec_info_.minor,
+            hipDeviceAttributeComputeCapabilityMinor, this->get_device_id()));
 #if GINKGO_HIP_PLATFORM_NVCC
-        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
-                            kernels::hip::config::warp_size;
+        this->hip_exec_info_.num_work_groups_per_core =
+            convert_sm_ver_to_cores(this->hip_exec_info_.major,
+                                    this->hip_exec_info_.minor) /
+            kernels::hip::config::warp_size;
 #else
         // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
         // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
-        num_warps_per_sm_ = 4;
+        this->hip_exec_info_.num_work_groups_per_core = 4;
 #endif  // GINKGO_HIP_PLATFORM_NVCC
-        warp_size_ = kernels::hip::config::warp_size;
+        this->hip_exec_info_.warp_size = kernels::hip::config::warp_size;
     }
 }
 
 
 void HipExecutor::init_handles()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         const auto id = this->get_device_id();
         hip::device_guard g(id);
         this->hipblas_handle_ = handle_manager<hipblasContext>(
