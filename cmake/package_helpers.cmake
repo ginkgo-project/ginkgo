@@ -1,6 +1,9 @@
 set(PACKAGE_DOWNLOADER_SCRIPT
     "${CMAKE_CURRENT_LIST_DIR}/DownloadCMakeLists.txt.in")
 
+set(NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT
+    "${CMAKE_CURRENT_LIST_DIR}/DownloadNonCMakeCMakeLists.txt.in")
+
 function(ginkgo_load_git_package package_name package_url package_tag)
     set(GINKGO_THIRD_PARTY_BUILD_TYPE "Debug")
     if (CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
@@ -39,6 +42,30 @@ function(ginkgo_load_git_package package_name package_url package_tag)
             message(FATAL_ERROR
                 "Build step for ${package_name}/download failed: ${result}")
         endif()
+    endif()
+endfunction()
+
+
+function(ginkgo_load_and_configure_package package_name package_url package_hash config_command)
+    set(GINKGO_THIRD_PARTY_BUILD_TYPE "Debug")
+    if (CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
+        set(GINKGO_THIRD_PARTY_BUILD_TYPE "Release")
+    endif()
+    configure_file(${NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT}
+                   download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+    if(result)
+        message(FATAL_ERROR
+            "CMake step for ${package_name}/download failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+    if(result)
+      message(FATAL_ERROR
+        "Build step for ${package_name}/download failed: ${result}")
     endif()
 endfunction()
 
@@ -182,3 +209,20 @@ macro(ginkgo_find_package package_name target_list header_only)
         endif()
     endif()
 endmacro(ginkgo_find_package)
+
+
+#   Download a file and verify the download
+#
+#   \param url Name of package to be found
+#   \param filename      For TPL packages, declare a new target for each library
+#   \param hash_type      For TPL packages, declare the tpl package as header only
+#   \param hash             Extra specifications for the package finder
+#
+function(ginkgo_download_file url filename hash_type hash)
+  if(NOT EXISTS ${filename})
+    file(DOWNLOAD ${url} ${filename}
+      TIMEOUT 60  # seconds
+      EXPECTED_HASH ${hash_type}=${hash}
+      TLS_VERIFY ON)
+  endif()
+endfunction(ginkgo_download_file)

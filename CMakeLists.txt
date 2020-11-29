@@ -19,7 +19,7 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
-include(cmake/autodetect_library_dependencies.cmake)
+include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
 # Ginkgo configuration options
@@ -33,7 +33,6 @@ option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
-option(GINKGO_WITH_HWLOC "Build Ginkgo with HWLOC support" ${GINKGO_HAS_HWLOC})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -145,15 +144,7 @@ find_package(PAPI OPTIONAL_COMPONENTS sde)
 if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
-
-# Find HWLOC if needed
-set(GINKGO_HAVE_HWLOC 0)
-if(GINKGO_WITH_HWLOC)
-  find_package(HWLOC 2.1 REQUIRED)
-  set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
-  message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
-  set(GINKGO_HAVE_HWLOC 1)
-endif()
+set(GINKGO_HAVE_HWLOC 1)
 
 set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
@@ -206,6 +197,9 @@ include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+ginkgo_find_package(HWLOC hwloc FALSE 2.1)
+set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
+message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Ginkgo core libraries
