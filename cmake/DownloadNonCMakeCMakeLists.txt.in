@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.9)
+project(${package_name})
+
+include(ExternalProject)
+ExternalProject_Add(${package_name}
+    URL "${package_url}"
+    URL_HASH "${package_hash}"
+    DOWNLOAD_NO_PROGRESS TRUE
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/src"
+    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/build"
+    CONFIGURE_COMMAND "${config_command}"
+    INSTALL_COMMAND ""
+    UPDATE_DISCONNECTED ${GINKGO_SKIP_DEPENDENCY_UPDATE}
+    )

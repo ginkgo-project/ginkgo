@@ -26,7 +26,7 @@ else()
         )
 endif()
 if(WIN32)
-    # gflags uses gflags_nothreads_static not gflags_nothreads_static in Windows.
+    # gflags uses gflags_nothreads_static not gflags_nothreads in Windows.
     ginkgo_add_external_target(gflags gflags_nothreads_static build/include build/lib
         STATIC "_debug" gflags_external FALSE)
 else()
