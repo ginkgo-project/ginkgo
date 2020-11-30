@@ -155,11 +155,11 @@ private:
 
     /// ... while ignoring imaginary parts for real instantiations
     template <typename U>
-    constexpr std::enable_if_t<is_complex<U>() && !is_complex<ValueType>(),
+    constexpr std::enable_if_t<!is_complex<U>() && !is_complex<ValueType>(),
                                ValueType>
-    sct(U u) const
+    sct(std::complex<U> cu) const
     {
-        return static_cast<ValueType>(u.real());
+        return static_cast<ValueType>(cu.real());
     }
 };
 
