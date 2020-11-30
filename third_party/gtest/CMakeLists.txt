@@ -1,3 +1,4 @@
+message(STATUS "Configuring and building gtest")
 if(MSVC)
     # Force using shared runtime library when MSVC builds shared libraries
     ginkgo_load_git_package(gtest_external

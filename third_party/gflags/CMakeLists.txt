@@ -1,3 +1,4 @@
+message(STATUS "Configuring and building gflags")
 if(MSVC)
     # cmake links dynamic runtime libraries by default in Visual Studio
     # use the ginkgo's flags to use the same runtime libraries as ginkgo
