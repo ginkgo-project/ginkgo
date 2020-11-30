@@ -38,8 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
-
-#include "matrix_strategies.hpp"
+#include <ginkgo/core/matrix/matrix_strategies.hpp>
 
 
 namespace gko {
@@ -422,7 +421,7 @@ protected:
         std::shared_ptr<strategy_type> strategy = std::make_shared<classical>())
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
-          nbcols_{gko::blockutils::getNumBlocks(block_size, size[1])},
+          nbcols_{blockutils::getNumBlocks(block_size, size[1])},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},

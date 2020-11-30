@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #include "core/components/fixed_block.hpp"
-#include "fbcsr_sample.hpp"
+#include "core/test/matrix/fbcsr_sample.hpp"
 
 #define FBCSR_TEST_OFFSET 0.000011118888
 

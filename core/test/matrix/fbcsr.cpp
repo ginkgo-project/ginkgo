@@ -110,9 +110,6 @@ protected:
                 ASSERT_EQ(c[inz], orig_colinds[inz]);
 
                 for (int i = 0; i < bs * bs; i++) {
-                    // ASSERT_LT(gko::abs(v[inz*bs*bs + i] -
-                    // mtx->get_values()[inz*bs*bs + i]),
-                    //           std::numeric_limits<gko::remove_complex<value_type>>::epsilon());
                     ASSERT_EQ(v[inz * bs * bs + i],
                               orig_vals[inz * bs * bs + i]);
                 }

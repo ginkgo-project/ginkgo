@@ -131,10 +131,12 @@ public:
 
     void resize(const int nrows, const int ncols)
     {
+        if (nrows * ncols != nrows_ * ncols_) {
+            delete[] vals_;
+            vals_ = new value_type[nrows * ncols];
+        }
         nrows_ = nrows;
         ncols_ = ncols;
-        delete[] vals_;
-        vals_ = new value_type[nrows_ * ncols_];
     }
 
     void zero()

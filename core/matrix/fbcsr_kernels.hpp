@@ -95,10 +95,6 @@ namespace kernels {
         const matrix::Fbcsr<ValueType, IndexType> *source,             \
         Array<size_type> *result)
 
-#define GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)       \
-    void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
-                              matrix::Fbcsr<ValueType, IndexType> *to_sort)
-
 #define GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType) \
     void is_sorted_by_column_index(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                      \
@@ -126,8 +122,6 @@ namespace kernels {
     GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                          \

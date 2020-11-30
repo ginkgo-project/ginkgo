@@ -48,6 +48,7 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+
 template <typename ValueType, typename IndexType>
 class Fbcsr;
 
