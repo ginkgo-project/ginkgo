@@ -72,6 +72,8 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+option(GINKGO_USE_EXTERNAL_HWLOC "Use external hwloc libray if available" ON)
+option(GINKGO_FORCE_NO_HWLOC "Forcibly switch off HWLOC dependency" OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -144,8 +146,12 @@ find_package(PAPI OPTIONAL_COMPONENTS sde)
 if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
-set(GINKGO_HAVE_HWLOC 1)
 
+if(GINKGO_FORCE_NO_HWLOC)
+    set(GINKGO_HAVE_HWLOC 0)
+else()
+    set(GINKGO_HAVE_HWLOC 1)
+endif()
 set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
@@ -197,7 +203,9 @@ include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+if(NOT GINKGO_FORCE_NO_HWLOC)
 ginkgo_find_package(HWLOC hwloc FALSE 2.1)
+endif()
 set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
 message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
 add_subdirectory(third_party)    # Third-party tools and libraries
