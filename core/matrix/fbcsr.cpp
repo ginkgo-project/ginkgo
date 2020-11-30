@@ -42,11 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
@@ -71,7 +68,6 @@ GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        fbcsr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        fbcsr::calculate_nonzeros_per_row);
-GKO_REGISTER_OPERATION(sort_by_column_index, fbcsr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        fbcsr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, fbcsr::extract_diagonal);
@@ -95,7 +91,7 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
       nbcols_{blockutils::getNumBlocks(block_size, size[1])},
       values_(exec, num_nonzeros),
       col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
-                                                    num_nonzeros)),
+                                               num_nonzeros)),
       row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1),
       startrow_(exec, strategy->calc_size(num_nonzeros)),
       strategy_(strategy->copy())
@@ -107,7 +103,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {
     using Dense = Dense<ValueType>;
-    if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
+    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
         throw /*::gko::*/ NotImplemented(__FILE__, __LINE__,
                                          "SpGeMM for Fbcsr");
@@ -126,7 +122,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
                                              LinOp *const x) const
 {
     using Dense = Dense<ValueType>;
-    if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
+    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
         throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
@@ -379,8 +375,8 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_size(), {}};
 
-    const blockutils::DenseBlocksView<const value_type, index_type>
-        vblocks(tmp->values_.get_const_data(), bs_, bs_);
+    const blockutils::DenseBlocksView<const value_type, index_type> vblocks(
+        tmp->values_.get_const_data(), bs_, bs_);
 
     for (size_type brow = 0; brow < tmp->get_size()[0] / bs_; ++brow) {
         const auto start = tmp->row_ptrs_.get_const_data()[brow];
@@ -431,11 +427,6 @@ std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto exec = this->get_executor();
-//    exec->run(fbcsr::make_sort_by_column_index(this));
-//}
 
 
 template <typename ValueType, typename IndexType>

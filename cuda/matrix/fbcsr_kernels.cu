@@ -160,15 +160,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *to_check,
