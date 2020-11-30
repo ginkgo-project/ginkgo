@@ -101,27 +101,6 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     ASSERT_EQ(1, value);
 }
 
-// #if GKO_HAVE_HWLOC
-
-
-// TEST(OmpExecutor, GetsExecInfo)
-// {
-//     int num_pus = 0;
-//     int num_cores = 0;
-//     int num_numas = 0;
-//     auto omp = gko::OmpExecutor::create();
-//     auto omp_info = omp->get_exec_info();
-//     num_pus = omp_info->get_num_pus();
-//     num_cores = omp_info->get_num_cores();
-//     num_numas = omp_info->get_num_numas();
-//     EXPECT_GT(num_numas, 0);
-//     EXPECT_GT(num_pus, 0);
-//     EXPECT_GT(num_cores, 0);
-// }
-
-
-// #endif
-
 
 TEST(OmpExecutor, AllocatesAndFreesMemory)
 {
