@@ -219,10 +219,13 @@ endmacro(ginkgo_find_package)
 #   \param hash             Extra specifications for the package finder
 #
 function(ginkgo_download_file url filename hash_type hash)
-  if(NOT EXISTS ${filename})
-    file(DOWNLOAD ${url} ${filename}
-      TIMEOUT 60  # seconds
-      EXPECTED_HASH ${hash_type}=${hash}
-      TLS_VERIFY ON)
-  endif()
+  file(DOWNLOAD ${url} ${filename}
+    TIMEOUT 60  # seconds
+    EXPECTED_HASH "${hash_type}=${hash}"
+    TLS_VERIFY ON)
+  if(EXISTS ${filename})
+    message(STATUS "${filename} downloaded from ${url}")
+  else()
+    message(FATAL_ERROR "Download of ${filename} failed.")
+  endif() 
 endfunction(ginkgo_download_file)

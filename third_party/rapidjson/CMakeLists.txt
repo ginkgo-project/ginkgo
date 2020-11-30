@@ -1,3 +1,4 @@
+message(STATUS "Configuring and building rapidjson")
 ginkgo_load_git_package(rapidjson_external
     "https://github.com/Tencent/rapidjson.git"
     "88bd956d66d348f478bceebfdadb8e26c6844695"
