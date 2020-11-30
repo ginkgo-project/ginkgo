@@ -77,7 +77,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+    const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
     ValueType *const cvals = c->get_values();
@@ -121,7 +121,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+    const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
     ValueType *const cvals = c->get_values();

@@ -92,11 +92,11 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    std::shared_ptr<strategy_type> strategy)
     : EnableLinOp<Fbcsr>(exec, size),
       bs_{block_size},
-      nbcols_{gko::blockutils::getNumBlocks(block_size, size[1])},
+      nbcols_{blockutils::getNumBlocks(block_size, size[1])},
       values_(exec, num_nonzeros),
-      col_idxs_(exec, gko::blockutils::getNumBlocks(block_size * block_size,
+      col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
                                                     num_nonzeros)),
-      row_ptrs_(exec, gko::blockutils::getNumBlocks(block_size, size[0]) + 1),
+      row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1),
       startrow_(exec, strategy->calc_size(num_nonzeros)),
       strategy_(strategy->copy())
 {}
@@ -107,7 +107,6 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {
     using Dense = Dense<ValueType>;
-    using TFbcsr = Fbcsr<ValueType, IndexType>;
     if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
         throw /*::gko::*/ NotImplemented(__FILE__, __LINE__,
@@ -127,13 +126,12 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
                                              LinOp *const x) const
 {
     using Dense = Dense<ValueType>;
-    using TFbcsr = Fbcsr<ValueType, IndexType>;
     if (auto b_fbcsr = dynamic_cast<const TFbcsr *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
         throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
-        throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
+        throw NotImplemented(__FILE__, __LINE__, "Adv SpGEAM for Fbcsr");
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -240,7 +238,7 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *const result) const
 {
-    using gko::blockutils::getNumBlocks;
+    using blockutils::getNumBlocks;
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
         exec,
@@ -250,7 +248,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;
-    tmp->value_ = gko::Array<ValueType>(exec, {one<ValueType>()});
+    tmp->value_ = Array<ValueType>(exec, {one<ValueType>()});
     tmp->move_to(result);
 }
 
@@ -334,13 +332,11 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
                cur_bcol = blocks.begin()->first.block_column;
     const index_type num_brows = data.size[0] / bs;
 
-    gko::blockutils::DenseBlocksView<value_type, index_type> values(
+    blockutils::DenseBlocksView<value_type, index_type> values(
         tmp->values_.get_data(), bs, bs);
 
     for (auto it = blocks.begin(); it != blocks.end(); it++) {
-        if (cur_brow >= num_brows)
-            throw gko::OutOfBoundsError(__FILE__, __LINE__, cur_brow,
-                                        num_brows);
+        GKO_ENSURE_IN_BOUNDS(cur_brow, num_brows);
 
         tmp->col_idxs_.get_data()[cur_bnz] = it->first.block_column;
 
@@ -383,7 +379,7 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_size(), {}};
 
-    const gko::blockutils::DenseBlocksView<const value_type, index_type>
+    const blockutils::DenseBlocksView<const value_type, index_type>
         vblocks(tmp->values_.get_const_data(), bs_, bs_);
 
     for (size_type brow = 0; brow < tmp->get_size()[0] / bs_; ++brow) {
