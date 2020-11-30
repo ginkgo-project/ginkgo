@@ -77,7 +77,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+    const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
     ValueType *const cvals = c->get_values();
@@ -121,7 +121,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
+    const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
     ValueType *const cvals = c->get_values();
@@ -148,70 +148,6 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row(unordered_set<IndexType> &cols,
-                       const matrix::Fbcsr<ValueType, IndexType> *c,
-                       size_type row) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto row_ptrs = c->get_const_row_ptrs();
-//    auto col_idxs = c->get_const_col_idxs();
-//    cols.insert(col_idxs + row_ptrs[row], col_idxs + row_ptrs[row + 1]);
-//}
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row2(unordered_set<IndexType> &cols,
-                        const matrix::Fbcsr<ValueType, IndexType> *a,
-                        const matrix::Fbcsr<ValueType, IndexType> *b,
-                        size_type row) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:fbcsr): change the code imported from matrix/csr if needed
-//    auto a_row_ptrs = a->get_const_row_ptrs();
-//    auto a_col_idxs = a->get_const_col_idxs();
-//    auto b_row_ptrs = b->get_const_row_ptrs();
-//    auto b_col_idxs = b->get_const_col_idxs();
-//    for (size_type a_nz = a_row_ptrs[row];
-//         a_nz < size_type(a_row_ptrs[row + 1]); ++a_nz) {
-//        auto a_col = a_col_idxs[a_nz];
-//        auto b_row = a_col;
-//        cols.insert(b_col_idxs + b_row_ptrs[b_row],
-//                    b_col_idxs + b_row_ptrs[b_row + 1]);
-//    }
-//}
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
-                           const matrix::Fbcsr<ValueType, IndexType> *c,
-                           ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
-                            const matrix::Fbcsr<ValueType, IndexType> *a,
-                            const matrix::Fbcsr<ValueType, IndexType> *b,
-                            ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Fbcsr<ValueType, IndexType> *a,
-            const matrix::Fbcsr<ValueType, IndexType> *b,
-            matrix::Fbcsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Fbcsr<ValueType, IndexType> *a,
-                     const matrix::Fbcsr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Fbcsr<ValueType, IndexType> *d,
-                     matrix::Fbcsr<ValueType, IndexType> *c)
-    GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
@@ -433,15 +369,6 @@ void calculate_nonzeros_per_row(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
 
 
 template <typename ValueType, typename IndexType>

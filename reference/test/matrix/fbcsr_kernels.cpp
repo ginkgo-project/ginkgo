@@ -547,7 +547,7 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 
     gko::Array<gko::size_type> row_nnz(this->exec, this->mtx2->get_size()[0]);
 
-    gko::kernels::reference::fbcsr ::calculate_nonzeros_per_row(
+    gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
         this->exec, this->mtx2.get(), &row_nnz);
 
     auto row_nnz_val = row_nnz.get_data();
