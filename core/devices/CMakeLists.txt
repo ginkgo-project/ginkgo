@@ -6,6 +6,8 @@ function(ginkgo_add_object_library name)
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
+ginkgo_add_object_library(ginkgo_core_device machine_topology.cpp)
+
 add_subdirectory(cuda)
 add_subdirectory(dpcpp)
 add_subdirectory(hip)

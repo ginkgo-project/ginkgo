@@ -9,7 +9,6 @@ target_sources(ginkgo
     base/composition.cpp
     base/executor.cpp
     base/mtx_io.cpp
-    base/machine_topology.cpp
     base/perturbation.cpp
     base/version.cpp
     factorization/ic.cpp
