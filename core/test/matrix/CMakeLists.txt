@@ -12,6 +12,7 @@ target_include_directories(test_fbcsr_sample
   "$<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}>"
   "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}/include>"
   )
+set_property(TARGET test_fbcsr_sample PROPERTY CXX_STANDARD 14)
 ginkgo_create_test(fbcsr test_fbcsr_sample)
 ginkgo_create_test(fbcsr_builder)
 ginkgo_create_test(hybrid)
