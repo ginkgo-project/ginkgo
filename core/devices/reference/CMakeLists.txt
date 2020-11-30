@@ -1,2 +1,2 @@
 ginkgo_add_object_library(ginkgo_reference_device
-    dummy.cpp)
+  $<TARGET_OBJECTS:ginkgo_core_device> dummy.cpp)
