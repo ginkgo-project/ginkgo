@@ -131,30 +131,6 @@ TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 }
 
 
-#if GKO_HAVE_HWLOC
-
-
-TEST_F(CudaExecutor, GetsExecInfo)
-{
-    int num_pus = 0;
-    int num_gpus = 0;
-    int num_cores = 0;
-    int num_numas = 0;
-    auto cuda = gko::CudaExecutor::create(0, omp);
-    auto cuda_info = cuda->get_exec_info();
-    num_pus = cuda_info->get_num_pus();
-    num_gpus = cuda_info->get_num_gpus();
-    num_cores = cuda_info->get_num_cores();
-    num_numas = cuda_info->get_num_numas();
-    EXPECT_GT(num_numas, 0);
-    EXPECT_GT(num_gpus, 0);
-    EXPECT_GT(num_pus, 0);
-    EXPECT_GT(num_cores, 0);
-}
-
-
-#endif
-
 TEST_F(CudaExecutor, AllocatesAndFreesMemory)
 {
     int *ptr = nullptr;
