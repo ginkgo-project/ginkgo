@@ -139,13 +139,13 @@ TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
 
 
 template <typename T>
-constexpr T get_some_number()
+constexpr typename std::enable_if_t<!gko::is_complex<T>(), T> get_some_number()
 {
     return static_cast<T>(1.2);
 }
 
 template <typename T>
-constexpr typename std::enable_if_t<gko::is_complex<T>, T> get_some_number()
+constexpr typename std::enable_if_t<gko::is_complex<T>(), T> get_some_number()
 {
     using RT = gko::remove_complex<T>;
     return {static_cast<RT>(1.2), static_cast<RT>(3.4)};
