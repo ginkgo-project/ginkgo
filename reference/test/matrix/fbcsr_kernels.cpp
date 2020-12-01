@@ -212,8 +212,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
-    constexpr T alphav = -1.0;
-    constexpr T betav = 2.0;
+    const T alphav = -1.0;
+    const T betav = 2.0;
     auto alpha = gko::initialize<Vec>({alphav}, this->exec);
     auto beta = gko::initialize<Vec>({betav}, this->exec);
 
@@ -254,8 +254,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
-    constexpr T alphav = -1.0;
-    constexpr T betav = 2.0;
+    const T alphav = -1.0;
+    const T betav = 2.0;
     auto alpha = gko::initialize<Vec>({alphav}, this->exec);
     auto beta = gko::initialize<Vec>({betav}, this->exec);
 

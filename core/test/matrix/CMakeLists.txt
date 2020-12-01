@@ -14,6 +14,7 @@ target_include_directories(test_fbcsr_sample
   )
 set_property(TARGET test_fbcsr_sample PROPERTY CXX_STANDARD 14)
 set_property(TARGET test_fbcsr_sample PROPERTY CXX_EXTENSIONS OFF)
+target_link_libraries(test_fbcsr_sample PRIVATE ginkgo)
 ginkgo_create_test(fbcsr test_fbcsr_sample)
 ginkgo_create_test(fbcsr_builder)
 ginkgo_create_test(hybrid)
