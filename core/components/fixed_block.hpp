@@ -34,10 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/math.hpp>
-
-#include <type_traits>
 
 namespace gko {
 namespace blockutils {
@@ -208,4 +209,4 @@ private:
 }  // namespace blockutils
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_

@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <algorithm>
+
 
 #include <ginkgo/core/matrix/matrix_strategies.hpp>
 
-#include <algorithm>
 
 #include "core/components/fixed_block.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"

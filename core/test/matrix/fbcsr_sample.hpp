@@ -30,9 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#ifndef GKO_CORE_MATRIX_TEST_FBCSR_SAMPLE_HPP
-#define GKO_CORE_MATRIX_TEST_FBCSR_SAMPLE_HPP
+#ifndef GKO_CORE_TEST_MATRIX_FBCSR_SAMPLE_HPP_
+#define GKO_CORE_TEST_MATRIX_FBCSR_SAMPLE_HPP_
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
@@ -270,4 +269,4 @@ public:
 }  // namespace testing
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_TEST_MATRIX_FBCSR_SAMPLE_HPP_
