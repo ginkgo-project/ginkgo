@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_MATRIX_STRATEGY_HPP_
-#define GKO_CORE_MATRIX_MATRIX_STRATEGY_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_MATRIX_STRATEGIES_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_MATRIX_STRATEGIES_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -500,4 +500,4 @@ void strategy_rebuild_helper(MtxType *const result)
 }  // namespace matrix
 }  // namespace gko
 
-#endif
+#endif  // GKO_PUBLIC_CORE_MATRIX_MATRIX_STRATEGIES_HPP_

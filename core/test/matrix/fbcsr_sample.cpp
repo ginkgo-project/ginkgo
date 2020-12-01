@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <algorithm>
+
 
 #include <ginkgo/core/matrix/matrix_strategies.hpp>
 
-#include <algorithm>
 
 #include "core/components/fixed_block.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
@@ -878,10 +879,10 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_conjtranspose_fbcsr() const
     return mtx;
 }
 
-template class FbcsrSampleComplex<std::complex<float>, int>;
-template class FbcsrSampleComplex<std::complex<double>, int>;
-template class FbcsrSampleComplex<std::complex<float>, long>;
-template class FbcsrSampleComplex<std::complex<double>, long>;
+template class FbcsrSampleComplex<std::complex<float>, int32>;
+template class FbcsrSampleComplex<std::complex<double>, int32>;
+template class FbcsrSampleComplex<std::complex<float>, int64>;
+template class FbcsrSampleComplex<std::complex<double>, int64>;
 
 }  // namespace testing
 }  // namespace gko

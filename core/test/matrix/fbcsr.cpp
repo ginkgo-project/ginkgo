@@ -31,12 +31,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
+
+
+#include <iostream>
+#include <limits>
 
 
 #include <gtest/gtest.h>
-#include <iostream>
-#include <limits>
+
+
+#include <ginkgo/core/matrix/matrix_strategies.hpp>
 
 
 #include "core/components/fixed_block.hpp"
