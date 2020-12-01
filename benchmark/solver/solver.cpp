@@ -151,6 +151,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
+                   {"idr", create_solver<gko::solver::Idr<>>},
                    {"gmres",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory> precond) {
