@@ -30,13 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include <ginkgo/core/base/machine_topology.hpp>
-
-
 #include <atomic>
 #include <memory>
 #include <mutex>
+
+
+#include <ginkgo/core/base/machine_topology.hpp>
 
 
 namespace gko {
