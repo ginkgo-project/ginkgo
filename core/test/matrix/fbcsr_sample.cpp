@@ -878,10 +878,10 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_conjtranspose_fbcsr() const
     return mtx;
 }
 
-template class FbcsrSampleComplex<std::complex<float>, int>;
-template class FbcsrSampleComplex<std::complex<double>, int>;
-template class FbcsrSampleComplex<std::complex<float>, long>;
-template class FbcsrSampleComplex<std::complex<double>, long>;
+template class FbcsrSampleComplex<std::complex<float>, int32>;
+template class FbcsrSampleComplex<std::complex<double>, int32>;
+template class FbcsrSampleComplex<std::complex<float>, int64>;
+template class FbcsrSampleComplex<std::complex<double>, int64>;
 
 }  // namespace testing
 }  // namespace gko
