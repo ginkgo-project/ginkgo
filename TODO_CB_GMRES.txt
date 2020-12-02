@@ -1,0 +1,10 @@
+TODO CB-GMRES for Paper review
+
+1. change stopping criterion: 1e-12
+2. Use Cusparse ILU preconditioner
+3. Always run GmresMixed<float, float> in addition to the other benchmarks
+4. Run both Classical and Modified Grahm-Schmidt and compare them
+   (Add regular Ginkgo Gmres<double> to the benchmark and compare MGS with CGS)
+5. Run everything with Restart = 300
+6. Remove matrices from same group (e.g. af_*) from the plots
+7. Run MGS vs CGS without preconditioner
