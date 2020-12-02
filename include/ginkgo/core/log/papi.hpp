@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_PAPI_HPP_
-#define GKO_CORE_LOG_PAPI_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_PAPI_HPP_
+#define GKO_PUBLIC_CORE_LOG_PAPI_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -318,4 +318,4 @@ private:
 
 
 #endif  // GKO_HAVE_PAPI_SDE
-#endif  // GKO_CORE_LOG_PAPI_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_PAPI_HPP_

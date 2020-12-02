@@ -357,13 +357,13 @@ int main(int, char **)
                            .with_reduction_factor(1e-10)
                            .on(refExec);
 
-        auto rel_res = gko::stop::RelativeResidualNorm<>::build()
-                           .with_tolerance(1e-10)
-                           .on(refExec);
+        auto rel_res =
+            gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
 
-        auto abs_res = gko::stop::AbsoluteResidualNorm<>::build()
-                           .with_tolerance(1e-10)
-                           .on(refExec);
+        auto abs_res =
+            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
 
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};

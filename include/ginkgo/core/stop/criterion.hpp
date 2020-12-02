@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_CRITERION_HPP_
-#define GKO_CORE_STOP_CRITERION_HPP_
+#ifndef GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
+#define GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
@@ -327,4 +327,4 @@ public:                                                                      \
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_CRITERION_HPP_
+#endif  // GKO_PUBLIC_CORE_STOP_CRITERION_HPP_

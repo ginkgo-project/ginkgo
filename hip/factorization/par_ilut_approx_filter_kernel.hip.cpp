@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilut_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <algorithm>
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/prefix_sum.hpp"
-#include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"

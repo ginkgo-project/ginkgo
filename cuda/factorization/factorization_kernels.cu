@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 
+
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "cuda/base/config.hpp"

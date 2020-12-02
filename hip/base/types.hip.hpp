@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HIP_HPP_
 
 
-#include <type_traits>
-
-
 #include <ginkgo/core/base/types.hpp>
+
+
+#include <type_traits>
 
 
 #include <hip/hip_complex.h>
