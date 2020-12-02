@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
       - name: Check for formatting changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
       - name: Upload code formatting patch
         if: failure()

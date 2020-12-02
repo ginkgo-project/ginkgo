@@ -15,5 +15,5 @@ jobs:
           fetch-depth: 0
       - name: Add appropriate labels
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: .github/label.sh
