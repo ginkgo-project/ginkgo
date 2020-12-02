@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
-
-
 #include "core/components/fixed_block.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 
@@ -49,8 +46,6 @@ namespace gko {
 namespace testing {
 
 
-namespace matstr = gko::matrix::matrix_strategy;
-
 /** Generates a copy of the given matrix with a different scalar type
  *
  * \tparam AbsValueType The scalar type of the output matrix
@@ -63,14 +58,13 @@ generate_acopy_impl(const FbcsrType *const mat)
     using index_type = typename FbcsrType::index_type;
     using value_type = typename FbcsrType::value_type;
     using AbsFbcsr = gko::matrix::Fbcsr<AbsValueType, index_type>;
-    using classical = matstr::classical<AbsFbcsr>;
 
     std::shared_ptr<const ReferenceExecutor> exec =
         std::dynamic_pointer_cast<const ReferenceExecutor>(mat->get_executor());
 
     std::unique_ptr<AbsFbcsr> amat =
         AbsFbcsr::create(exec, mat->get_size(), mat->get_num_stored_elements(),
-                         mat->get_block_size(), std::make_shared<classical>());
+                         mat->get_block_size());
 
     const index_type *const colidxs = mat->get_col_idxs();
     const index_type *const rowptrs = mat->get_row_ptrs();
@@ -112,12 +106,11 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(nrows),
                                   static_cast<size_type>(ncols)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 2;
     r[2] = 4;
@@ -153,8 +146,6 @@ FbcsrSample<ValueType, IndexType>::generate_fbcsr() const
 
     v[34] += FBCSR_TEST_IMAGINARY;
     v[35] += FBCSR_TEST_IMAGINARY;
-
-    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
 }
@@ -520,12 +511,11 @@ FbcsrSample2<ValueType, IndexType>::generate_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(nrows),
                                   static_cast<size_type>(ncols)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 1;
     r[2] = 3;
@@ -547,8 +537,6 @@ FbcsrSample2<ValueType, IndexType>::generate_fbcsr() const
     v[13] = -1;
     v[14] = -2;
     v[15] = -11;
-
-    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
 }
@@ -614,12 +602,11 @@ FbcsrSample2<ValueType, IndexType>::generate_transpose_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(ncols),
                                   static_cast<size_type>(nrows)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 2;
     r[2] = 2;
@@ -642,8 +629,6 @@ FbcsrSample2<ValueType, IndexType>::generate_transpose_fbcsr() const
     v[11] = -11;
     v[13] = 0;
     v[15] = 0;
-
-    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
 }
@@ -724,12 +709,11 @@ FbcsrSampleSquare<ValueType, IndexType>::generate_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(nrows),
                                   static_cast<size_type>(ncols)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 1;
     r[2] = 2;
@@ -749,12 +733,11 @@ FbcsrSampleSquare<ValueType, IndexType>::generate_transpose_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(nrows),
                                   static_cast<size_type>(ncols)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 0;
     r[2] = 2;
@@ -802,12 +785,11 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(nrows),
                                   static_cast<size_type>(ncols)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 1;
     r[2] = 3;
@@ -831,8 +813,6 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_fbcsr() const
     v[14] = -2.0 - 2.15i;
     v[15] = -11.0 - 11.15i;
 
-    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
-
     return mtx;
 }
 
@@ -844,12 +824,11 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_conjtranspose_fbcsr() const
         Fbcsr::create(exec,
                       gko::dim<2>{static_cast<size_type>(ncols),
                                   static_cast<size_type>(nrows)},
-                      nnz, bs, std::make_shared<matstr::classical<Fbcsr>>());
+                      nnz, bs);
 
     value_type *const v = mtx->get_values();
     index_type *const c = mtx->get_col_idxs();
     index_type *const r = mtx->get_row_ptrs();
-    index_type *const s = mtx->get_srow();
     r[0] = 0;
     r[1] = 2;
     r[2] = 2;
@@ -873,8 +852,6 @@ FbcsrSampleComplex<ValueType, IndexType>::generate_conjtranspose_fbcsr() const
     v[11] = -11.0 + 11.15i;
     v[13] = 0;
     v[15] = 0;
-
-    for (index_type is = 0; is < mtx->get_num_srow_elements(); is++) s[is] = 0;
 
     return mtx;
 }

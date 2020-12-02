@@ -82,19 +82,17 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
-Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
-                                   const dim<2> &size, size_type num_nonzeros,
-                                   int block_size,
-                                   std::shared_ptr<strategy_type> strategy)
+Fbcsr<ValueType, IndexType>::Fbcsr(const std::shared_ptr<const Executor> exec,
+                                   const dim<2> &size,
+                                   const size_type num_nonzeros,
+                                   const int block_size)
     : EnableLinOp<Fbcsr>(exec, size),
       bs_{block_size},
       nbcols_{blockutils::getNumBlocks(block_size, size[1])},
       values_(exec, num_nonzeros),
       col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
                                                num_nonzeros)),
-      row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1),
-      startrow_(exec, strategy->calc_size(num_nonzeros)),
-      strategy_(strategy->copy())
+      row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1)
 {}
 
 
@@ -141,20 +139,11 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     Fbcsr<ValueType, IndexType> *const result) const
 {
-    bool same_executor = this->get_executor() == result->get_executor();
-    // NOTE: as soon as strategies are improved, this can be reverted
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
-    result->startrow_ = this->startrow_;
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
-    if (!same_executor) {
-        convert_strategy_helper(result);
-    } else {
-        result->set_strategy(std::move(this->get_strategy()->copy()));
-    }
-    // END NOTE
 }
 
 
@@ -162,11 +151,7 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
     Fbcsr<ValueType, IndexType> *const result)
 {
-    bool same_executor = this->get_executor() == result->get_executor();
     EnableLinOp<Fbcsr>::move_to(result);
-    if (!same_executor) {
-        matrix_strategy::strategy_rebuild_helper(result);
-    }
 }
 
 
@@ -179,7 +164,6 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
-    convert_strategy_helper(result);
 }
 
 
@@ -321,7 +305,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     const std::map<FbEntry, Blk_t, FbLess> blocks = create_block_map(data);
 
     auto tmp = Fbcsr::create(this->get_executor()->get_master(), data.size,
-                             blocks.size() * bs * bs, bs, this->get_strategy());
+                             blocks.size() * bs * bs, bs);
 
     tmp->row_ptrs_.get_data()[0] = 0;
     index_type cur_brow = 0, cur_bnz = 0,
@@ -356,7 +340,6 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
 
     assert(cur_brow == tmp->get_size()[0] / bs);
 
-    tmp->make_srow();
     tmp->move_to(this);
 }
 
@@ -402,11 +385,9 @@ std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();
     auto trans_cpy = Fbcsr::create(exec, gko::transpose(this->get_size()),
-                                   this->get_num_stored_elements(), bs_,
-                                   this->get_strategy());
+                                   this->get_num_stored_elements(), bs_);
 
     exec->run(fbcsr::make_transpose(this, trans_cpy.get()));
-    trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
 
@@ -416,11 +397,9 @@ std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::conj_transpose() const
 {
     auto exec = this->get_executor();
     auto trans_cpy = Fbcsr::create(exec, gko::transpose(this->get_size()),
-                                   this->get_num_stored_elements(), bs_,
-                                   this->get_strategy());
+                                   this->get_num_stored_elements(), bs_);
 
     exec->run(fbcsr::make_conj_transpose(this, trans_cpy.get()));
-    trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
 
@@ -480,75 +459,7 @@ Fbcsr<ValueType, IndexType>::compute_absolute() const
         this->get_const_values(), this->get_num_stored_elements(),
         abs_fbcsr->get_values()));
 
-    convert_strategy_helper(abs_fbcsr.get());
     return abs_fbcsr;
-}
-
-
-// TODO clean this up as soon as we improve strategy_type
-template <typename ValueType, typename IndexType>
-template <typename FbcsrType>
-void Fbcsr<ValueType, IndexType>::convert_strategy_helper(
-    FbcsrType *const result) const
-{
-    auto strat = this->get_strategy().get();
-    std::shared_ptr<typename matrix_strategy::strategy_type<FbcsrType>>
-        new_strat;
-    using classical = matrix_strategy::classical<FbcsrType>;
-    using load_balance = matrix_strategy::load_balance<FbcsrType>;
-    using automatic = matrix_strategy::automatic<FbcsrType>;
-
-    if (dynamic_cast<classical *>(strat)) {
-        new_strat = std::make_shared<classical>();
-    } else {
-        auto rexec = result->get_executor();
-        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(rexec);
-        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
-        auto lb = dynamic_cast<load_balance *>(strat);
-        if (cuda_exec) {
-            if (lb) {
-                new_strat = std::make_shared<load_balance>(cuda_exec);
-            } else {
-                new_strat = std::make_shared<automatic>(cuda_exec);
-            }
-        } else if (hip_exec) {
-            if (lb) {
-                new_strat = std::make_shared<load_balance>(hip_exec);
-            } else {
-                new_strat = std::make_shared<automatic>(hip_exec);
-            }
-        } else {
-            // Try to preserve this executor's configuration
-            auto this_cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(
-                this->get_executor());
-            auto this_hip_exec = std::dynamic_pointer_cast<const HipExecutor>(
-                this->get_executor());
-            if (this_cuda_exec) {
-                if (lb) {
-                    new_strat = std::make_shared<load_balance>(this_cuda_exec);
-                } else {
-                    new_strat = std::make_shared<automatic>(this_cuda_exec);
-                }
-            } else if (this_hip_exec) {
-                if (lb) {
-                    new_strat = std::make_shared<load_balance>(this_hip_exec);
-                } else {
-                    new_strat = std::make_shared<automatic>(this_hip_exec);
-                }
-            } else {
-                // We had a load balance or automatic strategy from a non
-                // HIP or Cuda executor and are moving to a non HIP or Cuda
-                // executor.
-                // FIXME this creates a long delay
-                if (lb) {
-                    new_strat = std::make_shared<load_balance>();
-                } else {
-                    new_strat = std::make_shared<automatic>();
-                }
-            }
-        }
-    }
-    result->set_strategy(new_strat);
 }
 
 
