@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_TEMPORARY_CLONE_HPP_
-#define GKO_CORE_BASE_TEMPORARY_CLONE_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_TEMPORARY_CLONE_HPP_
+#define GKO_PUBLIC_CORE_BASE_TEMPORARY_CLONE_HPP_
 
 
 #include <functional>
@@ -199,4 +199,4 @@ detail::temporary_clone<T> make_temporary_clone(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_TEMPORARY_CLONE_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_TEMPORARY_CLONE_HPP_
