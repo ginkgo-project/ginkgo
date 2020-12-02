@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
 
 
 namespace gko {
@@ -136,9 +135,6 @@ public:
     using transposed_type = Fbcsr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Fbcsr>;
-
-    using strategy_type =
-        matrix_strategy::strategy_type<Fbcsr<value_type, index_type>>;
 
 
     void convert_to(Fbcsr<ValueType, IndexType> *result) const override;
@@ -277,39 +273,6 @@ public:
     }
 
     /**
-     * @return The starting row for each 'team' of threads
-     */
-    index_type *get_srow() noexcept { return startrow_.get_data(); }
-
-    /**
-     * @see get_const_srow
-     */
-    const index_type *get_srow() const noexcept
-    {
-        return startrow_.get_const_data();
-    }
-
-    /**
-     * @copydoc Fbcsr::get_srow()
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const index_type *get_const_srow() const noexcept
-    {
-        return startrow_.get_const_data();
-    }
-
-    /**
-     * @return The number of the srow stored elements (involved warps)
-     */
-    size_type get_num_srow_elements() const noexcept
-    {
-        return startrow_.get_num_elems();
-    }
-
-    /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
@@ -317,25 +280,6 @@ public:
     size_type get_num_stored_elements() const noexcept
     {
         return values_.get_num_elems();
-    }
-
-    /**
-     * @return The strategy
-     */
-    std::shared_ptr<strategy_type> get_strategy() const noexcept
-    {
-        return strategy_;
-    }
-
-    /**
-     * Set the strategy
-     *
-     * @param strategy the fbcsr strategy
-     */
-    void set_strategy(std::shared_ptr<strategy_type> strategy)
-    {
-        strategy_ = std::move(strategy->copy());
-        this->make_srow();
     }
 
     /**
@@ -364,17 +308,13 @@ public:
     index_type get_num_block_cols() const { return nbcols_; }
 
 protected:
-    using classical = matrix_strategy::classical<Fbcsr<value_type, index_type>>;
-
     /**
      * Creates an uninitialized FBCSR matrix with a block size of 1.
      *
      * @param exec  Executor associated to the matrix
-     * @param strategy  the strategy of FBCSR
      */
-    Fbcsr(std::shared_ptr<const Executor> exec,
-          std::shared_ptr<strategy_type> strategy)
-        : Fbcsr(std::move(exec), dim<2>{}, {}, 1, std::move(strategy))
+    Fbcsr(std::shared_ptr<const Executor> exec)
+        : Fbcsr(std::move(exec), dim<2>{}, {}, 1)
     {}
 
     /**
@@ -384,12 +324,12 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      * @param block_size Size of the small dense square blocks
-     * @param strategy  the strategy of FBCSR
      */
-    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
-          size_type num_nonzeros = {}, int block_size = 1,
-          std::shared_ptr<strategy_type> strategy =
-              std::make_shared<classical>());
+    // Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size =
+    // dim<2>{},
+    //       size_type num_nonzeros = {}, int block_size = 1);
+    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
+          size_type num_nonzeros, int block_size);
 
     /**
      * Creates a FBCSR matrix from already allocated (and initialized) row
@@ -414,24 +354,19 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    Fbcsr(
-        std::shared_ptr<const Executor> exec, const dim<2> &size,
-        int block_size, ValuesArray &&values, ColIdxsArray &&col_idxs,
-        RowPtrsArray &&row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<classical>())
+    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
+          int block_size, ValuesArray &&values, ColIdxsArray &&col_idxs,
+          RowPtrsArray &&row_ptrs)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
           nbcols_{blockutils::getNumBlocks(block_size, size[1])},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
-          startrow_(exec),
-          strategy_(strategy->copy())
+          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
         GKO_ASSERT_EQ(values_.get_num_elems(),
                       col_idxs_.get_num_elems() * bs_ * bs_);
         GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_num_elems());
-        this->make_srow();
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -439,28 +374,12 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    // TODO clean this up as soon as we improve strategy_type
-    template <typename FbcsrType>
-    void convert_strategy_helper(FbcsrType *result) const;
-
-    /**
-     * Computes srow. It should be run after changing any row pointer.
-     */
-    void make_srow()
-    {
-        startrow_.resize_and_reset(
-            strategy_->calc_size(col_idxs_.get_num_elems()));
-        strategy_->process(row_ptrs_, &startrow_);
-    }
-
 private:
-    int bs_;            ///< Block size
-    size_type nbcols_;  ///< Number of block-columns
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
-    Array<index_type> startrow_;
-    std::shared_ptr<strategy_type> strategy_;
+    int bs_;                      ///< Block size
+    size_type nbcols_;            ///< Number of block-columns
+    Array<value_type> values_;    ///< Non-zero values of all blocks
+    Array<index_type> col_idxs_;  ///< Block-column indices of all blocks
+    Array<index_type> row_ptrs_;  ///< Block-row pointers into @ref col_idxs_
 };
 
 

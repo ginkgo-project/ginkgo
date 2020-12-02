@@ -57,7 +57,7 @@ public:
 protected:
     FbcsrBuilder()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
+          mtx(Mtx::create(exec, gko::dim<2>{4, 6}, 8, 2))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -80,40 +80,6 @@ TYPED_TEST(FbcsrBuilder, ReturnsCorrectArrays)
 
     ASSERT_EQ(builder_col_idxs, ref_col_idxs);
     ASSERT_EQ(builder_values, ref_values);
-}
-
-
-TYPED_TEST(FbcsrBuilder, UpdatesSrowOnDestruction)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    struct mock_strategy
-        : public gko::matrix::matrix_strategy::strategy_type<Mtx> {
-        virtual void process(const gko::Array<index_type> &,
-                             gko::Array<index_type> *) override
-        {
-            *was_called = true;
-        }
-
-        virtual int64_t calc_size(const int64_t nnz) override { return 0; }
-
-        virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
-        {
-            return std::make_shared<mock_strategy>(*was_called);
-        }
-
-        mock_strategy(bool &flag) : Mtx::strategy_type(""), was_called(&flag) {}
-
-        bool *was_called;
-    };
-    bool was_called{};
-    this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
-    was_called = false;
-
-    gko::matrix::FbcsrBuilder<value_type, index_type>{this->mtx.get()};
-
-    ASSERT_TRUE(was_called);
 }
 
 

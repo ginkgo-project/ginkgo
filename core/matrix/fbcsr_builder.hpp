@@ -75,10 +75,7 @@ public:
         : matrix_{matrix}
     {}
 
-    /**
-     * Updates the internal matrix data structures at destruction.
-     */
-    ~FbcsrBuilder() { matrix_->make_srow(); }
+    ~FbcsrBuilder() {}
 
     // make this type non-movable
     FbcsrBuilder(const FbcsrBuilder &) = delete;
