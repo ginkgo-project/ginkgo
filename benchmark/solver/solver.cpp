@@ -41,9 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-
-
-#include <ginkgo/core/preconditioner/isai.hpp>
+#include <vector>
 
 
 #include "benchmark/utils/formats.hpp"
@@ -78,6 +76,13 @@ DEFINE_uint32(
 
 DEFINE_uint32(gmres_restart, 100,
               "What maximum dimension of the Krylov space to use in GMRES");
+
+DEFINE_uint32(idr_subspace_dim, 2,
+              "What dimension of the subspace to use in IDR");
+
+DEFINE_double(
+    idr_kappa, 0.7,
+    "the number to check whether Av_n and v_n are too close or not in IDR");
 
 DEFINE_bool(random_rhs, false,
             "Use a random vector for the rhs (otherwise use all ones)");
@@ -120,11 +125,8 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
-// solver mapping
-template <typename SolverType>
-std::unique_ptr<gko::LinOpFactory> create_solver(
-    std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const gko::LinOpFactory> precond)
+std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
+    std::shared_ptr<const gko::Executor> exec)
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
@@ -137,10 +139,22 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
                            .with_reduction_factor(FLAGS_rel_res_goal)
                            .on(exec));
     }
+    auto iteration_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(FLAGS_max_iters).on(exec));
+    std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
+        criterion_vector{residual_stop, iteration_stop};
+    return gko::stop::combine(criterion_vector);
+}
+
+
+// solver mapping
+template <typename SolverType>
+std::unique_ptr<gko::LinOpFactory> create_solver(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOpFactory> precond)
+{
     return SolverType::build()
-        .with_criteria(residual_stop, gko::stop::Iteration::build()
-                                          .with_max_iters(FLAGS_max_iters)
-                                          .on(exec))
+        .with_criteria(create_criterion(exec))
         .with_preconditioner(give(precond))
         .on(exec);
 }
@@ -154,18 +168,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
-                   {"idr", create_solver<gko::solver::Idr<>>},
+                   {"idr",
+                    [](std::shared_ptr<const gko::Executor> exec,
+                       std::shared_ptr<const gko::LinOpFactory> precond) {
+                        return gko::solver::Idr<>::build()
+                            .with_criteria(create_criterion(exec))
+                            .with_subspace_dim(FLAGS_idr_subspace_dim)
+                            .with_kappa(FLAGS_idr_kappa)
+                            .with_preconditioner(give(precond))
+                            .on(exec);
+                    }},
                    {"gmres",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory> precond) {
                         return gko::solver::Gmres<>::build()
-                            .with_criteria(
-                                gko::stop::ResidualNormReduction<>::build()
-                                    .with_reduction_factor(FLAGS_rel_res_goal)
-                                    .on(exec),
-                                gko::stop::Iteration::build()
-                                    .with_max_iters(FLAGS_max_iters)
-                                    .on(exec))
+                            .with_criteria(create_criterion(exec))
                             .with_krylov_dim(FLAGS_gmres_restart)
                             .with_preconditioner(give(precond))
                             .on(exec);
