@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
@@ -57,9 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
-
-
-namespace matstr = gko::matrix::matrix_strategy;
 
 
 template <typename ValueIndexType>
@@ -344,8 +340,6 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
     tmp->convert_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
-    // ASSERT_EQ(typeid(*this->mtx->get_strategy()),
-    //           typeid(*res->get_strategy()));
 }
 
 
@@ -367,8 +361,6 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
     tmp->move_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
-    // ASSERT_EQ(typeid(*this->mtx->get_strategy()),
-    //           typeid(*res->get_strategy()));
 }
 
 
@@ -595,7 +587,6 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     using Fbcsr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
 
-    // auto cpmat = Fbcsr::create(this->exec, this->mtx->get_strategy());
     auto cpmat = this->mtx->clone();
     index_type *const colinds = cpmat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);

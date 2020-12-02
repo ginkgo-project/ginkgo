@@ -40,18 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
-
-
 #include "core/components/fixed_block.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
-
-
-namespace matstr = gko::matrix::matrix_strategy;
 
 
 template <typename ValueIndexType>
@@ -97,7 +91,6 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        auto s = m->get_const_srow();
 
         const int bs = 3;
 
@@ -119,8 +112,6 @@ protected:
                 }
             }
         }
-
-        ASSERT_EQ(m->get_num_srow_elements(), 0);
     }
 
     void assert_empty(const Mtx *m)
@@ -131,7 +122,6 @@ protected:
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_NE(m->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(m->get_const_srow(), nullptr);
     }
 };
 
@@ -235,10 +225,8 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
         this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,
         gko::Array<value_type>::view(this->exec, bnnz * bs * bs, values),
         gko::Array<index_type>::view(this->exec, bnnz, col_idxs),
-        gko::Array<index_type>::view(this->exec, nbrows + 1, row_ptrs),
-        std::make_shared<matstr::classical<Mtx>>());
+        gko::Array<index_type>::view(this->exec, nbrows + 1, row_ptrs));
 
-    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
@@ -291,8 +279,7 @@ TYPED_TEST(Fbcsr, CanBeCleared)
 TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto m =
-        Mtx::create(this->exec, std::make_shared<matstr::classical<Mtx>>());
+    auto m = Mtx::create(this->exec);
     m->set_block_size(this->fbsample.bs);
 
     m->read(this->fbsample.generate_matrix_data());
