@@ -49,14 +49,16 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BILU_COMPUTE_LU_KERNEL(ValueType, IndexType) \
-    void compute_lu(std::shared_ptr<const DefaultExecutor> exec, \
-                    matrix::Fbcsr<ValueType, IndexType> *system_matrix)
+#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)       \
+    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec,      \
+                    matrix::Fbcsr<ValueType, IndexType> *system_matrix, \
+                    matrix::Fbcsr<ValueType, IndexType> *l_factor       \
+                    matrix::Fbcsr<ValueType, IndexType> *u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_BILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

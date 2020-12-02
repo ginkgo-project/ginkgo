@@ -41,8 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/factorization/bilu_kernels.hpp"
-#include "core/factorization/factorization_kernels.hpp"
-//#include "core/factorization/par_ilu_kernels.hpp"
+#include "core/factorization/block_factorization_kernels.hpp"
 
 
 namespace gko {
@@ -63,8 +62,8 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
-Bilu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
+Bilu<ValueType, IndexType>::generate_block_LU(
+    const std::shared_ptr<const LinOp> system_matrix) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -72,28 +71,24 @@ Bilu<ValueType, IndexType>::generate_l_u(
 
     // Converts the system matrix to FBCSR.
     // Throws an exception if it is not convertible.
-    auto local_system_matrix = matrix_type::create(exec);
-    as<ConvertibleTo<matrix_type>>(system_matrix.get())
-        ->convert_to(local_system_matrix.get());
+    auto c_system_matrix
+        = std::dynamic_pointer_cast<matrix_type>(system_matrix);
+    if(!c_system_matrix)
+        throw NotSupported(__FILE__,__LINE__,__func__,"");
 
-    if (!skip_sorting) {
-        local_system_matrix->sort_by_column_index();
-    }
+    const int blksz = c_system_matrix->get_block_size();
 
     // Add explicit diagonal zero elements if they are missing
     exec->run(bilu_factorization::make_add_diagonal_elements(
-        local_system_matrix.get(), false));
-
-    // Compute LU factorization
-    exec->run(bilu_factorization::make_compute_ilu(local_system_matrix.get()));
+        c_system_matrix.get(), false));
 
     // Separate L and U factors: nnz
-    const auto matrix_size = local_system_matrix->get_size();
+    const auto matrix_size = c_system_matrix->get_size();
     const auto num_rows = matrix_size[0];
     Array<IndexType> l_row_ptrs{exec, num_rows + 1};
     Array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(bilu_factorization::make_initialize_row_ptrs_l_u(
-        local_system_matrix.get(), l_row_ptrs.get_data(),
+        c_system_matrix.get(), l_row_ptrs.get_data(),
         u_row_ptrs.get_data()));
 
     // Get nnz from device memory
@@ -103,29 +98,39 @@ Bilu<ValueType, IndexType>::generate_l_u(
         exec->copy_val_to_host(u_row_ptrs.get_data() + num_rows));
 
     // Init arrays
-    const int blksz = local_system_matrix->get_block_size();
     Array<IndexType> l_col_idxs{exec, l_nnz};
     Array<ValueType> l_vals{exec, l_nnz};
-    std::shared_ptr<matrix_type> l_factor = matrix_type::create(
+    std::shared_ptr<l_matrix_type> l_factor = matrix_type::create(
         exec, matrix_size, blksz, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs), parameters_.l_strategy);
+        std::move(l_row_ptrs));
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
-    std::shared_ptr<matrix_type> u_factor = matrix_type::create(
-        exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
-        std::move(u_row_ptrs), parameters_.u_strategy);
+    std::shared_ptr<u_matrix_type> u_factor
+        = matrix_type::create(exec, matrix_size, blksz, std::move(u_vals),
+                              std::move(u_col_idxs),
+                              std::move(u_row_ptrs));
 
     // Separate L and U: columns and values
     exec->run(ilu_factorization::make_initialize_l_u(
-        local_system_matrix.get(), l_factor.get(), u_factor.get()));
+        c_system_matrix.get(), l_factor.get(), u_factor.get()));
+
+    // We use `transpose()` here to convert the Csr format to Csc.
+    auto u_factor_transpose_lin_op = u_factor->transpose();
+    // Since `transpose()` returns an `std::unique_ptr<LinOp>`, we need to
+    // convert it to `u_matrix_type *` in order to use it.
+    auto u_factor_t
+        = static_cast<u_matrix_type*>(u_factor_transpose_lin_op.get());
+
+    // Compute LU factorization
+    exec->run(bilu_factorization::make_compute_bilu(c_system_matrix.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor));
+                                          std::move(u_factor_t));
 }
 
 
-#define GKO_DECLARE_ILU(ValueType, IndexType) class Ilu<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU);
+#define GKO_DECLARE_BILU(ValueType, IndexType) class Bilu<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BILU);
 
 
 }  // namespace factorization
