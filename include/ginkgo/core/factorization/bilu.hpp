@@ -75,6 +75,8 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = matrix::Fbcsr<ValueType, IndexType>;
+    using u_matrix_type = matrix::Fbcsr<ValueType, IndexType>;
+    using l_matrix_type = matrix::Fbcsr<ValueType, IndexType>;
 
     std::shared_ptr<const matrix_type> get_l_factor() const
     {
@@ -96,80 +98,28 @@ public:
     static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
         delete;
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Strategy which will be used by the L matrix. The default value
-         * `nullptr` will result in the strategy `classical`.
-         */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
-
-        /**
-         * Strategy which will be used by the U matrix. The default value
-         * `nullptr` will result in the strategy `classical`.
-         */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
-
-        /**
-         * @brief `true` means it is known that the matrix given to this
-         *        factory will be sorted first by row, then by column index,
-         *        `false` means it is unknown or not sorted, so an additional
-         *        sorting step will be performed during the factorization
-         *        (it will not change the matrix given).
-         *        The matrix must be sorted for this factorization to work.
-         *
-         * The `system_matrix`, which will be given to this factory, must be
-         * sorted (first by row, then by column) in order for the algorithm
-         * to work. If it is known that the matrix will be sorted, this
-         * parameter can be set to `true` to skip the sorting (therefore,
-         * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, this factorization might be
-         * incorrect.
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
-    };
-    GKO_ENABLE_LIN_OP_FACTORY(Bilu, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
-
 protected:
-    Bilu(const Factory *factory,
-         std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{factory->get_executor()},
-          parameters_{factory->get_parameters()}
+    Bilu(std::shared_ptr<const gko::LinOp> system_matrix)
+        : Composition<ValueType>{system_matrix->get_executor()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
+        generate_l_u(system_matrix)->move_to(this);
     }
 
     /**
      * Generates the incomplete block LU factors, which will be returned as a
-     * composition of the block lower (first element of the composition) and the
-     * block upper factor (second element).
+     * composition of the unit block lower (first element of the composition)
+     * and the block upper factor (second element).
      * The dynamic type of L is l_matrix_type, while
      * the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
      *                       @note: system_matrix must be convertible to a Fbcsr
      *                              Matrix, otherwise, an exception is thrown.
-     * @param skip_sorting  determines if the sorting of system_matrix can be
-     *                      skipped (therefore, marking that it is already
-     *                      sorted)
      * @return A Composition, containing the incomplete block LU factors for the
      *         given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp> &system_matrix,
-        bool skip_sorting) const;
+    std::unique_ptr<Composition<ValueType>> generate_block_LU(
+        const std::shared_ptr<const LinOp> system_matrix) const;
 };
 
 
