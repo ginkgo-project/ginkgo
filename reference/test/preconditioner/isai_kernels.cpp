@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "reference/preconditioner/isai_kernels.cpp"
+#include <ginkgo/core/preconditioner/isai.hpp>
 
 
 #include <algorithm>
@@ -47,11 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
-#include <ginkgo/core/preconditioner/isai.hpp>
 
 
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
+#include "reference/preconditioner/isai_kernels.cpp"
 
 
 namespace {

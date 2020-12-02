@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/overhead_linop.hpp"
 #include "benchmark/utils/preconditioners.hpp"
-#include "ginkgo/core/preconditioner/isai.hpp"
 
 
 // some Ginkgo shortcuts

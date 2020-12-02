@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_JACOBI_HPP_
-#define GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -107,8 +107,8 @@ struct block_interleaved_storage_scheme {
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
      */
-    GKO_ATTRIBUTES size_type
-    compute_storage_space(size_type num_blocks) const noexcept
+    GKO_ATTRIBUTES size_type compute_storage_space(size_type num_blocks) const
+        noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
@@ -146,8 +146,8 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES IndexType
-    get_global_block_offset(IndexType block_id) const noexcept
+    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
+        noexcept
     {
         return this->get_group_offset(block_id) +
                this->get_block_offset(block_id);
@@ -610,4 +610,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_

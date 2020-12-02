@@ -349,13 +349,11 @@ int main(int, char **)
             .with_reduction_factor(1e-10)
             .on(cudaExec);
 
-        gko::stop::RelativeResidualNorm<>::build()
-            .with_tolerance(1e-10)
-            .on(cudaExec);
+        gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
+            cudaExec);
 
-        gko::stop::AbsoluteResidualNorm<>::build()
-            .with_tolerance(1e-10)
-            .on(cudaExec);
+        gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
+            cudaExec);
 
         // stopping_status.hpp
         gko::stopping_status{};

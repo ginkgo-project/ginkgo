@@ -30,8 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INTERNAL_CORE_BASE_UTILS_HPP_
-#define GKO_INTERNAL_CORE_BASE_UTILS_HPP_
+#ifndef GKO_CORE_BASE_UTILS_HPP_
+#define GKO_CORE_BASE_UTILS_HPP_
+
+
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <memory>
@@ -40,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -64,8 +66,7 @@ namespace detail {
 
 
 template <typename Dest>
-struct conversion_sort_helper {
-};
+struct conversion_sort_helper {};
 
 template <typename ValueType, typename IndexType>
 struct conversion_sort_helper<matrix::Csr<ValueType, IndexType>> {
@@ -222,4 +223,4 @@ std::shared_ptr<const Dest> convert_to_with_sorting(
 }  // namespace gko
 
 
-#endif  // GKO_INTERNAL_CORE_BASE_UTILS_HPP_
+#endif  // GKO_CORE_BASE_UTILS_HPP_
