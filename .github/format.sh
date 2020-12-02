@@ -12,6 +12,4 @@ if [[ "$LIST_FILES" != "" ]]; then
 
 Co-authored-by: $USER_COMBINED"
   git push fork $LOCAL_BRANCH:$HEAD_BRANCH 2>&1 || bot_error "Cannot push formatted branch, are edits for maintainers allowed?"
-else
-  bot_comment "No formatting necessary"
 fi
