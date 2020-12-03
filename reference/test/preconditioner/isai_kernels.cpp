@@ -66,6 +66,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using LowerIsai = gko::preconditioner::LowerIsai<value_type, index_type>;
     using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
+    using GeneralIsai =
+        gko::preconditioner::GeneralIsai<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -136,10 +138,20 @@ protected:
                                     I<value_type>{-.5, .125, .3125, .09375, .25,
                                                   .125, -.0625, -.5, .25, .5},
                                     I<index_type>{0, 1, 2, 3, 1, 2, 3, 2, 3, 3},
-                                    I<index_type>{0, 4, 7, 9, 10})}
+                                    I<index_type>{0, 4, 7, 9, 10})},
+          a_sparse{Csr::create(exec, gko::dim<2>{4, 4},
+                               I<value_type>{1, 4, 1, 4, 2, 1, 2, 1, 1},
+                               I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
+                               I<index_type>{0, 2, 5, 7, 9})},
+          a_sparse_inv{Csr::create(
+              exec, gko::dim<2>{4, 4},
+              I<value_type>{1, -4, -.25, .25, .5, -.125, .5, -.5, 1},
+              I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
+              I<index_type>{0, 2, 5, 7, 9})}
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
+        general_isai_factory = GeneralIsai::build().on(exec);
         l_dense->convert_to(lend(l_csr));
         l_dense_inv->convert_to(lend(l_csr_inv));
         u_dense->convert_to(lend(u_csr));
@@ -154,6 +166,8 @@ protected:
         u_csr_longrow_e_rhs = read<Dense>("isai_u_excess_rhs.mtx");
         u_csr_longrow_inv_partial = read<Csr>("isai_u_inv_partial.mtx");
         u_csr_longrow_inv = read<Csr>("isai_u_inv.mtx");
+        a_csr_large = read<Csr>("a_large.mtx");
+        a_csr_large_inv = read<Csr>("a_large_inv.mtx");
     }
 
     template <typename ReadMtx>
@@ -190,6 +204,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<typename LowerIsai::Factory> lower_isai_factory;
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
+    std::unique_ptr<typename GeneralIsai::Factory> general_isai_factory;
     std::shared_ptr<Dense> l_dense;
     std::shared_ptr<Dense> l_dense_inv;
     std::shared_ptr<Dense> u_dense;
@@ -219,6 +234,10 @@ protected:
     std::shared_ptr<Csr> u_s_unsorted;
     std::shared_ptr<Csr> u_sparse_inv;
     std::shared_ptr<Csr> u_sparse_inv2;
+    std::shared_ptr<Csr> a_sparse;
+    std::shared_ptr<Csr> a_sparse_inv;
+    std::shared_ptr<Csr> a_csr_large;
+    std::shared_ptr<Csr> a_csr_large_inv;
 };
 
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
@@ -648,6 +667,19 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
 }
 
 
+TYPED_TEST(Isai, ReturnsCorrectInverseLargeA)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->general_isai_factory->generate(this->a_csr_large);
+
+    auto a_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(a_inv, this->a_csr_large_inv);
+    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_large_inv, 1e-10);
+}
+
+
 TYPED_TEST(Isai, ReturnsCorrectInverseL)
 {
     using Csr = typename TestFixture::Csr;
@@ -757,6 +789,18 @@ TYPED_TEST(Isai, ReturnsCorrectInverseUWithU3)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv2);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv2, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseAWithA)
+{
+    using value_type = typename TestFixture::value_type;
+    auto isai = this->general_isai_factory->generate(this->a_sparse);
+
+    auto a_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(a_inv, this->a_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(a_inv, this->a_sparse_inv, r<value_type>::value);
 }
 
 
