@@ -113,7 +113,7 @@ protected:
 TEST_F(Rcm, CreatesAPermutation)
 {
     auto p = reorder_op_0->get_permutation();
-    
+
     ASSERT_PRED1(is_permutation, p.get());
 }
 

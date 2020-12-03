@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 #include <type_traits>
 
 
@@ -41,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
-
-
-#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {

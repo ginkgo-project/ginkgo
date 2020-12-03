@@ -14,6 +14,8 @@ git config user.name "$USER_NAME"
 LOCAL_BRANCH=rebase-tmp-$HEAD_BRANCH
 git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
 
+bot_delete_comments_matching "Error: Rebase failed"
+
 # do the rebase
 git rebase base/$BASE_BRANCH 2>&1 || bot_error "Rebase failed, see the related [Action]($JOB_URL) for details"
 

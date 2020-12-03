@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
-#define GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
+#ifndef GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_
+#define GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_
 
 
 #include <limits>
@@ -109,4 +109,4 @@ void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
 }  // namespace gko
 
 
-#endif  // GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
+#endif  // GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_DIM_HPP_
-#define GKO_CORE_BASE_DIM_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_DIM_HPP_
+#define GKO_PUBLIC_CORE_BASE_DIM_HPP_
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -246,4 +246,4 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_DIM_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_DIM_HPP_

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_TIME_HPP_
-#define GKO_CORE_STOP_TIME_HPP_
+#ifndef GKO_PUBLIC_CORE_STOP_TIME_HPP_
+#define GKO_PUBLIC_CORE_STOP_TIME_HPP_
 
 
 #include <chrono>
@@ -100,4 +100,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_TIME_HPP_
+#endif  // GKO_PUBLIC_CORE_STOP_TIME_HPP_
