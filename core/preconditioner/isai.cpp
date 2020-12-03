@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <type_traits>
 
@@ -42,8 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/base/utils.hpp"
@@ -56,6 +61,8 @@ namespace isai {
 
 
 GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
+GKO_REGISTER_OPERATION(generate_general_inverse,
+                       isai::generate_general_inverse);
 GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
 GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
 
@@ -113,12 +120,15 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     using Dense = matrix::Dense<ValueType>;
     using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
     using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
+    using Gmres = solver::Gmres<ValueType>;
+    using bj = preconditioner::Jacobi<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
     auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
     auto inverted = extend_sparsity(exec, to_invert, power);
     auto num_rows = inverted->get_size()[0];
     auto is_lower = IsaiType == isai_type::lower;
+    auto is_general = IsaiType == isai_type::general;
 
     // This stores the beginning of the RHS for the sparse block associated with
     // each row of inverted_l
@@ -127,9 +137,15 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     // system of excess blocks
     Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
-    exec->run(isai::make_generate_tri_inverse(
-        lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
-        excess_row_ptrs_full.get_data(), is_lower));
+    if (is_general) {
+        exec->run(isai::make_generate_general_inverse(
+            lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+            excess_row_ptrs_full.get_data()));
+    } else {
+        exec->run(isai::make_generate_tri_inverse(
+            lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+            excess_row_ptrs_full.get_data(), is_lower));
+    }
 
     auto excess_dim =
         exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
@@ -148,7 +164,20 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             lend(excess_rhs)));
         // solve it after transposing
         std::unique_ptr<LinOpFactory> trs_factory;
-        if (is_lower) {
+        if (is_general) {
+            trs_factory =
+                Gmres::build()
+                    .with_preconditioner(
+                        bj::build().with_max_block_size(32u).on(exec))
+                    .with_criteria(
+                        gko::stop::Iteration::build()
+                            .with_max_iters(excess_dim)
+                            .on(exec),
+                        gko::stop::ResidualNormReduction<ValueType>::build()
+                            .with_reduction_factor(1e-10)
+                            .on(exec))
+                    .on(exec);
+        } else if (is_lower) {
             trs_factory = UpperTrs::build().on(exec);
         } else {
             trs_factory = LowerTrs::build().on(exec);
@@ -199,6 +228,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
 #define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
     class Isai<isai_type::upper, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
+
+#define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType) \
+    class Isai<isai_type::general, ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI);
 
 
 }  // namespace preconditioner

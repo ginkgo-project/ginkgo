@@ -111,6 +111,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *input,
+                              matrix::Csr<ValueType, IndexType> *inverse,
+                              IndexType *excess_rhs_ptrs,
+                              IndexType *excess_nz_ptrs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Csr<ValueType, IndexType> *input,
                             const matrix::Csr<ValueType, IndexType> *inverse,
