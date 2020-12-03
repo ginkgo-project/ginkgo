@@ -51,6 +51,14 @@ namespace kernels {
                               IndexType *excess_rhs_ptrs,                     \
                               IndexType *excess_nz_ptrs, bool lower)
 
+
+#define GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType) \
+    void generate_general_inverse(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Csr<ValueType, IndexType> *input,                        \
+        matrix::Csr<ValueType, IndexType> *inverse,                            \
+        IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs)
+
 #define GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType) \
     void generate_excess_system(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                         \
@@ -67,13 +75,15 @@ namespace kernels {
         const matrix::Dense<ValueType> *excess_solution,                      \
         matrix::Csr<ValueType, IndexType> *inverse)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    constexpr auto row_size_limit = 32;                                   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                     \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
+    constexpr auto row_size_limit = 32;                                     \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
 
 

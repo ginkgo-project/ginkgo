@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/preconditioner/isai_kernels.hpp"
 
-
 #include <algorithm>
+#include <iostream>
 #include <memory>
 
 
@@ -81,7 +81,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
                       IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
-                      Callable trs_solve)
+                      Callable trs_solve, bool general = false)
 {
     /*
     Consider: aiM := inverse_mtx; M := mtx
@@ -130,6 +130,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 trisystem_ptr, static_cast<size_type>(i_size),
                 static_cast<size_type>(i_size), static_cast<size_type>(i_size));
             std::fill_n(trisystem_ptr, i_size * i_size, zero<ValueType>());
+            IndexType k = zero<IndexType>();
 
             for (size_type i = 0; i < i_size; ++i) {
                 const auto col = i_cols[i_begin + i];
@@ -138,12 +139,13 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 forall_matching(
                     m_cols + m_begin, m_size, i_cols + i_begin, i_size,
                     [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                        if (m_cols[m_idx + m_begin] < row && col == row) k++;
                         trisystem(i, i_idx) = m_vals[m_idx + m_begin];
                     });
             }
 
             // solve dense triangular system
-            trs_solve(trisystem, rhs);
+            trs_solve(trisystem, rhs, k);
 
             // write triangular solution to inverse
             for (size_type i = 0; i < i_size; ++i) {
@@ -186,7 +188,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto trs_solve =
         [lower](const range<accessor::row_major<ValueType, 2>> trisystem,
-                ValueType *rhs) {
+                ValueType *rhs, const IndexType) {
             const IndexType size = trisystem.length(0);
             if (size <= 0) {
                 return;
@@ -226,6 +228,103 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
+                              size_type stride)
+{
+    IndexType cp = 0;
+    for (IndexType i = 1; i < block_size; ++i) {
+        if (abs(block[cp * stride]) < abs(block[i * stride])) {
+            cp = i;
+        }
+    }
+    return cp;
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
+                      ValueType *block, size_type stride)
+{
+    using std::swap;
+    for (IndexType i = 0; i < block_size; ++i) {
+        swap(block[row1 * stride + i], block[row2 * stride + i]);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                              IndexType *excess_rhs_ptrs,
+                              IndexType *excess_nz_ptrs)
+{
+    using std::swap;
+    auto general_solve =
+        [](const range<accessor::row_major<ValueType, 2>> system,
+           ValueType *rhs, const IndexType k) {
+            const IndexType size = system.length(0);
+            if (size <= 0) {
+                return;
+            }
+            // RHS is the identity: zero everywhere except for the diagonal
+            // entry
+            std::fill_n(rhs, size, zero<ValueType>());
+            rhs[k] = one<ValueType>();
+
+            // fill in transposed system
+            ValueType *transposed_system = new ValueType[size * size];
+            for (auto row = 0; row < size; row++) {
+                for (auto col = 0; col < size; col++) {
+                    transposed_system[row * size + col] = system(col, row);
+                }
+            }
+
+            // solve transposed system
+            std::vector<IndexType> perm(size, {});
+            std::iota(begin(perm), end(perm), IndexType{0});
+            for (IndexType col = 0; col < size; col++) {
+                const auto row =
+                    choose_pivot(size - col,
+                                 transposed_system + col * (size + 1), size) +
+                    col;
+                swap_rows(col, row, size, transposed_system, size);
+                swap(perm[row], perm[col]);
+                swap(rhs[row], rhs[col]);
+
+                const ValueType d = transposed_system[col * size + col];
+                for (size_type j = col; j < size; j++) {
+                    transposed_system[col * size + j] /= d;
+                }
+                rhs[col] /= d;
+
+                for (size_type i = col + 1; i < size; i++) {
+                    auto scal = transposed_system[i * size + col];
+                    rhs[i] -= scal * rhs[col];
+                    for (size_type j = col; j < size; j++) {
+                        transposed_system[i * size + j] -=
+                            transposed_system[col * size + j] * scal;
+                    }
+                }
+            }
+
+            for (size_type i = size - 1; i >= 1; i--) {
+                for (size_type j = i; j >= 1; j--) {
+                    rhs[j - 1] -=
+                        transposed_system[(j - 1) * size + i] * rhs[i];
+                }
+            }
+        };
+
+    generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
+                     general_solve, true);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

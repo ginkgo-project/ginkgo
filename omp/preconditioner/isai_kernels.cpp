@@ -151,7 +151,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 }
 
                 // solve dense triangular system
-                trs_solve(trisystem, rhs);
+                trs_solve(trisystem, rhs, row);
 
                 // write triangular solution to inverse
                 for (size_type i = 0; i < i_size; ++i) {
@@ -198,7 +198,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto trs_solve =
         [lower](const range<accessor::row_major<ValueType, 2>> trisystem,
-                ValueType *rhs) {
+                ValueType *rhs, const IndexType) {
             const IndexType size = trisystem.length(0);
             if (size <= 0) {
                 return;
@@ -238,6 +238,17 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                              IndexType *excess_rhs_ptrs,
+                              IndexType *excess_nz_ptrs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
