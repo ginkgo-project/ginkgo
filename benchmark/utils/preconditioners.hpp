@@ -242,6 +242,13 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_u_solver_factory(uisai)
                  .on(exec);
          }},
+        {"general-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return isai =
+                        gko::share(gko::preconditioner::GeneralIsai<>::build()
+                                       .with_sparsity_power(FLAGS_isai_power)
+                                       .on(exec));
+         }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<>::build().on(exec);
          }}};
