@@ -76,8 +76,8 @@ extern std::shared_ptr<const MachineTopology> get_shared_machine_topology();
 
 /**
  * The machine topology class represents the heirarchical topology of a machine,
- * including NUMA nodes, cores and GPUs. Various infomation of the machine are
- * gathered with the help of the Hardware Locality library (hwloc).
+ * including NUMA nodes, cores and PCI Devices. Various infomation of the
+ * machine are gathered with the help of the Hardware Locality library (hwloc).
  *
  * This class also provides functionalities to bind objects in the topology to
  * the execution objects. Binding can enhance performance by allowing data to be
@@ -108,13 +108,11 @@ private:
 
         /**
          * The physical_id assigned to the object.
-         * For GPUs, this is their number in the numa
          */
         size_type physical_id;
 
         /**
          * The physical_id assigned to the object.
-         * For GPUs, this is their number in the numa
          */
         size_type memory_size;
     };
@@ -170,14 +168,14 @@ public:
 
 
     /**
-     * Get the object of type gpu associated with the id.
+     * Get the object of type pci device associated with the id.
      *
-     * @param id  The id of the gpu
+     * @param id  The id of the pci device
      */
-    const mach_topo_obj_info &get_gpu(size_type id)
+    const mach_topo_obj_info &get_pci_device(size_type id)
     {
-        GKO_ENSURE_IN_BOUNDS(id, gpus_.size());
-        return gpus_[id];
+        GKO_ENSURE_IN_BOUNDS(id, pci_devices_.size());
+        return pci_devices_[id];
     }
 
 
@@ -194,22 +192,15 @@ public:
 
 
     /**
-     * Get the number of GPU objects stored in this Topology tree.
+     * Get the number of PCI device objects stored in this Topology tree.
      */
-    size_type get_num_gpus() { return gpus_.size(); }
+    size_type get_num_pci_devices() { return pci_devices_.size(); }
 
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
      */
     size_type get_num_numas() { return num_numas_; }
-
-
-    /**
-     * Load the gpu objects. These functions are implemened by the respective
-     * GPU Executor classes.
-     */
-    virtual void load_gpus() {}
 
 protected:
     MachineTopology()
@@ -222,7 +213,7 @@ protected:
 
         load_objects(HWLOC_OBJ_CORE, this->cores_);
         load_objects(HWLOC_OBJ_PU, this->pus_);
-        this->load_gpus();
+        // load_objects(HWLOC_OBJ_PCI_DEVICE, this->pci_devices_);
 
         num_numas_ = hwloc_get_nbobjs_by_type(topo_.get(), HWLOC_OBJ_PACKAGE);
 #else
@@ -253,6 +244,8 @@ protected:
 
 
     /**
+     * @internal
+     *
      * A helper function that prints the topology tree of an object to a given
      * depth. Provided from the hwloc library.
      */
@@ -310,7 +303,6 @@ protected:
 
 
 private:
-    std::vector<mach_topo_obj_info> gpus_;
     std::vector<mach_topo_obj_info> pus_;
     std::vector<mach_topo_obj_info> cores_;
     std::vector<mach_topo_obj_info> pci_devices_;

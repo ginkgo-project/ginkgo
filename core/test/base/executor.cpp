@@ -156,6 +156,14 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
+// TEST(OmpExecutor, IsItsOwnMaster)
+// {
+//     exec_ptr omp = gko::OmpExecutor::create();
+
+//     ASSERT_EQ(omp, omp->get_master());
+// }
+
+
 TEST(ReferenceExecutor, RunsCorrectOperation)
 {
     int value = 0;

@@ -93,7 +93,9 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
-void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+void DpcppExecutor::populate_exec_info(
+    std::shared_ptr<const MachineTopology> mach_topo)
+{}
 
 
 void DpcppExecutor::raw_free(void *ptr) const noexcept
