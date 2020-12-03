@@ -49,7 +49,7 @@ namespace factorization {
 namespace bilu_factorization {
 
 
-GKO_REGISTER_OPERATION(compute_ilu, bilu_factorization::compute_lu);
+GKO_REGISTER_OPERATION(compute_bilu, bilu_factorization::compute_bilu);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
@@ -71,10 +71,9 @@ Bilu<ValueType, IndexType>::generate_block_LU(
 
     // Converts the system matrix to FBCSR.
     // Throws an exception if it is not convertible.
-    auto c_system_matrix
-        = std::dynamic_pointer_cast<matrix_type>(system_matrix);
-    if(!c_system_matrix)
-        throw NotSupported(__FILE__,__LINE__,__func__,"");
+    auto c_system_matrix =
+        std::dynamic_pointer_cast<matrix_type>(system_matrix);
+    if (!c_system_matrix) throw NotSupported(__FILE__, __LINE__, __func__, "");
 
     const int blksz = c_system_matrix->get_block_size();
 
@@ -88,8 +87,7 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     Array<IndexType> l_row_ptrs{exec, num_rows + 1};
     Array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(bilu_factorization::make_initialize_row_ptrs_l_u(
-        c_system_matrix.get(), l_row_ptrs.get_data(),
-        u_row_ptrs.get_data()));
+        c_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(
@@ -100,15 +98,14 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     // Init arrays
     Array<IndexType> l_col_idxs{exec, l_nnz};
     Array<ValueType> l_vals{exec, l_nnz};
-    std::shared_ptr<l_matrix_type> l_factor = matrix_type::create(
-        exec, matrix_size, blksz, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs));
+    std::shared_ptr<l_matrix_type> l_factor =
+        matrix_type::create(exec, matrix_size, blksz, std::move(l_vals),
+                            std::move(l_col_idxs), std::move(l_row_ptrs));
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
-    std::shared_ptr<u_matrix_type> u_factor
-        = matrix_type::create(exec, matrix_size, blksz, std::move(u_vals),
-                              std::move(u_col_idxs),
-                              std::move(u_row_ptrs));
+    std::shared_ptr<u_matrix_type> u_factor =
+        matrix_type::create(exec, matrix_size, blksz, std::move(u_vals),
+                            std::move(u_col_idxs), std::move(u_row_ptrs));
 
     // Separate L and U: columns and values
     exec->run(ilu_factorization::make_initialize_l_u(
@@ -118,14 +115,21 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     auto u_factor_transpose_lin_op = u_factor->transpose();
     // Since `transpose()` returns an `std::unique_ptr<LinOp>`, we need to
     // convert it to `u_matrix_type *` in order to use it.
-    auto u_factor_t
-        = static_cast<u_matrix_type*>(u_factor_transpose_lin_op.get());
+    auto u_factor_t =
+        static_cast<u_matrix_type *>(u_factor_transpose_lin_op.get());
 
     // Compute LU factorization
     exec->run(bilu_factorization::make_compute_bilu(c_system_matrix.get()));
 
+    // Transpose it again, which is basically a conversion from CSC back to CSR
+    // Since the transposed version has the exact same non-zero positions
+    // as `u_factor`, we can both skip the allocation and the `make_srow()`
+    // call from CSR, leaving just the `transpose()` kernel call
+    exec->run(
+        par_ilu_factorization::make_csr_transpose(u_factor_t, u_factor.get()));
+
     return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor_t));
+                                          std::move(u_factor));
 }
 
 
