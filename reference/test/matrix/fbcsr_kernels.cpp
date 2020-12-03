@@ -696,7 +696,9 @@ TYPED_TEST(FbcsrComplex, InplaceAbsolute)
 
     mtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, refabs, 0.0);
+    const gko::remove_complex<value_type> tolerance =
+        std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(mtx, refabs, tolerance);
 }
 
 
@@ -716,7 +718,9 @@ TYPED_TEST(FbcsrComplex, OutplaceAbsolute)
 
     auto abs_mtx = mtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, refabs, 0.0);
+    const gko::remove_complex<value_type> tolerance =
+        std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(abs_mtx, refabs, tolerance);
 }
 
 
