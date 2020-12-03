@@ -20,7 +20,8 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
+\DoxyCodeLine{\{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
@@ -140,7 +141,8 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
+\DoxyCodeLine{\{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
