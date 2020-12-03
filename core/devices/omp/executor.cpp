@@ -44,7 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+void OmpExecutor::populate_exec_info(
+    std::shared_ptr<const MachineTopology> mach_topo)
+{}
 
 
 void OmpExecutor::raw_free(void *ptr) const noexcept { std::free(ptr); }

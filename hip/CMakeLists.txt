@@ -289,7 +289,8 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
         # directly use HIP
         ginkgo_hip_clang_ban_hip_device_flags()
     endif()
-    target_link_libraries(ginkgo_hip PRIVATE hip::device)
+    target_link_libraries(ginkgo_hip PRIVATE hip::device
+      )
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.2 REQUIRED)
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
@@ -314,11 +315,6 @@ ginkgo_install_library(ginkgo_hip hip)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip)
-endif()
-
-if (GINKGO_HAVE_HWLOC)
-    target_include_directories(ginkgo_hip PUBLIC ${HWLOC_INCLUDE_DIRS})
-    target_link_libraries(ginkgo_hip PUBLIC ${HWLOC_LIBRARIES})
 endif()
 
 if(GINKGO_BUILD_TESTS)
