@@ -990,9 +990,9 @@ public:
 
     void synchronize() const override;
 
-    const int get_num_cores() const { return this->omp_exec_info_.num_cores; }
+    int get_num_cores() const { return this->omp_exec_info_.num_cores; }
 
-    const int get_num_threads_per_core() const
+    int get_num_threads_per_core() const
     {
         return this->omp_exec_info_.num_work_groups_per_core;
     }
@@ -1414,7 +1414,7 @@ protected:
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(this->hip_exec_info_.device_id);
-        // this->populate_exec_info(get_shared_machine_topology());
+        this->populate_exec_info(get_shared_machine_topology());
     }
 
     void *raw_alloc(size_type size) const override;

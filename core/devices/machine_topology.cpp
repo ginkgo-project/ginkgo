@@ -54,13 +54,11 @@ std::atomic<bool> initialized_machine_topology{};
 
 const MachineTopology *get_machine_topology()
 {
-    {
-        if (!detail::initialized_machine_topology.load()) {
-            std::lock_guard<std::mutex> guard(detail::machine_topology_mutex);
-            if (!detail::machine_topology) {
-                detail::machine_topology = MachineTopology::create();
-                detail::initialized_machine_topology.store(true);
-            }
+    if (!detail::initialized_machine_topology.load()) {
+        std::lock_guard<std::mutex> guard(detail::machine_topology_mutex);
+        if (!detail::machine_topology) {
+            detail::machine_topology = MachineTopology::create();
+            detail::initialized_machine_topology.store(true);
         }
     }
     return detail::machine_topology.get();

@@ -1,6 +1,6 @@
 find_package(OpenMP REQUIRED)
 
-add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
+add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_core_device> $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
     base/version.cpp

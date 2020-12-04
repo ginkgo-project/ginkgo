@@ -13,7 +13,7 @@ if(GINKGO_BUILD_TESTS)
     ginkgo_add_subdirectory(GTest gtest)
 endif()
 
-if(NOT GINKGO_FORCE_NO_HWLOC)
+if(NOT GINKGO_FORCE_NO_HWLOC AND GINKGO_HAVE_HWLOC)
     ginkgo_add_subdirectory(HWLOC hwloc)
 endif()
 

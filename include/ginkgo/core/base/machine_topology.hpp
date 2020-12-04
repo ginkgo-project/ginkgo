@@ -128,6 +128,12 @@ public:
 
     MachineTopology(MachineTopology &) = delete;
     MachineTopology(MachineTopology &&) = delete;
+    MachineTopology &operator=(MachineTopology &) = delete;
+    MachineTopology &operator=(MachineTopology &&) = delete;
+    ~MachineTopology()
+    {
+        std::cout << " Destructing the MachineTopology object." << std::endl;
+    }
 
     /**
      * Bind the object associated with the id to a core.
