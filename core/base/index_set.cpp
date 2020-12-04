@@ -30,6 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/index_set.hpp>
+
 
 // ---------------------------------------------------------------------
 //
@@ -54,8 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <vector>
 
+
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
