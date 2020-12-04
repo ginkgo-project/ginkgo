@@ -82,38 +82,65 @@ static void compute_bilu_impl(
             auto ubz = col_ptrs_u[jbcol];
 
             Blk_t sum;
+            Blk_t last_op;
             ValueType *const sumarr = &sum(0, 0);
+            ValueType *const lastarr = &last_op(0, 0);
             const ValueType *const valarr = &vals[ibz](0, 0);
-            for (int i = 0; i < bs * bs; i++) sumarr[i] = valarr[i];
+            for (int i = 0; i < bs * bs; i++) {
+                sumarr[i] = valarr[i];
+                lastarr[i] = zero<ValueType>;
+            }
 
-            // TODO: change to block ILU
-            ValueType last_operation{};
+            // Calculate: sum = system_matrix(row, col) -
+            //   dot(l_factor(row, :), u_factor(:, col))
             while (lbz < row_ptrs_l[ibrow + 1] && ubz < col_ptrs_u[jbcol + 1]) {
                 const auto bcol_l = col_idxs_l[lbz];
                 const auto bcol_u = row_idxs_u[ubz];
                 if (bcol_l == bcol_u) {
-                    last_operation = vals_l[row_l] * vals_u[row_u];
-                    sum -= last_operation;
-                } else {
-                    last_operation = zero<ValueType>();
+                    // last_op = vals_l[row_l] * vals_u[row_u];
+                    // sum -= last_op;
+                    for (int i = 0; i < bs; i++)
+                        for (int j = 0; i < bs; j++) {
+                            last_op(i, j) = zero<ValueType>;
+                            for (int k = 0; k < bs; k++)
+                                last_op(i, j) +=
+                                    vals_l[row_l](i, k) * vals_u[row_u](k, j);
+                            sum(i, j) -= last_op(i, j);
+                        }
                 }
-                if (bcol_l <= bcol_u) {
-                    ++lbz;
-                }
-                if (bcol_u <= bcol_l) {
-                    ++ubz;
-                }
-            }
-            // The loop above calculates: sum = system_matrix(row, col) -
-            // dot(l_factor(row, :), u_factor(:, col))
-            sum += last_operation;  // undo the last operation
 
-            if (ibrow > jbcol) {  // modify entry in L
-                auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
-                if (is_finite(to_write)) {
-                    vals_l[lbz - 1] = to_write;
-                }
-            } else {  // modify entry in U
+                if (bcol_l <= bcol_u) ++lbz;
+
+                if (bcol_u <= bcol_l) ++ubz;
+            }
+
+            // undo the last operation
+            for (int i = 0; i < bs; i++)
+                for (int j = 0; i < bs; j++) sum(i, j) += last_op(i, j);
+
+            if (ibrow > jbcol) {
+                // modify entry in L
+                Blk_t invU;
+                for (int i = 0; i < bs; i++)
+                    for (int j = 0; i < bs; j++)
+                        invU(i, j) = vals_u[row_ptrs_u[col + 1] - 1](i, j);
+
+                int perm[bs];
+                for (int i = 0; i < bs; i++) perm[i] = i;
+
+                const bool invflag = invert_block<ValueType, bs>(perm, invU);
+
+                // auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                // if (is_finite(to_write))
+                // vals_l[lbz - 1] = to_write;
+                for (int i = 0; i < bs; i++)
+                    for (int j = 0; j < bs; j++) {
+                        vals_l[lbz - 1](i, j) = 0;
+                        for (int k = 0; k < bs; k++)
+                            vals_l[lbz - 1](i, j) += sum(i, j) * invU(i, j);
+                    }
+            } else {
+                // modify entry in U
                 auto to_write = sum;
                 if (is_finite(to_write)) {
                     vals_u[ubz - 1] = to_write;
