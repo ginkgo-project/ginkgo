@@ -34,26 +34,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_
 
 
+#include <algorithm>
 #include <type_traits>
+#include <vector>
 
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+
 namespace gko {
 namespace blockutils {
 
 
-/// A dense block of values with compile-time constant dimensions
-/** The blocks are stored row-major. However, in future,
+/**
+ * @brief A dense block of values with compile-time constant dimensions
+ *
+ * The blocks are interpreted as row-major. However, in the future,
  *  a layout template parameter can be added if needed.
  *
  * The primary use is to reinterpret subsets of entries in a big array as
  *  small dense blocks.
  *
- * @tparam ValueType The numeric type of entries of the block
- * @tparam nrows Number of rows
- * @tparam ncols Number of columns
+ * @tparam ValueType  The numeric type of entries of the block
+ * @tparam nrows  Number of rows
+ * @tparam ncols  Number of columns
  */
 template <typename ValueType, int nrows, int ncols>
 class FixedBlock final {
@@ -89,7 +94,7 @@ private:
 
 
 /**
- * A lightweight dynamic block type for the host space
+ * A lightweight dynamic block type on the host
  *
  * @tparam ValueType The numeric type of entries of the block
  */
@@ -98,15 +103,15 @@ class DenseBlock final {
 public:
     using value_type = ValueType;
 
-    DenseBlock() : nrows_{0}, ncols_{0}, vals_{nullptr} {}
+    /**
+     * If this default construtor is used, @ref set_executor must be called
+     *  prior to any other member function.
+     */
+    DenseBlock() : nrows_{0}, ncols_{0} {}
 
     DenseBlock(const int num_rows, const int num_cols)
-        : nrows_{num_rows},
-          ncols_{num_cols},
-          vals_{new value_type[num_rows * num_cols]}
+        : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
     {}
-
-    ~DenseBlock() { delete[] vals_; }
 
     value_type &at(const int row, const int col)
     {
@@ -132,33 +137,32 @@ public:
 
     void resize(const int nrows, const int ncols)
     {
-        if (nrows * ncols != nrows_ * ncols_) {
-            delete[] vals_;
-            vals_ = new value_type[nrows * ncols];
-        }
+        vals_.resize(nrows * ncols);
         nrows_ = nrows;
         ncols_ = ncols;
     }
 
     void zero()
     {
-        for (int i = 0; i < nrows_ * ncols_; i++)
-            vals_[i] = static_cast<value_type>(0);
+        std::fill(vals_.begin(), vals_.end(), static_cast<value_type>(0));
     }
 
 private:
     int nrows_;
     int ncols_;
-    value_type *vals_;
+    std::vector<value_type> vals_;
 };
 
-/// A view into a an array of dense blocks of some runtime-defined size
-/** Note that accessing BSR values using this type of view abstracts away the
+
+/**
+ * @brief A view into a an array of dense blocks of some runtime-defined size
+ *
+ * Accessing BSR values using this type of view abstracts away the
  * storage layout within the individual blocks, as long as all blocks use the
  * same layout. For now, row-major blocks are assumed.
  *
- * @tparam ValueType The numeric type of entries of the block
- * @tparam IndexType The type of integer used to identify the different blocks
+ * @tparam ValueType  The numeric type of entries of the block
+ * @tparam IndexType  The type of integer used to identify the different blocks
  */
 template <typename ValueType, typename IndexType = int32>
 class DenseBlocksView final {
@@ -208,5 +212,6 @@ private:
 
 }  // namespace blockutils
 }  // namespace gko
+
 
 #endif  // GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_
