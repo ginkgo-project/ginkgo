@@ -67,7 +67,6 @@ const MachineTopology *get_machine_topology()
 
 std::shared_ptr<const MachineTopology> get_shared_machine_topology()
 {
-    get_machine_topology();
     return detail::machine_topology;
 }
 
