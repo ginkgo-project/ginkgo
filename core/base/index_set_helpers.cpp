@@ -30,15 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/subset.hpp>
-
-
 #include <algorithm>
 #include <mutex>
 #include <vector>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/subset.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -46,40 +44,16 @@ namespace gko {
 
 
 template <typename IndexType>
-subset<IndexType>::subset(const IndexType begin, const index_type end)
-    : begin_(begin), end_(end), superset_index_(invalid_index_type<IndexType>())
+Subset<IndexType>::Subset(std::shared_ptr<const Executor> exec,
+                          const IndexType begin, const index_type end)
+    : begin_(begin),
+      end_(end),
+      superset_index_(invalid_index_type<IndexType>()),
+      exec_(std::move(exec))
 {}
 
 
-// template <typename IndexType>
-// bool subset<IndexType>::operator<(const subset<IndexType> &subset1,
-//                                   const subset<IndexType> &subset2)
-// {
-//     return (
-//         (subset1.begin_ < subset2.begin_) ||
-//         ((subset1.begin_ == subset2.begin_) && (subset1.end_ <
-//         subset2.end_)));
-// }
-
-
-// template <typename IndexType>
-// bool subset<IndexType>::compare_end(const subset &x, const subset &y)
-// {
-//     return x.end_ < y.end_;
-// }
-
-
-// template <typename IndexType>
-// bool subset<IndexType>::superset_index_compare(const subset &x, const subset
-// &y)
-
-
-// template <typename IndexType>
-// bool subset<IndexType>::operator==(const subset<IndexType> &subset1,
-//                                    const subset<IndexType> &subset2)
-
-
-#define GKO_DECLARE_SUBSET(_type) class subset<_type>
+#define GKO_DECLARE_SUBSET(_type) class Subset<_type>
 GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(GKO_DECLARE_SUBSET);
 
 

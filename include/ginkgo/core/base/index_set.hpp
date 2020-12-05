@@ -727,9 +727,9 @@ public:
                                        : other.accessor_.subset_idx_;
 
             if (lhs > rhs)
-                return static_cast<int>(lhs - rhs);
+                return static_cast<index_type>(lhs - rhs);
             else
-                return -static_cast<int>(rhs - lhs);
+                return -static_cast<index_type>(rhs - lhs);
         }
 
         /**
@@ -990,7 +990,7 @@ private:
     void merge_impl() const;
 
     mutable bool is_merged_;
-    mutable std::vector<subset<index_type>> subsets_;
+    mutable std::vector<Subset<index_type>> subsets_;
     mutable index_type largest_subset_;
     mutable std::mutex merge_mutex_;
     index_type index_space_size_;

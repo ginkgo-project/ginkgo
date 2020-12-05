@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_SUBSET_HPP_
-#define GKO_CORE_BASE_SUBSET_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_SUBSET_HPP_
+#define GKO_PUBLIC_CORE_BASE_SUBSET_HPP_
 
 
 #include <algorithm>
@@ -49,31 +49,32 @@ namespace gko {
 
 
 template <typename IndexType = int32>
-struct subset {
+struct Subset {
     using index_type = IndexType;
 
-    subset() = delete;
+    Subset() = delete;
 
-    subset(const index_type begin, const index_type end);
+    Subset(std::shared_ptr<const Executor> exec, const index_type begin,
+           const index_type end);
 
-    static bool compare_end(const subset &x, const subset &y)
+    static bool compare_end(const Subset &x, const Subset &y)
     {
         return x.end_ < y.end_;
     }
 
-    static bool superset_index_compare(const subset &x, const subset &y)
+    static bool superset_index_compare(const Subset &x, const Subset &y)
     {
         return (x.superset_index_ + (x.end_ - x.begin_) <
                 y.superset_index_ + (y.end_ - y.begin_));
     }
 
-    inline bool operator<(const subset &subset2) const
+    inline bool operator<(const Subset &subset2) const
     {
         return ((begin_ < subset2.begin_) ||
                 ((begin_ == subset2.begin_) && (end_ < subset2.end_)));
     }
 
-    inline bool operator==(const subset &subset2) const
+    inline bool operator==(const Subset &subset2) const
     {
         return ((begin_ == subset2.begin_) && (end_ == subset2.end_));
     }
@@ -81,11 +82,11 @@ struct subset {
     index_type begin_;
     index_type end_;
     index_type superset_index_;
-    // std::shared_ptr<const Executor> exec_;
+    std::shared_ptr<const Executor> exec_;
 };
 
 
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_SUBSET_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_SUBSET_HPP_
