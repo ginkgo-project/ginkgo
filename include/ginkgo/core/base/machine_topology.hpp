@@ -130,10 +130,7 @@ public:
     MachineTopology(MachineTopology &&) = delete;
     MachineTopology &operator=(MachineTopology &) = delete;
     MachineTopology &operator=(MachineTopology &&) = delete;
-    ~MachineTopology()
-    {
-        std::cout << " Destructing the MachineTopology object." << std::endl;
-    }
+    ~MachineTopology() = default;
 
     /**
      * Bind the object associated with the id to a core.
@@ -188,25 +185,25 @@ public:
     /**
      * Get the number of PU objects stored in this Topology tree.
      */
-    size_type get_num_pus() { return pus_.size(); }
+    size_type get_num_pus() const { return pus_.size(); }
 
 
     /**
      * Get the number of core objects stored in this Topology tree.
      */
-    size_type get_num_cores() { return cores_.size(); }
+    size_type get_num_cores() const { return cores_.size(); }
 
 
     /**
      * Get the number of PCI device objects stored in this Topology tree.
      */
-    size_type get_num_pci_devices() { return pci_devices_.size(); }
+    size_type get_num_pci_devices() const { return pci_devices_.size(); }
 
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
      */
-    size_type get_num_numas() { return num_numas_; }
+    size_type get_num_numas() const { return num_numas_; }
 
 protected:
     MachineTopology()

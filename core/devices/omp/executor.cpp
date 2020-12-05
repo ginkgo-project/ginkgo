@@ -46,7 +46,9 @@ namespace gko {
 
 void OmpExecutor::populate_exec_info(
     std::shared_ptr<const MachineTopology> mach_topo)
-{}
+{
+    this->omp_exec_info_.num_cores = mach_topo->get_num_cores();
+}
 
 
 void OmpExecutor::raw_free(void *ptr) const noexcept { std::free(ptr); }
