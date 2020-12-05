@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/subset.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -83,7 +84,7 @@ namespace gko {
  * The bulk of this class has been taken from the deal.ii finite element library
  * and it has been modified to adapt to Ginkgo's needs.
  *
- * @tparam IndexType  type of the indices being stored in the index set.
+ * @tparam index_type  type of the indices being stored in the index set.
  *
  * @ingroup IndexSet
  */
@@ -100,7 +101,7 @@ public:
      */
     IndexSet() noexcept
         : is_merged_(true),
-          largest_subset_(invalid_index_type<unsigned int>()),
+          largest_subset_(invalid_index_type<index_type>()),
           index_space_size_(0),
           exec_(nullptr)
 
@@ -110,9 +111,9 @@ public:
      * Constructor that also sets the overall size of the index range.
      */
     explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
-                      const size_type size)
+                      const index_type size)
         : is_merged_(true),
-          largest_subset_(invalid_index_type<unsigned int>()),
+          largest_subset_(invalid_index_type<index_type>()),
           index_space_size_(size),
           exec_(executor)
     {}
@@ -165,7 +166,7 @@ public:
         other.subsets_.clear();
         other.is_merged_ = true;
         other.index_space_size_ = 0;
-        other.largest_subset_ = invalid_index_type<unsigned int>();
+        other.largest_subset_ = invalid_index_type<index_type>();
         other.exec_ = nullptr;
         merge();
 
@@ -191,7 +192,7 @@ public:
      * Note that the result is not equal to the number of indices within this
      * set. The latter information is returned by get_num_elems().
      */
-    size_type get_size() const { return index_space_size_; }
+    index_type get_size() const { return index_space_size_; }
 
     /**
      * Set the maximal size of the indices upon which this object operates.
@@ -199,7 +200,7 @@ public:
      * This function can only be called if the index set does not yet contain
      * any elements.  This can be achieved by calling clear(), for example.
      */
-    void set_size(const size_type input_size)
+    void set_size(const index_type input_size)
     {
         GKO_ASSERT_CONDITION(subsets_.empty());
         index_space_size_ = input_size;
@@ -220,7 +221,7 @@ public:
      *
      * @note Rows start from 0.
      */
-    void add_dense_row(const size_type row, const size_type stride);
+    void add_dense_row(const index_type row, const index_type stride);
 
     /**
      * Add the dense rows [begin,end] of a certain stride to the set of
@@ -231,8 +232,8 @@ public:
      *
      * @note Rows start from 0.
      */
-    void add_dense_rows(const size_type begin, const size_type end,
-                        const size_type stride);
+    void add_dense_rows(const index_type begin, const index_type end,
+                        const index_type stride);
 
     /**
      * Add a single sparse row to the set of
@@ -242,7 +243,7 @@ public:
      *
      * @note Rows start from 0.
      */
-    void add_sparse_row(const size_type row, const size_type nnz_in_row);
+    void add_sparse_row(const index_type row, const index_type nnz_in_row);
 
     /**
      * Add the sparse rows of a matrix to the set of
@@ -254,8 +255,8 @@ public:
      *
      * @note Rows start from 0.
      */
-    void add_sparse_rows(const size_type begin, const size_type end,
-                         const std::vector<size_type> &nnz_per_row);
+    void add_sparse_rows(const index_type begin, const index_type end,
+                         const std::vector<index_type> &nnz_per_row);
 
     /**
      * Add the half-open subset $[\text{begin},\text{end})$ to the set of
@@ -263,12 +264,12 @@ public:
      * @param[in] begin The first element of the subset to be added.
      * @param[in] end The past-the-end element of the subset to be added.
      */
-    void add_subset(const size_type begin, const size_type end);
+    void add_subset(const index_type begin, const index_type end);
 
     /**
      * Add an individual index to the set of indices.
      */
-    void add_index(const size_type index);
+    void add_index(const index_type index);
 
     /**
      * Add the given IndexSet @p other to the current one, constructing the
@@ -285,7 +286,7 @@ public:
      * indices of the @p other index set lie outside the subset
      * <code>[0,size())</code> represented by the current object.
      */
-    void add_indices(const IndexSet &other, const size_type offset = 0);
+    void add_indices(const IndexSet &other, const index_type offset = 0);
 
     /**
      * Add a whole set of indices described by dereferencing every element of
@@ -306,11 +307,11 @@ public:
         // when calling add_subset many times (as add_subset() going into the
         // middle of an already existing subset must shift entries around), we
         // first collect a vector of subsets_.
-        std::vector<std::pair<size_type, size_type>> tmp_subsets;
+        std::vector<std::pair<index_type, index_type>> tmp_subsets;
         bool subsets_are_sorted = true;
         for (ForwardIterator p = begin; p != end;) {
-            const size_type begin_index = *p;
-            size_type end_index = begin_index + 1;
+            const index_type begin_index = *p;
+            index_type end_index = begin_index + 1;
             ForwardIterator q = p;
             ++q;
             while ((q != end) && (*q == end_index)) {
@@ -340,7 +341,7 @@ public:
         // avoid repeated calls to IndexSet::merge() which gets called upon
         // merging two index sets, so we want to be in the other branch then.
         if (tmp_subsets.size() > 9) {
-            IndexSet<IndexType> tmp_set(exec_, get_size());
+            IndexSet<index_type> tmp_set(exec_, get_size());
             tmp_set.subsets_.reserve(tmp_subsets.size());
             for (const auto &i : tmp_subsets)
                 tmp_set.add_subset(i.first, i.second);
@@ -352,7 +353,7 @@ public:
     /**
      * Return whether the specified index is an element of the index set.
      */
-    bool is_element(const size_type index) const;
+    bool is_element(const index_type index) const;
 
     /**
      * Return whether the index set stored by this object defines a contiguous
@@ -371,14 +372,14 @@ public:
     /**
      * Return the number of elements stored in this index set.
      */
-    size_type get_num_elems() const;
+    index_type get_num_elems() const;
 
     /**
      * Return the global index of the local index with number @p local_index
      * stored in this index set. @p local_index obviously needs to be less than
      * get_num_elems().
      */
-    size_type get_global_index(const size_type local_index) const;
+    index_type get_global_index(const index_type local_index) const;
 
     /**
      * Return the how-manyth element of this set (counted in ascending order) @p
@@ -387,7 +388,7 @@ public:
      * is not actually a member of this index set, i.e. if
      * is_element(global_index) is false.
      */
-    size_type get_local_index(const size_type global_index) const;
+    index_type get_local_index(const index_type global_index) const;
 
     /**
      * Each index set can be represented as the union of a number of contiguous
@@ -397,7 +398,7 @@ public:
      * This function returns the minimal number of such intervals that are
      * needed to represent the index set under consideration.
      */
-    size_type get_num_subsets() const;
+    index_type get_num_subsets() const;
 
     /**
      * This function returns the local index of the beginning of the largest
@@ -410,14 +411,14 @@ public:
      *
      * This call assumes that the IndexSet is nonempty.
      */
-    size_type get_largest_subset_starting_index() const;
+    index_type get_largest_subset_starting_index() const;
 
     /**
      * This function returns the largest element in the subset
      *
      * This call assumes that the IndexSet is nonempty.
      */
-    IndexType get_largest_element_in_set() const;
+    index_type get_largest_element_in_set() const;
 
     /**
      * Comparison for equality of index sets. This operation is only allowed if
@@ -454,13 +455,13 @@ public:
      * Remove and return the last element of the last subset.
      * This function throws an exception if the IndexSet is empty.
      */
-    size_type pop_back();
+    index_type pop_back();
 
     /**
      * Remove and return the first element of the first subset.
      * This function throws an exception if the IndexSet is empty.
      */
-    size_type pop_front();
+    index_type pop_front();
 
     /**
      * Remove all indices from this index set. The index set retains its size,
@@ -472,7 +473,7 @@ public:
         // as documented, the index set retains its size
         subsets_.clear();
         is_merged_ = true;
-        largest_subset_ = invalid_index_type<unsigned int>();
+        largest_subset_ = invalid_index_type<index_type>();
     }
 
 
@@ -488,7 +489,7 @@ public:
          * Construct a valid accessor given an IndexSet and the index @p
          * subset_idx of the subset to point to.
          */
-        IntervalAccessor(const IndexSet *idxset, const size_type subset_idx)
+        IntervalAccessor(const IndexSet *idxset, const index_type subset_idx)
             : index_set_(idxset), subset_idx_(subset_idx)
         {}
 
@@ -496,13 +497,13 @@ public:
          * Construct an invalid accessor for the IndexSet.
          */
         explicit IntervalAccessor(const IndexSet *idxset)
-            : index_set_(idxset), subset_idx_(invalid_index_type<size_type>())
+            : index_set_(idxset), subset_idx_(invalid_index_type<index_type>())
         {}
 
         /**
          * Number of elements in this interval.
          */
-        size_type get_num_elems() const
+        index_type get_num_elems() const
         {
             return index_set_->subsets_[subset_idx_].end_ -
                    index_set_->subsets_[subset_idx_].begin_;
@@ -544,7 +545,7 @@ public:
         /**
          * Return the index of the last index in this interval.
          */
-        size_type last() const
+        index_type last() const
         {
             GKO_ASSERT_CONDITION(is_valid());
             return index_set_->subsets_[subset_idx_].end_ - 1;
@@ -566,7 +567,7 @@ public:
             index_set_ = other.index_set_;
             subset_idx_ = other.subset_idx_;
             GKO_ASSERT_CONDITION(
-                subset_idx_ == invalid_index_type<size_type>() || is_valid());
+                subset_idx_ == invalid_index_type<index_type>() || is_valid());
             return *this;
         }
 
@@ -599,7 +600,7 @@ public:
 
             // set ourselves to invalid if we walk off the end
             if (subset_idx_ >= index_set_->subsets_.size()) {
-                subset_idx_ = invalid_index_type<size_type>();
+                subset_idx_ = invalid_index_type<index_type>();
             }
         }
 
@@ -612,7 +613,7 @@ public:
          * Index into index_set.subsets[]. Set to numbers::invalid_dof_index if
          * invalid or the end iterator.
          */
-        size_type subset_idx_;
+        index_type subset_idx_;
 
         friend class IntervalIterator;
     };
@@ -628,7 +629,7 @@ public:
          * Construct a valid iterator pointing to the interval with index @p
          * subset_idx.
          */
-        IntervalIterator(const IndexSet *idxset, const size_type subset_idx)
+        IntervalIterator(const IndexSet *idxset, const index_type subset_idx)
             : accessor_(idxset, subset_idx)
         {}
 
@@ -716,14 +717,14 @@ public:
             GKO_ASSERT_CONDITION(accessor_.index_set_ ==
                                  other.accessor_.index_set_);
 
-            const size_type lhs =
-                (accessor_.subset_idx_ == invalid_index_type<size_type>())
+            const index_type lhs =
+                (accessor_.subset_idx_ == invalid_index_type<index_type>())
                     ? accessor_.index_set_->subsets_.size()
                     : accessor_.subset_idx_;
-            const size_type rhs =
-                (other.accessor_.subset_idx_ == invalid_index_type<size_type>())
-                    ? accessor_.index_set_->subsets_.size()
-                    : other.accessor_.subset_idx_;
+            const index_type rhs = (other.accessor_.subset_idx_ ==
+                                    invalid_index_type<index_type>())
+                                       ? accessor_.index_set_->subsets_.size()
+                                       : other.accessor_.subset_idx_;
 
             if (lhs > rhs)
                 return static_cast<int>(lhs - rhs);
@@ -759,8 +760,8 @@ public:
          * Construct an iterator pointing to the global index @p index in the
          * interval @p subset_index
          */
-        ElementIterator(const IndexSet *indexset, const size_type subset_index,
-                        const size_type index)
+        ElementIterator(const IndexSet *indexset, const index_type subset_index,
+                        const index_type index)
             : index_set_(indexset), subset_index_(subset_index), index_(index)
         {
             GKO_ASSERT_CONDITION(subset_index_ < index_set_->subsets_.size());
@@ -774,8 +775,8 @@ public:
          */
         explicit ElementIterator(const IndexSet *index_set)
             : index_set_(index_set),
-              subset_index_(invalid_index_type<size_type>()),
-              index_(invalid_index_type<size_type>())
+              subset_index_(invalid_index_type<index_type>()),
+              index_(invalid_index_type<index_type>())
         {}
 
         /**
@@ -784,8 +785,8 @@ public:
         bool is_valid() const
         {
             GKO_ASSERT_CONDITION(
-                (subset_index_ == invalid_index_type<size_type>() &&
-                 index_ == invalid_index_type<size_type>()) ||
+                (subset_index_ == invalid_index_type<index_type>() &&
+                 index_ == invalid_index_type<index_type>()) ||
                 (subset_index_ < index_set_->subsets_.size() &&
                  index_ < index_set_->subsets_[subset_index_].end_));
 
@@ -797,7 +798,7 @@ public:
          * Dereferencing operator. The returned value is the index of the
          * element inside the IndexSet.
          */
-        size_type operator*() const
+        index_type operator*() const
         {
             GKO_ASSERT_CONDITION(is_valid());
             return index_;
@@ -877,7 +878,7 @@ public:
 
             // now walk in steps of subsets_ (need to start one behind our
             // current one):
-            for (size_type subset = subset_index_ + 1;
+            for (index_type subset = subset_index_ + 1;
                  subset < index_set_->subsets_.size() &&
                  subset <= other.subset_index_;
                  ++subset)
@@ -886,11 +887,11 @@ public:
 
             GKO_ASSERT_CONDITION(
                 other.subset_index_ < index_set_->subsets_.size() ||
-                other.subset_index_ == invalid_index_type<size_type>());
+                other.subset_index_ == invalid_index_type<index_type>());
 
             // We might have walked too far because we went until the end of
             // other.subset_index, so walk backwards to other.index:
-            if (other.subset_index_ != invalid_index_type<size_type>())
+            if (other.subset_index_ != invalid_index_type<index_type>())
                 c -= index_set_->subsets_[other.subset_index_].end_ -
                      other.index_;
 
@@ -903,10 +904,10 @@ public:
          * the specifics of the iterators they work on.
          */
         using iterator_category = std::forward_iterator_tag;
-        using value_type = size_type;
+        using value_type = index_type;
         using difference_type = std::ptrdiff_t;
-        using pointer = size_type *;
-        using reference = size_type &;
+        using pointer = index_type *;
+        using reference = index_type &;
 
     private:
         /**
@@ -924,8 +925,8 @@ public:
                     index_ = index_set_->subsets_[subset_index_].begin_;
                 } else {
                     // we just fell off the end, set to invalid:
-                    subset_index_ = invalid_index_type<size_type>();
-                    index_ = invalid_index_type<size_type>();
+                    subset_index_ = invalid_index_type<index_type>();
+                    index_ = invalid_index_type<index_type>();
                 }
             }
         }
@@ -938,12 +939,12 @@ public:
         /**
          * Index into set
          */
-        size_type subset_index_;
+        index_type subset_index_;
 
         /**
          * The global index this iterator is pointing at.
          */
-        size_type index_;
+        index_type index_;
     };
 
     /**
@@ -966,7 +967,7 @@ public:
      * If there is no element in this IndexSet at or behind @p global_index,
      * this method will return end().
      */
-    ElementIterator at(const size_type global_index) const;
+    ElementIterator at(const index_type global_index) const;
 
     /**
      * Return an iterator that points one after the last index that is contained
@@ -986,55 +987,13 @@ public:
     IntervalIterator get_last_interval() const;
 
 private:
-    struct subset {
-        subset() = delete;
-        subset(const size_type begin, const size_type end)
-            : begin_(begin),
-              end_(end),
-              superset_index_(invalid_index_type<size_type>())
-        {}
-
-        friend inline bool operator<(const subset &subset1,
-                                     const subset &subset2)
-        {
-            return ((subset1.begin_ < subset2.begin_) ||
-                    ((subset1.begin_ == subset2.begin_) &&
-                     (subset1.end_ < subset2.end_)));
-        }
-
-        static bool compare_end(const IndexSet::subset &x,
-                                const IndexSet::subset &y)
-        {
-            return x.end_ < y.end_;
-        }
-
-        static bool superset_index_compare(const IndexSet::subset &x,
-                                           const IndexSet::subset &y)
-        {
-            return (x.superset_index_ + (x.end_ - x.begin_) <
-                    y.superset_index_ + (y.end_ - y.begin_));
-        }
-
-        friend inline bool operator==(const subset &subset1,
-                                      const subset &subset2)
-        {
-            return ((subset1.begin_ == subset2.begin_) &&
-                    (subset1.end_ == subset2.end_));
-        }
-
-
-        size_type begin_;
-        size_type end_;
-        size_type superset_index_;
-    };
-
     void merge_impl() const;
 
     mutable bool is_merged_;
-    mutable std::vector<subset> subsets_;
-    mutable size_type largest_subset_;
+    mutable std::vector<subset<index_type>> subsets_;
+    mutable index_type largest_subset_;
     mutable std::mutex merge_mutex_;
-    size_type index_space_size_;
+    index_type index_space_size_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 

@@ -9,6 +9,7 @@ target_sources(ginkgo
     base/composition.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/index_set_helpers.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
