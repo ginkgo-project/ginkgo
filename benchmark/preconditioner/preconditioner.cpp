@@ -48,10 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
 #include "benchmark/utils/timer.hpp"
-
-
-// some shortcuts
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // preconditioner generation and application

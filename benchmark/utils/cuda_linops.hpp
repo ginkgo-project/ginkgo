@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
+#include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
@@ -147,7 +148,7 @@ public:
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
-        auto dense_b = gko::as<gko::matrix::Dense<double>>(b);
+        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
@@ -684,11 +685,11 @@ private:
 
 
 // Some shortcuts
-using cusp_csrex = detail::CuspCsrEx<>;
+using cusp_csrex = detail::CuspCsrEx<etype>;
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-using cusp_csr = detail::CuspCsr<>;
-using cusp_csrmp = detail::CuspCsrmp<>;
-using cusp_csrmm = detail::CuspCsrmm<>;
+using cusp_csr = detail::CuspCsr<etype>;
+using cusp_csrmp = detail::CuspCsrmp<etype>;
+using cusp_csrmm = detail::CuspCsrmm<etype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
@@ -697,10 +698,10 @@ using cusp_csrmm = detail::CuspCsrmm<>;
      ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
-using cusp_gcsr = detail::CuspGenericCsr<>;
+using cusp_gcsr = detail::CuspGenericCsr<etype>;
 using cusp_gcsr2 =
-    detail::CuspGenericCsr<double, gko::int32, CUSPARSE_CSRMV_ALG2>;
-using cusp_gcoo = detail::CuspGenericCoo<>;
+    detail::CuspGenericCsr<etype, gko::int32, CUSPARSE_CSRMV_ALG2>;
+using cusp_gcoo = detail::CuspGenericCoo<etype>;
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
@@ -709,10 +710,10 @@ using cusp_gcoo = detail::CuspGenericCoo<>;
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 using cusp_coo =
-    detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_USER, 0>;
+    detail::CuspHybrid<etype, gko::int32, CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell =
-    detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
-using cusp_hybrid = detail::CuspHybrid<>;
+    detail::CuspHybrid<etype, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
+using cusp_hybrid = detail::CuspHybrid<etype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 

@@ -42,10 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-// some Ginkgo shortcuts
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // See en.wikipedia.org/wiki/Five-number_summary

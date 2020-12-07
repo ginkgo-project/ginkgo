@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/overhead_linop.hpp"
+#include "benchmark/utils/types.hpp"
 
 
 DEFINE_string(
@@ -100,81 +101,91 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
     precond_factory{
         {"none",
          [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::matrix::IdentityFactory<>::create(exec);
+             return gko::matrix::IdentityFactory<etype>::create(exec);
          }},
         {"jacobi",
          [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<>::build()
+             return gko::preconditioner::Jacobi<etype>::build()
                  .with_max_block_size(FLAGS_jacobi_max_block_size)
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_jacobi_storage))
-                 .with_accuracy(FLAGS_jacobi_accuracy)
+                 .with_accuracy(static_cast<etype>(FLAGS_jacobi_accuracy))
                  .with_skip_sorting(true)
                  .on(exec);
          }},
         {"parict",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
-                 gko::factorization::ParIct<>::build()
+                 gko::factorization::ParIct<etype>::build()
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             return gko::preconditioner::Ilu<>::build()
+             return gko::preconditioner::Ilu<
+                        gko::solver::LowerTrs<etype>,
+                        gko::solver::UpperTrs<etype>>::build()
                  .with_factorization_factory(fact)
                  .on(exec);
          }},
         {"parilu",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact =
-                 gko::share(gko::factorization::ParIlu<>::build()
+                 gko::share(gko::factorization::ParIlu<etype>::build()
                                 .with_iterations(FLAGS_parilu_iterations)
                                 .with_skip_sorting(true)
                                 .on(exec));
-             return gko::preconditioner::Ilu<>::build()
+             return gko::preconditioner::Ilu<
+                        gko::solver::LowerTrs<etype>,
+                        gko::solver::UpperTrs<etype>>::build()
                  .with_factorization_factory(fact)
                  .on(exec);
          }},
         {"parilut",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
-                 gko::factorization::ParIlut<>::build()
+                 gko::factorization::ParIlut<etype>::build()
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             return gko::preconditioner::Ilu<>::build()
+             return gko::preconditioner::Ilu<
+                        gko::solver::LowerTrs<etype>,
+                        gko::solver::UpperTrs<etype>>::build()
                  .with_factorization_factory(fact)
                  .on(exec);
          }},
         {"ilu",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact =
-                 gko::share(gko::factorization::Ilu<>::build().on(exec));
-             return gko::preconditioner::Ilu<>::build()
+                 gko::share(gko::factorization::Ilu<etype>::build().on(exec));
+             return gko::preconditioner::Ilu<
+                        gko::solver::LowerTrs<etype>,
+                        gko::solver::UpperTrs<etype>>::build()
                  .with_factorization_factory(fact)
                  .on(exec);
          }},
         {"parict-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
-                 gko::factorization::ParIct<>::build()
+                 gko::factorization::ParIct<etype>::build()
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
-             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
+             auto lisai =
+                 gko::share(gko::preconditioner::LowerIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
+             auto uisai =
+                 gko::share(gko::preconditioner::UpperIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
              return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<>,
-                        gko::preconditioner::UpperIsai<>>::build()
+                        gko::preconditioner::LowerIsai<etype>,
+                        gko::preconditioner::UpperIsai<etype>>::build()
                  .with_factorization_factory(fact)
                  .with_l_solver_factory(lisai)
                  .with_u_solver_factory(uisai)
@@ -183,19 +194,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"parilu-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact =
-                 gko::share(gko::factorization::ParIlu<>::build()
+                 gko::share(gko::factorization::ParIlu<etype>::build()
                                 .with_iterations(FLAGS_parilu_iterations)
                                 .with_skip_sorting(true)
                                 .on(exec));
-             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
-             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
+             auto lisai =
+                 gko::share(gko::preconditioner::LowerIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
+             auto uisai =
+                 gko::share(gko::preconditioner::UpperIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
              return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<>,
-                        gko::preconditioner::UpperIsai<>>::build()
+                        gko::preconditioner::LowerIsai<etype>,
+                        gko::preconditioner::UpperIsai<etype>>::build()
                  .with_factorization_factory(fact)
                  .with_l_solver_factory(lisai)
                  .with_u_solver_factory(uisai)
@@ -204,21 +217,23 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"parilut-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
-                 gko::factorization::ParIlut<>::build()
+                 gko::factorization::ParIlut<etype>::build()
                      .with_iterations(FLAGS_parilu_iterations)
                      .with_approximate_select(FLAGS_parilut_approx_select)
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
-             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
+             auto lisai =
+                 gko::share(gko::preconditioner::LowerIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
+             auto uisai =
+                 gko::share(gko::preconditioner::UpperIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
              return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<>,
-                        gko::preconditioner::UpperIsai<>>::build()
+                        gko::preconditioner::LowerIsai<etype>,
+                        gko::preconditioner::UpperIsai<etype>>::build()
                  .with_factorization_factory(fact)
                  .with_l_solver_factory(lisai)
                  .with_u_solver_factory(uisai)
@@ -227,23 +242,29 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"ilu-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact =
-                 gko::share(gko::factorization::Ilu<>::build().on(exec));
-             auto lisai = gko::share(gko::preconditioner::LowerIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
-             auto uisai = gko::share(gko::preconditioner::UpperIsai<>::build()
-                                         .with_sparsity_power(FLAGS_isai_power)
-                                         .on(exec));
+                 gko::share(gko::factorization::Ilu<etype>::build().on(exec));
+             auto lisai =
+                 gko::share(gko::preconditioner::LowerIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
+             auto uisai =
+                 gko::share(gko::preconditioner::UpperIsai<etype>::build()
+                                .with_sparsity_power(FLAGS_isai_power)
+                                .on(exec));
              return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<>,
-                        gko::preconditioner::UpperIsai<>>::build()
+                        gko::preconditioner::LowerIsai<etype>,
+                        gko::preconditioner::UpperIsai<etype>>::build()
                  .with_factorization_factory(fact)
                  .with_l_solver_factory(lisai)
                  .with_u_solver_factory(uisai)
                  .on(exec);
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::Overhead<>::build().on(exec);
+             return gko::Overhead<etype>::build()
+                 .with_criteria(gko::stop::ResidualNormReduction<etype>::build()
+                                    .with_reduction_factor(etype{})
+                                    .on(exec))
+                 .on(exec);
          }}};
 
 
