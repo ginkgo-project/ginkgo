@@ -261,6 +261,7 @@ protected:
             }
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
+            lh_solver_ = as<lh_solver_type>(l_solver_->conj_transpose());
         }
     }
 
