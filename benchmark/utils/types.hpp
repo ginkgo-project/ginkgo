@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_BENCHMARK_UTILS_TYPES_HPP_
 
 
-using etype = float;
+using etype = double;
 
 
 #endif  // GKO_BENCHMARK_UTILS_TYPES_HPP_
