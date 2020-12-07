@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 #include <mutex>
 #include <vector>
 
@@ -160,7 +161,7 @@ void IndexSet<IndexType>::add_sparse_row(const IndexType row,
 template <typename IndexType>
 void IndexSet<IndexType>::add_sparse_rows(
     const IndexType begin, const IndexType end,
-    const std::vector<IndexType> &nnz_per_row)
+    const gko::vector<IndexType> &nnz_per_row)
 {
     GKO_ASSERT_CONDITION(
         (begin < index_space_size_) ||
@@ -185,6 +186,15 @@ void IndexSet<IndexType>::add_sparse_rows(
         }
     }
     is_merged_ = false;
+}
+
+
+template <typename IndexType>
+void IndexSet<IndexType>::add_subset(Subset<IndexType> &subset)
+{
+    auto begin = subset.begin_;
+    auto end = subset.end_;
+    this->add_subset(begin, end);
 }
 
 
@@ -250,11 +260,11 @@ void IndexSet<IndexType>::add_indices(const IndexSet<IndexType> &other,
     auto exec = this->get_executor();
     merge();
     other.merge();
-    typename std::vector<Subset<IndexType>>::const_iterator
+    typename gko::vector<Subset<IndexType>>::const_iterator
         r1 = subsets_.begin(),
         r2 = other.subsets_.begin();
 
-    std::vector<Subset<IndexType>> new_subsets;
+    gko::vector<Subset<IndexType>> new_subsets(exec);
     // just get the start and end of the subsets_ right in this method,
     // everything else will be done in merge()
     while (r1 != subsets_.end() || r2 != other.subsets_.end()) {
@@ -312,7 +322,7 @@ bool IndexSet<IndexType>::is_element(const IndexType index) const
         // since we already know the position relative to the largest subset
         // (we called merge!), we can perform the binary search on
         // subsets_ with lower/higher number compared to the largest subset
-        typename std::vector<Subset<IndexType>>::const_iterator p =
+        typename gko::vector<Subset<IndexType>>::const_iterator p =
             std::upper_bound(
                 subsets_.begin() + (index < subsets_[largest_subset_].begin_
                                         ? 0
@@ -381,7 +391,7 @@ IndexType IndexSet<IndexType>::get_global_index(
     auto exec = this->get_executor();
     // first check whether the index is in the largest subset
     GKO_ASSERT_CONDITION(largest_subset_ < subsets_.size());
-    typename std::vector<Subset<IndexType>>::const_iterator main_subset =
+    typename gko::vector<Subset<IndexType>>::const_iterator main_subset =
         subsets_.begin() + largest_subset_;
     if (local_index >= main_subset->superset_index_ &&
         local_index < main_subset->superset_index_ +
@@ -394,7 +404,7 @@ IndexType IndexSet<IndexType>::get_global_index(
     // the position relative to main_subset to subdivide the subsets_
     Subset<IndexType> r(exec, local_index, local_index + 1);
     r.superset_index_ = local_index;
-    typename std::vector<Subset<IndexType>>::const_iterator subset_begin,
+    typename gko::vector<Subset<IndexType>>::const_iterator subset_begin,
         subset_end;
     if (local_index < main_subset->superset_index_) {
         subset_begin = subsets_.begin();
@@ -404,7 +414,7 @@ IndexType IndexSet<IndexType>::get_global_index(
         subset_end = subsets_.end();
     }
 
-    const typename std::vector<Subset<IndexType>>::const_iterator p =
+    const typename gko::vector<Subset<IndexType>>::const_iterator p =
         std::lower_bound(subset_begin, subset_end, r,
                          Subset<IndexType>::superset_index_compare);
 
@@ -430,14 +440,14 @@ IndexType IndexSet<IndexType>::get_local_index(
     // check whether the index is in the largest subset. use the result to
     // perform a one-sided binary search afterward
     GKO_ASSERT_CONDITION(largest_subset_ < subsets_.size());
-    typename std::vector<Subset<IndexType>>::const_iterator main_subset =
+    typename gko::vector<Subset<IndexType>>::const_iterator main_subset =
         subsets_.begin() + largest_subset_;
     if (global_index >= main_subset->begin_ && global_index < main_subset->end_)
         return (global_index - main_subset->begin_) +
                main_subset->superset_index_;
 
     Subset<IndexType> r(exec, global_index, global_index);
-    typename std::vector<Subset<IndexType>>::const_iterator subset_begin,
+    typename gko::vector<Subset<IndexType>>::const_iterator subset_begin,
         subset_end;
     if (global_index < main_subset->begin_) {
         subset_begin = subsets_.begin();
@@ -447,7 +457,7 @@ IndexType IndexSet<IndexType>::get_local_index(
         subset_end = subsets_.end();
     }
 
-    typename std::vector<Subset<IndexType>>::const_iterator p =
+    typename gko::vector<Subset<IndexType>>::const_iterator p =
         std::lower_bound(subset_begin, subset_end, r,
                          Subset<IndexType>::compare_end);
 
@@ -476,7 +486,7 @@ IndexType IndexSet<IndexType>::get_largest_subset_starting_index() const
     GKO_ASSERT_CONDITION(subsets_.empty() == false);
 
     merge();
-    const typename std::vector<Subset<IndexType>>::const_iterator main_subset =
+    const typename gko::vector<Subset<IndexType>>::const_iterator main_subset =
         subsets_.begin() + largest_subset_;
 
     return main_subset->superset_index_;
@@ -528,7 +538,7 @@ IndexSet<IndexType> IndexSet<IndexType>::operator&(
     other.merge();
 
     auto exec = this->get_executor();
-    typename std::vector<Subset<IndexType>>::const_iterator
+    typename gko::vector<Subset<IndexType>>::const_iterator
         r1 = subsets_.begin(),
         r2 = other.subsets_.begin();
     IndexSet<IndexType> result(exec, get_size());
@@ -576,10 +586,10 @@ void IndexSet<IndexType>::subtract_set(const IndexSet<IndexType> &other)
     auto exec = this->get_executor();
     // we save new subsets_ to be added to our IndexSet in an temporary vector
     // and add all of them in one go at the end.
-    std::vector<Subset<IndexType>> new_subset;
+    gko::vector<Subset<IndexType>> new_subset(exec);
 
-    typename std::vector<Subset<IndexType>>::iterator own_it = subsets_.begin();
-    typename std::vector<Subset<IndexType>>::iterator other_it =
+    typename gko::vector<Subset<IndexType>>::iterator own_it = subsets_.begin();
+    typename gko::vector<Subset<IndexType>>::iterator other_it =
         other.subsets_.begin();
 
     while (own_it != subsets_.end() && other_it != other.subsets_.end()) {
@@ -616,7 +626,7 @@ void IndexSet<IndexType>::subtract_set(const IndexSet<IndexType> &other)
 
     // Now delete all empty subsets_ we might
     // have created.
-    for (typename std::vector<Subset<IndexType>>::iterator it =
+    for (typename gko::vector<Subset<IndexType>>::iterator it =
              subsets_.begin();
          it != subsets_.end();) {
         if (it->begin_ >= it->end_)
@@ -626,9 +636,9 @@ void IndexSet<IndexType>::subtract_set(const IndexSet<IndexType> &other)
     }
 
     // done, now add the temporary subsets_
-    const typename std::vector<Subset<IndexType>>::iterator end =
+    const typename gko::vector<Subset<IndexType>>::iterator end =
         new_subset.end();
-    for (typename std::vector<Subset<IndexType>>::iterator it =
+    for (typename gko::vector<Subset<IndexType>>::iterator it =
              new_subset.begin();
          it != end; ++it)
         add_subset(it->begin_, it->end_);
@@ -691,13 +701,13 @@ typename IndexSet<IndexType>::ElementIterator IndexSet<IndexType>::at(
     if (subsets_.empty()) return end();
 
     auto exec = this->get_executor();
-    typename std::vector<Subset<IndexType>>::const_iterator main_subset =
+    typename gko::vector<Subset<IndexType>>::const_iterator main_subset =
         subsets_.begin() + largest_subset_;
 
     Subset<IndexType> s(exec, global_index, global_index + 1);
     // This optimization makes the bounds for lower_bound smaller by
     // checking the largest subset first.
-    typename std::vector<Subset<IndexType>>::const_iterator subset_begin,
+    typename gko::vector<Subset<IndexType>>::const_iterator subset_begin,
         subset_end;
     if (global_index < main_subset->begin_) {
         subset_begin = subsets_.begin();
@@ -709,7 +719,7 @@ typename IndexSet<IndexType>::ElementIterator IndexSet<IndexType>::at(
 
     // This will give us the first subset p=[a,b[ with b>=global_index using
     // a binary search
-    const typename std::vector<Subset<IndexType>>::const_iterator p =
+    const typename gko::vector<Subset<IndexType>>::const_iterator p =
         std::lower_bound(subset_begin, subset_end, s,
                          Subset<IndexType>::compare_end);
 
@@ -772,13 +782,13 @@ void IndexSet<IndexType>::merge_impl() const
 
     auto exec = this->get_executor();
     // see if any of the contiguous subsets_ can be merged. do not use
-    // std::vector::erase in-place as it is quadratic in the number of
+    // gko::vector::erase in-place as it is quadratic in the number of
     // subsets_. since the subsets_ are sorted by their first index,
     // determining overlap isn't all that hard
-    typename std::vector<Subset<IndexType>>::iterator store = subsets_.begin();
-    for (typename std::vector<Subset<IndexType>>::iterator i = subsets_.begin();
+    typename gko::vector<Subset<IndexType>>::iterator store = subsets_.begin();
+    for (typename gko::vector<Subset<IndexType>>::iterator i = subsets_.begin();
          i != subsets_.end();) {
-        typename std::vector<Subset<IndexType>>::iterator next = i;
+        typename gko::vector<Subset<IndexType>>::iterator next = i;
         ++next;
 
         IndexType first_index = i->begin_;
@@ -797,13 +807,14 @@ void IndexSet<IndexType>::merge_impl() const
     }
     // use a compact array with exactly the right amount of storage
     if (store != subsets_.end()) {
-        std::vector<Subset<IndexType>> new_subset(subsets_.begin(), store);
+        gko::vector<Subset<IndexType>> new_subset(subsets_.begin(), store,
+                                                  exec);
         subsets_.swap(new_subset);
     }
 
     // now compute indices within set and the subset with most elements
     IndexType next_index = 0, largest_subset_size = 0;
-    for (typename std::vector<Subset<IndexType>>::iterator i = subsets_.begin();
+    for (typename gko::vector<Subset<IndexType>>::iterator i = subsets_.begin();
          i != subsets_.end(); ++i) {
         GKO_ASSERT_CONDITION(i->begin_ < i->end_);
 

@@ -65,6 +65,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/base/allocator.hpp"
+
+
 namespace gko {
 
 
@@ -103,8 +106,8 @@ public:
         : is_merged_(true),
           largest_subset_(invalid_index_type<index_type>()),
           index_space_size_(0),
-          exec_(nullptr)
-
+          exec_(nullptr),
+          subsets_(exec_)
     {}
 
     /**
@@ -115,14 +118,19 @@ public:
         : is_merged_(true),
           largest_subset_(invalid_index_type<index_type>()),
           index_space_size_(size),
-          exec_(executor)
+          exec_(executor),
+          subsets_(exec_)
     {}
 
     /**
      * Copy constructor.
      */
     IndexSet(const IndexSet &other)
-        : is_merged_(), largest_subset_(), index_space_size_(), merge_mutex_()
+        : is_merged_(),
+          largest_subset_(),
+          index_space_size_(),
+          merge_mutex_(),
+          subsets_(other.exec_)
     {
         is_merged_ = other.is_merged_;
         subsets_ = other.subsets_;
@@ -256,7 +264,7 @@ public:
      * @note Rows start from 0.
      */
     void add_sparse_rows(const index_type begin, const index_type end,
-                         const std::vector<index_type> &nnz_per_row);
+                         const gko::vector<index_type> &nnz_per_row);
 
     /**
      * Add the half-open subset $[\text{begin},\text{end})$ to the set of
@@ -265,6 +273,13 @@ public:
      * @param[in] end The past-the-end element of the subset to be added.
      */
     void add_subset(const index_type begin, const index_type end);
+
+    /**
+     * Add the half-open subset $[\text{begin},\text{end})$ to the set of
+     * indices represented by this class.
+     * @param[in] subset The subset to be added.
+     */
+    void add_subset(Subset<index_type> &subset);
 
     /**
      * Add an individual index to the set of indices.
@@ -307,7 +322,7 @@ public:
         // when calling add_subset many times (as add_subset() going into the
         // middle of an already existing subset must shift entries around), we
         // first collect a vector of subsets_.
-        std::vector<std::pair<index_type, index_type>> tmp_subsets;
+        gko::vector<std::pair<index_type, index_type>> tmp_subsets(exec_);
         bool subsets_are_sorted = true;
         for (ForwardIterator p = begin; p != end;) {
             const index_type begin_index = *p;
@@ -989,12 +1004,13 @@ public:
 private:
     void merge_impl() const;
 
+    std::shared_ptr<const gko::Executor> exec_;
+
     mutable bool is_merged_;
-    mutable std::vector<Subset<index_type>> subsets_;
+    mutable gko::vector<Subset<index_type>> subsets_;
     mutable index_type largest_subset_;
     mutable std::mutex merge_mutex_;
     index_type index_space_size_;
-    std::shared_ptr<const gko::Executor> exec_;
 };
 
 

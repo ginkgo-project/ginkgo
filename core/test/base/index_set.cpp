@@ -153,8 +153,9 @@ TYPED_TEST(IndexSet, FailsforIncorrectIndexSize)
 TYPED_TEST(IndexSet, CanStoreNonContiguousSubsets)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+    auto subset2 = gko::Subset<TypeParam>{this->exec, 6, 10};
     idx_set.add_subset(0, 3);
-    idx_set.add_subset(6, 10);
+    idx_set.add_subset(subset2);
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_EQ(idx_set.get_num_elems(), 7);
     ASSERT_FALSE(idx_set.is_contiguous());
@@ -210,7 +211,7 @@ TYPED_TEST(IndexSet, CanAddRangeOfIndices)
 TYPED_TEST(IndexSet, CanAddRangeOfIndicesWithIterators)
 {
     auto idx_set2 = gko::IndexSet<TypeParam>{this->exec, 11};
-    auto indices = std::vector<TypeParam>{0, 2, 1, 6, 8};
+    auto indices = gko::vector<TypeParam>{{0, 2, 1, 6, 8}, this->exec};
     idx_set2.add_subset(1, 5);
     ASSERT_EQ(idx_set2.get_num_elems(), 4);
     idx_set2.add_indices(indices.begin(), indices.end());

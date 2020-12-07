@@ -49,7 +49,7 @@ Subset<IndexType>::Subset(std::shared_ptr<const Executor> exec,
     : begin_(begin),
       end_(end),
       superset_index_(invalid_index_type<IndexType>()),
-      exec_(std::move(exec))
+      exec_(exec)
 {}
 
 
