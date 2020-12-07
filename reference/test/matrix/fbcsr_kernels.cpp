@@ -426,9 +426,7 @@ TYPED_TEST(Fbcsr, MovesToSparsityCsr)
     using SparsityCsr = typename TestFixture::SparCsr;
     using Fbcsr = typename TestFixture::Mtx;
     auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
-    // auto fbcsr_ref = Fbcsr::create(this->mtx->get_executor());
 
-    // fbcsr_ref->copy_from(this->mtx.get());
     this->mtx->move_to(sparsity_mtx.get());
 
     this->assert_equal_to_mtx(sparsity_mtx.get());

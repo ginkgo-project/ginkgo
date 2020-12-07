@@ -103,11 +103,7 @@ class DenseBlock final {
 public:
     using value_type = ValueType;
 
-    /**
-     * If this default construtor is used, @ref set_executor must be called
-     *  prior to any other member function.
-     */
-    DenseBlock() : nrows_{0}, ncols_{0} {}
+    DenseBlock() {}
 
     DenseBlock(const int num_rows, const int num_cols)
         : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
@@ -148,8 +144,8 @@ public:
     }
 
 private:
-    int nrows_;
-    int ncols_;
+    int nrows_ = 0;
+    int ncols_ = 0;
     std::vector<value_type> vals_;
 };
 

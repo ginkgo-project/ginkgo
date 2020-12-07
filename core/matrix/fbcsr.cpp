@@ -254,7 +254,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
                                std::to_string(__LINE__) +
                                ": List of nonzeros is too big!");
 
-    const index_type nnz = static_cast<index_type>(data.nonzeros.size());
+    const auto nnz = static_cast<index_type>(data.nonzeros.size());
 
     const int bs = this->bs_;
 
@@ -275,15 +275,15 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
         }
     };
 
-    auto create_block_map = [nnz, bs](const mat_data &data) {
+    auto create_block_map = [nnz, bs](const mat_data &mdata) {
         std::map<FbEntry, Blk_t, FbLess> blocks;
         for (index_type inz = 0; inz < nnz; inz++) {
-            const index_type row = data.nonzeros[inz].row;
-            const index_type col = data.nonzeros[inz].column;
-            const value_type val = data.nonzeros[inz].value;
+            const index_type row = mdata.nonzeros[inz].row;
+            const index_type col = mdata.nonzeros[inz].column;
+            const value_type val = mdata.nonzeros[inz].value;
 
-            const int localrow = static_cast<int>(row % bs);
-            const int localcol = static_cast<int>(col % bs);
+            const auto localrow = static_cast<int>(row % bs);
+            const auto localcol = static_cast<int>(col % bs);
             const index_type blockrow = row / bs;
             const index_type blockcol = col / bs;
 
@@ -308,8 +308,9 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
                              blocks.size() * bs * bs, bs);
 
     tmp->row_ptrs_.get_data()[0] = 0;
-    index_type cur_brow = 0, cur_bnz = 0,
-               cur_bcol = blocks.begin()->first.block_column;
+    index_type cur_brow = 0;
+    index_type cur_bnz = 0;
+    index_type cur_bcol = blocks.begin()->first.block_column;
     const index_type num_brows = data.size[0] / bs;
 
     blockutils::DenseBlocksView<value_type, index_type> values(
@@ -361,7 +362,7 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
     const blockutils::DenseBlocksView<const value_type, index_type> vblocks(
         tmp->values_.get_const_data(), bs_, bs_);
 
-    for (size_type brow = 0; brow < tmp->get_size()[0] / bs_; ++brow) {
+    for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {
         const auto start = tmp->row_ptrs_.get_const_data()[brow];
         const auto end = tmp->row_ptrs_.get_const_data()[brow + 1];
 
