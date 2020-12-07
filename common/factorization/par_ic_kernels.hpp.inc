@@ -52,8 +52,48 @@ __global__ __launch_bounds__(default_block_size) void ic_init(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void ic_sweep(
+    const IndexType *__restrict__ a_row_idxs,
+    const IndexType *__restrict__ a_col_idxs,
+    const ValueType *__restrict__ a_vals,
+    const IndexType *__restrict__ l_row_ptrs,
+    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_vals,
+    IndexType l_nnz)
+{
+    auto l_nz = thread::get_thread_id_flat<IndexType>();
+    if (l_nz >= l_nnz) {
+        return;
+    }
+    auto row = a_row_idxs[l_nz];
+    auto col = l_col_idxs[l_nz];
+    auto a_val = a_vals[l_nz];
+    auto l_row_begin = l_row_ptrs[row];
+    auto l_row_end = l_row_ptrs[row + 1];
+    auto lh_col_begin = l_row_ptrs[col];
+    auto lh_col_end = l_row_ptrs[col + 1];
+    ValueType sum{};
+    auto last_entry = col;
+    while (l_row_begin < l_row_end && lh_col_begin < lh_col_end) {
+        auto l_col = l_col_idxs[l_row_begin];
+        auto lh_row = l_col_idxs[lh_col_begin];
+        if (l_col == lh_row && l_col < last_entry) {
+            sum += l_vals[l_row_begin] * conj(l_vals[lh_col_begin]);
+        }
+        l_row_begin += l_col <= lh_row;
+        lh_col_begin += l_col >= lh_row;
+    }
+    auto to_write = row == col
+                        ? sqrt(a_val - sum)
+                        : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
+    if (is_finite(to_write)) {
+        l_vals[l_nz] = to_write;
+    }
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void ic_sweep_subwarp(
     const IndexType *__restrict__ a_row_idxs,
     const IndexType *__restrict__ a_col_idxs,
     const ValueType *__restrict__ a_vals,
@@ -75,7 +115,6 @@ __global__ __launch_bounds__(default_block_size) void ic_sweep(
     auto lh_col_begin = l_row_ptrs[col];
     auto lh_col_size = l_row_ptrs[col + 1] - lh_col_begin;
     ValueType sum{};
-    IndexType lh_nz{};
     auto last_entry = col;
     group_merge<subwarp_size>(
         l_col_idxs + l_row_begin, l_row_size, l_col_idxs + lh_col_begin,
@@ -87,12 +126,6 @@ __global__ __launch_bounds__(default_block_size) void ic_sweep(
             if (l_col == lh_row && l_col < last_entry) {
                 sum += l_vals[l_idx + l_row_begin] *
                        conj(l_vals[lh_idx + lh_col_begin]);
-            }
-            // remember the transposed element
-            auto found_transp = subwarp.ballot(lh_row == row);
-            if (found_transp) {
-                lh_nz =
-                    subwarp.shfl(lh_idx + lh_col_begin, ffs(found_transp) - 1);
             }
             return true;
         });
