@@ -99,7 +99,7 @@ void compute_factor(syn::value_list<int, subwarp_size>,
     auto num_blocks = ceildiv(total_nnz, block_size);
     for (size_type i = 0; i < iterations; ++i) {
         hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::ic_sweep<subwarp_size>), num_blocks,
+            HIP_KERNEL_NAME(kernel::ic_sweep_subwarp<subwarp_size>), num_blocks,
             default_block_size, 0, 0, a_lower->get_const_row_idxs(),
             a_lower->get_const_col_idxs(),
             as_hip_type(a_lower->get_const_values()), l->get_const_row_ptrs(),
