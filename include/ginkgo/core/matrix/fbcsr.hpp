@@ -325,9 +325,6 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param block_size Size of the small dense square blocks
      */
-    // Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size =
-    // dim<2>{},
-    //       size_type num_nonzeros = {}, int block_size = 1);
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type num_nonzeros, int block_size);
 

@@ -75,7 +75,7 @@ public:
         : matrix_{matrix}
     {}
 
-    ~FbcsrBuilder() {}
+    ~FbcsrBuilder() = default;
 
     // make this type non-movable
     FbcsrBuilder(const FbcsrBuilder &) = delete;
