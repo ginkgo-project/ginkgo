@@ -23,6 +23,7 @@ set(EXAMPLES_LIST
     ginkgo-overhead
     minimal-cuda-solver
     papi-logging
+    par-ilu-convergence
     performance-debugging
     preconditioner-export
     simple-solver-logging)
