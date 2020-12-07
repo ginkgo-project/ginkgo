@@ -66,6 +66,7 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
+#include "common/components/warp_blas.hpp.inc"
 #include "common/preconditioner/isai_kernels.hpp.inc"
 
 
@@ -112,7 +113,22 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *input,
                               matrix::Csr<ValueType, IndexType> *inverse,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs) GKO_NOT_IMPLEMENTED;
+                              IndexType *excess_nz_ptrs)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    kernel::generate_general_inverse<subwarp_size, subwarps_per_block>
+        <<<grid, block>>>(
+            static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
+            input->get_const_col_idxs(),
+            as_cuda_type(input->get_const_values()), inverse->get_row_ptrs(),
+            inverse->get_col_idxs(), as_cuda_type(inverse->get_values()),
+            excess_rhs_ptrs, excess_nz_ptrs);
+    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
