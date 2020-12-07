@@ -1390,6 +1390,14 @@ public:
         return max_workgroup_size_;
     }
 
+    /**
+     * Get the kernel Config
+     */
+    Config get_config() const noexcept {
+        // It will be decided in runtime
+        return config_set(256, 16);
+    }
+
 protected:
     void set_gpu_property();
 

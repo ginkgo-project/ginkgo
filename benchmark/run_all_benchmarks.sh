@@ -149,7 +149,7 @@ run_spmv_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --device_id="${DEVICE_ID}" \
+                --device_id="${DEVICE_ID}" --detailed=false \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

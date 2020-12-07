@@ -82,7 +82,9 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
+    queue_->wait_and_throw();
     sycl::free(ptr, queue_->get_context());
+    // queue_->wait_and_throw();
 }
 
 

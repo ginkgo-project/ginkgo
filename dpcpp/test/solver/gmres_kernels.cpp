@@ -240,7 +240,7 @@ TEST_F(Gmres, DpcppGmresStep1IsEquivalentToRef)
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
-
+    // dpcpp->synchronize();
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
@@ -266,7 +266,7 @@ TEST_F(Gmres, DpcppGmresStep1OnSingleRHSIsEquivalentToRef)
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
-
+    dpcpp->synchronize();
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
@@ -290,6 +290,7 @@ TEST_F(Gmres, DpcppGmresStep2IsEquivalentToRef)
                                        d_krylov_bases.get(), d_hessenberg.get(),
                                        d_y.get(), d_before_preconditioner.get(),
                                        d_final_iter_nums.get());
+    dpcpp->synchronize();
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);

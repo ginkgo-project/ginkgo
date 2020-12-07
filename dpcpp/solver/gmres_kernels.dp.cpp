@@ -798,7 +798,7 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
         const auto k_krylov_bases =
             krylov_bases->get_const_values() +
             k * num_rows * hessenberg_iter->get_size()[1];
-        if (hessenberg_iter->get_size()[1] > 1) {
+        if (hessenberg_iter->get_size()[1] >= 1) {
             // TODO: this condition should be tuned
             // single rhs will use vendor's dot, otherwise, use our own
             // multidot_kernel which parallelize multiple rhs.
