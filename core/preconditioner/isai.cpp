@@ -174,7 +174,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                             .with_max_iters(excess_dim)
                             .on(exec),
                         gko::stop::ResidualNormReduction<ValueType>::build()
-                            .with_reduction_factor(1e-10)
+                            .with_reduction_factor(1e-6)
                             .on(exec))
                     .on(exec);
         } else if (is_lower) {

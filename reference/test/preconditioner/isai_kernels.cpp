@@ -676,7 +676,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseLargeA)
     auto a_inv = isai->get_approximate_inverse();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(a_inv, this->a_csr_large_inv);
-    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_large_inv, 1e-10);
+    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_large_inv, r<value_type>::value);
 }
 
 
