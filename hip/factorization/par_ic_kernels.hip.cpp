@@ -121,17 +121,31 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Coo<ValueType, IndexType> *a_lower,
                     matrix::Csr<ValueType, IndexType> *l)
 {
-    auto num_rows = l->get_size()[0];
-    auto total_nnz = 2 * l->get_num_stored_elements();
-    auto total_nnz_per_row = total_nnz / num_rows;
-    select_compute_factor(
-        compiled_kernels(),
-        [&](int compiled_subwarp_size) {
-            return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
-        },
-        syn::value_list<int>(), syn::type_list<>(), exec, iterations, a_lower,
-        l);
+    auto nnz = l->get_num_stored_elements();
+    auto work_per_row = 2 * nnz / l->get_size()[0];
+    if (l->get_strategy()->get_name() == "classical") {
+        auto num_blocks = ceildiv(nnz, default_block_size);
+
+        for (size_type i = 0; i < iterations; ++i) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::ic_sweep), num_blocks,
+                default_block_size, 0, 0, a_lower->get_const_row_idxs(),
+                a_lower->get_const_col_idxs(),
+                as_hip_type(a_lower->get_const_values()),
+                l->get_const_row_ptrs(), l->get_const_col_idxs(),
+                as_hip_type(l->get_values()),
+                static_cast<IndexType>(l->get_num_stored_elements()));
+        }
+    } else {
+        select_compute_factor(
+            compiled_kernels(),
+            [&](int compiled_subwarp_size) {
+                return work_per_row <= compiled_subwarp_size ||
+                       compiled_subwarp_size == config::warp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, iterations,
+            a_lower, l);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
