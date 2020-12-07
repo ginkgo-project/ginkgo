@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_ACCESSOR_HELPER_HPP_
 #define GKO_CORE_BASE_ACCESSOR_HELPER_HPP_
 
+
 #include <array>
 #include <tuple>
 #include <type_traits>
