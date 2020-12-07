@@ -30,20 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/accessors.hpp"
+#include <tuple>
+#include <type_traits>
 
 
 #include <gtest/gtest.h>
-
-
-#include <tuple>
-#include <type_traits>
 
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/accessors.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/test/utils.hpp"
 
