@@ -284,7 +284,7 @@ The supported environment variables are described in the following list:
     benchmark runs (downloads the collections, creates the result structure,
     etc.) and outputs the list of commands that would normally be run, but does
     not run the benchmarks themselves. Default is `false`.
-* `PRECONDS={jacobi,ilu,parict,parilu,parilut,ilu-isai,parict-isai,parilu-isai,parilut-isai,none}`
+* `PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,none}`
     the preconditioners to use for either `solver` or `preconditioner` benchmarks.
     Multiple options can be passed to this variable. Default is `none`.
 * `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusp_xx,hipsp_xx}` the matrix
