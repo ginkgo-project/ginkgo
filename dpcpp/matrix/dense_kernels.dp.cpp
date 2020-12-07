@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
+#include <iostream>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -1128,7 +1129,7 @@ template <typename ValueType>
 void scale(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (x->get_size()[1] == 1) {
+    if (0) {
         oneapi::mkl::blas::row_major::scal(
             *exec->get_queue(), x->get_size()[0] * x->get_size()[1],
             exec->copy_val_to_host(alpha->get_const_values()), x->get_values(),
@@ -1156,7 +1157,7 @@ void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (x->get_size()[1] == 1) {
+    if (0) {
         oneapi::mkl::blas::row_major::axpy(
             *exec->get_queue(), x->get_size()[0],
             exec->copy_val_to_host(alpha->get_const_values()),
@@ -1229,7 +1230,7 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
-    if (!is_complex<ValueType>()) {
+    if (0) {
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             dot(*exec->get_queue(), x->get_size()[0],
@@ -1303,6 +1304,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
         }
+        // exec->synchronize();
     }
 }
 

@@ -1755,6 +1755,14 @@ public:
         return this->get_exec_info().device_type;
     }
 
+    /**
+     * Get the kernel Config
+     */
+    Config get_config() const noexcept {
+        // It will be decided in runtime
+        return config_set(256, 16);
+    }
+
 protected:
     void set_device_property();
 
