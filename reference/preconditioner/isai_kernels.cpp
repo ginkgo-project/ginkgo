@@ -81,7 +81,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
                       IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
-                      Callable trs_solve, bool general = false)
+                      Callable trs_solve)
 {
     /*
     Consider: aiM := inverse_mtx; M := mtx
@@ -284,43 +284,40 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             }
 
             // solve transposed system
-            std::vector<IndexType> perm(size, {});
-            std::iota(begin(perm), end(perm), IndexType{0});
             for (IndexType col = 0; col < size; col++) {
                 const auto row =
                     choose_pivot(size - col,
                                  transposed_system + col * (size + 1), size) +
                     col;
                 swap_rows(col, row, size, transposed_system, size);
-                swap(perm[row], perm[col]);
                 swap(rhs[row], rhs[col]);
 
-                const ValueType d = transposed_system[col * size + col];
-                for (size_type j = col; j < size; j++) {
+                const auto d = transposed_system[col * size + col];
+
+                for (IndexType i = 0; i < size; ++i) {
+                    transposed_system[i * size + col] /= -d;
+                }
+
+                transposed_system[col * size + col] = zero<ValueType>();
+                const auto rhs_key_val = rhs[col];
+                for (IndexType i = 0; i < size; ++i) {
+                    const auto scal = transposed_system[i * size + col];
+                    for (IndexType j = 0; j < size; ++j) {
+                        transposed_system[i * size + j] +=
+                            scal * transposed_system[col * size + j];
+                    }
+                    rhs[i] += rhs_key_val * scal;
+                }
+                for (IndexType j = 0; j < size; ++j) {
                     transposed_system[col * size + j] /= d;
                 }
                 rhs[col] /= d;
-
-                for (size_type i = col + 1; i < size; i++) {
-                    auto scal = transposed_system[i * size + col];
-                    rhs[i] -= scal * rhs[col];
-                    for (size_type j = col; j < size; j++) {
-                        transposed_system[i * size + j] -=
-                            transposed_system[col * size + j] * scal;
-                    }
-                }
-            }
-
-            for (size_type i = size - 1; i >= 1; i--) {
-                for (size_type j = i; j >= 1; j--) {
-                    rhs[j - 1] -=
-                        transposed_system[(j - 1) * size + i] * rhs[i];
-                }
+                transposed_system[col * size + col] = one<ValueType>() / d;
             }
         };
 
     generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
-                     general_solve, true);
+                     general_solve);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
