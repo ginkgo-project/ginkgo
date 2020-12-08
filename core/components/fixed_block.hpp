@@ -34,13 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_
 
 
-#include <algorithm>
 #include <type_traits>
-#include <vector>
 
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -90,63 +87,6 @@ public:
 
 private:
     ValueType vals[nrows * ncols];
-};
-
-
-/**
- * A lightweight dynamic block type on the host
- *
- * @tparam ValueType The numeric type of entries of the block
- */
-template <typename ValueType>
-class DenseBlock final {
-public:
-    using value_type = ValueType;
-
-    DenseBlock() {}
-
-    DenseBlock(const int num_rows, const int num_cols)
-        : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
-    {}
-
-    value_type &at(const int row, const int col)
-    {
-        return vals_[row * ncols_ + col];
-    }
-
-    const value_type &at(const int row, const int col) const
-    {
-        return vals_[row * ncols_ + col];
-    }
-
-    value_type &operator()(const int row, const int col)
-    {
-        return at(row, col);
-    }
-
-    const value_type &operator()(const int row, const int col) const
-    {
-        return at(row, col);
-    }
-
-    int size() const { return nrows_ * ncols_; }
-
-    void resize(const int nrows, const int ncols)
-    {
-        vals_.resize(nrows * ncols);
-        nrows_ = nrows;
-        ncols_ = ncols;
-    }
-
-    void zero()
-    {
-        std::fill(vals_.begin(), vals_.end(), static_cast<value_type>(0));
-    }
-
-private:
-    int nrows_ = 0;
-    int ncols_ = 0;
-    std::vector<value_type> vals_;
 };
 
 
