@@ -156,11 +156,11 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
-// TEST(OmpExecutor, IsItsOwnMaster)
+// TEST(OmpExecutor, CanGetNumCoresFromExecInfo)
 // {
-//     exec_ptr omp = gko::OmpExecutor::create();
+//     auto omp = gko::OmpExecutor::create();
 
-//     ASSERT_EQ(omp, omp->get_master());
+//     ASSERT_EQ(20, omp->get_num_cores());
 // }
 
 
