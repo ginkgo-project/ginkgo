@@ -98,9 +98,6 @@ void CudaExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor *) const { return false; }
-
-
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 

@@ -165,12 +165,6 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
     return device.is_host() || device.is_cpu();
 }
 
-bool DpcppExecutor::verify_memory_to(const ReferenceExecutor *dest_exec) const
-{
-    auto device = detail::get_devices(device_type_)[device_id_];
-    return device.is_host() || device.is_cpu();
-}
-
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     auto device = detail::get_devices(device_type_)[device_id_];

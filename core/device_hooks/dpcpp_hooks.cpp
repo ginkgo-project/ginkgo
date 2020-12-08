@@ -126,12 +126,6 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
     return device_type_ == "cpu" || device_type_ == "host";
 }
 
-bool DpcppExecutor::verify_memory_to(const ReferenceExecutor *dest_exec) const
-{
-    // Dummy check
-    return device_type_ == "cpu" || device_type_ == "host";
-}
-
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     // Dummy check

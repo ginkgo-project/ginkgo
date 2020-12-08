@@ -468,6 +468,7 @@ class Executor : public log::EnableLogging<Executor> {
     friend class detail::ExecutorBase;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
 
 public:
     virtual ~Executor() = default;
@@ -855,6 +856,7 @@ namespace detail {
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
 
 public:
     void run(const Operation &op) const override
@@ -871,7 +873,7 @@ protected:
         src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
-    bool verify_memory_from(const Executor *src_exec) const override
+    virtual bool verify_memory_from(const Executor *src_exec) const override
     {
         return src_exec->verify_memory_to(self());
     }
@@ -935,10 +937,13 @@ private:
                      const void *src_ptr, void *dest_ptr) const override
 
 
-#define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                       \
-    bool verify_memory_to(const dest_ *other) const override { return bool_; } \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \
+    virtual bool verify_memory_to(const dest_ *other) const override         \
+    {                                                                        \
+        return bool_;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 
@@ -979,7 +984,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, true);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 
@@ -1020,6 +1025,21 @@ public:
 
 protected:
     ReferenceExecutor() = default;
+
+    bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return src_exec->verify_memory_to(this);
+    }
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 };
 
 
@@ -1159,10 +1179,7 @@ protected:
 
     bool verify_memory_to(const HipExecutor *dest_exec) const override;
 
-    bool verify_memory_to(const CudaExecutor *dest_exec) const override
-    {
-        return device_id_ == dest_exec->get_device_id();
-    }
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
 
     static void increase_num_execs(unsigned device_id)
     {
@@ -1338,10 +1355,7 @@ protected:
 
     bool verify_memory_to(const CudaExecutor *dest_exec) const override;
 
-    bool verify_memory_to(const HipExecutor *dest_exec) const override
-    {
-        return device_id_ == dest_exec->get_device_id();
-    }
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
 
     static void increase_num_execs(int device_id)
     {
@@ -1507,9 +1521,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 
-    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    bool verify_memory_to(const ReferenceExecutor *dest_exec) const override;
+    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
 
     bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 
