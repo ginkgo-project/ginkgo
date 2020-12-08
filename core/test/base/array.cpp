@@ -275,9 +275,9 @@ TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
 // For tests between different memory, check cuda/test/base/array.cu
 TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
 {
-    auto omp = gko::OmpExecutor::create();
+    auto other = gko::ReferenceExecutor::create();
 
-    auto tmp_clone = make_temporary_clone(omp, &this->x);
+    auto tmp_clone = make_temporary_clone(other, &this->x);
 
     this->assert_equal_to_original_x(*tmp_clone.get());
     ASSERT_EQ(tmp_clone.get(), &this->x);
@@ -286,10 +286,10 @@ TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
 
 TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
 {
-    auto omp = gko::OmpExecutor::create();
+    auto other = gko::ReferenceExecutor::create();
 
     {
-        auto tmp_clone = make_temporary_clone(omp, &this->x);
+        auto tmp_clone = make_temporary_clone(other, &this->x);
         // change x, and check that there is no copy-back to overwrite it again
         this->x.get_data()[0] = 0;
     }

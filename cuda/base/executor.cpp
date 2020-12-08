@@ -162,16 +162,6 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
 }
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return device_id_ == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
 void CudaExecutor::synchronize() const
 {
     cuda::device_guard g(this->get_device_id());

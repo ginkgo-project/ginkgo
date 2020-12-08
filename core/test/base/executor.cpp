@@ -498,8 +498,8 @@ TEST(Executor, CanVerifyMemory)
         gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
     }
 
-    ASSERT_EQ(true, ref->memory_accessible(omp));
-    ASSERT_EQ(true, omp->memory_accessible(ref));
+    ASSERT_EQ(false, ref->memory_accessible(omp));
+    ASSERT_EQ(false, omp->memory_accessible(ref));
     ASSERT_EQ(false, ref->memory_accessible(hip));
     ASSERT_EQ(false, hip->memory_accessible(ref));
     ASSERT_EQ(false, omp->memory_accessible(hip));
@@ -509,14 +509,14 @@ TEST(Executor, CanVerifyMemory)
     ASSERT_EQ(false, omp->memory_accessible(cuda));
     ASSERT_EQ(false, cuda->memory_accessible(omp));
     if (gko::DpcppExecutor::get_num_devices("host")) {
-        ASSERT_EQ(true, host_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(true, ref->memory_accessible(host_dpcpp));
+        ASSERT_EQ(false, host_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
         ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
         ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
     }
     if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        ASSERT_EQ(true, ref->memory_accessible(cpu_dpcpp));
-        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(cpu_dpcpp));
+        ASSERT_EQ(false, cpu_dpcpp->memory_accessible(ref));
         ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
         ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
     }
