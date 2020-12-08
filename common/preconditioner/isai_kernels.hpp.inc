@@ -54,7 +54,7 @@ __forceinline__ __device__ void generic_generate(
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
-
+    __shared__ size_type k[subwarps_per_block];
     if (row >= num_rows) {
         return;
     }
@@ -92,6 +92,7 @@ __forceinline__ __device__ void generic_generate(
         if (local_id == 0) {
             excess_rhs_sizes[row] = 0;
             excess_nnz[row] = 0;
+            k[row % subwarps_per_block] = 0;
         }
 
         // subwarp_size^2 storage per subwarp
@@ -113,8 +114,6 @@ __forceinline__ __device__ void generic_generate(
 
         subwarp.sync();
 
-        index_type k = 0;
-
         for (IndexType nz = 0; nz < i_row_size; ++nz) {
             auto col = i_col_idxs[i_row_begin + nz];
             auto m_row_begin = m_row_ptrs[col];
@@ -127,8 +126,9 @@ __forceinline__ __device__ void generic_generate(
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
                     if (valid) {
-                        if (m_cols[m_idx + m_row_begin] < row && col == row)
-                            k++;
+                        if (m_col_idxs[m_row_begin + m_idx] < row && col == row)
+                            atomic_add(&k[row % subwarps_per_block],
+                                       size_type{1});
                         trisystem(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
                 });
@@ -144,7 +144,8 @@ __forceinline__ __device__ void generic_generate(
             local_row[i] = trisystem(i, local_id);
         }
 
-        const auto rhs = trs_solve(i_row_size, local_row, subwarp, k);
+        const auto rhs = trs_solve(i_row_size, local_row, subwarp,
+                                   k[row % subwarps_per_block]);
 
         // Write back:
         if (local_id < i_row_size) {
@@ -249,32 +250,31 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     IndexType *__restrict__ excess_rhs_sizes,
     IndexType *__restrict__ excess_nnz)
 {
-    auto general_solve =
-        [](IndexType num_elems, const ValueType *__restrict__ local_row,
-           group::thread_block_tile<subwarp_size> &subwarp, size_type k) {
-            __shared__ ValueType rhs[subwarp_size];
-            const int local_id = subwarp.thread_rank();
-            ValueType rhs[local_id] =
-                local_id == k ? one<ValueType>() : zero<ValueType>();
-
-            auto pivoted = subwarp.thread_rank() >= num_rows;
-            auto status = true;
-            for (size_type i = 0; i < num_rows; i++) {
-                const auto piv = choose_pivot(subwarp, row[i], pivoted);
-                if (local_id == piv) {
-                    perm = i;
-                    pivoted = true;
-                }
-                if (local_id == i) {
-                    trans_perm = piv;
-                }
-
-                apply_gauss_jordan_transform_with_rhs<max_problem_size>(
-                    subwarp, piv, i, row, rhs, status);
+    auto general_solve = [](IndexType num_elems,
+                            ValueType *__restrict__ local_row,
+                            group::thread_block_tile<subwarp_size> &subwarp,
+                            size_type k) {
+        const int local_id = subwarp.thread_rank();
+        ValueType rhs = local_id == k ? one<ValueType>() : zero<ValueType>();
+        size_type perm = local_id;
+        auto pivoted = subwarp.thread_rank() >= num_elems;
+        auto status = true;
+        for (size_type i = 0; i < num_elems; i++) {
+            const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
+            if (local_id == piv) {
+                // perm = i;
+                pivoted = true;
+            }
+            if (local_id == i) {
+                perm = piv;
             }
 
-            return rhs[local_id];
-        };
+            apply_gauss_jordan_transform_with_rhs<subwarp_size>(
+                subwarp, piv, i, local_row, &rhs, status);
+        }
+
+        return subwarp.shfl(rhs, perm);
+    };
 
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,

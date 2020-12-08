@@ -174,11 +174,10 @@ TEST_F(Isai, OmpIsaiGenerateAinverseShortIsEquivalentToRef)
     gko::Array<index_type> da1(omp, num_rows + 1);
     auto da2 = da1;
 
-    gko::kernels::reference::isai::generate_tri_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::omp::isai::generate_tri_inverse(
-        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
-        false);
+    gko::kernels::reference::isai::generate_general_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+    gko::kernels::omp::isai::generate_general_inverse(
+        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
