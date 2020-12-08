@@ -431,40 +431,6 @@ gko::matrix_data<ValueType, IndexType> FbcsrSample<
 }
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<gko::matrix::Coo<ValueType, IndexType>>
-FbcsrSample<ValueType, IndexType>::generate_coo() const
-{
-    gko::matrix_data<ValueType, IndexType> mdata =
-        generate_matrix_data_with_explicit_zeros();
-
-    using nztype =
-        typename gko::matrix_data<ValueType, IndexType>::nonzero_type;
-    std::sort(mdata.nonzeros.begin(), mdata.nonzeros.end(),
-              [](const nztype &a, const nztype &b) {
-                  if (a.row < b.row)
-                      return true;
-                  else if (a.row > b.row)
-                      return false;
-                  else if (a.column < b.column)
-                      return true;
-                  else
-                      return false;
-              });
-
-    gko::Array<IndexType> rowidx(exec, nnz);
-    gko::Array<IndexType> colidx(exec, nnz);
-    gko::Array<ValueType> values(exec, nnz);
-    for (size_t i = 0; i < mdata.nonzeros.size(); i++) {
-        rowidx.get_data()[i] = mdata.nonzeros[i].row;
-        colidx.get_data()[i] = mdata.nonzeros[i].column;
-        values.get_data()[i] = mdata.nonzeros[i].value;
-    }
-    auto mat =
-        Coo::create(exec, gko::dim<2>{nrows, ncols}, values, colidx, rowidx);
-    return mat;
-}
-
-template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
 FbcsrSample<ValueType, IndexType>::generate_sparsity_csr() const
 {
@@ -476,13 +442,6 @@ FbcsrSample<ValueType, IndexType>::generate_sparsity_csr() const
     for (index_type i = 0; i < nbnz; i++)
         colids.get_data()[i] = fbmat->get_col_idxs()[i];
     return SparCsr::create(exec, gko::dim<2>{nbrows, nbcols}, colids, rowptrs);
-}
-
-template <typename ValueType, typename IndexType>
-gko::Array<IndexType> FbcsrSample<ValueType, IndexType>::getNonzerosPerRow()
-    const
-{
-    return gko::Array<index_type>(exec, {6, 6, 6, 6, 6, 6});
 }
 
 #define GKO_DECLARE_FBCSR_TEST_SAMPLE(ValueType, IndexType) \

@@ -161,14 +161,18 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
     T *const xvals = x->get_values();
     for (index_type i = 0; i < ncols; i++)
-        // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
-        xvals[i] = (i + 1.0) * (i + 1.0);
+        xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
     auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
 
     this->mtx2->apply(x.get(), y.get());
 
     this->fbsample2.apply(x.get(), yref.get());
+    // using Csr = typename TestFixture::Csr;
+    // auto csr_mtx = Csr::create(this->mtx->get_executor(),
+    //                            std::make_shared<typename Csr::classical>());
+    // this->mtx2->convert_to(csr_mtx.get());
+    // csr_mtx->apply(x.get(), yref.get());
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
