@@ -81,6 +81,71 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 }  // namespace fbcsr
 
 
+namespace detail {
+
+
+/**
+ * A lightweight dynamic block type on the host
+ *
+ * @internal Currently used only while reading a FBCSR matrix from matrix_data.
+ *
+ * @tparam ValueType The numeric type of entries of the block
+ */
+template <typename ValueType>
+class DenseBlock final {
+public:
+    using value_type = ValueType;
+
+    DenseBlock() {}
+
+    DenseBlock(const int num_rows, const int num_cols)
+        : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
+    {}
+
+    value_type &at(const int row, const int col)
+    {
+        return vals_[row * ncols_ + col];
+    }
+
+    const value_type &at(const int row, const int col) const
+    {
+        return vals_[row * ncols_ + col];
+    }
+
+    value_type &operator()(const int row, const int col)
+    {
+        return at(row, col);
+    }
+
+    const value_type &operator()(const int row, const int col) const
+    {
+        return at(row, col);
+    }
+
+    int size() const { return nrows_ * ncols_; }
+
+    void resize(const int nrows, const int ncols)
+    {
+        vals_.resize(nrows * ncols);
+        nrows_ = nrows;
+        ncols_ = ncols;
+    }
+
+    void zero()
+    {
+        std::fill(vals_.begin(), vals_.end(), static_cast<value_type>(0));
+    }
+
+private:
+    int nrows_ = 0;
+    int ncols_ = 0;
+    std::vector<value_type> vals_;
+};
+
+
+}  // namespace detail
+
+
 template <typename ValueType, typename IndexType>
 Fbcsr<ValueType, IndexType>::Fbcsr(const std::shared_ptr<const Executor> exec,
                                    const dim<2> &size,
@@ -258,7 +323,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
 
     const int bs = this->bs_;
 
-    using Blk_t = blockutils::DenseBlock<value_type>;
+    using Blk_t = detail::DenseBlock<value_type>;
 
     struct FbEntry {
         index_type block_row;

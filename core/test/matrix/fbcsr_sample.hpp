@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/fixed_block.hpp"
+
+
 namespace gko {
 namespace testing {
 
@@ -174,6 +177,8 @@ public:
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
+    using DenseBlocksView =
+        gko::blockutils::DenseBlocksView<ValueType, IndexType>;
 
     FbcsrSample2(std::shared_ptr<const gko::ReferenceExecutor> exec);
 
@@ -191,6 +196,11 @@ public:
 
     std::unique_ptr<gko::matrix::Fbcsr<remove_complex<value_type>, index_type>>
     generate_abs_fbcsr_abstype() const;
+
+    /**
+     * Fills a view into a FBCSR values array using the sample matrix's data
+     */
+    void fill_value_blocks_view(DenseBlocksView &dbv) const;
 
     /// Enables use of literals to instantiate value data
     template <typename U>
@@ -210,8 +220,10 @@ public:
     const std::shared_ptr<const gko::Executor> exec;
 };
 
-/// Generates the a sample block CSR square matrix in different formats
-/** This currently a 4 x 4 matrix with 2x2 blocks.
+/**
+ * @brief Generates the a sample block CSR square matrix and its transpose
+ *
+ * This currently a 4 x 4 matrix with 2x2 blocks.
  */
 template <typename ValueType, typename IndexType>
 class FbcsrSampleSquare {
@@ -237,7 +249,8 @@ public:
 };
 
 /**
- * Generates the a sample block CSR matrix with complex values
+ * @brief Generates a sample block CSR matrix with complex values
+ *
  * This is a 6 x 8 matrix with 2x2 blocks.
  */
 template <typename ValueType, typename IndexType>
