@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -64,7 +63,6 @@ public:
     using absvalue_type = remove_complex<value_type>;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using MatData = gko::matrix_data<value_type, index_type>;
     using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
@@ -89,13 +87,6 @@ public:
     std::unique_ptr<Dense> generate_dense() const;
 
     /**
-     * @return The matrix in COO format keeping explicit nonzeros
-     *
-     * The nonzeros are sorted by row and column.
-     */
-    std::unique_ptr<Coo> generate_coo() const;
-
-    /**
      * @return Sparsity structure of the matrix
      */
     std::unique_ptr<SparCsr> generate_sparsity_csr() const;
@@ -114,11 +105,6 @@ public:
      * @note The order of the triplets assumes the blocks are stored row-major
      */
     MatData generate_matrix_data_with_explicit_zeros() const;
-
-    /**
-     *  @return An array containing number of stored values in each row
-     */
-    gko::Array<index_type> getNonzerosPerRow() const;
 
     /**
      * @return FBCSR matrix with absolute values of respective entries

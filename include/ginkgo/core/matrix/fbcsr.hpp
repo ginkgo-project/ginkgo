@@ -152,6 +152,12 @@ public:
 
     void move_to(Dense<ValueType> *other) override;
 
+    /**
+     * Converts the matrix to CSR format
+     *
+     * @note Any explicit zeros in the original matrix are retained
+     * in the converted result.
+     */
     void convert_to(Csr<ValueType, IndexType> *result) const override;
 
     void move_to(Csr<ValueType, IndexType> *result) override;
@@ -159,7 +165,7 @@ public:
     /**
      * Get the block sparsity pattern in CSR-like format
      *
-     * Note that the actual non-zero values are never copied;
+     * @note The actual non-zero values are never copied;
      * the result always has a value array of size 1 with the value 1.
      */
     void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
