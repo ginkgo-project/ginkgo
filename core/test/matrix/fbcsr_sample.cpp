@@ -542,6 +542,26 @@ FbcsrSample2<ValueType, IndexType>::generate_fbcsr() const
 }
 
 template <typename ValueType, typename IndexType>
+void FbcsrSample2<ValueType, IndexType>::fill_value_blocks_view(
+    DenseBlocksView &dbv) const
+{
+    dbv(0, 0, 0) = 1.0;
+    dbv(0, 0, 1) = 2.0;
+    dbv(0, 1, 0) = 3.0;
+    dbv(0, 1, 1) = 0.0;
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j) dbv(1, i, j) = 0.15 + FBCSR_TEST_OFFSET;
+    dbv(2, 0, 0) = 0.15 + FBCSR_TEST_OFFSET;
+    dbv(2, 0, 1) = 0.15 + FBCSR_TEST_OFFSET;
+    dbv(2, 1, 0) = 0.0;
+    dbv(2, 1, 1) = 0.0;
+    dbv(3, 0, 0) = -12.0;
+    dbv(3, 0, 1) = -1.0;
+    dbv(3, 1, 0) = -2.0;
+    dbv(3, 1, 1) = -11.0;
+}
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Fbcsr<remove_complex<ValueType>, IndexType>>
 FbcsrSample2<ValueType, IndexType>::generate_abs_fbcsr_abstype() const
 {

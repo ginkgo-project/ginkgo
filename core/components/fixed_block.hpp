@@ -174,18 +174,18 @@ public:
      */
     DenseBlocksView(ValueType *const buffer, const int num_rows,
                     const int num_cols)
-        : nrows_{num_rows}, ncols_{num_cols}, vals_{buffer}
+        : nrows{num_rows}, ncols{num_cols}, vals_{buffer}
     {}
 
     value_type &at(const index_type block, const int row, const int col)
     {
-        return vals_[block * nrows_ * ncols_ + row * ncols_ + col];
+        return vals_[block * nrows * ncols + row * ncols + col];
     }
 
     const typename std::remove_const<value_type>::type &at(
         const index_type block, const int row, const int col) const
     {
-        return vals_[block * nrows_ * ncols_ + row * ncols_ + col];
+        return vals_[block * nrows * ncols + row * ncols + col];
     }
 
     value_type &operator()(const index_type block, const int row, const int col)
@@ -199,10 +199,11 @@ public:
         return at(block, row, col);
     }
 
+    const int nrows;  ///< Number of rows in each block
+    const int ncols;  ///< Number of columns in each block
+
 private:
-    int nrows_;  ///< Number of rows in each block
-    int ncols_;  ///< Number of columns in each block
-    value_type *vals_;
+    value_type *const vals_;
 };
 
 

@@ -309,4 +309,27 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Fbcsr, DenseBlocksViewWorksCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Dbv = gko::blockutils::DenseBlocksView<value_type, index_type>;
+
+    const gko::testing::FbcsrSample2<value_type, index_type> fbsample(
+        std::static_pointer_cast<const gko::ReferenceExecutor>(this->exec));
+
+    auto refmtx = fbsample.generate_fbcsr();
+    const Dbv testdbv(refmtx->get_values(), fbsample.bs, fbsample.bs);
+
+    std::vector<value_type> ref_dbv_array(fbsample.nnz);
+    Dbv refdbv(ref_dbv_array.data(), fbsample.bs, fbsample.bs);
+    fbsample.fill_value_blocks_view(refdbv);
+
+    for (index_type ibz = 0; ibz < fbsample.nbnz; ibz++)
+        for (int i = 0; i < fbsample.bs; ++i)
+            for (int j = 0; j < fbsample.bs; ++j)
+                ASSERT_EQ(testdbv(ibz, i, j), refdbv(ibz, i, j));
+}
+
+
 }  // namespace
