@@ -66,6 +66,7 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
+#include "common/components/atomic.hpp.inc"
 #include "common/components/warp_blas.hpp.inc"
 #include "common/preconditioner/isai_kernels.hpp.inc"
 

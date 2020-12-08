@@ -102,7 +102,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
     bool &__restrict__ status)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
-    auto key_rhs_elem = rhs[key_row] / key_col_elem;
+    auto key_rhs_elem = group.shfl(rhs[0], key_row);
     if (key_col_elem == zero<ValueType>()) {
         // TODO: implement error handling for GPUs to be able to properly
         //       report it here
@@ -111,16 +111,18 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
     }
     if (group.thread_rank() == key_row) {
         key_col_elem = one<ValueType>() / key_col_elem;
+        rhs[0] = key_rhs_elem * key_col_elem;
     } else {
         key_col_elem = -row[key_col] / key_col_elem;
+        rhs[0] += key_rhs_elem * key_col_elem;
     }
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
         const auto key_row_elem = group.shfl(row[i], key_row);
         if (group.thread_rank() == key_row) {
-            rhs[i] += key_rhs_elem * key_row_elem;
             row[i] = zero<ValueType>();
         }
+        // rhs[0] += key_rhs_elem * key_row_elem;
         row[i] += key_col_elem * key_row_elem;
     }
     row[key_col] = key_col_elem;
