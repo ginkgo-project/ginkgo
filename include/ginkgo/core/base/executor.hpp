@@ -731,8 +731,7 @@ protected:
      *
      * @param mach_topo the machine topology object.
      */
-    virtual void populate_exec_info(
-        std::shared_ptr<const MachineTopology> mach_topo) = 0;
+    virtual void populate_exec_info(const MachineTopology *mach_topo) = 0;
 
     struct exec_info {
         int device_id = -1;
@@ -998,10 +997,9 @@ public:
     }
 
 protected:
-    OmpExecutor() = default;
+    OmpExecutor() { this->populate_exec_info(get_machine_topology()); }
 
-    void populate_exec_info(
-        std::shared_ptr<const MachineTopology> mach_topo) override;
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
     void *raw_alloc(size_type size) const override;
 
@@ -1056,7 +1054,7 @@ public:
 protected:
     ReferenceExecutor() = default;
 
-    void populate_exec_info(std::shared_ptr<const MachineTopology>) override
+    void populate_exec_info(const MachineTopology *) override
     {
         this->ref_exec_info_.device_id = -1;
         this->ref_exec_info_.num_cores = 1;
@@ -1216,10 +1214,10 @@ protected:
         this->cuda_exec_info_.num_work_groups_per_core = 0;
         assert(this->cuda_exec_info_.device_id < max_devices &&
                this->cuda_exec_info_.device_id >= 0);
+        this->populate_exec_info(get_machine_topology());
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(this->cuda_exec_info_.device_id);
-        this->populate_exec_info(get_shared_machine_topology());
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1256,8 +1254,7 @@ protected:
         return num_execs[device_id];
     }
 
-    void populate_exec_info(
-        std::shared_ptr<const MachineTopology> mach_topo) override;
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1411,10 +1408,10 @@ protected:
         this->hip_exec_info_.num_cores = 0;
         this->hip_exec_info_.num_work_groups_per_core = 0;
         assert(this->hip_exec_info_.device_id < max_devices);
+        this->populate_exec_info(get_machine_topology());
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(this->hip_exec_info_.device_id);
-        this->populate_exec_info(get_shared_machine_topology());
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1451,8 +1448,7 @@ protected:
         return num_execs[device_id];
     }
 
-    void populate_exec_info(
-        std::shared_ptr<const MachineTopology> mach_topo) override;
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1591,8 +1587,7 @@ protected:
         this->set_device_property();
     }
 
-    void populate_exec_info(
-        std::shared_ptr<const MachineTopology> mach_topo) override;
+    void populate_exec_info(const MachineTopology *mach_topo) override;
 
     void *raw_alloc(size_type size) const override;
 

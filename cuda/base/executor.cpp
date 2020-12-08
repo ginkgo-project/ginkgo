@@ -111,9 +111,10 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(
-    std::shared_ptr<const MachineTopology> mach_topo)
-{}
+void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    this->cuda_exec_info_.num_cores = mach_topo->get_num_cores();
+}
 
 
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,

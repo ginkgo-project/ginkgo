@@ -71,8 +71,6 @@ class MachineTopology;
 
 extern const MachineTopology *get_machine_topology();
 
-extern std::shared_ptr<const MachineTopology> get_shared_machine_topology();
-
 
 /**
  * The machine topology class represents the heirarchical topology of a machine,
@@ -121,9 +119,9 @@ public:
     /**
      * Creates a new MachineTopology object.
      */
-    static std::shared_ptr<MachineTopology> create()
+    static std::unique_ptr<MachineTopology> create()
     {
-        return std::shared_ptr<MachineTopology>(new MachineTopology());
+        return std::unique_ptr<MachineTopology>(new MachineTopology());
     }
 
     MachineTopology(MachineTopology &) = delete;
