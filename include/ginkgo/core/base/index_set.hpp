@@ -1005,10 +1005,10 @@ private:
     std::shared_ptr<const gko::Executor> exec_;
 
     mutable bool is_merged_;
-    mutable gko::vector<Subset<index_type>> subsets_;
     mutable index_type largest_subset_;
     mutable std::mutex merge_mutex_;
     index_type index_space_size_;
+    mutable gko::vector<Subset<index_type>> subsets_;
 };
 
 

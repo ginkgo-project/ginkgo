@@ -834,7 +834,7 @@ void IndexSet<IndexType>::merge_impl() const
 
 
 #define GKO_DECLARE_INDEX_SET(_type) class IndexSet<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(GKO_DECLARE_INDEX_SET);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET);
 
 
 }  // namespace gko
