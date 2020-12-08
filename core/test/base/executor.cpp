@@ -488,12 +488,15 @@ TEST(Executor, CanVerifyMemory)
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
-    if (gko::DpcppExecutor::get_num_devices("host"))
+    if (gko::DpcppExecutor::get_num_devices("host")) {
         host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
-    if (gko::DpcppExecutor::get_num_devices("cpu"))
+    }
+    if (gko::DpcppExecutor::get_num_devices("cpu")) {
         cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-    if (gko::DpcppExecutor::get_num_devices("gpu"))
+    }
+    if (gko::DpcppExecutor::get_num_devices("gpu")) {
         gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
+    }
 
     ASSERT_EQ(true, ref->memory_accessible(omp));
     ASSERT_EQ(true, omp->memory_accessible(ref));

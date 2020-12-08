@@ -162,7 +162,6 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
     auto device = detail::get_devices(device_type_)[device_id_];
-
     return device.is_host() || device.is_cpu();
 }
 
