@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
@@ -79,8 +80,9 @@ protected:
           fbsamplesquare(exec),
           mtx(fbsample.generate_fbcsr()),
           refmtx(fbsample.generate_fbcsr()),
+          ref2mtx(fbsample2.generate_fbcsr()),
           refcsrmtx(fbsample.generate_csr()),
-          refdenmtx(fbsample.generate_dense()),
+          ref2csrmtx(fbsample2.generate_csr()),
           refspcmtx(fbsample.generate_sparsity_csr()),
           mtx2(fbsample2.generate_fbcsr()),
           m2diag(fbsample2.extract_diagonal()),
@@ -123,7 +125,9 @@ protected:
         fbsamplesquare;
     std::unique_ptr<Mtx> mtx;
     const std::unique_ptr<const Mtx> refmtx;
+    const std::unique_ptr<const Mtx> ref2mtx;
     const std::unique_ptr<const Csr> refcsrmtx;
+    const std::unique_ptr<const Csr> ref2csrmtx;
     const std::unique_ptr<const Dense> refdenmtx;
     const std::unique_ptr<const SparCsr> refspcmtx;
     const std::unique_ptr<const Mtx> mtx2;
@@ -167,12 +171,11 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
 
     this->mtx2->apply(x.get(), y.get());
 
-    this->fbsample2.apply(x.get(), yref.get());
-    // using Csr = typename TestFixture::Csr;
-    // auto csr_mtx = Csr::create(this->mtx->get_executor(),
-    //                            std::make_shared<typename Csr::classical>());
-    // this->mtx2->convert_to(csr_mtx.get());
-    // csr_mtx->apply(x.get(), yref.get());
+    using Csr = typename TestFixture::Csr;
+    auto csr_mtx = Csr::create(this->mtx->get_executor(),
+                               std::make_shared<typename Csr::classical>());
+    this->mtx2->convert_to(csr_mtx.get());
+    csr_mtx->apply(x.get(), yref.get());
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -200,7 +203,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
 
     this->mtx2->apply(x.get(), y.get());
 
-    this->fbsample2.apply(x.get(), yref.get());
+    this->ref2csrmtx->apply(x.get(), yref.get());
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -225,7 +228,6 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, 1});
 
     for (index_type i = 0; i < ncols; i++) {
-        // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
         x->at(i, 0) = (i + 1.0) * (i + 1.0);
     }
     for (index_type i = 0; i < nrows; i++) {
@@ -233,16 +235,11 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
                       get_some_number<T>();
     }
 
-    auto yref = Vec::create(this->exec, gko::dim<2>{nrows, 1});
-    yref = y->clone();
+    auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    auto prod = Vec::create(this->exec, gko::dim<2>{nrows, 1});
-    this->fbsample2.apply(x.get(), prod.get());
-
-    yref->scale(beta.get());
-    yref->add_scaled(alpha.get(), prod.get());
+    this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -269,8 +266,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
 
     for (index_type i = 0; i < ncols; i++)
         for (index_type j = 0; j < nvecs; j++) {
-            // xvals[i] = std::log(static_cast<T>(static_cast<float>((i+1)^2)));
-            x->at(i, j) = (i + 1.0) / (j + 1.0);
+            x->at(i, j) =
+                std::log(static_cast<T>(0.1 + static_cast<float>((i + 1) ^ 2)));
         }
     for (index_type i = 0; i < nrows; i++)
         for (index_type j = 0; j < nvecs; j++) {
@@ -279,16 +276,11 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
                 get_some_number<T>();
         }
 
-    auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    yref = y->clone();
+    auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    auto prod = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    this->fbsample2.apply(x.get(), prod.get());
-
-    yref->scale(beta.get());
-    yref->add_scaled(alpha.get(), prod.get());
+    this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
 
     const double tolerance =
         std::numeric_limits<gko::remove_complex<T>>::epsilon();
@@ -375,7 +367,9 @@ TYPED_TEST(Fbcsr, ConvertsToDense)
 
     this->mtx->convert_to(dense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx, this->refdenmtx, 0.0);
+    auto refdenmtx = Dense::create(this->mtx->get_executor());
+    this->refcsrmtx->convert_to(refdenmtx.get());
+    GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
 
@@ -386,7 +380,9 @@ TYPED_TEST(Fbcsr, MovesToDense)
 
     this->mtx->move_to(dense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx, this->refdenmtx, 0.0);
+    auto refdenmtx = Dense::create(this->mtx->get_executor());
+    this->refcsrmtx->convert_to(refdenmtx.get());
+    GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
 
@@ -395,10 +391,13 @@ TYPED_TEST(Fbcsr, ConvertsToCsr)
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
                                std::make_shared<typename Csr::classical>());
-
     this->mtx->convert_to(csr_mtx.get());
-
     this->assert_equal_to_mtx(csr_mtx.get());
+
+    auto csr_mtx_2 = Csr::create(this->mtx->get_executor(),
+                                 std::make_shared<typename Csr::classical>());
+    this->ref2mtx->convert_to(csr_mtx_2.get());
+    GKO_ASSERT_MTX_NEAR(csr_mtx_2, this->ref2csrmtx, 0.0);
 }
 
 
@@ -546,9 +545,14 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
     gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
         this->exec, this->mtx2.get(), &row_nnz);
 
-    auto row_nnz_val = row_nnz.get_data();
-    const gko::Array<IndexType> refrnnz = this->fbsample2.getNonzerosPerRow();
+    // const gko::Array<IndexType> refrnnz =
+    // this->fbsample2.getNonzerosPerRow();
+    gko::Array<gko::size_type> refrnnz(this->exec, this->mtx2->get_size()[0]);
+    gko::kernels::reference::csr ::calculate_nonzeros_per_row(
+        this->exec, this->ref2csrmtx.get(), &refrnnz);
+
     ASSERT_EQ(row_nnz.get_num_elems(), refrnnz.get_num_elems());
+    auto row_nnz_val = row_nnz.get_data();
     for (gko::size_type i = 0; i < this->mtx2->get_size()[0]; i++)
         ASSERT_EQ(row_nnz_val[i], refrnnz.get_const_data()[i]);
 }
@@ -557,24 +561,36 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
-    auto reftmtx = this->fbsamplesquare.generate_transpose_fbcsr();
+    using Csr = typename TestFixture::Csr;
+
+    auto csrmtxsq =
+        Csr::create(this->exec, std::make_shared<typename Csr::classical>());
+    this->mtxsq->convert_to(csrmtxsq.get());
+    std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
+    auto reftmtx_as_csr = static_cast<const Csr *>(reftmtx.get());
 
     auto trans = this->mtxsq->transpose();
     auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
 
-    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
 
 
 TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
-    auto reftmtx = this->fbsample2.generate_transpose_fbcsr();
+    using Csr = typename TestFixture::Csr;
+
+    auto csrmtx =
+        Csr::create(this->exec, std::make_shared<typename Csr::classical>());
+    this->mtx2->convert_to(csrmtx.get());
+    std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
+    auto reftmtx_as_csr = static_cast<Csr *>(reftmtx.get());
 
     auto trans = this->mtx2->transpose();
     auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
 
-    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
 
 
@@ -612,13 +628,13 @@ TYPED_TEST(Fbcsr, ExtractsDiagonal)
 TYPED_TEST(Fbcsr, InplaceAbsolute)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Csr = typename TestFixture::Csr;
     auto mtx = this->fbsample2.generate_fbcsr();
-    const std::unique_ptr<const Mtx> refabs =
-        this->fbsample2.generate_abs_fbcsr();
+    const std::unique_ptr<Csr> refabs = this->ref2csrmtx->clone();
+    refabs->compute_absolute_inplace();
 
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const value_type *const refvals = refabs->get_const_values();
 
     mtx->compute_absolute_inplace();
 
@@ -632,11 +648,12 @@ TYPED_TEST(Fbcsr, OutplaceAbsolute)
 {
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
+    using AbsCsr = typename gko::remove_complex<typename TestFixture::Csr>;
     using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
 
     auto mtx = this->fbsample2.generate_fbcsr();
-    const std::unique_ptr<const AbsMtx> refabs =
-        this->fbsample2.generate_abs_fbcsr_abstype();
+    const std::unique_ptr<const AbsCsr> refabs =
+        this->ref2csrmtx->compute_absolute();
 
     auto abs_mtx = mtx->compute_absolute();
 
@@ -654,13 +671,15 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
 };
 
 TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes);
 
 
-TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
+TYPED_TEST(FbcsrComplex, ConvertsComplexToCsr)
 {
+    using Csr = typename TestFixture::Csr;
     using Fbcsr = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -668,9 +687,27 @@ TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
     auto exec = gko::ReferenceExecutor::create();
     gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
     std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
-    std::unique_ptr<const Fbcsr> reftrans =
-        csample.generate_conjtranspose_fbcsr();
+    auto csr_mtx =
+        Csr::create(exec, std::make_shared<typename Csr::classical>());
+    mtx->convert_to(csr_mtx.get());
+    GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
+}
 
+
+TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
+{
+    using Csr = typename TestFixture::Csr;
+    using Fbcsr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto exec = gko::ReferenceExecutor::create();
+    gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
+    auto csrmtx = csample.generate_csr();
+    auto reftranslinop = csrmtx->conj_transpose();
+    const Csr *const reftrans = static_cast<const Csr *>(reftranslinop.get());
+
+    std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
     auto trans = mtx->conj_transpose();
     auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
 
@@ -680,27 +717,23 @@ TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
 
 TYPED_TEST(FbcsrComplex, InplaceAbsolute)
 {
+    using Csr = typename TestFixture::Csr;
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     gko::testing::FbcsrSample<value_type, index_type> fbsample(
         gko::ReferenceExecutor::create());
     auto mtx = fbsample.generate_fbcsr();
-
-    std::cout << " Generated fbcsr: " << mtx->get_values()[34] << ", "
-              << mtx->get_values()[35] << std::endl;
-
-    const std::unique_ptr<const Mtx> refabs = fbsample.generate_abs_fbcsr();
+    auto csrmtx = fbsample.generate_csr();
 
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    const value_type *const refvals = refabs->get_const_values();
 
     mtx->compute_absolute_inplace();
+    csrmtx->compute_absolute_inplace();
 
     const gko::remove_complex<value_type> tolerance =
         std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
-    GKO_ASSERT_MTX_NEAR(mtx, refabs, tolerance);
+    GKO_ASSERT_MTX_NEAR(mtx, csrmtx, tolerance);
 }
 
 
@@ -715,10 +748,10 @@ TYPED_TEST(FbcsrComplex, OutplaceAbsolute)
         gko::ReferenceExecutor::create());
 
     auto mtx = fbsample.generate_fbcsr();
-    const std::unique_ptr<const AbsMtx> refabs =
-        fbsample.generate_abs_fbcsr_abstype();
+    auto csrmtx = fbsample.generate_csr();
 
     auto abs_mtx = mtx->compute_absolute();
+    auto refabs = mtx->compute_absolute();
 
     const gko::remove_complex<value_type> tolerance =
         std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
