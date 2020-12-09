@@ -134,11 +134,9 @@ TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
 
     std::unique_ptr<const Mtx> fbmtx = this->fbsample.generate_fbcsr();
     std::unique_ptr<const Csr> csmtx = this->fbsample.generate_csr();
-    std::unique_ptr<const Dense> dmtx = this->fbsample.generate_dense();
     const int bs = this->fbsample.bs;
     ASSERT_EQ(bs, fbmtx->get_block_size());
 
@@ -174,7 +172,6 @@ TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
                     ASSERT_EQ(col, csmtx->get_const_col_idxs()[inz]);
                     ASSERT_EQ(fbvals(ibnz, ib, jb),
                               csmtx->get_const_values()[inz]);
-                    ASSERT_EQ(fbvals(ibnz, ib, jb), dmtx->at(row, col));
                 }
             }
         }
