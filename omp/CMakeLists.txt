@@ -1,6 +1,6 @@
 find_package(OpenMP REQUIRED)
 
-add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_core_device> $<TARGET_OBJECTS:ginkgo_omp_device> "")
+add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
     base/version.cpp
@@ -41,6 +41,7 @@ target_sources(ginkgo_omp
 
 ginkgo_compile_features(ginkgo_omp)
 
+target_link_libraries(ginkgo_omp PUBLIC ginkgo_core_device)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 # We first separate the arguments, otherwise, the target_compile_options adds it as a string

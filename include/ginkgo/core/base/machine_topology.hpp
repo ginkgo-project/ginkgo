@@ -119,9 +119,9 @@ public:
     /**
      * Creates a new MachineTopology object.
      */
-    static std::unique_ptr<MachineTopology> create()
+    static std::shared_ptr<MachineTopology> create()
     {
-        return std::unique_ptr<MachineTopology>(new MachineTopology());
+        return std::shared_ptr<MachineTopology>(new MachineTopology());
     }
 
     MachineTopology(MachineTopology &) = delete;

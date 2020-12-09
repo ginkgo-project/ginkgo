@@ -66,7 +66,7 @@ find_library(CUSPARSE cusparse
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
-add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_core_device> $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
@@ -155,6 +155,7 @@ ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_core_device)
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
