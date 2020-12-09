@@ -44,7 +44,7 @@ namespace gko {
 namespace detail {
 
 
-std::unique_ptr<const MachineTopology> machine_topology{};
+std::shared_ptr<const MachineTopology> machine_topology{};
 std::mutex machine_topology_mutex{};
 std::atomic<bool> initialized_machine_topology{};
 
