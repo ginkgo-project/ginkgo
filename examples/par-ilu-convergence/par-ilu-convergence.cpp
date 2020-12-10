@@ -100,11 +100,10 @@ int main(int argc, char *argv[])
 {
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
-        std::cerr
-            << "Usage: executable"
-            << " <reference|omp|cuda|hip|dpcpp> [<matrix-file>] "
-               "[<parilu|parilut|paric|parict] [<max-iterations>] "
-               "[<num-repetitions>] [<fill-in-limit>] [<sequential-kernels>]\n";
+        std::cerr << "Usage: executable"
+                  << " <reference|omp|cuda|hip|dpcpp> [<matrix-file>] "
+                     "[<parilu|parilut|paric|parict] [<max-iterations>] "
+                     "[<num-repetitions>] [<fill-in-limit>]\n";
         return -1;
     }
 
@@ -117,7 +116,6 @@ int main(int argc, char *argv[])
     int max_iterations = argc < 5 ? 10 : std::stoi(argv[4]);
     int num_repetitions = argc < 6 ? 10 : std::stoi(argv[5]);
     double limit = argc < 7 ? 2 : std::stod(argv[6]);
-    bool sequential = argc < 8 ? false : std::stoi(argv[7]);
 
     // load matrix file into Csr format
     auto mtx = gko::share(try_generate([&] {
@@ -129,28 +127,17 @@ int main(int argc, char *argv[])
         return gko::read<gko::matrix::Csr<>>(mtx_stream, exec);
     }));
 
-    std::shared_ptr<gko::matrix::Csr<>::strategy_type> strategy;
-    if (sequential) {
-        strategy = std::make_shared<gko::matrix::Csr<>::classical>();
-    } else {
-        strategy = std::make_shared<gko::matrix::Csr<>::sparselib>();
-    }
-
     std::shared_ptr<gko::LinOpFactory> factory;
     std::function<void(int)> set_iterations;
     if (precond == "parilu") {
-        factory =
-            gko::factorization::ParIlu<>::build().with_l_strategy(strategy).on(
-                exec);
+        factory = gko::factorization::ParIlu<>::build().on(exec);
         set_iterations = [&](int it) {
             gko::as<gko::factorization::ParIlu<>::Factory>(factory)
                 ->get_parameters()
                 .iterations = it;
         };
     } else if (precond == "paric") {
-        factory =
-            gko::factorization::ParIc<>::build().with_l_strategy(strategy).on(
-                exec);
+        factory = gko::factorization::ParIc<>::build().on(exec);
         set_iterations = [&](int it) {
             gko::as<gko::factorization::ParIc<>::Factory>(factory)
                 ->get_parameters()
