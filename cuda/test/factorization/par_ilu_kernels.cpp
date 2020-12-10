@@ -193,9 +193,7 @@ protected:
 
     void compute_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
                     std::unique_ptr<Csr> *l_cuda, std::unique_ptr<Csr> *u_cuda,
-                    gko::size_type iterations = 0,
-                    std::shared_ptr<Csr::strategy_type> strat =
-                        std::make_shared<Csr::sparselib>())
+                    gko::size_type iterations = 0)
     {
         auto coo_ref = Coo::create(ref);
         csr_ref->convert_to(gko::lend(coo_ref));
@@ -208,7 +206,6 @@ protected:
         auto u_transpose_lin_op_cuda = (*u_cuda)->transpose();
         auto u_transpose_csr_cuda =
             static_unique_ptr_cast<Csr>(std::move(u_transpose_lin_op_cuda));
-        (*l_cuda)->set_strategy(strat);
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
             ref, iterations, gko::lend(coo_ref), gko::lend(*l_ref),
@@ -314,22 +311,6 @@ TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUSubwarpIsEquivalentToRef)
-{
-    std::unique_ptr<Csr> l_ref{};
-    std::unique_ptr<Csr> u_ref{};
-    std::unique_ptr<Csr> l_cuda{};
-    std::unique_ptr<Csr> u_cuda{};
-
-    compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
-
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-2);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-2);
-    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
-    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
-}
-
-
 TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
     std::unique_ptr<Csr> l_ref{};
@@ -337,8 +318,7 @@ TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
     std::unique_ptr<Csr> l_cuda{};
     std::unique_ptr<Csr> u_cuda{};
 
-    compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda, 0,
-               std::make_shared<Csr::classical>());
+    compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-2);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-2);

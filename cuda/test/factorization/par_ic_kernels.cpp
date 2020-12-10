@@ -154,25 +154,6 @@ TEST_F(ParIc, KernelComputeFactorIsEquivalentToRef)
     mtx_l_ani->convert_to(lend(mtx_l_coo));
     auto dmtx_l_coo = Coo::create(cuda, square_size);
     dmtx_l_coo->copy_from(lend(mtx_l_coo));
-    dmtx_l_ani_init->set_strategy(std::make_shared<Csr::classical>());
-
-    gko::kernels::reference::par_ic_factorization::compute_factor(
-        ref, 1, lend(mtx_l_coo), lend(mtx_l_ani_init));
-    gko::kernels::cuda::par_ic_factorization::compute_factor(
-        cuda, 20, lend(dmtx_l_coo), lend(dmtx_l_ani_init));
-
-    GKO_ASSERT_MTX_NEAR(mtx_l_ani_init, dmtx_l_ani_init, 1e-2);
-}
-
-
-TEST_F(ParIc, KernelComputeFactorSubwarpIsEquivalentToRef)
-{
-    auto square_size = mtx_ani->get_size();
-    auto mtx_l_coo = Coo::create(ref, square_size);
-    mtx_l_ani->convert_to(lend(mtx_l_coo));
-    auto dmtx_l_coo = Coo::create(cuda, square_size);
-    dmtx_l_coo->copy_from(lend(mtx_l_coo));
-    dmtx_l_ani_init->set_strategy(std::make_shared<Csr::merge_path>());
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
         ref, 1, lend(mtx_l_coo), lend(mtx_l_ani_init));
