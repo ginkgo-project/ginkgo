@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/solver/cgs_kernels.hpp"
 
 
@@ -90,8 +91,10 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -187,12 +190,14 @@ template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

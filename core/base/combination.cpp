@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
+
+
 namespace gko {
 namespace {
 
@@ -101,12 +104,20 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
     initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
                                   cache_.one);
-    operators_[0]->apply(lend(coefficients_[0]), b, lend(cache_.zero), x);
-    for (size_type i = 1; i < operators_.size(); ++i) {
-        operators_[i]->apply(lend(coefficients_[i]), b, lend(cache_.one), x);
-    }
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_b, auto dense_x) {
+            operators_[0]->apply(lend(coefficients_[0]), dense_b,
+                                 lend(cache_.zero), dense_x);
+            for (size_type i = 1; i < operators_.size(); ++i) {
+                operators_[i]->apply(lend(coefficients_[i]), dense_b,
+                                     lend(cache_.one), dense_x);
+            }
+        },
+        b, x);
 }
 
 
@@ -118,10 +129,13 @@ void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
         cache_.intermediate_x->get_size() != x->get_size()) {
         cache_.intermediate_x = x->clone();
     }
-    this->apply_impl(b, lend(cache_.intermediate_x));
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, lend(cache_.intermediate_x));
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->apply_impl(dense_b, lend(cache_.intermediate_x));
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, lend(cache_.intermediate_x));
+        },
+        alpha, b, beta, x);
 }
 
 

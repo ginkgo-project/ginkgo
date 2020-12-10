@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -219,15 +220,12 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(dense::make_simple_apply(
-            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
-        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
-        this->apply(dense_b->create_real_view().get(),
-                    dense_x->create_real_view().get());
-    }
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_b, auto dense_x) {
+            this->get_executor()->run(
+                dense::make_simple_apply(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -235,18 +233,12 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(dense::make_apply(
-            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
-        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
-        auto dense_alpha = as<Dense<remove_complex<ValueType>>>(alpha);
-        auto dense_beta = as<Dense<remove_complex<ValueType>>>(beta);
-        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
-                    dense_x->create_real_view().get());
-    }
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(dense::make_apply(
+                dense_alpha, this, dense_b, dense_beta, dense_x));
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -259,7 +251,11 @@ void Dense<ValueType>::scale_impl(const LinOp *alpha)
         GKO_ASSERT_EQUAL_COLS(this, alpha);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_scale(as<Dense<ValueType>>(alpha), this));
+    precision_dispatch<ValueType>(
+        [&](auto dense_alpha) {
+            exec->run(dense::make_scale(dense_alpha, this));
+        },
+        alpha);
 }
 
 
@@ -278,11 +274,11 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
         exec->run(dense::make_add_scaled_diag(
             as<Dense<ValueType>>(alpha),
             dynamic_cast<const Diagonal<ValueType> *>(b), this));
-        return;
+    } else {
+        exec->run(dense::make_add_scaled(
+            make_temporary_conversion<ValueType>(alpha).get(),
+            make_temporary_conversion<ValueType>(b).get(), this));
     }
-
-    exec->run(dense::make_add_scaled(as<Dense<ValueType>>(alpha),
-                                     as<Dense<ValueType>>(b), this));
 }
 
 
@@ -292,8 +288,9 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    exec->run(dense::make_compute_dot(this, as<Dense<ValueType>>(b),
-                                      as<Dense<ValueType>>(result)));
+    exec->run(dense::make_compute_dot(
+        this, make_temporary_conversion<ValueType>(b).get(),
+        as<Dense<ValueType>>(result)));
 }
 
 

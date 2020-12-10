@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/components/fill_array.hpp"
 
 
@@ -164,12 +165,17 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    if (operators_.size() > 1) {
-        operators_[0]->apply(
-            lend(apply_inner_operators(operators_, storage_, b)), x);
-    } else {
-        operators_[0]->apply(b, x);
-    }
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_b, auto dense_x) {
+            if (operators_.size() > 1) {
+                operators_[0]->apply(
+                    lend(apply_inner_operators(operators_, storage_, dense_b)),
+                    dense_x);
+            } else {
+                operators_[0]->apply(dense_b, dense_x);
+            }
+        },
+        b, x);
 }
 
 
@@ -177,12 +183,18 @@ template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                         const LinOp *beta, LinOp *x) const
 {
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
+    auto converted_alpha = make_temporary_conversion<ValueType>(alpha);
+    auto converted_beta = make_temporary_conversion<ValueType>(beta);
     if (operators_.size() > 1) {
-        operators_[0]->apply(
-            alpha, lend(apply_inner_operators(operators_, storage_, b)), beta,
-            x);
+        operators_[0]->apply(converted_alpha.get(),
+                             lend(apply_inner_operators(operators_, storage_,
+                                                        converted_b.get())),
+                             converted_beta.get(), converted_x.get());
     } else {
-        operators_[0]->apply(alpha, b, beta, x);
+        operators_[0]->apply(converted_alpha.get(), converted_b.get(),
+                             converted_beta.get(), converted_x.get());
     }
 }
 

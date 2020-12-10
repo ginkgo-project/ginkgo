@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 
 
@@ -97,8 +98,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<Vector>(b);
-    auto dense_x = as<Vector>(x);
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
     auto r = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
     auto y = Vector::create_with_config_of(dense_b);
@@ -200,11 +203,14 @@ template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                      const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

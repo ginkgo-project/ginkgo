@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/solver/bicg_kernels.hpp"
 
 
@@ -119,8 +120,10 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
     auto r = Vector::create_with_config_of(dense_b);
     auto r2 = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);

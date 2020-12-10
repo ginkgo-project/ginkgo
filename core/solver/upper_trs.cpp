@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/lower_trs.hpp>
 
 
+#include "core/base/precision_dispatch.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 
 
@@ -104,8 +105,10 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     using Vector = matrix::Dense<ValueType>;
     const auto exec = this->get_executor();
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
+    auto converted_b = make_temporary_conversion<ValueType>(b);
+    auto converted_x = make_temporary_conversion<ValueType>(x);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
 
     // This kernel checks if a transpose is needed for the multiple rhs case.
     // Currently only the algorithm for CUDA version <=9.1 needs this
@@ -136,12 +139,14 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                                 const LinOp *beta,
                                                 LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, gko::lend(x_clone));
+    precision_dispatch_spmv<ValueType>(
+        [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 
