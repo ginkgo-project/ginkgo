@@ -1,2 +1,1 @@
-add_executable(conversions conversions.cpp)
-target_link_libraries(conversions ginkgo gflags rapidjson)
+ginkgo_add_benchmark_executable(conversions "NO" conversions.cpp)

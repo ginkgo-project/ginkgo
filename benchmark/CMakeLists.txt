@@ -54,6 +54,36 @@ function(ginkgo_benchmark_hipsp_linops name)
     target_link_libraries("${name}" ${HIPSPARSE_LIBRARIES})
 endfunction()
 
+
+# Generates an executable for each supported precision. Each executable will be
+# linked to `ginkgo`, `gflags` and `rapidjson`.
+#
+# \param name            base-name for the executable to create
+# \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
+#                        is necessary
+# All remaining arguments will be treated as source files
+function(ginkgo_add_benchmark_executable name use_lib_linops)
+    set(SINGLE_PREC_SUFFIX "_single")
+    set(SINGLE_PREC_MACRO "GKO_BENCHMARK_USE_SINGLE_PRECISION")
+    add_executable("${name}" ${ARGN})
+    target_link_libraries("${name}" ginkgo gflags rapidjson)
+
+    add_executable("${name}${SINGLE_PREC_SUFFIX}" ${ARGN})
+    target_link_libraries("${name}${SINGLE_PREC_SUFFIX}" ginkgo gflags rapidjson)
+    target_compile_definitions("${name}${SINGLE_PREC_SUFFIX}" PRIVATE "${SINGLE_PREC_MACRO}")
+    if("${use_lib_linops}")
+        if (GINKGO_BUILD_CUDA)
+            ginkgo_benchmark_cusp_linops("${name}")
+            ginkgo_benchmark_cusp_linops("${name}${SINGLE_PREC_SUFFIX}")
+        endif()
+        if (GINKGO_BUILD_HIP)
+            ginkgo_benchmark_hipsp_linops("${name}")
+            ginkgo_benchmark_hipsp_linops("${name}${SINGLE_PREC_SUFFIX}")
+        endif()
+    endif()
+endfunction(ginkgo_add_benchmark_executable)
+
+
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)

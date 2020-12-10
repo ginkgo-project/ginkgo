@@ -130,14 +130,15 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
         residual_stop = gko::share(
-            gko::stop::RelativeResidualNorm<etype>::build()
-                .with_tolerance(static_cast<etype>(FLAGS_rel_res_goal))
+            gko::stop::RelativeResidualNorm<rc_etype>::build()
+                .with_tolerance(static_cast<rc_etype>(FLAGS_rel_res_goal))
                 .on(exec));
     } else {
-        residual_stop = gko::share(
-            gko::stop::ResidualNormReduction<etype>::build()
-                .with_reduction_factor(static_cast<etype>(FLAGS_rel_res_goal))
-                .on(exec));
+        residual_stop =
+            gko::share(gko::stop::ResidualNormReduction<rc_etype>::build()
+                           .with_reduction_factor(
+                               static_cast<rc_etype>(FLAGS_rel_res_goal))
+                           .on(exec));
     }
     auto iteration_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(FLAGS_max_iters).on(exec));
@@ -174,7 +175,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                         return gko::solver::Idr<etype>::build()
                             .with_criteria(create_criterion(exec))
                             .with_subspace_dim(FLAGS_idr_subspace_dim)
-                            .with_kappa(static_cast<etype>(FLAGS_idr_kappa))
+                            .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
                             .with_preconditioner(give(precond))
                             .on(exec);
                     }},
@@ -343,7 +344,7 @@ void solve_system(const std::string &solver_name,
             // slow run, gets the recurrent and true residuals of each iteration
             if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
-                auto res_logger = std::make_shared<ResidualLogger<etype>>(
+                auto res_logger = std::make_shared<ResidualLogger<rc_etype>>(
                     exec, lend(system_matrix), b,
                     solver_json["recurrent_residuals"],
                     solver_json["true_residuals"],
@@ -478,7 +479,7 @@ int main(int argc, char *argv[])
             if (FLAGS_overhead) {
                 system_matrix = gko::initialize<Vec>({1.0}, exec);
                 b = gko::initialize<Vec>(
-                    {std::numeric_limits<etype>::quiet_NaN()}, exec);
+                    {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
                 x = gko::initialize<Vec>({0.0}, exec);
             } else {
                 auto data = gko::read_raw<etype>(mtx_fd);

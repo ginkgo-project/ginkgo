@@ -107,7 +107,7 @@ gko::matrix_data<etype> generate_block_diagonal(rapidjson::Value &config,
     auto block_size = config["block_size"].GetUint();
     auto block = gko::matrix_data<etype>(
         gko::dim<2>(block_size),
-        std::uniform_real_distribution<etype>(-1.0, 1.0), engine);
+        std::uniform_real_distribution<rc_etype>(-1.0, 1.0), engine);
     return gko::matrix_data<etype>::diag(num_blocks, block);
 }
 

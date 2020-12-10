@@ -1,2 +1,1 @@
-add_executable(preconditioner preconditioner.cpp)
-target_link_libraries(preconditioner ginkgo gflags rapidjson)
+ginkgo_add_benchmark_executable(preconditioner "NO" preconditioner.cpp)
