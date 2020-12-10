@@ -34,7 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_BENCHMARK_UTILS_TYPES_HPP_
 
 
-using etype = double;
+#include <ginkgo/core/base/math.hpp>
+
+
+#ifdef GKO_BENCHMARK_USE_SINGLE_PRECISION
+using etype = float;
+#else
+using etype = double;  // std::complex<double>;
+#endif
+
+using rc_etype = gko::remove_complex<etype>;
 
 
 #endif  // GKO_BENCHMARK_UTILS_TYPES_HPP_

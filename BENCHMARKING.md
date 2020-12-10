@@ -156,6 +156,8 @@ benchmark options). Here are the most important options:
 * `SEGMENT_ID=<I>` - used in combination with the `SEGMENTS` variable. `<I>`
     should be an integer between 1 and `<N>`, the number of `SEGMENTS`. If
     specified, only the `<I>`-th segment of the benchmark suite will be run.
+* `BENCHMARK_PRECISION` - defines the precision the benchmarks are run in.
+    Supported values are: "double" (default) and "single"
 * `MATRIX_LIST_FILE=/path/to/matrix_list.file` - allows to list SuiteSparse
     matrix id or name to benchmark. As an example, a matrix list file containing
     the following will ensure that benchmarks are ran for only those three
