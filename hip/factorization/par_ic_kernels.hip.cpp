@@ -38,10 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/components/merging.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
+#include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
@@ -84,37 +82,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL);
 
 
-namespace {
-
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_factor(syn::value_list<int, subwarp_size>,
-                    std::shared_ptr<const DefaultExecutor> exec,
-                    size_type iterations,
-                    const matrix::Coo<ValueType, IndexType> *a_lower,
-                    matrix::Csr<ValueType, IndexType> *l)
-{
-    auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements());
-    auto block_size = default_block_size / subwarp_size;
-    auto num_blocks = ceildiv(total_nnz, block_size);
-    for (size_type i = 0; i < iterations; ++i) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::ic_sweep_subwarp<subwarp_size>), num_blocks,
-            default_block_size, 0, 0, a_lower->get_const_row_idxs(),
-            a_lower->get_const_col_idxs(),
-            as_hip_type(a_lower->get_const_values()), l->get_const_row_ptrs(),
-            l->get_const_col_idxs(), as_hip_type(l->get_values()),
-            static_cast<IndexType>(l->get_num_stored_elements()));
-    }
-}
-
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_factor, compute_factor);
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
@@ -122,29 +89,14 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Csr<ValueType, IndexType> *l)
 {
     auto nnz = l->get_num_stored_elements();
-    auto work_per_row = 2 * nnz / l->get_size()[0];
-    if (l->get_strategy()->get_name() == "classical") {
-        auto num_blocks = ceildiv(nnz, default_block_size);
-
-        for (size_type i = 0; i < iterations; ++i) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::ic_sweep), num_blocks,
-                default_block_size, 0, 0, a_lower->get_const_row_idxs(),
-                a_lower->get_const_col_idxs(),
-                as_hip_type(a_lower->get_const_values()),
-                l->get_const_row_ptrs(), l->get_const_col_idxs(),
-                as_hip_type(l->get_values()),
-                static_cast<IndexType>(l->get_num_stored_elements()));
-        }
-    } else {
-        select_compute_factor(
-            compiled_kernels(),
-            [&](int compiled_subwarp_size) {
-                return work_per_row <= compiled_subwarp_size ||
-                       compiled_subwarp_size == config::warp_size;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, iterations,
-            a_lower, l);
+    auto num_blocks = ceildiv(nnz, default_block_size);
+    for (size_type i = 0; i < iterations; ++i) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::ic_sweep), num_blocks, default_block_size,
+            0, 0, a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
+            as_hip_type(a_lower->get_const_values()), l->get_const_row_ptrs(),
+            l->get_const_col_idxs(), as_hip_type(l->get_values()),
+            static_cast<IndexType>(l->get_num_stored_elements()));
     }
 }
 
