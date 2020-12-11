@@ -157,7 +157,7 @@ benchmark options). Here are the most important options:
     should be an integer between 1 and `<N>`, the number of `SEGMENTS`. If
     specified, only the `<I>`-th segment of the benchmark suite will be run.
 * `BENCHMARK_PRECISION` - defines the precision the benchmarks are run in.
-    Supported values are: "double" (default) and "single"
+    Supported values are: "double" (default), "single", "dcomplex" and "scomplex"
 * `MATRIX_LIST_FILE=/path/to/matrix_list.file` - allows to list SuiteSparse
     matrix id or name to benchmark. As an example, a matrix list file containing
     the following will ensure that benchmarks are ran for only those three

@@ -1,1 +1,1 @@
-ginkgo_add_benchmark_executable(spmv "YES" spmv.cpp)
+ginkgo_add_typed_benchmark_executables(spmv "YES" spmv.cpp)

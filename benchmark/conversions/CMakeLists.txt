@@ -1,1 +1,1 @@
-ginkgo_add_benchmark_executable(conversions "NO" conversions.cpp)
+ginkgo_add_typed_benchmark_executables(conversions "NO" conversions.cpp)
