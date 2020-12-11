@@ -72,6 +72,10 @@ elif [ "${BENCHMARK_PRECISION}" == "double" ]; then
     BENCH_SUFFIX=""
 elif [ "${BENCHMARK_PRECISION}" == "single" ]; then
     BENCH_SUFFIX="_single"
+elif [ "${BENCHMARK_PRECISION}" == "dcomplex" ]; then
+    BENCH_SUFFIX="_dcomplex"
+elif [ "${BENCHMARK_PRECISION}" == "scomplex" ]; then
+    BENCH_SUFFIX="_scomplex"
 else
     echo "BENCHMARK_PRECISION is set to the not supported \"${BENCHMARK_PRECISION}\"." 1>&2
     echo "Currently supported values: \"double\" and \"single\"" 1>&2

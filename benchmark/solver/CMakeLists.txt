@@ -1,1 +1,1 @@
-ginkgo_add_benchmark_executable(solver "YES" solver.cpp)
+ginkgo_add_typed_benchmark_executables(solver "YES" solver.cpp)

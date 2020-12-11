@@ -40,9 +40,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#ifdef GKO_BENCHMARK_USE_SINGLE_PRECISION
+#if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION)
+using etype = double;
+#elif defined(GKO_BENCHMARK_USE_SINGLE_PRECISION)
 using etype = float;
-#else
+#elif defined(GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
+using etype = std::complex<double>;
+#elif defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+using etype = std::complex<float>;
+#else  // default to double precision
 using etype = double;
 #endif
 
