@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['time_1186',['Time',['../classgko_1_1stop_1_1Time.html',1,'gko::stop']]],
-  ['transposable_1187',['Transposable',['../classgko_1_1Transposable.html',1,'gko']]],
-  ['transpose_5foperation_1188',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
-  ['truncated_1189',['truncated',['../classgko_1_1truncated.html',1,'gko']]],
-  ['type_5flist_1190',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
+  ['time_1188',['Time',['../classgko_1_1stop_1_1Time.html',1,'gko::stop']]],
+  ['transposable_1189',['Transposable',['../classgko_1_1Transposable.html',1,'gko']]],
+  ['transpose_5foperation_1190',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
+  ['truncated_1191',['truncated',['../classgko_1_1truncated.html',1,'gko']]],
+  ['type_5flist_1192',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
 ];

@@ -31,30 +31,26 @@ void \mbox{\hyperlink{classgko_1_1DpcppExecutor_a6b2a82c46748ddbf097fa2da3ec64d9
 \begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const override
 \begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}\label{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}} 
 int \mbox{\hyperlink{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}{get\+\_\+device\+\_\+id}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the D\+P\+C\+PP device id of the device associated to this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}\label{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}} 
 \+::cl\+::sycl\+::queue $\ast$ {\bfseries get\+\_\+queue} () const
 \item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}\label{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}} 
 const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}{get\+\_\+subgroup\+\_\+sizes}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the available subgroup sizes for this device. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}\label{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}} 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}{get\+\_\+num\+\_\+computing\+\_\+units}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of Computing Units of this executor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}\label{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}} 
 const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}{get\+\_\+max\+\_\+workitem\+\_\+sizes}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the maximum work item sizes. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}\label{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}} 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}{get\+\_\+max\+\_\+workgroup\+\_\+size}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the maximum workgroup size. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Get the maximum workgroup size. \end{DoxyCompactList}\item 
+std\+::string \mbox{\hyperlink{classgko_1_1DpcppExecutor_ab6ff2a7bc51dca54ef9cce5c836ade2f}{get\+\_\+device\+\_\+type}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get a string representing the device type. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master, std\+::string device\+\_\+type=\char`\"{}all\char`\"{})
 \begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}\label{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}} 
 static int \mbox{\hyperlink{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}{get\+\_\+num\+\_\+devices}} (std\+::string device\+\_\+type)
 \begin{DoxyCompactList}\small\item\em Get the number of devices present on the system. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
@@ -82,6 +78,32 @@ Creates a new \mbox{\hyperlink{classgko_1_1DpcppExecutor}{Dpcpp\+Executor}}.
 {\em device\+\_\+type} & a string representing the type of device to consider (accelerator, cpu, gpu or all). \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}\label{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_device\_id@{get\_device\_id}}
+\index{get\_device\_id@{get\_device\_id}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_device\_id()}{get\_device\_id()}}
+{\footnotesize\ttfamily int gko\+::\+Dpcpp\+Executor\+::get\+\_\+device\+\_\+id (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the D\+P\+C\+PP device id of the device associated to this executor. 
+
+\begin{DoxyReturn}{Returns}
+the D\+P\+C\+PP device id of the device associated to this executor 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ab6ff2a7bc51dca54ef9cce5c836ade2f}\label{classgko_1_1DpcppExecutor_ab6ff2a7bc51dca54ef9cce5c836ade2f}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_device\_type@{get\_device\_type}}
+\index{get\_device\_type@{get\_device\_type}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_device\_type()}{get\_device\_type()}}
+{\footnotesize\ttfamily std\+::string gko\+::\+Dpcpp\+Executor\+::get\+\_\+device\+\_\+type (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get a string representing the device type. 
+
+\begin{DoxyReturn}{Returns}
+a string representing the device type 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}\label{classgko_1_1DpcppExecutor_acee142f355cc184fd59a25d7ea6e72fc}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_master@{get\_master}}
 \index{get\_master@{get\_master}!gko::DpcppExecutor@{gko::DpcppExecutor}}
@@ -116,6 +138,76 @@ the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mb
 
 Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}\label{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_max\_workgroup\_size@{get\_max\_workgroup\_size}}
+\index{get\_max\_workgroup\_size@{get\_max\_workgroup\_size}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_max\_workgroup\_size()}{get\_max\_workgroup\_size()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workgroup\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the maximum workgroup size. 
+
+\begin{DoxyReturn}{Returns}
+the maximum workgroup size 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}\label{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_max\_workitem\_sizes@{get\_max\_workitem\_sizes}}
+\index{get\_max\_workitem\_sizes@{get\_max\_workitem\_sizes}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_max\_workitem\_sizes()}{get\_max\_workitem\_sizes()}}
+{\footnotesize\ttfamily const std\+::vector$<$\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workitem\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the maximum work item sizes. 
+
+\begin{DoxyReturn}{Returns}
+the maximum work item sizes 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}\label{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_num\_computing\_units@{get\_num\_computing\_units}}
+\index{get\_num\_computing\_units@{get\_num\_computing\_units}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_num\_computing\_units()}{get\_num\_computing\_units()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Dpcpp\+Executor\+::get\+\_\+num\+\_\+computing\+\_\+units (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the number of Computing Units of this executor. 
+
+\begin{DoxyReturn}{Returns}
+the number of Computing Units of this executor 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}\label{classgko_1_1DpcppExecutor_adf306338233c8e8aca0dec96aefe5d93}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_num\_devices@{get\_num\_devices}}
+\index{get\_num\_devices@{get\_num\_devices}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_num\_devices()}{get\_num\_devices()}}
+{\footnotesize\ttfamily static int gko\+::\+Dpcpp\+Executor\+::get\+\_\+num\+\_\+devices (\begin{DoxyParamCaption}\item[{std\+::string}]{device\+\_\+type }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Get the number of devices present on the system. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em device\+\_\+type} & a string representing the device type\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the number of devices present on the system 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}\label{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_subgroup\_sizes@{get\_subgroup\_sizes}}
+\index{get\_subgroup\_sizes@{get\_subgroup\_sizes}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_subgroup\_sizes()}{get\_subgroup\_sizes()}}
+{\footnotesize\ttfamily const std\+::vector$<$\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+subgroup\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the available subgroup sizes for this device. 
+
+\begin{DoxyReturn}{Returns}
+the available subgroup sizes for this device 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}\label{classgko_1_1DpcppExecutor_a0ad89379be078c63ba598c6cc0eca570}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!run@{run}}
 \index{run@{run}!gko::DpcppExecutor@{gko::DpcppExecutor}}

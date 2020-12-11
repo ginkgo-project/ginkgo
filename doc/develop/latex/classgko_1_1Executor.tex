@@ -54,7 +54,9 @@ virtual std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{E
 \begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}\label{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}} 
 virtual void \mbox{\hyperlink{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}{synchronize}} () const =0
-\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1Executor_a452d0a9f4ea10ea3c3ba5c820e1e8d10}{memory\+\_\+accessible}} (const std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \&other) const
+\begin{DoxyCompactList}\small\item\em Verifies whether the executors share the same memory. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -69,6 +71,9 @@ class {\bfseries Dpcpp\+Executor}
 \item 
 \mbox{\Hypertarget{classgko_1_1Executor_af53d80448c39cdc65a153620c091ac47}\label{classgko_1_1Executor_af53d80448c39cdc65a153620c091ac47}} 
 class {\bfseries Cuda\+Executor}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_ac39bda29402254ea95c0a5d72f628351}\label{classgko_1_1Executor_ac39bda29402254ea95c0a5d72f628351}} 
+class {\bfseries Reference\+Executor}
 \end{DoxyCompactItemize}
 
 
@@ -299,6 +304,24 @@ Implemented in \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac9a28c1178bde1244960a
 
 Referenced by copy\+\_\+from(), and copy\+\_\+val\+\_\+to\+\_\+host().
 
+\mbox{\Hypertarget{classgko_1_1Executor_a452d0a9f4ea10ea3c3ba5c820e1e8d10}\label{classgko_1_1Executor_a452d0a9f4ea10ea3c3ba5c820e1e8d10}} 
+\index{gko::Executor@{gko::Executor}!memory\_accessible@{memory\_accessible}}
+\index{memory\_accessible@{memory\_accessible}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{memory\_accessible()}{memory\_accessible()}}
+{\footnotesize\ttfamily bool gko\+::\+Executor\+::memory\+\_\+accessible (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Verifies whether the executors share the same memory. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the other \mbox{\hyperlink{classgko_1_1Executor}{Executor}} to compare against\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether the executors this and other share the same memory. 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1Executor_a294787f033b02fd013af087d02a4ae1b}\label{classgko_1_1Executor_a294787f033b02fd013af087d02a4ae1b}} 
 \index{gko::Executor@{gko::Executor}!run@{run}}
 \index{run@{run}!gko::Executor@{gko::Executor}}
