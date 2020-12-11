@@ -109,7 +109,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_max_block_size(FLAGS_jacobi_max_block_size)
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_jacobi_storage))
-                 .with_accuracy(static_cast<etype>(FLAGS_jacobi_accuracy))
+                 .with_accuracy(static_cast<rc_etype>(FLAGS_jacobi_accuracy))
                  .with_skip_sorting(true)
                  .on(exec);
          }},
@@ -262,7 +262,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
                  .with_criteria(gko::stop::ResidualNormReduction<etype>::build()
-                                    .with_reduction_factor(etype{})
+                                    .with_reduction_factor(rc_etype{})
                                     .on(exec))
                  .on(exec);
          }}};

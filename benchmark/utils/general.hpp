@@ -316,7 +316,9 @@ std::unique_ptr<vec<ValueType>> create_matrix(
     auto res = vec<ValueType>::create(exec);
     if (random) {
         res->read(gko::matrix_data<ValueType>(
-            size, std::uniform_real_distribution<ValueType>(-1.0, 1.0),
+            size,
+            std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                           1.0),
             engine));
     } else {
         res->read(gko::matrix_data<ValueType>(size, gko::one<ValueType>()));
@@ -344,19 +346,20 @@ ValueType get_norm(const vec<ValueType> *norm)
 
 
 template <typename ValueType>
-ValueType compute_norm2(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
-    auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
+    auto b_norm =
+        gko::initialize<vec<gko::remove_complex<ValueType>>>({0.0}, exec);
     b->compute_norm2(lend(b_norm));
     return get_norm(lend(b_norm));
 }
 
 
 template <typename ValueType>
-ValueType compute_residual_norm(const gko::LinOp *system_matrix,
-                                const vec<ValueType> *b,
-                                const vec<ValueType> *x)
+gko::remove_complex<ValueType> compute_residual_norm(
+    const gko::LinOp *system_matrix, const vec<ValueType> *b,
+    const vec<ValueType> *x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -368,23 +371,24 @@ ValueType compute_residual_norm(const gko::LinOp *system_matrix,
 
 
 template <typename ValueType>
-ValueType compute_max_relative_norm2(vec<ValueType> *result,
-                                     const vec<ValueType> *answer)
+gko::remove_complex<ValueType> compute_max_relative_norm2(
+    vec<ValueType> *result, const vec<ValueType> *answer)
 {
+    using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
     auto answer_norm =
-        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+        vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
     answer->compute_norm2(lend(answer_norm));
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     result->add_scaled(lend(neg_one), lend(answer));
     auto absolute_norm =
-        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+        vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
     result->compute_norm2(lend(absolute_norm));
     auto host_answer_norm =
         clone(answer_norm->get_executor()->get_master(), answer_norm);
     auto host_absolute_norm =
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
-    ValueType max_relative_norm2 = 0;
+    rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
         max_relative_norm2 =
             std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),

@@ -200,6 +200,8 @@ private:
 // Logs true and recurrent residuals of the solver
 template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
+    using rc_vtype = gko::remove_complex<ValueType>;
+
     void on_iteration_complete(const gko::LinOp *, const gko::size_type &,
                                const gko::LinOp *residual,
                                const gko::LinOp *solution,
@@ -211,7 +213,7 @@ struct ResidualLogger : gko::log::Logger {
                             alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
-                get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
+                get_norm(gko::as<vec<rc_vtype>>(residual_norm)), alloc);
         } else {
             rec_res_norms.PushBack(
                 compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);

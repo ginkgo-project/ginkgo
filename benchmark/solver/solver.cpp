@@ -344,7 +344,7 @@ void solve_system(const std::string &solver_name,
             // slow run, gets the recurrent and true residuals of each iteration
             if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
-                auto res_logger = std::make_shared<ResidualLogger<rc_etype>>(
+                auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     exec, lend(system_matrix), b,
                     solver_json["recurrent_residuals"],
                     solver_json["true_residuals"],
