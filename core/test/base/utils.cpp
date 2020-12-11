@@ -400,11 +400,12 @@ protected:
 };
 
 
-TEST_F(TemporaryClone, CopiesToAnotherExecutor)
+TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 {
-    auto clone = make_temporary_clone(omp, gko::lend(obj));
+    auto other = gko::ReferenceExecutor::create();
+    auto clone = make_temporary_clone(other, gko::lend(obj));
 
-    ASSERT_EQ(clone.get()->get_executor(), omp);
+    ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
 }
 

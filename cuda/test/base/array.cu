@@ -30,44 +30,65 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/array.hpp>
+
+
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/executor.hpp>
 
 
-namespace gko {
+#include "core/test/utils.hpp"
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+template <typename T>
+class Array : public ::testing::Test {
+protected:
+    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
+    {
+        x.get_data()[0] = 5;
+        x.get_data()[1] = 2;
+    }
+
+    static void assert_equal_to_original_x(gko::Array<T> &a)
+    {
+        ASSERT_EQ(a.get_num_elems(), 2);
+        EXPECT_EQ(a.get_data()[0], T{5});
+        EXPECT_EQ(a.get_data()[1], T{2});
+        EXPECT_EQ(a.get_const_data()[0], T{5});
+        EXPECT_EQ(a.get_const_data()[1], T{2});
+    }
+
+    std::shared_ptr<gko::Executor> exec;
+    gko::Array<T> x;
+};
+
+TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+
+
+TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
 {
-    return master_;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+
+    auto tmp_clone = make_temporary_clone(cuda, &this->x);
+
+    ASSERT_NE(tmp_clone.get(), &this->x);
+    tmp_clone->set_executor(this->exec);
+    this->assert_equal_to_original_x(*tmp_clone.get());
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 {
-    return master_;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+
+    {
+        auto tmp_clone = make_temporary_clone(cuda, &this->x);
+        // change x, so it no longer matches the original x
+        // the copy-back will overwrite it again with the correct value
+        this->x.get_data()[0] = 0;
+    }
+
+    this->assert_equal_to_original_x(this->x);
 }
-
-
-bool CudaExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
-{
-    return device_id_ == dest_exec->get_device_id();
-}
-
-
-bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return device_id_ == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
-unsigned CudaExecutor::num_execs[max_devices];
-
-
-std::mutex CudaExecutor::mutex[max_devices];
-
-
-}  // namespace gko

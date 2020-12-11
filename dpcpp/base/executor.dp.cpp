@@ -57,6 +57,7 @@ const std::vector<sycl::device> get_devices(std::string device_type)
         {"accelerator", sycl::info::device_type::accelerator},
         {"all", sycl::info::device_type::all},
         {"cpu", sycl::info::device_type::cpu},
+        {"host", sycl::info::device_type::host},
         {"gpu", sycl::info::device_type::gpu}};
     std::for_each(device_type.begin(), device_type.end(),
                   [](char &c) { c = std::tolower(c); });
@@ -73,6 +74,14 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
     if (num_bytes > 0) {
         dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
     }
+}
+
+
+bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(
+        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    return device.is_host() || device.is_cpu();
 }
 
 
@@ -150,6 +159,25 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 }
 
 
+bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    return device.is_host() || device.is_cpu();
+}
+
+bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+{
+    auto device = detail::get_devices(device_type_)[device_id_];
+    auto other_device = detail::get_devices(
+        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    return ((device.is_host() || device.is_cpu()) &&
+            (other_device.is_host() || other_device.is_cpu())) ||
+           (device.get_info<cl::sycl::info::device::device_type>() ==
+                other_device.get_info<cl::sycl::info::device::device_type>() &&
+            device.get() == other_device.get());
+}
+
+
 namespace detail {
 
 
@@ -167,11 +195,13 @@ void DpcppExecutor::set_device_property()
 {
     assert(device_id_ < DpcppExecutor::get_num_devices(device_type_));
     auto device = detail::get_devices(device_type_)[device_id_];
-    try {
-        subgroup_sizes_ =
-            device.get_info<cl::sycl::info::device::sub_group_sizes>();
-    } catch (cl::sycl::runtime_error &err) {
-        GKO_NOT_SUPPORTED(device);
+    if (!device.is_host()) {
+        try {
+            subgroup_sizes_ =
+                device.get_info<cl::sycl::info::device::sub_group_sizes>();
+        } catch (cl::sycl::runtime_error &err) {
+            GKO_NOT_SUPPORTED(device);
+        }
     }
     num_computing_units_ =
         device.get_info<sycl::info::device::max_compute_units>();

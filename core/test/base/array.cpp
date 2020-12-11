@@ -57,12 +57,13 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T> &a)
+    static void assert_equal_to_original_x(gko::Array<T> &a,
+                                           bool check_zero = true)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
-        EXPECT_EQ(a.get_data()[0], T{5});
+        if (check_zero) EXPECT_EQ(a.get_data()[0], T{5});
         EXPECT_EQ(a.get_data()[1], T{2});
-        EXPECT_EQ(a.get_const_data()[0], T{5});
+        if (check_zero) EXPECT_EQ(a.get_const_data()[0], T{5});
         EXPECT_EQ(a.get_const_data()[1], T{2});
     }
 
@@ -271,29 +272,30 @@ TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
 }
 
 
-TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
+// For tests between different memory, check cuda/test/base/array.cu
+TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
 {
-    auto omp = gko::OmpExecutor::create();
+    auto other = gko::ReferenceExecutor::create();
 
-    auto tmp_clone = make_temporary_clone(omp, &this->x);
+    auto tmp_clone = make_temporary_clone(other, &this->x);
 
     this->assert_equal_to_original_x(*tmp_clone.get());
-    ASSERT_NE(tmp_clone.get(), &this->x);
+    ASSERT_EQ(tmp_clone.get(), &this->x);
 }
 
 
-TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
+TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
 {
-    auto omp = gko::OmpExecutor::create();
+    auto other = gko::ReferenceExecutor::create();
 
     {
-        auto tmp_clone = make_temporary_clone(omp, &this->x);
-        // change x, so it no longer matches the original x
-        // the copy-back will overwrite it again with the correct value
+        auto tmp_clone = make_temporary_clone(other, &this->x);
+        // change x, and check that there is no copy-back to overwrite it again
         this->x.get_data()[0] = 0;
     }
 
-    this->assert_equal_to_original_x(this->x);
+    this->assert_equal_to_original_x(this->x, false);
+    EXPECT_EQ(this->x.get_data()[0], TypeParam{0});
 }
 
 

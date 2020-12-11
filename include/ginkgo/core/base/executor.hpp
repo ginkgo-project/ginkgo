@@ -468,6 +468,7 @@ class Executor : public log::EnableLogging<Executor> {
     friend class detail::ExecutorBase;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
 
 public:
     virtual ~Executor() = default;
@@ -633,6 +634,18 @@ public:
      */
     virtual void synchronize() const = 0;
 
+    /**
+     * Verifies whether the executors share the same memory.
+     *
+     * @param other  the other Executor to compare against
+     *
+     * @return whether the executors this and other share the same memory.
+     */
+    bool memory_accessible(const std::shared_ptr<const Executor> &other) const
+    {
+        return this->verify_memory_from(other.get());
+    }
+
 protected:
     /**
      * Allocates raw memory in this Executor.
@@ -683,6 +696,33 @@ protected:
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_RAW_COPY_TO);
 
 #undef GKO_ENABLE_RAW_COPY_TO
+
+    /**
+     * Verify the memory from another Executor.
+     *
+     * @param src_exec  Executor from which to verify the memory.
+     *
+     * @return whether this executor and src_exec share the same memory.
+     */
+    virtual bool verify_memory_from(const Executor *src_exec) const = 0;
+
+/**
+ * @internal
+ * Declares a verify_memory_to() overload for a specified Executor subclass.
+ *
+ * This is the second stage of the double dispatch emulation required to
+ * implement verify_memory_from().
+ *
+ * @param _exec_type  the Executor subclass
+ */
+#define GKO_ENABLE_VERIFY_MEMORY_TO(_exec_type, ...) \
+    virtual bool verify_memory_to(const _exec_type *dest_exec) const = 0
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_VERIFY_MEMORY_TO);
+
+    GKO_ENABLE_VERIFY_MEMORY_TO(ReferenceExecutor, ref);
+
+#undef GKO_ENABLE_VERIFY_MEMORY_TO
 
 private:
     /**
@@ -816,6 +856,7 @@ namespace detail {
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
 
 public:
     void run(const Operation &op) const override
@@ -830,6 +871,11 @@ protected:
                        const void *src_ptr, void *dest_ptr) const override
     {
         src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
+    }
+
+    virtual bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return src_exec->verify_memory_to(self());
     }
 
 private:
@@ -891,6 +937,16 @@ private:
                      const void *src_ptr, void *dest_ptr) const override
 
 
+#define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \
+    virtual bool verify_memory_to(const dest_ *other) const override         \
+    {                                                                        \
+        return bool_;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 /**
  * This is the Executor subclass which represents the OpenMP device
  * (typically CPU).
@@ -925,6 +981,16 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 };
 
 
@@ -959,6 +1025,21 @@ public:
 
 protected:
     ReferenceExecutor() = default;
+
+    bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return src_exec->verify_memory_to(this);
+    }
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 };
 
 
@@ -1089,6 +1170,16 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
 
     static void increase_num_execs(unsigned device_id)
     {
@@ -1256,6 +1347,16 @@ protected:
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
+
     static void increase_num_execs(int device_id)
     {
         std::lock_guard<std::mutex> guard(mutex[device_id]);
@@ -1335,6 +1436,8 @@ public:
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
+     *
+     * @return the DPCPP device id of the device associated to this executor
      */
     int get_device_id() const noexcept { return device_id_; }
 
@@ -1342,11 +1445,17 @@ public:
 
     /**
      * Get the number of devices present on the system.
+     *
+     * @param device_type  a string representing the device type
+     *
+     * @return the number of devices present on the system
      */
     static int get_num_devices(std::string device_type);
 
     /**
      * Get the available subgroup sizes for this device.
+     *
+     * @return the available subgroup sizes for this device
      */
     const std::vector<size_type> &get_subgroup_sizes() const noexcept
     {
@@ -1355,6 +1464,8 @@ public:
 
     /**
      * Get the number of Computing Units of this executor.
+     *
+     * @return the number of Computing Units of this executor
      */
     size_type get_num_computing_units() const noexcept
     {
@@ -1363,6 +1474,8 @@ public:
 
     /**
      * Get the maximum work item sizes.
+     *
+     * @return the maximum work item sizes
      */
     const std::vector<size_type> &get_max_workitem_sizes() const noexcept
     {
@@ -1371,11 +1484,20 @@ public:
 
     /**
      * Get the maximum workgroup size.
+     *
+     * @return the maximum workgroup size
      */
     size_type get_max_workgroup_size() const noexcept
     {
         return max_workgroup_size_;
     }
+
+    /**
+     * Get a string representing the device type.
+     *
+     * @return a string representing the device type
+     */
+    std::string get_device_type() const noexcept { return device_type_; }
 
 protected:
     void set_device_property();
@@ -1384,6 +1506,8 @@ protected:
                   std::string device_type = "all")
         : device_id_(device_id), master_(master), device_type_(device_type)
     {
+        std::for_each(device_type_.begin(), device_type_.end(),
+                      [](char &c) { c = std::tolower(c); });
         this->set_device_property();
     }
 
@@ -1392,6 +1516,16 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 
 private:
     int device_id_;
