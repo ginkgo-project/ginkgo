@@ -347,6 +347,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                          dense_b->get_size()[1]);
         Array<bool> fully_converged_rhs(exec->get_master(),
                                         dense_b->get_size()[1]);
+        Array<stopping_status> host_stop_status(
+            this->get_executor()->get_master(), stop_status);
         for (size_type i = 0; i < stop_encountered_rhs.get_num_elems(); ++i) {
             stop_encountered_rhs.get_data()[i] = false;
             fully_converged_rhs.get_data()[i] = false;
@@ -383,8 +385,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                     <<
                     '\n';
                     */
-                    Array<stopping_status> host_stop_status(
-                        this->get_executor()->get_master(), stop_status);
+                    host_stop_status = stop_status;
                     bool host_array_changed{false};
                     for (size_type i = 0; i < host_stop_status.get_num_elems();
                          ++i) {
@@ -412,6 +413,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                         // (like time or iteration)
                         break;
                     }
+                    forced_iterations = 0;
 
                 } else {
                     for (size_type i = 0;
@@ -419,7 +421,6 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                         stop_encountered_rhs.get_data()[i] = false;
                     }
                 }
-                forced_iterations = 0;
             }
 
             if (perform_reset || restart_iter == krylov_dim_) {
