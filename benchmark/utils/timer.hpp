@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gflags/gflags.h>
 
 
+#include "benchmark/utils/chrono_utils.hpp"
+
+
 #ifdef HAS_CUDA
 
 
@@ -98,47 +101,46 @@ public:
     }
 
     /**
-     * Get the summation of each time in nanoseconds.
+     * Get the summation of each time in seconds.
      *
-     * @return the nanoseconds of total time
+     * @return the seconds of total time
      */
-    std::int64_t get_total_time() const { return total_duration_ns_; }
+    double get_total_time() const { return total_duration_sec_; }
 
     /**
      * Get the number of repetitions.
      *
      * @return the number of repetitions
      */
-    std::int64_t get_num_repetitions() const { return duration_ns_.size(); }
+    std::int64_t get_num_repetitions() const { return duration_sec_.size(); }
 
     /**
-     * Compute the average time of repetitions in nanoseconds
+     * Compute the average time of repetitions in seconds
      *
-     * @return the average time in nanoseconds
+     * @return the average time in seconds
      */
     double compute_average_time() const
     {
-        return static_cast<double>(this->get_total_time()) /
-               this->get_num_repetitions();
+        return this->get_total_time() / this->get_num_repetitions();
     }
 
     /**
-     * Get the vector containing the time of each repetition in nanoseconds.
+     * Get the vector containing the time of each repetition in seconds.
      *
-     * @return the vector of time for each repetition in nanoseconds
+     * @return the vector of time for each repetition in seconds
      */
-    std::vector<std::int64_t> get_time_detail() const { return duration_ns_; }
+    std::vector<double> get_time_detail() const { return duration_sec_; }
 
     /**
-     * Get the latest result in nanoseconds. If there is no result yet, return
+     * Get the latest result in seconds. If there is no result yet, return
      * 0.
      *
-     * @return the latest result in nanoseconds
+     * @return the latest result in seconds
      */
-    std::int64_t get_latest_time() const
+    double get_latest_time() const
     {
-        if (duration_ns_.size() >= 1) {
-            return duration_ns_.back();
+        if (duration_sec_.size() >= 1) {
+            return duration_sec_.back();
         } else {
             return 0;
         }
@@ -149,27 +151,27 @@ public:
      */
     void clear()
     {
-        duration_ns_.clear();
+        duration_sec_.clear();
         tic_called_ = false;
-        total_duration_ns_ = 0;
+        total_duration_sec_ = 0;
     }
 
     /**
      * Create a timer
      */
-    Timer() : tic_called_(false), total_duration_ns_(0) {}
+    Timer() : tic_called_(false), total_duration_sec_(0) {}
 
 protected:
     /**
-     * Put the nanosecond result into vector
+     * Put the second result into vector
      *
-     * @param ns  the nanosecond result to insert
+     * @param ns  the second result to insert
      */
-    void add_record(std::int64_t ns)
+    void add_record(double ns)
     {
         // add the result;
-        duration_ns_.emplace_back(ns);
-        total_duration_ns_ += ns;
+        duration_sec_.emplace_back(ns);
+        total_duration_sec_ += ns;
     }
 
     /**
@@ -178,16 +180,16 @@ protected:
     virtual void tic_impl() = 0;
 
     /**
-     * The implementation of toc. Return the nanoseconds result.
+     * The implementation of toc. Return the seconds result.
      *
-     * @return the nanoseconds result
+     * @return the seconds result
      */
-    virtual std::int64_t toc_impl() = 0;
+    virtual double toc_impl() = 0;
 
 private:
-    std::vector<std::int64_t> duration_ns_;
+    std::vector<double> duration_sec_;
     bool tic_called_;
-    std::int64_t total_duration_ns_;
+    double total_duration_sec_;
 };
 
 
@@ -212,13 +214,11 @@ protected:
         start_ = std::chrono::steady_clock::now();
     }
 
-    std::int64_t toc_impl() override
+    double toc_impl() override
     {
         exec_->synchronize();
         auto stop = std::chrono::steady_clock::now();
-        auto duration_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start_)
-                .count();
+        auto duration_time = get_duration_in_seconds(stop - start_);
         return duration_time;
     }
 
@@ -268,7 +268,7 @@ protected:
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(start_));
     }
 
-    std::int64_t toc_impl() override
+    double toc_impl() override
     {
         gko::cuda::device_guard g{id_};
         // Currently, gko::CudaExecutor always use default stream.
@@ -279,7 +279,8 @@ protected:
         // resolution of around 0.5 microseconds
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaEventElapsedTime(&duration_time, start_, stop_));
-        return static_cast<std::int64_t>(duration_time * 1e6);
+        constexpr int sec_in_ms = 1e3;
+        return static_cast<double>(duration_time) / sec_in_ms;
     }
 
 private:
@@ -333,7 +334,7 @@ protected:
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
     }
 
-    std::int64_t toc_impl() override
+    double toc_impl() override
     {
         gko::hip::device_guard g{id_};
         // Currently, gko::HipExecutor always use default stream.
@@ -344,7 +345,8 @@ protected:
         // resolution of around 0.5 microseconds
         GKO_ASSERT_NO_HIP_ERRORS(
             hipEventElapsedTime(&duration_time, start_, stop_));
-        return static_cast<std::int64_t>(duration_time * 1e6);
+        constexpr int sec_in_ms = 1e3;
+        return static_cast<double>(duration_time) / sec_in_ms;
     }
 
 private:
