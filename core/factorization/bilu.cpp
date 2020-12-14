@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 
 
 #include "core/factorization/bilu_kernels.hpp"
@@ -50,11 +51,11 @@ namespace bilu_factorization {
 
 
 GKO_REGISTER_OPERATION(compute_bilu, bilu_factorization::compute_bilu);
-GKO_REGISTER_OPERATION(add_diagonal_elements,
-                       factorization::add_diagonal_elements);
-GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
-                       factorization::initialize_row_ptrs_l_u);
-GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
+GKO_REGISTER_OPERATION(add_diagonal_blocks, factorization::add_diagonal_blocks);
+GKO_REGISTER_OPERATION(initialize_row_ptrs_BLU,
+                       factorization::initialize_row_ptrs_BLU);
+GKO_REGISTER_OPERATION(initialize_BLU, factorization::initialize_BLU);
+GKO_REGISTER_OPERATION(fbcsr_transpose, fbcsr::transpose);
 
 
 }  // namespace bilu_factorization
@@ -77,8 +78,8 @@ Bilu<ValueType, IndexType>::generate_block_LU(
 
     const int blksz = c_system_matrix->get_block_size();
 
-    // Add explicit diagonal zero elements if they are missing
-    exec->run(bilu_factorization::make_add_diagonal_elements(
+    // Add explicit diagonal nonsingular blocks if they are missing
+    exec->run(bilu_factorization::make_add_diagonal_blocks(
         c_system_matrix.get(), false));
 
     // Separate L and U factors: nnz
@@ -86,7 +87,7 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     const auto num_rows = matrix_size[0];
     Array<IndexType> l_row_ptrs{exec, num_rows + 1};
     Array<IndexType> u_row_ptrs{exec, num_rows + 1};
-    exec->run(bilu_factorization::make_initialize_row_ptrs_l_u(
+    exec->run(bilu_factorization::make_initialize_row_ptrs_BLU(
         c_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
@@ -108,7 +109,7 @@ Bilu<ValueType, IndexType>::generate_block_LU(
                             std::move(u_col_idxs), std::move(u_row_ptrs));
 
     // Separate L and U: columns and values
-    exec->run(ilu_factorization::make_initialize_l_u(
+    exec->run(bilu_factorization::make_initialize_BLU(
         c_system_matrix.get(), l_factor.get(), u_factor.get()));
 
     // We use `transpose()` here to convert the Csr format to Csc.
@@ -126,7 +127,7 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     // as `u_factor`, we can both skip the allocation and the `make_srow()`
     // call from CSR, leaving just the `transpose()` kernel call
     exec->run(
-        par_ilu_factorization::make_csr_transpose(u_factor_t, u_factor.get()));
+        bilu_factorization::make_fbcsr_transpose(u_factor_t, u_factor.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

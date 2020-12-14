@@ -46,11 +46,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL(ValueType,     \
-                                                             IndexType)     \
-    void add_diagonal_blocks(std::shared_ptr<const DefaultExecutor> exec,   \
-                               matrix::Fbcsr<ValueType, IndexType> *mtx,    \
-                               bool is_sorted)
+#define GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL(ValueType,   \
+                                                             IndexType)   \
+    void add_diagonal_blocks(std::shared_ptr<const DefaultExecutor> exec, \
+                             matrix::Fbcsr<ValueType, IndexType> *mtx,    \
+                             bool is_sorted)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL(ValueType, \
                                                                  IndexType) \
@@ -66,35 +66,15 @@ namespace kernels {
         matrix::Fbcsr<ValueType, IndexType> *l_factor,                        \
         matrix::Fbcsr<ValueType, IndexType> *u_factor)
 
-#define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLK_L_KERNEL(ValueType, \
-                                                               IndexType) \
-    void initialize_row_ptrs_blk_L(                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Fbcsr<ValueType, IndexType> *system_matrix,         \
-        IndexType *l_row_ptrs)
-
-#define GKO_DECLARE_FACTORIZATION_INITIALIZE_BLK_L_KERNEL(ValueType,    \
-                                                          IndexType)    \
-    void initialize_blk_L(std::shared_ptr<const DefaultExecutor> exec,  \
-        const matrix::Fbcsr<ValueType, IndexType> *system_matrix,       \
-        matrix::Fbcsr<ValueType, IndexType> *l_factor,                  \
-        bool diag_sqrt)
-
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
     template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL(ValueType,      \
                                                          IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL(ValueType,    \
-                                                             IndexType);   \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLK_L_KERNEL(ValueType,  \
-                                                               IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLK_L_KERNEL(ValueType, IndexType)
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL(ValueType,  \
+                                                             IndexType); \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType);
 
 
 namespace omp {
