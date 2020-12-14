@@ -171,11 +171,8 @@ void run_preconditioner(const char *precond_name,
 
             // the timer is out of the loops to reduce calling synchronize
             // overhead, so the timer does not know the number of repetitions.
-            // get_total_time() and compute_average_time() have the same result
-            // but in different type. We use compute_average_time to eliminate
-            // the type-casting here.
             auto generate_time =
-                generate_timer->compute_average_time() / FLAGS_repetitions;
+                generate_timer->get_total_time() / FLAGS_repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
                               generate_time, allocator);
 
@@ -188,11 +185,7 @@ void run_preconditioner(const char *precond_name,
 
             // the timer is out of the loops to reduce calling synchronize
             // overhead, so the timer does not know the number of repetitions.
-            // get_total_time() and compute_average_time() have the same result
-            // but in different type. We use compute_average_time to eliminate
-            // the type-casting here.
-            auto apply_time =
-                apply_timer->compute_average_time() / FLAGS_repetitions;
+            auto apply_time = apply_timer->get_total_time() / FLAGS_repetitions;
             add_or_set_member(this_precond_data["apply"], "time", apply_time,
                               allocator);
         }
