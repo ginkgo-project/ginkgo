@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <vector>
 
 
@@ -415,12 +416,14 @@ int main(int argc, char *argv[])
         "format\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "Running " + FLAGS_solvers + " with " +
-                                    std::to_string(FLAGS_max_iters) +
-                                    " iterations and residual goal of " +
-                                    std::to_string(FLAGS_rel_res_goal) +
-                                    "\nThe number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs) + "\n";
+    std::stringstream ss_rel_res_goal;
+    ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
+
+    std::string extra_information =
+        "Running " + FLAGS_solvers + " with " +
+        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
+        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
+        std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
     auto exec = get_executor();
