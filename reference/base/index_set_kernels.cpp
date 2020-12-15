@@ -30,17 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/index_set_kernels.hpp"
-
-
 #include <algorithm>
 #include <iostream>
 #include <mutex>
 #include <vector>
 
 
+#include <ginkgo/core/base/allocator.hpp>
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+
+#include "core/base/index_set_kernels.hpp"
 
 
 namespace gko {
@@ -61,13 +63,87 @@ namespace index_set {
 
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
-                      const IndexType &index_space_size, IndexType &num_elems,
-                      const IndexType *indices, IndexType &num_indices,
-                      IndexType *subset_begin, IndexType *subset_end,
-                      IndexType *superset_indices)
-{}
+                      const IndexType index_space_size,
+                      const Array<IndexType> *indices,
+                      Array<IndexType> *subset_begin,
+                      Array<IndexType> *subset_end,
+                      Array<IndexType> *superset_indices)
+{
+    auto num_indices = indices->get_num_elems();
+    auto tmp_indices = gko::Array<IndexType>(*indices);
+    GKO_ASSERT(*std::max_element(indices->get_const_data(),
+                                 indices->get_const_data() + num_indices) <=
+               index_space_size);
+    // Sort the indices.
+    std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
+
+    // Detect subsets.
+    auto tmp_subset_begin = gko::vector<IndexType>(exec);
+    auto tmp_subset_end = gko::vector<IndexType>(exec);
+    auto tmp_subset_superset_index = gko::vector<IndexType>(exec);
+    tmp_subset_begin.push_back(tmp_indices.get_data()[0]);
+    tmp_subset_superset_index.push_back(0);
+    for (auto i = 1; i < num_indices; ++i) {
+        if (tmp_indices.get_data()[i] == (tmp_indices.get_data()[i - 1]) + 1) {
+            continue;
+        } else {
+            tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
+            tmp_subset_superset_index.push_back(
+                tmp_subset_superset_index.back() + tmp_subset_end.back() -
+                tmp_subset_begin.back());
+            if (i + 1 < num_indices) {
+                tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
+            }
+        }
+    }
+    tmp_subset_end.push_back(tmp_indices.get_data()[num_indices - 1] + 1);
+    tmp_subset_superset_index.push_back(tmp_subset_superset_index.back() +
+                                        tmp_subset_end.back() -
+                                        tmp_subset_begin.back());
+
+    GKO_ASSERT(tmp_subset_begin.size() == tmp_subset_end.size());
+    GKO_ASSERT((tmp_subset_begin.size() + 1) ==
+               tmp_subset_superset_index.size());
+    *subset_begin = std::move(gko::Array<IndexType>(
+        exec, tmp_subset_begin.data(),
+        tmp_subset_begin.data() + tmp_subset_begin.size()));
+    *subset_end = std::move(
+        gko::Array<IndexType>(exec, tmp_subset_end.data(),
+                              tmp_subset_end.data() + tmp_subset_end.size()));
+    *superset_indices = std::move(gko::Array<IndexType>(
+        exec, tmp_subset_superset_index.data(),
+        tmp_subset_superset_index.data() + tmp_subset_superset_index.size()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
+
+
+template <typename IndexType>
+void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType index_space_size,
+                     const Array<IndexType> *subset_begin,
+                     const Array<IndexType> *subset_end,
+                     const Array<IndexType> *superset_indices,
+                     const Array<IndexType> *global_indices,
+                     Array<IndexType> *local_indices)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
+
+
+template <typename IndexType>
+void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType index_space_size,
+                     const Array<IndexType> *subset_begin,
+                     const Array<IndexType> *subset_end,
+                     const Array<IndexType> *superset_indices,
+                     const Array<IndexType> *local_indices,
+                     Array<IndexType> *global_indices)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace index_set

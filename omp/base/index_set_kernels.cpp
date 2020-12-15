@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/index_set_kernels.hpp"
-
-
 #include <algorithm>
 #include <iostream>
 #include <mutex>
@@ -41,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+
+#include "core/base/index_set_kernels.hpp"
 
 
 namespace gko {
@@ -61,13 +61,42 @@ namespace index_set {
 
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
-                      const IndexType &index_space_size, IndexType &num_elems,
-                      const IndexType *indices, IndexType &num_indices,
-                      IndexType *subset_begin, IndexType *subset_end,
-                      IndexType *superset_indices)
+                      const IndexType index_space_size,
+                      const Array<IndexType> *indices,
+                      Array<IndexType> *subset_begin,
+                      Array<IndexType> *subset_end,
+                      Array<IndexType> *superset_indices)
 {}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
+
+
+template <typename IndexType>
+void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType index_space_size,
+                     const Array<IndexType> *subset_begin,
+                     const Array<IndexType> *subset_end,
+                     const Array<IndexType> *superset_indices,
+                     const Array<IndexType> *global_indices,
+                     Array<IndexType> *local_indices)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
+
+
+template <typename IndexType>
+void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
+                     const IndexType index_space_size,
+                     const Array<IndexType> *subset_begin,
+                     const Array<IndexType> *subset_end,
+                     const Array<IndexType> *superset_indices,
+                     const Array<IndexType> *local_indices,
+                     Array<IndexType> *global_indices)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace index_set

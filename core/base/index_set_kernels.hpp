@@ -45,16 +45,38 @@ namespace kernels {
 
 
 #define GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)                   \
-    void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,     \
-                          const IndexType &index_space_size,               \
-                          IndexType &num_elems, const IndexType *indices,  \
-                          IndexType &num_indices, IndexType *subset_begin, \
-                          IndexType *subset_end, IndexType *superset_indices)
+    void populate_subsets(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const IndexType index_space_size, const Array<IndexType> *indices, \
+        Array<IndexType> *subset_begin, Array<IndexType> *subset_end,      \
+        Array<IndexType> *superset_indices)
+
+#define GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType)       \
+    void global_to_local(std::shared_ptr<const DefaultExecutor> exec, \
+                         const IndexType index_space_size,            \
+                         const Array<IndexType> *subset_begin,        \
+                         const Array<IndexType> *subset_end,          \
+                         const Array<IndexType> *superset_indices,    \
+                         const Array<IndexType> *global_indices,      \
+                         Array<IndexType> *local_indices)
+
+#define GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)       \
+    void local_to_global(std::shared_ptr<const DefaultExecutor> exec, \
+                         const IndexType index_space_size,            \
+                         const Array<IndexType> *subset_begin,        \
+                         const Array<IndexType> *subset_end,          \
+                         const Array<IndexType> *superset_indices,    \
+                         const Array<IndexType> *local_indices,       \
+                         Array<IndexType> *global_indices)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename IndexType>    \
-    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                         \
+    template <typename IndexType>                            \
+    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);        \
+    template <typename IndexType>                            \
+    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType); \
+    template <typename IndexType>                            \
+    GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
 
 
 namespace omp {
