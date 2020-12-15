@@ -66,9 +66,11 @@ if [ ! "${SOLVERS_RHS}" ]; then
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
-    echo "BENCHMARK_PRECISION not set - assuming \"double\"" 1>&2
-    BENCH_SUFFIX=""
-elif [ "${BENCHMARK_PRECISION}" == "double" ]; then
+    BENCHMARK_PRECISION="double"
+    echo "BENCHMARK_PRECISION not set - assuming \"${BENCHMARK_PRECISION}\"" 1>&2
+fi
+
+if [ "${BENCHMARK_PRECISION}" == "double" ]; then
     BENCH_SUFFIX=""
 elif [ "${BENCHMARK_PRECISION}" == "single" ]; then
     BENCH_SUFFIX="_single"
@@ -78,7 +80,7 @@ elif [ "${BENCHMARK_PRECISION}" == "scomplex" ]; then
     BENCH_SUFFIX="_scomplex"
 else
     echo "BENCHMARK_PRECISION is set to the not supported \"${BENCHMARK_PRECISION}\"." 1>&2
-    echo "Currently supported values: \"double\" and \"single\"" 1>&2
+    echo "Currently supported values: \"double\", \"single\", \"dcomplex\" and \"scomplex\"" 1>&2
     exit 1
 fi
 
