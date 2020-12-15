@@ -97,9 +97,7 @@ public:
           subsets_end_(exec_),
           superset_cumulative_indices_(exec_)
     {
-        auto tmp_arr = gko::Array<index_type>(exec_);
-        tmp_arr = std::move(indices);
-        this->populate_subsets(tmp_arr);
+        this->populate_subsets(indices);
     }
 
     /**
@@ -112,20 +110,17 @@ public:
         return exec_;
     }
 
-
     index_type get_size() const { return this->index_space_size_; }
-
-    bool is_element(const index_type index) const;
 
     bool is_contiguous() const { return (this->get_num_subsets() <= 1); }
 
     index_type get_num_elems() const { return this->num_stored_indices_; };
 
-    void get_global_index(const index_type &local_index,
-                          index_type &global_index) const;
+    Array<index_type> get_global_indices_from_local(
+        const Array<index_type> &local_indices) const;
 
-    void get_local_index(const index_type &global_index,
-                         index_type &local_index) const;
+    Array<index_type> get_local_indices_from_global(
+        const Array<index_type> &global_indices) const;
 
     index_type get_num_subsets() const
     {

@@ -51,6 +51,8 @@ namespace index_set {
 
 
 GKO_REGISTER_OPERATION(populate_subsets, index_set::populate_subsets);
+GKO_REGISTER_OPERATION(global_to_local, index_set::global_to_local);
+GKO_REGISTER_OPERATION(local_to_global, index_set::local_to_global);
 
 
 }  // namespace index_set
@@ -60,32 +62,42 @@ template <typename IndexType>
 void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType> &indices)
 {
     auto exec = this->get_executor();
-
-    auto num_indices = static_cast<IndexType>(indices.get_num_elems());
-
+    this->num_stored_indices_ = indices.get_num_elems();
     exec->run(index_set::make_populate_subsets(
-        this->index_space_size_, this->num_stored_indices_,
-        indices.get_const_data(), num_indices, this->subsets_begin_.get_data(),
-        this->subsets_end_.get_data(),
-        this->superset_cumulative_indices_.get_data()));
+        this->index_space_size_, &indices, &this->subsets_begin_,
+        &this->subsets_end_, &this->superset_cumulative_indices_));
 }
 
 
 template <typename IndexType>
-bool IndexSet<IndexType>::is_element(const IndexType index) const
-{}
+Array<IndexType> IndexSet<IndexType>::get_global_indices_from_local(
+    const Array<IndexType> &local_indices) const
+{
+    auto exec = this->get_executor();
+    auto global_indices =
+        gko::Array<IndexType>(exec, local_indices.get_num_elems());
+
+    GKO_ASSERT(this->get_num_subsets() >= 1);
+    exec->run(index_set::make_global_to_local(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &local_indices, &global_indices));
+    return std::move(global_indices);
+}
 
 
 template <typename IndexType>
-void IndexSet<IndexType>::get_global_index(const IndexType &local_index,
-                                           IndexType &global_index) const
-{}
+Array<IndexType> IndexSet<IndexType>::get_local_indices_from_global(
+    const Array<IndexType> &global_indices) const
+{
+    auto exec = this->get_executor();
+    auto local_indices = gko::Array<IndexType>(exec);
 
-
-template <typename IndexType>
-void IndexSet<IndexType>::get_local_index(const IndexType &global_index,
-                                          IndexType &local_index) const
-{}
+    GKO_ASSERT(this->get_num_subsets() >= 1);
+    exec->run(index_set::make_local_to_global(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &global_indices, &local_indices));
+    return std::move(local_indices);
+}
 
 
 #define GKO_DECLARE_INDEX_SET(_type) class IndexSet<_type>
