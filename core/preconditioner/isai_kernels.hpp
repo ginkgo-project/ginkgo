@@ -66,14 +66,16 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType> *inverse,                    \
         const IndexType *excess_rhs_ptrs, const IndexType *excess_nz_ptrs,   \
         matrix::Csr<ValueType, IndexType> *excess_system,                    \
-        matrix::Dense<ValueType> *excess_rhs)
+        matrix::Dense<ValueType> *excess_rhs, const size_type excess_start,  \
+        const size_type excess_end)
 
 #define GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
     void scatter_excess_solution(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const IndexType *excess_rhs_ptrs,                                     \
         const matrix::Dense<ValueType> *excess_solution,                      \
-        matrix::Csr<ValueType, IndexType> *inverse)
+        matrix::Csr<ValueType, IndexType> *inverse, const size_type e_start,  \
+        const size_type e_end)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     constexpr auto row_size_limit = 32;                                     \

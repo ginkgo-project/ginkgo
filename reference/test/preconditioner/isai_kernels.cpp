@@ -437,7 +437,7 @@ TYPED_TEST(Isai, KernelGenerateExcessLLongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, lend(this->l_csr_longrow), lend(this->l_csr_longrow),
         a1.get_const_data(), a2.get_const_data(), lend(result),
-        lend(result_rhs));
+        lend(result_rhs), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_e, 0);
@@ -633,7 +633,7 @@ TYPED_TEST(Isai, KernelGenerateExcessULongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, lend(this->u_csr_longrow), lend(this->u_csr_longrow),
         a1.get_const_data(), a2.get_const_data(), lend(result),
-        lend(result_rhs));
+        lend(result_rhs), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_e, 0);
@@ -661,7 +661,7 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
                              I<value_type>{11, 12, 13, 14, 15, 16, 17}, 1);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        this->exec, ptrs.get_const_data(), sol.get(), mtx.get());
+        this->exec, ptrs.get_const_data(), sol.get(), mtx.get(), 0, 6);
 
     GKO_ASSERT_MTX_NEAR(mtx, expect, 0);
 }
@@ -676,7 +676,8 @@ TYPED_TEST(Isai, ReturnsCorrectInverseLargeA)
     auto a_inv = isai->get_approximate_inverse();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(a_inv, this->a_csr_large_inv);
-    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_large_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_large_inv,
+                        10 * r<value_type>::value);
 }
 
 
