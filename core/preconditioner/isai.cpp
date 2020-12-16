@@ -173,10 +173,11 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                         gko::stop::Iteration::build()
                             .with_max_iters(excess_dim)
                             .on(exec),
-                        gko::stop::ResidualNormReduction<ValueType>::build()
-                            .with_reduction_factor(1e-6)
+                        gko::stop::AbsoluteResidualNorm<ValueType>::build()
+                            .with_tolerance(1e-6)
                             .on(exec))
                     .on(exec);
+            excess_solution->copy_from(excess_rhs.get());
         } else if (is_lower) {
             trs_factory = UpperTrs::build().on(exec);
         } else {
