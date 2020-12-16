@@ -116,6 +116,10 @@ public:
 
     index_type get_num_elems() const { return this->num_stored_indices_; };
 
+    index_type get_global_index(const index_type &local_index) const;
+
+    index_type get_local_index(const index_type &global_index) const;
+
     Array<index_type> get_global_indices_from_local(
         const Array<index_type> &local_indices) const;
 

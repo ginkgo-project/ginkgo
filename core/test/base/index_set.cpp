@@ -78,16 +78,6 @@ protected:
         }
     }
 
-    static void assert_equal_arrays(const T num_elems, const T *a, const T *b)
-    {
-        if (num_elems > 0) {
-            for (auto i = 0; i < num_elems; ++i) {
-                ASSERT_EQ(a[i], b[i]);
-            }
-        }
-    }
-
-
     std::shared_ptr<const gko::Executor> exec;
 };
 
@@ -146,50 +136,6 @@ TYPED_TEST(IndexSet, KnowsItsSize)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
     ASSERT_EQ(idx_set.get_size(), 10);
-}
-
-
-TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
-{
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
-
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
-
-    ASSERT_EQ(idx_set.get_size(), 10);
-    ASSERT_EQ(idx_set.get_num_subsets(), 3);
-    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_num_elems());
-    auto num_elems = idx_set.get_num_subsets();
-    this->assert_equal_arrays(num_elems, idx_set.get_subsets_begin(),
-                              begin_comp.get_data());
-    this->assert_equal_arrays(num_elems, idx_set.get_subsets_end(),
-                              end_comp.get_data());
-    this->assert_equal_arrays(num_elems, idx_set.get_superset_indices(),
-                              superset_comp.get_data());
-}
-
-
-TYPED_TEST(IndexSet, CanBeConstructedFromNonSortedIndices)
-{
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {9, 1, 4, 2, 6, 8, 0, 7}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
-
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
-
-    ASSERT_EQ(idx_set.get_size(), 10);
-    ASSERT_EQ(idx_set.get_num_subsets(), 3);
-    ASSERT_EQ(idx_set.get_num_subsets(), begin_comp.get_num_elems());
-    auto num_elems = idx_set.get_num_subsets();
-    this->assert_equal_arrays(num_elems, idx_set.get_subsets_begin(),
-                              begin_comp.get_data());
-    this->assert_equal_arrays(num_elems, idx_set.get_subsets_end(),
-                              end_comp.get_data());
-    this->assert_equal_arrays(num_elems, idx_set.get_superset_indices(),
-                              superset_comp.get_data());
 }
 
 
