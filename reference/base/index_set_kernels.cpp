@@ -84,14 +84,16 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
     tmp_subset_begin.push_back(tmp_indices.get_data()[0]);
     tmp_subset_superset_index.push_back(0);
     for (auto i = 1; i < num_indices; ++i) {
-        if (tmp_indices.get_data()[i] == (tmp_indices.get_data()[i - 1]) + 1) {
+        if ((tmp_indices.get_data()[i] ==
+             (tmp_indices.get_data()[i - 1] + 1)) ||
+            (tmp_indices.get_data()[i] == tmp_indices.get_data()[i - 1])) {
             continue;
         } else {
             tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
             tmp_subset_superset_index.push_back(
                 tmp_subset_superset_index.back() + tmp_subset_end.back() -
                 tmp_subset_begin.back());
-            if (i + 1 < num_indices) {
+            if (i < num_indices) {
                 tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
             }
         }
@@ -126,7 +128,28 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *global_indices,
                      Array<IndexType> *local_indices)
-{}
+{
+    for (auto i = 0; i < global_indices->get_num_elems(); ++i) {
+        auto index = global_indices->get_const_data()[i];
+        GKO_ASSERT(index < index_space_size);
+        auto bucket = std::distance(
+            subset_begin->get_const_data(),
+            std::lower_bound(
+                subset_begin->get_const_data(),
+                subset_begin->get_const_data() + subset_begin->get_num_elems(),
+                index, [](const IndexType &sub_idx, const IndexType idx) {
+                    return sub_idx <= idx;
+                }));
+        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+        if (subset_end->get_const_data()[shifted_bucket] <= index) {
+            local_indices->get_data()[i] = -1;
+        } else {
+            local_indices->get_data()[i] =
+                index - subset_begin->get_const_data()[shifted_bucket] +
+                superset_indices->get_const_data()[shifted_bucket];
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
@@ -140,7 +163,29 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *local_indices,
                      Array<IndexType> *global_indices)
-{}
+{
+    for (auto i = 0; i < local_indices->get_num_elems(); ++i) {
+        auto index = local_indices->get_const_data()[i];
+        GKO_ASSERT(
+            index <=
+            (superset_indices
+                 ->get_const_data()[superset_indices->get_num_elems() - 1] -
+             1));
+        auto bucket = std::distance(
+            superset_indices->get_const_data(),
+            std::lower_bound(superset_indices->get_const_data(),
+                             superset_indices->get_const_data() +
+                                 superset_indices->get_num_elems(),
+                             index,
+                             [](const IndexType &sup_idx, const IndexType idx) {
+                                 return sup_idx <= idx;
+                             }));
+        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+        global_indices->get_data()[i] =
+            subset_begin->get_const_data()[shifted_bucket] + index -
+            superset_indices->get_const_data()[shifted_bucket];
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);

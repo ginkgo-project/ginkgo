@@ -70,6 +70,40 @@ void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType> &indices)
 
 
 template <typename IndexType>
+IndexType IndexSet<IndexType>::get_global_index(const IndexType &index) const
+{
+    auto exec = this->get_executor();
+    auto loc_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+    auto glob_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+
+    GKO_ASSERT(this->get_num_subsets() >= 1);
+    exec->run(index_set::make_local_to_global(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &loc_idx, &glob_idx));
+    return glob_idx.get_data()[0];
+}
+
+
+template <typename IndexType>
+IndexType IndexSet<IndexType>::get_local_index(const IndexType &index) const
+{
+    auto exec = this->get_executor();
+    auto loc_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+    auto glob_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+
+    GKO_ASSERT(this->get_num_subsets() >= 1);
+    exec->run(index_set::make_global_to_local(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &glob_idx, &loc_idx));
+    return loc_idx.get_data()[0];
+}
+
+
+template <typename IndexType>
 Array<IndexType> IndexSet<IndexType>::get_global_indices_from_local(
     const Array<IndexType> &local_indices) const
 {
@@ -78,7 +112,7 @@ Array<IndexType> IndexSet<IndexType>::get_global_indices_from_local(
         gko::Array<IndexType>(exec, local_indices.get_num_elems());
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
-    exec->run(index_set::make_global_to_local(
+    exec->run(index_set::make_local_to_global(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &local_indices, &global_indices));
     return std::move(global_indices);
@@ -90,10 +124,11 @@ Array<IndexType> IndexSet<IndexType>::get_local_indices_from_global(
     const Array<IndexType> &global_indices) const
 {
     auto exec = this->get_executor();
-    auto local_indices = gko::Array<IndexType>(exec);
+    auto local_indices =
+        gko::Array<IndexType>(exec, global_indices.get_num_elems());
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
-    exec->run(index_set::make_local_to_global(
+    exec->run(index_set::make_global_to_local(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &global_indices, &local_indices));
     return std::move(local_indices);
