@@ -142,12 +142,13 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                             const IndexType *excess_rhs_ptrs,
                             const IndexType *excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType> *excess_system,
-                            matrix::Dense<ValueType> *excess_rhs)
+                            matrix::Dense<ValueType> *excess_rhs,
+                            const size_type e_start, const size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
     kernel::generate_excess_system<subwarp_size><<<grid, block>>>(
         static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
         input->get_const_col_idxs(), as_cuda_type(input->get_const_values()),
@@ -155,7 +156,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
         excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
         excess_system->get_col_idxs(),
         as_cuda_type(excess_system->get_values()),
-        as_cuda_type(excess_rhs->get_values()));
+        as_cuda_type(excess_rhs->get_values()), e_start, e_end);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -166,16 +167,17 @@ template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
                              const IndexType *excess_rhs_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
-                             matrix::Csr<ValueType, IndexType> *inverse)
+                             matrix::Csr<ValueType, IndexType> *inverse,
+                             const size_type e_start, const size_type e_end)
 {
     const auto num_rows = inverse->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
     kernel::copy_excess_solution<subwarp_size><<<grid, block>>>(
         static_cast<IndexType>(num_rows), inverse->get_const_row_ptrs(),
         excess_rhs_ptrs, as_cuda_type(excess_solution->get_const_values()),
-        as_cuda_type(inverse->get_values()));
+        as_cuda_type(inverse->get_values()), e_start, e_end);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

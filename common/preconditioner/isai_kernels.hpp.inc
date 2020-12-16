@@ -293,11 +293,13 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     const IndexType *__restrict__ excess_nz_ptrs,
     IndexType *__restrict__ excess_row_ptrs,
     IndexType *__restrict__ excess_col_idxs,
-    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs)
+    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs,
+    const size_type e_start, const size_type e_end)
 {
-    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row =
+        thread::get_subwarp_id_flat<subwarp_size, IndexType>() + e_start;
 
-    if (row >= num_rows) {
+    if (row >= e_end) {
         return;
     }
 
@@ -309,7 +311,7 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     const int local_id = subwarp.thread_rank();
     const auto prefix_mask = (config::lane_mask_type{1} << local_id) - 1;
 
-    if (row == 0 && local_id == 0) {
+    if (row == e_start && local_id == 0) {
         excess_row_ptrs[0] = 0;
     }
 
@@ -319,6 +321,9 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
 
     auto excess_rhs_begin = excess_rhs_ptrs[row];
     auto excess_nz_begin = excess_nz_ptrs[row];
+
+    auto out_nz_begin = excess_nz_begin - excess_nz_ptrs[e_start];
+    auto out_ptrs_begin = excess_rhs_begin - excess_rhs_ptrs[e_start];
 
     // defer long rows: store their nnz and number of matches
     for (IndexType nz = 0; nz < i_row_size; ++nz) {
@@ -335,33 +340,35 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
                 // trisystem(nz, i_idx) = m_values[m_row_begin + m_idx]
                 // only in sparse :)
                 if (valid) {
-                    auto nz = excess_nz_begin + popcnt(mask & prefix_mask);
-                    excess_col_idxs[nz] = excess_rhs_begin + i_idx;
+                    auto nz = out_nz_begin + popcnt(mask & prefix_mask);
+                    excess_col_idxs[nz] = out_ptrs_begin + i_idx;
                     excess_values[nz] = m_values[m_row_begin + m_idx];
                 }
-                excess_nz_begin += popcnt(mask);
+                out_nz_begin += popcnt(mask);
             });
         if (local_id == 0) {
             // build right-hand side: 1 for diagonal entry, 0 else
-            excess_rhs[excess_rhs_begin + nz] =
+            excess_rhs[out_ptrs_begin + nz] =
                 row == col ? one<ValueType>() : zero<ValueType>();
             // store row pointers
-            excess_row_ptrs[excess_rhs_begin + nz + 1] = excess_nz_begin;
+            excess_row_ptrs[out_ptrs_begin + nz + 1] = out_nz_begin;
         }
     }
 }
-
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ excess_rhs_ptrs,
     const ValueType *__restrict__ excess_solution,
-    ValueType *__restrict__ i_values)
+    ValueType *__restrict__ i_values, const size_type e_start,
+    const size_type e_end)
 {
-    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto excess_row =
+        thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row = excess_row + e_start;
 
-    if (row >= num_rows) {
+    if (row >= e_end) {
         return;
     }
 
@@ -376,7 +383,8 @@ __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     if (excess_size > 0) {
         // copy the values for this row
         for (IndexType nz = local_id; nz < excess_size; nz += subwarp_size) {
-            i_values[nz + i_row_begin] = excess_solution[nz + excess_begin];
+            i_values[nz + i_row_begin] =
+                excess_solution[nz + excess_begin - excess_rhs_ptrs[e_start]];
         }
     }
 }

@@ -128,7 +128,8 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                             const IndexType *excess_rhs_ptrs,
                             const IndexType *excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType> *excess_system,
-                            matrix::Dense<ValueType> *excess_rhs)
+                            matrix::Dense<ValueType> *excess_rhs,
+                            const size_type e_start, const size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
 
@@ -153,9 +154,10 @@ template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
                              const IndexType *excess_rhs_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
-                             matrix::Csr<ValueType, IndexType> *inverse)
+                             matrix::Csr<ValueType, IndexType> *inverse,
+                             const size_type e_start, const size_type e_end)
 {
-    const auto num_rows = inverse->get_size()[0];
+    // const auto num_rows = inverse->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);

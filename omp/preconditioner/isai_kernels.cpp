@@ -346,7 +346,8 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                             const IndexType *excess_rhs_ptrs,
                             const IndexType *excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType> *excess_system,
-                            matrix::Dense<ValueType> *excess_rhs)
+                            matrix::Dense<ValueType> *excess_rhs,
+                            const size_type e_start, const size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
     const auto m_row_ptrs = input->get_const_row_ptrs();
@@ -361,7 +362,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     auto e_rhs = excess_rhs->get_values();
 
 #pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
+    for (size_type row = e_start; row < e_end; ++row) {
         const auto i_begin = i_row_ptrs[row];
         const auto i_size = i_row_ptrs[row + 1] - i_begin;
         // first row index of the sparse block in the excess system
@@ -406,16 +407,19 @@ template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
                              const IndexType *excess_block_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
-                             matrix::Csr<ValueType, IndexType> *inverse)
+                             matrix::Csr<ValueType, IndexType> *inverse,
+                             const size_type e_start, const size_type e_end)
 {
-    const auto num_rows = inverse->get_size()[0];
     auto excess_values = excess_solution->get_const_values();
     auto values = inverse->get_values();
     auto row_ptrs = inverse->get_const_row_ptrs();
+    auto offset = excess_block_ptrs[e_start];
 #pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
-        const auto excess_begin = excess_values + excess_block_ptrs[row];
-        const auto excess_end = excess_values + excess_block_ptrs[row + 1];
+    for (size_type row = e_start; row < e_end; ++row) {
+        const auto excess_begin =
+            excess_values + excess_block_ptrs[row] - offset;
+        const auto excess_end =
+            excess_values + excess_block_ptrs[row + 1] - offset;
         auto values_begin = values + row_ptrs[row];
         std::copy(excess_begin, excess_end, values_begin);
     }
