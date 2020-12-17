@@ -194,22 +194,29 @@ public:
     index_type get_local_index(const index_type &global_index) const;
 
     /**
-     * This is an array version of the above scalar function.
+     * This is an array version of the scalar function above.
      *
      * @param  the local index array.
      * @return  the global index array from the index set.
      */
-    Array<index_type> get_global_indices_from_local(
+    Array<index_type> get_global_indices(
         const Array<index_type> &local_indices) const;
 
     /**
-     * This is an array version of the above scalar function.
+     * This is an array version of the scalar function above.
      *
      * @param  the global index array.
      * @return  the local index array from the index set.
      */
-    Array<index_type> get_local_indices_from_global(
+    Array<index_type> get_local_indices(
         const Array<index_type> &global_indices) const;
+
+    /**
+     * Checks if the element exists in the index set.
+     *
+     * @return  whether the element exists in the index set.
+     */
+    bool is_element(const index_type &index) const;
 
     /**
      * Returns the number of subsets stored in the index set.
