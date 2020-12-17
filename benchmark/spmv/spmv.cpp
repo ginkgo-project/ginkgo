@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
 
 
 using etype = double;
@@ -95,22 +96,17 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             system_matrix->apply(lend(b), lend(x_clone));
             exec->synchronize();
         }
-        std::chrono::nanoseconds time(0);
         // timed run
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
             exec->synchronize();
-            auto tic = std::chrono::steady_clock::now();
+            timer->tic();
             system_matrix->apply(lend(b), lend(x_clone));
-
-            exec->synchronize();
-            auto toc = std::chrono::steady_clock::now();
-            time +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+            timer->toc();
         }
         add_or_set_member(spmv_case[format_name], "time",
-                          static_cast<double>(time.count()) / FLAGS_repetitions,
-                          allocator);
+                          timer->compute_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);

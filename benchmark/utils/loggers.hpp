@@ -109,9 +109,7 @@ struct OperationLogger : gko::log::Logger {
         for (const auto &entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
-                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    entry.second)
-                        .count() /
+                std::chrono::duration<double>(entry.second).count() /
                     repetitions,
                 alloc);
         }
@@ -207,11 +205,10 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
     {
-        timestamps.PushBack(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - start)
-                .count(),
-            alloc);
+        timestamps.PushBack(std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - start)
+                                .count(),
+                            alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);

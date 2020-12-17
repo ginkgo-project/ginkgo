@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
 
 
 // some shortcuts
@@ -157,41 +158,36 @@ void run_preconditioner(const char *precond_name,
             for (auto i = 0u; i < FLAGS_warmup; ++i) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
             }
+            auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
+            auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
 
             exec->synchronize();
-            auto g_tic = std::chrono::steady_clock::now();
-
+            generate_timer->tic();
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op = precond->generate(system_matrix);
             }
+            generate_timer->toc();
 
-            exec->synchronize();
-            auto g_tac = std::chrono::steady_clock::now();
-
+            // the timer is out of the loops to reduce calling synchronize
+            // overhead, so the timer does not know the number of repetitions.
             auto generate_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
-                                                                     g_tic) /
-                FLAGS_repetitions;
+                generate_timer->get_total_time() / FLAGS_repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_time.count(), allocator);
+                              generate_time, allocator);
 
             exec->synchronize();
-            auto a_tic = std::chrono::steady_clock::now();
-
+            apply_timer->tic();
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
+            apply_timer->toc();
 
-            exec->synchronize();
-            auto a_tac = std::chrono::steady_clock::now();
-
-            auto apply_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
-                                                                     a_tic) /
-                FLAGS_repetitions;
-            add_or_set_member(this_precond_data["apply"], "time",
-                              apply_time.count(), allocator);
+            // the timer is out of the loops to reduce calling synchronize
+            // overhead, so the timer does not know the number of repetitions.
+            auto apply_time = apply_timer->get_total_time() / FLAGS_repetitions;
+            add_or_set_member(this_precond_data["apply"], "time", apply_time,
+                              allocator);
         }
 
         if (FLAGS_detailed) {
