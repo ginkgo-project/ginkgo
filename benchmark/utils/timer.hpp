@@ -40,9 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gflags/gflags.h>
 
 
-#include "benchmark/utils/chrono_utils.hpp"
-
-
 #ifdef HAS_CUDA
 
 
@@ -95,9 +92,9 @@ public:
     void toc()
     {
         assert(tic_called_ == true);
-        auto ns = this->toc_impl();
+        auto sec = this->toc_impl();
         tic_called_ = false;
-        this->add_record(ns);
+        this->add_record(sec);
     }
 
     /**
@@ -165,13 +162,13 @@ protected:
     /**
      * Put the second result into vector
      *
-     * @param ns  the second result to insert
+     * @param sec  the second result to insert
      */
-    void add_record(double ns)
+    void add_record(double sec)
     {
         // add the result;
-        duration_sec_.emplace_back(ns);
-        total_duration_sec_ += ns;
+        duration_sec_.emplace_back(sec);
+        total_duration_sec_ += sec;
     }
 
     /**
@@ -218,8 +215,8 @@ protected:
     {
         exec_->synchronize();
         auto stop = std::chrono::steady_clock::now();
-        auto duration_time = get_duration_in_seconds(stop - start_);
-        return duration_time;
+        std::chrono::duration<double> duration_time = stop - start_;
+        return duration_time.count();
     }
 
 private:

@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 
 
-#include "benchmark/utils/chrono_utils.hpp"
 #include "benchmark/utils/general.hpp"
 
 
@@ -110,7 +109,9 @@ struct OperationLogger : gko::log::Logger {
         for (const auto &entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
-                get_duration_in_seconds(entry.second) / repetitions, alloc);
+                std::chrono::duration<double>(entry.second).count() /
+                    repetitions,
+                alloc);
         }
     }
 
@@ -204,9 +205,10 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
     {
-        timestamps.PushBack(
-            get_duration_in_seconds(std::chrono::steady_clock::now() - start),
-            alloc);
+        timestamps.PushBack(std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - start)
+                                .count(),
+                            alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
