@@ -147,6 +147,57 @@ void precision_dispatch_spmv(Function fn, const LinOp *alpha, const LinOp *in,
     }
 }
 
+
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
+{
+    if (auto dense_in = dynamic_cast<const matrix::Dense<ValueType> *>(in)) {
+        if (auto dense_out = dynamic_cast<matrix::Dense<ValueType> *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out =
+                       dynamic_cast<matrix::Dense<next_precision<ValueType>> *>(
+                           out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else if (auto dense_in = dynamic_cast<
+                   const matrix::Dense<next_precision<ValueType>> *>(in)) {
+        if (auto dense_out = dynamic_cast<matrix::Dense<ValueType> *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out =
+                       dynamic_cast<matrix::Dense<next_precision<ValueType>> *>(
+                           out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else {
+        GKO_NOT_SUPPORTED(in);
+    }
+}
+
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch_spmv(Function fn, const LinOp *in, LinOp *out)
+{
+    // do we need to convert complex Dense to real Dense?
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
+    if (complex_to_real) {
+        auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
+        using Dense = matrix::Dense<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dynamic_cast<const Dense *>(dense_in->create_real_view().get()),
+           dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+    } else {
+        mixed_precision_dispatch<ValueType>(fn, in, out);
+    }
+}
+
 }  // namespace gko
 
 

@@ -56,38 +56,44 @@ namespace omp {
 namespace ell {
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType> *a,
+          const matrix::Dense<InputValueType> *b,
+          matrix::Dense<OutputValueType> *c)
 {
     auto num_stored_elements_per_row = a->get_num_stored_elements_per_row();
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; row++) {
         for (size_type j = 0; j < c->get_size()[1]; j++) {
-            c->at(row, j) = zero<ValueType>();
+            c->at(row, j) = zero<OutputValueType>();
         }
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
+
             for (size_type j = 0; j < c->get_size()[1]; j++) {
-                c->at(row, j) += val * b->at(col, j);
+                c->at(row, j) +=
+                    OutputValueType(val * MatrixValueType(b->at(col, j)));
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<MatrixValueType> *alpha,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   const matrix::Dense<OutputValueType> *beta,
+                   matrix::Dense<OutputValueType> *c)
 {
     auto num_stored_elements_per_row = a->get_num_stored_elements_per_row();
     auto alpha_val = alpha->at(0, 0);
@@ -102,13 +108,14 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
             auto val = a->val_at(row, i);
             auto col = a->col_at(row, i);
             for (size_type j = 0; j < c->get_size()[1]; j++) {
-                c->at(row, j) += alpha_val * val * b->at(col, j);
+                c->at(row, j) += OutputValueType(
+                    alpha_val * val * MatrixValueType(b->at(col, j)));
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

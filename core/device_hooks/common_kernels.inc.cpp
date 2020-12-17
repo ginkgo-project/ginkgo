@@ -794,15 +794,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace ell {
 
 
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType)
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType, OutputValueType,
+                            IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType,
+                                     OutputValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
