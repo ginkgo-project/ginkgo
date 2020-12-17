@@ -34,22 +34,25 @@ namespace kernel {
 namespace {
 
 
-template <int num_thread_per_worker, bool atomic, typename ValueType,
+template <int num_thread_per_worker, bool atomic, typename InputValueType,
+          typename MatrixValueType, typename OutputValueType,
           typename IndexType, typename Closure>
 __device__ void spmv_kernel(
     const size_type num_rows, const int num_worker_per_row,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const MatrixValueType *__restrict__ val, const IndexType *__restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride, Closure op)
+    const InputValueType *__restrict__ b, const size_type b_stride,
+    OutputValueType *__restrict__ c, const size_type c_stride, Closure op)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto column_id = blockIdx.y;
+    using compute_type =
+        decltype(InputValueType{} + MatrixValueType{} + OutputValueType{});
     if (num_thread_per_worker == 1) {
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
-            ValueType temp = zero<ValueType>();
+            auto temp = zero<compute_type>();
             for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
                 const auto ind = tidx + idx * stride;
                 const auto col_idx = col[ind];
@@ -68,14 +71,14 @@ __device__ void spmv_kernel(
             const auto x = tidx % num_rows;
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
-            __shared__ UninitializedArray<ValueType, default_block_size /
-                                                         num_thread_per_worker>
+            __shared__ UninitializedArray<
+                compute_type, default_block_size / num_thread_per_worker>
                 storage;
             if (idx_in_worker == 0) {
                 storage[threadIdx.x] = 0;
             }
             __syncthreads();
-            ValueType temp = zero<ValueType>();
+            auto temp = zero<compute_type>();
             for (size_type idx =
                      worker_id * num_thread_per_worker + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {
@@ -102,35 +105,41 @@ __device__ void spmv_kernel(
 }
 
 
-template <int num_thread_per_worker, bool atomic = false, typename ValueType,
-          typename IndexType>
+template <int num_thread_per_worker, bool atomic = false,
+          typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const int num_worker_per_row,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const MatrixValueType *__restrict__ val, const IndexType *__restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
+    const InputValueType *__restrict__ b, const size_type b_stride,
+    OutputValueType *__restrict__ c, const size_type c_stride)
 {
+    using compute_type =
+        decltype(InputValueType{} + MatrixValueType{} + OutputValueType{});
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
         num_stored_elements_per_row, b, b_stride, c, c_stride,
-        [](const ValueType &x, const ValueType &y) { return x; });
+        [](const compute_type &x, const OutputValueType &y) { return x; });
 }
 
 
-template <int num_thread_per_worker, bool atomic = false, typename ValueType,
-          typename IndexType>
+template <int num_thread_per_worker, bool atomic = false,
+          typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const int num_worker_per_row,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
+    const MatrixValueType *__restrict__ alpha,
+    const MatrixValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const size_type stride, const size_type num_stored_elements_per_row,
+    const InputValueType *__restrict__ b, const size_type b_stride,
+    const OutputValueType *__restrict__ beta, OutputValueType *__restrict__ c,
     const size_type c_stride)
 {
-    const ValueType alpha_val = alpha[0];
-    const ValueType beta_val = beta[0];
+    using compute_type =
+        decltype(InputValueType{} + MatrixValueType{} + OutputValueType{});
+    const compute_type alpha_val = alpha[0];
+    const compute_type beta_val = beta[0];
     // Because the atomic operation changes the values of c during computation,
     // it can not do the right alpha * a * b + beta * c operation.
     // Thus, the cuda kernel only computes alpha * a * b when it uses atomic
@@ -139,15 +148,16 @@ __global__ __launch_bounds__(default_block_size) void spmv(
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val](const ValueType &x, const ValueType &y) {
+            [&alpha_val](const compute_type &x, const OutputValueType &y) {
                 return alpha_val * x;
             });
     } else {
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
-                return alpha_val * x + beta_val * y;
+            [&alpha_val, &beta_val](const compute_type &x,
+                                    const OutputValueType &y) {
+                return alpha_val * x + beta_val * compute_type{y};
             });
     }
 }

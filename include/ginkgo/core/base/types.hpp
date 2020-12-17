@@ -524,6 +524,57 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
+#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro) \
+    template _macro(float, float, float, int32);                    \
+    template _macro(float, float, double, int32);                   \
+    template _macro(float, double, float, int32);                   \
+    template _macro(float, double, double, int32);                  \
+    template _macro(double, float, float, int32);                   \
+    template _macro(double, float, double, int32);                  \
+    template _macro(double, double, float, int32);                  \
+    template _macro(double, double, double, int32);                 \
+    template _macro(std::complex<float>, std::complex<float>,       \
+                    std::complex<float>, int32);                    \
+    template _macro(std::complex<float>, std::complex<float>,       \
+                    std::complex<double>, int32);                   \
+    template _macro(std::complex<float>, std::complex<double>,      \
+                    std::complex<float>, int32);                    \
+    template _macro(std::complex<float>, std::complex<double>,      \
+                    std::complex<double>, int32);                   \
+    template _macro(std::complex<double>, std::complex<float>,      \
+                    std::complex<float>, int32);                    \
+    template _macro(std::complex<double>, std::complex<float>,      \
+                    std::complex<double>, int32);                   \
+    template _macro(std::complex<double>, std::complex<double>,     \
+                    std::complex<float>, int32);                    \
+    template _macro(std::complex<double>, std::complex<double>,     \
+                    std::complex<double>, int32);                   \
+    template _macro(float, float, float, int64);                    \
+    template _macro(float, float, double, int64);                   \
+    template _macro(float, double, float, int64);                   \
+    template _macro(float, double, double, int64);                  \
+    template _macro(double, float, float, int64);                   \
+    template _macro(double, float, double, int64);                  \
+    template _macro(double, double, float, int64);                  \
+    template _macro(double, double, double, int64);                 \
+    template _macro(std::complex<float>, std::complex<float>,       \
+                    std::complex<float>, int64);                    \
+    template _macro(std::complex<float>, std::complex<float>,       \
+                    std::complex<double>, int64);                   \
+    template _macro(std::complex<float>, std::complex<double>,      \
+                    std::complex<float>, int64);                    \
+    template _macro(std::complex<float>, std::complex<double>,      \
+                    std::complex<double>, int64);                   \
+    template _macro(std::complex<double>, std::complex<float>,      \
+                    std::complex<float>, int64);                    \
+    template _macro(std::complex<double>, std::complex<float>,      \
+                    std::complex<double>, int64);                   \
+    template _macro(std::complex<double>, std::complex<double>,     \
+                    std::complex<float>, int64);                    \
+    template _macro(std::complex<double>, std::complex<double>,     \
+                    std::complex<double>, int64)
+
+
 /**
  * Instantiates a template for each value type conversion pair compiled by
  * Ginkgo.
