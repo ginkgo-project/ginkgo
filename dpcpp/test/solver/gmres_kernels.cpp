@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/test/utils.hpp"
 
 
+#include <iostream>
+
 namespace {
 
 
@@ -209,15 +211,17 @@ TEST_F(Gmres, DpcppGmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
 
+    std::cout << "Reference kernel" << std::endl;
     gko::kernels::reference::gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get(), gko::solver::default_krylov_dim);
+    std::cout << "DPCPP kernel" << std::endl;
     gko::kernels::dpcpp::gmres::initialize_2(
         dpcpp, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
         d_final_iter_nums.get(), gko::solver::default_krylov_dim);
-
+    std::cout << "Kernel Finish" << std::endl;
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         1e-14);
@@ -226,75 +230,81 @@ TEST_F(Gmres, DpcppGmresInitialize2IsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, DpcppGmresStep1IsEquivalentToRef)
-{
-    initialize_data();
-    int iter = 5;
+// TEST_F(Gmres, DpcppGmresStep1IsEquivalentToRef)
+// {
+//     initialize_data();
+//     int iter = 5;
 
-    gko::kernels::reference::gmres::step_1(
-        ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
-        residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
-    gko::kernels::dpcpp::gmres::step_1(
-        dpcpp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
-        d_residual_norm.get(), d_residual_norm_collection.get(),
-        d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
-        d_final_iter_nums.get(), d_stop_status.get());
-    // dpcpp->synchronize();
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
-}
-
-
-TEST_F(Gmres, DpcppGmresStep1OnSingleRHSIsEquivalentToRef)
-{
-    initialize_data(1);
-    int iter = 5;
-
-    gko::kernels::reference::gmres::step_1(
-        ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
-        residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
-    gko::kernels::dpcpp::gmres::step_1(
-        dpcpp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
-        d_residual_norm.get(), d_residual_norm_collection.get(),
-        d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
-        d_final_iter_nums.get(), d_stop_status.get());
-    dpcpp->synchronize();
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
-}
+//     gko::kernels::reference::gmres::step_1(
+//         ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
+//         residual_norm.get(), residual_norm_collection.get(),
+//         krylov_bases.get(), hessenberg_iter.get(), iter,
+//         final_iter_nums.get(), stop_status.get());
+//     gko::kernels::dpcpp::gmres::step_1(
+//         dpcpp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
+//         d_residual_norm.get(), d_residual_norm_collection.get(),
+//         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
+//         d_final_iter_nums.get(), d_stop_status.get());
+//     // dpcpp->synchronize();
+//     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
+//                         1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+//     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
+// }
 
 
-TEST_F(Gmres, DpcppGmresStep2IsEquivalentToRef)
-{
-    initialize_data();
+// TEST_F(Gmres, DpcppGmresStep1OnSingleRHSIsEquivalentToRef)
+// {
+//     initialize_data(1);
+//     int iter = 5;
 
-    gko::kernels::reference::gmres::step_2(ref, residual_norm_collection.get(),
-                                           krylov_bases.get(), hessenberg.get(),
-                                           y.get(), before_preconditioner.get(),
-                                           final_iter_nums.get());
-    gko::kernels::dpcpp::gmres::step_2(dpcpp, d_residual_norm_collection.get(),
-                                       d_krylov_bases.get(), d_hessenberg.get(),
-                                       d_y.get(), d_before_preconditioner.get(),
-                                       d_final_iter_nums.get());
-    dpcpp->synchronize();
+//     gko::kernels::reference::gmres::step_1(
+//         ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
+//         residual_norm.get(), residual_norm_collection.get(),
+//         krylov_bases.get(), hessenberg_iter.get(), iter,
+//         final_iter_nums.get(), stop_status.get());
+//     gko::kernels::dpcpp::gmres::step_1(
+//         dpcpp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
+//         d_residual_norm.get(), d_residual_norm_collection.get(),
+//         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
+//         d_final_iter_nums.get(), d_stop_status.get());
+//     dpcpp->synchronize();
+//     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
+//                         1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+//     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
+// }
 
-    GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-}
+
+// TEST_F(Gmres, DpcppGmresStep2IsEquivalentToRef)
+// {
+//     initialize_data();
+
+//     gko::kernels::reference::gmres::step_2(ref,
+//     residual_norm_collection.get(),
+//                                            krylov_bases.get(),
+//                                            hessenberg.get(), y.get(),
+//                                            before_preconditioner.get(),
+//                                            final_iter_nums.get());
+//     gko::kernels::dpcpp::gmres::step_2(dpcpp,
+//     d_residual_norm_collection.get(),
+//                                        d_krylov_bases.get(),
+//                                        d_hessenberg.get(), d_y.get(),
+//                                        d_before_preconditioner.get(),
+//                                        d_final_iter_nums.get());
+//     dpcpp->synchronize();
+
+//     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
+//     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+// }
 
 
 }  // namespace

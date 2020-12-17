@@ -762,17 +762,22 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
-
+    // make sure there is no throw before it.
+    exec->synchronize();
+    std::cout << "compute norm2" << std::endl;
     residual->compute_norm2(residual_norm);
-
+    std::cout << "compute norm2 finish" << std::endl;
+    exec->synchronize();
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
                           1);
+    std::cout << "initialize_2" << std::endl;
     initialize_2_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
         residual->get_stride(), residual_norm->get_const_values(),
         residual_norm_collection->get_values(), krylov_bases->get_values(),
         krylov_bases->get_stride(), final_iter_nums->get_data());
+    std::cout << "initialize_2 finish" << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);

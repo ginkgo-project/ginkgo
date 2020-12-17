@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
 #include <iostream>
+#include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -377,10 +377,11 @@ void finalize_norm2_computation(
     sycl::nd_item<3> item_ct1,
     UninitializedArray<ValueType, block_size> *tmp_work)
 {
-    finalize_reduce_computation<block_size>(
-        size, work, result,
-        [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return sqrt(x); }, item_ct1, tmp_work);
+    // Even the kernel does nothing, still gives the error.
+    // finalize_reduce_computation<block_size>(
+    //     size, work, result,
+    //     [](const ValueType &x, const ValueType &y) { return x + y; },
+    //     [](const ValueType &x) { return sqrt(x); }, item_ct1, tmp_work);
 }
 
 template <size_type block_size, typename ValueType>
@@ -1286,19 +1287,29 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
         const dim3 block_dim{config::warp_size, 1,
                              block_size / config::warp_size};
         Array<norm_type> work(exec, grid_dim.x);
+        // make sure there is no throw before it
+        exec->synchronize();
+        std::cout << "dense reduction" << std::endl;
         // TODO: write a kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            // functioname compute_partial_norm2<block_size>
-            kernel::compute_partial_norm2<block_size>(
-                grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-                x->get_const_values() + col, x->get_stride(), work.get_data());
+            // comment the previous one
+            // kernel::compute_partial_norm2<block_size>(
+            //     grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
+            //     x->get_const_values() + col, x->get_stride(),
+            //     work.get_data());
             // functioname finalize_norm2_computation<block_size>
             kernel::finalize_norm2_computation<block_size>(
                 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
         }
+        // If add synchronize here or add the wait in the free, it works
         // exec->synchronize();
     }
+    // adding synchronize here does not work (seldom works)
+    // exec->synchronize();
+    // work is temporary array in the scope, it is destroied automatically
+    // (line 83-88 dpcpp/base/executor.dp.cpp)
+    // Thus, we think it is the deconstructor of work issue.
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
