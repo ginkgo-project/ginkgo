@@ -139,6 +139,26 @@ TYPED_TEST(IndexSet, CanBeConstructedFromNonSortedIndices)
 }
 
 
+TYPED_TEST(IndexSet, CanDetectContiguousIndexSets)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 3, 4, 5, 6}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    ASSERT_EQ(idx_set.get_num_subsets(), 1);
+    ASSERT_TRUE(idx_set.is_contiguous());
+}
+
+
+TYPED_TEST(IndexSet, CanDetectNonContiguousIndexSets)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    ASSERT_GT(idx_set.get_num_subsets(), 1);
+    ASSERT_FALSE(idx_set.is_contiguous());
+}
+
+
 TYPED_TEST(IndexSet, CanGetGlobalIndex)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};

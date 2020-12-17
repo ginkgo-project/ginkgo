@@ -56,11 +56,13 @@ namespace gko {
  * index set only stores the end-points of ranges, it can be quite efficient in
  * terms of storage.
  *
- * This class automatically merges index ranges that are continuous when new
- * indices are added. To access the subsets, two iterators are provided, an
- * Element iterator which can iterate through the elements in the subsets stored
- * in the index set. An interval iterator is also provided to iterate between
- * the the different subsets themselves.
+ * This class is particularly useful in storing continous ranges. For example,
+ * consider the index set (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 18, 19, 20, 21,
+ * 42). Instead of storing the entire array of indices, one can store subsets
+ * ([1,9), [10,13), [18,22), [42,43)), thereby only using half the storage.
+ *
+ * For fast querying we also store an additional cumulative array that contains
+ * information on the number of elements in each of the subsets.
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
@@ -69,9 +71,18 @@ namespace gko {
 template <typename IndexType = int32>
 class IndexSet {
 public:
+    /**
+     * The type of elements stored in the index set.
+     */
     using index_type = IndexType;
 
-    IndexSet()
+    /**
+     * Creates an index set not tied to any executor.
+     *
+     * This can only be empty. The executor can be set using the set_executor
+     * method at a later time.
+     */
+    IndexSet() noexcept
         : index_space_size_(0),
           exec_(nullptr),
           subsets_begin_(exec_),
@@ -79,6 +90,14 @@ public:
           superset_cumulative_indices_(exec_)
     {}
 
+    /**
+     * Creates an index set on the specified executor and the given size
+     *
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param size  the maximum index the index set it allowed to hold. This
+     *              is the size of the index space.
+     */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size)
         : index_space_size_(size),
@@ -89,6 +108,15 @@ public:
     {}
 
 
+    /**
+     * Creates an index set on the specified executor and the given size
+     *
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param size  the maximum index the index set it allowed to hold. This
+     *              is the size of the index space.
+     * @param indices  the indices that the index set should hold.
+     */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size, const gko::Array<index_type> &indices)
         : index_space_size_(size),
@@ -110,37 +138,116 @@ public:
         return exec_;
     }
 
+    /**
+     * Returns the size of the index set space.
+     *
+     * @return  the size of the index set space.
+     */
     index_type get_size() const { return this->index_space_size_; }
 
+    /**
+     * Returns if the index set is contiguous
+     *
+     * @return  if the index set is contiguous.
+     */
     bool is_contiguous() const { return (this->get_num_subsets() <= 1); }
 
+    /**
+     * Return the actual number of indices stored in the index set
+     *
+     * @return  number of indices stored in the index set
+     */
     index_type get_num_elems() const { return this->num_stored_indices_; };
 
+    /**
+     * Return the global index given a local index.
+     *
+     * Consider the set idx_set = (0, 1, 2, 4, 6, 7, 8, 9). This function
+     * returns the element at the global index k stored in the index set. For
+     * example, `idx_set.get_global_index(0) == 0` `idx_set.get_global_index(3)
+     * == 4` and `idx_set.get_global_index(7) == 9`
+     *
+     * @note This function returns a scalar value and needs a scalar value.
+     *       It is probably more efficient to use the Array functions that
+     *       take and return arrays which allow for more throughput.
+     *
+     * @param  the local index.
+     * @return  the global index from the index set.
+     */
     index_type get_global_index(const index_type &local_index) const;
 
+    /**
+     * Return the local index given a global index.
+     *
+     * Consider the set idx_set = (0, 1, 2, 4, 6, 7, 8, 9). This function
+     * returns the local index in the index set of the provided index set. For
+     * example, `idx_set.get_local_index(0) == 0` `idx_set.get_local_index(4)
+     * == 3` and `idx_set.get_local_index(6) == 4`.
+     *
+     * @note This function returns a scalar value and needs a scalar value.
+     *       It is probably more efficient to use the Array functions that
+     *       take and return arrays which allow for more throughput.
+     *
+     * @param  the global index.
+     * @return  the local index of the element in the index set.
+     */
     index_type get_local_index(const index_type &global_index) const;
 
+    /**
+     * This is an array version of the above scalar function.
+     *
+     * @param  the local index array.
+     * @return  the global index array from the index set.
+     */
     Array<index_type> get_global_indices_from_local(
         const Array<index_type> &local_indices) const;
 
+    /**
+     * This is an array version of the above scalar function.
+     *
+     * @param  the global index array.
+     * @return  the local index array from the index set.
+     */
     Array<index_type> get_local_indices_from_global(
         const Array<index_type> &global_indices) const;
 
+    /**
+     * Returns the number of subsets stored in the index set.
+     *
+     * @return  the number of stored subsets.
+     */
     index_type get_num_subsets() const
     {
         return this->subsets_begin_.get_num_elems();
     }
 
+    /**
+     * Returns a pointer to the beginning indices of the subsets.
+     *
+     * @return  a pointer to the beginning indices of the subsets.
+     */
     const index_type *get_subsets_begin() const
     {
         return this->subsets_begin_.get_const_data();
     }
 
+    /**
+     * Returns a pointer to the end indices of the subsets.
+     *
+     * @return  a pointer to the end indices of the subsets.
+     */
     const index_type *get_subsets_end() const
     {
         return this->subsets_end_.get_const_data();
     }
 
+    /**
+     * Returns a pointer to the cumulative indices of the superset of
+     * the subsets.
+     *
+     * @return  a pointer to the cumulative indices of the superset of the
+     *          subsets.
+     */
     const index_type *get_superset_indices() const
     {
         return this->superset_cumulative_indices_.get_const_data();
