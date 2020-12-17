@@ -164,13 +164,15 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(device_type_)[device_id_];
+    auto device = detail::get_devices(
+        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
     return device.is_host() || device.is_cpu();
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(device_type_)[device_id_];
+    auto device = detail::get_devices(
+        dpcpp_exec_info_.device_type_)[dpcpp_exec_info_.device_id];
     auto other_device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
     return ((device.is_host() || device.is_cpu()) &&

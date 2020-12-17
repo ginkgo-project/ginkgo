@@ -61,6 +61,7 @@ const MachineTopology *get_machine_topology()
             detail::initialized_machine_topology.store(true);
         }
     }
+    assert(detail::machine_topology.get() != nullptr);
     return detail::machine_topology.get();
 }
 

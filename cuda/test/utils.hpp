@@ -42,11 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+#if defined(__ICC) || defined(__ICL)
+#else
 
 // prevent device reset after each test
 auto no_reset_exec =
     gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(), true);
 
+#endif
 
 }  // namespace
 

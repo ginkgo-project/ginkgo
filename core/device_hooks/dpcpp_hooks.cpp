@@ -126,14 +126,15 @@ void DpcppExecutor::set_device_property() {}
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
     // Dummy check
-    return device_type_ == "cpu" || device_type_ == "host";
+    return this->dpcpp_exec_info_.device_type == "cpu" ||
+           this->dpcpp_exec_info_.device_type == "host";
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     // Dummy check
-    return dest_exec->get_device_type() == device_type_ &&
-           dest_exec->get_device_id() == device_id_;
+    return dest_exec->get_device_type() == this->dpcpp_exec_info_.device_type &&
+           dest_exec->get_device_id() == this->dpcpp_exec_info_.device_id;
 }
 
 
