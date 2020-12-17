@@ -87,6 +87,7 @@ TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes);
 TYPED_TEST(IndexSet, CanBeEmpty)
 {
     auto empty = gko::IndexSet<TypeParam>{};
+
     ASSERT_EQ(empty.get_size(), 0);
     ASSERT_EQ(empty.get_num_subsets(), 0);
 }
@@ -95,6 +96,7 @@ TYPED_TEST(IndexSet, CanBeEmpty)
 TYPED_TEST(IndexSet, CanBeConstructedWithSize)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     ASSERT_EQ(idx_set.get_size(), 10);
     ASSERT_EQ(idx_set.get_num_subsets(), 0);
 }
@@ -103,7 +105,9 @@ TYPED_TEST(IndexSet, CanBeConstructedWithSize)
 TYPED_TEST(IndexSet, CanBeCopyConstructed)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     auto idx_set2(idx_set);
+
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
 
@@ -111,7 +115,9 @@ TYPED_TEST(IndexSet, CanBeCopyConstructed)
 TYPED_TEST(IndexSet, CanBeMoveConstructed)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     auto idx_set2(std::move(idx_set));
+
     this->assert_equal_to_original(idx_set2);
 }
 
@@ -119,7 +125,9 @@ TYPED_TEST(IndexSet, CanBeMoveConstructed)
 TYPED_TEST(IndexSet, CanBeCopyAssigned)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     auto idx_set2 = idx_set;
+
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
 
@@ -127,7 +135,9 @@ TYPED_TEST(IndexSet, CanBeCopyAssigned)
 TYPED_TEST(IndexSet, CanBeMoveAssigned)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     auto idx_set2 = std::move(idx_set);
+
     this->assert_equal_to_original(idx_set2);
 }
 
@@ -135,6 +145,7 @@ TYPED_TEST(IndexSet, CanBeMoveAssigned)
 TYPED_TEST(IndexSet, KnowsItsSize)
 {
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
     ASSERT_EQ(idx_set.get_size(), 10);
 }
 

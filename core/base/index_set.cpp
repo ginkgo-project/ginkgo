@@ -70,6 +70,26 @@ void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType> &indices)
 
 
 template <typename IndexType>
+bool IndexSet<IndexType>::is_element(const IndexType &input_index) const
+{
+    auto exec = this->get_executor();
+    auto loc_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{input_index});
+    auto glob_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{input_index});
+
+    GKO_ASSERT(this->get_num_subsets() >= 1);
+    exec->run(index_set::make_global_to_local(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &glob_idx, &loc_idx));
+    auto is_element_flag = (make_temporary_clone(exec->get_master(), &loc_idx)
+                                .get()
+                                ->get_data()[0]) != -1;
+    return is_element_flag;
+}
+
+
+template <typename IndexType>
 IndexType IndexSet<IndexType>::get_global_index(const IndexType &index) const
 {
     auto exec = this->get_executor();
@@ -82,7 +102,10 @@ IndexType IndexSet<IndexType>::get_global_index(const IndexType &index) const
     exec->run(index_set::make_local_to_global(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &loc_idx, &glob_idx));
-    return glob_idx.get_data()[0];
+    auto host_glob_idx = make_temporary_clone(exec->get_master(), &glob_idx)
+                             .get()
+                             ->get_data()[0];
+    return host_glob_idx;
 }
 
 
@@ -99,12 +122,14 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType &index) const
     exec->run(index_set::make_global_to_local(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &glob_idx, &loc_idx));
-    return loc_idx.get_data()[0];
+    auto host_loc_idx =
+        make_temporary_clone(exec->get_master(), &loc_idx).get()->get_data()[0];
+    return host_loc_idx;
 }
 
 
 template <typename IndexType>
-Array<IndexType> IndexSet<IndexType>::get_global_indices_from_local(
+Array<IndexType> IndexSet<IndexType>::get_global_indices(
     const Array<IndexType> &local_indices) const
 {
     auto exec = this->get_executor();
@@ -120,7 +145,7 @@ Array<IndexType> IndexSet<IndexType>::get_global_indices_from_local(
 
 
 template <typename IndexType>
-Array<IndexType> IndexSet<IndexType>::get_local_indices_from_global(
+Array<IndexType> IndexSet<IndexType>::get_local_indices(
     const Array<IndexType> &global_indices) const
 {
     auto exec = this->get_executor();

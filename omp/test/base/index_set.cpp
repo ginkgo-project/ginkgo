@@ -113,7 +113,6 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReference)
     auto ref_begin_comp = gko::Array<TypeParam>{this->ref};
     auto ref_end_comp = gko::Array<TypeParam>{this->ref};
     auto ref_superset_comp = gko::Array<TypeParam>{this->ref};
-
     auto omp_begin_comp = gko::Array<TypeParam>{this->omp};
     auto omp_end_comp = gko::Array<TypeParam>{this->omp};
     auto omp_superset_comp = gko::Array<TypeParam>{this->omp};
@@ -149,7 +148,6 @@ TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
     auto ref_superset_comp = gko::Array<TypeParam>{
         this->ref, ref_idx_set.get_superset_indices(),
         ref_idx_set.get_superset_indices() + ref_idx_set.get_num_subsets()};
-
     auto omp_idx_set = gko::IndexSet<TypeParam>(this->omp, 520, rand_arr);
     auto omp_begin_comp = gko::Array<TypeParam>{
         this->omp, omp_idx_set.get_subsets_begin(),
@@ -193,7 +191,6 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
     auto ref_superset_comp = gko::Array<TypeParam>{
         this->ref, ref_idx_set.get_superset_indices(),
         ref_idx_set.get_superset_indices() + ref_idx_set.get_num_subsets()};
-
     auto omp_idx_set = gko::IndexSet<TypeParam>(this->omp, 520, rand_arr);
     auto omp_begin_comp = gko::Array<TypeParam>{
         this->omp, omp_idx_set.get_subsets_begin(),
