@@ -108,13 +108,14 @@ using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 namespace {
 
 
-template <int info, typename ValueType, typename IndexType>
+template <int info, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   matrix::Dense<ValueType> *c,
-                   const matrix::Dense<ValueType> *alpha = nullptr,
-                   const matrix::Dense<ValueType> *beta = nullptr)
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   matrix::Dense<OutputValueType> *c,
+                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
+                   const matrix::Dense<OutputValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
     constexpr int num_thread_per_worker =
@@ -194,10 +195,12 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 }  // namespace
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType> *a,
+          const matrix::Dense<InputValueType> *b,
+          matrix::Dense<OutputValueType> *c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -212,7 +215,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
         components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
+                               c->get_num_stored_elements(),
+                               zero<OutputValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -221,16 +225,18 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<MatrixValueType> *alpha,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   const matrix::Dense<OutputValueType> *beta,
+                   matrix::Dense<OutputValueType> *c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -253,7 +259,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         alpha, beta);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

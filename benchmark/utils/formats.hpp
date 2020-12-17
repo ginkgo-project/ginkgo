@@ -59,7 +59,8 @@ namespace formats {
 
 
 std::string available_format =
-    "coo, csr, ell, sellp, hybrid, hybrid0, hybrid25, hybrid33, hybrid40, "
+    "coo, csr, ell, fell, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
+    "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
 #ifdef HAS_CUDA
@@ -89,6 +90,9 @@ std::string format_description =
     "csri: Ginkgo's CSR implementation with inbalance strategy.\n"
     "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
+    "Matrix-Vector Multiplication on CUDA.\n"
+    "fell: float Ellpack format according to Bell and Garland: Efficient "
+    "Sparse "
     "Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
@@ -204,6 +208,23 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<etype>>},
+        {"fell",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<> &data) {
+             gko::matrix_data<float> conv_data;
+             conv_data.size = data.size;
+             conv_data.nonzeros.resize(data.nonzeros.size());
+             auto it = conv_data.nonzeros.begin();
+             for (auto &el : data.nonzeros) {
+                 it->row = el.row;
+                 it->column = el.column;
+                 it->value = el.value;
+                 ++it;
+             }
+             auto mat = gko::matrix::Ell<float>::create(std::move(exec));
+             mat->read(conv_data);
+             return mat;
+         }},
 #ifdef HAS_CUDA
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         {"cusp_csr", read_matrix_from_data<cusp_csr>},
@@ -212,8 +233,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#else // CUDA_VERSION >= 11000
-        // cusp_csr, cusp_coo use the generic ones from CUDA 11
+#else  // CUDA_VERSION >= 11000
+       // cusp_csr, cusp_coo use the generic ones from CUDA 11
         {"cusp_csr", read_matrix_from_data<cusp_gcsr>},
         {"cusp_coo", read_matrix_from_data<cusp_gcoo>},
 #endif
@@ -260,7 +281,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>}};
+        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>}
+};
 // clang-format on
 
 
