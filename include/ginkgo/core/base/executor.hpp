@@ -1572,7 +1572,10 @@ public:
      *
      * @return a string representing the device type
      */
-    std::string get_device_type() const noexcept { return device_type_; }
+    std::string get_device_type() const noexcept
+    {
+        return dpcpp_exec_info_.device_type;
+    }
 
 protected:
     void set_device_property();
@@ -1585,6 +1588,7 @@ protected:
                       this->dpcpp_exec_info_.device_type.end(),
                       [](char &c) { c = std::tolower(c); });
         this->set_device_property();
+        this->dpcpp_exec_info_.device_id = device_id;
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1609,6 +1613,7 @@ private:
     std::shared_ptr<Executor> master_;
 
     struct dpcpp_exec_info : public exec_info {
+        int device_id;
         std::string device_type;
         int num_computing_units;
         std::vector<size_type> subgroup_sizes{};

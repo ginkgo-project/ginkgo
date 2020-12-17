@@ -151,8 +151,8 @@ public:
      */
     const mach_topo_obj_info &get_pu(size_type id)
     {
-        GKO_ENSURE_IN_BOUNDS(id, pus_.size());
-        return pus_[id];
+        GKO_ENSURE_IN_BOUNDS(id, this->pus_.size());
+        return this->pus_[id];
     }
 
 
@@ -163,8 +163,8 @@ public:
      */
     const mach_topo_obj_info &get_core(size_type id)
     {
-        GKO_ENSURE_IN_BOUNDS(id, cores_.size());
-        return cores_[id];
+        GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
+        return this->cores_[id];
     }
 
 
@@ -175,33 +175,33 @@ public:
      */
     const mach_topo_obj_info &get_pci_device(size_type id)
     {
-        GKO_ENSURE_IN_BOUNDS(id, pci_devices_.size());
-        return pci_devices_[id];
+        GKO_ENSURE_IN_BOUNDS(id, this->pci_devices_.size());
+        return this->pci_devices_[id];
     }
 
 
     /**
      * Get the number of PU objects stored in this Topology tree.
      */
-    size_type get_num_pus() const { return pus_.size(); }
+    size_type get_num_pus() const { return this->pus_.size(); }
 
 
     /**
      * Get the number of core objects stored in this Topology tree.
      */
-    size_type get_num_cores() const { return cores_.size(); }
+    size_type get_num_cores() const { return this->cores_.size(); }
 
 
     /**
      * Get the number of PCI device objects stored in this Topology tree.
      */
-    size_type get_num_pci_devices() const { return pci_devices_.size(); }
+    size_type get_num_pci_devices() const { return this->pci_devices_.size(); }
 
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
      */
-    size_type get_num_numas() const { return num_numas_; }
+    size_type get_num_numas() const { return this->num_numas_; }
 
 protected:
     MachineTopology()
@@ -216,7 +216,8 @@ protected:
         load_objects(HWLOC_OBJ_PU, this->pus_);
         // load_objects(HWLOC_OBJ_PCI_DEVICE, this->pci_devices_);
 
-        num_numas_ = hwloc_get_nbobjs_by_type(topo_.get(), HWLOC_OBJ_PACKAGE);
+        num_numas_ =
+            hwloc_get_nbobjs_by_type(this->topo_.get(), HWLOC_OBJ_PACKAGE);
 #else
 
         this->topo_ = topo_manager<hwloc_topology>();
@@ -276,9 +277,9 @@ protected:
     void load_objects(hwloc_obj_type_t type,
                       std::vector<mach_topo_obj_info> &vector)
     {
-        unsigned nbcores = hwloc_get_nbobjs_by_type(topo_.get(), type);
+        unsigned nbcores = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
         for (unsigned i = 0; i < nbcores; i++) {
-            hwloc_obj_t obj = hwloc_get_obj_by_type(topo_.get(), type, i);
+            hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
             vector.push_back(
                 mach_topo_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
                                    obj->logical_index, obj->os_index});

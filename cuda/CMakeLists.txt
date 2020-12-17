@@ -155,7 +155,7 @@ ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
-target_link_libraries(ginkgo_cuda PUBLIC ginkgo_core_device)
+target_link_libraries(ginkgo_cuda PRIVATE ginkgo_core_device)
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
