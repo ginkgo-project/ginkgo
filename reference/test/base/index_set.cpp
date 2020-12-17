@@ -88,7 +88,6 @@ protected:
         }
     }
 
-
     std::shared_ptr<const gko::Executor> exec;
 };
 

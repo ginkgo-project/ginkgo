@@ -132,14 +132,12 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
     for (auto i = 0; i < global_indices->get_num_elems(); ++i) {
         auto index = global_indices->get_const_data()[i];
         GKO_ASSERT(index < index_space_size);
-        auto bucket = std::distance(
-            subset_begin->get_const_data(),
-            std::lower_bound(
-                subset_begin->get_const_data(),
-                subset_begin->get_const_data() + subset_begin->get_num_elems(),
-                index, [](const IndexType &sub_idx, const IndexType idx) {
-                    return sub_idx <= idx;
-                }));
+        auto bucket =
+            std::distance(subset_begin->get_const_data(),
+                          std::upper_bound(subset_begin->get_const_data(),
+                                           subset_begin->get_const_data() +
+                                               subset_begin->get_num_elems(),
+                                           index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
         if (subset_end->get_const_data()[shifted_bucket] <= index) {
             local_indices->get_data()[i] = -1;
@@ -169,17 +167,13 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
         GKO_ASSERT(
             index <=
             (superset_indices
-                 ->get_const_data()[superset_indices->get_num_elems() - 1] -
-             1));
+                 ->get_const_data()[superset_indices->get_num_elems() - 1]));
         auto bucket = std::distance(
             superset_indices->get_const_data(),
-            std::lower_bound(superset_indices->get_const_data(),
+            std::upper_bound(superset_indices->get_const_data(),
                              superset_indices->get_const_data() +
                                  superset_indices->get_num_elems(),
-                             index,
-                             [](const IndexType &sup_idx, const IndexType idx) {
-                                 return sup_idx <= idx;
-                             }));
+                             index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
         global_indices->get_data()[i] =
             subset_begin->get_const_data()[shifted_bucket] + index -
