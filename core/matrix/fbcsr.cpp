@@ -147,21 +147,6 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-Fbcsr<ValueType, IndexType>::Fbcsr(const std::shared_ptr<const Executor> exec,
-                                   const dim<2> &size,
-                                   const size_type num_nonzeros,
-                                   const int block_size)
-    : EnableLinOp<Fbcsr>(exec, size),
-      bs_{block_size},
-      nbcols_{blockutils::getNumBlocks(block_size, size[1])},
-      values_(exec, num_nonzeros),
-      col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
-                                               num_nonzeros)),
-      row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1)
-{}
-
-
-template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {
