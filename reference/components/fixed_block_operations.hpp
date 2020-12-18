@@ -55,7 +55,7 @@ using Blkv_t = blockutils::FixedBlock<ValueType, bs, bs>;
 
 template <typename ValueType, int block_size>
 inline void swap_rows(const int row1, const int row2,
-                      Blkv_t<ValueType, bs> &block)
+                      Blkv_t<ValueType, block_size> &block)
 {
     for (int i = 0; i < block_size; ++i) {
         std::swap(block(row1, i), block(row2, i));
@@ -63,24 +63,24 @@ inline void swap_rows(const int row1, const int row2,
 }
 
 
-template <typename ValueType, int bs>
+template <typename ValueType, int block_size>
 inline bool apply_gauss_jordan_transform(const int row, const int col,
-                                         Blkv_t<ValueType, bs> &block)
+                                         Blkv_t<ValueType, block_size> &block)
 {
     const auto d = block(row, col);
     if (d == zero<ValueType>()) {
         return false;
     }
-    for (int i = 0; i < bs; ++i) {
+    for (int i = 0; i < block_size; ++i) {
         block(i, col) /= -d;
     }
     block(row, col) = zero<ValueType>();
-    for (int i = 0; i < bs; ++i) {
-        for (int j = 0; j < bs; ++j) {
+    for (int i = 0; i < block_size; ++i) {
+        for (int j = 0; j < block_size; ++j) {
             block(i, j) += block(i, col) * block(row, j);
         }
     }
-    for (IndexType j = 0; j < bs; ++j) {
+    for (int j = 0; j < block_size; ++j) {
         block(row, j) /= d;
     }
     block(row, col) = one<ValueType>() / d;
@@ -99,7 +99,7 @@ inline bool invert_block(int *const perm, Blkv_t<ValueType, block_size> &block)
         for (int i = k + 1; i < block_size; i++)
             if (abs(block(k, k)) < abs(block(i, k))) cp = i;
 
-        swap_rows(k, cp, block_size, block, stride);
+        swap_rows(k, cp, block);
         swap(perm[k], perm[cp]);
 
         const bool status =
@@ -107,6 +107,24 @@ inline bool invert_block(int *const perm, Blkv_t<ValueType, block_size> &block)
         if (!status) return false;
     }
     return true;
+}
+
+/**
+ * @brief Permutes the given matrix so that new_mat[p[i]] = mat[i]
+ *
+ * The given matrix is modified.
+ * @param[in,out] mat  The matrix to permute
+ * @param[in] perm  The permutation vector
+ */
+template <typename ValueType, int block_size>
+inline void permute_block(Blkv_t<ValueType, block_size> &mat,
+                          const int *const perm)
+{
+    Blkv_t<ValueType, block_size> temp;
+    for (int i = 0; i < block_size; i++)
+        for (int j = 0; j < block_size; j++) temp(i, j) = mat(i, j);
+    for (int i = 0; i < block_size; i++)
+        for (int j = 0; j < block_size; j++) mat(perm[i], j) = temp(i, j);
 }
 
 

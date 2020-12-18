@@ -17,7 +17,9 @@ target_sources(ginkgo_dpcpp
     components/prefix_sum.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
+    factorization/bilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
+    factorization/block_factorization_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
     factorization/par_ilu_kernels.dp.cpp

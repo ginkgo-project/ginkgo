@@ -82,6 +82,8 @@ target_sources(ginkgo_cuda
     components/precision_conversion.cu
     components/prefix_sum.cu
     factorization/factorization_kernels.cu
+    factorization/block_factorization_kernels.cu
+    factorization/bilu_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
     factorization/par_ic_kernels.cu

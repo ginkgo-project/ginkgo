@@ -30,82 +30,66 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
+#include "core/factorization/bilu_kernels.hpp"
 
 
-#include <memory>
+#include <ginkgo/core/base/array.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/fbcsr.hpp>
+#include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/device_guard.hpp"
 
 
 namespace gko {
 namespace kernels {
-
-
-#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)  \
-    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Fbcsr<ValueType, IndexType> *system_matrix)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
-
-
-namespace omp {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace omp
-
-
 namespace cuda {
+/**
+ * @brief The Bilu factorization namespace.
+ *
+ * @ingroup factor
+ */
 namespace bilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
 
+template <typename ValueType, typename IndexType>
+void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::Fbcsr<ValueType, IndexType> *const m)
+{
+    const auto id = exec->get_device_id();
+    auto handle = exec->get_cusparse_handle();
+    gko::cuda::device_guard g{id};
+    auto desc = cusparse::create_mat_descr();
+    auto info = cusparse::create_ilu0_info();
+
+    // get buffer size for ILU
+    IndexType num_rows = m->get_size()[0];
+    IndexType nnz = m->get_num_stored_elements();
+    size_type buffer_size{};
+    cusparse::ilu0_buffer_size(handle, num_rows, nnz, desc,
+                               m->get_const_values(), m->get_const_row_ptrs(),
+                               m->get_const_col_idxs(), info, buffer_size);
+
+    Array<char> buffer{exec, buffer_size};
+
+    // set up ILU(0)
+    cusparse::ilu0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
+                            m->get_const_row_ptrs(), m->get_const_col_idxs(),
+                            info, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
+                            buffer.get_data());
+
+    cusparse::ilu0(handle, num_rows, nnz, desc, m->get_values(),
+                   m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
+                   CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+
+    cusparse::destroy(info);
+    cusparse::destroy(desc);
 }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
+
+
+}  // namespace bilu_factorization
 }  // namespace cuda
-
-
-namespace reference {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace reference
-
-
-namespace hip {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_

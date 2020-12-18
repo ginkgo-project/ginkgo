@@ -30,82 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
-
-
-#include <memory>
-
-
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/fbcsr.hpp>
+#include "core/factorization/bilu_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-
-
-#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)  \
-    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Fbcsr<ValueType, IndexType> *system_matrix)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
-
-
 namespace omp {
+/**
+ * @brief The Bilu factorization namespace.
+ *
+ * @ingroup factor
+ */
 namespace bilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}
+template <typename ValueType, typename IndexType>
+void compute_bilu(std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::Fbcsr<ValueType, IndexType> *m) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
+
+
+}  // namespace bilu_factorization
 }  // namespace omp
-
-
-namespace cuda {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace cuda
-
-
-namespace reference {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace reference
-
-
-namespace hip {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
