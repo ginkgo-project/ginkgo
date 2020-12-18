@@ -332,7 +332,15 @@ protected:
      * @param block_size Size of the small dense square blocks
      */
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
-          size_type num_nonzeros, int block_size);
+          size_type num_nonzeros, int block_size)
+        : EnableLinOp<Fbcsr>(exec, size),
+          bs_{block_size},
+          nbcols_{blockutils::getNumBlocks(block_size, size[1])},
+          values_(exec, num_nonzeros),
+          col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
+                                                   num_nonzeros)),
+          row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1)
+    {}
 
     /**
      * Creates a FBCSR matrix from already allocated (and initialized) row
