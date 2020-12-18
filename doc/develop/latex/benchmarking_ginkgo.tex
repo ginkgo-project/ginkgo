@@ -153,5 +153,6 @@ The supported environment variables are described in the following list\+:
 \item {\ttfamily S\+O\+L\+V\+E\+R\+S\+\_\+\+P\+R\+E\+C\+I\+S\+I\+ON=$<$precision$>$} -\/ the minimal residual reduction before which the solver should stop. The default is {\ttfamily 1e-\/6}.
 \item {\ttfamily S\+O\+L\+V\+E\+R\+S\+\_\+\+M\+A\+X\+\_\+\+I\+T\+E\+R\+A\+T\+I\+ON=$<$number$>$} -\/ the maximum number of iterations with which a solver should be ran. The default is {\ttfamily 10000}.
 \item {\ttfamily S\+O\+L\+V\+E\+R\+S\+\_\+\+R\+HS=\{unit, random\}} -\/ whether to use a vector of all ones or random values as the right-\/hand side in solver benchmarks. Default is {\ttfamily unit}.
-\item {\ttfamily D\+E\+T\+A\+I\+L\+ED=\{0,1\}} -\/ selects whether detailed benchmarks should be ran for the solver benchmarks, can be either {\ttfamily 0} (off) or {\ttfamily 1} (on). The default is {\ttfamily 0}. 
+\item {\ttfamily D\+E\+T\+A\+I\+L\+ED=\{0,1\}} -\/ selects whether detailed benchmarks should be ran for the solver benchmarks, can be either {\ttfamily 0} (off) or {\ttfamily 1} (on). The default is {\ttfamily 0}.
+\item {\ttfamily G\+P\+U\+\_\+\+T\+I\+M\+ER=\{true, false\}} -\/ If set to {\ttfamily true}, use the gpu timer, which is valid for cuda/hip executor, to measure the timing. Default is {\ttfamily false}. 
 \end{DoxyItemize}

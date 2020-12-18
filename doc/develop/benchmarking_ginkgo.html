@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/228373510 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/231603499 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -183,7 +183,8 @@ benchmark options">available benchmark options</a>. Here are the most important 
 <li><code>SOLVERS_PRECISION=&lt;precision&gt;</code> - the minimal residual reduction before which the solver should stop. The default is <code>1e-6</code>.</li>
 <li><code>SOLVERS_MAX_ITERATION=&lt;number&gt;</code> - the maximum number of iterations with which a solver should be ran. The default is <code>10000</code>.</li>
 <li><code>SOLVERS_RHS={unit, random}</code> - whether to use a vector of all ones or random values as the right-hand side in solver benchmarks. Default is <code>unit</code>.</li>
-<li><code>DETAILED={0,1}</code> - selects whether detailed benchmarks should be ran for the solver benchmarks, can be either <code>0</code> (off) or <code>1</code> (on). The default is <code>0</code>. </li>
+<li><code>DETAILED={0,1}</code> - selects whether detailed benchmarks should be ran for the solver benchmarks, can be either <code>0</code> (off) or <code>1</code> (on). The default is <code>0</code>.</li>
+<li><code>GPU_TIMER={true, false}</code> - If set to <code>true</code>, use the gpu timer, which is valid for cuda/hip executor, to measure the timing. Default is <code>false</code>. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
