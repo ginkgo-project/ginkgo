@@ -37,6 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/factorization/bilu_kernels.hpp"
+#include "core/factorization/block_factorization_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -1143,6 +1145,24 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL);
+
 
 }  // namespace factorization
 
@@ -1189,6 +1209,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ic_factorization
+
+
+namespace bilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
+
+
+}  // namespace bilu_factorization
 
 
 namespace par_ict_factorization {

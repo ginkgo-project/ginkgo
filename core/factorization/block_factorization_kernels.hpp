@@ -74,7 +74,7 @@ namespace kernels {
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL(ValueType,  \
                                                              IndexType); \
     template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType);
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

@@ -46,9 +46,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)  \
-    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Fbcsr<ValueType, IndexType> *system_matrix)
+#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)         \
+    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec,        \
+                      matrix::Fbcsr<ValueType, IndexType> *system_matrix, \
+                      matrix::Fbcsr<ValueType, IndexType> *l_factor       \
+                          matrix::Fbcsr<ValueType, IndexType> *u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
@@ -57,7 +59,7 @@ namespace kernels {
 
 
 namespace omp {
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
@@ -66,7 +68,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 
 namespace cuda {
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
@@ -75,7 +77,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 
 namespace reference {
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
@@ -84,7 +86,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 
 namespace hip {
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
@@ -93,7 +95,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 
 namespace dpcpp {
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 

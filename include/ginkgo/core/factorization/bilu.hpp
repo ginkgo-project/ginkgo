@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/matrix_strategies.hpp>
 
 
 namespace gko {
@@ -98,11 +97,37 @@ public:
     static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
         delete;
 
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * @brief `true` means it is known that the matrix given to this
+         *        factory will be sorted first by row, then by column index,
+         *        `false` means it is unknown or not sorted, so an additional
+         *        sorting step will be performed during the factorization
+         *        (it will not change the matrix given).
+         *        The matrix must be sorted for this factorization to work.
+         *
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this factorization might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+    };
+    GKO_ENABLE_LIN_OP_FACTORY(Bilu, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
 protected:
-    Bilu(std::shared_ptr<const gko::LinOp> system_matrix)
+    Bilu(const Factory *factory,
+         const std::shared_ptr<const gko::LinOp> system_matrix)
         : Composition<ValueType>{system_matrix->get_executor()}
     {
-        generate_l_u(system_matrix)->move_to(this);
+        generate_block_LU(system_matrix, parameters_.skip_sorting)
+            ->move_to(this);
     }
 
     /**
@@ -113,13 +138,14 @@ protected:
      * the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertible to a Fbcsr
-     *                              Matrix, otherwise, an exception is thrown.
+     *                       @note: system_matrix must be convertible to
+     *                              a Fbcsr matrix, otherwise,
+     *                              an exception is thrown.
      * @return A Composition, containing the incomplete block LU factors for the
      *         given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_block_LU(
-        const std::shared_ptr<const LinOp> system_matrix) const;
+        std::shared_ptr<const LinOp> system_matrix, bool skip_sorting) const;
 };
 
 

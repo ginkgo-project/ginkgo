@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace omp {
 /**
  * @brief The factorization namespace.
  *
@@ -65,6 +65,7 @@ IndexType count_missing_elements(const IndexType num_rows,
 {
     IndexType missing_elements{};
     // if row >= num_cols, diagonal elements no longer exist
+#pragma omp parallel for reduction(+ : missing_elements)
     for (IndexType row = 0; row < num_rows && row < num_cols; ++row) {
         bool was_diagonal_found{false};
         for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
@@ -83,92 +84,9 @@ IndexType count_missing_elements(const IndexType num_rows,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
+void add_diagonal_blocks(const std::shared_ptr<const OmpExecutor> exec,
                          matrix::Fbcsr<ValueType, IndexType> *const mtx,
-                         bool /*is_sorted*/)
-{
-    // const auto values = mtx->get_const_values();
-    const auto col_idxs = mtx->get_const_col_idxs();
-    IndexType *const row_ptrs = mtx->get_row_ptrs();
-    const int bs = mtx->get_block_size();
-    const blockutils::DenseBlocksView<const ValueType, IndexType> values(
-        mtx->get_const_values(), bs, bs);
-    const auto num_brows = static_cast<IndexType>(mtx->get_num_block_rows());
-    const auto num_bcols = static_cast<IndexType>(mtx->get_num_block_cols());
-
-    const auto missing_blocks =
-        count_missing_elements(num_brows, num_bcols, col_idxs, row_ptrs);
-
-    if (missing_blocks == 0) {
-        return;
-    }
-
-    const auto old_nbnz =
-        blockutils::getNumBlocks(bs * bs, mtx->get_num_stored_elements());
-    const auto new_nbnz = old_nbnz + missing_blocks;
-    Array<ValueType> new_values_array{exec, new_nbnz};
-    Array<IndexType> new_col_idxs_array{exec, new_nbnz};
-    // auto new_values = new_values_array.get_data();
-    blockutils::DenseBlocksView<ValueType, IndexType> new_values(
-        new_values_array.get_data(), bs, bs);
-    auto new_col_idxs = new_col_idxs_array.get_data();
-    IndexType added_blocks{};
-    // row_ptrs will be updated in-place
-
-    for (IndexType row = 0; row < num_brows; ++row) {
-        bool diagonal_handled{false};
-        const IndexType old_row_ptrs_start{row_ptrs[row]};
-        const IndexType old_row_ptrs_end{row_ptrs[row + 1]};
-        const IndexType new_row_ptrs_start = old_row_ptrs_start + added_blocks;
-
-        row_ptrs[row] = new_row_ptrs_start;
-        for (IndexType old_idx = old_row_ptrs_start; old_idx < old_row_ptrs_end;
-             ++old_idx) {
-            auto new_idx = old_idx + added_blocks;
-            const auto col_idx = col_idxs[old_idx];
-            if (!diagonal_handled && col_idx > row) {
-                const auto start_cols = col_idxs + old_idx;
-                const auto end_cols = col_idxs + old_row_ptrs_end;
-                // expect row to not be sorted, so search for a diagonal entry
-                if (std::find(start_cols, end_cols, row) != end_cols) {
-                    // no need to add diagonal since diagonal is already present
-                    diagonal_handled = true;
-                }
-                // if diagonal was not found, add it
-                if (!diagonal_handled) {
-                    for (int i = 0; i < bs; i++)
-                        for (int j = 0; j < bs; j++)
-                            new_values(new_idx, i, j) = zero<ValueType>();
-                    new_col_idxs[new_idx] = row;
-                    ++added_blocks;
-                    new_idx = old_idx + added_blocks;
-                    diagonal_handled = true;
-                }
-            }
-            if (row >= num_bcols || col_idx == row) {
-                diagonal_handled = true;
-            }
-            for (int i = 0; i < bs; i++)
-                for (int j = 0; j < bs; j++)
-                    new_values(new_idx, i, j) = values(old_idx, i, j);
-            new_col_idxs[new_idx] = col_idx;
-        }
-        if (row < num_bcols && !diagonal_handled) {
-            const auto new_idx = old_row_ptrs_end + added_blocks;
-            for (int i = 0; i < bs; i++)
-                for (int j = 0; j < bs; j++)
-                    new_values(new_idx, i, j) = zero<ValueType>();
-            new_col_idxs[new_idx] = row;
-            diagonal_handled = true;
-            ++added_blocks;
-        }
-    }
-    row_ptrs[num_brows] = new_nbnz;
-
-    matrix::FbcsrBuilder<ValueType, IndexType> mtx_builder{mtx};
-    mtx_builder.get_value_array() = std::move(new_values_array);
-    mtx_builder.get_col_idx_array() = std::move(new_col_idxs_array);
-}
+                         bool /*is_sorted*/) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_BLOCKS_KERNEL);
@@ -176,32 +94,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_BLU(
-    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<const OmpExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *const system_matrix,
-    IndexType *const l_row_ptrs, IndexType *const u_row_ptrs)
-{
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const int bs = system_matrix->get_block_size();
-    IndexType l_nnz{};
-    IndexType u_nnz{};
-
-    l_row_ptrs[0] = 0;
-    u_row_ptrs[0] = 0;
-    for (size_type row = 0; row < system_matrix->get_num_block_rows(); ++row) {
-        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
-            size_type col = col_idxs[el];
-            // don't count diagonal
-            if (col < row) l_nnz += bs * bs;
-            if (col > row) u_nnz += bs * bs;
-        }
-        // add diagonal again
-        l_nnz += bs * bs;
-        u_nnz += bs * bs;
-        l_row_ptrs[row + 1] = l_nnz;
-        u_row_ptrs[row + 1] = u_nnz;
-    }
-}
+    IndexType *const l_row_ptrs,
+    IndexType *const u_row_ptrs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_BLU_KERNEL);
@@ -209,7 +105,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_BLU(
-    const std::shared_ptr<const ReferenceExecutor> exec,
+    const std::shared_ptr<const OmpExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *const system_matrix,
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
@@ -230,6 +126,7 @@ void initialize_BLU(
     const auto col_idxs_u = fb_u->get_col_idxs();
     Dbv vals_u(fb_u->get_values(), bs, bs);
 
+#pragma omp parallel for
     for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {
         IndexType current_index_l = row_ptrs_l[row];
         IndexType current_index_u =
@@ -273,6 +170,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace factorization
-}  // namespace reference
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

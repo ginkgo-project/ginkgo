@@ -30,10 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/bilu_kernels.hpp"
+#include "core/factorization/par_bilu_kernels.hpp"
 
 
-#include <algorithm>
 #include <memory>
 
 
@@ -41,115 +40,111 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "reference/components/fixed_block_operations.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The block ILU factorization namespace.
+ * @brief The parallel iterative block ILU factorization namespace.
  *
  * @ingroup factor
  */
-namespace bilu_factorization {
+namespace par_bilu_factorization {
 
-
-template <typename ValueType, typename IndexType, int bs>
-static blockutils::FixedBlock<ValueType, bs, bs> extract_diag_block(
-    const IndexType blk_row, const IndexType *const browptr,
-    const IndexType *const bcolidx,
-    const blockutils::FixedBlock<ValueType, bs, bs> *const vals)
-{
-    const IndexType *const didx = std::find(
-        bcolidx + browptr[blk_row], bcolidx + browptr[blk_row + 1], blk_row);
-    const ptrdiff_t dbz = didx - bcolidx;
-    blockutils::FixedBlock<ValueType, bs, bs> diag;
-    for (int i = 0; i < bs; i++)
-        for (int j = 0; j < bs; j++) diag(i, j) = vals[dbz](i, j);
-    return diag;
-}
 
 template <typename ValueType, typename IndexType, int bs>
 static void compute_bilu_impl(
     const std::shared_ptr<const ReferenceExecutor> exec,
-    matrix::Fbcsr<ValueType, IndexType> *const sysmat)
+    const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+    matrix::Fbcsr<ValueType, IndexType> *const l_factor,
+    matrix::Fbcsr<ValueType, IndexType> *const u_factor)
 {
     const IndexType *const col_idxs = sysmat->get_const_col_idxs();
     const IndexType *const row_ptrs = sysmat->get_const_row_ptrs();
+    const IndexType *const row_ptrs_l = l_factor->get_const_row_ptrs();
+    const IndexType *const col_ptrs_u = u_factor->get_const_row_ptrs();
+    const IndexType *const col_idxs_l = l_factor->get_const_col_idxs();
+    const IndexType *const row_idxs_u = u_factor->get_const_col_idxs();
 
     using Blk_t = blockutils::FixedBlock<ValueType, bs, bs>;
-    const auto vals = reinterpret_cast<Blk_t *>(sysmat->get_values());
+    const auto vals = reinterpret_cast<const Blk_t *>(sysmat->get_values());
+    const auto vals_l = reinterpret_cast<Blk_t *>(l_factor->get_values());
+    const auto vals_u = reinterpret_cast<Blk_t *>(u_factor->get_values());
 
     for (IndexType ibrow = 0;
          ibrow < static_cast<IndexType>(sysmat->get_num_block_rows());
          ++ibrow) {
         for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
              ibz++) {
+            // const auto row = row_idxs[el];
             const auto jbcol = col_idxs[ibz];
+            // const auto val = vals[el];
+            auto lbz = row_ptrs_l[ibrow];
+            auto ubz = col_ptrs_u[jbcol];
 
             Blk_t sum;
+            Blk_t last_op;
             ValueType *const sumarr = &sum(0, 0);
+            ValueType *const lastarr = &last_op(0, 0);
             const ValueType *const valarr = &vals[ibz](0, 0);
             for (int i = 0; i < bs * bs; i++) {
                 sumarr[i] = valarr[i];
+                lastarr[i] = zero<ValueType>;
             }
 
-            // Calculate: sum = system_matrix(ibrow, jbcol) -
-            //   block_dot(l_factor(ibrow, :), u_factor(:, jbcol))
-            for (IndexType kbz = row_ptrs[ibrow]; kbz < row_ptrs[ibrow + 1];
-                 kbz++) {
-                const auto kcol = col_idxs[kbz];
-
-                // we only cover k s.t. k < j and k < i
-                if (kcol >= jbcol || kcol >= ibrow) continue;
-
-                // search the kcol'th row for the jbcol'th column
-                IndexType foundbz = -1;
-                for (IndexType ubz = row_ptrs[kcol]; ubz < row_ptrs[kcol + 1];
-                     ubz++) {
-                    // skip entries in the lower-triangular part
-                    if (col_idxs[ubz] < kcol) continue;
-                    // stop if the matching entry is found
-                    else if (col_idxs[ubz] == jbcol) {
-                        foundbz = ubz;
-                        break;
-                    }
-                }
-                if (foundbz != -1) {
+            // Calculate: sum = system_matrix(row, col) -
+            //   dot(l_factor(row, :), u_factor(:, col))
+            while (lbz < row_ptrs_l[ibrow + 1] && ubz < col_ptrs_u[jbcol + 1]) {
+                const auto bcol_l = col_idxs_l[lbz];
+                const auto bcol_u = row_idxs_u[ubz];
+                if (bcol_l == bcol_u) {
+                    // last_op = vals_l[row_l] * vals_u[row_u];
+                    // sum -= last_op;
                     for (int i = 0; i < bs; i++)
-                        for (int j = 0; j < bs; j++) {
+                        for (int j = 0; i < bs; j++) {
+                            last_op(i, j) = zero<ValueType>;
                             for (int k = 0; k < bs; k++)
-                                sum(i, j) -=
-                                    vals[kbz](i, k) * vals[foundbz](k, j);
+                                last_op(i, j) +=
+                                    vals_l[row_l](i, k) * vals_u[row_u](k, j);
+                            sum(i, j) -= last_op(i, j);
                         }
                 }
+
+                if (bcol_l <= bcol_u) ++lbz;
+
+                if (bcol_u <= bcol_l) ++ubz;
             }
 
+            // undo the last operation
+            for (int i = 0; i < bs; i++)
+                for (int j = 0; i < bs; j++) sum(i, j) += last_op(i, j);
+
             if (ibrow > jbcol) {
-                // invert diagonal block
-                Blk_t invU =
-                    extract_diag_block(jbcol, row_ptrs, col_idxs, vals);
+                // modify entry in L
+                Blk_t invU;
+                for (int i = 0; i < bs; i++)
+                    for (int j = 0; i < bs; j++)
+                        invU(i, j) = vals_u[row_ptrs_u[col + 1] - 1](i, j);
 
                 int perm[bs];
                 for (int i = 0; i < bs; i++) perm[i] = i;
 
                 const bool invflag = invert_block<ValueType, bs>(perm, invU);
-                if (!invflag)
-                    printf(" Could not invert diag block at blk row %ld!",
-                           static_cast<long int>(ibrow));
-                permute_block(invU, perm);
 
+                // auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                // if (is_finite(to_write))
+                // vals_l[lbz - 1] = to_write;
                 for (int i = 0; i < bs; i++)
                     for (int j = 0; j < bs; j++) {
-                        vals[ibz](i, j) = 0;
+                        vals_l[lbz - 1](i, j) = 0;
                         for (int k = 0; k < bs; k++)
-                            vals[ibz](i, j) += sum(i, k) * invU(k, j);
+                            vals_l[lbz - 1](i, j) += sum(i, j) * invU(i, j);
                     }
             } else {
                 // modify entry in U
-                for (int i = 0; i < bs; i++)
-                    for (int j = 0; j < bs; j++) vals[ibz](i, j) = sum(i, j);
+                auto to_write = sum;
+                if (is_finite(to_write)) {
+                    vals_u[ubz - 1] = to_write;
+                }
             }
         }
     }
@@ -158,15 +153,20 @@ static void compute_bilu_impl(
 
 template <typename ValueType, typename IndexType>
 void compute_bilu(const std::shared_ptr<const ReferenceExecutor> exec,
-                  matrix::Fbcsr<ValueType, IndexType> *const sysmat)
+                  const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+                  matrix::Fbcsr<ValueType, IndexType> *const lfactor,
+                  matrix::Fbcsr<ValueType, IndexType> *const ufactor)
 {
     const int bs = sysmat->get_block_size();
+    GKO_ASSERT(bs == lfactor->get_block_size());
+    GKO_ASSERT(bs == ufactor->get_block_size());
 
-    if (bs == 2) compute_bilu_impl<ValueType, IndexType, 2>(exec, sysmat);
-    if (bs == 3)
-        compute_bilu_impl<ValueType, IndexType, 3>(exec, sysmat);
+    if (bs == 2)
+        compute_bilu_impl<ValueType, IndexType, 2>(exec, sysmat, lfactor,
+                                                   ufactor);
     else if (bs == 4)
-        compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat);
+        compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat, lfactor,
+                                                   ufactor);
     else
         throw NotSupported(__FILE__, __LINE__, __func__,
                            " block size = " + std::to_string(bs));
@@ -176,7 +176,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
 
 
-}  // namespace bilu_factorization
+}  // namespace par_bilu_factorization
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
