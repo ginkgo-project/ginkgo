@@ -172,7 +172,7 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     auto device = detail::get_devices(
-        dpcpp_exec_info_.device_type_)[dpcpp_exec_info_.device_id];
+        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
     auto other_device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
     return ((device.is_host() || device.is_cpu()) &&
@@ -198,27 +198,28 @@ void delete_queue(sycl::queue *queue)
 
 void DpcppExecutor::set_device_property()
 {
-    assert(dpcpp_exec_info_.device_id <
-           DpcppExecutor::get_num_devices(dpcpp_exec_info_.device_type));
+    assert(this->dpcpp_exec_info_.device_id <
+           DpcppExecutor::get_num_devices(this->dpcpp_exec_info_.device_type));
     auto device = detail::get_devices(
-        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
+        this->dpcpp_exec_info_.device_type)[this->dpcpp_exec_info_.device_id];
     if (!device.is_host()) {
         try {
-            dpcpp_exec_info_.subgroup_sizes =
+            this->dpcpp_exec_info_.subgroup_sizes =
                 device.get_info<cl::sycl::info::device::sub_group_sizes>();
         } catch (cl::sycl::runtime_error &err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
-    dpcpp_exec_info_.num_computing_units =
+    this->dpcpp_exec_info_.num_computing_units =
         device.get_info<sycl::info::device::max_compute_units>();
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
     // There is no way to get the dimension of a sycl::id object
     for (std::size_t i = 0; i < 3; i++) {
-        dpcpp_exec_info_.max_workitem_sizes.push_back(max_workitem_sizes[i]);
+        this->dpcpp_exec_info_.max_workitem_sizes.push_back(
+            max_workitem_sizes[i]);
     }
-    dpcpp_exec_info_.num_work_groups_per_core =
+    this->dpcpp_exec_info_.num_work_groups_per_core =
         device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to

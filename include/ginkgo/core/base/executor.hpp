@@ -1584,11 +1584,11 @@ protected:
                   std::string device_type = "all")
         : master_(master)
     {
-        std::for_each(this->dpcpp_exec_info_.device_type.begin(),
-                      this->dpcpp_exec_info_.device_type.end(),
+        std::for_each(device_type.begin(), device_type.end(),
                       [](char &c) { c = std::tolower(c); });
-        this->set_device_property();
+        this->dpcpp_exec_info_.device_type = std::string(device_type);
         this->dpcpp_exec_info_.device_id = device_id;
+        this->set_device_property();
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
