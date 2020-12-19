@@ -127,7 +127,7 @@ foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
     ginkgo_print_foreach_variable(
-        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP;GINKGO_WITH_HWLOC")
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
     ginkgo_print_foreach_variable(
         "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS")
@@ -168,18 +168,25 @@ IF(GINKGO_BUILD_DPCPP)
     include(dpcpp/get_info.cmake)
 ENDIF()
 
-ginkgo_print_generic_header(${detailed_log} "Optional Components:")
-ginkgo_print_variable(${detailed_log} "GKO_HAVE_PAPI_SDE")
+ginkgo_print_generic_header(${minimal_log} "  Components:")
+ginkgo_print_generic_header(${detailed_log} "  Components:")
 if(PAPI_sde_FOUND)
     ginkgo_print_variable(${detailed_log} "PAPI_VERSION")
     ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
 endif()
+ginkgo_print_variable(${minimal_log} "GINKGO_USE_EXTERNAL_HWLOC")
+ginkgo_print_variable(${detailed_log} "GINKGO_USE_EXTERNAL_HWLOC")
+ginkgo_print_variable(${minimal_log} "GINKGO_FORCE_NO_HWLOC")
+ginkgo_print_variable(${detailed_log} "GINKGO_FORCE_NO_HWLOC")
+ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
+ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
+ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 
 _minimal(
-    "\n
+    "
 --\n--  Detailed information (More compiler flags, module configuration) can be found in detailed.log
-    ")
+--   ")
 _both(
     "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
     )

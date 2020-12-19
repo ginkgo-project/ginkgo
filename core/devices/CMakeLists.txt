@@ -15,7 +15,7 @@ function(ginkgo_add_normal_library name)
         PUBLIC 
         $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
         )
-    target_link_libraries(${name} ${HWLOC_LIBRARIES})
+    target_link_libraries(${name} PUBLIC ${HWLOC_LIBRARIES})
     endif()
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
   endfunction()
