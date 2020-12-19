@@ -11,14 +11,14 @@ function(ginkgo_add_normal_library name)
     ginkgo_compile_features(${name})
     ginkgo_default_includes(${name})
     if(GINKGO_HAVE_HWLOC)
-      target_include_directories(${name}
-        PUBLIC 
-        $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
+        target_include_directories(${name}
+            PUBLIC 
+            $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
         )
-    target_link_libraries(${name} PUBLIC ${HWLOC_LIBRARIES})
+        target_link_libraries(${name} PUBLIC ${HWLOC_LIBRARIES})
     endif()
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-  endfunction()
+endfunction()
   
 ginkgo_add_normal_library(ginkgo_core_device machine_topology.cpp)
 ginkgo_install_library(ginkgo_core_device core/devices)

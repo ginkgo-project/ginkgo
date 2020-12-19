@@ -156,12 +156,14 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
-// TEST(OmpExecutor, CanGetNumCoresFromExecInfo)
-// {
-//     auto omp = gko::OmpExecutor::create();
+#ifdef NUM_CORES
+TEST(OmpExecutor, CanGetNumCoresFromExecInfo)
+{
+    auto omp = gko::OmpExecutor::create();
 
-//     ASSERT_EQ(20, omp->get_num_cores());
-// }
+    ASSERT_EQ(NUM_CORES, omp->get_num_cores());
+}
+#endif
 
 
 TEST(ReferenceExecutor, RunsCorrectOperation)

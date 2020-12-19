@@ -69,6 +69,18 @@ namespace gko {
 
 class MachineTopology;
 
+
+/**
+ * This global function initializes the topology in its first call and stores
+ * the MachineTopology global object in a shared_ptr that any gko function/class
+ * can query.
+ *
+ * This makes sure that that the topology object is not re-initialized every
+ * time it is needed and as the topology is is relevant only for the machine,
+ * each re-initialization populates the exact same topology tree.
+ *
+ * @return  the global MachineTopology object.
+ */
 extern const MachineTopology *get_machine_topology();
 
 
@@ -80,6 +92,10 @@ extern const MachineTopology *get_machine_topology();
  * This class also provides functionalities to bind objects in the topology to
  * the execution objects. Binding can enhance performance by allowing data to be
  * closer to the executing object.
+ *
+ * See the hwloc documentation
+ * (https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/) for a more detailed
+ * documentation on topology detection and binding interfaces.
  */
 class MachineTopology {
     friend const MachineTopology *get_machine_topology();
@@ -117,13 +133,9 @@ private:
 
 public:
     /**
-     * Creates a new MachineTopology object.
+     * Do not allow the MachineTopology object to be copied/moved. There should
+     * be only one global object per execution.
      */
-    static std::shared_ptr<MachineTopology> create()
-    {
-        return std::shared_ptr<MachineTopology>(new MachineTopology());
-    }
-
     MachineTopology(MachineTopology &) = delete;
     MachineTopology(MachineTopology &&) = delete;
     MachineTopology &operator=(MachineTopology &) = delete;
@@ -155,7 +167,6 @@ public:
         return this->pus_[id];
     }
 
-
     /**
      * Get the object of type core associated with the id.
      *
@@ -166,7 +177,6 @@ public:
         GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
         return this->cores_[id];
     }
-
 
     /**
      * Get the object of type pci device associated with the id.
@@ -179,24 +189,20 @@ public:
         return this->pci_devices_[id];
     }
 
-
     /**
      * Get the number of PU objects stored in this Topology tree.
      */
     size_type get_num_pus() const { return this->pus_.size(); }
-
 
     /**
      * Get the number of core objects stored in this Topology tree.
      */
     size_type get_num_cores() const { return this->cores_.size(); }
 
-
     /**
      * Get the number of PCI device objects stored in this Topology tree.
      */
     size_type get_num_pci_devices() const { return this->pci_devices_.size(); }
-
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
@@ -204,46 +210,23 @@ public:
     size_type get_num_numas() const { return this->num_numas_; }
 
 protected:
-    MachineTopology()
+    /**
+     * Creates a new MachineTopology object.
+     */
+    static std::shared_ptr<MachineTopology> create()
     {
-#if GKO_HAVE_HWLOC
-
-
-        this->topo_ = topo_manager<hwloc_topology>(init_topology(),
-                                                   hwloc_topology_destroy);
-
-        load_objects(HWLOC_OBJ_CORE, this->cores_);
-        load_objects(HWLOC_OBJ_PU, this->pus_);
-        // load_objects(HWLOC_OBJ_PCI_DEVICE, this->pci_devices_);
-
-        num_numas_ =
-            hwloc_get_nbobjs_by_type(this->topo_.get(), HWLOC_OBJ_PACKAGE);
-#else
-
-        this->topo_ = topo_manager<hwloc_topology>();
-
-#endif
+        return std::shared_ptr<MachineTopology>(new MachineTopology());
     }
 
+    MachineTopology();
 
     /**
+     * @internal
+     *
      * A helper function that binds the object with an id.
      */
     void hwloc_binding_helper(std::vector<mach_topo_obj_info> &obj,
-                              size_type id)
-    {
-#if GKO_HAVE_HWLOC
-        auto bitmap = hwloc_bitmap_alloc();
-        hwloc_bitmap_set(bitmap, obj[id].physical_id);
-        hwloc_bitmap_singlify(bitmap);
-        hwloc_set_cpubind(topo_.get(), bitmap, 0);
-        hwloc_bitmap_free(bitmap);
-#endif
-    }
-
-
-#if GKO_HAVE_HWLOC
-
+                              size_type id);
 
     /**
      * @internal
@@ -252,56 +235,25 @@ protected:
      * depth. Provided from the hwloc library.
      */
     static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
-                                     int depth)
-    {
-        char type[32], attr[1024];
-        unsigned i;
-        hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
-        std::cout << std::string(2 * depth, ' ') << type;
-        if (obj->os_index != (unsigned)-1) {
-            std::cout << "#" << obj->os_index;
-        }
-        hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
-        if (*attr) {
-            std::cout << "(" << attr << ")";
-        }
-        std::cout << std::endl;
-        for (i = 0; i < obj->arity; i++) {
-            hwloc_print_children(topology, obj->children[i], depth + 1);
-        }
-    }
+                                     int depth);
 
-
-    // The objects should be sorted by logical index since hwloc uses logical
-    // index with these functions
+    /**
+     * @internal
+     *
+     * Load the objects of a certain HWLOC type.
+     *
+     * @note The objects should be sorted by logical index since hwloc uses
+     * logical index with these functions
+     */
     void load_objects(hwloc_obj_type_t type,
-                      std::vector<mach_topo_obj_info> &vector)
-    {
-        unsigned nbcores = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
-        for (unsigned i = 0; i < nbcores; i++) {
-            hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
-            vector.push_back(
-                mach_topo_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
-                                   obj->logical_index, obj->os_index});
-        }
-    }
+                      std::vector<mach_topo_obj_info> &vector);
 
-
-    hwloc_topology *init_topology()
-    {
-        hwloc_topology_t tmp;
-        hwloc_topology_init(&tmp);
-
-        hwloc_topology_set_io_types_filter(tmp,
-                                           HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-        hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
-        hwloc_topology_load(tmp);
-
-        return tmp;
-    }
-
-
-#endif
+    /**
+     * @internal
+     *
+     * Initialize the topology object.
+     */
+    hwloc_topology *init_topology();
 
 
 private:
