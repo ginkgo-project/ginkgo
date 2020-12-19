@@ -211,7 +211,7 @@ ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 if(NOT GINKGO_FORCE_NO_HWLOC AND GINKGO_HAVE_HWLOC)
   ginkgo_find_package(HWLOC hwloc FALSE 2.1)
 endif()
-set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
+set(GKO_HWLOC_XMLFILE "$ENV{HWLOC_XMLFILE}")
 message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
 add_subdirectory(third_party)    # Third-party tools and libraries
 
