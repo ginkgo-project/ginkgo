@@ -46,7 +46,7 @@ namespace bilu_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
-                  matrix::Csr<ValueType, IndexType> *const m)
+                  matrix::Fbcsr<ValueType, IndexType> *const m)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -89,9 +89,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_BLU(const std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType> *system_matrix)
-    GKO_NOT_IMPLEMENTED;
+void initialize_BLU(
+    const std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Fbcsr<ValueType, IndexType> *const system_matrix,
+    matrix::Fbcsr<ValueType, IndexType> *const l_factor,
+    matrix::Fbcsr<ValueType, IndexType> *const u_factor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL);
