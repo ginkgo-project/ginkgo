@@ -31,9 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
 #include <gtest/gtest.h>
 #include <cmath>
 #include <limits>
@@ -176,36 +173,33 @@ TYPED_TEST(Bilu, KernelFactorizationSorted)
                     if (refLcolidxs[lbz] == lbrow) {
                         lbz++;
                     }
+                // Find the max entry in the block
+                auto maxit = std::max_element(
+                    refLvals + lbz * bs * bs, refLvals + (lbz + 1) * bs * bs,
+                    [](value_type a, value_type b) {
+                        return std::abs(a) < std::abs(b);
+                    });
+                const auto maxel = std::abs(*maxit);
                 for (int i = 0; i < bs * bs; i++) {
-                    auto maxit =
-                        std::max_element(refLvals + lbz * bs * bs,
-                                         refLvals + (lbz + 1) * bs * bs,
-                                         [](value_type a, value_type b) {
-                                             return std::abs(a) < std::abs(b);
-                                         });
-                    const auto maxel = std::abs(*maxit);
-
                     const value_type ts = testvals[ibz * bs * bs + i];
                     const value_type rf = refLvals[lbz * bs * bs + i];
                     ASSERT_LE(std::abs(ts - rf), 2.0 * eps * maxel);
                 }
                 lbz++;
             } else {
+                auto maxit = std::max_element(
+                    refUvals + ubz * bs * bs, refUvals + (ubz + 1) * bs * bs,
+                    [](value_type a, value_type b) {
+                        return std::abs(a) < std::abs(b);
+                    });
+                const auto maxel = std::abs(*maxit);
                 for (int i = 0; i < bs * bs; i++) {
-                    auto maxit =
-                        std::max_element(refUvals + ubz * bs * bs,
-                                         refUvals + (ubz + 1) * bs * bs,
-                                         [](value_type a, value_type b) {
-                                             return std::abs(a) < std::abs(b);
-                                         });
-                    const auto maxel = std::abs(*maxit);
                     const value_type ts = testvals[ibz * bs * bs + i];
                     const value_type rf = refUvals[ubz * bs * bs + i];
                     ASSERT_LE(std::abs(ts - rf), 2.0 * eps * maxel);
                 }
                 ubz++;
             }
-            printf("\n");
         }
     }
 }

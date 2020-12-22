@@ -106,7 +106,7 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
     const auto old_nbnz =
         blockutils::getNumBlocks(bs * bs, mtx->get_num_stored_elements());
     const auto new_nbnz = old_nbnz + missing_blocks;
-    Array<ValueType> new_values_array{exec, new_nbnz};
+    Array<ValueType> new_values_array{exec, new_nbnz * bs * bs};
     Array<IndexType> new_col_idxs_array{exec, new_nbnz};
     // auto new_values = new_values_array.get_data();
     blockutils::DenseBlocksView<ValueType, IndexType> new_values(
@@ -182,24 +182,23 @@ void initialize_row_ptrs_BLU(
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
-    const int bs = system_matrix->get_block_size();
-    IndexType l_nnz{};
-    IndexType u_nnz{};
+    IndexType l_nbnz{};
+    IndexType u_nbnz{};
 
     l_row_ptrs[0] = 0;
     u_row_ptrs[0] = 0;
-    for (size_type row = 0; row < system_matrix->get_num_block_rows(); ++row) {
-        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
-            size_type col = col_idxs[el];
+    for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {
+        for (IndexType el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            const IndexType col = col_idxs[el];
             // don't count diagonal
-            if (col < row) l_nnz += bs * bs;
-            if (col > row) u_nnz += bs * bs;
+            if (col < row) l_nbnz++;
+            if (col > row) u_nbnz++;
         }
-        // add diagonal again
-        l_nnz += bs * bs;
-        u_nnz += bs * bs;
-        l_row_ptrs[row + 1] = l_nnz;
-        u_row_ptrs[row + 1] = u_nnz;
+        // add diagonal now
+        l_nbnz++;
+        u_nbnz++;
+        l_row_ptrs[row + 1] = l_nbnz;
+        u_row_ptrs[row + 1] = u_nbnz;
     }
 }
 
@@ -223,28 +222,27 @@ void initialize_BLU(
     const CDbv vals(system_matrix->get_const_values(), bs, bs);
 
     const auto row_ptrs_l = fb_l->get_const_row_ptrs();
-    const auto col_idxs_l = fb_l->get_col_idxs();
+    auto const col_idxs_l = fb_l->get_col_idxs();
     Dbv vals_l(fb_l->get_values(), bs, bs);
 
     const auto row_ptrs_u = fb_u->get_const_row_ptrs();
-    const auto col_idxs_u = fb_u->get_col_idxs();
+    auto const col_idxs_u = fb_u->get_col_idxs();
     Dbv vals_u(fb_u->get_values(), bs, bs);
 
     for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {
         IndexType current_index_l = row_ptrs_l[row];
-        IndexType current_index_u =
-            row_ptrs_u[row] + 1;  // we treat the diagonal separately
+        IndexType current_index_u = row_ptrs_u[row];
         const auto l_diag_idx = row_ptrs_l[row + 1] - 1;
-        const auto u_diag_idx = row_ptrs_u[row];
+        // const auto u_diag_idx = row_ptrs_u[row];
 
-        // if there is no diagonal value, set diag blocks to identity
+        // if there is no diagonal value, set diag blocks of U to identity
         // diag blocks of L are always identity
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
-                vals_u(u_diag_idx, i, j) = zero<ValueType>();
+                // vals_u(u_diag_idx, i, j) = zero<ValueType>();
                 vals_l(l_diag_idx, i, j) = zero<ValueType>();
             }
-            vals_u(u_diag_idx, i, i) = one<ValueType>();
+            // vals_u(u_diag_idx, i, i) = one<ValueType>();
             vals_l(l_diag_idx, i, i) = one<ValueType>();
         }
         col_idxs_l[l_diag_idx] = row;

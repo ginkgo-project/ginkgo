@@ -59,6 +59,17 @@ namespace kernels {
         const matrix::Fbcsr<ValueType, IndexType> *system_matrix,           \
         IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 
+/** @fn initialize_BLU
+ *
+ * Initialize block L and block U factors with a given matrix
+ * @param[in] exec  The executor to run the kernel on
+ * @param[in] system_matrix  The original matrix
+ * @param[in,out] l_factor  A unit block lower triangular matrix whose strictly
+ *   lower block triangular part equals that of system_matrix on output
+ * @param[in,out] u_factor  Upper block triangular matrix (non-transposed,
+ *   in BCSR format, not BCSC) which equals the upper block triangular
+ *   part of system_matrix on output
+ */
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_BLU_KERNEL(ValueType, IndexType) \
     void initialize_BLU(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                          \
