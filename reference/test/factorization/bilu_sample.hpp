@@ -119,7 +119,7 @@ public:
         vb(3, 0, 0) = 4.0;
         vb(3, 0, 1) = 1.0;
         vb(3, 0, 2) = 1.0;
-        vb(3, 1, 1) = 2.0;
+        vb(3, 1, 0) = 2.0;
         vb(3, 1, 1) = 4.0;
         vb(3, 1, 2) = 1.0;
         vb(3, 2, 0) = 0.0;
@@ -150,9 +150,7 @@ public:
     }
 
     /**
-     * @return Sample matrix in CSR format
-     *
-     * Keeps explicit zeros.
+     * @return Unit block lower and block upper triangular factors of the matrix
      */
     std::unique_ptr<Composition<ValueType>> generate_factors() const
     {
@@ -184,26 +182,90 @@ public:
             vl(0, i, i) = 1.0;
             vl(1, i, i) = 1.0;
             vl(3, i, i) = 1.0;
+        }
 
-            vl(2, 0, 0) = 1.0;
-            vl(2, 0, 1) = 0.0;
-            vl(2, 0, 2) = 1.0;
-            vl(2, 1, 0) = 5.5;
-            vl(2, 1, 1) = 8.0;
-            vl(2, 1, 2) = 6.5;
-            vl(2, 2, 0) = 1.5;
-            vl(2, 2, 1) = 2.0;
-            vl(2, 2, 2) = 1.5;
+        vl(2, 0, 0) = 1.0;
+        vl(2, 0, 1) = 0.0;
+        vl(2, 0, 2) = 1.0;
+        vl(2, 1, 0) = 5.5;
+        vl(2, 1, 1) = 8.0;
+        vl(2, 1, 2) = 6.5;
+        vl(2, 2, 0) = 1.5;
+        vl(2, 2, 1) = 2.0;
+        vl(2, 2, 2) = 1.5;
 
-            vu(5, 0, 0) = 3.0;
-            vu(5, 0, 1) = 2.0;
-            vu(5, 0, 2) = -3.0;
-            vu(5, 1, 0) = -10.5;
-            vu(5, 1, 1) = 2.0;
-            vu(5, 1, 2) = -12.0;
-            vu(5, 2, 0) = -3.5;
-            vu(5, 2, 1) = -1.0;
-            vu(5, 2, 2) = 2.0;
+        vu(5, 0, 0) = 3.0;
+        vu(5, 0, 1) = 2.0;
+        vu(5, 0, 2) = -3.0;
+        vu(5, 1, 0) = -10.5;
+        vu(5, 1, 1) = 2.0;
+        vu(5, 1, 2) = -12.0;
+        vu(5, 2, 0) = -3.5;
+        vu(5, 2, 1) = -1.0;
+        vu(5, 2, 2) = 2.0;
+
+        index_type *const l_r = fb_l->get_row_ptrs();
+        l_r[0] = 0;
+        l_r[1] = 1;
+        l_r[2] = 2;
+        l_r[3] = 4;
+        index_type *const l_c = fb_l->get_col_idxs();
+        l_c[0] = 0;
+        l_c[1] = 1;
+        l_c[2] = 0;
+        l_c[3] = 2;
+
+        index_type *const u_r = fb_u->get_row_ptrs();
+        u_r[0] = 0;
+        u_r[1] = 3;
+        u_r[2] = 5;
+        u_r[3] = 6;
+        index_type *const u_c = fb_u->get_col_idxs();
+        u_c[0] = 0;
+        u_c[1] = 1;
+        u_c[2] = 2;
+        u_c[3] = 1;
+        u_c[4] = 2;
+        u_c[5] = 2;
+
+        return Composition<ValueType>::create(std::move(fb_l), std::move(fb_u));
+    }
+
+    /**
+     * @return Unit block lower and block upper triangular factors of the matrix
+     */
+    std::unique_ptr<Composition<ValueType>> generate_initial_values() const
+    {
+        const std::shared_ptr<Fbcsr> fb_l =
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 4 * 9, bs);
+        const std::shared_ptr<Fbcsr> fb_u =
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 6 * 9, bs);
+        const std::unique_ptr<const Fbcsr> A = generate_fbcsr();
+
+        blockutils::DenseBlocksView<value_type, index_type> vl(
+            fb_l->get_values(), bs, bs);
+        blockutils::DenseBlocksView<value_type, index_type> vu(
+            fb_u->get_values(), bs, bs);
+        blockutils::DenseBlocksView<const value_type, index_type> vA(
+            A->get_values(), bs, bs);
+
+        for (int i = 0; i < bs; i++) {
+            for (int j = 0; j < bs; j++) {
+                vu(0, i, j) = vA(0, i, j);
+                vu(1, i, j) = vA(1, i, j);
+                vu(2, i, j) = vA(2, i, j);
+                vu(3, i, j) = vA(3, i, j);
+                vu(4, i, j) = vA(4, i, j);
+                vu(5, i, j) = vA(6, i, j);
+                vl(2, i, j) = vA(5, i, j);
+
+                vl(0, i, j) = 0.0;
+                vl(1, i, j) = 0.0;
+                vl(3, i, j) = 0.0;
+            }
+            vl(0, i, i) = 1.0;
+            vl(1, i, i) = 1.0;
+            vl(3, i, i) = 1.0;
         }
 
         index_type *const l_r = fb_l->get_row_ptrs();
