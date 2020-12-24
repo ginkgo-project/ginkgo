@@ -150,4 +150,23 @@ TYPED_TEST(IndexSet, KnowsItsSize)
 }
 
 
+TYPED_TEST(IndexSet, CanGetId)
+{
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
+    ASSERT_EQ(idx_set.get_id(), 0);
+}
+
+
+TYPED_TEST(IndexSet, CanSetId)
+{
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
+
+    ASSERT_EQ(idx_set.get_id(), 0);
+    idx_set.set_id(3);
+
+    ASSERT_EQ(idx_set.get_id(), 3);
+}
+
+
 }  // namespace
