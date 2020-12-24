@@ -96,15 +96,20 @@ extern const MachineTopology *get_machine_topology();
  * See the hwloc documentation
  * (https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/) for a more detailed
  * documentation on topology detection and binding interfaces.
+ *
+ * @note A global object of MachineTopology type is created when first needed
+ * and only destroyed at the end of the program. This means that any subsequent
+ * queries will be from the same global object and hence atomic on
+ * multi-threaded queries.
  */
 class MachineTopology {
     friend const MachineTopology *get_machine_topology();
 
 private:
     /**
-     * This struct holds the attributes for an object.
+     * This struct holds the attributes for a normal non-IO object.
      */
-    struct mach_topo_obj_info {
+    struct normal_obj_info {
         /**
          * The hwloc object.
          */
@@ -126,9 +131,78 @@ private:
         size_type physical_id;
 
         /**
-         * The physical_id assigned to the object.
+         * The global persistent id assigned to the object by hwloc.
+         */
+        size_type gp_id;
+
+        /**
+         * The memory size of the object.
          */
         size_type memory_size;
+    };
+
+
+    /**
+     * This struct holds the attributes for an IO/Misc object.
+     *
+     * Mainly used for PCI devices. The identifier important for PCI devices is
+     * the PCI Bus ID, stored here as a string. PCI devices themselves usually
+     * contain Hard disks, network components as well as other objects that are
+     * not important for our case.
+     *
+     * In many cases, hwloc is able to identify the OS devices that belong to a
+     * certain PCI Bus ID and here they are stored in the io children vector. A
+     * list of their names are also additionally stored for easy access and
+     * comparison.
+     *
+     * @note IO children can have names such as ibX for Infiniband cards, cudaX
+     * for NVIDIA cards with CUDA and rsmiX for AMD cards.
+     */
+    struct io_obj_info {
+        /**
+         * The hwloc object.
+         */
+        hwloc_obj_t obj;
+
+        /**
+         * The logical_id assigned by the OS.
+         */
+        size_type logical_id;
+
+        /**
+         * The physical_id assigned to the object.
+         */
+        size_type physical_id;
+
+        /**
+         * The global persistent id assigned to the object by hwloc.
+         */
+        size_type gp_id;
+
+        /**
+         * The non-io parent object.
+         */
+        hwloc_obj_t non_io_ancestor;
+
+        /**
+         * The closest numa.
+         */
+        int numa;
+
+        /**
+         * The io children objects (usually software OS devices).
+         */
+        std::vector<hwloc_obj_t> io_children;
+
+        /**
+         * The names of the io children objects.
+         */
+        std::vector<std::string> io_children_name;
+
+        /**
+         * The PCI Bus ID
+         */
+        std::string pci_busid;
     };
 
 public:
@@ -160,8 +234,9 @@ public:
      * Get the object of type PU associated with the id.
      *
      * @param id  The id of the PU
+     * @return  the PU object struct.
      */
-    const mach_topo_obj_info &get_pu(size_type id)
+    const normal_obj_info &get_pu(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, this->pus_.size());
         return this->pus_[id];
@@ -171,8 +246,9 @@ public:
      * Get the object of type core associated with the id.
      *
      * @param id  The id of the core
+     * @return  the core object struct.
      */
-    const mach_topo_obj_info &get_core(size_type id)
+    const normal_obj_info &get_core(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
         return this->cores_[id];
@@ -182,8 +258,9 @@ public:
      * Get the object of type pci device associated with the id.
      *
      * @param id  The id of the pci device
+     * @return  the PCI object struct.
      */
-    const mach_topo_obj_info &get_pci_device(size_type id)
+    const io_obj_info &get_pci_device(size_type id)
     {
         GKO_ENSURE_IN_BOUNDS(id, this->pci_devices_.size());
         return this->pci_devices_[id];
@@ -191,21 +268,29 @@ public:
 
     /**
      * Get the number of PU objects stored in this Topology tree.
+     *
+     * @return  the number of PUs.
      */
     size_type get_num_pus() const { return this->pus_.size(); }
 
     /**
      * Get the number of core objects stored in this Topology tree.
+     *
+     * @return  the number of cores.
      */
     size_type get_num_cores() const { return this->cores_.size(); }
 
     /**
      * Get the number of PCI device objects stored in this Topology tree.
+     *
+     * @return  the number of PCI devices.
      */
     size_type get_num_pci_devices() const { return this->pci_devices_.size(); }
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
+     *
+     * @return  the number of NUMA objects.
      */
     size_type get_num_numas() const { return this->num_numas_; }
 
@@ -218,6 +303,9 @@ protected:
         return std::shared_ptr<MachineTopology>(new MachineTopology());
     }
 
+    /**
+     * The default constructor that loads the different objects.
+     */
     MachineTopology();
 
     /**
@@ -225,8 +313,8 @@ protected:
      *
      * A helper function that binds the object with an id.
      */
-    void hwloc_binding_helper(std::vector<mach_topo_obj_info> &obj,
-                              size_type id);
+    template <typename ObjInfoType>
+    void hwloc_binding_helper(std::vector<ObjInfoType> &obj, size_type id);
 
     /**
      * @internal
@@ -246,7 +334,17 @@ protected:
      * logical index with these functions
      */
     void load_objects(hwloc_obj_type_t type,
-                      std::vector<mach_topo_obj_info> &vector);
+                      std::vector<normal_obj_info> &vector);
+
+    /**
+     * @internal
+     *
+     * Load the objects of a certain HWLOC type.
+     *
+     * @note The objects should be sorted by logical index since hwloc uses
+     * logical index with these functions
+     */
+    void load_objects(hwloc_obj_type_t type, std::vector<io_obj_info> &vector);
 
     /**
      * @internal
@@ -257,9 +355,9 @@ protected:
 
 
 private:
-    std::vector<mach_topo_obj_info> pus_;
-    std::vector<mach_topo_obj_info> cores_;
-    std::vector<mach_topo_obj_info> pci_devices_;
+    std::vector<normal_obj_info> pus_;
+    std::vector<normal_obj_info> cores_;
+    std::vector<io_obj_info> pci_devices_;
     size_type num_numas_;
 
     template <typename T>

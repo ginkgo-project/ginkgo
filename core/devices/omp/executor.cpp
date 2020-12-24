@@ -47,6 +47,8 @@ namespace gko {
 void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo)
 {
     this->omp_exec_info_.num_cores = mach_topo->get_num_cores();
+    this->omp_exec_info_.num_work_groups_per_core =
+        mach_topo->get_num_pus() / mach_topo->get_num_cores();
 }
 
 

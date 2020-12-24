@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <thread>
 #include <type_traits>
 
 
@@ -156,14 +157,17 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
-#ifdef NUM_CORES
-TEST(OmpExecutor, CanGetNumCoresFromExecInfo)
+TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 {
+    if (!gko::get_machine_topology()) {
+        GTEST_SKIP() << "No Machine topology information available";
+    }
     auto omp = gko::OmpExecutor::create();
 
-    ASSERT_EQ(NUM_CORES, omp->get_num_cores());
+    auto num_cpus = omp->get_num_cores() * omp->get_num_threads_per_core();
+
+    ASSERT_EQ(std::thread::hardware_concurrency(), num_cpus);
 }
-#endif
 
 
 TEST(ReferenceExecutor, RunsCorrectOperation)
