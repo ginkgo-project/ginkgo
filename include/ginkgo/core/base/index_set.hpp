@@ -83,7 +83,8 @@ public:
      * method at a later time.
      */
     IndexSet() noexcept
-        : index_space_size_(0),
+        : index_set_id_(0),
+          index_space_size_(0),
           exec_(nullptr),
           subsets_begin_(exec_),
           subsets_end_(exec_),
@@ -93,14 +94,14 @@ public:
     /**
      * Creates an index set on the specified executor and the given size
      *
-     *
      * @param exec  the Executor where the index set data will be allocated
      * @param size  the maximum index the index set it allowed to hold. This
      *              is the size of the index space.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size)
-        : index_space_size_(size),
+        : index_set_id_(0),
+          index_space_size_(size),
           exec_(executor),
           subsets_begin_(exec_),
           subsets_end_(exec_),
@@ -111,7 +112,6 @@ public:
     /**
      * Creates an index set on the specified executor and the given size
      *
-     *
      * @param exec  the Executor where the index set data will be allocated
      * @param size  the maximum index the index set it allowed to hold. This
      *              is the size of the index space.
@@ -119,7 +119,30 @@ public:
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size, const gko::Array<index_type> &indices)
-        : index_space_size_(size),
+        : index_set_id_(0),
+          index_space_size_(size),
+          exec_(executor),
+          subsets_begin_(exec_),
+          subsets_end_(exec_),
+          superset_cumulative_indices_(exec_)
+    {
+        this->populate_subsets(indices);
+    }
+
+
+    /**
+     * Creates an index set on the specified executor and the given size
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param id    the id of the index set
+     * @param size  the maximum index the index set it allowed to hold. This
+     *              is the size of the index space.
+     * @param indices  the indices that the index set should hold.
+     */
+    IndexSet(std::shared_ptr<const gko::Executor> executor, const index_type id,
+             const index_type size, const gko::Array<index_type> &indices)
+        : index_set_id_(id),
+          index_space_size_(size),
           exec_(executor),
           subsets_begin_(exec_),
           subsets_end_(exec_),
@@ -144,6 +167,20 @@ public:
      * @return  the size of the index set space.
      */
     index_type get_size() const { return this->index_space_size_; }
+
+    /**
+     * Returns the id of the index set.
+     *
+     * @return  the id of the index set.
+     */
+    index_type get_id() const { return this->index_set_id_; }
+
+    /**
+     * Returns the id of the index set.
+     *
+     * @param  id  the id to set for the index set
+     */
+    void set_id(index_type id) { this->index_set_id_ = id; }
 
     /**
      * Returns if the index set is contiguous
@@ -265,6 +302,7 @@ private:
 
     std::shared_ptr<const gko::Executor> exec_;
 
+    index_type index_set_id_;
     index_type index_space_size_;
     index_type num_stored_indices_;
     gko::Array<index_type> subsets_begin_;
