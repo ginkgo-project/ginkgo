@@ -73,14 +73,16 @@ MachineTopology::MachineTopology()
     // Initialize the topology from hwloc
     this->topo_ =
         topo_manager<hwloc_topology>(init_topology(), hwloc_topology_destroy);
-
     // load objects of type CORE. See HWLOC_OBJ_TYPE for more details.
     load_objects(HWLOC_OBJ_CORE, this->cores_);
-    // load objects of type PU. See HWLOC_OBJ_TYPE for more details.
+    // load objects of type processing unit(PU). See HWLOC_OBJ_TYPE for more
+    // details.
     load_objects(HWLOC_OBJ_PU, this->pus_);
-    // load_objects(HWLOC_OBJ_PCI_DEVICE, this->pci_devices_);
-
+    // load objects of type PCI Devices See HWLOC_OBJ_TYPE for more
+    // details.
+    load_objects(HWLOC_OBJ_PCI_DEVICE, this->pci_devices_);
     num_numas_ = hwloc_get_nbobjs_by_type(this->topo_.get(), HWLOC_OBJ_PACKAGE);
+
 #else
 
     this->topo_ = topo_manager<hwloc_topology>();
@@ -89,7 +91,8 @@ MachineTopology::MachineTopology()
 }
 
 
-void MachineTopology::hwloc_binding_helper(std::vector<mach_topo_obj_info> &obj,
+template <typename ObjInfoType>
+void MachineTopology::hwloc_binding_helper(std::vector<ObjInfoType> &obj,
                                            size_type id)
 {
 #if GKO_HAVE_HWLOC
@@ -125,16 +128,65 @@ void MachineTopology::hwloc_print_children(hwloc_topology *topology,
 }
 
 
-void MachineTopology::load_objects(hwloc_obj_type_t type,
-                                   std::vector<mach_topo_obj_info> &vector)
+void MachineTopology::load_objects(
+    hwloc_obj_type_t type,
+    std::vector<MachineTopology::normal_obj_info> &vector)
+{
+#if GKO_HAVE_HWLOC
+    // Get the number of normal objects of a certain type (Core, PU, Machine
+    // etc.).
+    unsigned nbcores = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
+    for (unsigned i = 0; i < nbcores; i++) {
+        // Get the actual normal object of the given type.
+        hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
+        vector.push_back(normal_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
+                                         obj->logical_index, obj->os_index,
+                                         obj->gp_index});
+    }
+#endif
+}
+
+
+void MachineTopology::load_objects(
+    hwloc_obj_type_t type, std::vector<MachineTopology::io_obj_info> &vector)
 {
 #if GKO_HAVE_HWLOC
     unsigned nbcores = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
     for (unsigned i = 0; i < nbcores; i++) {
+        // Get the actual PCI object.
         hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
-        vector.push_back(mach_topo_obj_info{obj,
-                                            hwloc_bitmap_first(obj->nodeset),
-                                            obj->logical_index, obj->os_index});
+        // Get the non-IO ancestor (which is the closest and the one that can be
+        // bound to) of the object.
+        auto ancestor = hwloc_get_non_io_ancestor_obj(this->topo_.get(), obj);
+        vector.push_back(io_obj_info{obj, obj->logical_index, obj->os_index,
+                                     obj->gp_index, ancestor,
+                                     hwloc_bitmap_first(ancestor->nodeset)});
+        // Write the PCI Bus ID from the object info.
+        char pci_busid[14];
+        snprintf(pci_busid, sizeof(pci_busid), "%04x:%02x:%02x.%01x",
+                 obj->attr->pcidev.domain, obj->attr->pcidev.bus,
+                 obj->attr->pcidev.dev, obj->attr->pcidev.func);
+        vector.back().pci_busid = std::string(pci_busid);
+        // Get the number of IO children if any. For example, the software OS
+        // devices (cuda, rsmi, ib) are listed as IO devices under a PCI device.
+        auto num_io_children = obj->io_arity;
+        hwloc_obj_t os_child{};
+        auto rem_io_children = num_io_children;
+        // Get the IO childrens and their names and store them in vectors.
+        if (num_io_children > 0) {
+            os_child = obj->io_first_child;
+            vector.back().io_children.push_back(os_child);
+            vector.back().io_children_name.push_back(os_child->name);
+            rem_io_children -= 1;
+            while (rem_io_children >= 1) {
+                auto os_child_2 = os_child->next_cousin;
+                vector.back().io_children.push_back(os_child_2);
+                vector.back().io_children_name.push_back(os_child_2->name);
+                rem_io_children -= 1;
+            }
+            GKO_ASSERT(vector.back().io_children.size() ==
+                       vector.back().io_children_name.size());
+        }
     }
 #endif
 }
@@ -147,6 +199,10 @@ hwloc_topology *MachineTopology::init_topology()
     hwloc_topology_init(&tmp);
 
     hwloc_topology_set_io_types_filter(tmp, HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
+    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_BRIDGE,
+                                   HWLOC_TYPE_FILTER_KEEP_NONE);
+    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_OS_DEVICE,
+                                   HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
     hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
     hwloc_topology_load(tmp);
 
