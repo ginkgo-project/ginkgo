@@ -33,10 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <utmpx.h>
 #include <thread>
 #include <type_traits>
 
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 
@@ -169,6 +171,43 @@ TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
     ASSERT_EQ(std::thread::hardware_concurrency(), num_cpus);
 }
 
+
+#if GKO_HAVE_HWLOC
+
+
+TEST(OmpExecutor, CanBindToASpecificCore)
+{
+#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
+    GTEST_SKIP() << " No useful machine topology information to test against";
+#endif
+    auto omp = gko::OmpExecutor::create();
+    auto cpu_sys = sched_getcpu();
+
+    const int bind_core = 4;
+    gko::get_machine_topology()->bind_to_cores(&bind_core, 1);
+
+    cpu_sys = sched_getcpu();
+    ASSERT_EQ(cpu_sys, bind_core);
+}
+
+
+TEST(OmpExecutor, CanBindToARangeofCores)
+{
+#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
+    GTEST_SKIP() << " No useful machine topology information to test against";
+#endif
+    auto omp = gko::OmpExecutor::create();
+    auto cpu_sys = sched_getcpu();
+
+    const int bind_core[2] = {6, 3};
+    gko::get_machine_topology()->bind_to_cores(bind_core, 2);
+
+    cpu_sys = sched_getcpu();
+    EXPECT_THAT(cpu_sys, testing::AnyOf(testing::Eq(3), testing::Eq(6)));
+}
+
+
+#endif
 
 TEST(ReferenceExecutor, RunsCorrectOperation)
 {
