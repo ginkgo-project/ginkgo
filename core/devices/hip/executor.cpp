@@ -61,6 +61,13 @@ bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
 }
 
 
+void HipExecutor::bind_to_cores(const int *core_ids,
+                                const size_type num_ids) const
+{
+    get_machine_topology()->bind_to_cores(core_ids, num_ids);
+}
+
+
 int HipExecutor::num_execs[max_devices];
 
 
