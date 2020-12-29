@@ -119,6 +119,17 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
 {
     this->hip_exec_info_.num_cores = mach_topo->get_num_cores();
+    hip::device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetPCIBusId(
+        const_cast<char *>(this->hip_exec_info_.pci_bus_id.data()), 13,
+        this->get_device_id()));
+
+    auto hip_hwloc_obj =
+        mach_topo->get_pci_device(this->hip_exec_info_.pci_bus_id);
+    if (hip_hwloc_obj) {
+        this->hip_exec_info_.numa = hip_hwloc_obj->numa;
+        this->hip_exec_info_.closest_cpu_id = hip_hwloc_obj->closest_cpu_id;
+    }
 }
 
 
