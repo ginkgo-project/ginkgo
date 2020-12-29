@@ -54,47 +54,6 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
-// namespace machine_config {
-
-
-// template <>
-// void Topology<CudaExecutor>::load_gpus()
-// {
-// #if GKO_HAVE_HWLOC
-//     size_type num_in_numa = 0;
-//     int last_numa = 0;
-//     auto topology = this->topo_.get();
-//     auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
-//     for (size_type i = 1; i < n_objs; i++, num_in_numa++) {
-//         hwloc_obj_t obj = NULL;
-//         while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
-//             bool is_gpu = HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type &&
-//                           obj->name && !strncmp("cuda", obj->name, 4) &&
-//                           atoi(obj->name + 4) == (int)i;
-//             if (is_gpu) {
-//                 while (obj &&
-//                        (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
-//                     obj = obj->parent;
-//                 if (obj && obj->nodeset) {
-//                     auto this_numa = hwloc_bitmap_first(obj->nodeset);
-//                     if (this_numa != last_numa) {
-//                         num_in_numa = 0;
-//                     }
-//                     this->gpus_.push_back(
-//                         topology_obj_info{obj, this_numa, i, num_in_numa});
-//                     last_numa = this_numa;
-//                 }
-//             }
-//         }
-//     }
-
-// #endif
-// }
-
-
-// }  // namespace machine_config
-
-
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
@@ -114,6 +73,17 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
 {
     this->cuda_exec_info_.num_cores = mach_topo->get_num_cores();
+    cuda::device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetPCIBusId(
+        const_cast<char *>(this->cuda_exec_info_.pci_bus_id.data()), 13,
+        this->get_device_id()));
+
+    auto cuda_hwloc_obj =
+        mach_topo->get_pci_device(this->cuda_exec_info_.pci_bus_id);
+    if (cuda_hwloc_obj) {
+        this->cuda_exec_info_.numa = cuda_hwloc_obj->numa;
+        this->cuda_exec_info_.closest_cpu_id = cuda_hwloc_obj->closest_cpu_id;
+    }
 }
 
 

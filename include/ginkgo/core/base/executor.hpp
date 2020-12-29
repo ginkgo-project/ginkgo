@@ -1263,6 +1263,9 @@ private:
         int major;
         int minor;
         int warp_size;
+        std::string pci_bus_id = std::string(13, 'x');
+        int numa = -1;
+        int closest_cpu_id = -1;
     } cuda_exec_info_;
 
     template <typename T>
@@ -1457,6 +1460,9 @@ private:
         int major = 0;
         int minor = 0;
         int warp_size = 0;
+        std::string pci_bus_id = std::string(13, 'x');
+        int numa = -1;
+        int closest_cpu_id = -1;
     } hip_exec_info_;
 
     template <typename T>
