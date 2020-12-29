@@ -13,7 +13,8 @@ function(ginkgo_create_test test_name)
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
-    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
+    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest
+      GMock::Main GMock::GMock ${ARGN})
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_test)
 
