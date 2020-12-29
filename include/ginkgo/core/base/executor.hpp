@@ -1200,6 +1200,14 @@ public:
         return cusparse_handle_.get();
     }
 
+    /**
+     * Bind the current executor thread to the list of cores
+     *
+     * @param  ids  the logical ids of the cores.
+     * @param  num_ids  the number of cores to bind
+     */
+    void bind_to_cores(const int *ids, const size_type num_ids) const;
+
 protected:
     void set_gpu_property();
 
@@ -1215,6 +1223,10 @@ protected:
         assert(this->cuda_exec_info_.device_id < max_devices &&
                this->cuda_exec_info_.device_id >= 0);
         this->populate_exec_info(get_machine_topology());
+        if (this->cuda_exec_info_.closest_cpu_id != -1) {
+            get_machine_topology()->bind_to_pus(
+                &this->cuda_exec_info_.closest_cpu_id, 1);
+        }
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(this->cuda_exec_info_.device_id);
@@ -1398,6 +1410,14 @@ public:
         return hipsparse_handle_.get();
     }
 
+    /**
+     * Bind the current executor thread to the list of cores
+     *
+     * @param  ids  the logical ids of the cores.
+     * @param  num_ids  the number of cores to bind
+     */
+    void bind_to_cores(const int *ids, const size_type num_ids) const;
+
 protected:
     void set_gpu_property();
 
@@ -1412,6 +1432,10 @@ protected:
         this->hip_exec_info_.num_work_groups_per_core = 0;
         assert(this->hip_exec_info_.device_id < max_devices);
         this->populate_exec_info(get_machine_topology());
+        if (this->hip_exec_info_.closest_cpu_id != -1) {
+            get_machine_topology()->bind_to_pus(
+                &this->hip_exec_info_.closest_cpu_id, 1);
+        }
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(this->hip_exec_info_.device_id);
