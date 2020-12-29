@@ -159,9 +159,9 @@ TEST(OmpExecutor, IsItsOwnMaster)
 
 TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 {
-    if (!gko::get_machine_topology()) {
-        GTEST_SKIP() << "No Machine topology information available";
-    }
+#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
+    GTEST_SKIP() << " No useful machine topology information to test against";
+#endif
     auto omp = gko::OmpExecutor::create();
 
     auto num_cpus = omp->get_num_cores() * omp->get_num_threads_per_core();
@@ -497,8 +497,6 @@ TEST(Executor, CanVerifyMemory)
     auto omp2 = gko::OmpExecutor::create();
     auto hip2 = gko::HipExecutor::create(0, omp);
     auto cuda2 = gko::CudaExecutor::create(0, omp);
-    auto hip_1 = gko::HipExecutor::create(1, omp);
-    auto cuda_1 = gko::CudaExecutor::create(1, omp);
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
@@ -543,20 +541,61 @@ TEST(Executor, CanVerifyMemory)
 #if GINKGO_HIP_PLATFORM_NVCC
     ASSERT_EQ(true, hip->memory_accessible(cuda));
     ASSERT_EQ(true, cuda->memory_accessible(hip));
-    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
-    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
 #else
     ASSERT_EQ(false, hip->memory_accessible(cuda));
     ASSERT_EQ(false, cuda->memory_accessible(hip));
-    ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
-    ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
 #endif
     ASSERT_EQ(true, omp->memory_accessible(omp2));
     ASSERT_EQ(true, hip->memory_accessible(hip2));
     ASSERT_EQ(true, cuda->memory_accessible(cuda2));
-    ASSERT_EQ(false, hip->memory_accessible(hip_1));
-    ASSERT_EQ(false, cuda->memory_accessible(hip_1));
+}
+
+
+TEST(Executor, CanVerifyMemoryBetweenTwoCudaDevices)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+    if (cuda->get_num_devices() < 2) {
+        GTEST_SKIP() << "Only one cuda device available";
+    }
+    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+
     ASSERT_EQ(false, cuda->memory_accessible(cuda_1));
+}
+
+
+TEST(Executor, CanVerifyMemoryBetweenTwoHipDevices)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+    if (hip->get_num_devices() < 2) {
+        GTEST_SKIP() << "Only one hip device available";
+    }
+    auto hip_1 = gko::HipExecutor::create(1, omp);
+
+    ASSERT_EQ(false, hip->memory_accessible(hip_1));
+}
+
+
+TEST(Executor, CanVerifyMemoryBetweenCudaAndHipDevices)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+    auto cuda = gko::CudaExecutor::create(0, omp);
+    if (hip->get_num_devices() < 2 || cuda->get_num_devices() < 2) {
+        GTEST_SKIP() << "Only one hip/one cuda device available";
+    }
+    auto hip_1 = gko::HipExecutor::create(1, omp);
+    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+
+#if GINKGO_HIP_PLATFORM_NVCC
+    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
+#else
+    ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
+#endif
+    ASSERT_EQ(false, cuda->memory_accessible(hip_1));
     ASSERT_EQ(false, hip->memory_accessible(cuda_1));
 }
 
