@@ -149,6 +149,7 @@ endif()
 
 if(GINKGO_FORCE_NO_HWLOC)
     set(GINKGO_HAVE_HWLOC 0)
+    message(STATUS "HWLOC is being forcibly switched off")
 else()
     set(GINKGO_HAVE_HWLOC 1)
 endif()
