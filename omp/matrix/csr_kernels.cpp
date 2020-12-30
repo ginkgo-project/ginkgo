@@ -613,6 +613,45 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType *perm,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Csr<ValueType, IndexType> *permuted)
+{
+    auto in_row_ptrs = orig->get_const_row_ptrs();
+    auto in_col_idxs = orig->get_const_col_idxs();
+    auto in_vals = orig->get_const_values();
+    auto p_row_ptrs = permuted->get_row_ptrs();
+    auto p_col_idxs = permuted->get_col_idxs();
+    auto p_vals = permuted->get_values();
+    size_type num_rows = orig->get_size()[0];
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = row;
+        auto dst_row = perm[row];
+        p_row_ptrs[dst_row] = in_row_ptrs[src_row + 1] - in_row_ptrs[src_row];
+    }
+    components::prefix_sum(exec, p_row_ptrs, num_rows + 1);
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = row;
+        auto dst_row = perm[row];
+        auto src_begin = in_row_ptrs[src_row];
+        auto dst_begin = p_row_ptrs[dst_row];
+        auto row_size = in_row_ptrs[src_row + 1] - src_begin;
+        for (IndexType i = 0; i < row_size; ++i) {
+            p_col_idxs[dst_begin + i] = perm[in_col_idxs[src_begin + i]];
+            p_vals[dst_begin + i] = in_vals[src_begin + i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const OmpExecutor> exec, const IndexType *perm,
                  const matrix::Csr<ValueType, IndexType> *orig,
                  matrix::Csr<ValueType, IndexType> *row_permuted)

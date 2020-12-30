@@ -1067,6 +1067,46 @@ TYPED_TEST(Csr, NonSquareMtxIsTransposable)
 }
 
 
+TYPED_TEST(Csr, SquareMatrixIsPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto ref_permute_csr =
+        gko::as<Csr>(gko::as<Csr>(p_mtx->row_permute(&permute_idxs))
+                         ->column_permute(&permute_idxs));
+    auto permute_csr = gko::as<Csr>(p_mtx->permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permute_csr, permute_csr, 0.0);
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsInversePermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto ref_permute_csr =
+        gko::as<Csr>(gko::as<Csr>(p_mtx->inverse_row_permute(&permute_idxs))
+                         ->inverse_column_permute(&permute_idxs));
+    auto permute_csr = gko::as<Csr>(p_mtx->inverse_permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permute_csr, permute_csr, 0.0);
+}
+
+
 TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
 {
     using Csr = typename TestFixture::Mtx;

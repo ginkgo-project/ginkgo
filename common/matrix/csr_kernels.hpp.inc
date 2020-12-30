@@ -1063,3 +1063,29 @@ __global__ __launch_bounds__(default_block_size) void inv_row_permute_kernel(
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
+    size_type num_rows, const IndexType *__restrict__ permutation,
+    const IndexType *__restrict__ in_row_ptrs,
+    const IndexType *__restrict__ in_cols,
+    const ValueType *__restrict__ in_vals,
+    const IndexType *__restrict__ out_row_ptrs,
+    IndexType *__restrict__ out_cols, ValueType *__restrict__ out_vals)
+{
+    auto tid = thread::get_subwarp_id_flat<subwarp_size>();
+    if (tid >= num_rows) {
+        return;
+    }
+    auto lane = threadIdx.x % subwarp_size;
+    auto in_row = tid;
+    auto out_row = permutation[tid];
+    auto in_begin = in_row_ptrs[in_row];
+    auto in_size = in_row_ptrs[in_row + 1] - in_begin;
+    auto out_begin = out_row_ptrs[out_row];
+    for (IndexType i = lane; i < in_size; i += subwarp_size) {
+        out_cols[out_begin + i] = permutation[in_cols[in_begin + i]];
+        out_vals[out_begin + i] = in_vals[in_begin + i];
+    }
+}

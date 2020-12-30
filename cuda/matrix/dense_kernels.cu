@@ -603,19 +603,54 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void symm_permute(std::shared_ptr<const CudaExecutor> exec,
+                  const Array<IndexType> *permutation_indices,
+                  const matrix::Dense<ValueType> *orig,
+                  matrix::Dense<ValueType> *permuted)
+{
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], default_block_size);
+    kernel::symm_permute<<<num_blocks, default_block_size>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        permutation_indices->get_const_data(),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(permuted->get_values()), permuted->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
+                      const Array<IndexType> *permutation_indices,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Dense<ValueType> *permuted)
+{
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], default_block_size);
+    kernel::inv_symm_permute<<<num_blocks, default_block_size>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        permutation_indices->get_const_data(),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(permuted->get_values()), permuted->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_gather(std::shared_ptr<const CudaExecutor> exec,
                 const Array<IndexType> *row_indices,
                 const matrix::Dense<ValueType> *orig,
                 matrix::Dense<ValueType> *row_gathered)
 {
-    constexpr auto block_size = default_block_size;
     auto out_num_rows = row_indices->get_num_elems();
-    const dim3 grid_dim =
-        ceildiv(out_num_rows * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    kernel::row_gather<block_size><<<grid_dim, block_dim>>>(
-        out_num_rows, orig->get_size()[1],
-        as_cuda_type(row_indices->get_const_data()),
+    const auto num_blocks =
+        ceildiv(out_num_rows * orig->get_size()[1], default_block_size);
+    kernel::row_gather<<<num_blocks, default_block_size>>>(
+        out_num_rows, orig->get_size()[1], row_indices->get_const_data(),
         as_cuda_type(orig->get_const_values()), orig->get_stride(),
         as_cuda_type(row_gathered->get_values()), row_gathered->get_stride());
 }
@@ -630,13 +665,11 @@ void column_permute(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Dense<ValueType> *orig,
                     matrix::Dense<ValueType> *column_permuted)
 {
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    kernel::column_permute<block_size><<<grid_dim, block_dim>>>(
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], default_block_size);
+    kernel::column_permute<<<num_blocks, default_block_size>>>(
         orig->get_size()[0], orig->get_size()[1],
-        as_cuda_type(permutation_indices->get_const_data()),
+        permutation_indices->get_const_data(),
         as_cuda_type(orig->get_const_values()), orig->get_stride(),
         as_cuda_type(column_permuted->get_values()),
         column_permuted->get_stride());
@@ -652,13 +685,11 @@ void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
                          const matrix::Dense<ValueType> *orig,
                          matrix::Dense<ValueType> *row_permuted)
 {
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    kernel::inverse_row_permute<block_size><<<grid_dim, block_dim>>>(
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], default_block_size);
+    kernel::inverse_row_permute<<<num_blocks, default_block_size>>>(
         orig->get_size()[0], orig->get_size()[1],
-        as_cuda_type(permutation_indices->get_const_data()),
+        permutation_indices->get_const_data(),
         as_cuda_type(orig->get_const_values()), orig->get_stride(),
         as_cuda_type(row_permuted->get_values()), row_permuted->get_stride());
 }
@@ -673,13 +704,11 @@ void inverse_column_permute(std::shared_ptr<const CudaExecutor> exec,
                             const matrix::Dense<ValueType> *orig,
                             matrix::Dense<ValueType> *column_permuted)
 {
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    kernel::inverse_column_permute<block_size><<<grid_dim, block_dim>>>(
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], default_block_size);
+    kernel::inverse_column_permute<<<num_blocks, default_block_size>>>(
         orig->get_size()[0], orig->get_size()[1],
-        as_cuda_type(permutation_indices->get_const_data()),
+        permutation_indices->get_const_data(),
         as_cuda_type(orig->get_const_values()), orig->get_stride(),
         as_cuda_type(column_permuted->get_values()),
         column_permuted->get_stride());

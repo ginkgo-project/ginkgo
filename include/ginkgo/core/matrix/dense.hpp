@@ -226,6 +226,18 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    std::unique_ptr<LinOp> permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<int64> *permutation_indices) const override;
+
     std::unique_ptr<LinOp> row_permute(
         const Array<int32> *permutation_indices) const override;
 
@@ -276,16 +288,16 @@ public:
         const Array<int64> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int32> *inverse_permutation_indices) const override;
+        const Array<int32> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int64> *inverse_permutation_indices) const override;
+        const Array<int64> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int32> *inverse_permutation_indices) const override;
+        const Array<int32> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int64> *inverse_permutation_indices) const override;
+        const Array<int64> *permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 

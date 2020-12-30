@@ -1804,6 +1804,86 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
 }
 
 
+TYPED_TEST(Dense, SquareMatrixIsPermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+
+    auto ref_permuted =
+        gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
+                         ->column_permute(&permute_idxs));
+    auto permuted = gko::as<Mtx>(this->mtx5->permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permuted, ref_permuted, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, SquareMatrixIsInversePermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+
+    auto ref_permuted = gko::as<Mtx>(
+        gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
+            ->inverse_column_permute(&permute_idxs));
+    auto permuted = gko::as<Mtx>(this->mtx5->inverse_permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permuted, ref_permuted, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, SquareMatrixIsPermutable64)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+
+    auto ref_permuted =
+        gko::as<Mtx>(gko::as<Mtx>(this->mtx5->row_permute(&permute_idxs))
+                         ->column_permute(&permute_idxs));
+    auto permuted = gko::as<Mtx>(this->mtx5->permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permuted, ref_permuted, r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, SquareMatrixIsInversePermutable64)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
+
+    auto ref_permuted = gko::as<Mtx>(
+        gko::as<Mtx>(this->mtx5->inverse_row_permute(&permute_idxs))
+            ->inverse_column_permute(&permute_idxs));
+    auto permuted = gko::as<Mtx>(this->mtx5->inverse_permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permuted, ref_permuted, r<TypeParam>::value);
+}
+
+
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 {
     // clang-format off
