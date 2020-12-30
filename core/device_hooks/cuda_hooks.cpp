@@ -62,7 +62,10 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo) {}
+void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    // This method is always called, so cannot throw when not compiled.
+}
 
 
 void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
