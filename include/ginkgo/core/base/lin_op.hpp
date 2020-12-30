@@ -470,11 +470,43 @@ public:
     virtual ~Permutable() = default;
 
     /**
+     * Returns a LinOp representing the symmetric row and column permutation of
+     * the Permutable object.
+     *
+     * @param permutation_indices  the array of indices contaning the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<LinOp> permute(
+        const Array<IndexType> *permutation_indices) const
+    {
+        return as<Permutable>(this->row_permute(permutation_indices))
+            ->column_permute(permutation_indices);
+    };
+
+    /**
+     * Returns a LinOp representing the symmetric inverse row and column
+     * permutation of the Permutable object.
+     *
+     * @param permutation_indices  the array of indices contaning the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<LinOp> inverse_permute(
+        const Array<IndexType> *permutation_indices) const
+    {
+        return as<Permutable>(this->inverse_row_permute(permutation_indices))
+            ->inverse_column_permute(permutation_indices);
+    };
+
+    /**
      * Returns a LinOp representing the row permutation of the Permutable
      * object.
      *
      * @param permutation_indices  the array of indices contaning the
-     * permutation order.
+     *                             permutation order.
      *
      * @return a pointer to the new permuted object
      */
@@ -486,7 +518,7 @@ public:
      * object.
      *
      * @param permutation_indices  the array of indices contaning the
-     * permutation order.
+     *                             permutation order.
      *
      * @return a pointer to the new column permuted object
      */
@@ -497,25 +529,25 @@ public:
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
      *
-     * @param inverse_permutation_indices  the array of indices contaning the
-     * inverse permutation order.
+     * @param permutation_indices  the array of indices contaning the
+     *                             permutation order.
      *
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *inverse_permutation_indices) const = 0;
+        const Array<IndexType> *permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
      *
-     * @param inverse_permutation_indices  the array of indices contaning the
-     * inverse permutation order.
+     * @param permutation_indices  the array of indices contaning the
+     *                             permutation order.
      *
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *inverse_permutation_indices) const = 0;
+        const Array<IndexType> *permutation_indices) const = 0;
 };
 
 

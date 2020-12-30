@@ -129,6 +129,12 @@ namespace kernels {
                         const matrix::Csr<ValueType, IndexType> *orig, \
                         matrix::Csr<ValueType, IndexType> *trans)
 
+#define GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType)    \
+    void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const IndexType *permutation_indices,          \
+                          const matrix::Csr<ValueType, IndexType> *orig, \
+                          matrix::Csr<ValueType, IndexType> *permuted)
+
 #define GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
     void row_permute(std::shared_ptr<const DefaultExecutor> exec,   \
                      const IndexType *permutation_indices,          \
@@ -206,6 +212,8 @@ namespace kernels {
     GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);                  \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                        \

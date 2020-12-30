@@ -694,6 +694,12 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    std::unique_ptr<LinOp> permute(
+        const Array<IndexType> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<IndexType> *inverse_permutation_indices) const override;
+
     std::unique_ptr<LinOp> row_permute(
         const Array<IndexType> *permutation_indices) const override;
 

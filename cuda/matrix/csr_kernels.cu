@@ -1157,6 +1157,31 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
+                      const IndexType *perm,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Csr<ValueType, IndexType> *permuted)
+{
+    auto num_rows = orig->get_size()[0];
+    auto count_num_blocks = ceildiv(num_rows, default_block_size);
+    inv_row_ptr_permute_kernel<<<count_num_blocks, default_block_size>>>(
+        num_rows, perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
+    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
+    auto copy_num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    inv_symm_permute_kernel<config::warp_size>
+        <<<copy_num_blocks, default_block_size>>>(
+            num_rows, perm, orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), as_cuda_type(orig->get_const_values()),
+            permuted->get_row_ptrs(), permuted->get_col_idxs(),
+            as_cuda_type(permuted->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const CudaExecutor> exec,
                  const IndexType *perm,
                  const matrix::Csr<ValueType, IndexType> *orig,

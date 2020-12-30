@@ -241,6 +241,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void symm_permute(std::shared_ptr<const DpcppExecutor> exec,
+                  const Array<IndexType> *permutation_indices,
+                  const matrix::Dense<ValueType> *orig,
+                  matrix::Dense<ValueType> *permuted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
+                      const Array<IndexType> *permutation_indices,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Dense<ValueType> *permuted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_gather(std::shared_ptr<const DpcppExecutor> exec,
                 const Array<IndexType> *gather_indices,
                 const matrix::Dense<ValueType> *orig,
