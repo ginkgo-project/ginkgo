@@ -33,12 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <utmpx.h>
 #include <thread>
 #include <type_traits>
 
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <utmpx.h>
+#endif
+
+
 #include <gmock/gmock.h>
+
+
 #include <gtest/gtest.h>
 
 
@@ -175,6 +181,12 @@ TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 #if GKO_HAVE_HWLOC
 
 
+inline int get_os_id(int log_id)
+{
+    return gko::get_machine_topology()->get_core(log_id)->os_id;
+}
+
+
 TEST(OmpExecutor, CanBindToASpecificCore)
 {
 #if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
@@ -187,7 +199,7 @@ TEST(OmpExecutor, CanBindToASpecificCore)
     gko::get_machine_topology()->bind_to_cores(&bind_core, 1);
 
     cpu_sys = sched_getcpu();
-    ASSERT_EQ(cpu_sys, bind_core);
+    ASSERT_EQ(cpu_sys, get_os_id(bind_core));
 }
 
 
@@ -203,11 +215,13 @@ TEST(OmpExecutor, CanBindToARangeofCores)
     gko::get_machine_topology()->bind_to_cores(bind_core, 2);
 
     cpu_sys = sched_getcpu();
-    EXPECT_THAT(cpu_sys, testing::AnyOf(testing::Eq(3), testing::Eq(6)));
+    EXPECT_THAT(cpu_sys, testing::AnyOf(testing::Eq(get_os_id(3)),
+                                        testing::Eq(get_os_id(6))));
 }
 
 
 #endif
+
 
 TEST(ReferenceExecutor, RunsCorrectOperation)
 {

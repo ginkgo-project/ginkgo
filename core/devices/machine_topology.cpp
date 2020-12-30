@@ -67,7 +67,7 @@ const MachineTopology *get_machine_topology()
 
 
 const MachineTopology::io_obj_info *MachineTopology::get_pci_device(
-    std::string &pci_bus_id) const
+    const std::string &pci_bus_id) const
 {
     for (auto id = 0; id < this->pci_devices_.size(); ++id) {
         if (this->pci_devices_[id].pci_bus_id.compare(0, 12, pci_bus_id, 0,
@@ -163,7 +163,6 @@ void MachineTopology::hwloc_print_children(const hwloc_obj_t obj,
                                            const int depth)
 {
 #if GKO_HAVE_HWLOC
-    auto topology = this->topo_.get();
     char type[32], attr[1024];
     unsigned i;
     hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
@@ -206,7 +205,8 @@ void MachineTopology::load_objects(
 
 
 inline int MachineTopology::get_obj_local_id_by_os_index(
-    std::vector<MachineTopology::normal_obj_info> &objects, int os_index)
+    std::vector<MachineTopology::normal_obj_info> &objects,
+    size_type os_index) const
 {
 #if GKO_HAVE_HWLOC
     for (auto id = 0; id < objects.size(); ++id) {
@@ -220,7 +220,8 @@ inline int MachineTopology::get_obj_local_id_by_os_index(
 
 
 inline int MachineTopology::get_obj_local_id_by_gp_index(
-    std::vector<MachineTopology::normal_obj_info> &objects, int gp_index)
+    std::vector<MachineTopology::normal_obj_info> &objects,
+    size_type gp_index) const
 {
 #if GKO_HAVE_HWLOC
     for (auto id = 0; id < objects.size(); ++id) {
@@ -292,7 +293,7 @@ void MachineTopology::load_objects(
             // Get the first child
             os_child = obj->io_first_child;
             vector.back().io_children.push_back(os_child);
-            vector.back().io_children_name.push_back(os_child->name);
+            vector.back().io_children_name.emplace_back(os_child->name);
             rem_io_children -= 1;
             // If the io obj has more than one children, they are siblings to
             // the first child. Store these as well.
@@ -300,7 +301,7 @@ void MachineTopology::load_objects(
             while (rem_io_children >= 1) {
                 os_child_n = os_child_n->next_sibling;
                 vector.back().io_children.push_back(os_child_n);
-                vector.back().io_children_name.push_back(os_child_n->name);
+                vector.back().io_children_name.emplace_back(os_child_n->name);
                 rem_io_children -= 1;
             }
             GKO_ASSERT(vector.back().io_children.size() ==

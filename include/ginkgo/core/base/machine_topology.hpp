@@ -310,7 +310,7 @@ public:
      * @param pci_bus_id  The PCI bus id of the pci device
      * @return  the PCI object struct.
      */
-    const io_obj_info *get_pci_device(std::string &pci_bus_id) const;
+    const io_obj_info *get_pci_device(const std::string &pci_bus_id) const;
 
     /**
      * Get the number of PU objects stored in this Topology tree.
@@ -416,7 +416,7 @@ protected:
      * Get local id from the os index
      */
     inline int get_obj_local_id_by_os_index(
-        std::vector<normal_obj_info> &objects, int os_index);
+        std::vector<normal_obj_info> &objects, size_type os_index) const;
 
     /**
      *
@@ -425,7 +425,7 @@ protected:
      * Get local id from the hwloc index
      */
     inline int get_obj_local_id_by_gp_index(
-        std::vector<normal_obj_info> &objects, int gp_index);
+        std::vector<normal_obj_info> &objects, size_type gp_index) const;
 
 
 private:
