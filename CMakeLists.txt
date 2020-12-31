@@ -290,11 +290,13 @@ ginkgo_install()
 if(MSVC)
     # Set path/command with $<CONFIG>
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install")
+    set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/$<CONFIG>/test_exportbuild")
     if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
     endif()
 else()
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
+    set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/test_exportbuild")
     if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
     endif()
@@ -311,6 +313,20 @@ add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>
     COMMAND ${GINKGO_TEST_INSTALL_COMMAND}
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
+
+add_custom_target(test_exportbuild
+    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_exportbuild
+    -B${Ginkgo_BINARY_DIR}/test_exportbuild
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    # `--config cfg` is ignored by single-configuration generator.
+    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
+    # single-configuration generator.
+    COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_exportbuild --config $<CONFIG>
+    COMMAND ${GINKGO_TEST_EXPORTBUILD_COMMAND}
+    COMMENT "Running a test on Ginkgo's exported build directory. "
+    "This requires compiling Ginkgo with `-DGINKGO_EXPORT_BUILD_DIR=ON` first.")
+
 
 # Setup CPack
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${Ginkgo_SOURCE_DIR}/README.md")
