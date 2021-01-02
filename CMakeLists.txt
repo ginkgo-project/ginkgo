@@ -12,6 +12,10 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
 endif()
 
 project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+if (GINKGO_BUILD_CONAN)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
+endif()
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
