@@ -97,6 +97,8 @@ protected:
         ASSERT_EQ(m->get_size(), orig_size);
         ASSERT_EQ(m->get_num_stored_elements(), orig_vals.size());
         ASSERT_EQ(m->get_block_size(), bs);
+        ASSERT_EQ(m->get_num_block_rows(), m->get_size()[0] / bs);
+        ASSERT_EQ(m->get_num_block_cols(), m->get_size()[1] / bs);
 
 
         for (index_type irow = 0; irow < orig_size[0] / bs; irow++) {
@@ -184,6 +186,8 @@ TYPED_TEST(Fbcsr, KnowsItsSize)
     ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(6, 12));
     ASSERT_EQ(this->mtx->get_block_size(), 3);
     ASSERT_EQ(this->mtx->get_num_stored_elements(), 36);
+    ASSERT_EQ(this->mtx->get_num_block_rows(), 2);
+    ASSERT_EQ(this->mtx->get_num_block_cols(), 4);
 }
 
 
@@ -278,6 +282,7 @@ TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec);
     m->set_block_size(this->fbsample.bs);
+    ASSERT_EQ(m->get_block_size(), this->fbsample.bs);
 
     m->read(this->fbsample.generate_matrix_data());
 
