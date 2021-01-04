@@ -1,0 +1,38 @@
+set(GINKGO_HAS_OMP OFF)
+set(GINKGO_HAS_CUDA OFF)
+set(GINKGO_HAS_DPCPP OFF)
+set(GINKGO_HAS_HIP OFF)
+find_package(OpenMP)
+include(CheckLanguage)
+check_language(CUDA)
+try_compile(GKO_CAN_COMPILE_DPCPP ${PROJECT_BINARY_DIR}/dpcpp
+    SOURCES ${PROJECT_SOURCE_DIR}/dpcpp/test_dpcpp.dp.cpp
+    CXX_STANDARD 17)
+
+if(OpenMP_CXX_FOUND)
+    if(NOT DEFINED GINKGO_BUILD_OMP)
+        message(STATUS "Enabling OpenMP executor")
+    endif()
+    set(GINKGO_HAS_OMP ON)
+endif()
+
+if(CMAKE_CUDA_COMPILER)
+    if(NOT DEFINED GINKGO_BUILD_CUDA)
+        message(STATUS "Enabling CUDA executor")
+    endif()
+    set(GINKGO_HAS_CUDA ON)
+endif()
+
+if(GINKGO_HIPCONFIG_PATH)
+    if(NOT DEFINED GINKGO_BUILD_HIP)
+        message(STATUS "Enabling HIP executor")
+    endif()
+    set(GINKGO_HAS_HIP ON)
+endif()
+
+if (GKO_CAN_COMPILE_DPCPP)
+    if(NOT DEFINED GINKGO_BUILD_DPCPP)
+        message(STATUS "Enabling DPCPP executor")
+    endif()
+    set(GINKGO_HAS_DPCPP ON)
+endif()

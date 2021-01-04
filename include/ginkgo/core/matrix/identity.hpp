@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_IDENTITY_HPP_
-#define GKO_CORE_MATRIX_IDENTITY_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_IDENTITY_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_IDENTITY_HPP_
 
 
 #include <ginkgo/core/base/lin_op.hpp>
@@ -61,7 +61,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>> {
+                 public EnableCreateMethod<Identity<ValueType>>,
+                 public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
     friend class EnableCreateMethod<Identity>;
 
@@ -70,6 +71,12 @@ public:
     using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
+    using transposed_type = Identity<ValueType>;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
 
 protected:
     /**
@@ -80,6 +87,17 @@ protected:
     explicit Identity(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Identity>(exec)
     {}
+
+    /**
+     * Creates an Identity matrix of the specified size.
+     *
+     * @param size  size of the matrix (must be square)
+     */
+    Identity(std::shared_ptr<const Executor> exec, dim<2> size)
+        : EnableLinOp<Identity>(exec, size)
+    {
+        GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    }
 
     /**
      * Creates an Identity matrix of the specified size.
@@ -145,4 +163,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_IDENTITY_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_IDENTITY_HPP_

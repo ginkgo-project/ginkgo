@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_JACOBI_HPP_
-#define GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -56,11 +56,18 @@ namespace preconditioner {
  * @tparam IndexType  type used for storing indices of the matrix
  *
  * @ingroup jacobi
- * @ingroup precond
- * @ingroup LinOp
  */
 template <typename IndexType>
 struct block_interleaved_storage_scheme {
+    block_interleaved_storage_scheme() = default;
+
+    block_interleaved_storage_scheme(IndexType block_offset,
+                                     IndexType group_offset, uint32 group_power)
+        : block_offset{block_offset},
+          group_offset{group_offset},
+          group_power{group_power}
+    {}
+
     /**
      * The offset between consecutive blocks within the group.
      */
@@ -199,7 +206,8 @@ struct block_interleaved_storage_scheme {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
                public ConvertibleTo<matrix::Dense<ValueType>>,
-               public WritableToMatrixData<ValueType, IndexType> {
+               public WritableToMatrixData<ValueType, IndexType>,
+               public Transposable {
     friend class EnableLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, LinOp>;
 
@@ -209,6 +217,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using transposed_type = Jacobi<ValueType, IndexType>;
 
     /**
      * Returns the number of blocks of the operator.
@@ -280,14 +289,48 @@ public:
 
     void write(mat_data &data) const override;
 
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This value has to be between 1 and 32.
+         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD).
          */
-        uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
+
+        /**
+         * Stride between two columns of a block (as number of elements).
+         *
+         * Should be a multiple of cache line size for best performance.
+         *
+         * @note If this value is 0, it uses 64 in hip AMD but 32 in NVIDIA or
+         *       reference executor. The allowed value: 0, 64 for AMD and 0, 32
+         *       for NVIDIA
+         */
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_stride, 0u);
+
+        /**
+         * @brief `true` means it is known that the matrix given to this
+         *        factory will be sorted first by row, then by column index,
+         *        `false` means it is unknown or not sorted, so an additional
+         *        sorting step will be performed during the preconditioner
+         *        generation (it will not change the matrix given).
+         *        The matrix must be sorted for this preconditioner to work.
+         *
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this preconditioner might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -314,7 +357,8 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers, nullptr);
+        gko::Array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
+                                                            nullptr);
 
     private:
         // See documentation of storage_optimization parameter for details about
@@ -411,7 +455,7 @@ public:
          * If the non-adaptive version of Jacobi is used, the
          * `storage_optimization.block_wise` Array will be empty.
          */
-        storage_optimization_type GKO_FACTORY_PARAMETER(
+        storage_optimization_type GKO_FACTORY_PARAMETER_VECTOR(
             storage_optimization, precision_reduction(0, 0));
 
         /**
@@ -440,7 +484,7 @@ public:
          * accuracy to a value as close as possible to `dropout` will result in
          * optimal memory savings, while not degrading the quality of solution.
          */
-        remove_complex<value_type> GKO_FACTORY_PARAMETER(accuracy, 1e-1);
+        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(accuracy, 1e-1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -471,31 +515,21 @@ protected:
     explicit Jacobi(const Factory *factory,
                     std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Jacobi>(factory->get_executor(),
-                              transpose(system_matrix->get_size())),
+                              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          storage_scheme_{compute_storage_scheme(parameters_.max_block_size)},
+          storage_scheme_{this->compute_storage_scheme(
+              parameters_.max_block_size, parameters_.max_block_stride)},
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
                       parameters_.block_pointers.get_num_elems() - 1)),
           conditioning_(factory->get_executor())
     {
-        if (parameters_.max_block_size >= 32 ||
-            parameters_.max_block_size < 1) {
-            GKO_NOT_SUPPORTED(this);
-        }
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
-        this->generate(lend(system_matrix));
+        this->generate(lend(system_matrix), parameters_.skip_sorting);
     }
-
-    /**
-     * Stride between two columns of a block (as number of elements).
-     *
-     * Should be a multiple of cache line size for best performance.
-     */
-    static constexpr size_type max_block_stride_ = 32;
 
     /**
      * Computes the storage scheme suitable for storing blocks of a given
@@ -505,11 +539,32 @@ protected:
      *
      * @return a suitable storage scheme
      */
-    static block_interleaved_storage_scheme<index_type> compute_storage_scheme(
-        uint32 max_block_size) noexcept
+    block_interleaved_storage_scheme<index_type> compute_storage_scheme(
+        uint32 max_block_size, uint32 param_max_block_stride)
     {
+        uint32 default_block_stride = 32;
+        // If the executor is hip, the warp size is 32 or 64
+        if (auto hip_exec = std::dynamic_pointer_cast<const gko::HipExecutor>(
+                this->get_executor())) {
+            default_block_stride = hip_exec->get_warp_size();
+        }
+        uint32 max_block_stride = default_block_stride;
+        if (param_max_block_stride != 0) {
+            // if parameter max_block_stride is not zero, set max_block_stride =
+            // param_max_block_stride
+            max_block_stride = param_max_block_stride;
+            if (this->get_executor() != this->get_executor()->get_master() &&
+                max_block_stride != default_block_stride) {
+                // only support the default value on the gpu devive
+                GKO_NOT_SUPPORTED(this);
+            }
+        }
+        if (parameters_.max_block_size > max_block_stride ||
+            parameters_.max_block_size < 1) {
+            GKO_NOT_SUPPORTED(this);
+        }
         const auto group_size = static_cast<uint32>(
-            max_block_stride_ / get_superior_power(uint32{2}, max_block_size));
+            max_block_stride / get_superior_power(uint32{2}, max_block_size));
         const auto block_offset = max_block_size;
         const auto block_stride = group_size * block_offset;
         const auto group_offset = max_block_size * block_stride;
@@ -523,8 +578,11 @@ protected:
      *
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner
+     * @param skip_sorting  determines if the sorting of system_matrix can be
+     *                      skipped (therefore, marking that it is already
+     *                      sorted)
      */
-    void generate(const LinOp *system_matrix);
+    void generate(const LinOp *system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the
@@ -552,4 +610,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_

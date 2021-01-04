@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * By default, Ginkgo is compiled with at least
  * <code>-DGINKGO_BUILD_REFERENCE=ON</code>.
- * To execute on a GPU, you need to have a GPU on the system and must have
- * compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.
+ * Ginkgo also tries to detect your environment setup (presence of CUDA, ...) to
+ * enable the relevant accelerator modules. If you want to target a specific
+ * GPU, make sure that Ginkgo is compiled with the accelerator specific module
+ * enabled, such as:
+ * <ol>
+ *   <li> <code>-DGINKGO_BUILD_CUDA=ON</code> option for NVIDIA GPUs.
+ *   <li> <code>-DGINKGO_BUILD_HIP=ON</code> option for AMD or NVIDIA GPUs.
+ *   <li> <code>-DGINKGO_BUILD_DPCPP=ON</code> option for Intel GPUs (and
+ *        possibly any other platform).
+ * </ol
  *
  * <a name="graph"></a>
  * @anchor ExampleConnectionGraph
@@ -105,6 +113,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       </td></tr>
  *
  *   <tr valign="top">
+ *       <td>@ref ilu_preconditioned_solver</td>
+ *       <td> Using an ILU preconditioner to solve a linear system.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref performance_debugging</td>
+ *       <td> Using Loggers to debug the performance within Ginkgo.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
  *       <td>@ref three_pt_stencil_solver</td>
  *       <td> Using a three point stencil to solve the poisson equation with
  *            array views.
@@ -113,12 +131,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *       <td>@ref nine_pt_stencil_solver</td>
  *       <td> Using a nine point 2D stencil to solve the poisson equation with
- *            array views.
- *       </td></tr>
- *
- *   <tr valign="top">
- *       <td>@ref twentyseven_pt_stencil_solver</td>
- *       <td> Using a twentyseven point 3D stencil to solve the poisson equation with
  *            array views.
  *       </td></tr>
  *
@@ -191,6 +203,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
+ *     <td> Debug the performance of a solver using loggers.
+ *     </td>
+ *     <td>@ref performance_debugging
+ *     </td>
+ *   </tr>
+ *
+ *   <tr valign="top">
  *     <td> Using the CUDA executor
  *     </td>
  *     <td>@ref minimal_cuda_solver
@@ -200,7 +219,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *     <td width="400px"> Using preconditioners
  *     </td>
- *     <td>@ref preconditioned_solver
+ *     <td>@ref preconditioned_solver,
+ *         @ref ilu_preconditioned_solver
  *     </td>
  *   </tr>
  *
@@ -210,7 +230,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td>@ref poisson_solver,
  *         @ref three_pt_stencil_solver,
  *         @ref nine_pt_stencil_solver,
- *         @ref twentyseven_pt_stencil_solver,
  *         @ref custom_matrix_format
  *     </td>
  *   </tr>
@@ -221,6 +240,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td>@ref simple_solver,
  *         @ref minimal_cuda_solver,
  *         @ref preconditioned_solver,
+ *         @ref ilu_preconditioned_solver,
  *         @ref inverse_iteration,
  *         @ref simple_solver_logging,
  *         @ref papi_logging,

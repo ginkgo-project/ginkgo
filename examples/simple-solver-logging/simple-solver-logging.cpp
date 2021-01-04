@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,13 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <string>
 
 
 namespace {
 
 
-void print_vector(const std::string &name, const gko::matrix::Dense<> *vec)
+template <typename ValueType>
+void print_vector(const std::string &name,
+                  const gko::matrix::Dense<ValueType> *vec)
 {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < vec->get_size()[0]; ++i) {
@@ -58,26 +61,47 @@ void print_vector(const std::string &name, const gko::matrix::Dense<> *vec)
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::Cg<>;
+    using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    } else {
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
+
+    // Figure out where to run the code
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -88,8 +112,8 @@ int main(int argc, char *argv[])
     // file. We log all events except for all linop factory and polymorphic
     // object events. Events masks are group of events which are provided
     // for convenience.
-    std::shared_ptr<gko::log::Stream<>> stream_logger =
-        gko::log::Stream<>::create(
+    std::shared_ptr<gko::log::Stream<ValueType>> stream_logger =
+        gko::log::Stream<ValueType>::create(
             exec,
             gko::log::Logger::all_events_mask ^
                 gko::log::Logger::linop_factory_events_mask ^
@@ -102,11 +126,13 @@ int main(int argc, char *argv[])
     // Add stream_logger only to the ResidualNormReduction criterion Factory
     // Note that the logger will get automatically propagated to every criterion
     // generated from this factory.
+    const RealValueType reduction_factor{1e-7};
     using ResidualCriterionFactory =
-        gko::stop::ResidualNormReduction<>::Factory;
+        gko::stop::ResidualNormReduction<ValueType>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =
-        ResidualCriterionFactory::create().with_reduction_factor(1e-20).on(
-            exec);
+        ResidualCriterionFactory::create()
+            .with_reduction_factor(reduction_factor)
+            .on(exec);
     residual_criterion->add_logger(stream_logger);
 
     // Generate solver
@@ -124,7 +150,7 @@ int main(int argc, char *argv[])
     // gko::log::Logger::iteration_complete_mask. See the documentation of
     // Logger class for more information.
     std::ofstream filestream("my_file.txt");
-    solver->add_logger(gko::log::Stream<>::create(
+    solver->add_logger(gko::log::Stream<ValueType>::create(
         exec, gko::log::Logger::all_events_mask, filestream));
     solver->add_logger(stream_logger);
 
@@ -153,20 +179,20 @@ int main(int argc, char *argv[])
     // convergence happened)
     auto residual =
         record_logger->get().criterion_check_completed.back()->residual.get();
-    auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
+    auto residual_d = gko::as<vec>(residual);
     print_vector("Residual", residual_d);
 
     // Print solution
-    std::cout << "Solution (x): \n";
+    std::cout << "Solution (x):\n";
     write(std::cout, lend(x));
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
-    std::cout << "Residual norm sqrt(r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
 }

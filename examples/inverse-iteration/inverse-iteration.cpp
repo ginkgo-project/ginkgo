@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <string>
 
 
@@ -45,8 +46,9 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using precision = std::complex<double>;
-    using real_precision = double;
+    using real_precision = gko::remove_complex<precision>;
     using vec = gko::matrix::Dense<precision>;
+    using real_vec = gko::matrix::Dense<real_precision>;
     using mtx = gko::matrix::Csr<precision>;
     using solver_type = gko::solver::Bicgstab<precision>;
 
@@ -59,18 +61,34 @@ int main(int argc, char *argv[])
     std::cout << std::scientific << std::setprecision(8) << std::showpos;
 
     // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    } else {
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
+
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     auto this_exec = exec->get_master();
 
@@ -123,7 +141,7 @@ int main(int argc, char *argv[])
     }();
     auto y = clone(x);
     auto tmp = clone(x);
-    auto norm = clone(one);
+    auto norm = gko::initialize<real_vec>({1.0}, exec);
     auto inv_norm = clone(this_exec, one);
     auto g = clone(one);
 
@@ -139,7 +157,7 @@ int main(int argc, char *argv[])
         // x = y / || y ||
         x->compute_norm2(lend(norm));
         inv_norm->get_values()[0] =
-            precision{1.0} / clone(this_exec, norm)->get_values()[0];
+            real_precision{1.0} / clone(this_exec, norm)->get_values()[0];
         x->scale(lend(clone(exec, inv_norm)));
         // g = x^* A x
         A->apply(lend(x), lend(tmp));

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,9 @@ void *OmpExecutor::raw_alloc(size_type num_bytes) const
 void OmpExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    std::memcpy(dest_ptr, src_ptr, num_bytes);
+    if (num_bytes > 0) {
+        std::memcpy(dest_ptr, src_ptr, num_bytes);
+    }
 }
 
 

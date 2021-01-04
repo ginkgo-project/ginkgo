@@ -1,0 +1,15 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example shows how to combine iterative refinement with the adaptive
+precision block-Jacobi preconditioner in order to approximately solve the
+triangular systems occurring in ILU preconditioning. Using an adaptive precision
+block-Jacobi preconditioner matrix as inner solver for the iterative refinement
+method is equivalent to doing adaptive precision block-Jacobi relaxation in the
+triangular solves. This example roughly approximates the triangular solves with
+five adaptive precision block-Jacobi sweeps with a maximum block size of 16.
+
+This example is motivated by "Multiprecision block-Jacobi for Iterative
+Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020).
+The theory and a detailed analysis can be found there.

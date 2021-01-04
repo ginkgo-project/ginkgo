@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+#define GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -72,34 +76,4 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
-/**
- * Creates a Ginkgo matrix from the intermediate data representation format
- * gko::matrix_data.
- *
- * @param exec  the executor where the matrix will be put
- * @param data  the data represented in the intermediate representation format
- *
- * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix_from_data(
-    std::shared_ptr<const gko::Executor> exec, const gko::matrix_data<> &data)
-{
-    auto mat = MatrixType::create(std::move(exec));
-    mat->read(data);
-    return mat;
-}
-
-/**
- * Creates a Ginkgo matrix from the intermediate data representation format
- * gko::matrix_data with support for variable arguments.
- *
- * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
- */
-#define READ_MATRIX(MATRIX_TYPE, ...)                                   \
-    [](std::shared_ptr<const gko::Executor> exec,                       \
-       const gko::matrix_data<> &data) -> std::unique_ptr<gko::LinOp> { \
-        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);   \
-        mat->read(data);                                                \
-        return mat;                                                     \
-    }
+#endif  // GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_

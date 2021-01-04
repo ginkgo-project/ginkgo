@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 // Add the C++ iostream header to output information to the console.
 #include <iostream>
+// Add the STL map header for the executor selection
+#include <map>
 // Add the string manipulation header to handle strings.
 #include <string>
 
@@ -49,17 +51,26 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using vec = gko::matrix::Dense<>;
+    using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
+    using IndexType = int;
+    using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
-    using mtx = gko::matrix::Csr<>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using cg = gko::solver::Cg<>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
+
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
+        std::exit(-1);
+    }
 
     // @sect3{Where do you want to run your solver ?}
     // The gko::Executor class is one of the cornerstones of Ginkgo. Currently,
@@ -71,18 +82,29 @@ int main(int argc, char *argv[])
     // @note With the help of C++, you see that you only ever need to change the
     // executor and all the other functions/ routines within Ginkgo should
     // automatically work and run on the executor with any other changes.
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    } else {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
-        std::exit(-1);
-    }
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // @sect3{Reading your data and transfer to the proper device.}
     // Read the matrix, right hand side and the initial solution using the @ref
@@ -101,16 +123,17 @@ int main(int argc, char *argv[])
     // build solvers with certain
     // properties. Observe the Fluent interface used here. Here a cg solver is
     // generated with a stopping criteria of maximum iterations of 20 and a
-    // residual norm reduction of 1e-15. You also observe that the stopping
+    // residual norm reduction of 1e-7. You also observe that the stopping
     // criteria(gko::stop) are also generated from factories using their build
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
+    const RealValueType reduction_factor{1e-7};
     auto solver_gen =
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-15)
+                gko::stop::ResidualNormReduction<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the
@@ -129,7 +152,7 @@ int main(int argc, char *argv[])
     solver->apply(lend(b), lend(x));
 
     // Print the solution to the command line.
-    std::cout << "Solution (x): \n";
+    std::cout << "Solution (x):\n";
     write(std::cout, lend(x));
 
     // To measure if your solution has actually converged, you can measure the
@@ -141,10 +164,10 @@ int main(int argc, char *argv[])
     // the euclidean 2-norm with the compute_norm2 function.
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
-    std::cout << "Residual norm sqrt(r^T r): \n";
+    std::cout << "Residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_GMRES_HPP_
-#define GKO_CORE_SOLVER_GMRES_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
 
 
 #include <vector>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -68,12 +69,15 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>, public Preconditionable {
+class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public Preconditionable,
+              public Transposable {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Gmres<ValueType>;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -85,22 +89,52 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the preconditioner operator used by the solver.
-     *
-     * @return the preconditioner operator used by the solver
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const override
-    {
-        return preconditioner_;
-    }
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
-     * Returns the krylov dimension.
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
+
+    /**
+     * Gets the krylov dimension of the solver
      *
      * @return the krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
+
+    /**
+     * Sets the krylov dimension
+     *
+     * @param other  the new krylov dimension
+     */
+    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
+
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = std::move(other);
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -108,18 +142,25 @@ public:
          * Criterion factories.
          */
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
          * Preconditioner factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_preconditioner, nullptr);
 
         /**
          * krylov dimension factory.
          */
-        size_type GKO_FACTORY_PARAMETER(krylov_dim, 0u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -137,16 +178,21 @@ protected:
     explicit Gmres(const Factory *factory,
                    std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gmres>(factory->get_executor(),
-                             transpose(system_matrix->get_size())),
+                             gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+        if (parameters_.generated_preconditioner) {
+            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
+                                        this);
+            set_preconditioner(parameters_.generated_preconditioner);
+        } else if (parameters_.preconditioner) {
+            set_preconditioner(
+                parameters_.preconditioner->generate(system_matrix_));
         } else {
-            preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]);
+            set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_size()));
         }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
@@ -159,7 +205,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
 };
@@ -169,4 +214,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_GMRES_HPP
+#endif  // GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_

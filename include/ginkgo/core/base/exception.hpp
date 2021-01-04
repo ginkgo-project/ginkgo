@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,15 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXCEPTION_HPP_
-#define GKO_CORE_EXCEPTION_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_EXCEPTION_HPP_
+#define GKO_PUBLIC_CORE_BASE_EXCEPTION_HPP_
 
 
 #include <exception>
 #include <string>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -87,9 +87,10 @@ class Error : public std::exception {
 public:
     /**
      * Initializes an error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param what The error message
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param what  The error message
      */
     Error(const std::string &file, int line, const std::string &what)
         : what_(file + ":" + std::to_string(line) + ": " + what)
@@ -114,9 +115,10 @@ class NotImplemented : public Error {
 public:
     /**
      * Initializes a NotImplemented error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the not-yet implemented function
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the not-yet implemented function
      */
     NotImplemented(const std::string &file, int line, const std::string &func)
         : Error(file, line, func + " is not implemented")
@@ -132,10 +134,11 @@ class NotCompiled : public Error {
 public:
     /**
      * Initializes a NotCompiled error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the function that has not been compiled
-     * @param module The name of the module which contains the function
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function that has not been compiled
+     * @param module  The name of the module which contains the function
      */
     NotCompiled(const std::string &file, int line, const std::string &func,
                 const std::string &module)
@@ -154,10 +157,11 @@ class NotSupported : public Error {
 public:
     /**
      * Initializes a NotSupported error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the function where the error occured
-     * @param obj_type The object type on which the requested operation
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function where the error occured
+     * @param obj_type  The object type on which the requested operation
                        cannot be performed.
      */
     NotSupported(const std::string &file, int line, const std::string &func,
@@ -176,10 +180,11 @@ class CudaError : public Error {
 public:
     /**
      * Initializes a CUDA error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the CUDA routine that failed
-     * @param error_code The resulting CUDA error code
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the CUDA routine that failed
+     * @param error_code  The resulting CUDA error code
      */
     CudaError(const std::string &file, int line, const std::string &func,
               int64 error_code)
@@ -198,12 +203,36 @@ class CublasError : public Error {
 public:
     /**
      * Initializes a cuBLAS error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the cuBLAS routine that failed
-     * @param error_code The resulting cuBLAS error code
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the cuBLAS routine that failed
+     * @param error_code  The resulting cuBLAS error code
      */
     CublasError(const std::string &file, int line, const std::string &func,
+                int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * CurandError is thrown when a cuRAND routine throws a non-zero error code.
+ */
+class CurandError : public Error {
+public:
+    /**
+     * Initializes a cuRAND error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the cuRAND routine that failed
+     * @param error_code  The resulting cuRAND error code
+     */
+    CurandError(const std::string &file, int line, const std::string &func,
                 int64 error_code)
         : Error(file, line, func + ": " + get_error(error_code))
     {}
@@ -220,13 +249,107 @@ class CusparseError : public Error {
 public:
     /**
      * Initializes a cuSPARSE error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the cuSPARSE routine that failed
-     * @param error_code The resulting cuSPARSE error code
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the cuSPARSE routine that failed
+     * @param error_code  The resulting cuSPARSE error code
      */
     CusparseError(const std::string &file, int line, const std::string &func,
                   int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HipError is thrown when a HIP routine throws a non-zero error code.
+ */
+class HipError : public Error {
+public:
+    /**
+     * Initializes a HIP error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the HIP routine that failed
+     * @param error_code  The resulting HIP error code
+     */
+    HipError(const std::string &file, int line, const std::string &func,
+             int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HipblasError is thrown when a hipBLAS routine throws a non-zero error code.
+ */
+class HipblasError : public Error {
+public:
+    /**
+     * Initializes a hipBLAS error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the hipBLAS routine that failed
+     * @param error_code  The resulting hipBLAS error code
+     */
+    HipblasError(const std::string &file, int line, const std::string &func,
+                 int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HiprandError is thrown when a hipRAND routine throws a non-zero error code.
+ */
+class HiprandError : public Error {
+public:
+    /**
+     * Initializes a hipRAND error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the hipRAND routine that failed
+     * @param error_code  The resulting hipRAND error code
+     */
+    HiprandError(const std::string &file, int line, const std::string &func,
+                 int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HipsparseError is thrown when a hipSPARSE routine throws a non-zero error
+ * code.
+ */
+class HipsparseError : public Error {
+public:
+    /**
+     * Initializes a hipSPARSE error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the hipSPARSE routine that failed
+     * @param error_code  The resulting hipSPARSE error code
+     */
+    HipsparseError(const std::string &file, int line, const std::string &func,
+                   int64 error_code)
         : Error(file, line, func + ": " + get_error(error_code))
     {}
 
@@ -243,16 +366,17 @@ class DimensionMismatch : public Error {
 public:
     /**
      * Initializes a dimension mismatch error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The function name where the error occurred
-     * @param first_name The name of the first operator
-     * @param first_rows The output dimension of the first operator
-     * @param first_cols The input dimension of the first operator
-     * @param second_name The name of the second operator
-     * @param second_rows The output dimension of the second operator
-     * @param second_cols The input dimension of the second operator
-     * @param clarification An additional message describing the error further
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param first_name  The name of the first operator
+     * @param first_rows  The output dimension of the first operator
+     * @param first_cols  The input dimension of the first operator
+     * @param second_name  The name of the second operator
+     * @param second_rows  The output dimension of the second operator
+     * @param second_cols  The input dimension of the second operator
+     * @param clarification  An additional message describing the error further
      */
     DimensionMismatch(const std::string &file, int line,
                       const std::string &func, const std::string &first_name,
@@ -270,16 +394,70 @@ public:
 
 
 /**
+ * BadDimension is thrown if an operation is being applied to a LinOp
+ * with bad dimensions.
+ */
+class BadDimension : public Error {
+public:
+    /**
+     * Initializes a bad dimension error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param op_name  The name of the operator
+     * @param op_num_rows  The row dimension of the operator
+     * @param op_num_cols  The column dimension of the operator
+     * @param clarification  An additional message further describing the error
+     */
+    BadDimension(const std::string &file, int line, const std::string &func,
+                 const std::string &op_name, size_type op_num_rows,
+                 size_type op_num_cols, const std::string &clarification)
+        : Error(file, line,
+                func + ": Object " + op_name + " has dimensions [" +
+                    std::to_string(op_num_rows) + " x " +
+                    std::to_string(op_num_cols) + "]: " + clarification)
+    {}
+};
+
+
+/**
+ * ValueMismatch is thrown if two values are not equal.
+ */
+class ValueMismatch : public Error {
+public:
+    /**
+     * Initializes a value mismatch error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param val1  The first value to be compared.
+     * @param val2  The second value to be compared.
+     * @param clarification  An additional message further describing the error
+     */
+    ValueMismatch(const std::string &file, int line, const std::string &func,
+                  size_type val1, size_type val2,
+                  const std::string &clarification)
+        : Error(file, line,
+                func + ": Value mismatch : " + std::to_string(val1) + " and " +
+                    std::to_string(val2) + " : " + clarification)
+    {}
+};
+
+
+/**
  * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {
 public:
     /**
      * Initializes an allocation error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param device The device on which the error occurred
-     * @param bytes The size of the memory block whose allocation failed.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param device  The device on which the error occurred
+     * @param bytes  The size of the memory block whose allocation failed.
      */
     AllocationError(const std::string &file, int line,
                     const std::string &device, size_type bytes)
@@ -298,6 +476,7 @@ class OutOfBoundsError : public Error {
 public:
     /**
      * Initializes an OutOfBoundsError.
+     *
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
      * @param index  The position that was accessed
@@ -320,10 +499,11 @@ class StreamError : public Error {
 public:
     /**
      * Initializes a file access error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the function that tried to access the file
-     * @param message The error message
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function that tried to access the file
+     * @param message  The error message
      */
     StreamError(const std::string &file, int line, const std::string &func,
                 const std::string &message)
@@ -340,9 +520,10 @@ class KernelNotFound : public Error {
 public:
     /**
      * Initializes a KernelNotFound error.
-     * @param file The name of the offending source file
-     * @param line The source code line number where the error occurred
-     * @param func The name of the function where the error occurred
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function where the error occurred
      */
     KernelNotFound(const std::string &file, int line, const std::string &func)
         : Error(file, line, func + ": unable to find an eligible kernel")
@@ -353,4 +534,4 @@ public:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXCEPTION_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_EXCEPTION_HPP_

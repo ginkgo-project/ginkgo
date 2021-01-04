@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,32 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Bicgstab<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
@@ -108,7 +134,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
     rr->copy_from(r.get());
-    system_matrix_->apply(r.get(), v.get());
 
     int iter = -1;
     while (true) {
@@ -131,7 +156,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
-        preconditioner_->apply(p.get(), y.get());
+        get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
@@ -156,7 +181,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        preconditioner_->apply(s.get(), z.get());
+        get_preconditioner()->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());

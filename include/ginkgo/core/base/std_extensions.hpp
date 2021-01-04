@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,23 +30,24 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STD_EXTENSIONS_HPP_
-#define GKO_CORE_STD_EXTENSIONS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_
+#define GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_
 
 
+#include <functional>
 #include <memory>
 #include <type_traits>
 
 
 // This header provides implementations of useful utilities introduced into the
-// C++ standard after C++11 (i.e. C++14 and C++17).
+// C++ standard after C++14 (e.g. C++17 and C++20).
 // For documentation about these utilities refer to the newer version of the
 // standard.
 
 
 namespace gko {
 /**
- * @brief The namespace for functionalities after C++11 standard.
+ * @brief The namespace for functionalities after C++14 standard.
  * @internal
  * @ingroup xstd
  */
@@ -63,24 +64,60 @@ struct make_void {
 }  // namespace detail
 
 
+// Added in C++17
 template <typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;
 
 
+// Kept for backward compatibility.
 template <bool B, typename T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
+using enable_if_t = std::enable_if_t<B, T>;
 
 
+// Kept for backward compatibility.
 template <bool B, typename T, typename F>
-using conditional_t = typename std::conditional<B, T, F>::type;
+using conditional_t = std::conditional_t<B, T, F>;
 
 
+// Kept for backward compatibility.
 template <typename T>
-using decay_t = typename std::decay<T>::type;
+using decay_t = std::decay_t<T>;
+
+
+// Kept for backward compatibility.
+template <typename T>
+constexpr bool greater(const T &&lhs, const T &&rhs)
+{
+    return std::greater<void>()(lhs, rhs);
+}
+
+
+// Kept for backward compatibility.
+template <typename T>
+constexpr bool greater_equal(const T &&lhs, const T &&rhs)
+{
+    return std::greater_equal<void>()(lhs, rhs);
+}
+
+
+// Kept for backward compatibility.
+template <typename T>
+constexpr bool less(const T &&lhs, const T &&rhs)
+{
+    return std::less<void>()(lhs, rhs);
+}
+
+
+// Kept for backward compatibility.
+template <typename T>
+constexpr bool less_equal(const T &&lhs, const T &&rhs)
+{
+    return std::less_equal<void>()(lhs, rhs);
+}
 
 
 }  // namespace xstd
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STD_EXTENSIONS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_

@@ -6,64 +6,153 @@ if (NOT BUILD_SHARED_LIBS)
     set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
 endif()
 
+if(MSVC)
+    # MSVC can not find CUDA automatically
+    # Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
+    if("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
+        set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+    endif()
+    if("${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}" STREQUAL "")
+        set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
+    endif()
+
+    # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+    if(BUILD_SHARED_LIBS)
+        ginkgo_switch_to_windows_dynamic("CUDA")
+    else()
+        ginkgo_switch_to_windows_static("CUDA")
+    endif()
+endif()
+
 include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-# This is required by some examples such as cmake_matrix_format
+# This is required by some examples such as custom_matrix_format
 # which need the correct CMAKE_CUDA_FLAGS to be set
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
-find_library(CUDA_RUNTIME_LIBS cudart
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
+# add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
+# to force nvcc to use dynamic cudart library in MSVC.
+find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+if(MSVC)
+    if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared")
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+    else()
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
+    endif()
+else()
+    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+endif()
+
+# CUDA 10.1/10.2 put cublas, cublasLt, cudnn in /usr/lib/<arch>-linux-gnu/, but
+# others (<= 10.0 or >= 11) put them in cuda own directory
+# If the environment installs several cuda including 10.1/10.2, cmake will find
+# the 10.1/10.2 .so files when searching others cuda in the default path.
+# CMake already puts /usr/lib/<arch>-linux-gnu/ after cuda own directory in the
+# `CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES`, so we always put NO_DEFAULT_PATH here.
 find_library(CUBLAS cublas
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
 find_library(CUSPARSE cusparse
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
-        base/exception.cpp
-        base/executor.cpp
-        base/version.cpp
-        components/zero_array.cu
-        factorization/par_ilu_kernels.cu
-        matrix/coo_kernels.cu
-        matrix/csr_kernels.cu
-        matrix/dense_kernels.cu
-        matrix/ell_kernels.cu
-        matrix/hybrid_kernels.cu
-        matrix/sellp_kernels.cu
-        preconditioner/jacobi_advanced_apply_kernel.cu
-        preconditioner/jacobi_generate_kernel.cu
-        preconditioner/jacobi_kernels.cu
-        preconditioner/jacobi_simple_apply_kernel.cu
-        solver/bicgstab_kernels.cu
-        solver/cg_kernels.cu
-        solver/cgs_kernels.cu
-        solver/fcg_kernels.cu
-        solver/gmres_kernels.cu
-        solver/ir_kernels.cu
-        stop/criterion_kernels.cu
-        stop/residual_norm_reduction_kernels.cu)
+    base/exception.cpp
+    base/executor.cpp
+    base/version.cpp
+    components/absolute_array.cu
+    components/fill_array.cu
+    components/precision_conversion.cu
+    components/prefix_sum.cu
+    factorization/factorization_kernels.cu
+    factorization/ilu_kernels.cu
+    factorization/par_ict_kernels.cu
+    factorization/par_ilu_kernels.cu
+    factorization/par_ilut_approx_filter_kernel.cu
+    factorization/par_ilut_filter_kernel.cu
+    factorization/par_ilut_select_common.cu
+    factorization/par_ilut_select_kernel.cu
+    factorization/par_ilut_spgeam_kernel.cu
+    factorization/par_ilut_sweep_kernel.cu
+    matrix/coo_kernels.cu
+    matrix/csr_kernels.cu
+    matrix/dense_kernels.cu
+    matrix/diagonal_kernels.cu
+    matrix/ell_kernels.cu
+    matrix/hybrid_kernels.cu
+    matrix/sellp_kernels.cu
+    matrix/sparsity_csr_kernels.cu
+    preconditioner/isai_kernels.cu
+    preconditioner/jacobi_advanced_apply_kernel.cu
+    preconditioner/jacobi_generate_kernel.cu
+    preconditioner/jacobi_kernels.cu
+    preconditioner/jacobi_simple_apply_kernel.cu
+    reorder/rcm_kernels.cu
+    solver/bicg_kernels.cu
+    solver/bicgstab_kernels.cu
+    solver/cg_kernels.cu
+    solver/cgs_kernels.cu
+    solver/fcg_kernels.cu
+    solver/gmres_kernels.cu
+    solver/idr_kernels.cu
+    solver/ir_kernels.cu
+    solver/lower_trs_kernels.cu
+    solver/upper_trs_kernels.cu
+    stop/criterion_kernels.cu
+    stop/residual_norm_kernels.cu)
 
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-# merged at commit ed12b3df5d26
-if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+# merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
+   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     target_compile_options(ginkgo_cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 endif()
+
+if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
+    set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE STRING "" FORCE)
+elseif(GINKGO_CUDA_DEFAULT_HOST_COMPILER)
+    unset(CMAKE_CUDA_HOST_COMPILER CACHE)
+endif()
+
+if(CMAKE_CUDA_HOST_COMPILER AND NOT CMAKE_CXX_COMPILER STREQUAL CMAKE_CUDA_HOST_COMPILER)
+    message(WARNING "The CMake CXX compiler and CUDA host compiler do not match. "
+        "If you encounter any build error, especially while linking, try to use "
+        "the same compiler for both.\n"
+        "The CXX compiler is ${CMAKE_CXX_COMPILER} with version ${CMAKE_CXX_COMPILER_VERSION}.\n"
+        "The CUDA host compiler is ${CMAKE_CUDA_HOST_COMPILER}.")
+endif()
+
+if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND CMAKE_CUDA_COMPILER_VERSION
+    MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+    ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+    if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+        message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
+            "Consider using a different CUDA host compiler or CUDA version.")
+    endif()
+endif()
+
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
@@ -71,6 +160,10 @@ cas_target_cuda_architectures(ginkgo_cuda
 
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
+
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo_cuda)
+endif()
 
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)

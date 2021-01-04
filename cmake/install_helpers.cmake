@@ -6,14 +6,26 @@ set(GINKGO_INSTALL_INCLUDE_DIR "include")
 set(GINKGO_INSTALL_LIBRARY_DIR "lib")
 set(GINKGO_INSTALL_PKGCONFIG_DIR "lib/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "lib/cmake/Ginkgo")
+set(GINKGO_INSTALL_MODULE_DIR "lib/cmake/Ginkgo/Modules")
 
 function(ginkgo_install_library name subdir)
-    # install .so and .a files
-    install(TARGETS "${name}"
-        EXPORT Ginkgo
-        LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
-        ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+    
+    if (WIN32 OR CYGWIN)
+        # dll is considered as runtime
+        install(TARGETS "${name}"
+            EXPORT Ginkgo
+            LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            RUNTIME DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            )
+    else ()
+        # install .so and .a files
+        install(TARGETS "${name}"
+            EXPORT Ginkgo
+            LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
         )
+    endif ()
 endfunction()
 
 function(ginkgo_install)
@@ -32,6 +44,9 @@ function(ginkgo_install)
     if (GINKGO_HAVE_PAPI_SDE)
         install(FILES "${Ginkgo_SOURCE_DIR}/third_party/papi_sde/papi_sde_interface.h"
             DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/third_party/papi_sde"
+            )
+        install(FILES "${Ginkgo_SOURCE_DIR}/cmake/Modules/FindPAPI.cmake"
+            DESTINATION "${GINKGO_INSTALL_MODULE_DIR}/"
             )
     endif()
 
@@ -55,9 +70,14 @@ function(ginkgo_install)
     install(FILES
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
-        "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
+        "${Ginkgo_SOURCE_DIR}/cmake/hip_helpers.cmake"
+        "${Ginkgo_SOURCE_DIR}/cmake/windows_helpers.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
+      install(EXPORT Ginkgo
+        NAMESPACE Ginkgo::
+        FILE GinkgoTargets.cmake
+        DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}")
 
     # Export package for use from the build tree
     if (GINKGO_EXPORT_BUILD_DIR)

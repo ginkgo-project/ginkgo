@@ -1,0 +1,19 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+
+Initial residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+194.679
+Final residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+5.69384e-06
+CG iteration count:     5
+CG execution time [ms]: 0.080041
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>

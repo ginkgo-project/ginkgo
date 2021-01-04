@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -147,6 +147,14 @@ int main(int, char **)
             &testVar, 1u, 1u, 1u);
     }
 
+    // core/base/perturbation.hpp
+    {
+        using type1 = int;
+        static_assert(
+            std::is_same<gko::Perturbation<type1>::value_type, type1>::value,
+            "perturbation.hpp not included properly");
+    }
+
     // core/base/std_extensions.hpp
     {
         static_assert(std::is_same<gko::xstd::void_t<double>, void>::value,
@@ -168,6 +176,11 @@ int main(int, char **)
         auto test = gko::version_info::get().header_version;
     }
 
+    // core/factorization/par_ilu.hpp
+    {
+        auto test = gko::factorization::ParIlu<>::build().on(refExec);
+    }
+
     // core/log/convergence.hpp
     {
         auto test = gko::log::Convergence<>::create(refExec);
@@ -183,10 +196,12 @@ int main(int, char **)
         auto test = gko::log::Stream<>::create(refExec);
     }
 
-    // core/log/convergence.hpp
+#if GKO_HAVE_PAPI_SDE
+    // core/log/papi.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        auto test = gko::log::Papi<>::create(refExec);
     }
+#endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {
@@ -225,10 +240,33 @@ int main(int, char **)
         auto test = Mtx::create(refExec);
     }
 
+    // core/matrix/permutation.hpp
+    {
+        using Mtx = gko::matrix::Permutation<>;
+        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+    }
+
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+    }
+
+    // core/matrix/sparsity_csr.hpp
+    {
+        using Mtx = gko::matrix::SparsityCsr<>;
+        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+    }
+
+    // core/preconditioner/ilu.hpp
+    {
+        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
+    }
+
+    // core/preconditioner/isai.hpp
+    {
+        auto test_l = gko::preconditioner::LowerIsai<>::build().on(refExec);
+        auto test_u = gko::preconditioner::UpperIsai<>::build().on(refExec);
     }
 
     // core/preconditioner/jacobi.hpp
@@ -286,7 +324,7 @@ int main(int, char **)
                                 refExec))
                         .on(refExec);
     }
-    
+
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
@@ -295,6 +333,12 @@ int main(int, char **)
                             gko::stop::Iteration::build().with_max_iters(1u).on(
                                 refExec))
                         .on(refExec);
+    }
+
+    // core/solver/lower_trs.hpp
+    {
+        using Solver = gko::solver::LowerTrs<>;
+        auto test = Solver::build().on(refExec);
     }
 
     // core/stop/
@@ -307,10 +351,19 @@ int main(int, char **)
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
                         .on(refExec);
-        // residual_norm_reduction.hpp
+
+        // residual_norm.hpp
         auto res_red = gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(1e-10)
                            .on(refExec);
+
+        auto rel_res =
+            gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
+
+        auto abs_res =
+            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
+                refExec);
 
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};

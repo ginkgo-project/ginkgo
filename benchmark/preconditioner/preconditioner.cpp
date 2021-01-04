@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,73 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-// Command-line arguments
-DEFINE_uint32(max_block_size, 32,
-              "Maximal block size of the block-Jacobi preconditioner");
-
-DEFINE_string(matrix_format, "csr", "The format in which to read the matrix");
-
-DEFINE_string(preconditioners, "jacobi",
-              "A comma-separated list of solvers to run."
-              "Supported values are: jacobi");
-
-DEFINE_string(storage_optimization, "0,0",
-              "Defines the kind of storage optimization to perform on "
-              "preconditioners that support it. Supported values are: "
-              "autodetect and <X>,<Y> where <X> and <Y> are the input "
-              "parameters used to construct a precision_reduction object.");
-
-DEFINE_double(accuracy, 1e-1,
-              "This value is used as the accuracy flag of the adaptive Jacobi "
-              "preconditioner.");
+#include "benchmark/utils/timer.hpp"
 
 
 // some shortcuts
 using etype = double;
-
-
-// parses the storage optimization command line argument
-gko::precision_reduction parse_storage_optimization(const std::string &flag)
-{
-    if (flag == "autodetect") {
-        return gko::precision_reduction::autodetect();
-    }
-    const auto parts = split(flag, ',');
-    if (parts.size() != 2) {
-        throw std::runtime_error(
-            "storage_optimization has to be a list of two integers");
-    }
-    return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
-}
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const rapidjson::Value &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<etype>>},
-                   {"coo", read_matrix<gko::matrix::Coo<etype>>},
-                   {"ell", read_matrix<gko::matrix::Ell<etype>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<etype>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<etype>>}};
-
-
-// preconditioner mapping
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor> exec)>>
-    precond_factory{
-        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<etype>::build()
-                 .with_max_block_size(FLAGS_max_block_size)
-                 .with_storage_optimization(
-                     parse_storage_optimization(FLAGS_storage_optimization))
-                 .with_accuracy(FLAGS_accuracy)
-                 .on(exec);
-         }}};
 
 
 // preconditioner generation and application
@@ -116,12 +59,62 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
 std::string encode_parameters(const char *precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
-        {"jacobi", [] {
+        {"jacobi",
+         [] {
              std::ostringstream oss;
-             oss << "jacobi-" << FLAGS_max_block_size << "-"
-                 << FLAGS_storage_optimization;
+             oss << "jacobi-" << FLAGS_jacobi_max_block_size << "-"
+                 << FLAGS_jacobi_storage;
              return oss.str();
+         }},
+        {"parict",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
+             return oss.str();
+         }},
+        {"parilu",
+         [] {
+             std::ostringstream oss;
+             oss << "parilu-" << FLAGS_parilu_iterations;
+             return oss.str();
+         }},
+        {"parilut",
+         [] {
+             std::ostringstream oss;
+             oss << "parilut-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
+             return oss.str();
+         }},
+        {"parict-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilu-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilu-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilut-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilut-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"ilu-isai", [] {
+             return std::string{"ilu-isai-"} + std::to_string(FLAGS_isai_power);
          }}};
+    if (encoder.find(precond_name) == encoder.end()) {
+        return precond_name;
+    }
     return encoder[precond_name]();
 }
 
@@ -165,41 +158,36 @@ void run_preconditioner(const char *precond_name,
             for (auto i = 0u; i < FLAGS_warmup; ++i) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
             }
+            auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
+            auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
 
             exec->synchronize();
-            auto g_tic = std::chrono::steady_clock::now();
-
+            generate_timer->tic();
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op = precond->generate(system_matrix);
             }
+            generate_timer->toc();
 
-            exec->synchronize();
-            auto g_tac = std::chrono::steady_clock::now();
-
+            // the timer is out of the loops to reduce calling synchronize
+            // overhead, so the timer does not know the number of repetitions.
             auto generate_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
-                                                                     g_tic) /
-                FLAGS_repetitions;
+                generate_timer->get_total_time() / FLAGS_repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_time.count(), allocator);
+                              generate_time, allocator);
 
             exec->synchronize();
-            auto a_tic = std::chrono::steady_clock::now();
-
+            apply_timer->tic();
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
+            apply_timer->toc();
 
-            exec->synchronize();
-            auto a_tac = std::chrono::steady_clock::now();
-
-            auto apply_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
-                                                                     a_tic) /
-                FLAGS_repetitions;
-            add_or_set_member(this_precond_data["apply"], "time",
-                              apply_time.count(), allocator);
+            // the timer is out of the loops to reduce calling synchronize
+            // overhead, so the timer does not know the number of repetitions.
+            auto apply_time = apply_timer->get_total_time() / FLAGS_repetitions;
+            add_or_set_member(this_precond_data["apply"], "time", apply_time,
+                              allocator);
         }
 
         if (FLAGS_detailed) {
@@ -207,7 +195,8 @@ void run_preconditioner(const char *precond_name,
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
 
-            auto gen_logger = std::make_shared<OperationLogger>(exec);
+            auto gen_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
@@ -218,7 +207,8 @@ void run_preconditioner(const char *precond_name,
             gen_logger->write_data(this_precond_data["generate"]["components"],
                                    allocator, FLAGS_repetitions);
 
-            auto apply_logger = std::make_shared<OperationLogger>(exec);
+            auto apply_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
@@ -244,6 +234,8 @@ void run_preconditioner(const char *precond_name,
 
 int main(int argc, char *argv[])
 {
+    // Use csr as the default format
+    FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
     std::string format = std::string() + "  [\n" +
@@ -259,6 +251,12 @@ int main(int argc, char *argv[])
     auto &engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
+
+    auto formats = split(FLAGS_formats, ',');
+    if (formats.size() != 1) {
+        std::cerr << "Preconditioner only supports one format" << std::endl;
+        std::exit(1);
+    }
 
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
@@ -288,8 +286,11 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
+            std::ifstream mtx_fd(test_case["filename"].GetString());
+            auto data = gko::read_raw<etype>(mtx_fd);
+
             auto system_matrix =
-                share(matrix_factory.at(FLAGS_matrix_format)(exec, test_case));
+                share(formats::matrix_factory.at(FLAGS_formats)(exec, data));
             auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
                                           engine);
             auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
@@ -310,5 +311,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::cout << test_cases;
+    std::cout << test_cases << std::endl;
 }

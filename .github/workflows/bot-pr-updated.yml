@@ -1,0 +1,25 @@
+on:
+  pull_request_target:
+    types: [opened,synchronize]
+
+name: OnSyncPR
+jobs:
+  check-format:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
+    steps:
+      - name: Checkout the latest code
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+          fetch-depth: 0
+      - name: Check for formatting changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
+      - name: Upload code formatting patch
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: patch
+          path: format.patch

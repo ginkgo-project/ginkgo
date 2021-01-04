@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
+#include <type_traits>
+
+
 #include <cublas_v2.h>
+#include <cuda_fp16.h>
+#include <cusparse.h>
 #include <thrust/complex.h>
 
 
@@ -190,6 +198,34 @@ constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 }
 
 
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+
+
+template <typename T>
+constexpr cusparseIndexType_t cusparse_index_type_impl()
+{
+    return CUSPARSE_INDEX_16U;
+}
+
+template <>
+constexpr cusparseIndexType_t cusparse_index_type_impl<int32>()
+{
+    return CUSPARSE_INDEX_32I;
+}
+
+template <>
+constexpr cusparseIndexType_t cusparse_index_type_impl<int64>()
+{
+    return CUSPARSE_INDEX_64I;
+}
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+
+
 }  // namespace detail
 
 
@@ -206,6 +242,30 @@ constexpr cudaDataType_t cuda_data_type()
 {
     return detail::cuda_data_type_impl<T>();
 }
+
+
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+
+
+/**
+ * This is an alias for the `cudaIndexType_t` equivalent of `T`. By default,
+ * CUSPARSE_INDEX_16U is returned.
+ *
+ * @tparam T  a type
+ *
+ * @returns the actual `cusparseIndexType_t`
+ */
+template <typename T>
+constexpr cusparseIndexType_t cusparse_index_type()
+{
+    return detail::cusparse_index_type_impl<T>();
+}
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
@@ -225,7 +285,7 @@ using cuda_type = typename detail::cuda_type_impl<T>::type;
  * @return `val` reinterpreted to CUDA type
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     std::is_pointer<T>::value || std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {
@@ -237,7 +297,7 @@ as_cuda_type(T val)
  * @copydoc as_cuda_type()
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {
@@ -268,30 +328,6 @@ inline culibs_type<T> as_culibs_type(T val)
 {
     return reinterpret_cast<culibs_type<T>>(val);
 }
-
-
-struct cuda_config {
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 32;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr uint32 full_lane_mask = (1ll << warp_size) - 1;
-
-    /**
-     * The maximal number of threads allowed in a CUDA warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
 
 
 }  // namespace cuda

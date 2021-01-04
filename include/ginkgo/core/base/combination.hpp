@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_COMBINATION_HPP_
-#define GKO_CORE_BASE_COMBINATION_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_COMBINATION_HPP_
+#define GKO_PUBLIC_CORE_BASE_COMBINATION_HPP_
 
 
 #include <vector>
@@ -53,12 +53,14 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,
-                    public EnableCreateMethod<Combination<ValueType>> {
+                    public EnableCreateMethod<Combination<ValueType>>,
+                    public Transposable {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Combination<ValueType>;
 
     /**
      * Returns a list of coefficients of the combination.
@@ -81,6 +83,10 @@ public:
     {
         return operators_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     /**
@@ -187,6 +193,7 @@ private:
     // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
         cache_struct() = default;
+        ~cache_struct() = default;
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &other) { return *this; }
 
@@ -200,4 +207,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_COMBINATION_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_COMBINATION_HPP_

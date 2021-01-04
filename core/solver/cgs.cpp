@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,32 @@ GKO_REGISTER_OPERATION(step_3, cgs::step_3);
 
 
 }  // namespace cgs
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cgs<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
 
 
 template <typename ValueType>
@@ -120,7 +146,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // beta = rho / rho_prev
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
-        preconditioner_->apply(p.get(), t.get());
+        get_preconditioner()->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_dot(v_hat.get(), gamma.get());
         exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
@@ -134,7 +160,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        preconditioner_->apply(t.get(), u_hat.get());
+        get_preconditioner()->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
                                    alpha.get(), &stop_status));

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
 
+
+#include "cuda/base/config.hpp"
 
 namespace gko {
 namespace kernels {
@@ -46,9 +47,10 @@ namespace jacobi {
  * kernels should be compiled.
  */
 #ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
-using compiled_kernels = syn::as_list<syn::range<1, 33, 1>>;
+using compiled_kernels = syn::as_list<syn::range<1, config::warp_size + 1, 1>>;
 #else
-using compiled_kernels = syn::value_list<int, 1, 2, 4, 8, 13, 16, 32>;
+using compiled_kernels =
+    syn::value_list<int, 1, 2, 4, 8, 13, 16, 32, config::warp_size>;
 #endif
 
 

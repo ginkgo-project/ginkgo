@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_RANGE_HPP_
-#define GKO_CORE_BASE_RANGE_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_RANGE_HPP_
+#define GKO_PUBLIC_CORE_BASE_RANGE_HPP_
+
+
+#include <type_traits>
 
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -159,9 +161,9 @@ namespace detail {
 template <size_type CurrentDimension = 0, typename FirstRange,
           typename SecondRange>
 GKO_ATTRIBUTES constexpr GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
-                                               SecondRange::dimensionality)),
-                      bool>
+    std::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
+                                              SecondRange::dimensionality)),
+                     bool>
     equal_dimensions(const FirstRange &, const SecondRange &)
 {
     return true;
@@ -170,9 +172,9 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
 template <size_type CurrentDimension = 0, typename FirstRange,
           typename SecondRange>
 GKO_ATTRIBUTES constexpr GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
-                                              SecondRange::dimensionality)),
-                      bool>
+    std::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
+                                             SecondRange::dimensionality)),
+                     bool>
     equal_dimensions(const FirstRange &first, const SecondRange &second)
 {
     return first.length(CurrentDimension) == second.length(CurrentDimension) &&
@@ -306,6 +308,11 @@ public:
     static constexpr size_type dimensionality = accessor::dimensionality;
 
     /**
+     * Use the default destructor.
+     */
+    ~range() = default;
+
+    /**
      * Creates a new range.
      *
      * @tparam AccessorParam  types of parameters forwarded to the accessor
@@ -376,6 +383,8 @@ public:
         accessor_.copy_from(other.get_accessor());
         return *this;
     }
+
+    range(const range &other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.
@@ -998,4 +1007,4 @@ GKO_BIND_RANGE_OPERATION_TO_OPERATOR(mmul_operation, mmul);
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_RANGE_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_RANGE_HPP_

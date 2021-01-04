@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
+#include "core/components/fill_array.hpp"
+#include "core/matrix/coo_kernels.hpp"
+#include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 
 
@@ -54,6 +58,13 @@ namespace hybrid {
 GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
+GKO_REGISTER_OPERATION(extract_coo_diagonal, coo::extract_diagonal);
+GKO_REGISTER_OPERATION(extract_ell_diagonal, ell::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace hybrid
@@ -110,11 +121,31 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 
 template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Hybrid<next_precision<ValueType>, IndexType> *result) const
+{
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
+    // TODO set strategy correctly
+    // There is no way to correctly clone the strategy like in Csr::convert_to
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(
+    Hybrid<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(hybrid::make_convert_to_dense(tmp.get(), this));
+    exec->run(hybrid::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -135,10 +166,11 @@ void Hybrid<ValueType, IndexType>::convert_to(
     size_type num_stored_elements = 0;
     exec->run(hybrid::make_count_nonzeros(this, &num_stored_elements));
 
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 num_stored_elements);
-    exec->run(hybrid::make_convert_to_csr(tmp.get(), this));
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), num_stored_elements, result->get_strategy());
+    exec->run(hybrid::make_convert_to_csr(this, tmp.get()));
 
+    tmp->make_srow();
     tmp->move_to(result);
 }
 
@@ -161,8 +193,9 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
     get_each_row_nnz(data, row_nnz);
     strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
 
-    auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
-                              ell_lim, data.size[0], coo_lim);
+    auto tmp =
+        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
+                       data.size[0], coo_lim, this->get_strategy());
 
     // Get values and column indexes.
     size_type ind = 0;
@@ -238,6 +271,50 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
             coo_ind++;
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Hybrid<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                      zero<ValueType>()));
+    exec->run(hybrid::make_extract_ell_diagonal(this->get_ell(), lend(diag)));
+    exec->run(hybrid::make_extract_coo_diagonal(this->get_coo(), lend(diag)));
+    return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(hybrid::make_inplace_absolute_array(
+        this->get_ell_values(), this->get_ell_num_stored_elements()));
+    exec->run(hybrid::make_inplace_absolute_array(
+        this->get_coo_values(), this->get_coo_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Hybrid<ValueType, IndexType>::absolute_type>
+Hybrid<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_hybrid = absolute_type::create(
+        exec, this->get_size(), this->get_strategy<absolute_type>());
+
+    abs_hybrid->ell_->copy_from(ell_->compute_absolute());
+    abs_hybrid->coo_->copy_from(coo_->compute_absolute());
+
+    return abs_hybrid;
 }
 
 

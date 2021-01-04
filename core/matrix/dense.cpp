@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <algorithm>
+#include <type_traits>
+
+
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -40,15 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
-
-
-#include <algorithm>
 
 
 namespace gko {
@@ -60,6 +64,7 @@ GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
@@ -70,11 +75,22 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(calculate_total_cols, dense::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
+GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
+GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
+GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
+GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
+GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
+GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
+GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
+GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
+GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
+GKO_REGISTER_OPERATION(get_real, dense::get_real);
+GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 
 }  // namespace dense
@@ -94,7 +110,7 @@ inline void conversion_helper(Coo<ValueType, IndexType> *result,
     exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
     auto tmp = Coo<ValueType, IndexType>::create(exec, source->get_size(),
                                                  num_stored_nonzeros);
-    exec->run(op(tmp.get(), source));
+    exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -110,7 +126,7 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
     exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
-    exec->run(op(tmp.get(), source));
+    exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -129,7 +145,7 @@ inline void conversion_helper(Ell<ValueType, IndexType> *result,
     const auto stride = std::max(result->get_stride(), source->get_size()[0]);
     auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
                                                  max_nnz_per_row, stride);
-    exec->run(op(tmp.get(), source));
+    exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -154,7 +170,7 @@ inline void conversion_helper(Hybrid<ValueType, IndexType> *result,
     auto tmp = Hybrid<ValueType, IndexType>::create(
         exec, source->get_size(), max_nnz_per_row, stride, coo_nnz,
         result->get_strategy());
-    exec->run(op(tmp.get(), source));
+    exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -176,7 +192,23 @@ inline void conversion_helper(Sellp<ValueType, IndexType> *result,
                                                stride_factor, slice_size));
     auto tmp = Sellp<ValueType, IndexType>::create(
         exec, source->get_size(), slice_size, stride_factor, total_cols);
-    exec->run(op(tmp.get(), source));
+    exec->run(op(source, tmp.get()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+
+    size_type num_stored_nonzeros = 0;
+    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
+    auto tmp = SparsityCsr<ValueType, IndexType>::create(
+        exec, source->get_size(), num_stored_nonzeros);
+    exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -187,8 +219,15 @@ inline void conversion_helper(Sellp<ValueType, IndexType> *result,
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_simple_apply(
-        this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_simple_apply(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -196,9 +235,18 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                   const LinOp *beta, LinOp *x) const
 {
-    this->get_executor()->run(dense::make_apply(
-        as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-        as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(dense::make_apply(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<Dense<to_complex<ValueType>>>(b);
+        auto dense_x = as<Dense<to_complex<ValueType>>>(x);
+        auto dense_alpha = as<Dense<remove_complex<ValueType>>>(alpha);
+        auto dense_beta = as<Dense<remove_complex<ValueType>>>(beta);
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -225,6 +273,14 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
+
+    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+        exec->run(dense::make_add_scaled_diag(
+            as<Dense<ValueType>>(alpha),
+            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+        return;
+    }
+
     exec->run(dense::make_add_scaled(as<Dense<ValueType>>(alpha),
                                      as<Dense<ValueType>>(b), this));
 }
@@ -244,10 +300,28 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
 template <typename ValueType>
 void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 {
+    using NormVector = Dense<remove_complex<ValueType>>;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     exec->run(dense::make_compute_norm2(as<Dense<ValueType>>(this),
-                                        as<Dense<ValueType>>(result)));
+                                        as<NormVector>(result)));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->stride_ = this->stride_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
 }
 
 
@@ -256,8 +330,8 @@ void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_coo<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_coo<const Dense<ValueType> *&,
+                                            decltype(result)>);
 }
 
 
@@ -273,8 +347,8 @@ void Dense<ValueType>::convert_to(Coo<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_coo<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_coo<const Dense<ValueType> *&,
+                                            decltype(result)>);
 }
 
 
@@ -290,8 +364,8 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_csr<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_csr<const Dense<ValueType> *&,
+                                            decltype(result)>);
     result->make_srow();
 }
 
@@ -308,8 +382,8 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_csr<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_csr<const Dense<ValueType> *&,
+                                            decltype(result)>);
     result->make_srow();
 }
 
@@ -326,8 +400,8 @@ void Dense<ValueType>::convert_to(Ell<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_ell<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_ell<const Dense<ValueType> *&,
+                                            decltype(result)>);
 }
 
 
@@ -343,8 +417,8 @@ void Dense<ValueType>::convert_to(Ell<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_ell<decltype(result),
-                                            const Dense<ValueType> *&>);
+        dense::template make_convert_to_ell<const Dense<ValueType> *&,
+                                            decltype(result)>);
 }
 
 
@@ -360,8 +434,8 @@ void Dense<ValueType>::convert_to(Hybrid<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_hybrid<decltype(result),
-                                               const Dense<ValueType> *&>);
+        dense::template make_convert_to_hybrid<const Dense<ValueType> *&,
+                                               decltype(result)>);
 }
 
 
@@ -377,8 +451,8 @@ void Dense<ValueType>::convert_to(Hybrid<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_hybrid<decltype(result),
-                                               const Dense<ValueType> *&>);
+        dense::template make_convert_to_hybrid<const Dense<ValueType> *&,
+                                               decltype(result)>);
 }
 
 
@@ -394,8 +468,8 @@ void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_sellp<decltype(result),
-                                              const Dense<ValueType> *&>);
+        dense::template make_convert_to_sellp<const Dense<ValueType> *&,
+                                              decltype(result)>);
 }
 
 
@@ -411,13 +485,47 @@ void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
-        dense::template make_convert_to_sellp<decltype(result),
-                                              const Dense<ValueType> *&>);
+        dense::template make_convert_to_sellp<const Dense<ValueType> *&,
+                                              decltype(result)>);
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32> *result) const
+{
+    conversion_helper(
+        result, this,
+        dense::template make_convert_to_sparsity_csr<const Dense<ValueType> *&,
+                                                     decltype(result)>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64> *result) const
+{
+    conversion_helper(
+        result, this,
+        dense::template make_convert_to_sparsity_csr<const Dense<ValueType> *&,
+                                                     decltype(result)>);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64> *result)
 {
     this->convert_to(result);
 }
@@ -513,7 +621,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
     auto exec = this->get_executor();
     auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
 
-    exec->run(dense::make_transpose(trans_cpy.get(), this));
+    exec->run(dense::make_transpose(this, trans_cpy.get()));
 
     return std::move(trans_cpy);
 }
@@ -525,8 +633,313 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
     auto exec = this->get_executor();
     auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
 
-    exec->run(dense::make_conj_transpose(trans_cpy.get(), this));
+    exec->run(dense::make_conj_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
+    const Array<int32> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
+    const Array<int64> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+    const Array<int32> *row_indices) const
+{
+    auto exec = this->get_executor();
+    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    auto row_gathered = Dense::create(exec, out_dim);
+
+    exec->run(
+        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
+                               this, row_gathered.get()));
+    return row_gathered;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+    const Array<int64> *row_indices) const
+{
+    auto exec = this->get_executor();
+    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    auto row_gathered = Dense::create(exec, out_dim);
+
+    exec->run(
+        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
+                               this, row_gathered.get()));
+    return row_gathered;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int32> *row_indices,
+                                  Dense<ValueType> *row_gathered) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
+
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, row_indices).get(), this,
+        make_temporary_clone(exec, row_gathered).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int64> *row_indices,
+                                  Dense<ValueType> *row_gathered) const
+{
+    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
+
+    auto exec = this->get_executor();
+
+    this->get_executor()->run(dense::make_row_gather(
+        make_temporary_clone(exec, row_indices).get(), this,
+        make_temporary_clone(exec, row_gathered).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+    const Array<int32> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+    const Array<int64> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        permute_cpy.get()));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
+    const Array<int32> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_inverse_row_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
+
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
+    const Array<int64> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_inverse_row_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
+
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
+    const Array<int32> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_inverse_column_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
+
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
+    const Array<int64> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_inverse_column_permute(
+        make_temporary_clone(exec, inverse_permutation_indices).get(), this,
+        inverse_permute_cpy.get()));
+
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(dense::make_extract_diagonal(this, lend(diag)));
+    return diag;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_inplace_absolute_dense(this));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    // do not inherit the stride
+    auto abs_dense = absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_outplace_absolute_dense(this, abs_dense.get()));
+
+    return abs_dense;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::complex_type>
+Dense<ValueType>::make_complex() const
+{
+    auto exec = this->get_executor();
+
+    auto complex_dense = complex_type::create(exec, this->get_size());
+
+    exec->run(dense::make_make_complex(this, complex_dense.get()));
+
+    return complex_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(dense::make_make_complex(
+        this, make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::get_real() const
+{
+    auto exec = this->get_executor();
+
+    auto real_dense = absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_get_real(this, real_dense.get()));
+
+    return real_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(
+        dense::make_get_real(this, make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::get_imag() const
+{
+    auto exec = this->get_executor();
+
+    auto imag_dense = absolute_type::create(exec, this->get_size());
+
+    exec->run(dense::make_get_imag(this, imag_dense.get()));
+
+    return imag_dense;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::get_imag(Dense<remove_complex<ValueType>> *result) const
+{
+    auto exec = this->get_executor();
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+
+    exec->run(
+        dense::make_get_imag(this, make_temporary_clone(exec, result).get()));
 }
 
 

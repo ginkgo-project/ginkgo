@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXCEPTION_HELPERS_HPP_
-#define GKO_CORE_EXCEPTION_HELPERS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#define GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
+
+
+#include <typeinfo>
 
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-
-
-#include <typeinfo>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
@@ -88,18 +89,50 @@ namespace gko {
                   "semi-colon warnings")
 
 
+namespace detail {
+
+
+template <typename T, typename T2 = void>
+struct dynamic_type_helper {
+    static const std::type_info &get(const T &obj) { return typeid(obj); }
+};
+
+template <typename T>
+struct dynamic_type_helper<T,
+                           typename std::enable_if<std::is_pointer<T>::value ||
+                                                   have_ownership<T>()>::type> {
+    static const std::type_info &get(const T &obj)
+    {
+        return obj ? typeid(*obj) : typeid(nullptr);
+    }
+};
+
+template <typename T>
+const std::type_info &get_dynamic_type(const T &obj)
+{
+    return dynamic_type_helper<T>::get(obj);
+}
+
+
+}  // namespace detail
+
+
 /**
- * Creates a NotSupported exception.
+ * Throws a NotSupported exception.
  * This macro sets the correct information about the location of the error
- * and fills the exception with data about _obj.
+ * and fills the exception with data about _obj, followed by throwing it.
  *
  * @param _obj  the object referenced by NotSupported exception
- *
- * @return NotSupported
  */
-#define GKO_NOT_SUPPORTED(_obj)                       \
-    ::gko::NotSupported(__FILE__, __LINE__, __func__, \
-                        ::gko::name_demangling::get_type_name(typeid(_obj)))
+#define GKO_NOT_SUPPORTED(_obj)                                                \
+    {                                                                          \
+        throw ::gko::NotSupported(__FILE__, __LINE__, __func__,                \
+                                  ::gko::name_demangling::get_type_name(       \
+                                      ::gko::detail::get_dynamic_type(_obj))); \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 
 namespace detail {
@@ -115,6 +148,18 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 }  // namespace detail
+
+
+/**
+ *Asserts that _val1 and _val2 are equal.
+ *
+ *@throw ValueMisatch if _val1 is different from _val2.
+ */
+#define GKO_ASSERT_EQ(_val1, _val2)                                            \
+    if (_val1 != _val2) {                                                      \
+        throw ::gko::ValueMismatch(__FILE__, __LINE__, __func__, _val1, _val2, \
+                                   "expected equal values");                   \
+    }
 
 
 /**
@@ -136,6 +181,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ *Asserts that _op1 is a non-empty matrix.
+ *
+ *@throw BadDimension if any one of the dimensions of _op1 is equal to zero.
+ */
+#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                           \
+    if (!(::gko::detail::get_size(_op1))) {                            \
+        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1, \
+                                  ::gko::detail::get_size(_op1)[0],    \
+                                  ::gko::detail::get_size(_op1)[1],    \
+                                  "expected non-empty matrix");        \
+    }
+
+
+/**
  * Asserts that _op1 can be applied to _op2.
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
@@ -143,6 +202,24 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 #define GKO_ASSERT_CONFORMANT(_op1, _op2)                                     \
     if (::gko::detail::get_size(_op1)[1] !=                                   \
         ::gko::detail::get_size(_op2)[0]) {                                   \
+        throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1,   \
+                                       ::gko::detail::get_size(_op1)[0],      \
+                                       ::gko::detail::get_size(_op1)[1],      \
+                                       #_op2,                                 \
+                                       ::gko::detail::get_size(_op2)[0],      \
+                                       ::gko::detail::get_size(_op2)[1],      \
+                                       "expected matching inner dimensions"); \
+    }
+
+
+/**
+ * Asserts that _op1 can be applied to _op2 from the right.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2 from the right.
+ */
+#define GKO_ASSERT_REVERSE_CONFORMANT(_op1, _op2)                             \
+    if (::gko::detail::get_size(_op1)[0] !=                                   \
+        ::gko::detail::get_size(_op2)[1]) {                                   \
         throw ::gko::DimensionMismatch(__FILE__, __LINE__, __func__, #_op1,   \
                                        ::gko::detail::get_size(_op1)[0],      \
                                        ::gko::detail::get_size(_op1)[1],      \
@@ -225,6 +302,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a CurandError.
+ *
+ * @param errcode  The error code returned from the cuRAND routine.
+ */
+#define GKO_CURAND_ERROR(_errcode) \
+    ::gko::CurandError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CusparseError.
  *
  * @param errcode  The error code returned from the cuSPARSE routine.
@@ -250,7 +336,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  * Asserts that a cuBLAS library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cublas_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUBLAS_ERRORS(_cublas_call) \
     do {                                          \
@@ -262,9 +348,23 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Asserts that a cuRAND library call completed without errors.
+ *
+ * @param _curand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CURAND_ERRORS(_curand_call) \
+    do {                                          \
+        auto _errcode = _curand_call;             \
+        if (_errcode != CURAND_STATUS_SUCCESS) {  \
+            throw GKO_CURAND_ERROR(_errcode);     \
+        }                                         \
+    } while (false)
+
+
+/**
  * Asserts that a cuSPARSE library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cusparse_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call) \
     do {                                              \
@@ -272,6 +372,98 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
             throw GKO_CUSPARSE_ERROR(_errcode);       \
         }                                             \
+    } while (false)
+
+
+/**
+ * Instantiates a HipError.
+ *
+ * @param errcode  The error code returned from a HIP runtime API routine.
+ */
+#define GKO_HIP_ERROR(_errcode) \
+    ::gko::HipError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipblasError.
+ *
+ * @param errcode  The error code returned from the HIPBLAS routine.
+ */
+#define GKO_HIPBLAS_ERROR(_errcode) \
+    ::gko::HipblasError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HiprandError.
+ *
+ * @param errcode  The error code returned from the HIPRAND routine.
+ */
+#define GKO_HIPRAND_ERROR(_errcode) \
+    ::gko::HiprandError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipsparseError.
+ *
+ * @param errcode  The error code returned from the HIPSPARSE routine.
+ */
+#define GKO_HIPSPARSE_ERROR(_errcode) \
+    ::gko::HipsparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Asserts that a HIP library call completed without errors.
+ *
+ * @param _hip_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIP_ERRORS(_hip_call) \
+    do {                                    \
+        auto _errcode = _hip_call;          \
+        if (_errcode != hipSuccess) {       \
+            throw GKO_HIP_ERROR(_errcode);  \
+        }                                   \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPBLAS library call completed without errors.
+ *
+ * @param _hipblas_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPBLAS_ERRORS(_hipblas_call) \
+    do {                                            \
+        auto _errcode = _hipblas_call;              \
+        if (_errcode != HIPBLAS_STATUS_SUCCESS) {   \
+            throw GKO_HIPBLAS_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPRAND library call completed without errors.
+ *
+ * @param _hiprand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPRAND_ERRORS(_hiprand_call) \
+    do {                                            \
+        auto _errcode = _hiprand_call;              \
+        if (_errcode != HIPRAND_STATUS_SUCCESS) {   \
+            throw GKO_HIPRAND_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPSPARSE library call completed without errors.
+ *
+ * @param _hipsparse_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPSPARSE_ERRORS(_hipsparse_call) \
+    do {                                                \
+        auto _errcode = _hipsparse_call;                \
+        if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
+            throw GKO_HIPSPARSE_ERROR(_errcode);        \
+        }                                               \
     } while (false)
 
 
@@ -328,6 +520,25 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
+ * Ensures that two dimensions have compatible bounds, in particular before a
+ * copy operation. This means the target should have at least as much elements
+ * as the source.
+ *
+ * @param _source  the source of the expected copy operation
+ * @param _target  the destination of the expected copy operation
+ *
+ * @throw OutOfBoundsError  if `_source > _target`
+ */
+#define GKO_ENSURE_COMPATIBLE_BOUNDS(_source, _target)                       \
+    if (_source > _target) {                                                 \
+        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _source, _target); \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Creates a StreamError exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about the stream, and the reason for the
@@ -359,4 +570,4 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_

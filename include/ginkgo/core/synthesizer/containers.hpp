@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SYNTHESIZER_CONTAINERS_
-#define GKO_CORE_SYNTHESIZER_CONTAINERS_
+#ifndef GKO_PUBLIC_CORE_SYNTHESIZER_CONTAINERS_HPP_
+#define GKO_PUBLIC_CORE_SYNTHESIZER_CONTAINERS_HPP_
+
+
+#include <type_traits>
 
 
 namespace gko {
@@ -91,15 +94,14 @@ struct as_list_impl<type_list<Types...>> {
 };
 
 template <int Start, int End, int Step>
-struct as_list_impl<range<Start, End, Step>, xstd::enable_if_t<(Start < End)>> {
+struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start < End)>> {
     using type = concatenate<
         value_list<int, Start>,
         typename as_list_impl<range<Start + Step, End, Step>>::type>;
 };
 
 template <int Start, int End, int Step>
-struct as_list_impl<range<Start, End, Step>,
-                    xstd::enable_if_t<(Start >= End)>> {
+struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start >= End)>> {
     using type = value_list<int>;
 };
 
@@ -115,4 +117,4 @@ using as_list = typename detail::as_list_impl<T>::type;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_
+#endif  // GKO_PUBLIC_CORE_SYNTHESIZER_CONTAINERS_HPP_

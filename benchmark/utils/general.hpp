@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <algorithm>
 #include <array>
 #include <fstream>
 #include <functional>
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -57,9 +59,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Global command-line arguments
-DEFINE_string(
-    executor, "reference",
-    "The executor used to run the benchmarks, one of: reference, omp, cuda");
+DEFINE_string(executor, "reference",
+              "The executor used to run the benchmarks, one of: reference, "
+              "omp, cuda, hip");
 
 DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
 
@@ -78,6 +80,8 @@ DEFINE_string(double_buffer, "",
 
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
+
+DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
@@ -167,7 +171,10 @@ std::ranlux24 &get_engine()
 std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 {
     rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
+                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
+                            rapidjson::kWriteNanAndInfFlag>
+        writer(jos);
     value.Accept(writer);
     return os;
 }
@@ -175,7 +182,7 @@ std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 
 // helper for setting rapidjson object members
 template <typename T, typename NameType, typename Allocator>
-gko::xstd::enable_if_t<
+std::enable_if_t<
     !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
 add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
                   Allocator &&allocator)
@@ -196,7 +203,7 @@ add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
    last comments of https://github.com/ginkgo-project/ginkgo/issues/270.
  */
 template <typename T, typename NameType, typename Allocator>
-gko::xstd::enable_if_t<
+std::enable_if_t<
     std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
 add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
                   Allocator &&allocator)
@@ -251,9 +258,19 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
     executor_factory{
         {"reference", [] { return gko::ReferenceExecutor::create(); }},
         {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
+        {"cuda",
+         [] {
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
+                                              gko::OmpExecutor::create(), true);
+         }},
+        {"hip",
+         [] {
+             return gko::HipExecutor::create(FLAGS_device_id,
+                                             gko::OmpExecutor::create(), true);
+         }},
+        {"dpcpp", [] {
+             return gko::DpcppExecutor::create(FLAGS_device_id,
+                                               gko::OmpExecutor::create());
          }}};
 
 
@@ -280,16 +297,29 @@ std::unique_ptr<vec<ValueType>> create_vector(
     return res;
 }
 
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(size));
+    return res;
+}
+
 
 // creates a random matrix
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine &engine)
+    RandomEngine &engine, bool random = true)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(
-        size, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    if (random) {
+        res->read(gko::matrix_data<ValueType>(
+            size, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    } else {
+        res->read(gko::matrix_data<ValueType>(size, gko::one<ValueType>()));
+    }
     return res;
 }
 
@@ -313,7 +343,7 @@ double get_norm(const vec<ValueType> *norm)
 
 
 template <typename ValueType>
-double compute_norm(const vec<ValueType> *b)
+double compute_norm2(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
@@ -331,8 +361,35 @@ double compute_residual_norm(const gko::LinOp *system_matrix,
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     auto res = clone(b);
     system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    return compute_norm(lend(res));
+    return compute_norm2(lend(res));
 }
 
 
-#endif  // GKO_BENCHMARK_UTILS_HPP_
+template <typename ValueType>
+double compute_max_relative_norm2(vec<ValueType> *result,
+                                  const vec<ValueType> *answer)
+{
+    auto exec = answer->get_executor();
+    auto answer_norm =
+        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+    answer->compute_norm2(lend(answer_norm));
+    auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
+    result->add_scaled(lend(neg_one), lend(answer));
+    auto absolute_norm =
+        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+    result->compute_norm2(lend(absolute_norm));
+    auto host_answer_norm =
+        clone(answer_norm->get_executor()->get_master(), answer_norm);
+    auto host_absolute_norm =
+        clone(absolute_norm->get_executor()->get_master(), absolute_norm);
+    double max_relative_norm2 = 0;
+    for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
+        max_relative_norm2 =
+            std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
+                     max_relative_norm2);
+    }
+    return max_relative_norm2;
+}
+
+
+#endif  // GKO_BENCHMARK_UTILS_GENERAL_HPP_

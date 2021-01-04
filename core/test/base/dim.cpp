@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -45,6 +48,16 @@ TEST(Dim, ConstructsCorrectObject)
 
     ASSERT_EQ(d[0], 4);
     ASSERT_EQ(d[1], 5);
+}
+
+
+TEST(Dim, ConstructsCorrectConstexprObject)
+{
+    constexpr gko::dim<3> d{4, 5, 6};
+
+    ASSERT_EQ(d[0], 4);
+    ASSERT_EQ(d[1], 5);
+    ASSERT_EQ(d[2], 6);
 }
 
 
@@ -63,6 +76,34 @@ TEST(Dim, ConstructsNullObject)
 
     ASSERT_EQ(d[0], 0);
     ASSERT_EQ(d[1], 0);
+}
+
+
+class dim_manager {
+public:
+    using dim = gko::dim<3>;
+    const dim &get_size() const { return size_; }
+
+    static std::unique_ptr<dim_manager> create(const dim &size)
+    {
+        return std::unique_ptr<dim_manager>{new dim_manager{size}};
+    }
+
+private:
+    dim_manager(const dim &size) : size_{size} {}
+    dim size_;
+};
+
+
+TEST(Dim, CopiesProperlyOnHeap)
+{
+    auto manager = dim_manager::create(gko::dim<3>{1, 2, 3});
+
+    const auto copy = manager->get_size();
+
+    ASSERT_EQ(copy[0], 1);
+    ASSERT_EQ(copy[1], 2);
+    ASSERT_EQ(copy[2], 3);
 }
 
 

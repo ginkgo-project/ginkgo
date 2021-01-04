@@ -1,6 +1,6 @@
 ginkgo_load_git_package(rapidjson_external
     "https://github.com/Tencent/rapidjson.git"
-    "8d272e53a4d1dc405e08ce2dd50159c58f4451e9"
+    "88bd956d66d348f478bceebfdadb8e26c6844695"
     "-DRAPIDJSON_BUILD_DOC=OFF" "-DRAPIDJSON_BUILD_EXAMPLES=OFF"
     "-DRAPIDJSON_BUILD_TESTS=OFF" "-DRAPIDJSON_BUILD_THIRDPARTY_GTEST=OFF"
     "-DRAPIDJSON_BUILD_CXX11=ON")

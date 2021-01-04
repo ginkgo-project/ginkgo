@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_DIM_HPP_
-#define GKO_CORE_BASE_DIM_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_DIM_HPP_
+#define GKO_PUBLIC_CORE_BASE_DIM_HPP_
 
 
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
@@ -97,7 +96,8 @@ struct dim {
     constexpr GKO_ATTRIBUTES const dimension_type &operator[](
         const size_type &dimension) const noexcept
     {
-        return GKO_ASSERT(dimension < dimensionality), *(&first_ + dimension);
+        return GKO_ASSERT(dimension < dimensionality),
+               dimension == 0 ? first_ : rest_[dimension - 1];
     }
 
     /**
@@ -106,7 +106,8 @@ struct dim {
     GKO_ATTRIBUTES dimension_type &operator[](
         const size_type &dimension) noexcept
     {
-        return GKO_ASSERT(dimension < dimensionality), *(&first_ + dimension);
+        return GKO_ASSERT(dimension < dimensionality),
+               dimension == 0 ? first_ : rest_[dimension - 1];
     }
 
     /**
@@ -116,8 +117,11 @@ struct dim {
      * different than zero.
      *
      * @return true if and only if all dimensions evaluate to true
+     *
+     * @note This operator is explicit to avoid implicit dim-to-int casts.
+     *       It will still be used in contextual conversions (if, &&, ||, !)
      */
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_) && static_cast<bool>(rest_);
     }
@@ -173,15 +177,15 @@ struct dim<1u, DimensionType> {
     constexpr GKO_ATTRIBUTES const dimension_type &operator[](
         const size_type &dimension) const noexcept
     {
-        return *(&first_ + dimension);
+        return GKO_ASSERT(dimension == 0), first_;
     }
 
     GKO_ATTRIBUTES dimension_type &operator[](const size_type &dimension)
     {
-        return *(&first_ + dimension);
+        return GKO_ASSERT(dimension == 0), first_;
     }
 
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_);
     }
@@ -241,4 +245,4 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_DIM_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_DIM_HPP_

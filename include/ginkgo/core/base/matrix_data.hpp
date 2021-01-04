@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_MATRIX_DATA_HPP_
-#define GKO_CORE_BASE_MATRIX_DATA_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_MATRIX_DATA_HPP_
+#define GKO_PUBLIC_CORE_BASE_MATRIX_DATA_HPP_
+
+
+#include <algorithm>
+#include <numeric>
+#include <tuple>
+#include <vector>
 
 
 #include <ginkgo/core/base/dim.hpp>
@@ -39,12 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
-
-
-#include <algorithm>
-#include <numeric>
-#include <tuple>
-#include <vector>
+#include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
@@ -63,7 +64,7 @@ struct input_triple {
 
 
 template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<!is_complex<ValueType>(), ValueType>::type
+typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
     return dist(gen);
@@ -71,7 +72,7 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 
 template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<is_complex<ValueType>(), ValueType>::type
+typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
     return ValueType(dist(gen), dist(gen));
@@ -531,4 +532,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_MATRIX_DATA_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_MATRIX_DATA_HPP_

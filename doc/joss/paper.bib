@@ -1,0 +1,314 @@
+@inproceedings{old_spmv,
+author = {Flegar, Goran and Anzt, Hartwig},
+year = {2017},
+month = {11},
+pages = {1-8},
+title = {Overcoming Load Imbalance for Irregular Sparse Matrices},
+doi = {10.1145/3149704.3149767}
+}
+
+@article{topc-spmv,
+author = {Anzt, Hartwig and Cojean, Terry and Yen-Chen, Chen and Dongarra, Jack and Flegar, Goran and Nayak, Pratik and Tomov, Stanimire and Tsai, Yuhsiang M. and Wang, Weichung},
+title = {Load-Balancing Sparse Matrix Vector Product Kernels on {GPUs}},
+year = {2020},
+issue_date = {March 2020},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {7},
+number = {1},
+issn = {2329-4949},
+url = {https://doi.org/10.1145/3380930},
+doi = {10.1145/3380930},
+journal = {ACM Trans. Parallel Comput.},
+month = mar,
+articleno = {Article 2},
+numpages = {26},
+keywords = {irregular matrices, Sparse Matrix Vector Product (SpMV), GPUs}
+}
+@article{parilut,
+  title={ParILUT - A Parallel Threshold {ILU} for {GPUs}},
+  author={Hartwig Anzt and Tobias Ribizel and Goran Flegar and Edmond Chow and Jack Dongarra},
+  journal={2019 IEEE International Parallel and Distributed Processing Symposium (IPDPS)},
+  doi = {10.1109/IPDPS.2019.00033},
+  year={2019},
+  pages={231-241}
+}
+
+@InProceedings{2019spmvhip,
+author="Tsai, Yuhsiang M.
+and Cojean, Terry
+and Anzt, Hartwig",
+editor="Sadayappan, Ponnuswamy
+and Chamberlain, Bradford L.
+and Juckeland, Guido
+and Ltaief, Hatem",
+title="Sparse Linear Algebra on AMD and NVIDIA GPUs -- The Race Is On",
+booktitle="High Performance Computing",
+year="2020",
+publisher="Springer International Publishing",
+address="Cham",
+pages="309--327",
+ doi = {10.1007/978-3-030-50743-5_16},
+abstract="Efficiently processing sparse matrices is a central and performance-critical part of many scientific simulation codes. Recognizing the adoption of manycore accelerators in HPC, we evaluate in this paper the performance of the currently best sparse matrix-vector product (SpMV) implementations on high-end GPUs from AMD and NVIDIA. Specifically, we optimize SpMV kernels for the CSR, COO, ELL, and HYB format taking the hardware characteristics of the latest GPU technologies into account. We compare for 2,800 test matrices the performance of our kernels against AMD's hipSPARSE library and NVIDIA's cuSPARSE library, and ultimately assess how the GPU technologies from AMD and NVIDIA compare in terms of SpMV performance.",
+isbn="978-3-030-50743-5"
+}
+
+@article{adaptive-bj,
+author = {Anzt, Hartwig and Dongarra, Jack and Flegar, Goran and Higham, Nicholas J. and Quintana-Ortí, Enrique S.},
+title = {Adaptive precision in block-Jacobi preconditioning for iterative sparse linear system solvers},
+journal = {Concurrency and Computation: Practice and Experience},
+volume = {31},
+number = {6},
+pages = {e4460},
+keywords = {adaptive precision, block-Jacobi preconditioning, communication reduction, energy efficiency, Krylov subspace methods, sparse linear systems},
+doi = {10.1002/cpe.4460},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/cpe.4460},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/cpe.4460},
+note = {e4460 cpe.4460},
+abstract = {Summary We propose an adaptive scheme to reduce communication overhead caused by data movement by selectively storing the diagonal blocks of a block-Jacobi preconditioner in different precision formats (half, single, or double). This specialized preconditioner can then be combined with any Krylov subspace method for the solution of sparse linear systems to perform all arithmetic in double precision. We assess the effects of the adaptive precision preconditioner on the iteration count and data transfer cost of a preconditioned conjugate gradient solver. A preconditioned conjugate gradient method is, in general, a memory bandwidth-bound algorithm, and therefore its execution time and energy consumption are largely dominated by the costs of accessing the problem's data in memory. Given this observation, we propose a model that quantifies the time and energy savings of our approach based on the assumption that these two costs depend linearly on the bit length of a floating point number. Furthermore, we use a number of test problems from the SuiteSparse matrix collection to estimate the potential benefits of the adaptive block-Jacobi preconditioning scheme.},
+year = {2019}
+}
+
+@inproceedings{gko-cb,
+author = {Anzt, Hartwig and Chen, Yen-Chen and Cojean, Terry and Dongarra, Jack and Flegar, Goran and Nayak, Pratik and Quintana-Ort\'{\i}, Enrique S. and Tsai, Yuhsiang M. and Wang, Weichung},
+title = {Towards Continuous Benchmarking: An Automated Performance Evaluation Framework for High Performance Software},
+year = {2019},
+isbn = {9781450367707},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3324989.3325719},
+doi = {10.1145/3324989.3325719},
+booktitle = {Proceedings of the Platform for Advanced Scientific Computing Conference},
+articleno = {Article 9},
+numpages = {11},
+keywords = {healthy software lifecycle, automated performance benchmarking, interactive performance visualization, continuous integration},
+location = {Zurich, Switzerland},
+series = {PASC ’19}
+}
+
+
+@article{dealii,
+        title   = {The \texttt{deal.II} Library, Version 9.1},
+        author  = {D. Arndt and W. Bangerth and T. C. Clevenger and D. Davydov and
+                   M. Fehling and D. Garcia-Sanchez and G. Harper and T. Heister and
+                   L. Heltai and M. Kronbichler and R. M. Kynch and M. Maier and
+                   J.-P. Pelteret and B. Turcksin and D. Wells},
+        journal = {Journal of Numerical Mathematics},
+        note    = {accepted},
+        year    = {2019},
+        DOI     = {10.1515/jnma-2019-0064},
+        url     = {https://dealii.org/deal91-preprint.pdf}
+      }
+
+@article{mfem,
+title = "MFEM: A modular finite element methods library",
+journal = "Computers & Mathematics with Applications",
+year = "2020",
+issn = "0898-1221",
+doi = "10.1016/j.camwa.2020.06.009",
+url = "http://www.sciencedirect.com/science/article/pii/S0898122120302583",
+author = "Robert Anderson and Julian Andrej and Andrew Barker and Jamie Bramwell and Jean-Sylvain Camier and Jakub Cerveny and Veselin Dobrev and Yohann Dudouit and Aaron Fisher and Tzanio Kolev and Will Pazner and Mark Stowell and Vladimir Tomov and Ido Akkerman and Johann Dahm and David Medina and Stefano Zampini",
+keywords = "Finite element methods, Numerical PDEs, Open-source scientific software, High-order methods, Matrix-free algorithms, High-performance computing",
+abstract = "MFEM is an open-source, lightweight, flexible and scalable C++ library for modular finite element methods that features arbitrary high-order finite element meshes and spaces, support for a wide variety of discretization approaches and emphasis on usability, portability, and high-performance computing efficiency. MFEM’s goal is to provide application scientists with access to cutting-edge algorithms for high-order finite element meshing, discretizations and linear solvers, while enabling researchers to quickly and easily develop and test new algorithms in very general, fully unstructured, high-order, parallel and GPU-accelerated settings. In this paper we describe the underlying algorithms and finite element abstractions provided by MFEM, discuss the software implementation, and illustrate various applications of the library."
+}
+
+@InProceedings{papi,
+author="Terpstra, Dan
+and Jagode, Heike
+and You, Haihang
+and Dongarra, Jack",
+editor="M{\"u}ller, Matthias S.
+and Resch, Michael M.
+and Schulz, Alexander
+and Nagel, Wolfgang E.",
+title="Collecting Performance Data with {PAPI-C}",
+booktitle="Tools for High Performance Computing 2009",
+year="2010",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="157--173",
+doi = {10.1007/978-3-642-11261-4_11},
+abstract="Modern high performance computer systems continue to increase in size and complexity. Tools to measure application performance in these increasingly complex environments must also increase the richness of their measurements to provide insights into the increasingly intricate ways in which software and hardware interact. PAPI (the Performance API) has provided consistent platform and operating system independent access to CPU hardware performance counters for nearly a decade. Recent trends toward massively parallel multi-core systems with often heterogeneous architectures present new challenges for the measurement of hardware performance information, which is now available not only on the CPU core itself, but scattered across the chip and system. We discuss the evolution of PAPI into Component PAPI, or PAPI-C, in which multiple sources of performance data can be measured simultaneously via a common software interface. Several examples of components and component data measurements are discussed. We explore the challenges to hardware performance measurement in existing multi-core architectures. We conclude with an exploration of future directions for the PAPI interface.",
+isbn="978-3-642-11261-4"
+}
+
+@article{spai,
+title = "Incomplete Sparse Approximate Inverses for Parallel Preconditioning",
+journal = "Parallel Computing",
+volume = "71",
+pages = "1 - 22",
+year = "2018",
+issn = "0167-8191",
+doi = "10.1016/j.parco.2017.10.003",
+url = "http://www.sciencedirect.com/science/article/pii/S016781911730176X",
+author = "Hartwig Anzt and Thomas K. Huckle and Jürgen Bräckle and Jack Dongarra",
+keywords = "Preconditioning, Incomplete Sparse Approximate Inverse, Incomplete LU factorization, Approximate sparse triangular solves, Parallel computing",
+abstract = "In this paper, we propose a new preconditioning method that can be seen as a generalization of block-Jacobi methods, or as a simplification of the sparse approximate inverse (SAI) preconditioners. The “Incomplete Sparse Approximate Inverses” (ISAI) is in particular efficient in the solution of sparse triangular linear systems of equations. Those arise, for example, in the context of incomplete factorization preconditioning. ISAI preconditioners can be generated via an algorithm providing fine-grained parallelism, which makes them attractive for hardware with a high concurrency level. In a study covering a large number of matrices, we identify the ISAI preconditioner as an attractive alternative to exact triangular solves in the context of incomplete factorization preconditioning."
+}
+
+@ARTICLE{gko-arxiv,
+       author = {{Anzt}, Hartwig and {Cojean}, Terry and {Flegar}, Goran and
+         {G{\"o}bel}, Fritz and {Gr{\"u}tzmacher}, Thomas and {Nayak}, Pratik and
+         {Ribizel}, Tobias and {Tsai}, Yuhsiang Mike and
+         {Quintana-Ort{\'\i}}, Enrique S.},
+        title = "{Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing}",
+      journal = {arXiv e-prints},
+     keywords = {Computer Science - Mathematical Software, D.2, G.1.3, G.4},
+         year = 2020,
+        month = jun,
+          eid = {arXiv:2006.16852},
+        pages = {arXiv:2006.16852},
+archivePrefix = {arXiv},
+       eprint = {2006.16852},
+ primaryClass = {cs.MS},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2020arXiv200616852A},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@misc{gko-data,
+  title = {Ginkgo Performance data},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {​https://github.com/ginkgo-project/ginkgo-data}
+}
+
+@misc{gpe,
+  title = {Ginkgo Performance Explorer},
+  year = {2020},
+  url = {https://ginkgo-project.github.io/gpe/}
+}
+
+@INPROCEEDINGS{spack,
+  author={T. {Gamblin} and M. {LeGendre} and M. R. {Collette} and G. L. {Lee} and A. {Moody} and B. R. {de Supinski} and S. {Futral}},
+  booktitle={SC '15: Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
+  title={The Spack package manager: bringing order to {HPC} software chaos},
+  year=2015,
+  pages={1-12}
+}
+
+
+@article{xsdk,
+	author = {Roscoe Bartlett and Irina Demeshko and Todd Gamblin and Glenn Hammond and Michael Heroux and Jeffrey Johnson and Alicia Klinvex and Xiaoye Li and Lois McInnes and J. Moulton and Daniel Osei-Kuffuor and Jason Sarich and Barry Smith and James Willenbring and Ulrike Yang},
+	title = {xSDK Foundations: Toward an Extreme-scale Scientific Software Development Kit},
+	journal = {Supercomputing Frontiers and Innovations},
+	volume = {4},
+	number = {1},
+	year = {2017},
+  doi = {10.14529/jsfi170104},
+	keywords = {},
+	abstract = {Extreme-scale computational science increasingly demands multiscale and multiphysics formulations. Combining software developed by independent groups is imperative: no single team has resources for all predictive science and decision support capabilities. Scientific libraries provide high-quality, reusable software components for constructing applications with improved robustness and portability.  However, without coordination, many libraries cannot be easily composed.  Namespace collisions, inconsistent arguments, lack of third-party software versioning, and additional difficulties make composition costly.The Extreme-scale Scientific Software Development Kit (xSDK) defines community policies to improve code quality and compatibility across independently developed packages (hypre, PETSc, SuperLU, Trilinos, and Alquimia) and provides a foundation for addressing broader issues in software interoperability, performance portability, and sustainability.  The xSDK provides turnkey installation of member software and seamless combination of aggregate capabilities, and it marks first steps toward extreme-scale scientific software ecosystems from which future applications can be composed rapidly with assured quality and scalability.},
+	issn = {2313-8734},	url = {https://superfri.org/superfri/article/view/127}
+}
+
+
+@misc{rapidjson,
+  title = {RapidJSON - A fast {JSON} parser/generator for C++},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://github.com/Tencent/rapidjson}
+}
+
+@misc{gflags,
+  title = {{gflags} - a C++ library that implements commandline flags processing.},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://github.com/gflags/gflags}
+}
+
+@misc{gtest,
+  title = {Googletest - Google Testing and Mocking Framework.},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://github.com/google/googletest}
+}
+
+@misc{sonarcloud,
+  title = {Sonarcloud - A source code analyzer.},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://sonarcloud.io/}
+}
+
+@article{cholmod,
+author = {Chen, Yanqing and Davis, Timothy A. and Hager, William W. and Rajamanickam, Sivasankaran},
+title = {Algorithm 887: CHOLMOD, Supernodal Sparse Cholesky Factorization and Update/Downdate},
+year = {2008},
+issue_date = {October 2008},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {35},
+number = {3},
+issn = {0098-3500},
+url = {https://doi.org/10.1145/1391989.1391995},
+doi = {10.1145/1391989.1391995},
+journal = {ACM Trans. Math. Softw.},
+month = oct,
+articleno = {22},
+numpages = {14},
+keywords = {sparse matrices, linear equations, Cholesky factorization}
+}
+
+
+@article{umfpack,
+author = {Davis, Timothy A.},
+title = {Algorithm 832: UMFPACK V4.3---an Unsymmetric-Pattern Multifrontal Method},
+year = {2004},
+issue_date = {June 2004},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {30},
+number = {2},
+issn = {0098-3500},
+url = {https://doi.org/10.1145/992200.992206},
+doi = {10.1145/992200.992206},
+journal = {ACM Trans. Math. Softw.},
+month = jun,
+pages = {196–199},
+numpages = {4},
+keywords = {ordering methods, linear equations, sparse nonsymmetric matrices, multifrontal method}
+}
+
+@techreport{petsc,
+       author = {Satish Balay and Shrirang Abhyankar and Mark~F. Adams and Jed Brown and Peter Brune
+                 and Kris Buschelman and Lisandro Dalcin and Alp Dener and Victor Eijkhout and William~D. Gropp
+                 and Dmitry Karpeyev and Dinesh Kaushik and Matthew~G. Knepley and Dave~A. May and Lois Curfman McInnes
+                 and Richard Tran Mills and Todd Munson and Karl Rupp and Patrick Sanan
+                 and Barry~F. Smith and Stefano Zampini and Hong Zhang and Hong Zhang},
+       title  = {{PETS}c Users Manual},
+       institution = {Argonne National Laboratory},
+       year   = 2020,
+       number = {ANL-95/11 - Revision 3.13},
+       url    = {https://www.mcs.anl.gov/petsc}
+     }
+
+@misc{rapidjson,
+  title = {RapidJSON - A fast {JSON} parser/generator for C++},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://github.com/Tencent/rapidjson}
+
+}
+
+@misc{trilinos,
+title = {The {T}rilinos {P}roject {W}ebsite},
+year = {2020},
+url = {https://trilinos.github.io}
+}
+
+
+@misc{eigen,
+  author = {Ga\"{e}l Guennebaud and Beno\^{i}t Jacob and others},
+  title = {Eigen v3},
+  howpublished = {http://eigen.tuxfamily.org},
+  year = {2010}
+ }
+
+
+
+

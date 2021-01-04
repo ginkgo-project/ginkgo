@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
-#define GKO_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
+#define GKO_PUBLIC_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
+
+
+#include <memory>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -217,6 +221,12 @@ protected:
         : exec_{std::move(exec)}
     {}
 
+    // preserve the executor of the object
+    explicit PolymorphicObject(const PolymorphicObject &other)
+    {
+        *this = other;
+    }
+
     /**
      * Implementers of PolymorphicObject should override this function instead
      * of create_default().
@@ -281,24 +291,24 @@ private:
  * @see EnablePolymorphicObject for creating a concrete subclass of
  *      PolymorphicObject.
  */
-template <typename AbstactObject, typename PolymorphicBase = PolymorphicObject>
+template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
 class EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
 
-    std::unique_ptr<AbstactObject> create_default(
+    std::unique_ptr<AbstractObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<AbstactObject>{static_cast<AbstactObject *>(
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject *>(
             this->create_default_impl(std::move(exec)).release())};
     }
 
-    std::unique_ptr<AbstactObject> create_default() const
+    std::unique_ptr<AbstractObject> create_default() const
     {
         return this->create_default(this->get_executor());
     }
 
-    std::unique_ptr<AbstactObject> clone(
+    std::unique_ptr<AbstractObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
         auto new_op = this->create_default(exec);
@@ -306,25 +316,25 @@ public:
         return new_op;
     }
 
-    std::unique_ptr<AbstactObject> clone() const
+    std::unique_ptr<AbstractObject> clone() const
     {
         return this->clone(this->get_executor());
     }
 
-    AbstactObject *copy_from(const PolymorphicObject *other)
+    AbstractObject *copy_from(const PolymorphicObject *other)
     {
-        return static_cast<AbstactObject *>(this->copy_from_impl(other));
+        return static_cast<AbstractObject *>(this->copy_from_impl(other));
     }
 
-    AbstactObject *copy_from(std::unique_ptr<PolymorphicObject> other)
+    AbstractObject *copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        return static_cast<AbstactObject *>(
+        return static_cast<AbstractObject *>(
             this->copy_from_impl(std::move(other)));
     }
 
-    AbstactObject *clear()
+    AbstractObject *clear()
     {
-        return static_cast<AbstactObject *>(this->clear_impl());
+        return static_cast<AbstractObject *>(this->clear_impl());
     }
 };
 
@@ -420,8 +430,23 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to_impl(
         return {obj_as_r, [](R *) {}};
     } else {
         auto copy = R::create(exec);
-        as<ConvertibleTo<xstd::decay_t<R>>>(obj)->convert_to(lend(copy));
+        as<ConvertibleTo<std::decay_t<R>>>(obj)->convert_to(lend(copy));
         return {copy.release(), std::default_delete<R>{}};
+    }
+}
+
+
+template <typename R, typename T>
+std::shared_ptr<R> copy_and_convert_to_impl(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<T> obj)
+{
+    auto obj_as_r = std::dynamic_pointer_cast<R>(obj);
+    if (obj_as_r != nullptr && obj->get_executor() == exec) {
+        return obj_as_r;
+    } else {
+        auto copy = R::create(exec);
+        as<ConvertibleTo<std::decay_t<R>>>(obj.get())->convert_to(lend(copy));
+        return {std::move(copy)};
     }
 }
 
@@ -462,6 +487,46 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to(
 template <typename R, typename T>
 std::unique_ptr<const R, std::function<void(const R *)>> copy_and_convert_to(
     std::shared_ptr<const Executor> exec, const T *obj)
+{
+    return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
+}
+
+
+/**
+ * Converts the object to R and places it on Executor exec. This is the version
+ * that takes in the std::shared_ptr and returns a std::shared_ptr
+ *
+ * If the object is already of the requested type and on the requested executor,
+ * the copy and conversion is avoided and a reference to the original object is
+ * returned instead.
+ *
+ * @tparam R  the type to which the object should be converted
+ * @tparam T  the type of the input object
+ *
+ * @param exec  the executor where the result should be placed
+ * @param obj  the object that should be converted
+ *
+ * @return a shared pointer to the converted
+ *         object
+ */
+template <typename R, typename T>
+std::shared_ptr<R> copy_and_convert_to(std::shared_ptr<const Executor> exec,
+                                       std::shared_ptr<T> obj)
+{
+    return detail::copy_and_convert_to_impl<R>(std::move(exec), obj);
+}
+
+
+/**
+ * @copydoc copy_and_convert_to(std::shared_ptr<const Executor>,
+ * std::shared_ptr<T>)
+ *
+ * @note This is a version of the function which adds the const qualifier to the
+ *       result if the input had the same qualifier.
+ */
+template <typename R, typename T>
+std::shared_ptr<const R> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<const T> obj)
 {
     return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
 }
@@ -587,4 +652,4 @@ public:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_POLYMORPHIC_OBJECT_HPP_

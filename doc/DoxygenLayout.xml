@@ -3,8 +3,10 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="user" visible="yes" title="Tutorial" url="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver" />
+    <tab type="user" visible="yes" title="Tutorial" url="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver" />
     <tab type="user" visible="yes" title="Examples" url="@ref Examples" />
+    <tab type="user" visible="yes" title="Citing Ginkgo" url="@ref citing_ginkgo" />
+    <tab type="user" visible="yes" title="Contributing To Ginkgo" url="@ref contributing_guidelines" />
     <tab type="user" visible="yes" title="Using Ginkgo" url="@ref install_ginkgo">
       <tab type="user" visible="yes" title="Installing Ginkgo" url="@ref install_ginkgo" />
       <tab type="user" visible="yes" title="Testing Ginkgo" url="@ref testing_ginkgo" />

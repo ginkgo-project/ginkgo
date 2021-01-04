@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
+#include "core/components/absolute_array.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/matrix/sellp_kernels.hpp"
-
-
-#include <vector>
 
 
 namespace gko {
@@ -57,6 +57,12 @@ GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
+GKO_REGISTER_OPERATION(extract_diagonal, sellp::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace sellp
@@ -69,25 +75,25 @@ template <typename ValueType, typename IndexType>
 size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
                                const size_type slice_size,
                                const size_type stride_factor,
-                               std::vector<size_type> &slice_lengths)
+                               vector<size_type> &slice_lengths)
 {
     size_type nonzeros_per_row = 0;
     IndexType current_row = 0;
     IndexType current_slice = 0;
     size_type total_cols = 0;
     for (const auto &elem : data.nonzeros) {
+        if (elem.row != current_row) {
+            current_row = elem.row;
+            slice_lengths[current_slice] =
+                max(slice_lengths[current_slice], nonzeros_per_row);
+            nonzeros_per_row = 0;
+        }
         if (elem.row / slice_size != current_slice) {
             slice_lengths[current_slice] =
                 stride_factor *
                 ceildiv(slice_lengths[current_slice], stride_factor);
             total_cols += slice_lengths[current_slice];
             current_slice = elem.row / slice_size;
-        }
-        if (elem.row != current_row) {
-            current_row = elem.row;
-            slice_lengths[current_slice] =
-                max(slice_lengths[current_slice], nonzeros_per_row);
-            nonzeros_per_row = 0;
         }
         nonzeros_per_row += (elem.value != zero<ValueType>());
     }
@@ -106,9 +112,17 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        sellp::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(sellp::make_spmv(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        this->apply(dense_b->create_real_view().get(),
+                    dense_x->create_real_view().get());
+    }
 }
 
 
@@ -116,9 +130,44 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                              const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(sellp::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+
+    if (dynamic_cast<const Dense<ValueType> *>(b)) {
+        this->get_executor()->run(sellp::make_advanced_spmv(
+            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    } else {
+        auto dense_b = as<ComplexDense>(b);
+        auto dense_x = as<ComplexDense>(x);
+        auto dense_alpha = as<RealDense>(alpha);
+        auto dense_beta = as<RealDense>(beta);
+        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
+                    dense_x->create_real_view().get());
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::convert_to(
+    Sellp<next_precision<ValueType>, IndexType> *result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->slice_lengths_ = this->slice_lengths_;
+    result->slice_sets_ = this->slice_sets_;
+    result->slice_size_ = this->slice_size_;
+    result->stride_factor_ = this->stride_factor_;
+    result->total_cols_ = this->total_cols_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::move_to(
+    Sellp<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
 }
 
 
@@ -127,7 +176,7 @@ void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(sellp::make_convert_to_dense(tmp.get(), this));
+    exec->run(sellp::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -147,9 +196,10 @@ void Sellp<ValueType, IndexType>::convert_to(
 
     size_type num_stored_nonzeros = 0;
     exec->run(sellp::make_count_nonzeros(this, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 num_stored_nonzeros);
-    exec->run(sellp::make_convert_to_csr(tmp.get(), this));
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), num_stored_nonzeros, result->get_strategy());
+    exec->run(sellp::make_convert_to_csr(this, tmp.get()));
+    tmp->make_srow();
     tmp->move_to(result);
 }
 
@@ -174,7 +224,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Allocate space for slice_cols.
     size_type slice_num =
         static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    std::vector<size_type> slice_lengths(slice_num, 0);
+    vector<size_type> slice_lengths(slice_num, 0,
+                                    {this->get_executor()->get_master()});
 
     // Get the number of maximum columns for every slice.
     auto total_cols =
@@ -260,6 +311,52 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
             }
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Diagonal<ValueType>>
+Sellp<ValueType, IndexType>::extract_diagonal() const
+{
+    auto exec = this->get_executor();
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(exec, diag_size);
+    exec->run(sellp::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                     zero<ValueType>()));
+    exec->run(sellp::make_extract_diagonal(this, lend(diag)));
+    return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(sellp::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Sellp<ValueType, IndexType>::absolute_type>
+Sellp<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_sellp = absolute_type::create(
+        exec, this->get_size(), this->get_slice_size(),
+        this->get_stride_factor(), this->get_total_cols());
+
+    abs_sellp->col_idxs_ = col_idxs_;
+    abs_sellp->slice_lengths_ = slice_lengths_;
+    abs_sellp->slice_sets_ = slice_sets_;
+    exec->run(sellp::make_outplace_absolute_array(
+        this->get_const_values(), this->get_num_stored_elements(),
+        abs_sellp->get_values()));
+
+    return abs_sellp;
 }
 
 

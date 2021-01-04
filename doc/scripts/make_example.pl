@@ -28,8 +28,7 @@ $cmake_source_dir=$ARGV[1];
 $cmake_build_dir=$ARGV[2];
 
 print
-"/**
-  * \@page $example_underscore The $example program
+"/** \@page $example_underscore The $example program
 ";
 
 open intro, "$cmake_source_dir/examples/$example/doc/short-intro"

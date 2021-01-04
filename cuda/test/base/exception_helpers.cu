@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,12 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <curand.h>
 #include <cusparse.h>
+
+
+#include <gtest/gtest.h>
 
 
 namespace {
@@ -65,6 +66,18 @@ TEST(AssertNoCublasErrors, ThrowsOnError)
 TEST(AssertNoCublasErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_CUBLAS_ERRORS(CUBLAS_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoCurandErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_CURAND_ERRORS(1), gko::CurandError);
+}
+
+
+TEST(AssertNoCurandErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CURAND_ERRORS(CURAND_STATUS_SUCCESS));
 }
 
 

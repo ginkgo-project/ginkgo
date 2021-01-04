@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,19 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOGGER_HPP_
-#define GKO_CORE_LOGGER_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_LOGGER_HPP_
+#define GKO_PUBLIC_CORE_LOG_LOGGER_HPP_
 
 
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
@@ -129,7 +129,7 @@ protected:                                                           \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
-    xstd::enable_if_t<Event == _id && (_id < event_count_max)> on(   \
+    std::enable_if_t<Event == _id && (_id < event_count_max)> on(    \
         Params &&... params) const                                   \
     {                                                                \
         if (enabled_events_ & (mask_type{1} << _id)) {               \
@@ -556,4 +556,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_LOGGER_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_LOGGER_HPP_

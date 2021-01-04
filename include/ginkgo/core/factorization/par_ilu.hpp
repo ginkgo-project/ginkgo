@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
-#define GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
+#ifndef GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_
+#define GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_
 
 
 #include <memory>
@@ -89,7 +89,7 @@ namespace factorization {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  *
  * @ingroup factor
- * @ingroup linop
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ParIlu : public Composition<ValueType> {
@@ -99,18 +99,18 @@ public:
     using l_matrix_type = matrix::Csr<ValueType, IndexType>;
     using u_matrix_type = matrix::Csr<ValueType, IndexType>;
 
-    const l_matrix_type *get_l_factor() const
+    std::shared_ptr<const l_matrix_type> get_l_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return static_cast<const l_matrix_type *>(
-            this->get_operators()[0].get());
+        return std::static_pointer_cast<const l_matrix_type>(
+            this->get_operators()[0]);
     }
 
-    const u_matrix_type *get_u_factor() const
+    std::shared_ptr<const u_matrix_type> get_u_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return static_cast<const u_matrix_type *>(
-            this->get_operators()[1].get());
+        return std::static_pointer_cast<const u_matrix_type>(
+            this->get_operators()[1]);
     }
 
     // Remove the possibility of calling `create`, which was enabled by
@@ -127,7 +127,7 @@ public:
          * implementation decides on the actual value depending on the
          * ressources that are available.
          */
-        size_type GKO_FACTORY_PARAMETER(iterations, 0);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 0);
 
         /**
          * @brief `true` means it is known that the matrix given to this
@@ -146,7 +146,21 @@ public:
          * it must remain `false`, otherwise, the factorization might be
          * incorrect.
          */
-        bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * Strategy which will be used by the L matrix. The default value
+         * `nullptr` will result in the strategy `classical`.
+         */
+        std::shared_ptr<typename l_matrix_type::strategy_type>
+            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+
+        /**
+         * Strategy which will be used by the U matrix. The default value
+         * `nullptr` will result in the strategy `classical`.
+         */
+        std::shared_ptr<typename u_matrix_type::strategy_type>
+            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -157,7 +171,17 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
+        if (parameters_.l_strategy == nullptr) {
+            parameters_.l_strategy =
+                std::make_shared<typename l_matrix_type::classical>();
+        }
+        if (parameters_.u_strategy == nullptr) {
+            parameters_.u_strategy =
+                std::make_shared<typename u_matrix_type::classical>();
+        }
+        generate_l_u(system_matrix, parameters_.skip_sorting,
+                     parameters_.l_strategy, parameters_.u_strategy)
+            ->move_to(this);
     }
 
     /**
@@ -167,17 +191,21 @@ protected:
      * while the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertable to a Csr
+     *                       @note: system_matrix must be convertible to a Csr
      *                              Matrix, otherwise, an exception is thrown.
      * @param skip_sorting  if set to `true`, the sorting will be skipped.
      *                      @note: If the matrix is not sorted, the
      *                             factorization fails.
+     * @param l_strategy  Strategy, which will be used by the L matrix.
+     * @param u_strategy  Strategy, which will be used by the U matrix.
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp> &system_matrix,
-        bool skip_sorting) const;
+        const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+        std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
+        std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy)
+        const;
 };
 
 
@@ -185,4 +213,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
+#endif  // GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_

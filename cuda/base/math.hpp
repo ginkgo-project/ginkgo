@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,69 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace detail {
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
-
-
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
-
-
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
-
-
-}  // namespace detail
-
-
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
-{
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-
-// Since the `isfinite` function from CUDA is not in any namespace, it
-// will be used without the `using` keyword.
-
-// For some CUDA versions, the complex variation for `isfinite` has to be
-// manually defined
-#if defined(GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE)
-
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<double>);
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<float>);
-
-#endif  // defined(GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE)
+#include "common/base/math.hpp.inc"
 
 
 }  // namespace gko

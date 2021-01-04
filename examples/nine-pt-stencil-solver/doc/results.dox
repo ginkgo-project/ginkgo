@@ -1,10 +1,11 @@
 <h1>Results</h1>
-
-The expected output of the relative error at K=10 should be
+The expected output should be
 
 @code{.cpp}
-The average relative error is 1.45687e-13
+
+The average relative error is 6.35715e-06
+The runtime is 167.320520 ms
+
 @endcode
 
-<h4> Comments about programming and debugging </h4>
-
+<h3> Comments about programming and debugging </h3>

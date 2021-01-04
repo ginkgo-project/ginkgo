@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <algorithm>
+
+
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
-
-#include <algorithm>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 namespace gko {
@@ -159,6 +162,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
+void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Diagonal<ValueType> *x,
+                     matrix::Dense<ValueType> *y)
+{
+    const auto diag_values = x->get_const_values();
+    for (size_type i = 0; i < x->get_size()[0]; i++) {
+        y->at(i, i) += alpha->at(0, 0) * diag_values[i];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
+
+
+template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
@@ -180,13 +198,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result)
+                   matrix::Dense<remove_complex<ValueType>> *result)
 {
-    compute_dot(exec, x, x, result);
-    for (size_type i = 0; i < result->get_size()[0]; ++i) {
-        for (size_type j = 0; j < result->get_size()[1]; ++j) {
-            result->at(i, j) = sqrt(abs(result->at(i, j)));
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<remove_complex<ValueType>>();
+    }
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) += squared_norm(x->at(i, j));
         }
+    }
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = sqrt(result->at(0, j));
     }
 }
 
@@ -195,8 +218,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Coo<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -226,8 +249,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -258,8 +281,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Ell<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -290,8 +313,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
-                       matrix::Hybrid<ValueType, IndexType> *result,
-                       const matrix::Dense<ValueType> *source)
+                       const matrix::Dense<ValueType> *source,
+                       matrix::Hybrid<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -345,8 +368,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
-                      matrix::Sellp<ValueType, IndexType> *result,
-                      const matrix::Dense<ValueType> *source)
+                      const matrix::Dense<ValueType> *source,
+                      matrix::Sellp<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -406,12 +429,45 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    slice_sets[slice_num] =
-        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+
+    if (slice_num > 0) {
+        slice_sets[slice_num] =
+            slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_sparsity_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                             const matrix::Dense<ValueType> *source,
+                             matrix::SparsityCsr<ValueType, IndexType> *result)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto value = result->get_value();
+    value[0] = one<ValueType>();
+    size_type cur_ptr = 0;
+    row_ptrs[0] = cur_ptr;
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                col_idxs[cur_ptr] = col;
+                ++cur_ptr;
+            }
+        }
+        row_ptrs[row + 1] = cur_ptr;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
 
 
 template <typename ValueType>
@@ -515,8 +571,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               matrix::Dense<ValueType> *trans,
-               const matrix::Dense<ValueType> *orig)
+               const matrix::Dense<ValueType> *orig,
+               matrix::Dense<ValueType> *trans)
 {
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
@@ -525,13 +581,13 @@ void transpose(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Dense<ValueType> *trans,
-                    const matrix::Dense<ValueType> *orig)
+                    const matrix::Dense<ValueType> *orig,
+                    matrix::Dense<ValueType> *trans)
 {
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
@@ -540,7 +596,172 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
+                const Array<IndexType> *row_indices,
+                const matrix::Dense<ValueType> *orig,
+                matrix::Dense<ValueType> *row_gathered)
+{
+    auto rows = row_indices->get_const_data();
+    for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_gathered->at(i, j) = orig->at(rows[i], j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    const matrix::Dense<ValueType> *orig,
+                    matrix::Dense<ValueType> *column_permuted)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+            column_permuted->at(i, j) = orig->at(i, perm[j]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         const matrix::Dense<ValueType> *orig,
+                         matrix::Dense<ValueType> *row_permuted)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_permuted->at(perm[i], j) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            const matrix::Dense<ValueType> *orig,
+                            matrix::Dense<ValueType> *column_permuted)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+            column_permuted->at(i, perm[j]) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType>
+void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    auto diag_values = diag->get_values();
+    for (size_type i = 0; i < diag->get_size()[0]; ++i) {
+        diag_values[i] = orig->at(i, i);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL);
+
+
+template <typename ValueType>
+void inplace_absolute_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                            matrix::Dense<ValueType> *source)
+{
+    auto dim = source->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            source->at(row, col) = abs(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL);
+
+
+template <typename ValueType>
+void outplace_absolute_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                             const matrix::Dense<ValueType> *source,
+                             matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = abs(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL);
+
+
+template <typename ValueType>
+void make_complex(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Dense<ValueType> *source,
+                  matrix::Dense<to_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = to_complex<ValueType>{source->at(row, col)};
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_KERNEL);
+
+
+template <typename ValueType>
+void get_real(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = real(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
+
+
+template <typename ValueType>
+void get_imag(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Dense<ValueType> *source,
+              matrix::Dense<remove_complex<ValueType>> *result)
+{
+    auto dim = source->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            result->at(row, col) = imag(source->at(row, col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
 
 
 }  // namespace dense

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
+#include <memory>
+
+
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -47,102 +50,6 @@ namespace omp {
  * @ingroup factor
  */
 namespace par_ilu_factorization {
-
-
-template <typename ValueType, typename IndexType>
-void initialize_row_ptrs_l_u(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs)
-{
-    auto row_ptrs = system_matrix->get_const_row_ptrs();
-    auto col_idxs = system_matrix->get_const_col_idxs();
-
-    l_row_ptrs[0] = 0;
-    u_row_ptrs[0] = 0;
-// Calculate the NNZ per row first
-#pragma omp parallel for
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
-        size_type l_nnz{};
-        size_type u_nnz{};
-        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
-            size_type col = col_idxs[el];
-            if (col <= row) {
-                ++l_nnz;
-            }
-            if (col >= row) {
-                ++u_nnz;
-            }
-        }
-        l_row_ptrs[row + 1] = l_nnz;
-        u_row_ptrs[row + 1] = u_nnz;
-    }
-
-    // Now, compute the prefix-sum, to get proper row_ptrs for L and U
-    IndexType l_previous_nnz{};
-    IndexType u_previous_nnz{};
-    for (size_type row = 1; row < system_matrix->get_size()[0] + 1; ++row) {
-        l_previous_nnz += l_row_ptrs[row];
-        u_previous_nnz += u_row_ptrs[row];
-
-        l_row_ptrs[row] = l_previous_nnz;
-        u_row_ptrs[row] = u_previous_nnz;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
-{
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto vals = system_matrix->get_const_values();
-
-    const auto row_ptrs_l = csr_l->get_const_row_ptrs();
-    auto col_idxs_l = csr_l->get_col_idxs();
-    auto vals_l = csr_l->get_values();
-
-    const auto row_ptrs_u = csr_u->get_const_row_ptrs();
-    auto col_idxs_u = csr_u->get_col_idxs();
-    auto vals_u = csr_u->get_values();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
-        size_type current_index_l = row_ptrs_l[row];
-        size_type current_index_u = row_ptrs_u[row];
-        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
-            const auto col = col_idxs[el];
-            const auto val = vals[el];
-            if (col < row) {
-                col_idxs_l[current_index_l] = col;
-                vals_l[current_index_l] = val;
-                ++current_index_l;
-            } else if (col == row) {
-                // Update both L and U
-                col_idxs_l[current_index_l] = col;
-                vals_l[current_index_l] = one<ValueType>();
-                ++current_index_l;
-
-                col_idxs_u[current_index_u] = col;
-                vals_u[current_index_u] = val;
-                ++current_index_u;
-            } else {  // col > row
-                col_idxs_u[current_index_u] = col;
-                vals_u[current_index_u] = val;
-                ++current_index_u;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -198,12 +105,12 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
 
             if (row > col) {  // modify entry in L
                 auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
-                if (isfinite(to_write)) {
+                if (is_finite(to_write)) {
                     vals_l[row_l - 1] = to_write;
                 }
             } else {  // modify entry in U
                 auto to_write = sum;
-                if (isfinite(to_write)) {
+                if (is_finite(to_write)) {
                     vals_u[row_u - 1] = to_write;
                 }
             }

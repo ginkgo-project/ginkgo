@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,10 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <regex>
 #include <string>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
@@ -138,6 +140,7 @@ private:
     struct : entry_format {
         /**
          * reads entry from the input stream
+         *
          * @param  is the input stream
          *
          * @return the matrix entry.
@@ -151,6 +154,7 @@ private:
 
         /**
          * writes entry to the output stream
+         *
          * @param  os the output stream
          * @param  value the matrix entry to be written
          */
@@ -162,7 +166,7 @@ private:
 
     private:
         template <typename T>
-        static xstd::enable_if_t<is_complex<T>()> write_entry_impl(
+        static std::enable_if_t<is_complex_s<T>::value> write_entry_impl(
             std::ostream &, const T &)
         {
             throw GKO_STREAM_ERROR(
@@ -170,7 +174,7 @@ private:
         }
 
         template <typename T>
-        static xstd::enable_if_t<!is_complex<T>()> write_entry_impl(
+        static std::enable_if_t<!is_complex_s<T>::value> write_entry_impl(
             std::ostream &os, const T &value)
         {
             GKO_CHECK_STREAM(os << static_cast<double>(value),
@@ -185,6 +189,7 @@ private:
     struct : entry_format {
         /**
          * reads entry from the input stream
+         *
          * @param  is the input stream
          *
          * @return the matrix entry.
@@ -196,6 +201,7 @@ private:
 
         /**
          * writes entry to the output stream
+         *
          * @param  os the output stream
          * @param  value the matrix entry to be written
          */
@@ -209,7 +215,7 @@ private:
 
     private:
         template <typename T>
-        static xstd::enable_if_t<is_complex<T>(), T> read_entry_impl(
+        static std::enable_if_t<is_complex_s<T>::value, T> read_entry_impl(
             std::istream &is)
         {
             using real_type = remove_complex<T>;
@@ -221,7 +227,7 @@ private:
         }
 
         template <typename T>
-        static xstd::enable_if_t<!is_complex<T>(), T> read_entry_impl(
+        static std::enable_if_t<!is_complex_s<T>::value, T> read_entry_impl(
             std::istream &)
         {
             throw GKO_STREAM_ERROR(
@@ -236,6 +242,7 @@ private:
     struct : entry_format {
         /**
          * reads entry from the input stream
+         *
          * @param  dummy input stream
          *
          * @return the matrix entry(one).
@@ -247,6 +254,7 @@ private:
 
         /**
          * writes entry to the output stream
+         *
          * @param  dummy output stream
          * @param  dummy matrix entry to be written
          */
@@ -283,6 +291,7 @@ private:
     struct : storage_modifier {
         /**
          * get the reservation size
+         *
          * @param num_rows  the number of rows
          * @param num_cols  the number of columns
          * @param num_nonzeros  the number of non-zeros
@@ -297,6 +306,7 @@ private:
 
         /**
          * Insert an entry
+         *
          * @param row  The row where the entry is to be inserted.
          * @param col  The column where the entry is to be inserted.
          * @param entry  the entry to be inserted.
@@ -336,6 +346,7 @@ private:
 
         /**
          * Insert an entry
+         *
          * @param row  The row where the entry is to be inserted.
          * @param col  The column where the entry is to be inserted.
          * @param entry  the entry to be inserted.
@@ -365,6 +376,7 @@ private:
     struct : storage_modifier {
         /**
          * get the reservation size
+         *
          * @param num_rows
          * @param num_cols
          * @param num_nonzeros  the number of non-zeros
@@ -379,6 +391,7 @@ private:
 
         /**
          * Insert an entry
+         *
          * @param row  The row where the entry is to be inserted.
          * @param col  The column where the entry is to be inserted.
          * @param entry  the entry to be inserted.
@@ -408,6 +421,7 @@ private:
     struct : storage_modifier {
         /**
          * get the reservation size
+         *
          * @param num_rows
          * @param num_cols
          * @param num_nonzeros  the number of non-zeros
@@ -422,6 +436,7 @@ private:
 
         /**
          * Insert an entry
+         *
          * @param row  The row where the entry is to be inserted.
          * @param col  The column where the entry is to be inserted.
          * @param entry  the entry to be inserted.
@@ -666,6 +681,7 @@ private:
 
     /**
      * reads and parses the first line of the header
+     *
      * @param is  the input stream
      *
      * @return the data containing the description
@@ -710,6 +726,7 @@ private:
 
     /**
      * reads and parses the header
+     *
      * @param is  The input stream to read the header from.
      *
      * @return the header data

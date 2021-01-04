@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 
 
+#include <complex>
+#include <memory>
+#include <type_traits>
+
+
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace {
@@ -85,8 +93,8 @@ class EnableLinOp : public ::testing::Test {
 protected:
     EnableLinOp()
         : ref{gko::ReferenceExecutor::create()},
-          omp{gko::OmpExecutor::create()},
-          op{DummyLinOp::create(omp, gko::dim<2>{3, 5})},
+          ref2{gko::ReferenceExecutor::create()},
+          op{DummyLinOp::create(ref2, gko::dim<2>{3, 5})},
           alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
           b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
@@ -94,7 +102,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::ReferenceExecutor> ref2;
     std::unique_ptr<DummyLinOp> op;
     std::unique_ptr<DummyLinOp> alpha;
     std::unique_ptr<DummyLinOp> beta;
@@ -107,7 +115,7 @@ TEST_F(EnableLinOp, CallsApplyImpl)
 {
     op->apply(gko::lend(b), gko::lend(x));
 
-    ASSERT_EQ(op->last_access, omp);
+    ASSERT_EQ(op->last_access, ref2);
 }
 
 
@@ -115,7 +123,7 @@ TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 {
     op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
 
-    ASSERT_EQ(op->last_access, omp);
+    ASSERT_EQ(op->last_access, ref2);
 }
 
 
@@ -196,43 +204,50 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 }
 
 
-TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
+// For tests between different memory, check cuda/test/base/lin_op.cu
+TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(gko::lend(b), gko::lend(x));
 
-    ASSERT_EQ(op->last_b_access, omp);
-    ASSERT_EQ(op->last_x_access, omp);
+    ASSERT_EQ(op->last_b_access, ref);
+    ASSERT_EQ(op->last_x_access, ref);
 }
 
 
-TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
+TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
 {
     op->apply(gko::lend(b), gko::lend(x));
 
-    ASSERT_EQ(b->last_access, nullptr);
-    ASSERT_EQ(x->last_access, omp);
+    ASSERT_EQ(b->last_access, ref);
+    ASSERT_EQ(x->last_access, ref);
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
+TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
 
-    ASSERT_EQ(op->last_alpha_access, omp);
-    ASSERT_EQ(op->last_b_access, omp);
-    ASSERT_EQ(op->last_beta_access, omp);
-    ASSERT_EQ(op->last_x_access, omp);
+    ASSERT_EQ(op->last_alpha_access, ref);
+    ASSERT_EQ(op->last_b_access, ref);
+    ASSERT_EQ(op->last_beta_access, ref);
+    ASSERT_EQ(op->last_x_access, ref);
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
+TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 {
-    op->apply(gko::lend(b), gko::lend(x));
+    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
 
-    ASSERT_EQ(alpha->last_access, nullptr);
-    ASSERT_EQ(b->last_access, nullptr);
-    ASSERT_EQ(beta->last_access, nullptr);
-    ASSERT_EQ(x->last_access, omp);
+    ASSERT_EQ(alpha->last_access, ref);
+    ASSERT_EQ(b->last_access, ref);
+    ASSERT_EQ(beta->last_access, ref);
+    ASSERT_EQ(x->last_access, ref);
+}
+
+
+TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
+{
+    ASSERT_FALSE(op->apply_uses_initial_guess());
 }
 
 
@@ -246,7 +261,7 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        T GKO_FACTORY_PARAMETER(value, T{5});
+        T GKO_FACTORY_PARAMETER_SCALAR(value, T{5});
     };
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -305,6 +320,110 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
     ASSERT_EQ(op->get_executor(), ref);
     ASSERT_EQ(op->get_parameters().value, 6);
     ASSERT_EQ(op->op_.get(), dummy.get());
+}
+
+
+template <typename Type>
+class DummyLinOpWithType
+    : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
+      public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
+      public gko::EnableAbsoluteComputation<
+          gko::remove_complex<DummyLinOpWithType<Type>>> {
+public:
+    using absolute_type = gko::remove_complex<DummyLinOpWithType>;
+    DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)
+        : gko::EnableLinOp<DummyLinOpWithType>(exec)
+    {}
+
+    DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec,
+                       gko::dim<2> size, Type value)
+        : gko::EnableLinOp<DummyLinOpWithType>(exec, size), value_(value)
+    {}
+
+    void compute_absolute_inplace() override { value_ = gko::abs(value_); }
+
+    std::unique_ptr<absolute_type> compute_absolute() const override
+    {
+        return std::make_unique<absolute_type>(
+            this->get_executor(), this->get_size(), gko::abs(value_));
+    }
+
+    Type get_value() const { return value_; }
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+
+private:
+    Type value_;
+};
+
+
+class EnableAbsoluteComputation : public ::testing::Test {
+protected:
+    using dummy_type = DummyLinOpWithType<std::complex<double>>;
+    EnableAbsoluteComputation()
+        : ref{gko::ReferenceExecutor::create()},
+          op{dummy_type::create(ref, gko::dim<2>{1, 1},
+                                std::complex<double>{-3.0, 4.0})}
+    {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<dummy_type> op;
+};
+
+
+TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnConcreteType)
+{
+    op->compute_absolute_inplace();
+
+    ASSERT_EQ(op->get_value(), std::complex<double>{5.0});
+}
+
+
+TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnConcreteType)
+{
+    auto abs_op = op->compute_absolute();
+
+    static_assert(
+        std::is_same<decltype(abs_op),
+                     std::unique_ptr<gko::remove_complex<dummy_type>>>::value,
+        "Types must match.");
+    ASSERT_EQ(abs_op->get_value(), 5.0);
+}
+
+
+TEST_F(EnableAbsoluteComputation, InplaceAbsoluteOnAbsoluteComputable)
+{
+    auto linop = gko::as<gko::LinOp>(op);
+
+    gko::as<gko::AbsoluteComputable>(linop)->compute_absolute_inplace();
+
+    ASSERT_EQ(gko::as<dummy_type>(linop)->get_value(),
+              std::complex<double>{5.0});
+}
+
+
+TEST_F(EnableAbsoluteComputation, OutplaceAbsoluteOnAbsoluteComputable)
+{
+    auto abs_op = op->compute_absolute();
+
+    static_assert(
+        std::is_same<decltype(abs_op),
+                     std::unique_ptr<gko::remove_complex<dummy_type>>>::value,
+        "Types must match.");
+    ASSERT_EQ(abs_op->get_value(), 5.0);
+}
+
+
+TEST_F(EnableAbsoluteComputation, ThrowWithoutAbsoluteComputableInterface)
+{
+    std::shared_ptr<gko::LinOp> linop = DummyLinOp::create(ref);
+
+    ASSERT_THROW(gko::as<gko::AbsoluteComputable>(linop), gko::NotSupported);
 }
 
 

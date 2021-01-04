@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_RANGE_ACCESSORS_HPP_
-#define GKO_CORE_BASE_RANGE_ACCESSORS_HPP_
-
-
-#include <ginkgo/core/base/range.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_RANGE_ACCESSORS_HPP_
+#define GKO_PUBLIC_CORE_BASE_RANGE_ACCESSORS_HPP_
 
 
 #include <array>
+
+
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace gko {
@@ -190,4 +190,4 @@ public:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_RANGE_ACCESSORS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_RANGE_ACCESSORS_HPP_

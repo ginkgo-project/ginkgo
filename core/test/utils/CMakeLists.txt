@@ -1,2 +1,3 @@
-ginkgo_create_test(matrix_generator_test)
 ginkgo_create_test(assertions_test)
+ginkgo_create_test(matrix_generator_test)
+ginkgo_create_test(unsort_matrix_test)

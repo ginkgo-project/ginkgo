@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,11 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -53,6 +56,7 @@ class Sellp : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Sellp<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Sellp() : rand_engine(42) {}
 
@@ -69,9 +73,10 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
@@ -211,6 +216,40 @@ TEST_F(Sellp,
 }
 
 
+TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     auto rmtx = Mtx::create(ref);
@@ -238,6 +277,50 @@ TEST_F(Sellp, MoveToDenseIsEquivalentToRef)
     rmtx->move_to(drmtx.get());
     omtx->move_to(domtx.get());
     GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+}
+
+
+TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
+{
+    set_up_apply_data(32, 4, 0, 3);
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
 

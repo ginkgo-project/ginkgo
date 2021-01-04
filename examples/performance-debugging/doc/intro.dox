@@ -1,0 +1,5 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example runs a solver on a test problem and shows how to use loggers to debug performance and convergence rate.

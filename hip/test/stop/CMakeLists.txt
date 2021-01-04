@@ -1,0 +1,2 @@
+ginkgo_create_hip_test(criterion_kernels)
+ginkgo_create_hip_test_special_linkage(residual_norm_kernels)

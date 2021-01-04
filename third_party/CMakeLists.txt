@@ -1,4 +1,4 @@
-if(GINKGO_BUILD_CUDA)
+if(GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM STREQUAL "nvcc"))
     enable_language(CUDA)
     if (GINKGO_USE_EXTERNAL_CAS)
         include(CudaArchitectureSelector RESULT_VARIABLE GINKGO_CAS_FILE)
@@ -16,12 +16,16 @@ endif()
 if(GINKGO_DEVEL_TOOLS)
     set(GCF_IGNORE_LIST "third_party" CACHE STRING "Ignore directories for GCF")
     add_subdirectory(git-cmake-format)
+else()
+    add_subdirectory(dummy-hook)
 endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
     ginkgo_add_subdirectory(gflags gflags)
     ginkgo_add_subdirectory(RapidJSON rapidjson)
-
+    if(WIN32)
+        target_link_libraries(gflags INTERFACE shlwapi.lib)
+    endif()
     # RapidJSON does not provide a modern CMake target so far. Let's fix that!
     if(RapidJSON_FOUND)
         add_library(rapidjson INTERFACE)

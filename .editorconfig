@@ -1,0 +1,23 @@
+# More info: https://editorconfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Use space and 4 indentation style everywhere.
+# Also add a newline at the end of every file.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# YAML files use 2 space indentation for now.
+[*.{yml,md}]
+indent_style = space
+indent_size = 2
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab

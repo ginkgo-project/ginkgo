@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,9 +108,9 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto coo_row = a->get_const_row_idxs();
     auto num_cols = b->get_size()[1];
 
-    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
-        for (size_type j = 0; j < num_cols; j++) {
+    for (size_type j = 0; j < num_cols; j++) {
+        for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
             c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
         }
     }
@@ -132,9 +132,9 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto alpha_val = alpha->at(0, 0);
     auto num_cols = b->get_size()[1];
 
-    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
 #pragma omp parallel for
-        for (size_type j = 0; j < num_cols; j++) {
+    for (size_type j = 0; j < num_cols; j++) {
+        for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
             c->at(coo_row[i], j) +=
                 alpha_val * coo_val[i] * b->at(coo_col[i], j);
         }
@@ -156,8 +156,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Coo<ValueType, IndexType> *source)
+                    const matrix::Coo<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -176,8 +176,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Coo<ValueType, IndexType> *source)
+                      const matrix::Coo<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
@@ -198,6 +198,30 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto row_idxs = orig->get_const_row_idxs();
+    const auto col_idxs = orig->get_const_col_idxs();
+    const auto values = orig->get_const_values();
+    const auto diag_size = diag->get_size()[0];
+    const auto nnz = orig->get_num_stored_elements();
+    auto diag_values = diag->get_values();
+
+#pragma omp parallel for
+    for (size_type idx = 0; idx < nnz; idx++) {
+        if (row_idxs[idx] == col_idxs[idx]) {
+            diag_values[row_idxs[idx]] = values[idx];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace coo

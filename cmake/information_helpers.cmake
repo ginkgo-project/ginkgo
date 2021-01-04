@@ -18,12 +18,12 @@ macro(ginkgo_git_information)
                 OUTPUT_VARIABLE GINKGO_GIT_BRANCH
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
             execute_process(
-                COMMAND ${GIT_EXECUTABLE} log -1 --format=%H ${Gingko_SOURCE_DIR}
+                COMMAND ${GIT_EXECUTABLE} log -1 --format=%H ${Ginkgo_SOURCE_DIR}
                 WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
                 OUTPUT_VARIABLE GINKGO_GIT_REVISION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
             execute_process(
-                COMMAND ${GIT_EXECUTABLE} log -1 --format=%h ${Gingko_SOURCE_DIR}
+                COMMAND ${GIT_EXECUTABLE} log -1 --format=%h ${Ginkgo_SOURCE_DIR}
                 WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
                 OUTPUT_VARIABLE GINKGO_GIT_SHORTREV
                 OUTPUT_STRIP_TRAILING_WHITESPACE)

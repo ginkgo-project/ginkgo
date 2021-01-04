@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,36 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
 
 
 using etype = double;
-
-// Command-line arguments
-DEFINE_string(
-    formats, "coo",
-    "A comma-separated list of formats to benchmark. All conversions from the "
-    "formats given as argument to existing Ginkgo formats are benchmarked.\n"
-    "Supported values are: coo, csr, ell, hybrid, sellp"
-    "coo: Coordinate storage.\n"
-    "csr: Compressed Sparse Row storage.\n"
-    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
-    "Matrix-Vector Multiplication on CUDA.\n"
-    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
-    "sellp: Sliced Ellpack format.\n");
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const gko::matrix_data<> &)>>
-    matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
-        {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
-        {"hybrid", read_matrix_from_data<hybrid>},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
 
 
 // This function supposes that management of `FLAGS_overwrite` is done before
@@ -89,7 +67,8 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         gko::matrix_data<> data{gko::dim<2>{1, 1}, 1};
-        auto matrix_to = share(matrix_factory.at(format_to)(exec, data));
+        auto matrix_to =
+            share(formats::matrix_factory.at(format_to)(exec, data));
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             exec->synchronize();
@@ -97,21 +76,17 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
             exec->synchronize();
             matrix_to->clear();
         }
-        std::chrono::nanoseconds time(0);
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
         // timed run
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             exec->synchronize();
-            auto tic = std::chrono::steady_clock::now();
+            timer->tic();
             matrix_to->copy_from(matrix_from);
-            exec->synchronize();
-            auto toc = std::chrono::steady_clock::now();
-            time +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+            timer->toc();
             matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          static_cast<double>(time.count()) / FLAGS_repetitions,
-                          allocator);
+                          timer->compute_average_time(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,
@@ -176,8 +151,8 @@ int main(int argc, char *argv[])
         for (const auto &format_from : formats) {
             try {
                 auto matrix_from =
-                    share(matrix_factory.at(format_from)(exec, data));
-                for (const auto &format : matrix_factory) {
+                    share(formats::matrix_factory.at(format_from)(exec, data));
+                for (const auto &format : formats::matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     if (format_from == format_to) {
                         continue;
@@ -198,7 +173,7 @@ int main(int argc, char *argv[])
                 }
                 backup_results(test_cases);
             } catch (const gko::AllocationError &e) {
-                for (const auto &format : matrix_factory) {
+                for (const auto &format : formats::matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     auto conversion_name =
                         std::string(format_from) + "-" + format_to;
@@ -217,5 +192,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::cout << test_cases;
+    std::cout << test_cases << std::endl;
 }

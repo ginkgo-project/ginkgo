@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,24 +36,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/matrix/sellp_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sellp<>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Sellp<value_type, index_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Sellp()
         : exec(gko::ReferenceExecutor::create()),
@@ -74,29 +81,34 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
+TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypes);
 
-TEST_F(Sellp, AppliesToDenseVector)
+
+TYPED_TEST(Sellp, AppliesToDenseVector)
 {
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim<2>{2, 1});
+    using Vec = typename TestFixture::Vec;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    mtx1->apply(x.get(), y.get());
+    this->mtx1->apply(x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
-TEST_F(Sellp, AppliesToDenseMatrix)
+TYPED_TEST(Sellp, AppliesToDenseMatrix)
 {
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    mtx1->apply(x.get(), y.get());
+    this->mtx1->apply(x.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -106,34 +118,37 @@ TEST_F(Sellp, AppliesToDenseMatrix)
 }
 
 
-TEST_F(Sellp, AppliesLinearCombinationToDenseVector)
+TYPED_TEST(Sellp, AppliesLinearCombinationToDenseVector)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
-TEST_F(Sellp, AppliesLinearCombinationToDenseMatrix)
+TYPED_TEST(Sellp, AppliesLinearCombinationToDenseMatrix)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
-        {{1.0, 0.5},
-         {2.0, -1.5}}, exec);
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -143,38 +158,84 @@ TEST_F(Sellp, AppliesLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Sellp, ApplyFailsOnWrongInnerDimension)
+TYPED_TEST(Sellp, ApplyFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim<2>{2});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ApplyFailsOnWrongNumberOfRows)
+TYPED_TEST(Sellp, ApplyFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3, 2});
-    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ApplyFailsOnWrongNumberOfCols)
+TYPED_TEST(Sellp, ApplyFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3}, 2);
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3}, 2);
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx1->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ConvertsToDense)
+TYPED_TEST(Sellp, ConvertsToPrecision)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx1->get_executor());
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    mtx1->convert_to(dense_mtx.get());
+    this->mtx1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Sellp, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Sellp, ConvertsToDense)
+{
+    using Vec = typename TestFixture::Vec;
+    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+
+    this->mtx1->convert_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -184,11 +245,12 @@ TEST_F(Sellp, ConvertsToDense)
 }
 
 
-TEST_F(Sellp, MovesToDense)
+TYPED_TEST(Sellp, MovesToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx1->get_executor());
+    using Vec = typename TestFixture::Vec;
+    auto dense_mtx = Vec::create(this->mtx1->get_executor());
 
-    mtx1->move_to(dense_mtx.get());
+    this->mtx1->move_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -198,56 +260,178 @@ TEST_F(Sellp, MovesToDense)
 }
 
 
-TEST_F(Sellp, ConvertsToCsr)
+TYPED_TEST(Sellp, ConvertsToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
 
-    mtx1->convert_to(csr_mtx.get());
+    this->mtx1->convert_to(csr_mtx_c.get());
+    this->mtx1->convert_to(csr_mtx_m.get());
 
     // clang-format off
-	GKO_ASSERT_MTX_NEAR(csr_mtx,
-	                    l({{1.0, 3.0, 2.0},
-	                       {0.0, 5.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c,
+                        l({{1.0, 3.0, 2.0},
+                           {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
-TEST_F(Sellp, MovesToCsr)
+TYPED_TEST(Sellp, MovesToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
+    auto mtx_clone = this->mtx1->clone();
 
-    mtx1->move_to(csr_mtx.get());
+    this->mtx1->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
     // clang-format off
-	GKO_ASSERT_MTX_NEAR(csr_mtx,
-	                    l({{1.0, 3.0, 2.0},
-	                       {0.0, 5.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c,
+                        l({{1.0, 3.0, 2.0},
+                           {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
-TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
+TYPED_TEST(Sellp, ConvertsEmptyToPrecision)
 {
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim<2>{2, 1});
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
 
-    mtx2->apply(x.get(), y.get());
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx2->apply(x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
-TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
+TYPED_TEST(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
 {
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    mtx2->apply(x.get(), y.get());
+    this->mtx2->apply(x.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -257,34 +441,39 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseMatrix)
 }
 
 
-TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseVector)
+TYPED_TEST(Sellp,
+           AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseVector)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
-TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
+TYPED_TEST(Sellp,
+           AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
-        {{1.0, 0.5},
-         {2.0, -1.5}}, exec);
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
@@ -294,43 +483,47 @@ TEST_F(Sellp, AppliesWithSliceSizeAndStrideFactorLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongInnerDimension)
+TYPED_TEST(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim<2>{2});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfRows)
+TYPED_TEST(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3, 2});
-    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfCols)
+TYPED_TEST(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3}, 2);
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3}, 2);
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx2->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
+TYPED_TEST(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
+    using Vec = typename TestFixture::Vec;
+    auto dense_mtx = Vec::create(this->mtx2->get_executor());
     // clang-format off
-    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
+    auto dense_other = gko::initialize<Vec>(
         4, {{1.0, 3.0, 2.0},
-            {0.0, 5.0, 0.0}}, exec);
+            {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on
 
-    mtx2->convert_to(dense_mtx.get());
+    this->mtx2->convert_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -340,11 +533,12 @@ TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
 }
 
 
-TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
+TYPED_TEST(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx2->get_executor());
+    using Vec = typename TestFixture::Vec;
+    auto dense_mtx = Vec::create(this->mtx2->get_executor());
 
-    mtx2->move_to(dense_mtx.get());
+    this->mtx2->move_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -354,11 +548,12 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
 }
 
 
-TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToCsr)
+TYPED_TEST(Sellp, ConvertsWithSliceSizeAndStrideFactorToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+    using Csr = typename TestFixture::Csr;
+    auto csr_mtx = Csr::create(this->mtx2->get_executor());
 
-    mtx2->convert_to(csr_mtx.get());
+    this->mtx2->convert_to(csr_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(csr_mtx,
@@ -368,11 +563,12 @@ TEST_F(Sellp, ConvertsWithSliceSizeAndStrideFactorToCsr)
 }
 
 
-TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
+TYPED_TEST(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+    using Csr = typename TestFixture::Csr;
+    auto csr_mtx = Csr::create(this->mtx2->get_executor());
 
-    mtx2->move_to(csr_mtx.get());
+    this->mtx2->move_to(csr_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(csr_mtx,
@@ -382,13 +578,176 @@ TEST_F(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
 }
 
 
-TEST_F(Sellp, CountsNonzeros)
+TYPED_TEST(Sellp, CountsNonzeros)
 {
     gko::size_type nonzeros;
 
-    gko::kernels::reference::sellp::count_nonzeros(exec, mtx1.get(), &nonzeros);
+    gko::kernels::reference::sellp::count_nonzeros(this->exec, this->mtx1.get(),
+                                                   &nonzeros);
 
     ASSERT_EQ(nonzeros, 4);
+}
+
+
+TYPED_TEST(Sellp, ExtractsDiagonal)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx1->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Sellp, ExtractsDiagonalWithSliceSizeAndStrideFactor)
+{
+    using T = typename TestFixture::value_type;
+    auto matrix = this->mtx2->clone();
+    auto diag = matrix->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Sellp, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+}
+
+
+TYPED_TEST(Sellp, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+}
+
+
+TYPED_TEST(Sellp, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Sellp, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Scal = typename gko::matrix::Dense<value_type>;
+    using Vec = typename gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Scal>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scal>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
+template <typename ValueIndexType>
+class SellpComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Sellp<value_type, index_type>;
+};
+
+TYPED_TEST_SUITE(SellpComplex, gko::test::ComplexValueIndexTypes);
+
+
+TYPED_TEST(SellpComplex, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(SellpComplex, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
 }
 
 

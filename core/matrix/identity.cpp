@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,6 +66,20 @@ std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
                                        base->get_size()[0]);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
+{
+    return this->clone();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
+{
+    return this->clone();
 }
 
 

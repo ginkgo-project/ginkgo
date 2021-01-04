@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <memory>
+#include <string>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -43,17 +48,17 @@ namespace gko {
 
 version version_info::get_cuda_version() noexcept
 {
-    // We just return 1.0.0 with a special "not compiled" tag in placeholder
-    // modules.
-    return {1, 0, 0, "not compiled"};
+    // We just return the version with a special "not compiled" tag in
+    // placeholder modules.
+    return {GKO_VERSION_STR, "not compiled"};
 }
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master)));
+        new CudaExecutor(device_id, std::move(master), device_reset));
 }
 
 
@@ -70,8 +75,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const
-    GKO_NOT_COMPILED(nvidia);
+void *CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
@@ -80,6 +84,16 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 
 
 void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
@@ -101,6 +115,12 @@ std::string CudaError::get_error(int64)
 
 
 std::string CublasError::get_error(int64)
+{
+    return "ginkgo CUDA module is not compiled";
+}
+
+
+std::string CurandError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";
 }

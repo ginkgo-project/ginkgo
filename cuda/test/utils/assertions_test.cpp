@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include <core/test/utils/assertions.hpp>
+#include "core/test/utils/assertions.hpp"
 
 
 #include <gtest/gtest.h>
@@ -39,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "cuda/test/utils.hpp"
 
 
 namespace {
@@ -70,10 +72,10 @@ TEST_F(MatricesNear, CanPassCudaMatrix)
     auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     // TODO: CUDA conversion Dense -> Csr not yet implemented
-    auto csr_omp = gko::matrix::Csr<>::create(ref);
-    csr_omp->copy_from(mtx.get());
+    auto csr_ref = gko::matrix::Csr<>::create(ref);
+    csr_ref->copy_from(mtx.get());
     auto csr_mtx = gko::matrix::Csr<>::create(cuda);
-    csr_mtx->copy_from(std::move(csr_omp));
+    csr_mtx->copy_from(std::move(csr_ref));
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);

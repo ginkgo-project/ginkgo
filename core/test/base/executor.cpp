@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,9 +59,17 @@ public:
     {
         value = 2;
     }
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
     {
         value = 3;
+    }
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = 4;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = 5;
     }
 
     int &value;
@@ -74,6 +82,7 @@ TEST(OmpExecutor, RunsCorrectOperation)
     exec_ptr omp = gko::OmpExecutor::create();
 
     omp->run(ExampleOperation(value));
+
     ASSERT_EQ(1, value);
 }
 
@@ -83,9 +92,12 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(omp_lambda, cuda_lambda);
+    omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(1, value);
 }
 
@@ -128,7 +140,7 @@ TEST(OmpExecutor, CopiesData)
     int *copy = omp->alloc<int>(num_elems);
 
     // user code is run on the OMP, so local variables are in OMP memory
-    omp->copy_from(omp.get(), num_elems, orig, copy);
+    omp->copy(num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -150,7 +162,8 @@ TEST(ReferenceExecutor, RunsCorrectOperation)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ref->run(ExampleOperation(value));
-    ASSERT_EQ(3, value);
+
+    ASSERT_EQ(5, value);
 }
 
 
@@ -159,9 +172,12 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(omp_lambda, cuda_lambda);
+    ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(1, value);
 }
 
@@ -204,11 +220,23 @@ TEST(ReferenceExecutor, CopiesData)
     int *copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    ref->copy_from(ref.get(), num_elems, orig, copy);
+    ref->copy(num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
     ref->free(copy);
+}
+
+
+TEST(ReferenceExecutor, CopiesSingleValue)
+{
+    exec_ptr ref = gko::ReferenceExecutor::create();
+    int *el = ref->alloc<int>(1);
+    el[0] = 83683;
+
+    EXPECT_EQ(83683, ref->copy_val_to_host(el));
+
+    ref->free(el);
 }
 
 
@@ -257,9 +285,11 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 TEST(CudaExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(ExampleOperation(value));
+
     ASSERT_EQ(2, value);
 }
 
@@ -269,9 +299,13 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
-    cuda->run(omp_lambda, cuda_lambda);
+    cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
     ASSERT_EQ(2, value);
 }
 
@@ -291,6 +325,225 @@ TEST(CudaExecutor, KnowsItsDeviceId)
     auto cuda = gko::CudaExecutor::create(0, omp);
 
     ASSERT_EQ(0, cuda->get_device_id());
+}
+
+
+TEST(CudaExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    ASSERT_EQ(false, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    cuda->set_device_reset(true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
+}
+
+
+TEST(HipExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+
+    hip->run(ExampleOperation(value));
+
+    ASSERT_EQ(3, value);
+}
+
+
+TEST(HipExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+
+    hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(3, value);
+}
+
+
+TEST(HipExecutor, KnowsItsMaster)
+{
+    auto omp = gko::OmpExecutor::create();
+    exec_ptr hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(omp, hip->get_master());
+}
+
+
+TEST(HipExecutor, KnowsItsDeviceId)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(0, hip->get_device_id());
+}
+
+
+TEST(HipExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(false, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    hip->set_device_reset(true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
+}
+
+
+TEST(DpcppExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+
+    dpcpp->run(ExampleOperation(value));
+
+    ASSERT_EQ(4, value);
+}
+
+
+TEST(DpcppExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+
+    dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(4, value);
+}
+
+
+TEST(DpcppExecutor, KnowsItsMaster)
+{
+    auto omp = gko::OmpExecutor::create();
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, omp);
+
+    ASSERT_EQ(omp, dpcpp->get_master());
+}
+
+
+TEST(DpcppExecutor, KnowsItsDeviceId)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto dpcpp = gko::DpcppExecutor::create(0, omp);
+
+    ASSERT_EQ(0, dpcpp->get_device_id());
+}
+
+
+TEST(Executor, CanVerifyMemory)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+    auto cuda = gko::CudaExecutor::create(0, omp);
+    auto omp2 = gko::OmpExecutor::create();
+    auto hip2 = gko::HipExecutor::create(0, omp);
+    auto cuda2 = gko::CudaExecutor::create(0, omp);
+    auto hip_1 = gko::HipExecutor::create(1, omp);
+    auto cuda_1 = gko::CudaExecutor::create(1, omp);
+    std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
+    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
+    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
+    if (gko::DpcppExecutor::get_num_devices("host")) {
+        host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
+    }
+    if (gko::DpcppExecutor::get_num_devices("cpu")) {
+        cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+    }
+    if (gko::DpcppExecutor::get_num_devices("gpu")) {
+        gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
+    }
+
+    ASSERT_EQ(false, ref->memory_accessible(omp));
+    ASSERT_EQ(false, omp->memory_accessible(ref));
+    ASSERT_EQ(false, ref->memory_accessible(hip));
+    ASSERT_EQ(false, hip->memory_accessible(ref));
+    ASSERT_EQ(false, omp->memory_accessible(hip));
+    ASSERT_EQ(false, hip->memory_accessible(omp));
+    ASSERT_EQ(false, ref->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(ref));
+    ASSERT_EQ(false, omp->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(omp));
+    if (gko::DpcppExecutor::get_num_devices("host")) {
+        ASSERT_EQ(false, host_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
+        ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
+    }
+    if (gko::DpcppExecutor::get_num_devices("cpu")) {
+        ASSERT_EQ(false, ref->memory_accessible(cpu_dpcpp));
+        ASSERT_EQ(false, cpu_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
+    }
+    if (gko::DpcppExecutor::get_num_devices("gpu")) {
+        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(ref));
+        ASSERT_EQ(false, ref->memory_accessible(gpu_dpcpp));
+        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(omp));
+        ASSERT_EQ(false, omp->memory_accessible(gpu_dpcpp));
+    }
+#if GINKGO_HIP_PLATFORM_NVCC
+    ASSERT_EQ(true, hip->memory_accessible(cuda));
+    ASSERT_EQ(true, cuda->memory_accessible(hip));
+    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
+#else
+    ASSERT_EQ(false, hip->memory_accessible(cuda));
+    ASSERT_EQ(false, cuda->memory_accessible(hip));
+    ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
+    ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
+#endif
+    ASSERT_EQ(true, omp->memory_accessible(omp2));
+    ASSERT_EQ(true, hip->memory_accessible(hip2));
+    ASSERT_EQ(true, cuda->memory_accessible(cuda2));
+    ASSERT_EQ(false, hip->memory_accessible(hip_1));
+    ASSERT_EQ(false, cuda->memory_accessible(hip_1));
+    ASSERT_EQ(false, cuda->memory_accessible(cuda_1));
+    ASSERT_EQ(false, hip->memory_accessible(cuda_1));
 }
 
 
@@ -328,6 +581,7 @@ TEST(ExecutorDeleter, DeletesObject)
 TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
 {
     int x[5];
+
     ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
 }
 

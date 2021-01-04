@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/hybrid_kernels.hpp"
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include <random>
@@ -39,12 +39,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
+
+
+#include "core/matrix/hybrid_kernels.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
@@ -54,6 +57,7 @@ class Hybrid : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Hybrid() : rand_engine(42) {}
 
@@ -71,9 +75,11 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -178,6 +184,40 @@ TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(cuda);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(cuda);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(cuda);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(cuda);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
 TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -214,6 +254,46 @@ TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
     dmtx->move_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Hybrid, ExtractDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = mtx->extract_diagonal();
+    auto ddiag = dmtx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Hybrid, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Hybrid, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
+    using AbsMtx = gko::remove_complex<Mtx>;
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+    auto abs_strategy = gko::as<AbsMtx::column_limit>(abs_mtx->get_strategy());
+    auto dabs_strategy =
+        gko::as<AbsMtx::column_limit>(dabs_mtx->get_strategy());
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(),
+                  dabs_strategy->get_num_columns());
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_ABSTRACT_FACTORY_HPP_
-#define GKO_CORE_BASE_ABSTRACT_FACTORY_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_ABSTRACT_FACTORY_HPP_
+#define GKO_PUBLIC_CORE_BASE_ABSTRACT_FACTORY_HPP_
 
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -220,8 +220,8 @@ protected:
      */
     template <typename TheFactory, typename TheType>
     typename std::enable_if<
-        not std::is_base_of<log::Loggable, TheType>::value ||
-            not std::is_base_of<log::Loggable, TheFactory>::value,
+        !std::is_base_of<log::Loggable, TheType>::value ||
+            !std::is_base_of<log::Loggable, TheFactory>::value,
         void>::type
     propagate_loggers(TheType *product) const
     {}
@@ -289,4 +289,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_ABSTRACT_FACTORY_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_ABSTRACT_FACTORY_HPP_

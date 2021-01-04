@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,23 @@ std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
 }
 
 
-int CudaExecutor::num_execs[max_devices];
+bool CudaExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
+{
+    return device_id_ == dest_exec->get_device_id();
+}
+
+
+bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC
+    return device_id_ == dest_exec->get_device_id();
+#else
+    return false;
+#endif
+}
+
+
+unsigned CudaExecutor::num_execs[max_devices];
 
 
 std::mutex CudaExecutor::mutex[max_devices];

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -125,8 +125,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Sellp<ValueType, IndexType> *source)
+                      const matrix::Sellp<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -161,8 +161,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Sellp<ValueType, IndexType> *source)
+                    const matrix::Sellp<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -176,6 +176,46 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Sellp<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
+{
+    const auto diag_size = diag->get_size()[0];
+    const auto slice_size = orig->get_slice_size();
+    const auto slice_num = ceildiv(orig->get_size()[0], slice_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_slice_sets = orig->get_const_slice_sets();
+    const auto orig_slice_lengths = orig->get_const_slice_lengths();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+#pragma omp parallel for
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < slice_size; row++) {
+            auto global_row = slice_size * slice + row;
+            if (global_row >= diag_size) {
+                break;
+            }
+            for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
+                if (orig->col_at(row, orig_slice_sets[slice], i) ==
+                        global_row &&
+                    orig->val_at(row, orig_slice_sets[slice], i) !=
+                        zero<ValueType>()) {
+                    diag_values[global_row] =
+                        orig->val_at(row, orig_slice_sets[slice], i);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace sellp

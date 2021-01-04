@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_SELLP_HPP_
-#define GKO_CORE_MATRIX_SELLP_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_SELLP_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_SELLP_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -67,22 +67,36 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
+              public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType> {
+              public WritableToMatrixData<ValueType, IndexType>,
+              public EnableAbsoluteComputation<
+                  remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Sellp<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Sellp>::convert_to;
     using EnableLinOp<Sellp>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using absolute_type = remove_complex<Sellp>;
+
+    friend class Sellp<next_precision<ValueType>, IndexType>;
+
+    void convert_to(
+        Sellp<next_precision<ValueType>, IndexType> *result) const override;
+
+    void move_to(Sellp<next_precision<ValueType>, IndexType> *result) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -95,6 +109,12 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.
@@ -305,10 +325,8 @@ protected:
         : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
-          slice_lengths_(exec,
-                         (size[0] == 0) ? 0 : ceildiv(size[0], slice_size)),
-          slice_sets_(exec,
-                      (size[0] == 0) ? 0 : ceildiv(size[0], slice_size) + 1),
+          slice_lengths_(exec, ceildiv(size[0], slice_size)),
+          slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
           stride_factor_(stride_factor),
           total_cols_(total_cols)
@@ -340,4 +358,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_SELLP_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_SELLP_HPP_

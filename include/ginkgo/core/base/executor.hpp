@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXECUTOR_HPP_
-#define GKO_CORE_EXECUTOR_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
+#define GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
 
 
 #include <memory>
 #include <mutex>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <type_traits>
 
@@ -46,9 +47,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+inline namespace cl {
+namespace sycl {
+
+class queue;
+
+}  // namespace sycl
+}  // namespace cl
+
+
 struct cublasContext;
 
 struct cusparseContext;
+
+struct hipblasContext;
+
+struct hipsparseContext;
 
 
 namespace gko {
@@ -107,6 +121,12 @@ class ExecutorBase;
  *     void run(const gko::CudaExecutor *exec) const override
  *     { os_ << "CUDA(" << exec->get_device_id() << ")"; }
  *
+ *     void run(const gko::HipExecutor *exec) const override
+ *     { os_ << "HIP(" << exec->get_device_id() << ")"; }
+ *
+ *     void run(const gko::DpcppExecutor *exec) const override
+ *     { os_ << "DPC++(" << exec->get_device_id() << ")"; }
+ *
  *     // This is optional, if not overloaded, defaults to OmpExecutor overload
  *     void run(const gko::ReferenceExecutor *) const override
  *     { os_ << "Reference CPU"; }
@@ -134,6 +154,8 @@ class ExecutorBase;
  * auto omp = gko::OmpExecutor::create();
  * std::cout << *omp << std::endl
  *           << *gko::CudaExecutor::create(0, omp) << std::endl
+ *           << *gko::HipExecutor::create(0, omp) << std::endl
+ *           << *gko::DpcppExecutor::create(0, omp) << std::endl
  *           << *gko::ReferenceExecutor::create() << std::endl;
  * ```
  *
@@ -142,15 +164,17 @@ class ExecutorBase;
  * ```
  * OMP
  * CUDA(0)
+ * HIP(0)
+ * DPC++(0)
  * Reference CPU
  * ```
  *
  * One might feel that this code is too complicated for such a simple task.
  * Luckily, there is an overload of the Executor::run() method, which is
  * designed to facilitate writing simple operations like this one. The method
- * takes two closures as input: one which is run for OMP, and the other one for
- * CUDA executors. Using this method, there is no need to implement an Operation
- * subclass:
+ * takes three closures as input: one which is run for OMP, one for CUDA
+ * executors, one for HIP executors, and the last one for DPC++ executors. Using
+ * this method, there is no need to implement an Operation subclass:
  *
  * ```
  * std::ostream& operator<<(std::ostream &os, const gko::Executor &exec)
@@ -159,6 +183,14 @@ class ExecutorBase;
  *         [&]() { os << "OMP"; },  // OMP closure
  *         [&]() { os << "CUDA("    // CUDA closure
  *                    << static_cast<gko::CudaExecutor&>(exec)
+ *                         .get_device_id()
+ *                    << ")"; },
+ *         [&]() { os << "HIP("    // HIP closure
+ *                    << static_cast<gko::HipExecutor&>(exec)
+ *                         .get_device_id()
+ *                    << ")"; });
+ *         [&]() { os << "DPC++("    // DPC++ closure
+ *                    << static_cast<gko::DpcppExecutor&>(exec)
  *                         .get_device_id()
  *                    << ")"; });
  *     return os;
@@ -200,7 +232,7 @@ public:                                                                      \
 private:                                                                     \
     template <int... Ns>                                                     \
     void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> exec) const                \
+              std::shared_ptr<const ::gko::_type> &exec) const               \
     {                                                                        \
         ::gko::kernels::_namespace::_kernel(                                 \
             exec, std::forward<Args>(std::get<Ns>(data))...);                \
@@ -219,7 +251,7 @@ public:                                                                      \
 private:                                                                     \
     template <int... Ns>                                                     \
     void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> exec) const                \
+              std::shared_ptr<const ::gko::_type> &exec) const               \
     {                                                                        \
         ::gko::kernels::_namespace::_kernel(                                 \
             exec, std::forward<Args>(std::get<Ns>(data))...);                \
@@ -237,7 +269,8 @@ private:                                                                     \
  * kernel when the operation is executed.
  *
  * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
- * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda` and `reference`.
+ * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda`, `hip`, `dpcpp` and
+ * `reference`.
  *
  * @param _name  operation name
  * @param _kernel  kernel which will be bound to the operation
@@ -246,7 +279,7 @@ private:                                                                     \
  * -------
  *
  * ```c++
- * // define the omp, cuda and reference kernels which will be bound to the
+ * // define the omp, cuda, hip and reference kernels which will be bound to the
  * // operation
  * namespace kernels {
  * namespace omp {
@@ -257,6 +290,16 @@ private:                                                                     \
  * namespace cuda {
  * void my_kernel(int x) {
  *      // cuda code
+ * }
+ * }
+ * namespace hip {
+ * void my_kernel(int x) {
+ *      // hip code
+ * }
+ * }
+ * namespace dpcpp {
+ * void my_kernel(int x) {
+ *      // dpcpp code
  * }
  * }
  * namespace reference {
@@ -272,6 +315,8 @@ private:                                                                     \
  *     // create executors
  *     auto omp = OmpExecutor::create();
  *     auto cuda = CudaExecutor::create(omp, 0);
+ *     auto hip = HipExecutor::create(omp, 0);
+ *     auto dpcpp = DpcppExecutor::create(omp, 0);
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
@@ -279,50 +324,57 @@ private:                                                                     \
  *
  *     omp->run(op);  // run omp kernel
  *     cuda->run(op);  // run cuda kernel
+ *     hip->run(op);  // run hip kernel
+ *     dpcpp->run(op);  // run DPC++ kernel
  *     ref->run(op);  // run reference kernel
  * }
  * ```
  *
  * @ingroup Executor
  */
-#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
-    template <typename... Args>                                                \
-    class _name##_operation : public Operation {                               \
-        using counts =                                                         \
-            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;        \
-                                                                               \
-    public:                                                                    \
-        _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
-        {}                                                                     \
-                                                                               \
-        const char *get_name() const noexcept override                         \
-        {                                                                      \
-            static auto name = [this] {                                        \
-                std::ostringstream oss;                                        \
-                oss << #_kernel << '#' << sizeof...(Args);                     \
-                return oss.str();                                              \
-            }();                                                               \
-            return name.c_str();                                               \
-        }                                                                      \
-                                                                               \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);      \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);    \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,    \
-                                              _kernel);                        \
-                                                                               \
-    private:                                                                   \
-        mutable std::tuple<Args &&...> data;                                   \
-    };                                                                         \
-                                                                               \
-    template <typename... Args>                                                \
-    static _name##_operation<Args...> make_##_name(Args &&... args)            \
-    {                                                                          \
-        return _name##_operation<Args...>(std::forward<Args>(args)...);        \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_REGISTER_OPERATION(_name, _kernel)                                \
+    template <typename... Args>                                               \
+    class _name##_operation : public Operation {                              \
+        using counts =                                                        \
+            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;       \
+                                                                              \
+    public:                                                                   \
+        explicit _name##_operation(Args &&... args)                           \
+            : data(std::forward<Args>(args)...)                               \
+        {}                                                                    \
+                                                                              \
+        const char *get_name() const noexcept override                        \
+        {                                                                     \
+            static auto name = [this] {                                       \
+                std::ostringstream oss;                                       \
+                oss << #_kernel << '#' << sizeof...(Args);                    \
+                return oss.str();                                             \
+            }();                                                              \
+            return name.c_str();                                              \
+        }                                                                     \
+                                                                              \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);     \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);   \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(HipExecutor, hip, _kernel);     \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(DpcppExecutor, dpcpp, _kernel); \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,   \
+                                              _kernel);                       \
+                                                                              \
+    private:                                                                  \
+        mutable std::tuple<Args &&...> data;                                  \
+    };                                                                        \
+                                                                              \
+    template <typename... Args>                                               \
+    static _name##_operation<Args...> make_##_name(Args &&... args)           \
+    {                                                                         \
+        return _name##_operation<Args...>(std::forward<Args>(args)...);       \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
+
+#define GKO_DECLARE_EXECUTOR_FRIEND(_type, ...) friend class _type
 
 /**
  * The first step in using the Ginkgo library consists of creating an
@@ -334,6 +386,10 @@ private:                                                                     \
  *      operations executed on an OpenMP-supporting device (e.g. host CPU);
  * +    CudaExecutor specifies that the data should be stored and the
  *      operations executed on the NVIDIA GPU accelerator;
+ * +    HipExecutor specifies that the data should be stored and the
+ *      operations executed on either an NVIDIA or AMD GPU accelerator;
+ * +    DpcppExecutor specifies that the data should be stored and the
+ *      operations executed on an hardware supporting DPC++;
  * +    ReferenceExecutor executes a non-optimized reference implementation,
  *      which can be used to debug the library.
  *
@@ -411,6 +467,9 @@ class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
+
 public:
     virtual ~Executor() = default;
 
@@ -432,15 +491,20 @@ public:
      *
      * @tparam ClosureOmp  type of op_omp
      * @tparam ClosureCuda  type of op_cuda
+     * @tparam ClosureHip  type of op_hip
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
      * @param op_cuda  functor to run in case of a CudaExecutor
+     * @param op_hip  functor to run in case of a HipExecutor
      */
-    template <typename ClosureOmp, typename ClosureCuda>
-    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda) const
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
+              typename ClosureDpcpp>
+    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+             const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda> op(op_omp, op_cuda);
+        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
+            op_omp, op_cuda, op_hip, op_dpcpp);
         this->run(op);
     }
 
@@ -501,10 +565,57 @@ public:
         this->template log<log::Logger::copy_started>(
             src_exec, this, reinterpret_cast<uintptr>(src_ptr),
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-        this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
+        try {
+            this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
+                                dest_ptr);
+        } catch (NotSupported &) {
+            // Unoptimized copy. Try to go through the masters.
+            auto src_master = src_exec->get_master().get();
+            if (num_elems > 0 && src_master != src_exec) {
+                auto *master_ptr = src_exec->get_master()->alloc<T>(num_elems);
+                src_master->copy_from<T>(src_exec, num_elems, src_ptr,
+                                         master_ptr);
+                this->copy_from<T>(src_master, num_elems, master_ptr, dest_ptr);
+                src_master->free(master_ptr);
+            }
+        }
         this->template log<log::Logger::copy_completed>(
             src_exec, this, reinterpret_cast<uintptr>(src_ptr),
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+    }
+
+    /**
+     * Copies data within this Executor.
+     *
+     * @tparam T  datatype to copy
+     *
+     * @param num_elems  number of elements of type T to copy
+     * @param src_ptr  pointer to a block of memory containing the data to be
+     *                 copied
+     * @param dest_ptr  pointer to an allocated block of memory
+     *                  where the data will be copied to
+     */
+    template <typename T>
+    void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
+    {
+        this->copy_from(this, num_elems, src_ptr, dest_ptr);
+    }
+
+    /**
+     * Retrieves a single element at the given location from executor memory.
+     *
+     * @tparam T  datatype to copy
+     *
+     * @param ptr  the pointer to the element to be copied
+     *
+     * @return the value stored at ptr
+     */
+    template <typename T>
+    T copy_val_to_host(const T *ptr) const
+    {
+        T out{};
+        this->get_master()->copy_from(this, 1, ptr, &out);
+        return out;
     }
 
     /**
@@ -522,6 +633,18 @@ public:
      * Synchronize the operations launched on the executor with its master.
      */
     virtual void synchronize() const = 0;
+
+    /**
+     * Verifies whether the executors share the same memory.
+     *
+     * @param other  the other Executor to compare against
+     *
+     * @return whether the executors this and other share the same memory.
+     */
+    bool memory_accessible(const std::shared_ptr<const Executor> &other) const
+    {
+        return this->verify_memory_from(other.get());
+    }
 
 protected:
     /**
@@ -574,18 +697,50 @@ protected:
 
 #undef GKO_ENABLE_RAW_COPY_TO
 
+    /**
+     * Verify the memory from another Executor.
+     *
+     * @param src_exec  Executor from which to verify the memory.
+     *
+     * @return whether this executor and src_exec share the same memory.
+     */
+    virtual bool verify_memory_from(const Executor *src_exec) const = 0;
+
+/**
+ * @internal
+ * Declares a verify_memory_to() overload for a specified Executor subclass.
+ *
+ * This is the second stage of the double dispatch emulation required to
+ * implement verify_memory_from().
+ *
+ * @param _exec_type  the Executor subclass
+ */
+#define GKO_ENABLE_VERIFY_MEMORY_TO(_exec_type, ...) \
+    virtual bool verify_memory_to(const _exec_type *dest_exec) const = 0
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_VERIFY_MEMORY_TO);
+
+    GKO_ENABLE_VERIFY_MEMORY_TO(ReferenceExecutor, ref);
+
+#undef GKO_ENABLE_VERIFY_MEMORY_TO
+
 private:
     /**
-     * The LambdaOperation class wraps two functor objects into an Operation.
+     * The LambdaOperation class wraps three functor objects into an
+     * Operation.
      *
-     * The first object is called by the OmpExecutor, while the other one by the
-     * CudaExecutor. When run on the ReferenceExecutor, the implementation will
-     * launch the CPU reference version.
+     * The first object is called by the OmpExecutor, the second one by the
+     * CudaExecutor and the last one by the HipExecutor. When run on the
+     * ReferenceExecutor, the implementation will launch the CPU reference
+     * version.
      *
      * @tparam ClosureOmp  the type of the first functor
      * @tparam ClosureCuda  the type of the second functor
+     * @tparam ClosureHip  the type of the third functor
+     * @tparam ClosureDpcpp  the type of the fourth functor
      */
-    template <typename ClosureOmp, typename ClosureCuda>
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
+              typename ClosureDpcpp>
     class LambdaOperation : public Operation {
     public:
         /**
@@ -594,9 +749,16 @@ private:
          * @param op_omp  a functor object which will be called by OmpExecutor
          *                and ReferenceExecutor
          * @param op_cuda  a functor object which will be called by CudaExecutor
+         * @param op_hip  a functor object which will be called by HipExecutor
+         * @param op_dpcpp  a functor object which will be called by
+         * DpcppExecutor
          */
-        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda)
-            : op_omp_(op_omp), op_cuda_(op_cuda)
+        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+                        const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp)
+            : op_omp_(op_omp),
+              op_cuda_(op_cuda),
+              op_hip_(op_hip),
+              op_dpcpp_(op_dpcpp)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -609,9 +771,21 @@ private:
             op_cuda_();
         }
 
+        void run(std::shared_ptr<const HipExecutor>) const override
+        {
+            op_hip_();
+        }
+
+        void run(std::shared_ptr<const DpcppExecutor>) const override
+        {
+            op_dpcpp_();
+        }
+
     private:
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
+        ClosureHip op_hip_;
+        ClosureDpcpp op_dpcpp_;
     };
 };
 
@@ -681,6 +855,9 @@ namespace detail {
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
+
 public:
     void run(const Operation &op) const override
     {
@@ -696,6 +873,11 @@ protected:
         src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
+    virtual bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return src_exec->verify_memory_to(self());
+    }
+
 private:
     ConcreteExecutor *self() noexcept
     {
@@ -708,6 +890,44 @@ private:
     }
 };
 
+#undef GKO_DECLARE_EXECUTOR_FRIEND
+
+/**
+ * Controls whether the DeviceReset function should be called thanks to a
+ * boolean. Note that in any case, `DeviceReset` is called only after destroying
+ * the last Ginkgo executor. Therefore, it is sufficient to set this flag to the
+ * last living executor in Ginkgo. Setting this flag to an executor which is not
+ * destroyed last has no effect.
+ */
+class EnableDeviceReset {
+public:
+    /**
+     * Set the device reset capability.
+     *
+     * @param device_reset  whether to allow a device reset or not
+     */
+    void set_device_reset(bool device_reset) { device_reset_ = device_reset; }
+
+    /**
+     * Returns the current status of the device reset boolean for this executor.
+     *
+     * @return the current status of the device reset boolean for this executor.
+     */
+    bool get_device_reset() { return device_reset_; }
+
+protected:
+    /**
+     * Instantiate an EnableDeviceReset class
+     *
+     * @param device_reset  the starting device_reset status. Defaults to false.
+     */
+    EnableDeviceReset(bool device_reset = false) : device_reset_{device_reset}
+    {}
+
+private:
+    bool device_reset_{};
+};
+
 
 }  // namespace detail
 
@@ -715,6 +935,16 @@ private:
 #define GKO_OVERRIDE_RAW_COPY_TO(_executor_type, ...)                    \
     void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
                      const void *src_ptr, void *dest_ptr) const override
+
+
+#define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \
+    virtual bool verify_memory_to(const dest_ *other) const override         \
+    {                                                                        \
+        return bool_;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
@@ -751,6 +981,16 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 };
 
 
@@ -785,6 +1025,21 @@ public:
 
 protected:
     ReferenceExecutor() = default;
+
+    bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return src_exec->verify_memory_to(this);
+    }
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 };
 
 
@@ -802,8 +1057,9 @@ using DefaultExecutor = ReferenceExecutor;
  * @ingroup Executor
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
-                     public std::enable_shared_from_this<CudaExecutor> {
-    friend class ExecutorBase<CudaExecutor>;
+                     public std::enable_shared_from_this<CudaExecutor>,
+                     public detail::EnableDeviceReset {
+    friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
     /**
@@ -814,7 +1070,8 @@ public:
      * kernels
      */
     static std::shared_ptr<CudaExecutor> create(
-        int device_id, std::shared_ptr<Executor> master);
+        int device_id, std::shared_ptr<Executor> master,
+        bool device_reset = false);
 
     ~CudaExecutor() { decrease_num_execs(this->device_id_); }
 
@@ -837,9 +1094,9 @@ public:
     static int get_num_devices();
 
     /**
-     * Get the number of cores per SM of this executor.
+     * Get the number of warps per SM of this executor.
      */
-    int get_num_cores_per_sm() const noexcept { return num_cores_per_sm_; }
+    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
 
     /**
      * Get the number of multiprocessor of this executor.
@@ -851,10 +1108,13 @@ public:
      */
     int get_num_warps() const noexcept
     {
-        constexpr uint32 warp_size = 32;
-        auto warps_per_sm = num_cores_per_sm_ / warp_size;
-        return num_multiprocessor_ * warps_per_sm;
+        return num_multiprocessor_ * num_warps_per_sm_;
     }
+
+    /**
+     * Get the warp size of this executor.
+     */
+    int get_warp_size() const noexcept { return warp_size_; }
 
     /**
      * Get the major verion of compute capability.
@@ -888,13 +1148,192 @@ protected:
 
     void init_handles();
 
-    CudaExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id),
+    CudaExecutor(int device_id, std::shared_ptr<Executor> master,
+                 bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
           master_(master),
-          num_cores_per_sm_(0),
+          num_warps_per_sm_(0),
           num_multiprocessor_(0),
           major_(0),
-          minor_(0)
+          minor_(0),
+          warp_size_(0)
+    {
+        assert(device_id < max_devices && device_id >= 0);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
+    }
+
+    void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
+
+    static void increase_num_execs(unsigned device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]++;
+    }
+
+    static void decrease_num_execs(unsigned device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]--;
+    }
+
+    static unsigned get_num_execs(unsigned device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        return num_execs[device_id];
+    }
+
+private:
+    int device_id_;
+    std::shared_ptr<Executor> master_;
+    int num_warps_per_sm_;
+    int num_multiprocessor_;
+    int major_;
+    int minor_;
+    int warp_size_;
+
+    template <typename T>
+    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    handle_manager<cublasContext> cublas_handle_;
+    handle_manager<cusparseContext> cusparse_handle_;
+
+    static constexpr int max_devices = 64;
+    static unsigned num_execs[max_devices];
+    static std::mutex mutex[max_devices];
+};
+
+
+namespace kernels {
+namespace cuda {
+using DefaultExecutor = CudaExecutor;
+}  // namespace cuda
+}  // namespace kernels
+
+
+/**
+ * This is the Executor subclass which represents the HIP enhanced device.
+ *
+ * @ingroup exec_hip
+ * @ingroup Executor
+ */
+class HipExecutor : public detail::ExecutorBase<HipExecutor>,
+                    public std::enable_shared_from_this<HipExecutor>,
+                    public detail::EnableDeviceReset {
+    friend class detail::ExecutorBase<HipExecutor>;
+
+public:
+    /**
+     * Creates a new HipExecutor.
+     *
+     * @param device_id  the HIP device id of this device
+     * @param master  an executor on the host that is used to invoke the device
+     *                kernels
+     */
+    static std::shared_ptr<HipExecutor> create(int device_id,
+                                               std::shared_ptr<Executor> master,
+                                               bool device_reset = false);
+
+    ~HipExecutor() { decrease_num_execs(this->device_id_); }
+
+    std::shared_ptr<Executor> get_master() noexcept override;
+
+    std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    void synchronize() const override;
+
+    void run(const Operation &op) const override;
+
+    /**
+     * Get the HIP device id of the device associated to this executor.
+     */
+    int get_device_id() const noexcept { return device_id_; }
+
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
+
+    /**
+     * Get the number of warps per SM of this executor.
+     */
+    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
+
+    /**
+     * Get the number of multiprocessor of this executor.
+     */
+    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+
+    /**
+     * Get the major verion of compute capability.
+     */
+    int get_major_version() const noexcept { return major_; }
+
+    /**
+     * Get the minor verion of compute capability.
+     */
+    int get_minor_version() const noexcept { return minor_; }
+
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        return num_multiprocessor_ * num_warps_per_sm_;
+    }
+
+    /**
+     * Get the warp size of this executor.
+     */
+    int get_warp_size() const noexcept { return warp_size_; }
+
+    /**
+     * Get the hipblas handle for this executor
+     *
+     * @return  the hipblas handle (hipblasContext*) for this executor
+     */
+    hipblasContext *get_hipblas_handle() const { return hipblas_handle_.get(); }
+
+    /**
+     * Get the hipsparse handle for this executor
+     *
+     * @return the hipsparse handle (hipsparseContext*) for this executor
+     */
+    hipsparseContext *get_hipsparse_handle() const
+    {
+        return hipsparse_handle_.get();
+    }
+
+protected:
+    void set_gpu_property();
+
+    void init_handles();
+
+    HipExecutor(int device_id, std::shared_ptr<Executor> master,
+                bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
+          master_(master),
+          num_multiprocessor_(0),
+          num_warps_per_sm_(0),
+          major_(0),
+          minor_(0),
+          warp_size_(0)
     {
         assert(device_id < max_devices);
         this->set_gpu_property();
@@ -907,6 +1346,16 @@ protected:
     void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
 
     static void increase_num_execs(int device_id)
     {
@@ -929,15 +1378,16 @@ protected:
 private:
     int device_id_;
     std::shared_ptr<Executor> master_;
-    int num_cores_per_sm_;
     int num_multiprocessor_;
+    int num_warps_per_sm_;
     int major_;
     int minor_;
+    int warp_size_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
-    handle_manager<cublasContext> cublas_handle_;
-    handle_manager<cusparseContext> cusparse_handle_;
+    handle_manager<hipblasContext> hipblas_handle_;
+    handle_manager<hipsparseContext> hipsparse_handle_;
 
     static constexpr int max_devices = 64;
     static int num_execs[max_devices];
@@ -946,9 +1396,156 @@ private:
 
 
 namespace kernels {
-namespace cuda {
-using DefaultExecutor = CudaExecutor;
-}  // namespace cuda
+namespace hip {
+using DefaultExecutor = HipExecutor;
+}  // namespace hip
+}  // namespace kernels
+
+
+/**
+ * This is the Executor subclass which represents a DPC++ enhanced device.
+ *
+ * @ingroup exec_dpcpp
+ * @ingroup Executor
+ */
+class DpcppExecutor : public detail::ExecutorBase<DpcppExecutor>,
+                      public std::enable_shared_from_this<DpcppExecutor> {
+    friend class detail::ExecutorBase<DpcppExecutor>;
+
+public:
+    /**
+     * Creates a new DpcppExecutor.
+     *
+     * @param device_id  the DPCPP device id of this device
+     * @param master  an executor on the host that is used to invoke the device
+     *                kernels
+     * @param device_type  a string representing the type of device to consider
+     *                     (accelerator, cpu, gpu or all).
+     */
+    static std::shared_ptr<DpcppExecutor> create(
+        int device_id, std::shared_ptr<Executor> master,
+        std::string device_type = "all");
+
+    std::shared_ptr<Executor> get_master() noexcept override;
+
+    std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    void synchronize() const override;
+
+    void run(const Operation &op) const override;
+
+    /**
+     * Get the DPCPP device id of the device associated to this executor.
+     *
+     * @return the DPCPP device id of the device associated to this executor
+     */
+    int get_device_id() const noexcept { return device_id_; }
+
+    ::cl::sycl::queue *get_queue() const { return queue_.get(); }
+
+    /**
+     * Get the number of devices present on the system.
+     *
+     * @param device_type  a string representing the device type
+     *
+     * @return the number of devices present on the system
+     */
+    static int get_num_devices(std::string device_type);
+
+    /**
+     * Get the available subgroup sizes for this device.
+     *
+     * @return the available subgroup sizes for this device
+     */
+    const std::vector<size_type> &get_subgroup_sizes() const noexcept
+    {
+        return subgroup_sizes_;
+    }
+
+    /**
+     * Get the number of Computing Units of this executor.
+     *
+     * @return the number of Computing Units of this executor
+     */
+    size_type get_num_computing_units() const noexcept
+    {
+        return num_computing_units_;
+    }
+
+    /**
+     * Get the maximum work item sizes.
+     *
+     * @return the maximum work item sizes
+     */
+    const std::vector<size_type> &get_max_workitem_sizes() const noexcept
+    {
+        return max_workitem_sizes_;
+    }
+
+    /**
+     * Get the maximum workgroup size.
+     *
+     * @return the maximum workgroup size
+     */
+    size_type get_max_workgroup_size() const noexcept
+    {
+        return max_workgroup_size_;
+    }
+
+    /**
+     * Get a string representing the device type.
+     *
+     * @return a string representing the device type
+     */
+    std::string get_device_type() const noexcept { return device_type_; }
+
+protected:
+    void set_device_property();
+
+    DpcppExecutor(int device_id, std::shared_ptr<Executor> master,
+                  std::string device_type = "all")
+        : device_id_(device_id), master_(master), device_type_(device_type)
+    {
+        std::for_each(device_type_.begin(), device_type_.end(),
+                      [](char &c) { c = std::tolower(c); });
+        this->set_device_property();
+    }
+
+    void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
+
+    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
+
+private:
+    int device_id_;
+    std::shared_ptr<Executor> master_;
+    std::string device_type_;
+    int num_computing_units_{};
+    std::vector<size_type> subgroup_sizes_{};
+    std::vector<size_type> max_workitem_sizes_{};
+    size_type max_workgroup_size_{};
+
+    template <typename T>
+    using queue_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    queue_manager<::cl::sycl::queue> queue_;
+};
+
+
+namespace kernels {
+namespace dpcpp {
+using DefaultExecutor = DpcppExecutor;
+}  // namespace dpcpp
 }  // namespace kernels
 
 
@@ -958,4 +1555,4 @@ using DefaultExecutor = CudaExecutor;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXECUTOR_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_

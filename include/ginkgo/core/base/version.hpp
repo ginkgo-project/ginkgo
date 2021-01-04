@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_VERSION_HPP_
-#define GKO_CORE_BASE_VERSION_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_VERSION_HPP_
+#define GKO_PUBLIC_CORE_BASE_VERSION_HPP_
+
+
+#include <ostream>
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
-
-
-#include <ostream>
-#include <tuple>
 
 
 namespace gko {
@@ -53,6 +52,11 @@ namespace gko {
  * @ingroup ginkgo_version
  */
 struct version {
+    constexpr version(const uint64 major, const uint64 minor,
+                      const uint64 patch, const char *tag)
+        : major{major}, minor{minor}, patch{patch}, tag{tag}
+    {}
+
     /**
      * The major version number.
      */
@@ -76,24 +80,41 @@ struct version {
     const char *const tag;
 };
 
+inline bool operator==(const version &first, const version &second)
+{
+    return first.major == second.major && first.minor == second.minor &&
+           first.patch == second.patch;
+}
 
-#define GKO_ENABLE_VERSION_COMPARISON(_operator)                             \
-    inline bool operator _operator(const version &first,                     \
-                                   const version &second)                    \
-    {                                                                        \
-        return std::tie(first.major, first.minor, first.patch)               \
-            _operator std::tie(second.major, second.minor, second.patch);    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+inline bool operator!=(const version &first, const version &second)
+{
+    return !(first == second);
+}
 
-GKO_ENABLE_VERSION_COMPARISON(<);
-GKO_ENABLE_VERSION_COMPARISON(<=);
-GKO_ENABLE_VERSION_COMPARISON(==);
-GKO_ENABLE_VERSION_COMPARISON(!=);
-GKO_ENABLE_VERSION_COMPARISON(>=);
-GKO_ENABLE_VERSION_COMPARISON(>);
+inline bool operator<(const version &first, const version &second)
+{
+    if (first.major < second.major) return true;
+    if (first.major == second.major && first.minor < second.minor) return true;
+    if (first.major == second.major && first.minor == second.minor &&
+        first.patch < second.patch)
+        return true;
+    return false;
+}
+
+inline bool operator<=(const version &first, const version &second)
+{
+    return !(second < first);
+}
+
+inline bool operator>(const version &first, const version &second)
+{
+    return second < first;
+}
+
+inline bool operator>=(const version &first, const version &second)
+{
+    return !(first < second);
+}
 
 #undef GKO_ENABLE_VERSION_COMPARISON
 
@@ -133,7 +154,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -184,11 +205,25 @@ public:
      */
     version cuda_version;
 
+    /**
+     * Contains version information of the HIP module.
+     *
+     * This is the version of the static/shared library called "ginkgo_hip".
+     */
+    version hip_version;
+
+    /**
+     * Contains version information of the DPC++ module.
+     *
+     * This is the version of the static/shared library called "ginkgo_dpcpp".
+     */
+    version dpcpp_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
-        return {GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH,
-                GKO_VERSION_TAG};
+        return version{GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH,
+                       GKO_VERSION_TAG};
     }
 
     static version get_core_version() noexcept;
@@ -199,12 +234,18 @@ private:
 
     static version get_cuda_version() noexcept;
 
+    static version get_hip_version() noexcept;
+
+    static version get_dpcpp_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
-          cuda_version{get_cuda_version()}
+          cuda_version{get_cuda_version()},
+          hip_version{get_hip_version()},
+          dpcpp_version{get_dpcpp_version()}
     {}
 };
 
@@ -223,4 +264,4 @@ std::ostream &operator<<(std::ostream &os, const version_info &ver_info);
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_VERSION_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_VERSION_HPP_

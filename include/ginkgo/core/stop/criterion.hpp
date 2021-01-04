@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_CRITERION_HPP_
-#define GKO_CORE_STOP_CRITERION_HPP_
+#ifndef GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
+#define GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -275,6 +276,12 @@ using EnableDefaultCriterionFactory =
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
  *
+ * @internal For some abstract reason, nvcc compilation through HIP does not
+ *           properly take into account the `using` declaration to inherit
+ *           constructors. In addition, the default initialization `{}` for
+ *           `_parameters_name##type parameters` also does not work, which
+ *           means the current form is probably the only correct one.
+ *
  * @ingroup stop
  */
 #define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,           \
@@ -290,11 +297,19 @@ public:                                                                      \
               _factory_name, _criterion, _parameters_name##_type> {          \
         friend class ::gko::EnablePolymorphicObject<                         \
             _factory_name, ::gko::stop::CriterionFactory>;                   \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
-                                                   _factory_name>;           \
-        using ::gko::stop::EnableDefaultCriterionFactory<                    \
-            _factory_name, _criterion,                                       \
-            _parameters_name##_type>::EnableDefaultCriterionFactory;         \
+        friend struct ::gko::enable_parameters_type<_parameters_name##_type, \
+                                                    _factory_name>;          \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
+            : ::gko::stop::EnableDefaultCriterionFactory<                    \
+                  _factory_name, _criterion, _parameters_name##_type>(       \
+                  std::move(exec))                                           \
+        {}                                                                   \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
+                               const _parameters_name##_type &parameters)    \
+            : ::gko::stop::EnableDefaultCriterionFactory<                    \
+                  _factory_name, _criterion, _parameters_name##_type>(       \
+                  std::move(exec), parameters)                               \
+        {}                                                                   \
     };                                                                       \
     friend ::gko::stop::EnableDefaultCriterionFactory<                       \
         _factory_name, _criterion, _parameters_name##_type>;                 \
@@ -312,4 +327,4 @@ public:                                                                      \
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STOP_CRITERION_HPP_
+#endif  // GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
