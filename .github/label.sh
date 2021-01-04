@@ -7,7 +7,8 @@ PR_FILES=""
 PAGE="1"
 while true; do
   # this api allows 100 items per page
-  PR_PAGE_FILES=$(api_get "$PR_URL/files?&per_page=100&page=${PAGE}" | jq -er '.[] | .filename')
+  # github action uses `bash -e`. The last empty page will leads jq error, use `|| :` to ignore the error.
+  PR_PAGE_FILES=$(api_get "$PR_URL/files?&per_page=100&page=${PAGE}" | jq -er '.[] | .filename' || :)
   if [ "${PR_PAGE_FILES}" = "" ]; then
     break
   fi
@@ -23,7 +24,6 @@ echo "Finished"
 NUM=$(echo "${PR_FILES}" | wc -l)
 echo "num ${NUM}"
 PR_FILES_ARRAY=(${PR_FILES})
-echo "array ${#PR_FILES_ARRAY[@]}"
 echo "PR has ${#PR_FILES_ARRAY[@]} or ${NUM} changed files"
 
 echo "Retrieving PR label list"
