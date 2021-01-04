@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/cusparse_block_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 
 
@@ -51,6 +51,8 @@ namespace cuda {
 namespace bilu_factorization {
 
 
+// FIXME: For now, this only computes the (scalar) ILU0 factorization for
+//  a matrix in BCSR format.
 template <typename ValueType, typename IndexType>
 void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Fbcsr<ValueType, IndexType> *const m)
@@ -58,28 +60,28 @@ void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
     const auto id = exec->get_device_id();
     auto handle = exec->get_cusparse_handle();
     gko::cuda::device_guard g{id};
-    auto desc = cusparse::create_mat_descr();
-    auto info = cusparse::create_ilu0_info();
+    auto desc = cusparse::create_bsr_mat_descr();
+    auto info = cusparse::create_bilu0_info();
 
     // get buffer size for ILU
-    IndexType num_rows = m->get_size()[0];
-    IndexType nnz = m->get_num_stored_elements();
-    size_type buffer_size{};
-    cusparse::ilu0_buffer_size(handle, num_rows, nnz, desc,
-                               m->get_const_values(), m->get_const_row_ptrs(),
-                               m->get_const_col_idxs(), info, buffer_size);
+    const IndexType num_rows = m->get_size()[0];
+    const IndexType nnz = m->get_num_stored_elements();
+    const int bs = m->get_block_size();
+    const size_type buffer_size = cusparse::bilu0_buffer_size(
+        handle, num_rows, nnz, desc, m->get_const_values(),
+        m->get_const_row_ptrs(), m->get_const_col_idxs(), bs, info);
 
     Array<char> buffer{exec, buffer_size};
 
     // set up ILU(0)
-    cusparse::ilu0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
-                            m->get_const_row_ptrs(), m->get_const_col_idxs(),
-                            info, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
-                            buffer.get_data());
+    cusparse::bilu0_analysis(handle, num_rows, nnz, desc, m->get_values(),
+                             m->get_const_row_ptrs(), m->get_const_col_idxs(),
+                             bs, info, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
+                             buffer.get_data());
 
-    cusparse::ilu0(handle, num_rows, nnz, desc, m->get_values(),
-                   m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
-                   CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+    cusparse::bilu0(handle, num_rows, nnz, desc, m->get_values(),
+                    m->get_const_row_ptrs(), m->get_const_col_idxs(), bs, info,
+                    CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
     cusparse::destroy(info);
     cusparse::destroy(desc);

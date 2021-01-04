@@ -14,3 +14,4 @@ configure_file("test/isai_u_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/
 configure_file("test/isai_u_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv.mtx")
 configure_file("test/isai_u_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv_partial.mtx")
 configure_file("test/1138_bus.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus.mtx")
+configure_file("test/2dcyl1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/2dcyl1.mtx" COPYONLY)
