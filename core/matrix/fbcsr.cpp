@@ -194,6 +194,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
+    result->nbcols_ = this->nbcols_;
 }
 
 
@@ -214,6 +215,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
+    result->nbcols_ = this->nbcols_;
 }
 
 
