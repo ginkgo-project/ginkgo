@@ -80,8 +80,8 @@ __global__
                 const IndexType new_idx = new_row_start + iz / matBlkSz_2;
                 const IndexType old_idx = old_row_start + iz / matBlkSz_2;
 
-                new_values[new_idx * matBlkSz_2 + iz] =
-                    old_values[old_idx * matBlkSz_2 + iz];
+                new_values[new_row_start * matBlkSz_2 + iz] =
+                    old_values[old_row_start * matBlkSz_2 + iz];
 
                 if (sw_threadidx % matBlkSz_2 == 0)
                     new_col_idxs[new_idx] = old_col_idxs[old_idx];

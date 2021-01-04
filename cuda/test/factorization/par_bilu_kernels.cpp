@@ -157,13 +157,53 @@ protected:
 };
 
 
-TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSorted1)
+TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedStartingBlockMissing)
 {
     gko::testing::BlockDiagSample<value_type, index_type> bds(ref);
-    std::unique_ptr<const Fbcsr> answer_ref = bds.generate_ref_1();
+    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_1();
     std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
     answer_cuda->copy_from(gko::lend(answer_ref));
-    auto mtxstart_ref = bds.generate_test_1();
+    auto mtxstart_ref = bds.gen_test_1();
+    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
+    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
+    ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());
+    ASSERT_EQ(mtxstart_cuda->get_block_size(), bds.bs);
+
+    gko::kernels::cuda::factorization::add_diagonal_blocks(
+        cuda, gko::lend(mtxstart_cuda), true);
+
+    ASSERT_TRUE(mtxstart_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
+    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
+}
+
+TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedEndingBlockMissing)
+{
+    gko::testing::BlockDiagSample<value_type, index_type> bds(ref);
+    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_lastblock();
+    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
+    answer_cuda->copy_from(gko::lend(answer_ref));
+    auto mtxstart_ref = bds.gen_test_lastblock();
+    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
+    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
+    ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());
+    ASSERT_EQ(mtxstart_cuda->get_block_size(), bds.bs);
+
+    gko::kernels::cuda::factorization::add_diagonal_blocks(
+        cuda, gko::lend(mtxstart_cuda), true);
+
+    ASSERT_TRUE(mtxstart_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
+    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
+}
+
+TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedTwoBlocksMissing)
+{
+    gko::testing::BlockDiagSample<value_type, index_type> bds(ref);
+    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_2();
+    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
+    answer_cuda->copy_from(gko::lend(answer_ref));
+    auto mtxstart_ref = bds.gen_test_2();
     std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
     mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
     ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());

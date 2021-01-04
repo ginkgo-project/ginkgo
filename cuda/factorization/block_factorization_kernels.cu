@@ -107,15 +107,6 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
                 cuda_row_ptrs_add,
                 as_cuda_type(needs_change_device.get_data()));
     }
-    // DEBUG:
-    Array<IndexType> host_row_addn(exec->get_master(), row_ptrs_size);
-    printf(" Num block cols = %d\n", num_bcols);
-    host_row_addn = row_ptrs_addition;
-    for (int i = 0; i < row_ptrs_size; i++)
-        printf("%d ", host_row_addn.get_const_data()[i]);
-    printf("\n");
-    fflush(stdout);
-    // END DEBUG
 
     needs_change_host = needs_change_device;
     if (!needs_change_host.get_const_data()[0]) {
