@@ -19,8 +19,11 @@ while true; do
   PR_FILES="${PR_FILES}${PR_PAGE_FILES}"
   PAGE=$(( PAGE + 1 ))
 done
+echo "Finished"
 NUM=$(echo "${PR_FILES}" | wc -l)
+echo "num ${NUM}"
 PR_FILES_ARRAY=(${PR_FILES})
+echo "array ${#PR_FILES_ARRAY[@]}"
 echo "PR has ${#PR_FILES_ARRAY[@]} or ${NUM} changed files"
 
 echo "Retrieving PR label list"
