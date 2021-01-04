@@ -13,8 +13,8 @@ TO_FORMAT="$(echo "$PR_FILES" | grep -E $EXTENSION_REGEX || true)"
 git remote add fork "$HEAD_URL"
 git fetch fork "$HEAD_BRANCH"
 
-git config user.email "ginkgo.library@gmail.com"
-git config user.name "ginkgo-bot"
+git config user.email "test@test"
+git config user.name "bot"
 
 # save scripts from develop
 pushd dev_tools/scripts

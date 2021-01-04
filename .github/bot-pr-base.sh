@@ -43,7 +43,7 @@ JOB_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
 bot_delete_comments_matching() {
   local search_matching="$1"
-  COMMENTS=$(api_get "$ISSUE_URL/comments" | jq -r '.[] | select((.user.login == "ginkgo-bot") and (.body | startswith('"\"$search_matching\""'))) | .url')
+  COMMENTS=$(api_get "$ISSUE_URL/comments" | jq -r '.[] | select((.user.login == "bot") and (.body | startswith('"\"$search_matching\""'))) | .url')
   for URL in $COMMENTS; do
     api_delete "$URL" > /dev/null
   done
