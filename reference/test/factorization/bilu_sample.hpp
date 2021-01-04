@@ -316,10 +316,7 @@ public:
         : exec(rexec)
     {}
 
-    /**
-     * @return The sample matrix in FBCSR format
-     */
-    std::unique_ptr<Fbcsr> generate_test_1() const
+    std::unique_ptr<Fbcsr> gen_test_1() const
     {
         const size_type nbnz = 8;
         const size_type nnz = nbnz * bs * bs;
@@ -347,15 +344,13 @@ public:
         c[6] = 3;
         c[7] = 4;
 
-        // gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs,
-        // bs);
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz + 1.0;
 
         return mtx;
     }
 
-    std::unique_ptr<Fbcsr> generate_ref_1() const
+    std::unique_ptr<Fbcsr> gen_ref_1() const
     {
         const size_type nbnz = 9;
         const size_type nnz = nbnz * bs * bs;
@@ -384,10 +379,165 @@ public:
         c[7] = 3;
         c[8] = 4;
 
-        // gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs,
-        // bs);
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz;
+
+        return mtx;
+    }
+
+    std::unique_ptr<Fbcsr> gen_test_2() const
+    {
+        const size_type nbnz = 7;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 1;
+        r[2] = 3;
+        r[3] = 4;
+        r[4] = 6;
+        r[5] = 7;
+        c[0] = 1;
+        c[1] = 0;
+        c[2] = 3;
+        c[3] = 2;
+        c[4] = 2;
+        c[5] = 3;
+        c[6] = 4;
+
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) {
+                if (ibz < 2)
+                    v[ibz * bs * bs + i] = ibz + 2.0;
+                else
+                    v[ibz * bs * bs + i] = ibz + 3.0;
+            }
+
+        return mtx;
+    }
+
+    std::unique_ptr<Fbcsr> gen_ref_2() const
+    {
+        const size_type nbnz = 9;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 2;
+        r[2] = 5;
+        r[3] = 6;
+        r[4] = 8;
+        r[5] = 9;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 0;
+        c[3] = 1;
+        c[4] = 3;
+        c[5] = 2;
+        c[6] = 2;
+        c[7] = 3;
+        c[8] = 4;
+
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) {
+                if (ibz == 0 || ibz == 3)
+                    v[ibz * bs * bs + i] = 0.0;
+                else
+                    v[ibz * bs * bs + i] = ibz + 1.0;
+            }
+
+        return mtx;
+    }
+
+    std::unique_ptr<Fbcsr> gen_test_lastblock() const
+    {
+        const size_type nbnz = 8;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 2;
+        r[2] = 5;
+        r[3] = 6;
+        r[4] = 7;
+        r[5] = 8;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 0;
+        c[3] = 1;
+        c[4] = 3;
+        c[5] = 2;
+        c[6] = 2;
+        c[7] = 4;
+
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) {
+                if (ibz < 7)
+                    v[ibz * bs * bs + i] = ibz + 1.0;
+                else
+                    v[ibz * bs * bs + i] = ibz + 2.0;
+            }
+
+        return mtx;
+    }
+
+    std::unique_ptr<Fbcsr> gen_ref_lastblock() const
+    {
+        const size_type nbnz = 9;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 2;
+        r[2] = 5;
+        r[3] = 6;
+        r[4] = 8;
+        r[5] = 9;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 0;
+        c[3] = 1;
+        c[4] = 3;
+        c[5] = 2;
+        c[6] = 2;
+        c[7] = 3;
+        c[8] = 4;
+
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) {
+                if (ibz == 7)
+                    v[ibz * bs * bs + i] = 0.0;
+                else
+                    v[ibz * bs * bs + i] = ibz + 1.0;
+            }
 
         return mtx;
     }
