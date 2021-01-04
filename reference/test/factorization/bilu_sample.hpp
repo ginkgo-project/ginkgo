@@ -306,9 +306,12 @@ public:
 
     const size_type nbrows = 5;
     const size_type nbcols = 5;
-    const int bs = 3;
+    static constexpr int bs_static = 3;
+    const int bs = bs_static;
     const size_type nrows = nbrows * bs;
     const size_type ncols = nbrows * bs;
+    const gko::dim<2> mdim{static_cast<size_type>(nrows),
+                           static_cast<size_type>(ncols)};
     const std::shared_ptr<const gko::Executor> exec;
 
 
@@ -320,98 +323,39 @@ public:
     {
         const size_type nbnz = 8;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 1;
-        r[2] = 4;
-        r[3] = 5;
-        r[4] = 7;
-        r[5] = 8;
-        c[0] = 1;
-        c[1] = 0;
-        c[2] = 1;
-        c[3] = 3;
-        c[4] = 2;
-        c[5] = 2;
-        c[6] = 3;
-        c[7] = 4;
-
+        gko::Array<index_type> c(exec, {1, 0, 1, 3, 2, 2, 3, 4});
+        gko::Array<index_type> r(exec, {0, 1, 4, 5, 7, 8});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz + 1.0;
-
-        return mtx;
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 
     std::unique_ptr<Fbcsr> gen_ref_1() const
     {
         const size_type nbnz = 9;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 5;
-        r[3] = 6;
-        r[4] = 8;
-        r[5] = 9;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 3;
-        c[5] = 2;
-        c[6] = 2;
-        c[7] = 3;
-        c[8] = 4;
-
+        gko::Array<index_type> c(exec, {0, 1, 0, 1, 3, 2, 2, 3, 4});
+        gko::Array<index_type> r(exec, {0, 2, 5, 6, 8, 9});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz;
-
-        return mtx;
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 
     std::unique_ptr<Fbcsr> gen_test_2() const
     {
         const size_type nbnz = 7;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 1;
-        r[2] = 3;
-        r[3] = 4;
-        r[4] = 6;
-        r[5] = 7;
-        c[0] = 1;
-        c[1] = 0;
-        c[2] = 3;
-        c[3] = 2;
-        c[4] = 2;
-        c[5] = 3;
-        c[6] = 4;
-
+        gko::Array<index_type> c(exec, {1, 0, 3, 2, 2, 3, 4});
+        gko::Array<index_type> r(exec, {0, 1, 3, 4, 6, 7});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) {
                 if (ibz < 2)
@@ -419,39 +363,18 @@ public:
                 else
                     v[ibz * bs * bs + i] = ibz + 3.0;
             }
-
-        return mtx;
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 
     std::unique_ptr<Fbcsr> gen_ref_2() const
     {
         const size_type nbnz = 9;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 5;
-        r[3] = 6;
-        r[4] = 8;
-        r[5] = 9;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 3;
-        c[5] = 2;
-        c[6] = 2;
-        c[7] = 3;
-        c[8] = 4;
-
+        gko::Array<index_type> c(exec, {0, 1, 0, 1, 3, 2, 2, 3, 4});
+        gko::Array<index_type> r(exec, {0, 2, 5, 6, 8, 9});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) {
                 if (ibz == 0 || ibz == 3)
@@ -459,38 +382,49 @@ public:
                 else
                     v[ibz * bs * bs + i] = ibz + 1.0;
             }
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
+    }
 
-        return mtx;
+    std::unique_ptr<Fbcsr> gen_test_2_unsorted() const
+    {
+        const size_type nbnz = 7;
+        const size_type nnz = nbnz * bs * bs;
+
+        gko::Array<index_type> c(exec, {1, 3, 0, 2, 3, 2, 4});
+        gko::Array<index_type> r(exec, {0, 1, 3, 4, 6, 7});
+        gko::Array<value_type> vv(
+            exec,
+            {2, 2, 2, 2, 2, 2, 2, 2, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3,
+             3, 3, 3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8,
+             8, 8, 8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9});
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
+    }
+
+    std::unique_ptr<Fbcsr> gen_ref_2_unsorted() const
+    {
+        const size_type nbnz = 9;
+        const size_type nnz = nbnz * bs * bs;
+
+        gko::Array<index_type> c(exec, {0, 1, 1, 3, 0, 2, 3, 2, 4});
+        gko::Array<index_type> r(exec, {0, 2, 5, 6, 8, 9});
+        gko::Array<value_type> vv(
+            exec,
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3,
+             3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+             7, 7, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9});
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 
     std::unique_ptr<Fbcsr> gen_test_lastblock() const
     {
         const size_type nbnz = 8;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 5;
-        r[3] = 6;
-        r[4] = 7;
-        r[5] = 8;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 3;
-        c[5] = 2;
-        c[6] = 2;
-        c[7] = 4;
-
+        gko::Array<index_type> c(exec, {0, 1, 0, 1, 3, 2, 2, 4});
+        gko::Array<index_type> r(exec, {0, 2, 5, 6, 7, 8});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) {
                 if (ibz < 7)
@@ -498,39 +432,18 @@ public:
                 else
                     v[ibz * bs * bs + i] = ibz + 2.0;
             }
-
-        return mtx;
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 
     std::unique_ptr<Fbcsr> gen_ref_lastblock() const
     {
         const size_type nbnz = 9;
         const size_type nnz = nbnz * bs * bs;
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 5;
-        r[3] = 6;
-        r[4] = 8;
-        r[5] = 9;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 3;
-        c[5] = 2;
-        c[6] = 2;
-        c[7] = 3;
-        c[8] = 4;
-
+        gko::Array<index_type> c(exec, {0, 1, 0, 1, 3, 2, 2, 3, 4});
+        gko::Array<index_type> r(exec, {0, 2, 5, 6, 8, 9});
+        gko::Array<value_type> vv(exec, nnz);
+        value_type *const v = vv.get_data();
         for (IndexType ibz = 0; ibz < nbnz; ibz++)
             for (int i = 0; i < bs * bs; i++) {
                 if (ibz == 7)
@@ -538,8 +451,7 @@ public:
                 else
                     v[ibz * bs * bs + i] = ibz + 1.0;
             }
-
-        return mtx;
+        return Fbcsr::create(exec, mdim, bs, vv, c, r);
     }
 };
 
