@@ -3,7 +3,25 @@
 source .github/bot-pr-base.sh
 
 echo "Retrieving PR file list"
-PR_FILES=$(api_get "$PR_URL/files?&per_page=1000" | jq -er '.[] | .filename')
+PR_FILES=""
+PAGE="1"
+while true; do
+  # this api allows 100 items per page
+  PR_PAGE_FILES=$(api_get "$PR_URL/files?&per_page=100&page=${PAGE}" | jq -er '.[] | .filename')
+  if [ "${PR_PAGE_FILES}" = "" ]; then
+    break
+  fi
+  echo "Retrieving PR file list - ${PAGE} pages"
+  if [ ! "${PR_FILES}" = "" ]; then
+    # add the same new line format
+    PR_FILES="${PR_FILES}"$'\n'
+  fi
+  PR_FILES="${PR_FILES}${PR_PAGE_FILES}"
+  PAGE=$(( PAGE + 1 ))
+done
+NUM=$(echo "${PR_FILES}" | wc -l)
+PR_FILES_ARRAY=(${PR_FILES})
+echo "PR has ${#PR_FILES_ARRAY[@]} or ${NUM} changed files"
 
 echo "Retrieving PR label list"
 OLD_LABELS=$(api_get "$ISSUE_URL" | jq -er '[.labels | .[] | .name]')
