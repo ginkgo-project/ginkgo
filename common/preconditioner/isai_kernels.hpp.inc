@@ -50,11 +50,14 @@ __forceinline__ __device__ void generic_generate(
     const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz, Callable trs_solve)
+    IndexType *__restrict__ excess_nnz, Callable direct_solve)
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
-    __shared__ size_type k[subwarps_per_block];
+
+    // For general ISAI, the index of the one in the rhs depends on the number
+    // of nonzeros in the lower half of the matrix of the according row.
+    __shared__ size_type rhs_one_idxs[subwarps_per_block];
     if (row >= num_rows) {
         return;
     }
@@ -92,7 +95,7 @@ __forceinline__ __device__ void generic_generate(
         if (local_id == 0) {
             excess_rhs_sizes[row] = 0;
             excess_nnz[row] = 0;
-            k[row % subwarps_per_block] = 0;
+            rhs_one_idxs[row % subwarps_per_block] = 0;
         }
 
         // subwarp_size^2 storage per subwarp
@@ -100,16 +103,16 @@ __forceinline__ __device__ void generic_generate(
                                                      subwarps_per_block>
             storage;
 
-        auto trisystem_ptr = storage + (threadIdx.x / subwarp_size) *
-                                           subwarp_size * subwarp_size;
+        auto dense_system_ptr = storage + (threadIdx.x / subwarp_size) *
+                                              subwarp_size * subwarp_size;
         // row-major accessor
-        auto trisystem = [&](IndexType row, IndexType col) -> ValueType & {
-            return trisystem_ptr[row * subwarp_size + col];
+        auto dense_system = [&](IndexType row, IndexType col) -> ValueType & {
+            return dense_system_ptr[row * subwarp_size + col];
         };
 
 #pragma unroll
         for (int i = 0; i < subwarp_size; ++i) {
-            trisystem(i, local_id) = zero<ValueType>();
+            dense_system(i, local_id) = zero<ValueType>();
         }
 
         subwarp.sync();
@@ -127,25 +130,25 @@ __forceinline__ __device__ void generic_generate(
                     config::lane_mask_type, bool valid) {
                     if (valid) {
                         if (m_col_idxs[m_row_begin + m_idx] < row && col == row)
-                            atomic_add(&k[row % subwarps_per_block],
+                            atomic_add(&rhs_one_idxs[row % subwarps_per_block],
                                        size_type{1});
-                        trisystem(nz, i_idx) = m_values[m_row_begin + m_idx];
+                        dense_system(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
                 });
         }
 
         subwarp.sync();
 
-        // Now, read a full col of `trisystem` into local registers, which will
-        // be row elements after this (implicit) transpose
+        // Now, read a full col of `dense_system` into local registers, which
+        // will be row elements after this (implicit) transpose
         ValueType local_row[subwarp_size];
 #pragma unroll
         for (int i = 0; i < subwarp_size; ++i) {
-            local_row[i] = trisystem(i, local_id);
+            local_row[i] = dense_system(i, local_id);
         }
 
-        const auto rhs = trs_solve(i_row_size, local_row, subwarp,
-                                   k[row % subwarps_per_block]);
+        const auto rhs = direct_solve(i_row_size, local_row, subwarp,
+                                      rhs_one_idxs[row % subwarps_per_block]);
 
         // Write back:
         if (local_id < i_row_size) {
@@ -253,16 +256,16 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     auto general_solve = [](IndexType num_elems,
                             ValueType *__restrict__ local_row,
                             group::thread_block_tile<subwarp_size> &subwarp,
-                            size_type k) {
+                            size_type rhs_one_idx) {
         const int local_id = subwarp.thread_rank();
-        ValueType rhs = local_id == k ? one<ValueType>() : zero<ValueType>();
+        ValueType rhs =
+            local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
         size_type perm = local_id;
         auto pivoted = subwarp.thread_rank() >= num_elems;
         auto status = true;
         for (size_type i = 0; i < num_elems; i++) {
             const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
             if (local_id == piv) {
-                // perm = i;
                 pivoted = true;
             }
             if (local_id == i) {
@@ -337,7 +340,7 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
             i_row_size, subwarp,
             [&](IndexType col, IndexType m_idx, IndexType i_idx,
                 config::lane_mask_type mask, bool valid) {
-                // trisystem(nz, i_idx) = m_values[m_row_begin + m_idx]
+                // dense_system(nz, i_idx) = m_values[m_row_begin + m_idx]
                 // only in sparse :)
                 if (valid) {
                     auto nz = out_nz_begin + popcnt(mask & prefix_mask);
