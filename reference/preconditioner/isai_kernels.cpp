@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/isai_kernels.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <memory>
 
 

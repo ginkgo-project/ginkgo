@@ -71,17 +71,21 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using GeneralIsai =
+        gko::preconditioner::GeneralIsai<value_type, index_type>;
     using LowerIsai = gko::preconditioner::LowerIsai<value_type, index_type>;
     using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     IsaiFactory()
         : exec(gko::ReferenceExecutor::create()),
+          general_isai_factory(GeneralIsai::build().on(exec)),
           lower_isai_factory(LowerIsai::build().on(exec)),
           upper_isai_factory(UpperIsai::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<typename GeneralIsai::Factory> general_isai_factory;
     std::unique_ptr<typename LowerIsai::Factory> lower_isai_factory;
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
 };
@@ -91,6 +95,7 @@ TYPED_TEST_SUITE(IsaiFactory, gko::test::ValueIndexTypes);
 
 TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 {
+    ASSERT_EQ(this->general_isai_factory->get_executor(), this->exec);
     ASSERT_EQ(this->lower_isai_factory->get_executor(), this->exec);
     ASSERT_EQ(this->upper_isai_factory->get_executor(), this->exec);
 }
@@ -98,14 +103,18 @@ TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 
 TYPED_TEST(IsaiFactory, SetsSkipSortingCorrectly)
 {
+    using GeneralIsai = typename TestFixture::GeneralIsai;
     using LowerIsai = typename TestFixture::LowerIsai;
     using UpperIsai = typename TestFixture::UpperIsai;
 
+    auto a_isai_factory =
+        GeneralIsai::build().with_skip_sorting(true).on(this->exec);
     auto l_isai_factory =
         LowerIsai::build().with_skip_sorting(true).on(this->exec);
     auto u_isai_factory =
         UpperIsai::build().with_skip_sorting(true).on(this->exec);
 
+    ASSERT_EQ(a_isai_factory->get_parameters().skip_sorting, true);
     ASSERT_EQ(l_isai_factory->get_parameters().skip_sorting, true);
     ASSERT_EQ(u_isai_factory->get_parameters().skip_sorting, true);
 }
@@ -113,6 +122,7 @@ TYPED_TEST(IsaiFactory, SetsSkipSortingCorrectly)
 
 TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
 {
+    ASSERT_EQ(this->general_isai_factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(this->lower_isai_factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(this->upper_isai_factory->get_parameters().skip_sorting, false);
 }
@@ -120,14 +130,18 @@ TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
 
 TYPED_TEST(IsaiFactory, SetsSparsityPowerCorrectly)
 {
+    using GeneralIsai = typename TestFixture::GeneralIsai;
     using LowerIsai = typename TestFixture::LowerIsai;
     using UpperIsai = typename TestFixture::UpperIsai;
 
+    auto a_isai_factory =
+        GeneralIsai::build().with_sparsity_power(2).on(this->exec);
     auto l_isai_factory =
         LowerIsai::build().with_sparsity_power(2).on(this->exec);
     auto u_isai_factory =
         UpperIsai::build().with_sparsity_power(2).on(this->exec);
 
+    ASSERT_EQ(a_isai_factory->get_parameters().sparsity_power, 2);
     ASSERT_EQ(l_isai_factory->get_parameters().sparsity_power, 2);
     ASSERT_EQ(u_isai_factory->get_parameters().sparsity_power, 2);
 }
@@ -135,8 +149,46 @@ TYPED_TEST(IsaiFactory, SetsSparsityPowerCorrectly)
 
 TYPED_TEST(IsaiFactory, SetsDefaultSparsityPowerCorrectly)
 {
+    ASSERT_EQ(this->general_isai_factory->get_parameters().sparsity_power, 1);
     ASSERT_EQ(this->lower_isai_factory->get_parameters().sparsity_power, 1);
     ASSERT_EQ(this->upper_isai_factory->get_parameters().sparsity_power, 1);
+}
+
+
+TYPED_TEST(IsaiFactory, SetsExcessLimitCorrectly)
+{
+    using GeneralIsai = typename TestFixture::GeneralIsai;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+
+    auto a_isai_factory =
+        GeneralIsai::build().with_excess_limit(1024).on(this->exec);
+    auto l_isai_factory =
+        LowerIsai::build().with_excess_limit(1024).on(this->exec);
+    auto u_isai_factory =
+        UpperIsai::build().with_excess_limit(1024).on(this->exec);
+
+    ASSERT_EQ(a_isai_factory->get_parameters().excess_limit, 1024);
+    ASSERT_EQ(l_isai_factory->get_parameters().excess_limit, 1024);
+    ASSERT_EQ(u_isai_factory->get_parameters().excess_limit, 1024);
+}
+
+
+TYPED_TEST(IsaiFactory, SetsDefaultExcessLimitCorrectly)
+{
+    ASSERT_EQ(this->general_isai_factory->get_parameters().excess_limit, 0);
+    ASSERT_EQ(this->lower_isai_factory->get_parameters().excess_limit, 0);
+    ASSERT_EQ(this->upper_isai_factory->get_parameters().excess_limit, 0);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsWrongDimensionA)
+{
+    using Csr = typename TestFixture::Csr;
+    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
+
+    ASSERT_THROW(this->general_isai_factory->generate(gko::share(mtx)),
+                 gko::DimensionMismatch);
 }
 
 
@@ -157,6 +209,16 @@ TYPED_TEST(IsaiFactory, ThrowsWrongDimensionU)
 
     ASSERT_THROW(this->upper_isai_factory->generate(gko::share(mtx)),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrA)
+{
+    using Csr = typename TestFixture::Csr;
+    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+
+    ASSERT_THROW(this->general_isai_factory->generate(gko::share(mtx)),
+                 gko::NotSupported);
 }
 
 

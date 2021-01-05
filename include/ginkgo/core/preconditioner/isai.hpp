@@ -98,21 +98,18 @@ class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
              public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
-    friend class Isai<IsaiType == isai_type::lower ? isai_type::upper
-                                                   : isai_type::lower,
-                      ValueType, IndexType>;
-    friend class Isai<IsaiType == isai_type::upper ? isai_type::general
-                                                   : isai_type::upper,
-                      ValueType, IndexType>;
-    friend class Isai<IsaiType == isai_type::general ? isai_type::lower
-                                                     : isai_type::general,
-                      ValueType, IndexType>;
+    friend class Isai<isai_type::general, ValueType, IndexType>;
+    friend class Isai<isai_type::lower, ValueType, IndexType>;
+    friend class Isai<isai_type::upper, ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type =
-        Isai<IsaiType == isai_type::lower ? isai_type::upper : isai_type::lower,
+        Isai<IsaiType == isai_type::general
+                 ? isai_type::general
+                 : IsaiType == isai_type::lower ? isai_type::upper
+                                                : isai_type::lower,
              ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
@@ -149,6 +146,19 @@ public:
          * Must be at least 1, default value 1.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(sparsity_power, 1);
+
+        /**
+         * @brief Size limit for the excess system.
+         *
+         * For rows with more than 32 nonzero entries, the algorithm builds up
+         * an excess system which is solved with sparse triangular solves (for
+         * upper or lower ISAI) or GMRES (for general ISAI). If this parameter
+         * is set to some m > 0, the excess system is solved as soon
+         * as its size supersedes m. This is repeated until the complete excess
+         * solution has been computed.
+         * Must be at least 0, default value 0.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -177,7 +187,8 @@ protected:
     {
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
-        generate_inverse(system_matrix, skip_sorting, power);
+        const auto excess_limit = parameters_.excess_limit;
+        generate_inverse(system_matrix, skip_sorting, power, excess_limit);
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
@@ -203,7 +214,7 @@ private:
      *                      be skipped.
      */
     void generate_inverse(std::shared_ptr<const LinOp> to_invert,
-                          bool skip_sorting, int power);
+                          bool skip_sorting, int power, int excess_limit);
 
 private:
     std::shared_ptr<Csr> approximate_inverse_;
