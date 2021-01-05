@@ -90,8 +90,10 @@ protected:
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         if (type == matrix_type::general) {
-            mtx = gko::test::generate_random_matrix<Csr>(
+            auto dense_mtx = gko::test::generate_random_matrix<Dense>(
                 n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
+            ensure_diagonal(dense_mtx.get());
+            mtx->copy_from(dense_mtx.get());
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
                 n, n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
@@ -103,6 +105,13 @@ protected:
         d_mtx->copy_from(mtx.get());
         d_inverse = Csr::create(omp);
         d_inverse->copy_from(inverse.get());
+    }
+
+    void ensure_diagonal(Dense *mtx)
+    {
+        for (int i = 0; i < mtx->get_size()[0]; ++i) {
+            mtx->at(i, i) = gko::one<Dense::value_type>();
+        }
     }
 
 

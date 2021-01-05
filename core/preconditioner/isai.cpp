@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <type_traits>
 
@@ -115,7 +114,8 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
-    std::shared_ptr<const LinOp> input, bool skip_sorting, int power)
+    std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
+    int excess_limit)
 {
     using Dense = matrix::Dense<ValueType>;
     using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
@@ -129,6 +129,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto num_rows = inverted->get_size()[0];
     auto is_lower = IsaiType == isai_type::lower;
     auto is_general = IsaiType == isai_type::general;
+    auto excess_lim = excess_limit == 0 ? num_rows : excess_limit;
 
     // This stores the beginning of the RHS for the sparse block associated with
     // each row of inverted_l
@@ -161,7 +162,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_block_ptrs.get_const_data() + block);
             const auto nnz_offset = exec->copy_val_to_host(
                 excess_row_ptrs_full.get_const_data() + block);
-            while (excess_dim < 2048 && block < num_rows) {
+            while (excess_dim < excess_lim && block < num_rows) {
                 block++;
                 excess_dim = exec->copy_val_to_host(
                                  excess_block_ptrs.get_const_data() + block) -
