@@ -69,6 +69,8 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
+#include "common/components/atomic.hpp.inc"
+#include "common/components/warp_blas.hpp.inc"
 #include "common/preconditioner/isai_kernels.hpp.inc"
 
 
@@ -173,7 +175,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
                              matrix::Csr<ValueType, IndexType> *inverse,
                              const size_type e_start, const size_type e_end)
 {
-    // const auto num_rows = inverse->get_size()[0];
+    const auto num_rows = inverse->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
