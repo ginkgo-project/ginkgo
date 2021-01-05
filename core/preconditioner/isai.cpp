@@ -200,7 +200,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                                 .with_max_iters(excess_dim)
                                 .on(exec),
                             gko::stop::RelativeResidualNorm<ValueType>::build()
-                                .with_tolerance(1e-6)
+                                .with_tolerance(remove_complex<ValueType>{1e-6})
                                 .on(exec))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs.get());
