@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/isai.hpp>
 
 
-#include <iostream>
 #include <random>
 
 #include <gtest/gtest.h>
@@ -95,15 +94,10 @@ protected:
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         if (type == matrix_type::general) {
-            auto lower_mtx = gko::test::generate_random_triangular_matrix<Csr>(
-                n, n, true, true, nz_dist, val_dist, rand_engine, ref,
-                gko::dim<2>{n, n});
-            mtx = gko::test::generate_random_triangular_matrix<Csr>(
-                n, n, false, false, nz_dist, val_dist, rand_engine, ref,
-                gko::dim<2>{n, n});
-            auto one_op = gko::initialize<Dense>({gko::one<value_type>()}, ref);
-            auto id = gko::matrix::Identity<>::create(ref, gko::dim<2>{n, n});
-            lower_mtx->apply(one_op.get(), id.get(), one_op.get(), mtx.get());
+            auto dense_mtx = gko::test::generate_random_matrix<Dense>(
+                n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
+            ensure_diagonal(dense_mtx.get());
+            mtx->copy_from(dense_mtx.get());
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
                 n, n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
@@ -132,6 +126,14 @@ protected:
         }
         return std::move(result);
     }
+
+    void ensure_diagonal(Dense *mtx)
+    {
+        for (int i = 0; i < mtx->get_size()[0]; ++i) {
+            mtx->at(i, i) = gko::one<Dense::value_type>();
+        }
+    }
+
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
@@ -452,67 +454,6 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionAIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
-}
-
-
-TEST_F(Isai, CudaLInverseIsEquivalentToRef)
-{
-    using LowerIsai = gko::preconditioner::LowerIsai<value_type, index_type>;
-    auto mtx = read<Csr>("isai_l.mtx");
-    auto d_mtx = Csr::create(cuda);
-    d_mtx->copy_from(mtx.get());
-    auto isai_factory = LowerIsai::build().on(ref);
-    auto d_isai_factory = LowerIsai::build().on(cuda);
-
-    auto isai = isai_factory->generate(gko::share(mtx));
-    auto d_isai = d_isai_factory->generate(gko::share(d_mtx));
-
-    auto inv = isai->get_approximate_inverse();
-    auto d_inv = d_isai->get_approximate_inverse();
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(inv, d_inv);
-    GKO_ASSERT_MTX_NEAR(inv, d_inv, 1e-14);
-}
-
-
-TEST_F(Isai, CudaUInverseIsEquivalentToRef)
-{
-    using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
-    auto mtx = read<Csr>("isai_u.mtx");
-    auto d_mtx = Csr::create(cuda);
-    d_mtx->copy_from(mtx.get());
-    auto isai_factory = UpperIsai::build().on(ref);
-    auto d_isai_factory = UpperIsai::build().on(cuda);
-
-    auto isai = isai_factory->generate(gko::share(mtx));
-    auto d_isai = d_isai_factory->generate(gko::share(d_mtx));
-
-    auto inv = isai->get_approximate_inverse();
-    auto d_inv = d_isai->get_approximate_inverse();
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(inv, d_inv);
-    GKO_ASSERT_MTX_NEAR(inv, d_inv, 1e-14);
-}
-
-
-TEST_F(Isai, CudaAInverseIsEquivalentToRef)
-{
-    using GeneralIsai =
-        gko::preconditioner::GeneralIsai<value_type, index_type>;
-    auto mtx = read<Csr>("a_large.mtx");
-    auto d_mtx = Csr::create(cuda);
-    d_mtx->copy_from(mtx.get());
-    auto isai_factory = GeneralIsai::build().on(ref);
-    auto d_isai_factory = GeneralIsai::build().on(cuda);
-
-    auto isai = isai_factory->generate(gko::share(mtx));
-    auto d_isai = d_isai_factory->generate(gko::share(d_mtx));
-
-    auto inv = isai->get_approximate_inverse();
-    auto d_inv = d_isai->get_approximate_inverse();
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(inv, d_inv);
-    GKO_ASSERT_MTX_NEAR(inv, d_inv, 1e-14);
 }
 
 
