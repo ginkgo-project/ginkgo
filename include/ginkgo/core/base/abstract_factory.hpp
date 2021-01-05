@@ -266,7 +266,8 @@ private:
  *                  used
  */
 template <typename ConcreteParametersType, typename Factory>
-struct enable_parameters_type {
+class enable_parameters_type {
+public:
     using factory = Factory;
 
     /**
