@@ -85,7 +85,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
                       IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
-                      Callable trs_solve)
+                      Callable direct_solve)
 {
     /*
     Consider: aiM := inverse_mtx; M := mtx
@@ -110,10 +110,10 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     auto i_vals = inverse_mtx->get_values();
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
-    // RHS for local trisystem
+    // RHS for local dense system
     gko::Array<ValueType> rhs_array{exec, row_size_limit * num_threads};
-    // memory for dense trisystem
-    gko::Array<ValueType> trisystem_array{
+    // memory for dense dense system
+    gko::Array<ValueType> dense_system_array{
         exec, row_size_limit * row_size_limit * num_threads};
 
 #pragma omp parallel
@@ -121,8 +121,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
         auto thread_num = static_cast<size_type>(omp_get_thread_num());
 
         auto rhs = rhs_array.get_data() + thread_num * row_size_limit;
-        auto trisystem_ptr = trisystem_array.get_data() +
-                             thread_num * row_size_limit * row_size_limit;
+        auto dense_system_ptr = dense_system_array.get_data() +
+                                thread_num * row_size_limit * row_size_limit;
 
 #pragma omp for
         for (size_type row = 0; row < num_rows; ++row) {
@@ -133,12 +133,16 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 // short rows: treat directly as dense system
                 excess_rhs_ptrs[row] = 0;
                 excess_nz_ptrs[row] = 0;
-                auto trisystem = range<accessor::row_major<ValueType, 2>>(
-                    trisystem_ptr, static_cast<size_type>(i_size),
+                auto dense_system = range<accessor::row_major<ValueType, 2>>(
+                    dense_system_ptr, static_cast<size_type>(i_size),
                     static_cast<size_type>(i_size),
                     static_cast<size_type>(i_size));
-                std::fill_n(trisystem_ptr, i_size * i_size, zero<ValueType>());
-                IndexType k = zero<IndexType>();
+                std::fill_n(dense_system_ptr, i_size * i_size,
+                            zero<ValueType>());
+                // For general ISAI, the index of the one in the rhs depends on
+                // the number of nonzeros in the lower half of the matrix of the
+                // according row.
+                IndexType rhs_one_idx = zero<IndexType>();
 
                 for (size_type i = 0; i < i_size; ++i) {
                     const auto col = i_cols[i_begin + i];
@@ -148,13 +152,13 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                         m_cols + m_begin, m_size, i_cols + i_begin, i_size,
                         [&](IndexType, IndexType m_idx, IndexType i_idx) {
                             if (m_cols[m_idx + m_begin] < row && col == row)
-                                k++;
-                            trisystem(i, i_idx) = m_vals[m_idx + m_begin];
+                                rhs_one_idx++;
+                            dense_system(i, i_idx) = m_vals[m_idx + m_begin];
                         });
                 }
 
                 // solve dense triangular system
-                trs_solve(trisystem, rhs, k);
+                direct_solve(dense_system, rhs, rhs_one_idx);
 
                 // write triangular solution to inverse
                 for (size_type i = 0; i < i_size; ++i) {
@@ -278,7 +282,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
     using std::swap;
     auto general_solve =
         [](const range<accessor::row_major<ValueType, 2>> system,
-           ValueType *rhs, const IndexType k) {
+           ValueType *rhs, const IndexType rhs_one_idx) {
             const IndexType size = system.length(0);
             if (size <= 0) {
                 return;
@@ -286,7 +290,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             // RHS is the identity: zero everywhere except for the diagonal
             // entry
             std::fill_n(rhs, size, zero<ValueType>());
-            rhs[k] = one<ValueType>();
+            rhs[rhs_one_idx] = one<ValueType>();
 
             // fill in transposed system
             ValueType *transposed_system = new ValueType[size * size];
