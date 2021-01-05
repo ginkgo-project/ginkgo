@@ -115,7 +115,23 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *input,
                               matrix::Csr<ValueType, IndexType> *inverse,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs) GKO_NOT_IMPLEMENTED;
+                              IndexType *excess_nz_ptrs)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(
+            kernel::generate_general_inverse<subwarp_size, subwarps_per_block>),
+        grid, block, 0, 0, static_cast<IndexType>(num_rows),
+        input->get_const_row_ptrs(), input->get_const_col_idxs(),
+        as_hip_type(input->get_const_values()), inverse->get_row_ptrs(),
+        inverse->get_col_idxs(), as_hip_type(inverse->get_values()),
+        excess_rhs_ptrs, excess_nz_ptrs);
+    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
@@ -134,7 +150,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = input->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::generate_excess_system<subwarp_size>), grid,
         block, 0, 0, static_cast<IndexType>(num_rows),
@@ -143,7 +159,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
         inverse->get_const_col_idxs(), excess_rhs_ptrs, excess_nz_ptrs,
         excess_system->get_row_ptrs(), excess_system->get_col_idxs(),
         as_hip_type(excess_system->get_values()),
-        as_hip_type(excess_rhs->get_values()));
+        as_hip_type(excess_rhs->get_values()), e_start, e_end);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -160,13 +176,13 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     // const auto num_rows = inverse->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::copy_excess_solution<subwarp_size>), grid,
         block, 0, 0, static_cast<IndexType>(num_rows),
         inverse->get_const_row_ptrs(), excess_rhs_ptrs,
         as_hip_type(excess_solution->get_const_values()),
-        as_hip_type(inverse->get_values()));
+        as_hip_type(inverse->get_values()), e_start, e_end);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
