@@ -440,18 +440,19 @@ public:
  * Linear operators which support permutation should implement the
  * Permutable interface.
  *
- * It provides four functionalities, the row permute, the
- * column permute, the inverse row permute and the inverse column permute.
+ * It provides functions to permute the rows and columns of a LinOp,
+ * independently or symmetrically, and with a regular or inverted permutation.
  *
- * The row permute returns the permutation of the linear operator after
- * permuting the rows of the linear operator. For example, if for a matrix A,
- * the permuted matrix A' and the permutation array perm, the row i of the
- * matrix A is the row perm[i] in the matrix A'. And similarly, for the inverse
- * permutation, the row i in the matrix A' is the row perm[i] in the matrix A.
- *
- * The column permute returns the permutation of the linear operator after
- * permuting the columns of the linear operator. The definitions of permute and
- * inverse permute for the row_permute hold here as well.
+ * After a regular row permutation with permutation array `perm` the row `i` in
+ * the output LinOp contains the row `perm[i]` from the input LinOp.
+ * After an inverse row permutation, the row `perm[i]` in the output LinOp
+ * contains the row `i` from the input LinOp.
+ * Equivalently, after a column permutation, the output stores in column `i`
+ * the column `perm[i]` from the input, and an inverse column permutation
+ * stores in column `perm[i]` the column `i` from the input.
+ * A symmetric permutation is functionally equivalent to calling
+ * `as<Permutable>(A->row_permute(perm))->column_permute(perm)`, but the
+ * implementation can provide better performance due to kernel fusion.
  *
  * Example: Permuting a Csr matrix:
  * ------------------------------------
@@ -472,8 +473,10 @@ public:
     /**
      * Returns a LinOp representing the symmetric row and column permutation of
      * the Permutable object.
+     * In the resulting LinOp, the entry at location `(i,j)` contains the input
+     * value `(perm[i],perm[j])`.
      *
-     * @param permutation_indices  the array of indices contaning the
+     * @param permutation_indices  the array of indices containing the
      *                             permutation order.
      *
      * @return a pointer to the new permuted object
@@ -488,8 +491,10 @@ public:
     /**
      * Returns a LinOp representing the symmetric inverse row and column
      * permutation of the Permutable object.
+     * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
+     * contains the input value `(i,j)`.
      *
-     * @param permutation_indices  the array of indices contaning the
+     * @param permutation_indices  the array of indices containing the
      *                             permutation order.
      *
      * @return a pointer to the new permuted object
@@ -504,8 +509,9 @@ public:
     /**
      * Returns a LinOp representing the row permutation of the Permutable
      * object.
+     * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
      *
-     * @param permutation_indices  the array of indices contaning the
+     * @param permutation_indices  the array of indices containing the
      *                             permutation order.
      *
      * @return a pointer to the new permuted object
@@ -516,9 +522,11 @@ public:
     /**
      * Returns a LinOp representing the column permutation of the Permutable
      * object.
+     * In the resulting LinOp, the column `i` contains the input column
+     * `perm[i]`.
      *
-     * @param permutation_indices  the array of indices contaning the
-     *                             permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new column permuted object
      */
@@ -528,9 +536,10 @@ public:
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
+     * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
      *
-     * @param permutation_indices  the array of indices contaning the
-     *                             permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new inverse permuted object
      */
@@ -540,9 +549,11 @@ public:
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
+     * In the resulting LinOp, the column `perm[i]` contains the input column
+     * `i`.
      *
-     * @param permutation_indices  the array of indices contaning the
-     *                             permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new inverse permuted object
      */
