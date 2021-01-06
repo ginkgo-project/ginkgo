@@ -135,11 +135,10 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         x, r.get());
     rr->copy_from(r.get());
     p->copy_from(r.get());
+    rr->compute_dot(r.get(), rho.get());
 
     int iter = -1;
     while (true) {
-        rr->compute_dot(r.get(), rho.get());
-
         get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
@@ -159,6 +158,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // x = x + alpha * y + omega * z
         // r = s - omega * t
 
+        swap(prev_rho, rho);
+        rr->compute_dot(r.get(), rho.get());
+
         exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
@@ -169,7 +171,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
-                .residual(s.get())
+                .residual(r.get())
                 .solution(dense_x)  // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
 
@@ -178,7 +180,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         if (all_converged) {
             break;
         }
-        swap(prev_rho, rho);
     }
 }  // namespace solver
 
