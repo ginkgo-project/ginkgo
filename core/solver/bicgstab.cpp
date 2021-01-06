@@ -129,7 +129,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), rr.get());
+    get_preconditioner->apply(rr.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
@@ -139,29 +140,37 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
-        system_matrix_->apply(p.get(), y.get());
-        get_preconditioner()->apply(y.get(), v.get());
-        rr->compute_dot(v.get(), beta.get());
-        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
+        system_matrix_->apply(p.get(), v.get());
+        get_preconditioner()->apply(v.get(), y.get());
+        // y = M^-1 * A * p
+
+        rr->compute_dot(y.get(), beta.get());
+        // beta = (rr, y)
+        exec->run(bicgstab::make_step_2(r.get(), s.get(), y.get(), rho.get(),
                                         alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
-        // s = r - alpha * v
+        // s = r - alpha * y
 
-        system_matrix_->apply(s.get(), z.get());
-        get_preconditioner()->apply(z.get(), t.get());
-        t->compute_dot(s.get(), gamma.get());
-        t->compute_dot(t.get(), beta.get());
+        system_matrix_->apply(s.get(), t.get());
+        get_preconditioner()->apply(t.get(), z.get());
+        // z = M^-1 * A * s
+        z->compute_dot(s.get(), gamma.get());
+        // gamma = (z, s)
+        z->compute_dot(z.get(), beta.get());
+        // beta = (z, z)
         exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), t.get(), p.get(), s.get(), alpha.get(),
+            dense_x, r.get(), s.get(), z.get(), p.get(), s.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
-        // x = x + alpha * y + omega * z
-        // r = s - omega * t
+        // x = x + alpha * p + omega * s
+        // r = s - omega * z
 
         swap(prev_rho, rho);
+        // prev_rho = rho
         rr->compute_dot(r.get(), rho.get());
+        // rho = (rr, r)
 
-        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
+        exec->run(bicgstab::make_step_1(r.get(), p.get(), y.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
