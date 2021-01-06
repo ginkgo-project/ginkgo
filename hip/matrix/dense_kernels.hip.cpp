@@ -626,6 +626,47 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void symm_permute(std::shared_ptr<const HipExecutor> exec,
+                  const Array<IndexType> *permutation_indices,
+                  const matrix::Dense<ValueType> *orig,
+                  matrix::Dense<ValueType> *permuted)
+{
+    constexpr auto block_size = default_block_size;
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    hipLaunchKernelGGL(
+        kernel::symm_permute, num_blocks, block_size, 0, 0, orig->get_size()[0],
+        orig->get_size()[1], permutation_indices->get_const_data(),
+        as_hip_type(orig->get_const_values()), orig->get_stride(),
+        as_hip_type(permuted->get_values()), permuted->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
+                      const Array<IndexType> *permutation_indices,
+                      const matrix::Dense<ValueType> *orig,
+                      matrix::Dense<ValueType> *permuted)
+{
+    constexpr auto block_size = default_block_size;
+    const auto num_blocks =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    hipLaunchKernelGGL(kernel::inv_symm_permute, num_blocks, block_size, 0, 0,
+                       orig->get_size()[0], orig->get_size()[1],
+                       permutation_indices->get_const_data(),
+                       as_hip_type(orig->get_const_values()),
+                       orig->get_stride(), as_hip_type(permuted->get_values()),
+                       permuted->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void row_gather(std::shared_ptr<const HipExecutor> exec,
                 const Array<IndexType> *row_indices,
                 const matrix::Dense<ValueType> *orig,
@@ -633,13 +674,11 @@ void row_gather(std::shared_ptr<const HipExecutor> exec,
 {
     constexpr auto block_size = default_block_size;
     auto out_num_rows = row_indices->get_num_elems();
-    const dim3 grid_dim =
+    const auto num_blocks =
         ceildiv(out_num_rows * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
     hipLaunchKernelGGL(
-        kernel::row_gather<block_size>, dim3(grid_dim), dim3(block_dim), 0, 0,
-        out_num_rows, orig->get_size()[1],
-        as_hip_type(row_indices->get_const_data()),
+        kernel::row_gather, num_blocks, block_size, 0, 0, out_num_rows,
+        orig->get_size()[1], row_indices->get_const_data(),
         as_hip_type(orig->get_const_values()), orig->get_stride(),
         as_hip_type(row_gathered->get_values()), row_gathered->get_stride());
 }
@@ -655,16 +694,15 @@ void column_permute(std::shared_ptr<const HipExecutor> exec,
                     matrix::Dense<ValueType> *column_permuted)
 {
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
+    const auto num_blocks =
         ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::column_permute<block_size>, dim3(grid_dim), dim3(block_dim), 0,
-        0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(column_permuted->get_values()),
-        column_permuted->get_stride());
+    hipLaunchKernelGGL(kernel::column_permute, num_blocks, block_size, 0, 0,
+                       orig->get_size()[0], orig->get_size()[1],
+                       permutation_indices->get_const_data(),
+                       as_hip_type(orig->get_const_values()),
+                       orig->get_stride(),
+                       as_hip_type(column_permuted->get_values()),
+                       column_permuted->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -678,13 +716,12 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
                          matrix::Dense<ValueType> *row_permuted)
 {
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
+    const auto num_blocks =
         ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
     hipLaunchKernelGGL(
-        kernel::inverse_row_permute<block_size>, dim3(grid_dim),
-        dim3(block_dim), 0, 0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
+        kernel::inverse_row_permute, num_blocks, block_size, 0, 0,
+        orig->get_size()[0], orig->get_size()[1],
+        permutation_indices->get_const_data(),
         as_hip_type(orig->get_const_values()), orig->get_stride(),
         as_hip_type(row_permuted->get_values()), row_permuted->get_stride());
 }
@@ -700,16 +737,15 @@ void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
                             matrix::Dense<ValueType> *column_permuted)
 {
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
+    const auto num_blocks =
         ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::inverse_column_permute<block_size>, dim3(grid_dim),
-        dim3(block_dim), 0, 0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(column_permuted->get_values()),
-        column_permuted->get_stride());
+    hipLaunchKernelGGL(kernel::inverse_column_permute, num_blocks, block_size,
+                       0, 0, orig->get_size()[0], orig->get_size()[1],
+                       permutation_indices->get_const_data(),
+                       as_hip_type(orig->get_const_values()),
+                       orig->get_stride(),
+                       as_hip_type(column_permuted->get_values()),
+                       column_permuted->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

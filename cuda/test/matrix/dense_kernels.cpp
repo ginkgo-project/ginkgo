@@ -118,6 +118,7 @@ protected:
         expected = gen_mtx<Mtx>(65, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
+        square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
         dx = Mtx::create(cuda);
         dx->copy_from(x.get());
         dc_x = ComplexMtx::create(cuda);
@@ -130,6 +131,8 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Mtx::create(cuda);
         dbeta->copy_from(beta.get());
+        dsquare = Mtx::create(cuda);
+        dsquare->copy_from(square.get());
 
         std::vector<itype> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -162,12 +165,14 @@ protected:
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> expected;
+    std::unique_ptr<Mtx> square;
     std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<ComplexMtx> dc_x;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Mtx> dsquare;
     std::unique_ptr<Arr> rpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
     std::unique_ptr<Arr> rgather_idxs;
@@ -588,6 +593,30 @@ TEST_F(Dense, CanGatherRowsIntoDense)
     dx->row_gather(rgather_idxs.get(), dr_gather.get());
 
     GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
+TEST_F(Dense, IsPermutable)
+{
+    set_up_apply_data();
+
+    auto permuted = square->permute(rpermute_idxs.get());
+    auto dpermuted = dsquare->permute(rpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
+                        static_cast<Mtx *>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsInversePermutable)
+{
+    set_up_apply_data();
+
+    auto permuted = square->inverse_permute(rpermute_idxs.get());
+    auto dpermuted = dsquare->inverse_permute(rpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
+                        static_cast<Mtx *>(dpermuted.get()), 0);
 }
 
 

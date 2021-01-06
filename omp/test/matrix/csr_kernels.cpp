@@ -465,6 +465,32 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, IsPermutable)
+{
+    set_up_apply_data();
+
+    auto permuted = gko::as<Mtx>(square_mtx->permute(rpermute_idxs.get()));
+    auto dpermuted = gko::as<Mtx>(square_dmtx->permute(rpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
+TEST_F(Csr, IsInversePermutable)
+{
+    set_up_apply_data();
+
+    auto permuted =
+        gko::as<Mtx>(square_mtx->inverse_permute(rpermute_idxs.get()));
+    auto dpermuted =
+        gko::as<Mtx>(square_dmtx->inverse_permute(rpermute_idxs.get()));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(permuted, dpermuted);
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Csr, IsRowPermutable)
 {
     set_up_apply_data();
