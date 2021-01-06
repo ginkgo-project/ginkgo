@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/231603499 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/237806443 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -264,99 +264,100 @@ $(function() {
 <div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;        storage_optimization_type <a class="code" href="group__LinOp.html#gaa292314d27ec1fb7ad54debaa3606ea8">GKO_FACTORY_PARAMETER_VECTOR</a>(</div>
 <div class="line"><a name="l00459"></a><span class="lineno"><a class="line" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">  459</a></span>&#160;            storage_optimization, <a class="code" href="classgko_1_1precision__reduction.html">precision_reduction</a>(0, 0));</div>
 <div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160; </div>
-<div class="line"><a name="l00487"></a><span class="lineno"><a class="line" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73">  487</a></span>&#160;        <a class="code" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex&lt;value_type&gt;</a> <a class="code" href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">GKO_FACTORY_PARAMETER_SCALAR</a>(accuracy, 1e-1);</div>
-<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;    };</div>
-<div class="line"><a name="l00489"></a><span class="lineno"><a class="line" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">  489</a></span>&#160;    <a class="code" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a>(<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>, parameters, <a class="code" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">Factory</a>);</div>
-<div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160;    <a class="code" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a>(<a class="code" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">Factory</a>);</div>
-<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160; </div>
-<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>(std::shared_ptr&lt;const Executor&gt; exec)</div>
-<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;        : <a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a>&lt;<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>&gt;(exec),</div>
-<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160;          num_blocks_{},</div>
-<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160;          blocks_(exec),</div>
-<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;          conditioning_(exec)</div>
-<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;    {</div>
-<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85">set_executor</a>(exec);</div>
-<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">storage_optimization</a>.block_wise.set_executor(exec);</div>
-<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    }</div>
-<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160; </div>
-<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>(<span class="keyword">const</span> Factory *factory,</div>
-<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;                    std::shared_ptr&lt;const LinOp&gt; system_matrix)</div>
-<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160;        : <a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a>&lt;<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>&gt;(factory-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(),</div>
-<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;                              <a class="code" href="namespacegko.html">gko</a>::<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html#ac88af140d6c069cd53ec75e4baaff9f5">transpose</a>(system_matrix-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>())),</div>
-<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;          parameters_{factory-&gt;get_parameters()},</div>
-<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;          storage_scheme_{this-&gt;compute_storage_scheme(</div>
-<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;              parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a>, parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f">max_block_stride</a>)},</div>
-<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;          num_blocks_{parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>() - 1},</div>
-<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;          blocks_(factory-&gt;get_executor(),</div>
-<div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160;                  storage_scheme_.compute_storage_space(</div>
-<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;                      parameters_.block_pointers.get_num_elems() - 1)),</div>
-<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160;          conditioning_(factory-&gt;get_executor())</div>
-<div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160;    {</div>
-<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85">set_executor</a>(this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
-<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">storage_optimization</a>.block_wise.set_executor(</div>
-<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;            this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
-<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;        this-&gt;generate(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(system_matrix), parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#adfc8ea4f7d80b7de39b396dbbc1e5654">skip_sorting</a>);</div>
-<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;    }</div>
-<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160; </div>
-<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;    block_interleaved_storage_scheme&lt;index_type&gt; compute_storage_scheme(</div>
-<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> max_block_size, <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> param_max_block_stride)</div>
-<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;    {</div>
-<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> default_block_stride = 32;</div>
-<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;        <span class="comment">// If the executor is hip, the warp size is 32 or 64</span></div>
-<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> hip_exec = std::dynamic_pointer_cast&lt;const gko::HipExecutor&gt;(</div>
-<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;                this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>())) {</div>
-<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;            default_block_stride = hip_exec-&gt;get_warp_size();</div>
-<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;        }</div>
-<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> max_block_stride = default_block_stride;</div>
-<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;        <span class="keywordflow">if</span> (param_max_block_stride != 0) {</div>
-<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;            <span class="comment">// if parameter max_block_stride is not zero, set max_block_stride =</span></div>
-<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;            <span class="comment">// param_max_block_stride</span></div>
-<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;            max_block_stride = param_max_block_stride;</div>
-<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;            <span class="keywordflow">if</span> (this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>() != this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>()-&gt;get_master() &amp;&amp;</div>
-<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;                max_block_stride != default_block_stride) {</div>
-<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;                <span class="comment">// only support the default value on the gpu devive</span></div>
-<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;                GKO_NOT_SUPPORTED(<span class="keyword">this</span>);</div>
-<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;            }</div>
-<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;        }</div>
-<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a> &gt; max_block_stride ||</div>
-<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;            parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a> &lt; 1) {</div>
-<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;            GKO_NOT_SUPPORTED(<span class="keyword">this</span>);</div>
-<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160;        }</div>
-<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> group_size = static_cast&lt;uint32&gt;(</div>
-<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;            max_block_stride / <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(<a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>{2}, max_block_size));</div>
-<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> block_offset = max_block_size;</div>
-<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> block_stride = group_size * block_offset;</div>
-<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> group_offset = max_block_size * block_stride;</div>
-<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;        <span class="keywordflow">return</span> {static_cast&lt;index_type&gt;(block_offset),</div>
-<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;                static_cast&lt;index_type&gt;(group_offset),</div>
-<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;                <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(group_size)};</div>
-<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;    }</div>
-<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160; </div>
-<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;    <span class="keywordtype">void</span> generate(<span class="keyword">const</span> LinOp *system_matrix, <span class="keywordtype">bool</span> skip_sorting);</div>
-<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160; </div>
-<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;    <span class="keywordtype">void</span> detect_blocks(<span class="keyword">const</span> matrix::Csr&lt;ValueType, IndexType&gt; *system_matrix);</div>
-<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160; </div>
-<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160; </div>
-<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
-<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160; </div>
-<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;    block_interleaved_storage_scheme&lt;index_type&gt; storage_scheme_{};</div>
-<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_blocks_;</div>
-<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;    Array&lt;value_type&gt; blocks_;</div>
-<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;    Array&lt;remove_complex&lt;value_type&gt;&gt; conditioning_;</div>
-<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;};</div>
-<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160; </div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;        <a class="code" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex&lt;value_type&gt;</a> <a class="code" href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">GKO_FACTORY_PARAMETER_SCALAR</a>(</div>
+<div class="line"><a name="l00488"></a><span class="lineno"><a class="line" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73">  488</a></span>&#160;            accuracy, <span class="keyword">static_cast&lt;</span><a class="code" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">remove_complex&lt;value_type&gt;</a><span class="keyword">&gt;</span>(1e-1));</div>
+<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160;    };</div>
+<div class="line"><a name="l00490"></a><span class="lineno"><a class="line" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">  490</a></span>&#160;    <a class="code" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a>(<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>, parameters, <a class="code" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">Factory</a>);</div>
+<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;    <a class="code" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a>(<a class="code" href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">Factory</a>);</div>
+<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160; </div>
+<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>(std::shared_ptr&lt;const Executor&gt; exec)</div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160;        : <a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a>&lt;<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>&gt;(exec),</div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160;          num_blocks_{},</div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;          blocks_(exec),</div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;          conditioning_(exec)</div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;    {</div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85">set_executor</a>(exec);</div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">storage_optimization</a>.block_wise.set_executor(exec);</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;    }</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160; </div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>(<span class="keyword">const</span> Factory *factory,</div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160;                    std::shared_ptr&lt;const LinOp&gt; system_matrix)</div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;        : <a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a>&lt;<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>&gt;(factory-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>(),</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;                              <a class="code" href="namespacegko.html">gko</a>::<a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html#ac88af140d6c069cd53ec75e4baaff9f5">transpose</a>(system_matrix-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>())),</div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;          parameters_{factory-&gt;get_parameters()},</div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;          storage_scheme_{this-&gt;compute_storage_scheme(</div>
+<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;              parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a>, parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f">max_block_stride</a>)},</div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;          num_blocks_{parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>() - 1},</div>
+<div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160;          blocks_(factory-&gt;get_executor(),</div>
+<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;                  storage_scheme_.compute_storage_space(</div>
+<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160;                      parameters_.block_pointers.get_num_elems() - 1)),</div>
+<div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160;          conditioning_(factory-&gt;get_executor())</div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;    {</div>
+<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a>.<a class="code" href="classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85">set_executor</a>(this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;        parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">storage_optimization</a>.block_wise.set_executor(</div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;            this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>());</div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;        this-&gt;generate(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(system_matrix), parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#adfc8ea4f7d80b7de39b396dbbc1e5654">skip_sorting</a>);</div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;    }</div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160; </div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;    block_interleaved_storage_scheme&lt;index_type&gt; compute_storage_scheme(</div>
+<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> max_block_size, <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> param_max_block_stride)</div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;    {</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> default_block_stride = 32;</div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;        <span class="comment">// If the executor is hip, the warp size is 32 or 64</span></div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> hip_exec = std::dynamic_pointer_cast&lt;const gko::HipExecutor&gt;(</div>
+<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;                this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>())) {</div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;            default_block_stride = hip_exec-&gt;get_warp_size();</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;        }</div>
+<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;        <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> max_block_stride = default_block_stride;</div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;        <span class="keywordflow">if</span> (param_max_block_stride != 0) {</div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;            <span class="comment">// if parameter max_block_stride is not zero, set max_block_stride =</span></div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;            <span class="comment">// param_max_block_stride</span></div>
+<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;            max_block_stride = param_max_block_stride;</div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;            <span class="keywordflow">if</span> (this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>() != this-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>()-&gt;get_master() &amp;&amp;</div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;                max_block_stride != default_block_stride) {</div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;                <span class="comment">// only support the default value on the gpu devive</span></div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;                GKO_NOT_SUPPORTED(<span class="keyword">this</span>);</div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;            }</div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;        }</div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a> &gt; max_block_stride ||</div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;            parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a> &lt; 1) {</div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160;            GKO_NOT_SUPPORTED(<span class="keyword">this</span>);</div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;        }</div>
+<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> group_size = static_cast&lt;uint32&gt;(</div>
+<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160;            max_block_stride / <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(<a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>{2}, max_block_size));</div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> block_offset = max_block_size;</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> block_stride = group_size * block_offset;</div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> group_offset = max_block_size * block_stride;</div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;        <span class="keywordflow">return</span> {static_cast&lt;index_type&gt;(block_offset),</div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;                static_cast&lt;index_type&gt;(group_offset),</div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;                <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(group_size)};</div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;    }</div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160; </div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;    <span class="keywordtype">void</span> generate(<span class="keyword">const</span> LinOp *system_matrix, <span class="keywordtype">bool</span> skip_sorting);</div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160; </div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;    <span class="keywordtype">void</span> detect_blocks(<span class="keyword">const</span> matrix::Csr&lt;ValueType, IndexType&gt; *system_matrix);</div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160; </div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160; </div>
+<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160; </div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;    block_interleaved_storage_scheme&lt;index_type&gt; storage_scheme_{};</div>
+<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_blocks_;</div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;    Array&lt;value_type&gt; blocks_;</div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;    Array&lt;remove_complex&lt;value_type&gt;&gt; conditioning_;</div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;};</div>
 <div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160; </div>
-<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
-<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160; </div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160; </div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;}  <span class="comment">// namespace gko</span></div>
 <div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160; </div>
-<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<span class="preprocessor">#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_</span></div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160; </div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;<span class="preprocessor">#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_1_1Factory_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">gko::preconditioner::Jacobi::Factory</a></div><div class="ttdef"><b>Definition:</b> jacobi.hpp:489</div></div>
+<div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_1_1Factory_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html">gko::preconditioner::Jacobi::Factory</a></div><div class="ttdef"><b>Definition:</b> jacobi.hpp:490</div></div>
 <div class="ttc" id="aclassgko_1_1precision__reduction_html"><div class="ttname"><a href="classgko_1_1precision__reduction.html">gko::precision_reduction</a></div><div class="ttdoc">This class is used to encode storage precisions of low precision algorithms.</div><div class="ttdef"><b>Definition:</b> types.hpp:234</div></div>
 <div class="ttc" id="astructgko_1_1preconditioner_1_1block__interleaved__storage__scheme_html_ada09b37f171d433cc74818961fc6eccc"><div class="ttname"><a href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ada09b37f171d433cc74818961fc6eccc">gko::preconditioner::block_interleaved_storage_scheme::block_offset</a></div><div class="ttdeci">IndexType block_offset</div><div class="ttdoc">The offset between consecutive blocks within the group.</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:74</div></div>
 <div class="ttc" id="astructgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_html_adfc8ea4f7d80b7de39b396dbbc1e5654"><div class="ttname"><a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#adfc8ea4f7d80b7de39b396dbbc1e5654">gko::preconditioner::Jacobi::parameters_type::skip_sorting</a></div><div class="ttdeci">bool skip_sorting</div><div class="ttdoc">true means it is known that the matrix given to this factory will be sorted first by row,...</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:333</div></div>

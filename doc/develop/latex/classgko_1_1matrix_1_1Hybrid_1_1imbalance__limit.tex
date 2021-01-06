@@ -22,7 +22,7 @@ Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}{imbalance\+\_\+limit}} (float percent=0.\+8)
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab835e526a3de2da3d827dcdb740f3b75}{imbalance\+\_\+limit}} (double percent=0.\+8)
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_aa95250e2c38d516dbd2fbf5bdfa67e72}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
 \begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
@@ -39,12 +39,12 @@ class gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_
 It sorts the number of nonzeros of each row and takes the value at the position {\ttfamily floor(percent $\ast$ num\+\_\+row)} as the number of stored elements per row of the ell part. Thus, at least {\ttfamily percent} rows of all are in the ell part. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}} 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab835e526a3de2da3d827dcdb740f3b75}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab835e526a3de2da3d827dcdb740f3b75}} 
 \index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}!imbalance\_limit@{imbalance\_limit}}
 \index{imbalance\_limit@{imbalance\_limit}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}}
 \doxysubsubsection{\texorpdfstring{imbalance\_limit()}{imbalance\_limit()}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::imbalance\+\_\+limit (\begin{DoxyParamCaption}\item[{float}]{percent = {\ttfamily 0.8} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::imbalance\+\_\+limit (\begin{DoxyParamCaption}\item[{double}]{percent = {\ttfamily 0.8} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
 
 
 

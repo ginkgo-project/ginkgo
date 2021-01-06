@@ -22,7 +22,7 @@
 <!-- Node2 -->
 <g id="node2" class="node">
 <title>Node2</title>
-<g id="a_node2"><a xlink:href="structgko_1_1enable__parameters__type.html" target="_top" xlink:title=" ">
+<g id="a_node2"><a xlink:href="classgko_1_1enable__parameters__type.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="398.5,-148 398.5,-189 539.5,-189 539.5,-148 398.5,-148"/>
 <text text-anchor="start" x="406.5" y="-177" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::enable_parameters</text>
 <text text-anchor="start" x="406.5" y="-166" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_type&lt; parameters_type,</text>
@@ -39,7 +39,7 @@
 <!-- Node3 -->
 <g id="node3" class="node">
 <title>Node3</title>
-<g id="a_node3"><a xlink:href="structgko_1_1enable__parameters__type.html" target="_top" xlink:title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">
+<g id="a_node3"><a xlink:href="classgko_1_1enable__parameters__type.html" target="_top" xlink:title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">
 <polygon fill="#ffffff" stroke="#000000" points="0,-148 0,-189 179,-189 179,-148 0,-148"/>
 <text text-anchor="start" x="8" y="-177" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::enable_parameters</text>
 <text text-anchor="start" x="8" y="-166" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_type&lt; ConcreteParametersType,</text>

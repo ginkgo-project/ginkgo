@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/231603499 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/237806443 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -90,9 +90,9 @@ Collaboration diagram for gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imb
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ab546af3508d47185d6f5e6fb2f1412bc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#ab546af3508d47185d6f5e6fb2f1412bc">imbalance_limit</a> (float percent=0.8)</td></tr>
-<tr class="memdesc:ab546af3508d47185d6f5e6fb2f1412bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html" title="imbalance_limit is a strategy_type which decides the number of stored elements per row of the ell par...">imbalance_limit</a> strategy.  <a href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#ab546af3508d47185d6f5e6fb2f1412bc">More...</a><br /></td></tr>
-<tr class="separator:ab546af3508d47185d6f5e6fb2f1412bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab835e526a3de2da3d827dcdb740f3b75"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#ab835e526a3de2da3d827dcdb740f3b75">imbalance_limit</a> (double percent=0.8)</td></tr>
+<tr class="memdesc:ab835e526a3de2da3d827dcdb740f3b75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html" title="imbalance_limit is a strategy_type which decides the number of stored elements per row of the ell par...">imbalance_limit</a> strategy.  <a href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#ab835e526a3de2da3d827dcdb740f3b75">More...</a><br /></td></tr>
+<tr class="separator:ab835e526a3de2da3d827dcdb740f3b75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa95250e2c38d516dbd2fbf5bdfa67e72"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">compute_ell_num_stored_elements_per_row</a> (<a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &gt; *row_nnz) const override</td></tr>
 <tr class="memdesc:aa95250e2c38d516dbd2fbf5bdfa67e72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the number of stored elements per row of the ell part.  <a href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">More...</a><br /></td></tr>
 <tr class="separator:aa95250e2c38d516dbd2fbf5bdfa67e72"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -121,8 +121,8 @@ class gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit</h3>
 <p><a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html" title="imbalance_limit is a strategy_type which decides the number of stored elements per row of the ell par...">imbalance_limit</a> is a <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config.">strategy_type</a> which decides the number of stored elements per row of the ell part according to the percent. </p>
 <p>It sorts the number of nonzeros of each row and takes the value at the position <code>floor(percent * num_row)</code> as the number of stored elements per row of the ell part. Thus, at least <code>percent</code> rows of all are in the ell part. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ab546af3508d47185d6f5e6fb2f1412bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab546af3508d47185d6f5e6fb2f1412bc">&#9670;&nbsp;</a></span>imbalance_limit()</h2>
+<a id="ab835e526a3de2da3d827dcdb740f3b75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab835e526a3de2da3d827dcdb740f3b75">&#9670;&nbsp;</a></span>imbalance_limit()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -135,7 +135,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
         <tr>
           <td class="memname"><a class="el" href="classgko_1_1matrix_1_1Hybrid.html">gko::matrix::Hybrid</a>&lt; ValueType, IndexType &gt;::imbalance_limit::imbalance_limit </td>
           <td>(</td>
-          <td class="paramtype">float&#160;</td>
+          <td class="paramtype">double&#160;</td>
           <td class="paramname"><em>percent</em> = <code>0.8</code></td><td>)</td>
           <td></td>
         </tr>

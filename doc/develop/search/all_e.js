@@ -3,7 +3,7 @@ var searchData=
   ['openmp_20executor_614',['OpenMP Executor',['../group__exec__omp.html',1,'']]],
   ['omp_5fversion_615',['omp_version',['../classgko_1_1version__info.html#a795e1a6f8bdb0a4157b2d52b92e7b44e',1,'gko::version_info']]],
   ['ompexecutor_616',['OmpExecutor',['../classgko_1_1OmpExecutor.html',1,'gko']]],
-  ['on_617',['on',['../structgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621',1,'gko::enable_parameters_type']]],
+  ['on_617',['on',['../classgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621',1,'gko::enable_parameters_type']]],
   ['on_5fallocation_5fcompleted_618',['on_allocation_completed',['../classgko_1_1log_1_1Record.html#a197ace14db88f4205ed389f3ab66f1e9',1,'gko::log::Record::on_allocation_completed()'],['../classgko_1_1log_1_1Stream.html#ae34836c174c73068ef26a61c6597ef86',1,'gko::log::Stream::on_allocation_completed()']]],
   ['on_5fallocation_5fstarted_619',['on_allocation_started',['../classgko_1_1log_1_1Record.html#af3817911ba7d0156173e81915475a3e9',1,'gko::log::Record::on_allocation_started()'],['../classgko_1_1log_1_1Stream.html#a0a30d9b674cfd77282d27574e32ea109',1,'gko::log::Stream::on_allocation_started()']]],
   ['on_5fcopy_5fcompleted_620',['on_copy_completed',['../classgko_1_1log_1_1Record.html#a38e2969938c346ae1e7df52c79d30e07',1,'gko::log::Record::on_copy_completed()'],['../classgko_1_1log_1_1Stream.html#a66372936ad843609a057f9135c92bf3d',1,'gko::log::Stream::on_copy_completed()']]],

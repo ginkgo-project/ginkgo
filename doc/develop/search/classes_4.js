@@ -1,8 +1,8 @@
 var searchData=
 [
   ['ell_922',['Ell',['../classgko_1_1matrix_1_1Ell.html',1,'gko::matrix']]],
-  ['enable_5fparameters_5ftype_923',['enable_parameters_type',['../structgko_1_1enable__parameters__type.html',1,'gko']]],
-  ['enable_5fparameters_5ftype_3c_20parameters_5ftype_2c_20factory_20_3e_924',['enable_parameters_type&lt; parameters_type, Factory &gt;',['../structgko_1_1enable__parameters__type.html',1,'gko']]],
+  ['enable_5fparameters_5ftype_923',['enable_parameters_type',['../classgko_1_1enable__parameters__type.html',1,'gko']]],
+  ['enable_5fparameters_5ftype_3c_20parameters_5ftype_2c_20factory_20_3e_924',['enable_parameters_type&lt; parameters_type, Factory &gt;',['../classgko_1_1enable__parameters__type.html',1,'gko']]],
   ['enableabsolutecomputation_925',['EnableAbsoluteComputation',['../classgko_1_1EnableAbsoluteComputation.html',1,'gko']]],
   ['enableabsolutecomputation_3c_20remove_5fcomplex_3c_20coo_3c_20valuetype_2c_20indextype_20_3e_20_3e_20_3e_926',['EnableAbsoluteComputation&lt; remove_complex&lt; Coo&lt; ValueType, IndexType &gt; &gt; &gt;',['../classgko_1_1EnableAbsoluteComputation.html',1,'gko']]],
   ['enableabsolutecomputation_3c_20remove_5fcomplex_3c_20csr_3c_20valuetype_2c_20indextype_20_3e_20_3e_20_3e_927',['EnableAbsoluteComputation&lt; remove_complex&lt; Csr&lt; ValueType, IndexType &gt; &gt; &gt;',['../classgko_1_1EnableAbsoluteComputation.html',1,'gko']]],

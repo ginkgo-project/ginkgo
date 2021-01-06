@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/231603499 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/237806443 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -234,9 +234,9 @@ $(function() {
 <div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;            }</div>
 <div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;            <span class="keyword">auto</span> num_rows = mtx_row_ptrs.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>() - 1;</div>
 <div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;            max_length_per_row_ = 0;</div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;            <span class="keywordflow">for</span> (index_type i = 1; i &lt; num_rows + 1; i++) {</div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;            <span class="keywordflow">for</span> (<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> i = 0; i &lt; num_rows; i++) {</div>
 <div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;                max_length_per_row_ = std::max(max_length_per_row_,</div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;                                               row_ptrs[i] - row_ptrs[i - 1]);</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;                                               row_ptrs[i + 1] - row_ptrs[i]);</div>
 <div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;            }</div>
 <div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;        }</div>
 <div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160; </div>
@@ -404,7 +404,7 @@ $(function() {
 <div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;<span class="preprocessor">#endif  // GINKGO_HIP_PLATFORM_HCC</span></div>
 <div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160; </div>
 <div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160;                <span class="keyword">auto</span> nwarps = nwarps_ * multiple;</div>
-<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;                <span class="keywordflow">return</span> <a class="code" href="namespacegko.html#aaaf8487194bcb40b528969c187a413a0">min</a>(<a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(nnz, warp_size_), int64_t(nwarps));</div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;                <span class="keywordflow">return</span> <a class="code" href="namespacegko.html#aaaf8487194bcb40b528969c187a413a0">min</a>(<a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(nnz, warp_size_), nwarps);</div>
 <div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;            } <span class="keywordflow">else</span> {</div>
 <div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;                <span class="keywordflow">return</span> 0;</div>
 <div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;            }</div>
@@ -496,8 +496,8 @@ $(function() {
 <div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160;                this-&gt;set_name(actual_strategy.<a class="code" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a0c22b251b0c1dfd087a5c097488febe0">get_name</a>());</div>
 <div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;            } <span class="keywordflow">else</span> {</div>
 <div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160;                index_type maxnum = 0;</div>
-<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;                <span class="keywordflow">for</span> (index_type i = 1; i &lt; num_rows + 1; i++) {</div>
-<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;                    maxnum = std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);</div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;                <span class="keywordflow">for</span> (<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> i = 0; i &lt; num_rows; i++) {</div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;                    maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);</div>
 <div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;                }</div>
 <div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;                <span class="keywordflow">if</span> (maxnum &gt; row_len_limit) {</div>
 <div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;                    <a class="code" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html">load_balance</a> actual_strategy(nwarps_, warp_size_,</div>

@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['on_1434',['on',['../structgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621',1,'gko::enable_parameters_type']]],
+  ['on_1434',['on',['../classgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621',1,'gko::enable_parameters_type']]],
   ['on_5fallocation_5fcompleted_1435',['on_allocation_completed',['../classgko_1_1log_1_1Record.html#a197ace14db88f4205ed389f3ab66f1e9',1,'gko::log::Record::on_allocation_completed()'],['../classgko_1_1log_1_1Stream.html#ae34836c174c73068ef26a61c6597ef86',1,'gko::log::Stream::on_allocation_completed()']]],
   ['on_5fallocation_5fstarted_1436',['on_allocation_started',['../classgko_1_1log_1_1Record.html#af3817911ba7d0156173e81915475a3e9',1,'gko::log::Record::on_allocation_started()'],['../classgko_1_1log_1_1Stream.html#a0a30d9b674cfd77282d27574e32ea109',1,'gko::log::Stream::on_allocation_started()']]],
   ['on_5fcopy_5fcompleted_1437',['on_copy_completed',['../classgko_1_1log_1_1Record.html#a38e2969938c346ae1e7df52c79d30e07',1,'gko::log::Record::on_copy_completed()'],['../classgko_1_1log_1_1Stream.html#a66372936ad843609a057f9135c92bf3d',1,'gko::log::Stream::on_copy_completed()']]],
