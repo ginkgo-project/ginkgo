@@ -3,23 +3,7 @@
 source .github/bot-pr-base.sh
 
 echo "Retrieving PR file list"
-PR_FILES=""
-PAGE="1"
-while true; do
-  # this api allows 100 items per page
-  # github action uses `bash -e`. The last empty page will leads jq error, use `|| :` to ignore the error.
-  PR_PAGE_FILES=$(api_get "$PR_URL/files?&per_page=100&page=${PAGE}" | jq -er '.[] | .filename' || :)
-  if [ "${PR_PAGE_FILES}" = "" ]; then
-    break
-  fi
-  echo "Retrieving PR file list - ${PAGE} pages"
-  if [ ! "${PR_FILES}" = "" ]; then
-    # add the same new line format as jq output
-    PR_FILES="${PR_FILES}"$'\n'
-  fi
-  PR_FILES="${PR_FILES}${PR_PAGE_FILES}"
-  PAGE=$(( PAGE + 1 ))
-done
+PR_FILES=$(bot_get_all_changed_files ${PR_URL})
 NUM=$(echo "${PR_FILES}" | wc -l)
 echo "PR has ${NUM} changed files"
 
