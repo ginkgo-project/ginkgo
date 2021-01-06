@@ -1,22 +1,17 @@
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
-
 1. Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
-
 2. Redistributions in binary form must reproduce the above copyright
 notice, this list of conditions and the following disclaimer in the
 documentation and/or other materials provided with the distribution.
-
 3. Neither the name of the copyright holder nor the names of its
 contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
-
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
 IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
@@ -129,66 +124,70 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), rr.get());
     get_preconditioner()->apply(rr.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
     rr->copy_from(r.get());
-    p->copy_from(r.get());
-    rr->compute_dot(r.get(), rho.get());
 
     int iter = -1;
     while (true) {
-        system_matrix_->apply(p.get(), v.get());
-        get_preconditioner()->apply(v.get(), y.get());
-        // y = M^-1 * A * p
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r.get())
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            break;
+        }
 
-        rr->compute_dot(y.get(), beta.get());
-        // beta = (rr, y)
-        exec->run(bicgstab::make_step_2(r.get(), s.get(), y.get(), rho.get(),
-                                        alpha.get(), beta.get(), &stop_status));
-        // alpha = rho / beta
-        // s = r - alpha * y
-
-        system_matrix_->apply(s.get(), t.get());
-        get_preconditioner()->apply(t.get(), z.get());
-        // z = M^-1 * A * s
-        z->compute_dot(s.get(), gamma.get());
-        // gamma = (z, s)
-        z->compute_dot(z.get(), beta.get());
-        // beta = (z, z)
-        exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), z.get(), p.get(), s.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), &stop_status));
-        // omega = gamma / beta
-        // x = x + alpha * p + omega * s
-        // r = s - omega * z
-
-        swap(prev_rho, rho);
-        // prev_rho = rho
         rr->compute_dot(r.get(), rho.get());
-        // rho = (rr, r)
 
-        exec->run(bicgstab::make_step_1(r.get(), p.get(), y.get(), rho.get(),
+        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
+        system_matrix_->apply(p.get(), y.get());
+        get_preconditioner()->apply(y.get(), v.get());
+        rr->compute_dot(v.get(), beta.get());
+        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
+                                        alpha.get(), beta.get(), &stop_status));
+        // alpha = rho / beta
+        // s = r - alpha * v
+
         ++iter;
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .solution(dense_x)  // outdated at this point
+                .residual(s.get())
+                // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
-
+        if (one_changed) {
+            exec->run(bicgstab::make_finalize(dense_x, v.get(), alpha.get(),
+                                              &stop_status));
+        }
         this->template log<log::Logger::iteration_complete>(this, iter,
                                                             r.get());
         if (all_converged) {
             break;
         }
+
+        system_matrix_->apply(s.get(), z.get());
+        get_preconditioner()->apply(z.get(), t.get());
+        s->compute_dot(t.get(), gamma.get());
+        t->compute_dot(t.get(), beta.get());
+        exec->run(bicgstab::make_step_3(
+            dense_x, r.get(), s.get(), t.get(), v.get(), t.get(), alpha.get(),
+            beta.get(), gamma.get(), omega.get(), &stop_status));
+        // omega = gamma / beta
+        // x = x + alpha * y + omega * z
+        // r = s - omega * t
+        swap(prev_rho, rho);
     }
 }  // namespace solver
 
