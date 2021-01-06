@@ -121,7 +121,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(bicgstab::make_initialize(
-        dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
+        dense_b, rr.get(), r.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), &stop_status));
     // r = dense_b
@@ -129,8 +129,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), rr.get());
-    get_preconditioner->apply(rr.get(), r.get());
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    get_preconditioner()->apply(rr.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
