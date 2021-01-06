@@ -152,8 +152,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
-        system_matrix_->apply(p.get(), y.get());
-        get_preconditioner()->apply(y.get(), v.get());
+        get_preconditioner()->apply(p.get(), y.get());
+        system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
                                         alpha.get(), beta.get(), &stop_status));
@@ -168,7 +168,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(dense_x, v.get(), alpha.get(),
+            exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
                                               &stop_status));
         }
         this->template log<log::Logger::iteration_complete>(this, iter,
@@ -177,12 +177,12 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        system_matrix_->apply(s.get(), z.get());
-        get_preconditioner()->apply(z.get(), t.get());
+        get_preconditioner()->apply(s.get(), z.get());
+        system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
         exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), t.get(), v.get(), t.get(), alpha.get(),
+            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
