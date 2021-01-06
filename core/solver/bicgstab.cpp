@@ -134,27 +134,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
     rr->copy_from(r.get());
+    p->copy_from(r.get());
 
     int iter = -1;
     while (true) {
-        ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r.get())
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            break;
-        }
-
         rr->compute_dot(r.get(), rho.get());
-
-        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
-                                        prev_rho.get(), alpha.get(),
-                                        omega.get(), &stop_status));
-        // tmp = rho / prev_rho * alpha / omega
-        // p = r + tmp * (p - omega * v)
 
         get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
@@ -163,23 +147,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                         alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
-
-        ++iter;
-        auto all_converged =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(s.get())
-                // .solution(dense_x) // outdated at this point
-                .check(RelativeStoppingId, false, &stop_status, &one_changed);
-        if (one_changed) {
-            exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
-                                              &stop_status));
-        }
-        this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            r.get());
-        if (all_converged) {
-            break;
-        }
 
         get_preconditioner()->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
@@ -191,6 +158,26 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
+
+        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
+                                        prev_rho.get(), alpha.get(),
+                                        omega.get(), &stop_status));
+        // tmp = rho / prev_rho * alpha / omega
+        // p = r + tmp * (p - omega * v)
+
+        ++iter;
+        auto all_converged =
+            stop_criterion->update()
+                .num_iterations(iter)
+                .residual(s.get())
+                .solution(dense_x)  // outdated at this point
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            r.get());
+        if (all_converged) {
+            break;
+        }
         swap(prev_rho, rho);
     }
 }  // namespace solver
