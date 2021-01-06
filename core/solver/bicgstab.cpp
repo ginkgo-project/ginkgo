@@ -139,20 +139,20 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
-        get_preconditioner()->apply(p.get(), y.get());
-        system_matrix_->apply(y.get(), v.get());
+        system_matrix_->apply(p.get(), y.get());
+        get_preconditioner()->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
                                         alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
 
-        get_preconditioner()->apply(s.get(), z.get());
-        system_matrix_->apply(z.get(), t.get());
-        s->compute_dot(t.get(), gamma.get());
+        system_matrix_->apply(s.get(), z.get());
+        get_preconditioner()->apply(z.get(), t.get());
+        t->compute_dot(s.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
         exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+            dense_x, r.get(), s.get(), t.get(), p.get(), s.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
