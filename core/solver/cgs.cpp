@@ -138,6 +138,15 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     r_tld->copy_from(r.get());
 
     int iter = 0;
+    /* Memory movement summary:
+     * 27n * values + 2 * matrix/preconditioner storage
+     * 2x SpMV:                4n * values + 2 * storage
+     * 2x Preconditioner:      4n * values + 2 * storage
+     * 2x dot                  4n
+     * 1x step 1 (fused axpys) 5n
+     * 1x step 2 (fused axpys) 4n
+     * 1x step 3 (axpys)       6n
+     */
     while (true) {
         r->compute_dot(r_tld.get(), rho.get());
         // beta = rho / rho_prev

@@ -128,6 +128,14 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         x, r.get());
 
     int iter = -1;
+    /* Memory movement summary:
+     * 17n * values + matrix/preconditioner storage
+     * 1x SpMV:           2n * values + storage
+     * 1x Preconditioner: 2n * values + storage
+     * 2x dot             4n
+     * 1x step 1 (axpy)   3n
+     * 1x step 2 (axpys)  6n
+     */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
