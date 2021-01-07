@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
-#include <time.h>
 #include <algorithm>
 #include <iostream>
 #include <random>
+#include <time.h>
 
 
 #include <omp.h>
