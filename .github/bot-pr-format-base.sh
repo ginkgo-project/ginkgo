@@ -7,7 +7,10 @@ FORMAT_HEADER_REGEX='^(benchmark|core|cuda|hip|include/ginkgo/core|omp|reference
 FORMAT_REGEX='^(common|examples|test_install)/'
 
 echo "Retrieving PR file list"
-PR_FILES="$(api_get "$PR_URL/files?&per_page=1000" | jq -er '.[] | .filename')"
+PR_FILES=$(bot_get_all_changed_files ${PR_URL})
+NUM=$(echo "${PR_FILES}" | wc -l)
+echo "PR has ${NUM} changed files"
+
 TO_FORMAT="$(echo "$PR_FILES" | grep -E $EXTENSION_REGEX || true)"
 
 git remote add fork "$HEAD_URL"

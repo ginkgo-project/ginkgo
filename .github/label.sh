@@ -3,7 +3,9 @@
 source .github/bot-pr-base.sh
 
 echo "Retrieving PR file list"
-PR_FILES=$(api_get "$PR_URL/files?&per_page=1000" | jq -er '.[] | .filename')
+PR_FILES=$(bot_get_all_changed_files ${PR_URL})
+NUM=$(echo "${PR_FILES}" | wc -l)
+echo "PR has ${NUM} changed files"
 
 echo "Retrieving PR label list"
 OLD_LABELS=$(api_get "$ISSUE_URL" | jq -er '[.labels | .[] | .name]')
@@ -17,18 +19,18 @@ label_match() {
 
 LABELS="[]"
 LABELS=$LABELS$(label_match mod:core '(^core/|^include/)')
-LABELS=$LABELS$(label_match mod:reference ^reference/)
-LABELS=$LABELS$(label_match mod:openmp ^omp/)
+LABELS=$LABELS$(label_match mod:reference '^reference/')
+LABELS=$LABELS$(label_match mod:openmp '^omp/')
 LABELS=$LABELS$(label_match mod:cuda '(^cuda/|^common/)')
 LABELS=$LABELS$(label_match mod:hip '(^hip/|^common/)')
-LABELS=$LABELS$(label_match mod:dpcpp ^dpcpp/)
-LABELS=$LABELS$(label_match reg:benchmarking ^benchmark/)
-LABELS=$LABELS$(label_match reg:example ^examples/)
+LABELS=$LABELS$(label_match mod:dpcpp '^dpcpp/')
+LABELS=$LABELS$(label_match reg:benchmarking '^benchmark/')
+LABELS=$LABELS$(label_match reg:example '^examples/')
 LABELS=$LABELS$(label_match reg:build '(cm|CM)ake')
-LABELS=$LABELS$(label_match reg:ci-cd '.yml$')
-LABELS=$LABELS$(label_match reg:documentation ^doc/)
+LABELS=$LABELS$(label_match reg:ci-cd '(^\.github/|\.yml$)')
+LABELS=$LABELS$(label_match reg:documentation '^doc/')
 LABELS=$LABELS$(label_match reg:testing /test/)
-LABELS=$LABELS$(label_match reg:helper-scripts ^dev_tools/)
+LABELS=$LABELS$(label_match reg:helper-scripts '^dev_tools/')
 LABELS=$LABELS$(label_match type:factorization /factorization/)
 LABELS=$LABELS$(label_match type:matrix-format /matrix/)
 LABELS=$LABELS$(label_match type:multigrid /multigrid/)
