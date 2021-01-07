@@ -175,32 +175,31 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         if (restart_iter == krylov_dim_) {
             // Restart
+            // Solve upper triangular.
+            // y = hessenberg \ residual_norm_collection
+            // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_step_2(residual_norm_collection.get(),
                                          krylov_bases.get(), hessenberg.get(),
                                          y.get(), before_preconditioner.get(),
                                          &final_iter_nums));
-            // Solve upper triangular.
-            // y = hessenberg \ residual_norm_collection
-            // before_preconditioner = krylov_bases * y
 
+            // x = x + get_preconditioner() * before_preconditioner
             get_preconditioner()->apply(before_preconditioner.get(),
                                         after_preconditioner.get());
             dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-            // Solve x
-            // x = x + get_preconditioner() * before_preconditioner
-            residual->copy_from(dense_b);
             // residual = dense_b
+            residual->copy_from(dense_b);
+            // residual = residual - Ax
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                   residual.get());
-            // residual = residual - Ax
-            exec->run(gmres::make_initialize_2(
-                residual.get(), residual_norm.get(),
-                residual_norm_collection.get(), krylov_bases.get(),
-                &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
+            exec->run(gmres::make_initialize_2(
+                residual.get(), residual_norm.get(),
+                residual_norm_collection.get(), krylov_bases.get(),
+                &final_iter_nums, krylov_dim_));
             restart_iter = 0;
         }
         auto this_krylov = krylov_bases->create_submatrix(
@@ -212,9 +211,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{system_matrix_->get_size()[0] * (restart_iter + 1),
                  system_matrix_->get_size()[0] * (restart_iter + 2)},
             span{0, dense_b->get_size()[1]});
+        // preconditioned_vector = get_preconditioner() * this_krylov
         get_preconditioner()->apply(this_krylov.get(),
                                     preconditioned_vector.get());
-        // preconditioned_vector = get_preconditioner() * this_krylov
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
@@ -223,14 +222,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                  dense_b->get_size()[1] * (restart_iter + 1)});
 
         // Start of arnoldi
-        system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
         // next_krylov = A * preconditioned_vector
+        system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
 
-        exec->run(gmres::make_step_1(
-            dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
-            residual_norm.get(), residual_norm_collection.get(),
-            krylov_bases.get(), hessenberg_iter.get(), restart_iter,
-            &final_iter_nums, &stop_status));
         // final_iter_nums += 1 (unconverged)
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter(include)
@@ -267,6 +261,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // residual_norm_collection(restart_iter) = cos(restart_iter) * this_rnc
         // residual_norm = abs(next_rnc)
         // residual_norm_collection(restart_iter + 1) = next_rnc
+        exec->run(gmres::make_step_1(
+            dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
+            residual_norm.get(), residual_norm_collection.get(),
+            krylov_bases.get(), hessenberg_iter.get(), restart_iter,
+            &final_iter_nums, &stop_status));
 
         restart_iter++;
     }
@@ -279,18 +278,17 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
+    // Solve upper triangular.
+    // y = hessenberg \ residual_norm_collection
+    // before_preconditioner = krylov_bases * y
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
-    // before_preconditioner = krylov_bases * y
+    // x = x + get_preconditioner() * before_preconditioner
     get_preconditioner()->apply(before_preconditioner.get(),
                                 after_preconditioner.get());
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-    // Solve x
-    // x = x + get_preconditioner() * before_preconditioner
 }
 
 

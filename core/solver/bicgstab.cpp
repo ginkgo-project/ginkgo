@@ -152,19 +152,19 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
+        // tmp = rho / prev_rho * alpha / omega
+        // p = r + tmp * (p - omega * v)
         exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
-        // tmp = rho / prev_rho * alpha / omega
-        // p = r + tmp * (p - omega * v)
 
         get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
-        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
-                                        alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
         // s = r - alpha * v
+        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
+                                        alpha.get(), beta.get(), &stop_status));
 
         ++iter;
         auto all_converged =
@@ -188,12 +188,12 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());
-        exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), &stop_status));
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
+        exec->run(bicgstab::make_step_3(
+            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
+            beta.get(), gamma.get(), omega.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }  // namespace solver

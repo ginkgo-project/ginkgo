@@ -185,32 +185,28 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             break;
         }
 
-        subspace_vectors->apply(residual.get(), f.get());
         // f = P^H * residual
+        subspace_vectors->apply(residual.get(), f.get());
 
         for (size_type k = 0; k < subspace_dim_; k++) {
+            // c = M \ f = (c_1, ..., c_s)^T
+            // v = residual - c_k * g_k - ... - c_s * g_s
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
                                        residual.get(), g.get(), c.get(),
                                        v.get(), &stop_status));
-            // c = M \ f = (c_1, ..., c_s)^T
-            // v = residual - c_k * g_k - ... - c_s * g_s
 
             get_preconditioner()->apply(v.get(), helper.get());
 
+            // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
             exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
                                        c.get(), u.get(), &stop_status));
-            // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
 
-            system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
+            system_matrix_->apply(u_k.get(), helper.get());
 
-            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
-                                       helper.get(), u.get(), m.get(), f.get(),
-                                       alpha.get(), residual.get(), dense_x,
-                                       &stop_status));
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
             //     g_k -= alpha * g_i
@@ -223,6 +219,10 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
+            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
+                                       helper.get(), u.get(), m.get(), f.get(),
+                                       alpha.get(), residual.get(), dense_x,
+                                       &stop_status));
         }
 
         get_preconditioner()->apply(residual.get(), helper.get());
@@ -232,14 +232,6 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         t->compute_dot(t.get(), tht.get());
         residual->compute_norm2(residual_norm.get());
 
-        exec->run(idr::make_compute_omega(nrhs, kappa_, tht.get(),
-                                          residual_norm.get(), omega.get(),
-                                          &stop_status));
-
-        t->scale(subspace_neg_one_op.get());
-        residual->add_scaled(omega.get(), t.get());
-        dense_x->add_scaled(omega.get(), helper.get());
-
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
         // if abs(rho) < kappa then
@@ -247,6 +239,13 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         // end if
         // residual -= omega * t
         // dense_x += omega * v
+        exec->run(idr::make_compute_omega(nrhs, kappa_, tht.get(),
+                                          residual_norm.get(), omega.get(),
+                                          &stop_status));
+
+        t->scale(subspace_neg_one_op.get());
+        residual->add_scaled(omega.get(), t.get());
+        dense_x->add_scaled(omega.get(), helper.get());
     }
 }
 

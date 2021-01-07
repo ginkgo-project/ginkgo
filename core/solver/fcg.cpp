@@ -147,19 +147,19 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
-                                   prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
+        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
+                                   prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
-        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
+        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }

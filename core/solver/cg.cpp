@@ -144,17 +144,17 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
-                                  &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
+        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
+                                  &stop_status));
         system_matrix_->apply(p.get(), q.get());
         p->compute_dot(q.get(), beta.get());
-        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
-                                  beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
+        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
+                                  beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }
