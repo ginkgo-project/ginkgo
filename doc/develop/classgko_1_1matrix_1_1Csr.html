@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/237806443 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/238315975 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -252,6 +252,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class
 <tr class="memitem:a38820451af5424f18b767667f3067d72"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">conj_transpose</a> () const override</td></tr>
 <tr class="memdesc:a38820451af5424f18b767667f3067d72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">More...</a><br /></td></tr>
 <tr class="separator:a38820451af5424f18b767667f3067d72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab47da11c7ef41997576bcbf9abe5c52e"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#ab47da11c7ef41997576bcbf9abe5c52e">permute</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *permutation_indices) const override</td></tr>
+<tr class="memdesc:ab47da11c7ef41997576bcbf9abe5c52e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the symmetric row and column permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object.  <a href="classgko_1_1matrix_1_1Csr.html#ab47da11c7ef41997576bcbf9abe5c52e">More...</a><br /></td></tr>
+<tr class="separator:ab47da11c7ef41997576bcbf9abe5c52e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a086daaecd3370fc8b4cc7c0b6f0f738e"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#a086daaecd3370fc8b4cc7c0b6f0f738e">inverse_permute</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *inverse_permutation_indices) const override</td></tr>
+<tr class="memdesc:a086daaecd3370fc8b4cc7c0b6f0f738e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the symmetric inverse row and column permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object.  <a href="classgko_1_1matrix_1_1Csr.html#a086daaecd3370fc8b4cc7c0b6f0f738e">More...</a><br /></td></tr>
+<tr class="separator:a086daaecd3370fc8b4cc7c0b6f0f738e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa63ffa1f1a4018ce065e582cb8bbda9f"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr.html#aa63ffa1f1a4018ce065e582cb8bbda9f">row_permute</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *permutation_indices) const override</td></tr>
 <tr class="memdesc:aa63ffa1f1a4018ce065e582cb8bbda9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the row permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object.  <a href="classgko_1_1matrix_1_1Csr.html#aa63ffa1f1a4018ce065e582cb8bbda9f">More...</a><br /></td></tr>
 <tr class="separator:aa63ffa1f1a4018ce065e582cb8bbda9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -594,9 +600,10 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div><div class="memdoc">
 
 <p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the column permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the column <code>i</code> contains the input column <code>perm[i]</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">permutation_indices</td><td>the array of indices contaning the permutation order.</td></tr>
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order <code>perm</code>.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1076,7 +1083,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
           <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::inverse_column_permute </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *&#160;</td>
-          <td class="paramname"><em>inverse_permutation_indices</em></td><td>)</td>
+          <td class="paramname"><em>permutation_indices</em></td><td>)</td>
           <td> const</td>
         </tr>
       </table>
@@ -1088,15 +1095,56 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div><div class="memdoc">
 
 <p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the row permutation of the inverse permuted object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the column <code>perm[i]</code> contains the input column <code>i</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">inverse_permutation_indices</td><td>the array of indices contaning the inverse permutation order.</td></tr>
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order <code>perm</code>.</td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new inverse permuted object </dd></dl>
 
-<p>Implements <a class="el" href="classgko_1_1Permutable.html#afb6878fad5a7a69ad4b13172f72ab069">gko::Permutable&lt; IndexType &gt;</a>.</p>
+<p>Implements <a class="el" href="classgko_1_1Permutable.html#a6dc3cb59a94847013feec67f8a52ccb4">gko::Permutable&lt; IndexType &gt;</a>.</p>
+
+</div>
+</div>
+<a id="a086daaecd3370fc8b4cc7c0b6f0f738e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a086daaecd3370fc8b4cc7c0b6f0f738e">&#9670;&nbsp;</a></span>inverse_permute()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::inverse_permute </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *&#160;</td>
+          <td class="paramname"><em>permutation_indices</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the symmetric inverse row and column permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the entry at location <code>(perm[i],perm[j])</code> contains the input value <code>(i,j)</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new permuted object </dd></dl>
+
+<p>Reimplemented from <a class="el" href="classgko_1_1Permutable.html#a47bba8cf9e8d352289728bbb69b4f35f">gko::Permutable&lt; IndexType &gt;</a>.</p>
 
 </div>
 </div>
@@ -1115,7 +1163,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
           <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::inverse_row_permute </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *&#160;</td>
-          <td class="paramname"><em>inverse_permutation_indices</em></td><td>)</td>
+          <td class="paramname"><em>permutation_indices</em></td><td>)</td>
           <td> const</td>
         </tr>
       </table>
@@ -1127,15 +1175,56 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div><div class="memdoc">
 
 <p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the row permutation of the inverse permuted object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the row <code>perm[i]</code> contains the input row <code>i</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">inverse_permutation_indices</td><td>the array of indices contaning the inverse permutation order.</td></tr>
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order <code>perm</code>.</td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the new inverse permuted object </dd></dl>
 
-<p>Implements <a class="el" href="classgko_1_1Permutable.html#ab7ff08705706169e29ebd92e9d3b3a8c">gko::Permutable&lt; IndexType &gt;</a>.</p>
+<p>Implements <a class="el" href="classgko_1_1Permutable.html#a639aaa94116c70bb428d9e66ec87b1c6">gko::Permutable&lt; IndexType &gt;</a>.</p>
+
+</div>
+</div>
+<a id="ab47da11c7ef41997576bcbf9abe5c52e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab47da11c7ef41997576bcbf9abe5c52e">&#9670;&nbsp;</a></span>permute()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::permute </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; IndexType &gt; *&#160;</td>
+          <td class="paramname"><em>permutation_indices</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the symmetric row and column permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the entry at location <code>(i,j)</code> contains the input value <code>(perm[i],perm[j])</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new permuted object </dd></dl>
+
+<p>Reimplemented from <a class="el" href="classgko_1_1Permutable.html#a55e937e01ef3c198c027d7d62a26fe07">gko::Permutable&lt; IndexType &gt;</a>.</p>
 
 </div>
 </div>
@@ -1204,9 +1293,10 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div><div class="memdoc">
 
 <p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the row permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object. </p>
+<p>In the resulting <a class="el" href="classgko_1_1LinOp.html">LinOp</a>, the row <code>i</code> contains the input row <code>perm[i]</code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">permutation_indices</td><td>the array of indices contaning the permutation order.</td></tr>
+    <tr><td class="paramname">permutation_indices</td><td>the array of indices containing the permutation order.</td></tr>
   </table>
   </dd>
 </dl>
