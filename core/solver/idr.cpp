@@ -171,6 +171,22 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
     int total_iter = -1;
 
+    /* Memory movement summary for iteration with subspace dimension d
+     * (3d²+12(d+1))n * values + d * matrix/preconditioner storage
+     * dx SpMV:                      2dn * values + d * storage
+     * dx Preconditioner:            2dn * values + d * storage
+     * 1x multidot (gemm)         (d+1)n
+     * dx step 1 (fused axpys) d(d/2+2)n on average
+     * dx step 2 (fused axpys) d(d/2+2)n on average
+     * dx step 3:               d(2d+4)n on average
+     *   1x orthogonalize g+u    (3k+2)n in kth iteration
+     *   1x multidot (gemm)           kn in (d-k)th iteration
+     *   2x axpy                      6n
+     * 2x dot                         4n
+     * 1x norm2                        n
+     * 1x scale                       2n
+     * 2x axpy                        4n
+     */
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(

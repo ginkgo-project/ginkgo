@@ -137,6 +137,17 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     rr->copy_from(r.get());
 
     int iter = -1;
+
+    /* Memory movement summary:
+     * 29n * values + 2 * matrix/preconditioner storage
+     * 2x SpMV:                4n * values + 2 * storage
+     * 2x Preconditioner:      4n * values + 2 * storage
+     * 3x dot                  6n
+     * 1x norm2                 n
+     * 1x step 1 (fused axpys) 4n
+     * 1x step 2 (axpy)        3n
+     * 1x step 3 (fused axpys) 7n
+     */
     while (true) {
         ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),

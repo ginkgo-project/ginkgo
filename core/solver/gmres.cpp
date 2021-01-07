@@ -159,6 +159,17 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto after_preconditioner =
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
+    /* Memory movement summary for iteration in Krylov subspace of dimension d
+     * (== krylov_dim / 2 on average), ignoring restarts:
+     * (5d+7)n * values + matrix/preconditioner storage
+     * 1x SpMV:                2n * values + storage
+     * 1x Preconditioner:      2n * values + storage
+     * MGS:               (5d+3)n
+     *   dx dot               2dn
+     *   dx axpys             3dn
+     *   1x norm2               n
+     *   1x scal               2n
+     */
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
