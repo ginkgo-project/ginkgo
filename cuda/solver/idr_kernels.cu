@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 
 
-#include <time.h>
 #include <random>
+#include <time.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
