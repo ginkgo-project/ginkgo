@@ -1,147 +1,136 @@
+###
 #
-# This file is a modified version of the file in the GROMACS molecular simulation
-# package.
+# @copyright (c) 2012-2020 Inria. All rights reserved.
+# @copyright (c) 2012-2014 Bordeaux INP, CNRS (LaBRI UMR 5800), Inria, Univ. Bordeaux. All rights reserved.
 #
-# Copyright (c) 2015,2016,2017,2018, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2012-2013 Emmanuel Agullo
+# Copyright 2012-2013 Mathieu Faverge
+# Copyright 2012      Cedric Castagnede
+# Copyright 2013-2020 Florent Pruvost
+# Copyright 2020-2021 Ginkgo Project
 #
-# GROMACS is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public License
-# as published by the Free Software Foundation; either version 2.1
-# of the License, or (at your option) any later version.
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file MORSE-Copyright.txt for details.
 #
-# GROMACS is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+# This software is distributed WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
+#=============================================================================
+# (To distribute this file outside of Morse, substitute the full
+#  License text for the above reference.)
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+# Modified for Ginkgo.
 #
-# If you want to redistribute modifications to GROMACS, please
-# consider that scientific software is very special. Version
-# control is crucial - bugs must be traceable. We will be happy to
-# consider code for inclusion in the official distribution, but
-# derived work must not be called official GROMACS. Details are found
-# in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+###
 #
-# To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# - Find HWLOC include dirs and libraries
+# Use this module by invoking find_package with the form:
+#  find_package(HWLOC
+#               [REQUIRED] [VERSION]) # Fail with error if hwloc is not found
+#
+# This module defines the following :prop_tgt:`IMPORTED` target:
+#   ``hwloc``
+#
+#=============================================================================
+include(CheckStructHasMember)
+include(CheckCSourceCompiles)
 
-# FindHWLOC
-#
-# - Locate headers and libraries for the Portable Hardware Locality (hwloc)
-#   library.
-#
-# Usage: find_package(HWLOC VERSION)
-#        find_package(HWLOC VERSION REQUIRED)
-#
-# FindHWLOC defines the following variables:
-#
-# HWLOC_FOUND          - True if both headers and libraries were located
-# HWLOC_INCLUDE_DIRS   - Where to find hwloc headers
-# HWLOC_LIBRARIES      - Libraries to link with to enable hwloc usage
-# HWLOC_VERSION        - Version (string) of the hwloc library
-#
+include(hwloc_helpers)
 
-# Function for converting hex version numbers from HWLOC_API_VERSION if necessary
-function(HEX2DEC str res)
-    string(LENGTH "${str}" len)
-    if("${len}" EQUAL 1)
-        if("${str}" MATCHES "[0-9]")
-            set(${res} "${str}" PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[aA]")
-            set(${res} 10 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[bB]")
-            set(${res} 11 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[cC]")
-            set(${res} 12 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[dD]")
-            set(${res} 13 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[eE]")
-            set(${res} 14 PARENT_SCOPE)
-        elseif( "${str}" MATCHES "[fF]")
-            set(${res} 15 PARENT_SCOPE)
-        else()
-            return()
-        endif()
-    else()
-        string(SUBSTRING "${str}" 0 1 str1)
-        string(SUBSTRING "${str}" 1 -1 str2)
-        hex2dec(${str1} res1)
-        hex2dec(${str2} res2)
-        math(EXPR val "16 * ${res1} + ${res2}")
-        set(${res} "${val}" PARENT_SCOPE)
-    endif()
-endfunction()
+find_path(HWLOC_INCLUDE_DIRS
+    NAMES "hwloc.h"
+    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR}
+    PATH_SUFFIXES include src/include
+    DOC "Find the hwloc.h main header"
+    )
 
-find_path(HWLOC_INCLUDE_DIRS "hwloc.h")
-find_library(HWLOC_LIBRARIES "hwloc")
+find_library(HWLOC_LIBRARIES "hwloc"
+    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR}
+    PATH_SUFFIXES hwloc/lib lib lib64
+    DOC "Find the hwloc library"
+    )
 
-if(HWLOC_INCLUDE_DIRS)
-    # If we are not cross-compiling we try to use the hwloc-info program
-    if(NOT CMAKE_CROSSCOMPILING)
-        find_program(HWLOC_INFO "hwloc-info")
-        mark_as_advanced(HWLOC_INFO)
+if (HWLOC_INCLUDE_DIRS)
+    unset(HWLOC_FOUND CACHE)
+    set(HWLOC_FOUND 1)
 
-        if(HWLOC_INFO)
-            execute_process(COMMAND ${HWLOC_INFO} "--version"
-                            RESULT_VARIABLE HWLOC_INFO_RES
-                            OUTPUT_VARIABLE HWLOC_INFO_OUT
-                            ERROR_VARIABLE  HWLOC_INFO_ERR)
-
-            if(HWLOC_INFO_ERR)
-	        message(STATUS "Error executing hwloc-info: ${HWLOC_INFO_ERR}")
-            endif()
-            string(REGEX MATCH "[0-9]+.*[0-9]+" HWLOC_INFO_OUT "${HWLOC_INFO_OUT}")
-            set(HWLOC_VERSION ${HWLOC_INFO_OUT} CACHE STRING "Hwloc library version")
-        endif()
-    endif()
-
-    if (NOT HWLOC_FIND_QUIETLY)
-        message(STATUS "hwloc version: ${HWLOC_VERSION}")
-    endif()
-
-    # Parse header if cross-compiling, or if hwloc-info was not found
+    # Find the version of hwloc found
     if(NOT HWLOC_VERSION)
-        # HWLOC is never installed as a framework on OS X, so this should always work.
         file(READ "${HWLOC_INCLUDE_DIRS}/hwloc.h"
-             HEADER_CONTENTS LIMIT 16384)
+            HEADER_CONTENTS LIMIT 16384)
         string(REGEX REPLACE ".*#define HWLOC_API_VERSION (0[xX][0-9a-fA-F]+).*" "\\1"
-               HWLOC_API_VERSION "${HEADER_CONTENTS}")
+            HWLOC_API_VERSION "${HEADER_CONTENTS}")
         string(SUBSTRING "${HWLOC_API_VERSION}" 4 2 HEX_MAJOR)
         string(SUBSTRING "${HWLOC_API_VERSION}" 6 2 HEX_MINOR)
         string(SUBSTRING "${HWLOC_API_VERSION}" 8 2 HEX_PATCH)
-        hex2dec(${HEX_MAJOR} DEC_MAJOR)
-        hex2dec(${HEX_MINOR} DEC_MINOR)
-        hex2dec(${HEX_PATCH} DEC_PATCH)
-        set(HWLOC_VERSION "${DEC_MAJOR}.${DEC_MINOR}.${DEC_PATCH}" CACHE STRING "HWLOC library version")
+        get_dec_from_hex("${HEX_MAJOR}" DEC_MAJOR)
+        get_dec_from_hex("${HEX_MINOR}" DEC_MINOR)
+        get_dec_from_hex("${HEX_PATCH}" DEC_PATCH)
+        set(HWLOC_VERSION "${DEC_MAJOR}.${DEC_MINOR}.${DEC_PATCH}" CACHE STRING "HWLOC version")
+    endif()
+
+    if (NOT HWLOC_FIND_QUIETLY)
+        if (HWLOC_FOUND AND HWLOC_LIBRARIES)
+            message(STATUS "Looking for HWLOC - found version ${HWLOC_VERSION}")
+        else()
+            message(STATUS "${Magenta}Looking for HWLOC - not found"
+                "\n   Please check that your environment variable HWLOC_DIR"
+                "\n   has been set properly.${ColourReset}")
+        endif()
     endif()
 endif()
 
-string(SUBSTRING "${HWLOC_VERSION}" 0 3 HWLOC_VERSION)
-if(HWLOC_VERSION LESS_EQUAL HWLOC_FIND_VERSION)
-    message(STATUS "Required version ${HWLOC_FIND_VERSION}, but found version ${HWLOC_VERSION}")
-    set(HWLOC_FOUND 0)
-    unset(HWLOC_LIBRARIES)
-    unset(HWLOC_INCLUDE_DIRS)
-else()
-    include(FindPackageHandleStandardArgs)
-    find_package_handle_standard_args(HWLOC
-        REQUIRED_VARS HWLOC_LIBRARIES HWLOC_INCLUDE_DIRS
-        VERSION_VAR HWLOC_VERSION)
-    mark_as_advanced(HWLOC_INCLUDE_DIRS HWLOC_LIBRARIES HWLOC_VERSION)
-endif()
-if(NOT HWLOC_FOUND)
-  unset(HWLOC_LIBRARIES)
-  unset(HWLOC_INCLUDE_DIRS)
+# check a function to validate the find
+if(HWLOC_FOUND AND HWLOC_LIBRARIES)
+
+    # set required libraries for link
+    ginkgo_set_required_test_lib_link(HWLOC)
+
+    # test link
+    unset(HWLOC_WORKS CACHE)
+    include(CheckFunctionExists)
+    check_function_exists(hwloc_topology_init HWLOC_WORKS)
+    mark_as_advanced(HWLOC_WORKS)
+
+    if(NOT HWLOC_WORKS)
+        if(NOT HWLOC_FIND_QUIETLY)
+            message(STATUS "Looking for hwloc : test of hwloc_topology_init with hwloc library fails")
+            message(STATUS "CMAKE_REQUIRED_LIBRARIES: ${CMAKE_REQUIRED_LIBRARIES}")
+            message(STATUS "CMAKE_REQUIRED_INCLUDES: ${CMAKE_REQUIRED_INCLUDES}")
+            message(STATUS "CMAKE_REQUIRED_FLAGS: ${CMAKE_REQUIRED_FLAGS}")
+            message(STATUS "Check in CMakeFiles/CMakeError.log to figure out why it fails")
+        endif()
+    endif()
+    set(CMAKE_REQUIRED_INCLUDES)
+    set(CMAKE_REQUIRED_FLAGS)
+    set(CMAKE_REQUIRED_LIBRARIES)
+
+    string(SUBSTRING "${HWLOC_VERSION}" 0 3 HWLOC_VERSION)
+    if(HWLOC_VERSION LESS_EQUAL HWLOC_FIND_VERSION)
+        message(STATUS "Required version ${HWLOC_FIND_VERSION}, but found version ${HWLOC_VERSION}")
+        set(HWLOC_FOUND 0)
+        unset(HWLOC_LIBRARIES)
+        unset(HWLOC_INCLUDE_DIRS)
+    else()
+        include(FindPackageHandleStandardArgs)
+        find_package_handle_standard_args(HWLOC
+            REQUIRED_VARS HWLOC_LIBRARIES HWLOC_INCLUDE_DIRS HWLOC_WORKS
+            VERSION_VAR HWLOC_VERSION)
+        mark_as_advanced(HWLOC_INCLUDE_DIRS HWLOC_LIBRARIES HWLOC_VERSION HWLOC_WORKS)
+    endif()
+
+endif(HWLOC_FOUND AND HWLOC_LIBRARIES)
+
+if(HWLOC_FOUND)
+    add_library(hwloc SHARED IMPORTED GLOBAL)
+    set_target_properties(hwloc PROPERTIES IMPORTED_LOCATION ${HWLOC_LIBRARIES})
+    set_target_properties(hwloc PROPERTIES INTERFACE_LINK_LIBRARIES ${HWLOC_LIBRARIES})
+    set_target_properties(hwloc PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${HWLOC_INCLUDE_DIRS})
 endif()
 
 if(HWLOC_FIND_REQUIRED AND NOT HWLOC_FOUND)
-    message(SEND_ERROR "HWLOC could not be found. A version mismatch could have occured. The version found was ${HWLOC_VERSION}")
+    unset(HWLOC_LIBRARIES)
+    unset(HWLOC_INCLUDE_DIRS)
+    message(SEND_ERROR "HWLOC could not be found. A version mismatch could have occured. The version found was ${HWLOC_VERSION}.\n"
+        "Hints where hwloc is installed can be given in the HWLOC_DIR variable. Current HWLOC_DIR: ${HWLOC_DIR}")
 endif()

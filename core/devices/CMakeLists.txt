@@ -6,21 +6,17 @@ function(ginkgo_add_object_library name)
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-function(ginkgo_add_normal_library name)
+function(ginkgo_add_library name)
     add_library(${name} ${ARGN})
     ginkgo_compile_features(${name})
     ginkgo_default_includes(${name})
     if(GINKGO_HAVE_HWLOC)
-        target_include_directories(${name}
-            PUBLIC 
-            $<BUILD_INTERFACE:${HWLOC_INCLUDE_DIRS}>
-        )
-        target_link_libraries(${name} PUBLIC ${HWLOC_LIBRARIES})
+        target_link_libraries(${name} PUBLIC hwloc)
     endif()
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
-  
-ginkgo_add_normal_library(ginkgo_core_device machine_topology.cpp)
+
+ginkgo_add_library(ginkgo_core_device machine_topology.cpp)
 ginkgo_install_library(ginkgo_core_device core/devices)
 
 add_subdirectory(cuda)

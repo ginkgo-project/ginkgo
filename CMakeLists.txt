@@ -15,8 +15,6 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-# Add custom modules search path for the find_package functions.
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
@@ -72,7 +70,6 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(GINKGO_USE_EXTERNAL_HWLOC "Use external hwloc libray if available" ON)
 option(GINKGO_FORCE_NO_HWLOC "Forcibly switch off HWLOC dependency" OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
@@ -148,9 +145,12 @@ if(PAPI_sde_FOUND)
 endif()
 
 if(GINKGO_FORCE_NO_HWLOC)
+    set(GINKGO_USE_EXTERNAL_HWLOC 0)
     set(GINKGO_HAVE_HWLOC 0)
     message(STATUS "HWLOC is being forcibly switched off")
 else()
+    # By default always use external HWLOC
+    set(GINKGO_USE_EXTERNAL_HWLOC 1)
     set(GINKGO_HAVE_HWLOC 1)
 endif()
 # Switch off HWLOC for Windows and MacOS
@@ -210,7 +210,7 @@ ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 if(NOT GINKGO_FORCE_NO_HWLOC AND GINKGO_HAVE_HWLOC)
-  ginkgo_find_package(HWLOC hwloc FALSE 2.1)
+    ginkgo_find_package(HWLOC hwloc FALSE 2.1)
 endif()
 set(GKO_HWLOC_XMLFILE "$ENV{HWLOC_XMLFILE}")
 message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
@@ -325,6 +325,7 @@ add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
     -B${Ginkgo_BINARY_DIR}/test_install
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DHWLOC_DIR=${HWLOC_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.
