@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
+project(GinkgoExportBuildTest LANGUAGES CXX)
 
-project(TestInstall LANGUAGES CXX)
-
-find_package(Ginkgo REQUIRED
-            PATHS # The Path where ginkgo was installed
-            # Alternatively, use `cmake -DCMAKE_PREFIX_PATH=<ginkgo_install_dir>` to specify the install directory
-            )
+find_package(Ginkgo REQUIRED)
 
 if(MSVC)
     if(GINKGO_BUILD_SHARED_LIBS)
@@ -17,25 +13,9 @@ if(MSVC)
     endif()
 endif()
 
-include(CheckLanguage)
-check_language(CUDA)
-
-add_executable(test_install test_install.cpp)
-target_compile_features(test_install PUBLIC cxx_std_14)
-target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)
-
-if(GINKGO_BUILD_CUDA)
-    enable_language(CUDA)
-    if(MSVC)
-        if(GINKGO_BUILD_SHARED_LIBS)
-            ginkgo_switch_to_windows_dynamic("CUDA")
-        else()
-            ginkgo_switch_to_windows_static("CUDA")
-        endif()
-    endif()
-    add_executable(test_install_cuda test_install_cuda.cu)
-    target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
-endif()
+add_executable(test_exportbuild ../test_install/test_install.cpp)
+target_compile_features(test_exportbuild PUBLIC cxx_std_14)
+target_link_libraries(test_exportbuild PRIVATE Ginkgo::ginkgo)
 
 if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc"
         AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5"
