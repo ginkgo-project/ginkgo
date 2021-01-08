@@ -737,7 +737,6 @@ protected:
         int device_id = -1;
         int num_cores = 0;
         int num_work_groups_per_core = 0;
-        std::string pci_bus_id = "invalid";
     };
 
 private:
@@ -997,7 +996,10 @@ public:
     }
 
 protected:
-    OmpExecutor() { this->populate_exec_info(get_machine_topology()); }
+    OmpExecutor()
+    {
+        this->OmpExecutor::populate_exec_info(get_machine_topology());
+    }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
 
@@ -1052,7 +1054,10 @@ public:
     }
 
 protected:
-    ReferenceExecutor() = default;
+    ReferenceExecutor()
+    {
+        this->ReferenceExecutor::populate_exec_info(get_machine_topology());
+    }
 
     void populate_exec_info(const MachineTopology *) override
     {
@@ -1222,7 +1227,7 @@ protected:
         this->cuda_exec_info_.num_work_groups_per_core = 0;
         assert(this->cuda_exec_info_.device_id < max_devices &&
                this->cuda_exec_info_.device_id >= 0);
-        this->populate_exec_info(get_machine_topology());
+        this->CudaExecutor::populate_exec_info(get_machine_topology());
         if (this->cuda_exec_info_.closest_cpu_id != -1) {
             get_machine_topology()->bind_to_pus(
                 &this->cuda_exec_info_.closest_cpu_id, 1);
@@ -1431,7 +1436,7 @@ protected:
         this->hip_exec_info_.num_cores = 0;
         this->hip_exec_info_.num_work_groups_per_core = 0;
         assert(this->hip_exec_info_.device_id < max_devices);
-        this->populate_exec_info(get_machine_topology());
+        this->HipExecutor::populate_exec_info(get_machine_topology());
         if (this->hip_exec_info_.closest_cpu_id != -1) {
             get_machine_topology()->bind_to_pus(
                 &this->hip_exec_info_.closest_cpu_id, 1);
