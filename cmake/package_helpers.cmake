@@ -4,13 +4,20 @@ set(PACKAGE_DOWNLOADER_SCRIPT
 set(NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT
     "${CMAKE_CURRENT_LIST_DIR}/DownloadNonCMakeCMakeLists.txt.in")
 
+
+#   Load a package from its repository
+#
+#   \param package_name  Name of the package
+#   \param package_url   Url of the package
+#   \param package_tag   Tag or version of the package to be downloaded.
+#
 function(ginkgo_load_git_package package_name package_url package_tag)
     set(GINKGO_THIRD_PARTY_BUILD_TYPE "Debug")
     if (CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
         set(GINKGO_THIRD_PARTY_BUILD_TYPE "Release")
     endif()
     configure_file(${PACKAGE_DOWNLOADER_SCRIPT}
-                   download/CMakeLists.txt)
+        download/CMakeLists.txt)
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
@@ -46,13 +53,20 @@ function(ginkgo_load_git_package package_name package_url package_tag)
 endfunction()
 
 
+#   Load a package from the url provided and run configure (Non-CMake projects)
+#
+#   \param package_name     Name of the package
+#   \param package_url      Url of the package
+#   \param package_tag      Tag or version of the package to be downloaded.
+#   \param config_command   The command for the configuration step.
+#
 function(ginkgo_load_and_configure_package package_name package_url package_hash config_command)
     set(GINKGO_THIRD_PARTY_BUILD_TYPE "Debug")
     if (CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
         set(GINKGO_THIRD_PARTY_BUILD_TYPE "Release")
     endif()
     configure_file(${NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT}
-                   download/CMakeLists.txt)
+        download/CMakeLists.txt)
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
@@ -61,11 +75,11 @@ function(ginkgo_load_and_configure_package package_name package_url package_hash
             "CMake step for ${package_name}/download failed: ${result}")
     endif()
     execute_process(COMMAND ${CMAKE_COMMAND} --build .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
     if(result)
-      message(FATAL_ERROR
-        "Build step for ${package_name}/download failed: ${result}")
+        message(FATAL_ERROR
+            "Build step for ${package_name}/download failed: ${result}")
     endif()
 endfunction()
 
@@ -145,13 +159,13 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
         set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_DEBUG ${${external_name}_LIBRARY_DEBUG})
         # Since we do not really manage other build types, let's globally use the DEBUG symbols
         if(MSVC)
-        # Only Debug build uses MDd or MTd, and others use MD or MT.
-        # MSVC would like to use same runtime library, so we use Debug third-party in Debug and Release third-party in others.
+            # Only Debug build uses MDd or MTd, and others use MD or MT.
+            # MSVC would like to use same runtime library, so we use Debug third-party in Debug and Release third-party in others.
             set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
-                    ${${external_name}_LIBRARY_RELEASE})
+                ${${external_name}_LIBRARY_RELEASE})
         else()
             if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]"
-                AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+                    AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
                 set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
                     ${${external_name}_LIBRARY_DEBUG})
             endif()
@@ -198,9 +212,9 @@ macro(ginkgo_find_package package_name target_list header_only)
                 list(GET TPL_${_UPACKAGE_NAME}_LIBRARIES ${val} lib)
                 ginkgo_add_tpl_target("${target}" "${_UPACKAGE_NAME}" "${TPL_${_UPACKAGE_NAME}_INCLUDE_DIRS}"
                     "${lib}" ${header_only})
-             endforeach()
+            endforeach()
         else()
-            find_package(${package_name} QUIET ${ARGN})
+            find_package(${package_name} ${ARGN})
             if (${package_name}_FOUND)
                 message(STATUS "Using external version of package ${package_name}. In case of problems, consider setting -DGINKGO_USE_EXTERNAL_${_UPACKAGE_NAME}=OFF.")
             else()
@@ -213,19 +227,19 @@ endmacro(ginkgo_find_package)
 
 #   Download a file and verify the download
 #
-#   \param url Name of package to be found
-#   \param filename      For TPL packages, declare a new target for each library
-#   \param hash_type      For TPL packages, declare the tpl package as header only
-#   \param hash             Extra specifications for the package finder
+#   \param url          The url of file to be downloaded
+#   \param filename     The name of the file
+#   \param hash_type    The type of hash, See CMake file() documentation for more details.
+#   \param hash         The hash itself, See CMake file() documentation for more details.
 #
 function(ginkgo_download_file url filename hash_type hash)
-  file(DOWNLOAD ${url} ${filename}
-    TIMEOUT 60  # seconds
-    EXPECTED_HASH "${hash_type}=${hash}"
-    TLS_VERIFY ON)
-  if(EXISTS ${filename})
-    message(STATUS "${filename} downloaded from ${url}")
-  else()
-    message(FATAL_ERROR "Download of ${filename} failed.")
-  endif() 
+    file(DOWNLOAD ${url} ${filename}
+        TIMEOUT 60  # seconds
+        EXPECTED_HASH "${hash_type}=${hash}"
+        TLS_VERIFY ON)
+    if(EXISTS ${filename})
+        message(STATUS "${filename} downloaded from ${url}")
+    else()
+        message(FATAL_ERROR "Download of ${filename} failed.")
+    endif()
 endfunction(ginkgo_download_file)

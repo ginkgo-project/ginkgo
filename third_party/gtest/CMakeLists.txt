@@ -19,7 +19,3 @@ ginkgo_add_external_target(GTest::GTest gtest src/googletest/include build/lib
     STATIC "d" gtest_external FALSE)
 ginkgo_add_external_target(GTest::Main gtest_main src/googletest/include build/lib
     STATIC "d" gtest_external FALSE)
-ginkgo_add_external_target(GMock::GMock gmock src/googlemock/include build/lib
-    STATIC "d" gmock_external FALSE)
-ginkgo_add_external_target(GMock::Main gmock_main src/googlemock/include build/lib
-    STATIC "d" gmock_external FALSE)

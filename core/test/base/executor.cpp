@@ -165,6 +165,9 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
+#if GKO_HAVE_HWLOC
+
+
 TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 {
 #if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
@@ -176,9 +179,6 @@ TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 
     ASSERT_EQ(std::thread::hardware_concurrency(), num_cpus);
 }
-
-
-#if GKO_HAVE_HWLOC
 
 
 inline int get_os_id(int log_id)
