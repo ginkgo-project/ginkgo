@@ -109,8 +109,8 @@ MachineTopology::MachineTopology()
 
 
 void MachineTopology::hwloc_binding_helper(
-    const std::tuple<std::vector<MachineTopology::normal_obj_info>,
-                     MachineTopology::hwloc_manager<hwloc_bitmap_s>> &obj,
+    const std::tuple<std::vector<MachineTopology::normal_obj_info>, topo_bitmap>
+        &obj,
     const int *id, const size_type num_ids,
     const MachineTopology::BitMapType &bitmap_type) const
 {
@@ -159,24 +159,25 @@ void MachineTopology::hwloc_binding_helper(
 }
 
 
-void MachineTopology::hwloc_print_children(const hwloc_obj_t obj,
+void MachineTopology::hwloc_print_children(std::ostream &os,
+                                           const hwloc_obj_t obj,
                                            const int depth)
 {
 #if GKO_HAVE_HWLOC
     char type[32], attr[1024];
     unsigned i;
     hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
-    std::clog << std::string(2 * depth, ' ') << type;
+    os << std::string(2 * depth, ' ') << type;
     if (obj->os_index != (unsigned)-1) {
         std::clog << "#" << obj->os_index;
     }
     hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
     if (*attr) {
-        std::clog << "(" << attr << ")";
+        os << "(" << attr << ")";
     }
-    std::clog << std::endl;
+    os << std::endl;
     for (i = 0; i < obj->arity; i++) {
-        hwloc_print_children(obj->children[i], depth + 1);
+        hwloc_print_children(os, obj->children[i], depth + 1);
     }
 #endif
 }
@@ -184,8 +185,8 @@ void MachineTopology::hwloc_print_children(const hwloc_obj_t obj,
 
 void MachineTopology::load_objects(
     hwloc_obj_type_t type,
-    std::tuple<std::vector<MachineTopology::normal_obj_info>,
-               MachineTopology::hwloc_manager<hwloc_bitmap_s>> &objects)
+    std::tuple<std::vector<MachineTopology::normal_obj_info>, topo_bitmap>
+        &objects)
 {
 #if GKO_HAVE_HWLOC
     std::get<1>(objects) =
@@ -204,7 +205,7 @@ void MachineTopology::load_objects(
 }
 
 
-inline int MachineTopology::get_obj_local_id_by_os_index(
+inline int MachineTopology::get_obj_id_by_os_index(
     std::vector<MachineTopology::normal_obj_info> &objects,
     size_type os_index) const
 {
@@ -219,7 +220,7 @@ inline int MachineTopology::get_obj_local_id_by_os_index(
 }
 
 
-inline int MachineTopology::get_obj_local_id_by_gp_index(
+inline int MachineTopology::get_obj_id_by_gp_index(
     std::vector<MachineTopology::normal_obj_info> &objects,
     size_type gp_index) const
 {
@@ -257,18 +258,18 @@ void MachineTopology::load_objects(
                                   ancestor->nodeset);
         // Find the cpu object closest to this device from the ancestor cpuset
         // and store its id for binding purposes
-        vector.back().closest_cpu_id = get_obj_local_id_by_os_index(
+        vector.back().closest_cpu_id = get_obj_id_by_os_index(
             std::get<0>(this->pus_), hwloc_bitmap_first(ancestor_cpuset));
         // Get local id of the ancestor object.
         if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_PACKAGE) == 0) {
-            vector.back().ancestor_local_id = get_obj_local_id_by_gp_index(
+            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
                 std::get<0>(this->packages_), ancestor->gp_index);
         } else if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_CORE) == 0) {
-            vector.back().ancestor_local_id = get_obj_local_id_by_gp_index(
+            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
                 std::get<0>(this->cores_), ancestor->gp_index);
         } else if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_NUMANODE) ==
                    0) {
-            vector.back().ancestor_local_id = get_obj_local_id_by_gp_index(
+            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
                 std::get<0>(this->numa_nodes_), ancestor->gp_index);
         }
         hwloc_bitmap_free(ancestor_cpuset);

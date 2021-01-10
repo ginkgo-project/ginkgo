@@ -49,9 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include <gmock/gmock.h>
-
-
 #include <gtest/gtest.h>
 
 
@@ -165,8 +162,7 @@ TEST_F(HipExecutor, CanBindToCores)
     hip->bind_to_cores(bind_core, 2);
 
     cpu_sys = sched_getcpu();
-    EXPECT_THAT(cpu_sys, testing::AnyOf(testing::Eq(get_os_id(3)),
-                                        testing::Eq(get_os_id(6))));
+    ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(6));
 }
 
 
