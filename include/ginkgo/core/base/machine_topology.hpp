@@ -76,9 +76,9 @@ class MachineTopology;
  * the MachineTopology global object in a shared_ptr that any gko function/class
  * can query.
  *
- * This makes sure that that the topology object is not re-initialized every
- * time it is needed and as the topology is is relevant only for the machine,
- * each re-initialization populates the exact same topology tree.
+ * This makes sure that the topology object is not re-initialized every
+ * time it is needed. Since the topology is tied to the machine anyway,
+ * each re-initialization would populate the exact same topology tree.
  *
  * @return  the global MachineTopology object.
  */
@@ -86,7 +86,7 @@ extern const MachineTopology *get_machine_topology();
 
 
 /**
- * The machine topology class represents the heirarchical topology of a machine,
+ * The machine topology class represents the hierarchical topology of a machine,
  * including NUMA nodes, cores and PCI Devices. Various infomation of the
  * machine are gathered with the help of the Hardware Locality library (hwloc).
  *
@@ -95,19 +95,22 @@ extern const MachineTopology *get_machine_topology();
  * closer to the executing object.
  *
  * See the hwloc documentation
- * (https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/) for a more detailed
- * documentation on topology detection and binding interfaces.
+ * (https://www.open-mpi.org/projects/hwloc/doc/) for more detailed
+ * information on topology detection and binding interfaces.
  *
  * @note A global object of MachineTopology type is created when first needed
  * and only destroyed at the end of the program. This means that any subsequent
- * queries will be from the same global object and hence atomic on
- * multi-threaded queries.
+ * queries will be from the same global object and hence use an extra atomic
+ * read.
  */
 class MachineTopology {
     friend const MachineTopology *get_machine_topology();
 
     template <typename T>
     using hwloc_manager = std::unique_ptr<T, std::function<void(T *)>>;
+
+    using topo_bitmap =
+        std::unique_ptr<hwloc_bitmap_s, std::function<void(hwloc_bitmap_s *)>>;
 
 private:
     /**
@@ -361,7 +364,7 @@ protected:
      */
     void hwloc_binding_helper(
         const std::tuple<std::vector<MachineTopology::normal_obj_info>,
-                         MachineTopology::hwloc_manager<hwloc_bitmap_s>> &obj,
+                         topo_bitmap> &obj,
         const int *id, const size_type num_ids,
         const BitMapType &bitmap_type) const;
 
@@ -371,7 +374,8 @@ protected:
      * A helper function that prints the topology tree of an object to a given
      * depth. Provided from the hwloc library.
      */
-    void hwloc_print_children(const hwloc_obj_t obj, const int depth = 1);
+    void hwloc_print_children(std::ostream &os, const hwloc_obj_t obj,
+                              const int depth = 1);
 
     /**
      * @internal
@@ -381,9 +385,9 @@ protected:
      * @note The objects should be sorted by logical index since hwloc uses
      * logical index with these functions
      */
-    void load_objects(hwloc_obj_type_t type,
-                      std::tuple<std::vector<normal_obj_info>,
-                                 hwloc_manager<hwloc_bitmap_s>> &objects);
+    void load_objects(
+        hwloc_obj_type_t type,
+        std::tuple<std::vector<normal_obj_info>, topo_bitmap> &objects);
 
     /**
      * @internal
@@ -413,30 +417,26 @@ protected:
      *
      * @internal
      *
-     * Get local id from the os index
+     * Get object id from the os index
      */
-    inline int get_obj_local_id_by_os_index(
-        std::vector<normal_obj_info> &objects, size_type os_index) const;
+    inline int get_obj_id_by_os_index(std::vector<normal_obj_info> &objects,
+                                      size_type os_index) const;
 
     /**
      *
      * @internal
      *
-     * Get local id from the hwloc index
+     * Get object id from the hwloc index
      */
-    inline int get_obj_local_id_by_gp_index(
-        std::vector<normal_obj_info> &objects, size_type gp_index) const;
+    inline int get_obj_id_by_gp_index(std::vector<normal_obj_info> &objects,
+                                      size_type gp_index) const;
 
 
 private:
-    std::tuple<std::vector<normal_obj_info>, hwloc_manager<hwloc_bitmap_s>>
-        pus_;
-    std::tuple<std::vector<normal_obj_info>, hwloc_manager<hwloc_bitmap_s>>
-        cores_;
-    std::tuple<std::vector<normal_obj_info>, hwloc_manager<hwloc_bitmap_s>>
-        packages_;
-    std::tuple<std::vector<normal_obj_info>, hwloc_manager<hwloc_bitmap_s>>
-        numa_nodes_;
+    std::tuple<std::vector<normal_obj_info>, topo_bitmap> pus_;
+    std::tuple<std::vector<normal_obj_info>, topo_bitmap> cores_;
+    std::tuple<std::vector<normal_obj_info>, topo_bitmap> packages_;
+    std::tuple<std::vector<normal_obj_info>, topo_bitmap> numa_nodes_;
     std::vector<io_obj_info> pci_devices_;
     size_type num_numas_;
 
