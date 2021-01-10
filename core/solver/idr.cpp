@@ -205,6 +205,10 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         subspace_vectors->apply(residual.get(), f.get());
 
         for (size_type k = 0; k < subspace_dim_; k++) {
+            ++total_iter;
+            this->template log<log::Logger::iteration_complete>(
+                this, total_iter, residual.get(), dense_x);
+
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - c_k * g_k - ... - c_s * g_s
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
