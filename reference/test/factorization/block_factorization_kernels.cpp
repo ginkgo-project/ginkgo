@@ -189,7 +189,35 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquareUnsorted)
     GKO_ASSERT_MTX_EQ_SPARSITY(test_mtx, expected_mtx);
 }
 
-TYPED_TEST(BlockFactorization, KernelInitializeLU)
+TYPED_TEST(BlockFactorization, KernelInitializeRowptrsBLUSorted)
+{
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    using Fbcsr = typename TestFixture::Fbcsr;
+
+    std::unique_ptr<const Fbcsr> matrixx = this->sample.generate_fbcsr();
+    const auto reflu = this->sample.generate_initial_values();
+    const gko::size_type nbrowsp1 = matrixx->get_num_block_rows() + 1;
+
+    auto refL = gko::as<Fbcsr>(reflu->get_operators()[0]);
+    auto refU = gko::as<Fbcsr>(reflu->get_operators()[1]);
+
+    gko::Array<index_type> l_row_ptrs(this->refexec, nbrowsp1);
+    gko::Array<index_type> u_row_ptrs(this->refexec, nbrowsp1);
+
+    gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
+        this->refexec, matrixx.get(), l_row_ptrs.get_data(),
+        u_row_ptrs.get_data());
+
+    for (index_type i = 0; i < nbrowsp1; i++) {
+        ASSERT_EQ(l_row_ptrs.get_const_data()[i],
+                  refL->get_const_row_ptrs()[i]);
+        ASSERT_EQ(u_row_ptrs.get_const_data()[i],
+                  refU->get_const_row_ptrs()[i]);
+    }
+}
+
+TYPED_TEST(BlockFactorization, KernelInitializeBLUSorted)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
@@ -216,7 +244,7 @@ TYPED_TEST(BlockFactorization, KernelInitializeLU)
     for (index_type i = 0; i < testL_nnz / bs / bs; i++) testL_colidx[i] = -1;
     for (index_type i = 0; i < testU_nnz / bs / bs; i++) testU_colidx[i] = -1;
 
-    gko::kernels::reference::factorization ::initialize_BLU(
+    gko::kernels::reference::factorization::initialize_BLU(
         this->refexec, matrixx.get(), testL.get(), testU.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(refL, testL);

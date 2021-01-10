@@ -68,8 +68,6 @@ protected:
 };
 
 TYPED_TEST_SUITE(Bilu, gko::test::ValueIndexTypes);
-// typedef testing::Types<std::tuple<float, gko::int32>> Mytypes;
-// TYPED_TEST_SUITE(Bilu, Mytypes);
 
 
 TYPED_TEST(Bilu, FixedDenseBlockInverseNoPivoting)
