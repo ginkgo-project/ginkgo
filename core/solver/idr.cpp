@@ -171,21 +171,21 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
     int total_iter = -1;
 
-    /* Memory movement summary for iteration with subspace dimension d
-     * (3d²+12(d+1))n * values + d * matrix/preconditioner storage
-     * dx SpMV:                      2dn * values + d * storage
-     * dx Preconditioner:            2dn * values + d * storage
-     * 1x multidot (gemm)         (d+1)n
-     * dx step 1 (fused axpys) d(d/2+2)n on average
-     * dx step 2 (fused axpys) d(d/2+2)n on average
-     * dx step 3:               d(2d+4)n on average
-     *   1x orthogonalize g+u    (3k+2)n in kth iteration
-     *   1x multidot (gemm)           kn in (d-k)th iteration
-     *   2x axpy                      6n
-     * 2x dot                         4n
-     * 1x norm2                        n
-     * 1x scale                       2n
-     * 2x axpy                        4n
+    /* Memory movement summary for iteration with subspace dimension s
+     * (11/2s^2+27/2d+...)n * values + (s+1) * matrix/preconditioner storage
+     * dx SpMV:                    2(s+1)n * values + (s+1) * storage
+     * dx Preconditioner:          2(s+1)n * values + (s+1) * storage
+     * 1x multidot (gemm)           (s+1)n
+     * dx step 1 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
+     * dx step 2 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
+     * dx step 3:             s(9/2s+7/2)n = sum k=[0,s) of (8k+s-k+1+6)n
+     *       1x orthogonalize g+u          8kn in iteration k (0-based)
+     *       1x multidot (gemm)       (s-k+1)n in iteration k (0-based)
+     *       2x axpy                        6n
+     * 1x dot                           2n
+     * 2x norm2                         2n
+     * 1x scale                         2n
+     * 2x axpy                          4n
      */
     while (true) {
         ++total_iter;
@@ -210,14 +210,14 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
                 this, total_iter, residual.get(), dense_x);
 
             // c = M \ f = (c_1, ..., c_s)^T
-            // v = residual - c_k * g_k - ... - c_s * g_s
+            // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
                                        residual.get(), g.get(), c.get(),
                                        v.get(), &stop_status));
 
             get_preconditioner()->apply(v.get(), helper.get());
 
-            // u_k = omega * preconditioned_vector + c_k * u_k + ... + c_s * u_s
+            // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
             exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
                                        c.get(), u.get(), &stop_status));
 
@@ -227,18 +227,18 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             // g_k = Au_k
             system_matrix_->apply(u_k.get(), helper.get());
 
-            // for i = 1 to k - 1 do
+            // for i = [0,k)
             //     alpha = p^H_i * g_k / m_i,i
             //     g_k -= alpha * g_i
             //     u_k -= alpha * u_i
             // end for
-            // for i = k to s do
+            // for i = [k,s)
             //     m_i,k = p^H_i * g_k
             // end for
             // beta = f_k / m_k,k
             // residual -= beta * g_k
             // dense_x += beta * u_k
-            // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
+            // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
             exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
                                        alpha.get(), residual.get(), dense_x,
