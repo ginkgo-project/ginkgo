@@ -297,23 +297,19 @@ namespace detail {
 
 
 // In case of a const type, do not provide a write function
-template <int Dimensionality, typename Accessor, typename ScaleType,
-          bool = std::is_const<ScaleType>::value>
+template <int Dimensionality, typename Accessor, typename ScalarType,
+          bool = std::is_const<ScalarType>::value>
 struct enable_write_scalar {
-    static_assert(std::is_const<ScaleType>::value,
-                  "This class must have a constant ScaleType!");
-    using scalar_type = ScaleType;
+    using scalar_type = ScalarType;
 };
 
 // In case of a non-const type, enable the write function
-template <int Dimensionality, typename Accessor, typename ScaleType>
-struct enable_write_scalar<Dimensionality, Accessor, ScaleType, false> {
-    static_assert(!std::is_const<ScaleType>::value,
-                  "This class must NOT have a constant ScaleType!");
+template <int Dimensionality, typename Accessor, typename ScalarType>
+struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
 
-    using scalar_type = ScaleType;
+    using scalar_type = ScalarType;
 
     /**
      * Writes the scalar value at the given indices.
@@ -382,7 +378,7 @@ class scaled_reduced_row_major
           Dimensionality,
           scaled_reduced_row_major<Dimensionality, ArithmeticType, StorageType,
                                    ScalarMask>,
-          ArithmeticType> {
+          ArithmeticType, std::is_const<StorageType>::value> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
