@@ -172,14 +172,17 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     int total_iter = -1;
 
     /* Memory movement summary for iteration with subspace dimension s
-     * (11/2s^2+27/2d+...)n * values + (s+1) * matrix/preconditioner storage
+     * Per iteration:
+     * (11/2s+10+5/(s+1))n * values + matrix/preconditioner storage
+     * For (s+1) iterations:
+     * (11/2s^2+31/2s+15)n * values + (s+1) * matrix/preconditioner storage
      * dx SpMV:                    2(s+1)n * values + (s+1) * storage
      * dx Preconditioner:          2(s+1)n * values + (s+1) * storage
      * 1x multidot (gemm)           (s+1)n
      * dx step 1 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
      * dx step 2 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
-     * dx step 3:             s(9/2s+7/2)n = sum k=[0,s) of (8k+s-k+1+6)n
-     *       1x orthogonalize g+u          8kn in iteration k (0-based)
+     * dx step 3:            s(9/2s+11/2)n = sum k=[0,s) of (8k+2+s-k+1+6)n
+     *       1x orthogonalize g+u      (8k+2)n in iteration k (0-based)
      *       1x multidot (gemm)       (s-k+1)n in iteration k (0-based)
      *       2x axpy                        6n
      * 1x dot                           2n
@@ -232,6 +235,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             //     g_k -= alpha * g_i
             //     u_k -= alpha * u_i
             // end for
+            // store g_k to g
             // for i = [k,s)
             //     m_i,k = p^H_i * g_k
             // end for

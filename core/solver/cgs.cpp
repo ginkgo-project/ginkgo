@@ -139,6 +139,9 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = 0;
     /* Memory movement summary:
+     * Per iteration:
+     * 13.5n * values + matrix/preconditioner storage
+     * Two iterations:
      * 27n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
      * 2x Preconditioner:      4n * values + 2 * storage
