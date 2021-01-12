@@ -198,20 +198,53 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
-    const dim3 block_size{default_block_size, 1, 1};
-    const dim3 grid_dim{static_cast<uint32>(ceildiv(
-                            num_rows, static_cast<size_type>(block_size.x))),
-                        1, 1};
+    constexpr int subwarp_size = config::warp_size;
 
-    kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(fb_l->get_const_row_ptrs()),
-        as_cuda_type(fb_l->get_col_idxs()), as_cuda_type(fb_l->get_values()),
-        as_cuda_type(fb_u->get_const_row_ptrs()),
-        as_cuda_type(fb_u->get_col_idxs()), as_cuda_type(fb_u->get_values()));
+    // const size_type num_rows{system_matrix->get_size()[0]};
+    const IndexType num_b_rows{system_matrix->get_num_block_rows()};
+    const int bs{system_matrix->get_block_size()};
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{
+        static_cast<uint32>(ceildiv(
+            num_b_rows, static_cast<IndexType>(block_size.x / subwarp_size))),
+        1, 1};
+
+    if (bs == 2)
+        kernel::initialize_BLU<subwarp_size, 2><<<grid_dim, block_size>>>(
+            num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(fb_l->get_const_row_ptrs()),
+            as_cuda_type(fb_l->get_col_idxs()),
+            as_cuda_type(fb_l->get_values()),
+            as_cuda_type(fb_u->get_const_row_ptrs()),
+            as_cuda_type(fb_u->get_col_idxs()),
+            as_cuda_type(fb_u->get_values()));
+    else if (bs == 3)
+        kernel::initialize_BLU<subwarp_size, 3><<<grid_dim, block_size>>>(
+            num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(fb_l->get_const_row_ptrs()),
+            as_cuda_type(fb_l->get_col_idxs()),
+            as_cuda_type(fb_l->get_values()),
+            as_cuda_type(fb_u->get_const_row_ptrs()),
+            as_cuda_type(fb_u->get_col_idxs()),
+            as_cuda_type(fb_u->get_values()));
+    else if (bs == 4)
+        kernel::initialize_BLU<subwarp_size, 4><<<grid_dim, block_size>>>(
+            num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(fb_l->get_const_row_ptrs()),
+            as_cuda_type(fb_l->get_col_idxs()),
+            as_cuda_type(fb_l->get_values()),
+            as_cuda_type(fb_u->get_const_row_ptrs()),
+            as_cuda_type(fb_u->get_col_idxs()),
+            as_cuda_type(fb_u->get_values()));
+    else
+        throw ::gko::NotImplemented(__FILE__, __LINE__,
+                                    "add_missing_diaginal_blocks bs>4");
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

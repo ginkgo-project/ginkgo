@@ -184,9 +184,48 @@ __global__
 }
 
 
-template <typename ValueType, typename IndexType>
+namespace detail {
+
+/// Extents of positions relevant for some purpose in a block-row
+template <typename IndexType>
+struct BRowPos {
+    IndexType cur_iz;  ///< Current position in block-row
+    IndexType end_iz;  ///< One-past-the-last position in block-row
+};
+
+/*
+ * Compute the positions in 'this' block row that satisfy a condition and
+ *  are to be operated on in the 'current' iteration by a subwarp
+ *
+ * \param[in] sgrp  The subwarp handling the current block row
+ * \param[in] pred  The condition to be met by the positions identified
+ * \param[in] start_iz  The (common) starting position in the relevant
+ *   values array, w.r.t. the current block row, so far
+ */
+template <int subwarpSize, typename IndexType>
+__device__ BRowPos<IndexType> getBRowPos(
+    const group::thread_block_tile<subwarpSize> &sgrp, const bool pred,
+    const IndexType start_iz)
+{
+    const auto sw_threadidx = sgrp.thread_rank();
+    BRowPos<IndexType> brp{-1, 0};
+    const unsigned ballot = sgrp.ballot(pred);
+    if (ballot) {
+        const int start_low_stid = __ffs(ballot) - 1;
+        const int last_low_stid =
+            subwarpSize - ((__ffs(__brev(ballot)) - 1) % subwarpSize) - 1;
+        brp.cur_iz = start_iz + (sw_threadidx - start_low_stid);
+        brp.end_iz = sgrp.shfl(brp.cur_iz, last_low_stid) + 1;
+    }
+    return brp;
+}
+
+}  // namespace detail
+
+
+template <int subwarpSize, int matBlkSz, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void initialize_BLU(
-    const size_type num_rows, const IndexType *const __restrict__ row_ptrs,
+    const size_type num_b_rows, const IndexType *const __restrict__ row_ptrs,
     const IndexType *const __restrict__ col_idxs,
     const ValueType *const __restrict__ values,
     const IndexType *const __restrict__ l_row_ptrs,
@@ -196,37 +235,114 @@ __global__ __launch_bounds__(default_block_size) void initialize_BLU(
     IndexType *const __restrict__ u_col_idxs,
     ValueType *const __restrict__ u_values)
 {
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
-        // default diagonal to one
-        auto diag_val = one<ValueType>();
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                diag_val = val;
-            }
-            if (col < row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
-                ++l_idx;
-            }
-            if (row < col) {
-                u_col_idxs[u_idx] = col;
-                u_values[u_idx] = val;
-                ++u_idx;
-            }
+    static_assert(subwarpSize <= 32, "32-bit integer intrinsics are used");
+
+    constexpr int matBlkSz_2 = matBlkSz * matBlkSz;
+    constexpr int warps_in_block{default_block_size / subwarpSize};
+    const auto total_subwarp_count =
+        thread::get_subwarp_num_flat<subwarpSize, IndexType>();
+    const auto begin_row =
+        thread::get_subwarp_id_flat<subwarpSize, IndexType>();
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<subwarpSize>(thread_block);
+    const auto sw_threadidx = subwarp_grp.thread_rank();
+    const unsigned sw_id_in_threadblock{threadIdx.x / subwarpSize};
+
+    for (auto brow = begin_row; brow < num_b_rows;
+         brow += total_subwarp_count) {
+        // we treat the diagonal separately
+        __shared__ ValueType diag_val[warps_in_block][matBlkSz_2];
+        if (sw_threadidx < matBlkSz_2) {
+            diag_val[sw_id_in_threadblock][sw_threadidx] = zero<ValueType>();
         }
+        bool encountered_diag{false};
+        int first_diag_iz = -1;
+        const IndexType blockRowSz =
+            (row_ptrs[brow + 1] - row_ptrs[brow]) * matBlkSz_2;
+        IndexType iter_start_liz = 0, iter_start_uiz = matBlkSz_2;
+        for (IndexType iz = sw_threadidx; iz < blockRowSz; iz += subwarpSize) {
+            const IndexType idx = row_ptrs[brow] + iz / matBlkSz_2;
+            const IndexType global_iz = row_ptrs[brow] * matBlkSz_2 + iz;
+
+            const auto bcol = col_idxs[idx];
+            const auto val = values[global_iz];
+
+            const bool diag = (bcol == brow);
+            const auto diagballot = subwarp_grp.ballot(diag);
+            if (diagballot) {
+                const auto first_diag_tid = __ffs(diagballot) - 1;
+
+                /* If this is the first time this warp has encountered an entry
+                 * in the diagonal block, set the starting position
+                 * of the diagonal block relative to the start of the block-row
+                 */
+                if (!encountered_diag) {
+                    first_diag_iz =
+                        (iz / subwarpSize) * subwarpSize + first_diag_tid;
+                }
+
+                encountered_diag = true;
+            }
+
+            // const int num_lower_write{__popc(lowerballot)};
+            // const int num_upper_write{__popc(upperballot)};
+            const detail::BRowPos<IndexType> lowpos =
+                detail::getBRowPos<subwarpSize, IndexType>(
+                    subwarp_grp, bcol < brow, iter_start_liz);
+
+            const detail::BRowPos<IndexType> uppos =
+                detail::getBRowPos<subwarpSize, IndexType>(
+                    subwarp_grp, bcol > brow, iter_start_uiz);
+
+            // save diagonal block for later
+            if (diag) {
+                diag_val[sw_id_in_threadblock][iz - first_diag_iz] = val;
+            } else if (bcol < brow) {
+                const IndexType l_idx =
+                    l_row_ptrs[brow] + lowpos.cur_iz / matBlkSz_2;
+                const IndexType global_l_iz =
+                    l_row_ptrs[brow] * matBlkSz_2 + lowpos.cur_iz;
+                if (global_l_iz % matBlkSz_2 == 0) {
+                    l_col_idxs[l_idx] = bcol;
+                }
+                l_values[global_l_iz] = values[global_iz];
+            } else /*(brow < bcol)*/ {
+                const IndexType u_idx =
+                    u_row_ptrs[brow] + uppos.cur_iz / matBlkSz_2;
+                const IndexType global_u_iz =
+                    u_row_ptrs[brow] * matBlkSz_2 + uppos.cur_iz;
+                if (global_u_iz % matBlkSz_2 == 0) {
+                    u_col_idxs[u_idx] = bcol;
+                }
+                u_values[global_u_iz] = values[global_iz];
+            }
+
+            iter_start_liz =
+                (lowpos.end_iz > 0) ? lowpos.end_iz : iter_start_liz;
+            iter_start_uiz = (uppos.end_iz > 0) ? uppos.end_iz : iter_start_uiz;
+        }
+
         // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        auto u_diag_idx = u_row_ptrs[row];
-        l_col_idxs[l_diag_idx] = row;
-        u_col_idxs[u_diag_idx] = row;
-        l_values[l_diag_idx] = one<ValueType>();
-        u_values[u_diag_idx] = diag_val;
+
+        const auto l_diag_idx = l_row_ptrs[brow + 1] - 1;
+        const auto u_diag_idx = u_row_ptrs[brow];
+        if (sw_threadidx == 0) {
+            l_col_idxs[l_diag_idx] = brow;
+            u_col_idxs[u_diag_idx] = brow;
+        }
+
+        subwarp_grp.sync();
+
+        for (int iz = sw_threadidx; iz < matBlkSz_2; iz += subwarpSize) {
+            const auto l_giz = l_diag_idx * matBlkSz_2 + iz;
+            const auto u_giz = u_diag_idx * matBlkSz_2 + iz;
+            const int bcrd0 = iz / matBlkSz;
+            const int bcrd1 = iz % matBlkSz;
+            l_values[l_giz] =
+                static_cast<ValueType>(static_cast<float>(bcrd0 == bcrd1));
+            u_values[u_giz] = diag_val[sw_id_in_threadblock][iz];
+        }
     }
 }
 

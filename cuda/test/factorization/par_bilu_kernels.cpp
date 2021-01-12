@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
+#include <limits>
 #include <memory>
 #include <random>
 #include <string>
@@ -69,71 +71,43 @@ protected:
     std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
+    std::unique_ptr<const Fbcsr> cyl2d_ref;
+    std::unique_ptr<const Fbcsr> cyl2d_cuda;
+    const value_type tol;
 
     ParBilu()
         : rand_engine(18),
           ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref))
+          cuda(gko::CudaExecutor::create(0, ref)),
+          tol{std::numeric_limits<value_type>::epsilon()}
     // csr_ref(nullptr),
     // csr_cuda(nullptr)
     {}
 
-    // void SetUp() override
-    // {
-    //     std::string file_name(gko::matrices::location_ani4_mtx);
-    //     auto input_file = std::ifstream(file_name, std::ios::in);
-    //     if (!input_file) {
-    //         FAIL() << "Could not find the file \"" << file_name
-    //                << "\", which is required for this test.\n";
-    //     }
-    //     auto csr_ref_temp = gko::read<Csr>(input_file, ref);
-    //     auto csr_cuda_temp = Csr::create(cuda);
-    //     csr_cuda_temp->copy_from(gko::lend(csr_ref_temp));
-    //     // Make sure there are diagonal elements present
-    //     gko::kernels::reference::factorization::add_diagonal_elements(
-    //         ref, gko::lend(csr_ref_temp), false);
-    //     gko::kernels::cuda::factorization::add_diagonal_elements(
-    //         cuda, gko::lend(csr_cuda_temp), false);
-    //     csr_ref = gko::give(csr_ref_temp);
-    //     csr_cuda = gko::give(csr_cuda_temp);
-    // }
-
-    template <typename Mtx>
-    std::unique_ptr<Mtx> gen_mtx(index_type num_rows, index_type num_cols)
+    void SetUp() override
     {
-        return gko::test::generate_random_matrix<Mtx>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<index_type>(0, num_cols - 1),
-            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
-    }
-
-    std::unique_ptr<Fbcsr> gen_unsorted_mtx(const index_type num_rows,
-                                            const index_type num_cols)
-    {
-        using std::swap;
-        auto mtx = gen_mtx<Fbcsr>(num_rows, num_cols);
-        auto values = mtx->get_values();
-        auto col_idxs = mtx->get_col_idxs();
-        const auto row_ptrs = mtx->get_const_row_ptrs();
-        const int bs = mtx->get_block_size();
-        for (int row = 0; row < num_rows; ++row) {
-            const auto row_start = row_ptrs[row];
-            const auto row_end = row_ptrs[row + 1];
-            const int num_row_elements = row_end - row_start;
-            auto idx_dist = std::uniform_int_distribution<index_type>(
-                row_start, row_end - 1);
-            for (int i = 0; i < num_row_elements / 2; ++i) {
-                auto idx1 = idx_dist(rand_engine);
-                auto idx2 = idx_dist(rand_engine);
-                if (idx1 != idx2) {
-                    for (int i = 0; i < bs * bs; i++)
-                        swap(values[idx1 * bs * bs + i],
-                             values[idx2 * bs * bs + i]);
-                    swap(col_idxs[idx1], col_idxs[idx2]);
-                }
-            }
+        std::string file_name(gko::matrices::location_2dcyl1_prefix);
+        file_name += ".mtx";
+        auto input_file = std::ifstream(file_name, std::ios::in);
+        if (!input_file) {
+            FAIL() << "Could not find the file \"" << file_name
+                   << "\", which is required for this test.\n";
         }
-        return mtx;
+        const gko::matrix_data<value_type, index_type> mdata =
+            gko::read_raw(input_file);
+        input_file.close();
+        std::unique_ptr<Fbcsr> ref_temp = Fbcsr::create(ref);
+        ref_temp->set_block_size(4);
+        ref_temp->read(mdata);
+        auto cuda_temp = Fbcsr::create(cuda);
+        cuda_temp->copy_from(gko::lend(ref_temp));
+        // Make sure there are diagonal elements present
+        gko::kernels::reference::factorization::add_diagonal_blocks(
+            ref, gko::lend(ref_temp), false);
+        gko::kernels::cuda::factorization::add_diagonal_blocks(
+            cuda, gko::lend(cuda_temp), false);
+        cyl2d_ref = gko::give(ref_temp);
+        cyl2d_cuda = gko::give(cuda_temp);
     }
 
     void initialize_row_ptrs(std::unique_ptr<const Fbcsr> mat_ref,
@@ -232,6 +206,55 @@ TEST_F(ParBilu, CudaKernelAddDiagonalBlocksUnsortedTwoBlocksMissing)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
     GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
+}
+
+TEST_F(ParBilu, CudaKernelInitializeBLUSorted)
+{
+    const int bs = cyl2d_ref->get_block_size();
+    const gko::size_type num_row_ptrs = cyl2d_ref->get_num_block_rows() + 1;
+    gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
+    gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
+    gko::Array<index_type> l_row_ptrs_cuda{cuda, num_row_ptrs};
+    gko::Array<index_type> u_row_ptrs_cuda{cuda, num_row_ptrs};
+
+    gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
+        ref, gko::lend(cyl2d_ref), l_row_ptrs_ref.get_data(),
+        u_row_ptrs_ref.get_data());
+
+    l_row_ptrs_cuda = l_row_ptrs_ref;
+    u_row_ptrs_cuda = u_row_ptrs_ref;
+
+    const index_type l_nnz = l_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
+    const index_type u_nnz = u_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
+
+    auto test_L =
+        Fbcsr::create(cuda, cyl2d_cuda->get_size(), l_nnz * bs * bs, bs);
+    auto ref_L = Fbcsr::create(ref, cyl2d_ref->get_size(), l_nnz * bs * bs, bs);
+    auto test_U =
+        Fbcsr::create(cuda, cyl2d_cuda->get_size(), u_nnz * bs * bs, bs);
+    auto ref_U = Fbcsr::create(ref, cyl2d_ref->get_size(), u_nnz * bs * bs, bs);
+
+    const bool issorted = cyl2d_ref->is_sorted_by_column_index();
+    EXPECT_TRUE(issorted);
+
+    ref->copy(num_row_ptrs, l_row_ptrs_ref.get_const_data(),
+              ref_L->get_row_ptrs());
+    ref->copy(num_row_ptrs, u_row_ptrs_ref.get_const_data(),
+              ref_U->get_row_ptrs());
+    cuda->copy(num_row_ptrs, l_row_ptrs_cuda.get_const_data(),
+               test_L->get_row_ptrs());
+    cuda->copy(num_row_ptrs, u_row_ptrs_cuda.get_const_data(),
+               test_U->get_row_ptrs());
+
+    gko::kernels::reference::factorization::initialize_BLU(
+        ref, cyl2d_ref.get(), ref_L.get(), ref_U.get());
+    gko::kernels::cuda::factorization::initialize_BLU(
+        cuda, cyl2d_cuda.get(), test_L.get(), test_U.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(test_L, ref_L);
+    GKO_ASSERT_MTX_EQ_SPARSITY(test_U, ref_U);
+    GKO_ASSERT_MTX_NEAR(test_L, ref_L, tol);
+    GKO_ASSERT_MTX_NEAR(test_U, ref_U, tol);
 }
 
 

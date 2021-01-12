@@ -44,6 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/config.hpp"
+#include "cuda/components/atomic.cuh"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/merging.cuh"
+#include "cuda/components/reduction.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -55,6 +60,9 @@ namespace cuda {
  * @ingroup fbcsr
  */
 namespace fbcsr {
+
+
+#include "common/matrix/csr_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -145,8 +153,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Fbcsr<ValueType, IndexType> *const to_check,
+    bool *const is_sorted)
+{
+    *is_sorted = true;
+    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto block_size = default_block_size;
+    const auto num_brows =
+        static_cast<IndexType>(to_check->get_num_block_rows());
+    const auto num_blocks = ceildiv(num_brows, block_size);
+    kernel::check_unsorted<<<num_blocks, block_size>>>(
+        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+        num_brows, gpu_array.get_data());
+    cpu_array = gpu_array;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
