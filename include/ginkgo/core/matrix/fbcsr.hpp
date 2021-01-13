@@ -306,12 +306,14 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized FBCSR matrix with a block size of 1.
+     * Creates an uninitialized FBCSR matrix with the given block size.
      *
      * @param exec  Executor associated to the matrix
+     * @param block_size  The desired size of the dense square nonzero blocks;
+     *                    defaults to 1.
      */
-    Fbcsr(std::shared_ptr<const Executor> exec)
-        : Fbcsr(std::move(exec), dim<2>{}, {}, 1)
+    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1)
+        : Fbcsr(std::move(exec), dim<2>{}, {}, block_size)
     {}
 
     /**
