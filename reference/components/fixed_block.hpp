@@ -30,82 +30,65 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
+#ifndef GKO_REFERENCE_COMPONENTS_FIXED_BLOCK_HPP_
+#define GKO_REFERENCE_COMPONENTS_FIXED_BLOCK_HPP_
 
 
-#include <memory>
-
-
-#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/fbcsr.hpp>
 
 
 namespace gko {
-namespace kernels {
+namespace blockutils {
 
 
-#define GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)  \
-    void compute_bilu(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Fbcsr<ValueType, IndexType> *system_matrix)
+/**
+ * @brief A dense block of values with compile-time constant dimensions
+ *
+ * The blocks are interpreted as row-major. However, in the future,
+ *  a layout template parameter can be added if needed.
+ *
+ * The primary use is to reinterpret subsets of entries in a big array as
+ *  small dense blocks.
+ *
+ * @tparam ValueType  The numeric type of entries of the block
+ * @tparam nrows  Number of rows
+ * @tparam ncols  Number of columns
+ */
+template <typename ValueType, int nrows, int ncols>
+class FixedBlock final {
+    static_assert(nrows > 0, "Requires positive number of rows!");
+    static_assert(ncols > 0, "Requires positive number of columns!");
+
+public:
+    using value_type = ValueType;
+
+    value_type &at(const int row, const int col)
+    {
+        return vals[row * ncols + col];
+    }
+
+    const value_type &at(const int row, const int col) const
+    {
+        return vals[row * ncols + col];
+    }
+
+    value_type &operator()(const int row, const int col)
+    {
+        return at(row, col);
+    }
+
+    const value_type &operator()(const int row, const int col) const
+    {
+        return at(row, col);
+    }
+
+private:
+    ValueType vals[nrows * ncols];
+};
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
-
-
-namespace omp {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace omp
-
-
-namespace cuda {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace cuda
-
-
-namespace reference {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace reference
-
-
-namespace hip {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-}  // namespace kernels
+}  // namespace blockutils
 }  // namespace gko
 
 
-#endif  // GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
+#endif  // GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_

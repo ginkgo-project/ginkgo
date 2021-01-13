@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -120,7 +120,7 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
         exec->copy_val_to_host(cuda_row_ptrs_add + row_ptrs_size - 1);
     const auto new_num_blocks =
         static_cast<IndexType>(total_additions) +
-        blockutils::getNumBlocks(bs * bs, mtx->get_num_stored_elements());
+        blockutils::get_num_blocks(bs * bs, mtx->get_num_stored_elements());
 
 
     Array<ValueType> new_values{exec, new_num_blocks * bs * bs};

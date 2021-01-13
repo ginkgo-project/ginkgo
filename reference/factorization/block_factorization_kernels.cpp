@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -104,7 +104,7 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     const auto old_nbnz =
-        blockutils::getNumBlocks(bs * bs, mtx->get_num_stored_elements());
+        blockutils::get_num_blocks(bs * bs, mtx->get_num_stored_elements());
     const auto new_nbnz = old_nbnz + missing_blocks;
     Array<ValueType> new_values_array{exec, new_nbnz * bs * bs};
     Array<IndexType> new_col_idxs_array{exec, new_nbnz};
