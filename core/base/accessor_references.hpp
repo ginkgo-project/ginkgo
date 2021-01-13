@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -263,8 +263,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
+        noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
@@ -278,8 +278,8 @@ public:
         return static_cast<arithmetic_type>(*this);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type
-    operator=(reduced_storage &&ref) &&noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(reduced_storage &&ref) &&
+        noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
@@ -384,8 +384,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
+        noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
@@ -400,7 +400,8 @@ public:
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type
-    operator=(scaled_reduced_storage &&ref) &&noexcept
+        operator=(scaled_reduced_storage &&ref) &&
+        noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
