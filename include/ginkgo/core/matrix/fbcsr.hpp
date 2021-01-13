@@ -163,7 +163,9 @@ public:
 
     void move_to(SparsityCsr<ValueType, IndexType> *result) override;
 
-    /** Convert COO data into block CSR
+    /**
+     * Reads a @ref matrix_data into Fbcsr format.
+     * Requires the block size to be set beforehand @sa set_block_size.
      *
      * @warning Unlike Csr::read, here explicit non-zeros are NOT dropped.
      */
@@ -186,7 +188,7 @@ public:
      */
     void sort_by_column_index();
 
-    /*
+    /**
      * Tests if all row entry pairs (value, col_idx) are sorted by column index
      *
      * @returns True if all row entry pairs (value, col_idx) are sorted by
@@ -328,7 +330,8 @@ protected:
           size_type num_nonzeros, int block_size)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
-          nbcols_{blockutils::get_num_blocks(block_size, size[1])},
+          nbcols_{static_cast<index_type>(
+              blockutils::get_num_blocks(block_size, size[1]))},
           values_(exec, num_nonzeros),
           col_idxs_(exec, blockutils::get_num_blocks(block_size * block_size,
                                                      num_nonzeros)),
@@ -345,7 +348,7 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param block_size
+     * @param block_size  Size of the small square dense nonzero blocks
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
@@ -363,7 +366,8 @@ protected:
           RowPtrsArray &&row_ptrs)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
-          nbcols_{blockutils::get_num_blocks(block_size, size[1])},
+          nbcols_{static_cast<index_type>(
+              blockutils::get_num_blocks(block_size, size[1]))},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
@@ -380,7 +384,7 @@ protected:
 
 private:
     int bs_;                      ///< Block size
-    size_type nbcols_;            ///< Number of block-columns
+    index_type nbcols_;           ///< Number of block-columns
     Array<value_type> values_;    ///< Non-zero values of all blocks
     Array<index_type> col_idxs_;  ///< Block-column indices of all blocks
     Array<index_type> row_ptrs_;  ///< Block-row pointers into @ref col_idxs_

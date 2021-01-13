@@ -89,7 +89,7 @@ namespace detail {
  *
  * @internal Currently used only while reading a FBCSR matrix from matrix_data.
  *
- * @tparam ValueType The numeric type of entries of the block
+ * @tparam ValueType  The numeric type of entries of the block
  */
 template <typename ValueType>
 class DenseBlock final {
@@ -153,8 +153,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we compute a SpGeMM
-        throw /*::gko::*/ NotImplemented(__FILE__, __LINE__,
-                                         "SpGeMM for Fbcsr");
+        throw NotImplemented(__FILE__, __LINE__, "SpGeMM for Fbcsr");
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -293,24 +292,22 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
-/* Within blocks, the storage order is row-major.
- * Currently, this implementation is sequential and has complexity O(n log n)
- * assuming nnz = O(n).
- * Can this be changed to a parallel O(n) implementation?
+/*
+ * Currently, this implementation is sequential and has complexity
+ * O(nnz log(nnz)).
+ * @note Can this be changed to a parallel O(nnz) implementation?
  */
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
 {
-    if (data.nonzeros.size() > std::numeric_limits<index_type>::max())
-        throw std::range_error(std::string("file: ") + __FILE__ + ":" +
-                               std::to_string(__LINE__) +
-                               ": List of nonzeros is too big!");
+    GKO_ENSURE_IN_BOUNDS(data.nonzeros.size(),
+                         std::numeric_limits<index_type>::max());
 
     const auto nnz = static_cast<index_type>(data.nonzeros.size());
 
     const int bs = this->bs_;
 
-    using Blk_t = detail::DenseBlock<value_type>;
+    using Block_t = detail::DenseBlock<value_type>;
 
     struct FbEntry {
         index_type block_row;
@@ -328,7 +325,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     };
 
     auto create_block_map = [nnz, bs](const mat_data &mdata) {
-        std::map<FbEntry, Blk_t, FbLess> blocks;
+        std::map<FbEntry, Block_t, FbLess> blocks;
         for (index_type inz = 0; inz < nnz; inz++) {
             const index_type row = mdata.nonzeros[inz].row;
             const index_type col = mdata.nonzeros[inz].column;
@@ -339,22 +336,21 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
             const index_type blockrow = row / bs;
             const index_type blockcol = col / bs;
 
-            Blk_t &nnzblk = blocks[{blockrow, blockcol}];
+            Block_t &nnzblk = blocks[{blockrow, blockcol}];
             if (nnzblk.size() == 0) {
                 nnzblk.resize(bs, bs);
                 nnzblk.zero();
                 nnzblk(localrow, localcol) = val;
             } else {
-                if (nnzblk(localrow, localcol) != gko::zero<value_type>())
-                    throw Error(__FILE__, __LINE__,
-                                "Error: re-visited the same non-zero!");
+                // If this does not happen, we re-visited a nonzero
+                assert(nnzblk(localrow, localcol) == gko::zero<value_type>());
                 nnzblk(localrow, localcol) = val;
             }
         }
         return blocks;
     };
 
-    const std::map<FbEntry, Blk_t, FbLess> blocks = create_block_map(data);
+    const std::map<FbEntry, Block_t, FbLess> blocks = create_block_map(data);
 
     auto tmp = Fbcsr::create(this->get_executor()->get_master(), data.size,
                              blocks.size() * bs * bs, bs);

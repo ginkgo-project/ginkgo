@@ -58,8 +58,8 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Compressed sparse row matrix format namespace.
- * @ref Fbcsr
+ * @brief The fixed-block compressed sparse row matrix format namespace.
+ *
  * @ingroup fbcsr
  */
 namespace fbcsr {
@@ -83,7 +83,6 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto *const cvals = c->get_values();
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
-        // const IndexType crowblkend = (ibrow + 1) * bs * nvecs;
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
              ++i)
             cvals[i] = zero<ValueType>();

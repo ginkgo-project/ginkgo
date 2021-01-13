@@ -61,10 +61,10 @@ public:
     using index_type = IndexType;
 
     /**
-     * @param buffer Segment of memory to be interpreted as an array of 2D
-     * blocks
-     * @param num_rows Number of rows in each block
-     * @param num_cols Number of columns in each block
+     * @param buffer  Pointer to the segment of memory to be interpreted as
+     *                an array of 2D blocks
+     * @param num_rows  Number of rows in each block
+     * @param num_cols  Number of columns in each block
      */
     DenseBlocksView(ValueType *const buffer, const int num_rows,
                     const int num_cols)

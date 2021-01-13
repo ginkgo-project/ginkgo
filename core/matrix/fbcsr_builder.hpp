@@ -68,8 +68,8 @@ public:
     int get_block_size() const { return matrix_->bs_; }
 
     /**
-     * @param matrix An existing FBCSR matrix
-     *        for which intrusive access is needed
+     * @param matrix  An existing FBCSR matrix
+     *                for which intrusive access is needed
      */
     explicit FbcsrBuilder(Fbcsr<ValueType, IndexType> *const matrix)
         : matrix_{matrix}
