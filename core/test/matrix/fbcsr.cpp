@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include <iostream>
+#include <algorithm>
 #include <limits>
 
 
@@ -71,10 +71,9 @@ protected:
         orig_rowptrs.resize(fbsample.nbrows + 1);
         orig_colinds.resize(fbsample.nbnz);
         orig_vals.resize(fbsample.nnz);
-        for (index_type i = 0; i < fbsample.nbrows + 1; i++)
-            orig_rowptrs[i] = r[i];
-        for (index_type i = 0; i < fbsample.nbnz; i++) orig_colinds[i] = c[i];
-        for (index_type i = 0; i < fbsample.nnz; i++) orig_vals[i] = v[i];
+        std::copy(r, r + fbsample.nbrows + 1, orig_rowptrs.data());
+        std::copy(c, c + fbsample.nbnz, orig_colinds.data());
+        std::copy(v, v + fbsample.nnz, orig_vals.data());
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -197,6 +196,15 @@ TYPED_TEST(Fbcsr, ContainsCorrectData)
 }
 
 
+TYPED_TEST(Fbcsr, BlockSizeIsSetCorrectly)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec);
+    m->set_block_size(6);
+    ASSERT_EQ(m->get_block_size(), 6);
+}
+
+
 TYPED_TEST(Fbcsr, CanBeEmpty)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -282,7 +290,6 @@ TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec);
     m->set_block_size(this->fbsample.bs);
-    ASSERT_EQ(m->get_block_size(), this->fbsample.bs);
 
     m->read(this->fbsample.generate_matrix_data());
 
@@ -294,15 +301,13 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
-    gko::matrix_data<value_type, index_type> data;
-
-    this->mtx->write(data);
-    data.ensure_row_major_order();
-
     gko::matrix_data<value_type, index_type> refdata =
         this->fbsample.generate_matrix_data_with_explicit_zeros();
     refdata.ensure_row_major_order();
+
+    gko::matrix_data<value_type, index_type> data;
+    this->mtx->write(data);
+    data.ensure_row_major_order();
 
     ASSERT_EQ(data.size, refdata.size);
     ASSERT_EQ(data.nonzeros.size(), refdata.nonzeros.size());

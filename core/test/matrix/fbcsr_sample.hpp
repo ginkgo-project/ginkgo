@@ -43,12 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fixed_block.hpp"
+#include "core/test/utils.hpp"
 
 
 #define FBCSR_TEST_OFFSET 0.000011118888
-
 #define FBCSR_TEST_C_MAG 0.1 + FBCSR_TEST_OFFSET
-
 #define FBCSR_TEST_IMAGINARY \
     sct(std::complex<remove_complex<ValueType>>(0, FBCSR_TEST_C_MAG))
 
@@ -150,101 +149,20 @@ public:
      */
     std::unique_ptr<Csr> generate_csr() const
     {
-        std::unique_ptr<Csr> csrm =
-            Csr::create(exec, gko::dim<2>{nrows, ncols}, nnz,
-                        std::make_shared<typename Csr::classical>());
-        index_type *const csrrow = csrm->get_row_ptrs();
-        index_type *const csrcols = csrm->get_col_idxs();
-        value_type *const csrvals = csrm->get_values();
-
-        csrrow[0] = 0;
-        csrrow[1] = 6;
-        csrrow[2] = 12;
-        csrrow[3] = 18;
-        csrrow[4] = 24;
-        csrrow[5] = 30;
-        csrrow[6] = 36;
-
-        csrcols[0] = 3;
-        csrvals[0] = 2;
-        csrcols[1] = 4;
-        csrvals[1] = 3;
-        csrcols[2] = 5;
-        csrvals[2] = 4;
-        csrcols[6] = 3;
-        csrvals[6] = 5;
-        csrcols[7] = 4;
-        csrvals[7] = 6;
-        csrcols[8] = 5;
-        csrvals[8] = 7;
-        csrcols[12] = 3;
-        csrvals[12] = 0;
-        csrcols[13] = 4;
-        csrvals[13] = 9;
-        csrcols[14] = 5;
-        csrvals[14] = 0;
-
-        csrcols[3] = 9;
-        csrvals[3] = 4;
-        csrcols[4] = 10;
-        csrvals[4] = 5;
-        csrcols[5] = 11;
-        csrvals[5] = 6;
-        csrcols[9] = 9;
-        csrvals[9] = 7;
-        csrcols[10] = 10;
-        csrvals[10] = 8;
-        csrcols[11] = 11;
-        csrvals[11] = 9;
-        csrcols[15] = 9;
-        csrvals[15] = 10;
-        csrcols[16] = 10;
-        csrvals[16] = 11;
-        csrcols[17] = 11;
-        csrvals[17] = 12;
-
-        csrcols[18] = 0;
-        csrvals[18] = 2;
-        csrcols[19] = 1;
-        csrvals[19] = 3;
-        csrcols[20] = 2;
-        csrvals[20] = 4;
-        csrcols[24] = 0;
-        csrvals[24] = 5;
-        csrcols[25] = 1;
-        csrvals[25] = 6;
-        csrcols[26] = 2;
-        csrvals[26] = 7;
-        csrcols[30] = 0;
-        csrvals[30] = 8;
-        csrcols[31] = 1;
-        csrvals[31] = 9;
-        csrcols[32] = 2;
-        csrvals[32] = 10;
-
-        csrcols[21] = 6;
-        csrvals[21] = 0;
-        csrcols[22] = 7;
-        csrvals[22] = 7;
-        csrcols[23] = 8;
-        csrvals[23] = 8;
-        csrcols[27] = 6;
-        csrvals[27] = 9;
-        csrcols[28] = 7;
-        csrvals[28] = 10;
-        csrcols[29] = 8;
-        csrvals[29] = 11;
-        csrcols[33] = 6;
-        csrvals[33] = 12;
-        csrcols[34] = 7;
-        csrvals[34] = 13;
-        csrcols[35] = 8;
-        csrvals[35] = 14;
-
-        csrvals[34] += FBCSR_TEST_IMAGINARY;
-        csrvals[35] += FBCSR_TEST_IMAGINARY;
-
-        return csrm;
+        gko::Array<index_type> csrrow(exec, {0, 6, 12, 18, 24, 30, 36});
+        gko::Array<index_type> csrcols(
+            exec, {3, 4, 5, 9, 10, 11, 3, 4, 5, 9, 10, 11, 3, 4, 5, 9, 10, 11,
+                   0, 1, 2, 6, 7,  8,  0, 1, 2, 6, 7,  8,  0, 1, 2, 6, 7,  8});
+        // clang-format off
+        gko::Array<value_type> csrvals(exec, I<value_type>
+            {2, 3, 4, 4, 5, 6, 5, 6, 7, 7, 8, 9, 0, 9, 0,
+	         10, 11, 12, 2, 3, 4, 0, 7, 8, 5, 6, 7,
+	         9, 10, 11, 8, 9, 10, 12,
+	         sct<value_type>(13.0) + FBCSR_TEST_IMAGINARY,
+	         sct<value_type>(14.0) + FBCSR_TEST_IMAGINARY});
+        // clang-format on
+        return Csr::create(exec, gko::dim<2>{nrows, ncols}, csrvals, csrcols,
+                           csrrow);
     }
 
     /**
@@ -317,46 +235,12 @@ public:
      */
     MatData generate_matrix_data_with_explicit_zeros() const
     {
-        return MatData({{6, 12},
-                        {{0, 3, 2.0},
-                         {0, 4, 3.0},
-                         {0, 5, 4.0},
-                         {1, 3, 5.0},
-                         {1, 4, 6.0},
-                         {1, 5, 7.0},
-                         {2, 3, 0.0},
-                         {2, 4, 9.0},
-                         {2, 5, 0.0},
-
-                         {0, 9, 4.0},
-                         {0, 10, 5.0},
-                         {0, 11, 6.0},
-                         {1, 9, 7.0},
-                         {1, 10, 8.0},
-                         {1, 11, 9.0},
-                         {2, 9, 10.0},
-                         {2, 10, 11.0},
-                         {2, 11, 12.0},
-
-                         {3, 0, 2.0},
-                         {3, 1, 3.0},
-                         {3, 2, 4.0},
-                         {4, 0, 5.0},
-                         {4, 1, 6.0},
-                         {4, 2, 7.0},
-                         {5, 0, 8.0},
-                         {5, 1, 9.0},
-                         {5, 2, 10.0},
-
-                         {3, 6, 0.0},
-                         {3, 7, 7.0},
-                         {3, 8, 8.0},
-                         {4, 6, 9.0},
-                         {4, 7, 10.0},
-                         {4, 8, 11.0},
-                         {5, 6, 12.0},
-                         {5, 7, sct(13.0) + FBCSR_TEST_IMAGINARY},
-                         {5, 8, sct(14.0) + FBCSR_TEST_IMAGINARY}}});
+        auto mdata = generate_matrix_data();
+        mdata.nonzeros.push_back({2, 3, 0.0});
+        mdata.nonzeros.push_back({2, 5, 0.0});
+        mdata.nonzeros.push_back({3, 6, 0.0});
+        mdata.ensure_row_major_order();
+        return mdata;
     }
 
 private:
@@ -411,24 +295,10 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
-
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 1;
-        r[2] = 3;
-        r[3] = 4;
-        c[0] = 0;
-        c[1] = 0;
-        c[2] = 3;
-        c[3] = 2;
-
+        gko::Array<index_type> r(exec, {0, 1, 3, 4});
+        gko::Array<index_type> c(exec, {0, 0, 3, 2});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
 
         v[0] = 1;
@@ -442,47 +312,20 @@ public:
         v[14] = -2;
         v[15] = -11;
 
-        return mtx;
+        return Fbcsr::create(exec,
+                             gko::dim<2>{static_cast<size_type>(nrows),
+                                         static_cast<size_type>(ncols)},
+                             bs, vals, c, r);
     }
 
     std::unique_ptr<Csr> generate_csr() const
     {
-        std::unique_ptr<Csr> mtx =
-            Csr::create(exec,
-                        gko::dim<2>{static_cast<size_type>(nrows),
-                                    static_cast<size_type>(ncols)},
-                        nnz, std::make_shared<typename Csr::classical>());
-
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 4;
-        r[3] = 8;
-        r[4] = 12;
-        r[5] = 14;
-        r[6] = 16;
-
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 0;
-        c[5] = 1;
-        c[6] = 6;
-        c[7] = 7;
-        c[8] = 0;
-        c[9] = 1;
-        c[10] = 6;
-        c[11] = 7;
-        c[12] = 4;
-        c[13] = 5;
-        c[14] = 4;
-        c[15] = 5;
-
+        gko::Array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
+        gko::Array<index_type> c(
+            exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
-
         v[0] = 1;
         v[1] = 2;
         v[2] = 3;
@@ -494,19 +337,16 @@ public:
         v[14] = -2;
         v[15] = -11;
 
-        return mtx;
+        return Csr::create(exec,
+                           gko::dim<2>{static_cast<size_type>(nrows),
+                                       static_cast<size_type>(ncols)},
+                           vals, c, r,
+                           std::make_shared<typename Csr::classical>());
     }
 
     std::unique_ptr<Diagonal> extract_diagonal() const
     {
-        gko::Array<ValueType> dvals(exec, nrows);
-        ValueType *const dv = dvals.get_data();
-        dv[0] = 1;
-        dv[1] = 0;
-        dv[2] = 0;
-        dv[3] = 0;
-        dv[4] = -12;
-        dv[5] = -11;
+        gko::Array<ValueType> dvals(exec, {1, 0, 0, 0, -12, -11});
         return Diagonal::create(exec, nrows, dvals);
     }
 
@@ -573,24 +413,16 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
-
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 1;
-        r[2] = 2;
-        c[0] = 1;
-        c[1] = 1;
-
+        gko::Array<index_type> c(exec, {1, 1});
+        gko::Array<index_type> r(exec, {0, 1, 2});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = i;
 
-        return mtx;
+        return Fbcsr::create(exec,
+                             gko::dim<2>{static_cast<size_type>(nrows),
+                                         static_cast<size_type>(ncols)},
+                             bs, vals, c, r);
     }
 };
 
@@ -627,24 +459,10 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
-
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 1;
-        r[2] = 3;
-        r[3] = 4;
-        c[0] = 0;
-        c[1] = 0;
-        c[2] = 3;
-        c[3] = 2;
-
+        gko::Array<index_type> r(exec, {0, 1, 3, 4});
+        gko::Array<index_type> c(exec, {0, 0, 3, 2});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
 
         using namespace std::complex_literals;
@@ -659,45 +477,19 @@ public:
         v[14] = -2.0 - 2.15i;
         v[15] = -11.0 - 11.15i;
 
-        return mtx;
+        return Fbcsr::create(exec,
+                             gko::dim<2>{static_cast<size_type>(nrows),
+                                         static_cast<size_type>(ncols)},
+                             bs, vals, c, r);
     }
 
     std::unique_ptr<Csr> generate_csr() const
     {
-        std::unique_ptr<Csr> mtx =
-            Csr::create(exec,
-                        gko::dim<2>{static_cast<size_type>(nrows),
-                                    static_cast<size_type>(ncols)},
-                        nnz, std::make_shared<typename Csr::classical>());
-
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 4;
-        r[3] = 8;
-        r[4] = 12;
-        r[5] = 14;
-        r[6] = 16;
-
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
-        c[4] = 0;
-        c[5] = 1;
-        c[6] = 6;
-        c[7] = 7;
-        c[8] = 0;
-        c[9] = 1;
-        c[10] = 6;
-        c[11] = 7;
-        c[12] = 4;
-        c[13] = 5;
-        c[14] = 4;
-        c[15] = 5;
-
+        gko::Array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
+        gko::Array<index_type> c(
+            exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
 
         using namespace std::complex_literals;
@@ -712,7 +504,11 @@ public:
         v[14] = -2.0 - 2.15i;
         v[15] = -11.0 - 11.15i;
 
-        return mtx;
+        return Csr::create(exec,
+                           gko::dim<2>{static_cast<size_type>(nrows),
+                                       static_cast<size_type>(ncols)},
+                           vals, c, r,
+                           std::make_shared<typename Csr::classical>());
     }
 };
 

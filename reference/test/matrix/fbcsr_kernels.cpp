@@ -539,7 +539,6 @@ TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
 TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 {
     using IndexType = typename TestFixture::index_type;
-
     gko::Array<gko::size_type> row_nnz(this->exec, this->mtx2->get_size()[0]);
 
     gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
@@ -560,7 +559,6 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
     using Csr = typename TestFixture::Csr;
-
     auto csrmtxsq =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
     this->mtxsq->convert_to(csrmtxsq.get());
@@ -578,7 +576,6 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
     using Csr = typename TestFixture::Csr;
-
     auto csrmtx =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
     this->mtx2->convert_to(csrmtx.get());
@@ -602,10 +599,10 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
 {
     using Fbcsr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-
     auto cpmat = this->mtx->clone();
     index_type *const colinds = cpmat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
+
     ASSERT_FALSE(cpmat->is_sorted_by_column_index());
 }
 
@@ -614,6 +611,7 @@ TYPED_TEST(Fbcsr, ExtractsDiagonal)
 {
     using T = typename TestFixture::value_type;
     auto matrix = this->mtx2->clone();
+
     auto diag = matrix->extract_diagonal();
 
     ASSERT_EQ(this->m2diag->get_size(), diag->get_size());
@@ -625,14 +623,13 @@ TYPED_TEST(Fbcsr, ExtractsDiagonal)
 
 TYPED_TEST(Fbcsr, InplaceAbsolute)
 {
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using Csr = typename TestFixture::Csr;
     auto mtx = this->fbsample2.generate_fbcsr();
     const std::unique_ptr<Csr> refabs = this->ref2csrmtx->clone();
     refabs->compute_absolute_inplace();
-
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
 
     mtx->compute_absolute_inplace();
 
@@ -648,7 +645,6 @@ TYPED_TEST(Fbcsr, OutplaceAbsolute)
     using Mtx = typename TestFixture::Mtx;
     using AbsCsr = typename gko::remove_complex<typename TestFixture::Csr>;
     using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
-
     auto mtx = this->fbsample2.generate_fbcsr();
     const std::unique_ptr<const AbsCsr> refabs =
         this->ref2csrmtx->compute_absolute();
@@ -681,13 +677,14 @@ TYPED_TEST(FbcsrComplex, ConvertsComplexToCsr)
     using Fbcsr = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     auto exec = gko::ReferenceExecutor::create();
     gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
     std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
     auto csr_mtx =
         Csr::create(exec, std::make_shared<typename Csr::classical>());
+
     mtx->convert_to(csr_mtx.get());
+
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
 }
 
@@ -698,16 +695,15 @@ TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
     using Fbcsr = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     auto exec = gko::ReferenceExecutor::create();
     gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
     auto csrmtx = csample.generate_csr();
-    auto reftranslinop = csrmtx->conj_transpose();
-    const Csr *const reftrans = static_cast<const Csr *>(reftranslinop.get());
+    auto mtx = csample.generate_fbcsr();
 
-    std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
+    auto reftranslinop = csrmtx->conj_transpose();
+    auto reftrans = static_cast<const Csr *>(reftranslinop.get());
     auto trans = mtx->conj_transpose();
-    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<const Fbcsr *>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftrans, 0.0);
 }
@@ -724,8 +720,6 @@ TYPED_TEST(FbcsrComplex, InplaceAbsolute)
     auto mtx = fbsample.generate_fbcsr();
     auto csrmtx = fbsample.generate_csr();
 
-    using value_type = typename TestFixture::value_type;
-
     mtx->compute_absolute_inplace();
     csrmtx->compute_absolute_inplace();
 
@@ -741,10 +735,8 @@ TYPED_TEST(FbcsrComplex, OutplaceAbsolute)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
-
     gko::testing::FbcsrSample<value_type, index_type> fbsample(
         gko::ReferenceExecutor::create());
-
     auto mtx = fbsample.generate_fbcsr();
     auto csrmtx = fbsample.generate_csr();
 
