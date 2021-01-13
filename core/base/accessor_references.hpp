@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -172,6 +173,27 @@ struct enable_reference_operators {
     GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
 #undef GKO_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
 
+#define GKO_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(_op)                  \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES bool \
+    operator _op(const Reference &ref1, const Reference &ref2)           \
+    {                                                                    \
+        return to_value_type<arithmetic_type>(ref1)                      \
+            _op to_value_type<arithmetic_type>(ref2);                    \
+    }                                                                    \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES bool \
+    operator _op(const Reference &ref, const arithmetic_type &a)         \
+    {                                                                    \
+        return to_value_type<arithmetic_type>(ref) _op a;                \
+    }                                                                    \
+    friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES bool \
+    operator _op(const arithmetic_type &a, const Reference &ref)         \
+    {                                                                    \
+        return a _op to_value_type<arithmetic_type>(ref);                \
+    }
+
+    GKO_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(==)
+#undef GKO_REFERENCE_COMPARISON_OPERATOR_OVERLOAD
+
     friend GKO_ENABLE_REFERENCE_CONSTEXPR GKO_INLINE GKO_ATTRIBUTES
         arithmetic_type
         operator-(const Reference &ref)
@@ -241,8 +263,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(arithmetic_type val) &&noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
@@ -256,8 +278,8 @@ public:
         return static_cast<arithmetic_type>(*this);
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(reduced_storage &&ref) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(reduced_storage &&ref) &&noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
@@ -302,6 +324,16 @@ public:
 private:
     storage_type *const GKO_RESTRICT ptr_;
 };
+
+
+template <typename ArithmeticType, typename StorageType>
+constexpr remove_complex<ArithmeticType> abs(
+    const reduced_storage<ArithmeticType, StorageType> &ref)
+{
+    // For some reason necessary to get the correct abs function
+    using gko::abs;
+    return abs(static_cast<ArithmeticType>(ref));
+}
 
 
 /**
@@ -352,8 +384,8 @@ public:
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
-    constexpr GKO_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
-        noexcept
+    constexpr GKO_ATTRIBUTES arithmetic_type
+    operator=(arithmetic_type val) &&noexcept
     {
         storage_type *const GKO_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
@@ -368,8 +400,7 @@ public:
     }
 
     constexpr GKO_ATTRIBUTES arithmetic_type
-        operator=(scaled_reduced_storage &&ref) &&
-        noexcept
+    operator=(scaled_reduced_storage &&ref) &&noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
@@ -417,6 +448,16 @@ private:
     storage_type *const GKO_RESTRICT ptr_;
     const arithmetic_type scalar_;
 };
+
+
+template <typename ArithmeticType, typename StorageType>
+constexpr remove_complex<ArithmeticType> abs(
+    const scaled_reduced_storage<ArithmeticType, StorageType> &ref)
+{
+    // For some reason necessary to get the correct abs function
+    using gko::abs;
+    return abs(static_cast<ArithmeticType>(ref));
+}
 
 
 }  // namespace reference_class
