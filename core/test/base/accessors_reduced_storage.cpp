@@ -711,7 +711,24 @@ TYPED_TEST(ScaledReducedStorage3d, CanWriteScale)
 {
     using ar_type = typename TestFixture::ar_type;
 
-    this->r->write_scalar(10., 0, 0, 0);
+    this->r->write_scalar_masked(10., 0, 0, 0);
+
+    EXPECT_EQ(this->r(0, 0, 0), ar_type{100.});
+    EXPECT_EQ(this->r(0, 0, 1), ar_type{22.});
+    EXPECT_EQ(this->r(0, 1, 0), ar_type{-120.});
+    EXPECT_EQ(this->r(0, 1, 1), ar_type{26.});
+    EXPECT_EQ(this->r(0, 2, 0), ar_type{140.});
+    EXPECT_EQ(this->r(0, 2, 1), ar_type{-230.});
+    EXPECT_EQ(this->r(0, 3, 0), ar_type{60.});
+    EXPECT_EQ(this->r(0, 3, 1), ar_type{154.});
+}
+
+
+TYPED_TEST(ScaledReducedStorage3d, CanWriteMaskedScale)
+{
+    using ar_type = typename TestFixture::ar_type;
+
+    this->r->write_scalar_direct(10., 0, 0);
 
     EXPECT_EQ(this->r(0, 0, 0), ar_type{100.});
     EXPECT_EQ(this->r(0, 0, 1), ar_type{22.});
@@ -726,8 +743,10 @@ TYPED_TEST(ScaledReducedStorage3d, CanWriteScale)
 
 TYPED_TEST(ScaledReducedStorage3d, CanReadScale)
 {
-    EXPECT_EQ(this->r->read_scalar(0, 0, 0), 1.);
-    EXPECT_EQ(this->r->read_scalar(0, 0, 1), 2.);
+    EXPECT_EQ(this->r->read_scalar_masked(0, 0, 0), 1.);
+    EXPECT_EQ(this->r->read_scalar_masked(0, 0, 1), 2.);
+    EXPECT_EQ(this->r->read_scalar_direct(0, 0), 1.);
+    EXPECT_EQ(this->r->read_scalar_direct(0, 1), 2.);
 }
 
 

@@ -313,6 +313,8 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
 
     /**
      * Writes the scalar value at the given indices.
+     * The number of indices must be equal to the number of dimensions, even
+     * if some of the indices are ignored (depending on the scalar mask).
      *
      * @param value  value to write
      * @param indices  indices where to write the value
@@ -321,14 +323,35 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      */
     template <typename... Indices>
     constexpr GKO_ATTRIBUTES scalar_type
-    write_scalar(scalar_type value, Indices &&... indices) const
+    write_scalar_masked(scalar_type value, Indices &&... indices) const
     {
         static_assert(sizeof...(Indices) == Dimensionality,
                       "Number of indices must match dimensionality!");
         scalar_type *GKO_RESTRICT rest_scalar = self()->scalar_;
-        return rest_scalar[self()->compute_scalar_index(
+        return rest_scalar[self()->compute_mask_scalar_index(
                    std::forward<Indices>(indices)...)] = value;
     }
+
+    /**
+     * Writes the scalar value at the given indices.
+     * Only the actually used indices must be provided, meaning the number of
+     * specified indices must be equal to the number of set bits in the
+     * scalar mask.
+     *
+     * @param value  value to write
+     * @param indices  indices where to write the value
+     *
+     * @returns the written value.
+     */
+    template <typename... Indices>
+    constexpr GKO_ATTRIBUTES scalar_type
+    write_scalar_direct(scalar_type value, Indices &&... indices) const
+    {
+        scalar_type *GKO_RESTRICT rest_scalar = self()->scalar_;
+        return rest_scalar[self()->compute_direct_scalar_index(
+                   std::forward<Indices>(indices)...)] = value;
+    }
+
 
 private:
     constexpr GKO_ATTRIBUTES const Accessor *self() const
@@ -397,7 +420,7 @@ public:
     static_assert(dimensionality <= 32,
                   "Only Dimensionality <= 32 is currently supported");
 
-    // Allow access to both `scalar_` and `compute_scalar_index()`
+    // Allow access to both `scalar_` and `compute_mask_scalar_index()`
     friend class detail::enable_write_scalar<
         dimensionality, scaled_reduced_row_major, scalar_type>;
     friend class range<scaled_reduced_row_major>;
@@ -495,7 +518,8 @@ public:
     }
 
     /**
-     * Reads the scalar value at the given indices.
+     * Reads the scalar value at the given indices. Only indices where the
+     * scalar mask bit is set are considered, the others are ignored.
      *
      * @param indices  indices which data to access
      *
@@ -503,10 +527,28 @@ public:
      */
     template <typename... Indices>
     constexpr GKO_ATTRIBUTES scalar_type
-    read_scalar(Indices &&... indices) const
+    read_scalar_masked(Indices &&... indices) const
     {
         const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
-        return rest_scalar[compute_scalar_index(
+        return rest_scalar[compute_mask_scalar_index(
+            std::forward<Indices>(indices)...)];
+    }
+
+    /**
+     * Reads the scalar value at the given indices. Only the actually used
+     * indices must be provided, meaning the number of specified indices must
+     * be equal to the number of set bits in the scalar mask.
+     *
+     * @param indices  indices which data to access
+     *
+     * @returns the scalar value at the given indices.
+     */
+    template <typename... Indices>
+    constexpr GKO_ATTRIBUTES scalar_type
+    read_scalar_direct(Indices &&... indices) const
+    {
+        const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
+        return rest_scalar[compute_direct_scalar_index(
             std::forward<Indices>(indices)...)];
     }
 
@@ -539,7 +581,8 @@ public:
     {
         helper::multidim_for_each(size_, [this, &other](auto... indices) {
             // especially inefficient if mask has not all bits set
-            this->write_scalar(other.read_scalar(indices...), indices...);
+            this->write_scalar_masked(other.read_scalar_masked(indices...),
+                                      indices...);
             (*this)(indices...) = other(indices...);
         });
     }
@@ -560,7 +603,7 @@ public:
     operator()(Indices... indices) const
     {
         return reference_type{storage_ + compute_index(indices...),
-                              read_scalar(indices...)};
+                              read_scalar_masked(indices...)};
     }
 
     /**
@@ -582,7 +625,7 @@ public:
                        (span{spans}.end - span{spans}.begin)...},
                    storage_ + compute_index((span{spans}.begin)...),
                    storage_stride_,
-                   scalar_ + compute_scalar_index(span{spans}.begin...),
+                   scalar_ + compute_mask_scalar_index(span{spans}.begin...),
                    scalar_stride_};
     }
 
@@ -669,7 +712,7 @@ protected:
 
     template <typename... Indices>
     constexpr GKO_ATTRIBUTES size_type
-    compute_scalar_index(Indices &&... indices) const
+    compute_mask_scalar_index(Indices &&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
@@ -677,6 +720,19 @@ protected:
                                             scalar_stride_dim>(
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
+
+    template <typename... Indices>
+    constexpr GKO_ATTRIBUTES size_type
+    compute_direct_scalar_index(Indices &&... indices) const
+    {
+        static_assert(
+            sizeof...(Indices) == scalar_dim,
+            "Number of indices must match number of set bits in scalar mask!");
+        return helper::compute_masked_index_direct<size_type, scalar_mask,
+                                                   scalar_stride_dim>(
+            size_, scalar_stride_, std::forward<Indices>(indices)...);
+    }
+
 
 private:
     const dim<dimensionality> size_;
