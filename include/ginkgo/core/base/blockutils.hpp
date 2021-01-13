@@ -63,7 +63,7 @@ public:
  *         but throws when they don't divide
  */
 template <typename IndexType>
-IndexType getNumBlocks(const int block_size, const IndexType size)
+IndexType get_num_blocks(const int block_size, const IndexType size)
 {
     if (size % block_size != 0)
         throw BlockSizeError<IndexType>(__FILE__, __LINE__, block_size, size);

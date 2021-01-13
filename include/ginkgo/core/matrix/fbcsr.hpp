@@ -61,6 +61,8 @@ class FbcsrBuilder;
 
 
 /**
+ * @brief Fixed-block compressed sparse row storage matrix format
+ *
  * FBCSR is a matrix format meant for matrices having a natural block structure
  * made up of small, dense, disjoint blocks. It is similar to CSR \sa Csr.
  * However, unlike Csr, each non-zero location stores a small dense block of
@@ -85,22 +87,11 @@ class FbcsrBuilder;
  * matrix::Fbcsr *A, *B, *C;      // matrices
  * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
  * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
- * matrix::Identity *I;         // identity matrix
  *
  * // Applying to Dense matrices computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
- *
- * // Applying to Fbcsr matrices computes a SpGEMM product of two sparse
- * matrices A->apply(B, C)              // C = A*B A->apply(alpha, B, beta, C)
- * // C = alpha*A*B + beta*C
- *
- * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
- * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
  * ```
- * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
- * by block-column index, otherwise the algorithms will produce incorrect
- * results.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -335,11 +326,11 @@ protected:
           size_type num_nonzeros, int block_size)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
-          nbcols_{blockutils::getNumBlocks(block_size, size[1])},
+          nbcols_{blockutils::get_num_blocks(block_size, size[1])},
           values_(exec, num_nonzeros),
-          col_idxs_(exec, blockutils::getNumBlocks(block_size * block_size,
-                                                   num_nonzeros)),
-          row_ptrs_(exec, blockutils::getNumBlocks(block_size, size[0]) + 1)
+          col_idxs_(exec, blockutils::get_num_blocks(block_size * block_size,
+                                                     num_nonzeros)),
+          row_ptrs_(exec, blockutils::get_num_blocks(block_size, size[0]) + 1)
     {}
 
     /**
@@ -370,7 +361,7 @@ protected:
           RowPtrsArray &&row_ptrs)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
-          nbcols_{blockutils::getNumBlocks(block_size, size[1])},
+          nbcols_{blockutils::get_num_blocks(block_size, size[1])},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
