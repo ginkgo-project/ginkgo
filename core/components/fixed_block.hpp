@@ -45,52 +45,6 @@ namespace blockutils {
 
 
 /**
- * @brief A dense block of values with compile-time constant dimensions
- *
- * The blocks are interpreted as row-major. However, in the future,
- *  a layout template parameter can be added if needed.
- *
- * The primary use is to reinterpret subsets of entries in a big array as
- *  small dense blocks.
- *
- * @tparam ValueType  The numeric type of entries of the block
- * @tparam nrows  Number of rows
- * @tparam ncols  Number of columns
- */
-template <typename ValueType, int nrows, int ncols>
-class FixedBlock final {
-    static_assert(nrows > 0, "Requires positive number of rows!");
-    static_assert(ncols > 0, "Requires positive number of columns!");
-
-public:
-    using value_type = ValueType;
-
-    value_type &at(const int row, const int col)
-    {
-        return vals[row * ncols + col];
-    }
-
-    const value_type &at(const int row, const int col) const
-    {
-        return vals[row * ncols + col];
-    }
-
-    value_type &operator()(const int row, const int col)
-    {
-        return at(row, col);
-    }
-
-    const value_type &operator()(const int row, const int col) const
-    {
-        return at(row, col);
-    }
-
-private:
-    ValueType vals[nrows * ncols];
-};
-
-
-/**
  * @brief A view into a an array of dense blocks of some runtime-defined size
  *
  * Accessing BSR values using this type of view abstracts away the

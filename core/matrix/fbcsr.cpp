@@ -270,13 +270,13 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *const result) const
 {
-    using blockutils::getNumBlocks;
+    using blockutils::get_num_blocks;
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
         exec,
-        gko::dim<2>{getNumBlocks(bs_, this->get_size()[0]),
-                    getNumBlocks(bs_, this->get_size()[1])},
-        getNumBlocks(bs_ * bs_, this->get_num_stored_elements()));
+        gko::dim<2>{get_num_blocks(bs_, this->get_size()[0]),
+                    get_num_blocks(bs_, this->get_size()[1])},
+        get_num_blocks(bs_ * bs_, this->get_num_stored_elements()));
 
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;
