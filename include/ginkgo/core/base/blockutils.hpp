@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GINKGO_CORE_BASE_BLOCKUTILS_HPP_
-#define GINKGO_CORE_BASE_BLOCKUTILS_HPP_
+#ifndef GINKGO_PUBLIC_CORE_BASE_BLOCKUTILS_HPP_
+#define GINKGO_PUBLIC_CORE_BASE_BLOCKUTILS_HPP_
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -41,7 +41,12 @@ namespace gko {
 namespace blockutils {
 
 
-/// Error that denotes issues between block sizes and matrix dimensions
+/**
+ * Error that denotes issues between block sizes and matrix dimensions
+ *
+ * \tparam IntexType  Type of index used by the linear algebra object that is
+ *                    incompatible with the requried block size.
+ */
 template <typename IndexType>
 class BlockSizeError : public Error {
 public:
@@ -57,10 +62,12 @@ public:
 /**
  * Computes the number of blocks
  *
- * @param block_size The size of each block
- * @param size The total size of some array/vector
- * @return The quotient of the size divided by the block size
- *         but throws when they don't divide
+ * @param  block_size The size of each block
+ * @param  size The total size of some array/vector
+ * @return  The number of blocks, ie.,
+ *          quotient of the size divided by the block size.
+ *
+ * @throw BlockSizeError  when block_size does not divide the total size.
  */
 template <typename IndexType>
 IndexType get_num_blocks(const int block_size, const IndexType size)
