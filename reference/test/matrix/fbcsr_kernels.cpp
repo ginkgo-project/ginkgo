@@ -545,8 +545,6 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
     gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
         this->exec, this->mtx2.get(), &row_nnz);
 
-    // const gko::Array<IndexType> refrnnz =
-    // this->fbsample2.getNonzerosPerRow();
     gko::Array<gko::size_type> refrnnz(this->exec, this->mtx2->get_size()[0]);
     gko::kernels::reference::csr ::calculate_nonzeros_per_row(
         this->exec, this->ref2csrmtx.get(), &refrnnz);
