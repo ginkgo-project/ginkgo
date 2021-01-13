@@ -124,18 +124,18 @@ namespace detail {
 
 
 /**
- * This helper must be walked through in reverse (highest to lowest dimension)
- * in order to properly use the stride for the scalar indices. The mask
- * indicates which indices are actually used. The least significant bit set
- * means using the last index, second bit corresponds to the second last
- * dimension, and so on.
+ * This helper walkes through the index arguments from left to right (lowest to
+ * highest dimension) in order to properly use the stride for the scalar
+ * indices. The mask indicates which indices are actually used. The least
+ * significant bit set means using the last index, second bit corresponds to the
+ * second last dimension, and so on.
  *
  * Basically, this computes indices in a similar fashion as `row_major_helper_s`
  * while having a mask signaling which indices to skip.
  *
- * Example: Mask = 0b01101
+ * Example: Mask = 0b1101
  * compute(stride, tuple(x1, x2, x3, x4))
- * -> x4 + x2 * stride[2] + x1 * stride[1]
+ * -> x1 * stride[1] + x2 * stride[2] + x4    (x3 skipped since bit not set)
  */
 template <typename ValueType, size_type mask, size_type set_bits_processed,
           size_type stride_size, size_type dim_idx, size_type total_dim,
@@ -184,9 +184,9 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
-    compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First first,
-                Indices &&... idxs)
+    compute_mask_idx(const dim<total_dim> &size,
+                     const std::array<ValueType, stride_size> &stride,
+                     First first, Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
@@ -198,8 +198,30 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
                    row_major_masked_helper_s<
                        ValueType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
-                       total_dim>::compute_idx(size, stride,
-                                               std::forward<Indices>(idxs)...);
+                       total_dim>::compute_mask_idx(size, stride,
+                                                    std::forward<Indices>(
+                                                        idxs)...);
+    }
+
+    template <typename First, typename... Indices>
+    static constexpr GKO_ATTRIBUTES ValueType
+    compute_direct_idx(const dim<total_dim> &size,
+                       const std::array<ValueType, stride_size> &stride,
+                       First first, Indices &&... idxs)
+    {
+        static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
+                      "Mismatching number of Idxs!");
+        // If it is the last set dimension, there is no need for a stride
+        return GKO_ASSERT(first < size[dim_idx]),
+               first * (set_bits_processed == stride_size
+                            ? 1
+                            : stride[set_bits_processed]) +
+                   row_major_masked_helper_s<
+                       ValueType, mask, set_bits_processed + 1, stride_size,
+                       dim_idx + 1,
+                       total_dim>::compute_direct_idx(size, stride,
+                                                      std::forward<Indices>(
+                                                          idxs)...);
     }
 };
 
@@ -236,9 +258,9 @@ struct row_major_masked_helper_s<ValueType, mask, 0, stride_size, dim_idx,
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
-    compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First first,
-                Indices &&... idxs)
+    compute_mask_idx(const dim<total_dim> &size,
+                     const std::array<ValueType, stride_size> &stride,
+                     First first, Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
@@ -250,8 +272,30 @@ struct row_major_masked_helper_s<ValueType, mask, 0, stride_size, dim_idx,
                    row_major_masked_helper_s<
                        ValueType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
-                       total_dim>::compute_idx(size, stride,
-                                               std::forward<Indices>(idxs)...);
+                       total_dim>::compute_mask_idx(size, stride,
+                                                    std::forward<Indices>(
+                                                        idxs)...);
+    }
+
+    template <typename First, typename... Indices>
+    static constexpr GKO_ATTRIBUTES ValueType
+    compute_direct_idx(const dim<total_dim> &size,
+                       const std::array<ValueType, stride_size> &stride,
+                       First first, Indices &&... idxs)
+    {
+        static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
+                      "Mismatching number of Idxs!");
+        // If it is the last set dimension, there is no need for a stride
+        return GKO_ASSERT(first < size[dim_idx]),
+               first * (set_bits_processed == stride_size
+                            ? 1
+                            : stride[set_bits_processed]) +
+                   row_major_masked_helper_s<
+                       ValueType, mask, set_bits_processed + 1, stride_size,
+                       dim_idx + 1,
+                       total_dim>::compute_direct_idx(size, stride,
+                                                      std::forward<Indices>(
+                                                          idxs)...);
     }
 };
 
@@ -287,16 +331,27 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
 
     template <typename First, typename... Indices>
     static constexpr GKO_ATTRIBUTES ValueType
-    compute_idx(const dim<total_dim> &size,
-                const std::array<ValueType, stride_size> &stride, First,
-                Indices &&... idxs)
+    compute_mask_idx(const dim<total_dim> &size,
+                     const std::array<ValueType, stride_size> &stride, First,
+                     Indices &&... idxs)
     {
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
         return row_major_masked_helper_s<
             ValueType, mask, set_bits_processed, stride_size, dim_idx + 1,
-            total_dim>::compute_idx(size, stride,
-                                    std::forward<Indices>(idxs)...);
+            total_dim>::compute_mask_idx(size, stride,
+                                         std::forward<Indices>(idxs)...);
+    }
+
+    template <typename... Indices>
+    static constexpr GKO_ATTRIBUTES ValueType compute_direct_idx(
+        const dim<total_dim> &size,
+        const std::array<ValueType, stride_size> &stride, Indices &&... idxs)
+    {
+        return row_major_masked_helper_s<
+            ValueType, mask, set_bits_processed, stride_size, dim_idx + 1,
+            total_dim>::compute_direct_idx(size, stride,
+                                           std::forward<Indices>(idxs)...);
     }
 };
 
@@ -321,7 +376,12 @@ struct row_major_masked_helper_s<ValueType, mask, set_bits_processed,
         return 1;
     }
 
-    static constexpr GKO_ATTRIBUTES ValueType compute_idx(
+    static constexpr GKO_ATTRIBUTES ValueType compute_mask_idx(
+        const dim<total_dim> &, const std::array<ValueType, stride_size> &)
+    {
+        return 0;
+    }
+    static constexpr GKO_ATTRIBUTES ValueType compute_direct_idx(
         const dim<total_dim> &, const std::array<ValueType, stride_size> &)
     {
         return 0;
@@ -344,7 +404,24 @@ constexpr GKO_ATTRIBUTES auto compute_masked_index(
 {
     return detail::row_major_masked_helper_s<
         ValueType, mask, 0, stride_size, 0,
-        total_dim>::compute_idx(size, stride, std::forward<Indices>(idxs)...);
+        total_dim>::compute_mask_idx(size, stride,
+                                     std::forward<Indices>(idxs)...);
+}
+
+
+/**
+ * Computes the memory index for the given indices considering the stride.
+ */
+template <typename ValueType, size_type mask, size_type stride_size,
+          size_type total_dim, typename... Indices>
+constexpr GKO_ATTRIBUTES auto compute_masked_index_direct(
+    const dim<total_dim> &size,
+    const std::array<ValueType, stride_size> &stride, Indices &&... idxs)
+{
+    return detail::row_major_masked_helper_s<
+        ValueType, mask, 0, stride_size, 0,
+        total_dim>::compute_direct_idx(size, stride,
+                                       std::forward<Indices>(idxs)...);
 }
 
 
