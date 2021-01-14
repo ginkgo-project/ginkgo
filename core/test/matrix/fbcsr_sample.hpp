@@ -174,9 +174,9 @@ public:
         gko::Array<IndexType> rowptrs(exec, nbrows + 1);
         const std::unique_ptr<const Fbcsr> fbmat = generate_fbcsr();
         for (index_type i = 0; i < nbrows + 1; i++)
-            rowptrs.get_data()[i] = fbmat->get_row_ptrs()[i];
+            rowptrs.get_data()[i] = fbmat->get_const_row_ptrs()[i];
         for (index_type i = 0; i < nbnz; i++)
-            colids.get_data()[i] = fbmat->get_col_idxs()[i];
+            colids.get_data()[i] = fbmat->get_const_col_idxs()[i];
         return SparCsr::create(exec, gko::dim<2>{nbrows, nbcols}, colids,
                                rowptrs);
     }

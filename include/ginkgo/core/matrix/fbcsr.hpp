@@ -202,14 +202,6 @@ public:
     value_type *get_values() noexcept { return values_.get_data(); }
 
     /**
-     * @see Fbcsr::get_const_values()
-     */
-    const value_type *get_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
-
-    /**
      * @copydoc Fbcsr::get_values()
      *
      * @note This is the constant version of the function, which can be
@@ -227,14 +219,6 @@ public:
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
-     * @see Fbcsr::get_const_col_idxs()
-     */
-    const index_type *get_col_idxs() const noexcept
-    {
-        return col_idxs_.get_const_data();
-    }
-
-    /**
      * @copydoc Fbcsr::get_col_idxs()
      *
      * @note This is the constant version of the function, which can be
@@ -250,14 +234,6 @@ public:
      * @return The row pointers of the matrix.
      */
     index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
-
-    /**
-     * @see Fbcsr::get_const_row_ptrs()
-     */
-    const index_type *get_row_ptrs() const noexcept
-    {
-        return row_ptrs_.get_const_data();
-    }
 
     /**
      * @copydoc Fbcsr::get_row_ptrs()

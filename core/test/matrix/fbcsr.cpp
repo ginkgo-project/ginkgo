@@ -145,7 +145,7 @@ TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
         fbmtx->get_const_values(), bs, bs);
 
     for (index_type ibrow = 0; ibrow < this->fbsample.nbrows; ibrow++) {
-        const index_type *const browptr = fbmtx->get_row_ptrs();
+        const index_type *const browptr = fbmtx->get_const_row_ptrs();
         const index_type numblocksbrow = browptr[ibrow + 1] - browptr[ibrow];
         for (index_type irow = ibrow * bs; irow < ibrow * bs + bs; irow++) {
             const index_type rowstart =
@@ -154,7 +154,7 @@ TYPED_TEST(Fbcsr, SampleGeneratorIsCorrect)
             ASSERT_EQ(csmtx->get_const_row_ptrs()[irow], rowstart);
         }
 
-        const index_type *const bcolinds = fbmtx->get_col_idxs();
+        const index_type *const bcolinds = fbmtx->get_const_col_idxs();
 
         for (index_type ibnz = browptr[ibrow]; ibnz < browptr[ibrow + 1];
              ibnz++) {
