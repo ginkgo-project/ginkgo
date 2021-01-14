@@ -109,104 +109,47 @@ MachineTopology::MachineTopology()
 
 
 void MachineTopology::hwloc_binding_helper(
-    const std::tuple<std::vector<MachineTopology::normal_obj_info>, topo_bitmap>
-        &obj,
-    const int *id, const size_type num_ids,
-    const MachineTopology::BitMapType &bitmap_type) const
+    const std::vector<MachineTopology::normal_obj_info> &obj, const int *id,
+    const size_type num_ids) const
 {
 #if GKO_HAVE_HWLOC
-    auto bitmap_cur = hwloc_bitmap_alloc();
     auto bitmap_toset = hwloc_bitmap_alloc();
-    auto bitmap_res = hwloc_bitmap_alloc();
-    // Get current bitmap
-    hwloc_get_cpubind(this->topo_.get(), bitmap_cur, 0);
-    // Set the given ids to a new bitmap
+    // Set the given ids to a bitmap
     for (auto i = 0; i < num_ids; ++i) {
-        GKO_ASSERT(id[i] < std::get<0>(obj).size());
+        GKO_ASSERT(id[i] < obj.size());
         GKO_ASSERT(id[i] >= 0);
-        hwloc_bitmap_set(bitmap_toset, std::get<0>(obj)[id[i]].os_id);
-        // Check if this id has been bound before, Binding multiple threads to
-        // same object may not be suitable.
-        if (hwloc_bitmap_isset(std::get<1>(obj).get(),
-                               std::get<0>(obj)[id[i]].os_id)) {
-            hwloc_bitmap_clr(bitmap_toset, std::get<0>(obj)[id[i]].os_id);
-        }
-    }
-    // Log the bound ids to the global bitmap.
-    hwloc_bitmap_and(std::get<1>(obj).get(), std::get<1>(obj).get(),
-                     bitmap_toset);
-    // Depending on the passed in BitMapType, do the binary operation
-    // Op(current_bitmap, toset_bitmap) and use the resulting bitmap to bind the
-    // cpu.
-    if (bitmap_type == BitMapType::bitmap_set) {
-        hwloc_bitmap_free(bitmap_res);
-        bitmap_res = hwloc_bitmap_dup(bitmap_toset);
-    } else if (bitmap_type == BitMapType::bitmap_or) {
-        hwloc_bitmap_or(bitmap_res, bitmap_cur, bitmap_toset);
-    } else if (bitmap_type == BitMapType::bitmap_and) {
-        hwloc_bitmap_and(bitmap_res, bitmap_cur, bitmap_toset);
-    } else if (bitmap_type == BitMapType::bitmap_andnot) {
-        hwloc_bitmap_andnot(bitmap_res, bitmap_cur, bitmap_toset);
+        hwloc_bitmap_set(bitmap_toset, obj[id[i]].os_id);
     }
 
     // Singlify to reduce expensive migrations.
-    hwloc_bitmap_singlify(bitmap_res);
-    hwloc_set_cpubind(this->topo_.get(), bitmap_res, 0);
-    hwloc_bitmap_free(bitmap_cur);
+    hwloc_bitmap_singlify(bitmap_toset);
+    hwloc_set_cpubind(this->topo_.get(), bitmap_toset, 0);
     hwloc_bitmap_free(bitmap_toset);
-    hwloc_bitmap_free(bitmap_res);
-#endif
-}
-
-
-void MachineTopology::hwloc_print_children(std::ostream &os,
-                                           const hwloc_obj_t obj,
-                                           const int depth)
-{
-#if GKO_HAVE_HWLOC
-    char type[32], attr[1024];
-    unsigned i;
-    hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
-    os << std::string(2 * depth, ' ') << type;
-    if (obj->os_index != (unsigned)-1) {
-        std::clog << "#" << obj->os_index;
-    }
-    hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
-    if (*attr) {
-        os << "(" << attr << ")";
-    }
-    os << std::endl;
-    for (i = 0; i < obj->arity; i++) {
-        hwloc_print_children(os, obj->children[i], depth + 1);
-    }
 #endif
 }
 
 
 void MachineTopology::load_objects(
     hwloc_obj_type_t type,
-    std::tuple<std::vector<MachineTopology::normal_obj_info>, topo_bitmap>
-        &objects)
+    std::vector<MachineTopology::normal_obj_info> &objects) const
 {
 #if GKO_HAVE_HWLOC
-    std::get<1>(objects) =
-        hwloc_manager<hwloc_bitmap_s>(init_bitmap(), hwloc_bitmap_free);
     // Get the number of normal objects of a certain type (Core, PU, Machine
     // etc.).
     unsigned num_objects = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
     for (unsigned i = 0; i < num_objects; i++) {
         // Get the actual normal object of the given type.
         hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
-        std::get<0>(objects).push_back(
-            normal_obj_info{obj, obj->logical_index, obj->os_index,
-                            obj->gp_index, hwloc_bitmap_first(obj->nodeset)});
+        objects.push_back(normal_obj_info{obj, obj->logical_index,
+                                          obj->os_index, obj->gp_index,
+                                          hwloc_bitmap_first(obj->nodeset)});
     }
 #endif
 }
 
 
 inline int MachineTopology::get_obj_id_by_os_index(
-    std::vector<MachineTopology::normal_obj_info> &objects,
+    const std::vector<MachineTopology::normal_obj_info> &objects,
     size_type os_index) const
 {
 #if GKO_HAVE_HWLOC
@@ -221,7 +164,7 @@ inline int MachineTopology::get_obj_id_by_os_index(
 
 
 inline int MachineTopology::get_obj_id_by_gp_index(
-    std::vector<MachineTopology::normal_obj_info> &objects,
+    const std::vector<MachineTopology::normal_obj_info> &objects,
     size_type gp_index) const
 {
 #if GKO_HAVE_HWLOC
@@ -236,11 +179,12 @@ inline int MachineTopology::get_obj_id_by_gp_index(
 
 
 void MachineTopology::load_objects(
-    hwloc_obj_type_t type, std::vector<MachineTopology::io_obj_info> &vector)
+    hwloc_obj_type_t type,
+    std::vector<MachineTopology::io_obj_info> &vector) const
 {
 #if GKO_HAVE_HWLOC
-    GKO_ASSERT(std::get<0>(this->cores_).size() != 0);
-    GKO_ASSERT(std::get<0>(this->pus_).size() != 0);
+    GKO_ASSERT(this->cores_.size() != 0);
+    GKO_ASSERT(this->pus_.size() != 0);
     unsigned num_objects = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
     for (unsigned i = 0; i < num_objects; i++) {
         // Get the actual PCI object.
@@ -256,21 +200,28 @@ void MachineTopology::load_objects(
         hwloc_cpuset_t ancestor_cpuset = hwloc_bitmap_alloc();
         hwloc_cpuset_from_nodeset(this->topo_.get(), ancestor_cpuset,
                                   ancestor->nodeset);
-        // Find the cpu object closest to this device from the ancestor cpuset
-        // and store its id for binding purposes
-        vector.back().closest_cpu_id = get_obj_id_by_os_index(
-            std::get<0>(this->pus_), hwloc_bitmap_first(ancestor_cpuset));
+        // Find the cpu objects closest to this device from the ancestor cpuset
+        // and store their ids for binding purposes
+        int closest_cpu_id = -1;
+        int closest_os_id = hwloc_bitmap_first(ancestor_cpuset);
+        // clang-format off
+        hwloc_bitmap_foreach_begin(closest_os_id, ancestor_cpuset)
+            closest_cpu_id = get_obj_id_by_os_index(this->pus_, closest_os_id);
+            vector.back().closest_cpu_ids.push_back(closest_cpu_id);
+        hwloc_bitmap_foreach_end();
+        // clang-format on
+
         // Get local id of the ancestor object.
         if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_PACKAGE) == 0) {
-            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
-                std::get<0>(this->packages_), ancestor->gp_index);
+            vector.back().ancestor_local_id =
+                get_obj_id_by_gp_index(this->packages_, ancestor->gp_index);
         } else if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_CORE) == 0) {
-            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
-                std::get<0>(this->cores_), ancestor->gp_index);
+            vector.back().ancestor_local_id =
+                get_obj_id_by_gp_index(this->cores_, ancestor->gp_index);
         } else if (hwloc_compare_types(ancestor->type, HWLOC_OBJ_NUMANODE) ==
                    0) {
-            vector.back().ancestor_local_id = get_obj_id_by_gp_index(
-                std::get<0>(this->numa_nodes_), ancestor->gp_index);
+            vector.back().ancestor_local_id =
+                get_obj_id_by_gp_index(this->numa_nodes_, ancestor->gp_index);
         }
         hwloc_bitmap_free(ancestor_cpuset);
         // Get type of the ancestor object and store it as a string.
@@ -283,44 +234,7 @@ void MachineTopology::load_objects(
                  obj->attr->pcidev.domain, obj->attr->pcidev.bus,
                  obj->attr->pcidev.dev, obj->attr->pcidev.func);
         vector.back().pci_bus_id = std::string(pci_bus_id);
-        // Get the number of IO children if any. For example, the software
-        // OS devices (cuda, rsmi, ib) are listed as IO devices under a PCI
-        // device.
-        auto num_io_children = obj->io_arity;
-        hwloc_obj_t os_child{};
-        auto rem_io_children = num_io_children;
-        // Get the IO children and their names and store them in vectors.
-        if (num_io_children > 0) {
-            // Get the first child
-            os_child = obj->io_first_child;
-            vector.back().io_children.push_back(os_child);
-            vector.back().io_children_name.emplace_back(os_child->name);
-            rem_io_children -= 1;
-            // If the io obj has more than one children, they are siblings to
-            // the first child. Store these as well.
-            hwloc_obj_t os_child_n = os_child;
-            while (rem_io_children >= 1) {
-                os_child_n = os_child_n->next_sibling;
-                vector.back().io_children.push_back(os_child_n);
-                vector.back().io_children_name.emplace_back(os_child_n->name);
-                rem_io_children -= 1;
-            }
-            GKO_ASSERT(vector.back().io_children.size() ==
-                       vector.back().io_children_name.size());
-        }
     }
-#endif
-}
-
-
-hwloc_bitmap_s *MachineTopology::init_bitmap()
-{
-#if GKO_HAVE_HWLOC
-    hwloc_bitmap_t tmp = hwloc_bitmap_alloc();
-    return tmp;
-#else
-    // MSVC complains if there is no return statement.
-    return nullptr;
 #endif
 }
 

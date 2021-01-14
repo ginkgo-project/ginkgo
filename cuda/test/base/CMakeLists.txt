@@ -1,5 +1,8 @@
 ginkgo_create_cuda_test(array)
 ginkgo_create_cuda_test(cuda_executor)
+if(GINKGO_HAVE_HWLOC)
+    ginkgo_create_cuda_test(cuda_executor_topology numa)
+endif()
 ginkgo_create_cuda_test(exception_helpers)
 ginkgo_create_cuda_test(lin_op)
 ginkgo_create_cuda_test(math)

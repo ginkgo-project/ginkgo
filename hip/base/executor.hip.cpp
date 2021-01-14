@@ -82,8 +82,8 @@ void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
     auto hip_hwloc_obj =
         mach_topo->get_pci_device(this->hip_exec_info_.pci_bus_id);
     if (hip_hwloc_obj) {
-        this->hip_exec_info_.numa = hip_hwloc_obj->numa;
-        this->hip_exec_info_.closest_cpu_id = hip_hwloc_obj->closest_cpu_id;
+        this->hip_exec_info_.numa_node = hip_hwloc_obj->numa;
+        this->hip_exec_info_.closest_cpu_ids = hip_hwloc_obj->closest_cpu_ids;
     }
 }
 

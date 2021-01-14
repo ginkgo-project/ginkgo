@@ -167,9 +167,6 @@ TEST(OmpExecutor, IsItsOwnMaster)
 
 TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
-    GTEST_SKIP() << " No useful machine topology information to test against";
-#endif
     auto omp = gko::OmpExecutor::create();
 
     auto num_cpus = omp->get_num_cores() * omp->get_num_threads_per_core();
@@ -186,9 +183,6 @@ inline int get_os_id(int log_id)
 
 TEST(OmpExecutor, CanBindToASpecificCore)
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
-    GTEST_SKIP() << " No useful machine topology information to test against";
-#endif
     auto omp = gko::OmpExecutor::create();
     auto cpu_sys = sched_getcpu();
 
@@ -202,9 +196,6 @@ TEST(OmpExecutor, CanBindToASpecificCore)
 
 TEST(OmpExecutor, CanBindToARangeofCores)
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
-    GTEST_SKIP() << " No useful machine topology information to test against";
-#endif
     auto omp = gko::OmpExecutor::create();
     auto cpu_sys = sched_getcpu();
 

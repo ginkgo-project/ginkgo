@@ -81,8 +81,8 @@ void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
     auto cuda_hwloc_obj =
         mach_topo->get_pci_device(this->cuda_exec_info_.pci_bus_id);
     if (cuda_hwloc_obj) {
-        this->cuda_exec_info_.numa = cuda_hwloc_obj->numa;
-        this->cuda_exec_info_.closest_cpu_id = cuda_hwloc_obj->closest_cpu_id;
+        this->cuda_exec_info_.numa_node = cuda_hwloc_obj->numa;
+        this->cuda_exec_info_.closest_cpu_ids = cuda_hwloc_obj->closest_cpu_ids;
     }
 }
 
