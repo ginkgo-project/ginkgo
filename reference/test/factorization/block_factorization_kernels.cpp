@@ -77,9 +77,9 @@ TYPED_TEST(BlockFactorizationRowPtrs, KernelInitializeRowPtrsLU)
         this->refexec, origmat.get(), l_row_ptrs.data(), u_row_ptrs.data());
 
     const index_type *const ref_l_row_ptrs =
-        gko::as<Fbcsr>(factors->get_operators()[0])->get_row_ptrs();
+        gko::as<Fbcsr>(factors->get_operators()[0])->get_const_row_ptrs();
     const index_type *const ref_u_row_ptrs =
-        gko::as<Fbcsr>(factors->get_operators()[1])->get_row_ptrs();
+        gko::as<Fbcsr>(factors->get_operators()[1])->get_const_row_ptrs();
     for (index_type i = 0; i <= this->sample.nbrows; i++) {
         ASSERT_EQ(ref_l_row_ptrs[i], l_row_ptrs[i]);
         ASSERT_EQ(ref_u_row_ptrs[i], u_row_ptrs[i]);

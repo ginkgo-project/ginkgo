@@ -144,16 +144,17 @@ TYPED_TEST(Bilu, KernelFactorizationSorted)
         }
     }
 
-    const value_type *const refLvals = refL->get_values();
-    const index_type *const refLrowptrs = refL->get_row_ptrs();
-    const index_type *const refLcolidxs = refL->get_col_idxs();
-    const value_type *const refUvals = refU->get_values();
-    const index_type *const refUrowptrs = refU->get_row_ptrs();
-    const index_type *const refUcolidxs = refU->get_col_idxs();
+    const value_type *const refLvals = refL->get_const_values();
+    const index_type *const refLrowptrs = refL->get_const_row_ptrs();
+    const index_type *const refLcolidxs = refL->get_const_col_idxs();
+    const value_type *const refUvals = refU->get_const_values();
+    const index_type *const refUrowptrs = refU->get_const_row_ptrs();
+    const index_type *const refUcolidxs = refU->get_const_col_idxs();
 
     ASSERT_EQ(testnbnzL + nbrows,
-              refL->get_row_ptrs()[refL->get_num_block_rows()]);
-    ASSERT_EQ(testnbnzU, refU->get_row_ptrs()[refU->get_num_block_rows()]);
+              refL->get_const_row_ptrs()[refL->get_num_block_rows()]);
+    ASSERT_EQ(testnbnzU,
+              refU->get_const_row_ptrs()[refU->get_num_block_rows()]);
 
     constexpr auto eps =
         std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
