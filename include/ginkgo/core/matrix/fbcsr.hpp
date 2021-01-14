@@ -130,7 +130,12 @@ public:
 
     void convert_to(Fbcsr<ValueType, IndexType> *result) const override;
 
-    void move_to(Fbcsr<ValueType, IndexType> *result) override;
+    /**
+     * For moving to another Fbcsr of the same type, use the default
+     *  implementation provided by EnableLinOp via the
+     *  EnablePolymorphicAssignment mixin.
+     */
+    using EnableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
 
     friend class Fbcsr<next_precision<ValueType>, IndexType>;
 

@@ -96,7 +96,7 @@ class DenseBlock final {
 public:
     using value_type = ValueType;
 
-    DenseBlock() {}
+    DenseBlock() = default;
 
     DenseBlock(const int num_rows, const int num_cols)
         : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
@@ -194,14 +194,6 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
     result->nbcols_ = this->nbcols_;
-}
-
-
-template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<ValueType, IndexType> *const result)
-{
-    EnableLinOp<Fbcsr>::move_to(result);
 }
 
 
