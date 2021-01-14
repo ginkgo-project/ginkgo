@@ -80,12 +80,10 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
-    auto *const cvals = c->get_values();
-
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
              ++i)
-            cvals[i] = zero<ValueType>();
+            c->get_values()[i] = zero<ValueType>();
 
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
@@ -124,12 +122,10 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     const blockutils::DenseBlocksView<const ValueType, IndexType> avalues(
         vals, bs, bs);
 
-    auto *const cvals = c->get_values();
-
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
              ++i)
-            cvals[i] *= vbeta;
+            c->get_values()[i] *= vbeta;
 
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
@@ -165,7 +161,7 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
     const gko::blockutils::DenseBlocksView<const ValueType, IndexType> values(
         vals, bs, bs);
 
-    for (size_type brow = 0; brow < nbrows; ++brow) {
+    for (IndexType brow = 0; brow < nbrows; ++brow) {
         for (size_type bcol = 0; bcol < nbcols; ++bcol) {
             for (int ib = 0; ib < bs; ib++)
                 for (int jb = 0; jb < bs; jb++)
@@ -212,7 +208,7 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     const gko::blockutils::DenseBlocksView<const ValueType, IndexType> bvalues(
         bvals, bs, bs);
 
-    for (size_type brow = 0; brow < nbrows; ++brow) {
+    for (IndexType brow = 0; brow < nbrows; ++brow) {
         const IndexType nz_browstart = browptrs[brow] * bs * bs;
         const IndexType numblocks_brow = browptrs[brow + 1] - browptrs[brow];
         for (int ib = 0; ib < bs; ib++)
