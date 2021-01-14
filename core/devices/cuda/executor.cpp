@@ -64,6 +64,13 @@ bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
 }
 
 
+void CudaExecutor::bind_to_cpus(const int *cpu_ids,
+                                const size_type num_ids) const
+{
+    get_machine_topology()->bind_to_pus(cpu_ids, num_ids);
+}
+
+
 void CudaExecutor::bind_to_cores(const int *core_ids,
                                  const size_type num_ids) const
 {

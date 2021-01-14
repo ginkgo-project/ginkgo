@@ -735,8 +735,14 @@ protected:
 
     struct exec_info {
         int device_id = -1;
-        int num_cores = 0;
-        int num_work_groups_per_core = 0;
+        int numa_node = -1;
+        int num_cores = -1;
+        int num_work_groups_per_core = -1;
+        int major = -1;
+        int minor = -1;
+        int warp_size = -1;
+        std::string pci_bus_id = std::string(13, 'x');
+        std::vector<int> closest_cpu_ids{};
     };
 
 private:
@@ -1105,6 +1111,8 @@ class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
+    using cuda_exec_info = exec_info;
+
     /**
      * Creates a new CudaExecutor.
      *
@@ -1206,6 +1214,31 @@ public:
     }
 
     /**
+     * Get the closest CPUs
+     *
+     * @return  the array of CPUs closest to this device
+     */
+    std::vector<int> get_closest_cpus() const
+    {
+        return this->cuda_exec_info_.closest_cpu_ids;
+    }
+
+    /**
+     * Gets the exec info struct
+     *
+     * @return  the exec_info struct
+     */
+    cuda_exec_info get_exec_info() const { return this->cuda_exec_info_; }
+
+    /**
+     * Bind the current executor thread to the list of cpus
+     *
+     * @param  ids  the logical ids of the cpus.
+     * @param  num_ids  the number of cpus to bind
+     */
+    void bind_to_cpus(const int *ids, const size_type num_ids) const;
+
+    /**
      * Bind the current executor thread to the list of cores
      *
      * @param  ids  the logical ids of the cores.
@@ -1228,9 +1261,9 @@ protected:
         assert(this->cuda_exec_info_.device_id < max_devices &&
                this->cuda_exec_info_.device_id >= 0);
         this->CudaExecutor::populate_exec_info(get_machine_topology());
-        if (this->cuda_exec_info_.closest_cpu_id != -1) {
-            get_machine_topology()->bind_to_pus(
-                &this->cuda_exec_info_.closest_cpu_id, 1);
+        if (this->cuda_exec_info_.closest_cpu_ids.size()) {
+            this->bind_to_cpus(this->cuda_exec_info_.closest_cpu_ids.data(),
+                               this->cuda_exec_info_.closest_cpu_ids.size());
         }
         this->set_gpu_property();
         this->init_handles();
@@ -1275,15 +1308,7 @@ protected:
 
 private:
     std::shared_ptr<Executor> master_;
-
-    struct cuda_exec_info : public exec_info {
-        int major;
-        int minor;
-        int warp_size;
-        std::string pci_bus_id = std::string(13, 'x');
-        int numa = -1;
-        int closest_cpu_id = -1;
-    } cuda_exec_info_;
+    cuda_exec_info cuda_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1315,6 +1340,8 @@ class HipExecutor : public detail::ExecutorBase<HipExecutor>,
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
+    using hip_exec_info = exec_info;
+
     /**
      * Creates a new HipExecutor.
      *
@@ -1416,6 +1443,31 @@ public:
     }
 
     /**
+     * Get the closest CPUs
+     *
+     * @return  the array of CPUs closest to this device
+     */
+    std::vector<int> get_closest_cpus() const
+    {
+        return this->hip_exec_info_.closest_cpu_ids;
+    }
+
+    /**
+     * Gets the exec info struct
+     *
+     * @return  the exec_info struct
+     */
+    hip_exec_info get_exec_info() const { return this->hip_exec_info_; }
+
+    /**
+     * Bind the current executor thread to the list of cpus
+     *
+     * @param  ids  the logical ids of the cpus.
+     * @param  num_ids  the number of cpus to bind
+     */
+    void bind_to_cpus(const int *ids, const size_type num_ids) const;
+
+    /**
      * Bind the current executor thread to the list of cores
      *
      * @param  ids  the logical ids of the cores.
@@ -1437,9 +1489,9 @@ protected:
         this->hip_exec_info_.num_work_groups_per_core = 0;
         assert(this->hip_exec_info_.device_id < max_devices);
         this->HipExecutor::populate_exec_info(get_machine_topology());
-        if (this->hip_exec_info_.closest_cpu_id != -1) {
-            get_machine_topology()->bind_to_pus(
-                &this->hip_exec_info_.closest_cpu_id, 1);
+        if (this->hip_exec_info_.closest_cpu_ids.size()) {
+            this->bind_to_cpus(this->hip_exec_info_.closest_cpu_ids.data(),
+                               this->hip_exec_info_.closest_cpu_ids.size());
         }
         this->set_gpu_property();
         this->init_handles();
@@ -1484,15 +1536,7 @@ protected:
 
 private:
     std::shared_ptr<Executor> master_;
-
-    struct hip_exec_info : public exec_info {
-        int major = 0;
-        int minor = 0;
-        int warp_size = 0;
-        std::string pci_bus_id = std::string(13, 'x');
-        int numa = -1;
-        int closest_cpu_id = -1;
-    } hip_exec_info_;
+    hip_exec_info hip_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

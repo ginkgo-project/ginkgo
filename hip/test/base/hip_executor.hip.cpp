@@ -153,9 +153,6 @@ inline int get_os_id(int log_id)
 
 TEST_F(HipExecutor, CanBindToCores)
 {
-#if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
-    GTEST_SKIP() << " No useful machine topology information to test against";
-#endif
     auto hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
     auto cpu_sys = sched_getcpu();
     const int bind_core[2] = {6, 3};
