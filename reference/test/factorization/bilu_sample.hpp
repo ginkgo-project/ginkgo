@@ -165,7 +165,7 @@ public:
         blockutils::DenseBlocksView<value_type, index_type> vu(
             fb_u->get_values(), bs, bs);
         blockutils::DenseBlocksView<const value_type, index_type> vA(
-            A->get_values(), bs, bs);
+            A->get_const_values(), bs, bs);
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
@@ -247,7 +247,7 @@ public:
         blockutils::DenseBlocksView<value_type, index_type> vu(
             fb_u->get_values(), bs, bs);
         blockutils::DenseBlocksView<const value_type, index_type> vA(
-            A->get_values(), bs, bs);
+            A->get_const_values(), bs, bs);
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
