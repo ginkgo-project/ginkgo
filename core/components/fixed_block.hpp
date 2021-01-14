@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_FIXED_BLOCK_HPP_
 
 
-#include <type_traits>
-
-
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -76,8 +73,8 @@ public:
         return vals_[block * nrows * ncols + row * ncols + col];
     }
 
-    const typename std::remove_const<value_type>::type &at(
-        const index_type block, const int row, const int col) const
+    const value_type &at(const index_type block, const int row,
+                         const int col) const
     {
         return vals_[block * nrows * ncols + row * ncols + col];
     }
@@ -87,8 +84,8 @@ public:
         return at(block, row, col);
     }
 
-    const typename std::remove_const<value_type>::type &operator()(
-        const index_type block, const int row, const int col) const
+    const value_type &operator()(const index_type block, const int row,
+                                 const int col) const
     {
         return at(block, row, col);
     }
