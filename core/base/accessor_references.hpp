@@ -114,7 +114,7 @@ constexpr GKO_ATTRIBUTES
  *
  * @tparam Reference  The reference class this mixin provides operator overloads
  *                    for. The reference class needs to overload the cast
- *                    operatorto ValueType
+ *                    operator to ValueType
  *
  * @tparam ArithmeticType  arithmetic type the Reference class is supposed
  *         to represent.
@@ -346,7 +346,7 @@ constexpr remove_complex<ArithmeticType> abs(
  * Copying this reference is disabled, but move construction is possible to
  * allow for an additional layer (like gko::range).
  * The assignment operator only works for an rvalue reference (&&) to
- * prevent accidental copying the reference and working on a reference.
+ * prevent accidentally copying and working on the reference.
  *
  * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
  *                         the type which is used for input and output of this

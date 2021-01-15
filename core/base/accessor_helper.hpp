@@ -124,7 +124,7 @@ namespace detail {
 
 
 /**
- * This helper walkes through the index arguments from left to right (lowest to
+ * This helper walks through the index arguments from left to right (lowest to
  * highest dimension) in order to properly use the stride for the scalar
  * indices. The mask indicates which indices are actually used. The least
  * significant bit set means using the last index, second bit corresponds to the
