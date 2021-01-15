@@ -96,8 +96,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 
 // r = loops%krylov
 // k = krylov
-// Read: (4n + 3) * ValueType + matrix_storage
-// + loops_k * ((k^2/2 + 3k/2 + nk + 7n + 4) * ValueType + precond_storage + matrix_storage) + 
+// Read: (5n + 3) * ValueType + matrix_storage
+// + loops_k * ((k^2/2 + 3k/2 + nk + 8n + 4) * ValueType + precond_storage + matrix_storage) + 
 // + loops * ((4r + 4nr + 8n + 5) * ValueType + 8 + precond_storage + matrix_storage) 
 // + (r^2/2 + 5r/2 + nr + 3n + 1) * ValueType + precond_storage
 // Write: (3n + 2k + 1) * ValueType + 8 
@@ -109,8 +109,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 //        = floor(loops/k) * (k - 1) * k / 2 + (r - 1) * r/ 2 (loops_r)
 // Notes: loops_k is the floor(loops/k) i.e. how many does restart step activate
 // Refined:
-// Read: (3n + 3) * ValueType + matrix_storage
-// + loops_k * ((k^2/2 + 3k/2 + nk + 7n + 4) * ValueType + precond_storage + matrix_storage)
+// Read: (5n + 3) * ValueType + matrix_storage
+// + loops_k * ((k^2/2 + 3k/2 + nk + 8n + 4) * ValueType + precond_storage + matrix_storage)
 // + loops * ((8n + 5) * ValueType + 8 + precond_storage + matrix_storage)
 // + loops_r * (4 + 4n) * ValueType
 // + (r^2/2 + 5r/2 + nr + 3n + 1) * ValueType + precond_storage
@@ -171,7 +171,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        &stop_status, krylov_dim_));
     // residual = dense_b
     // givens_sin = givens_cos = 0
-    // Read: (n+2) * ValueType + matrix_storage
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
@@ -244,7 +244,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // Write: n * ValueType
             residual->copy_from(dense_b);
             // residual = dense_b
-            // Read: (n+2) * ValueType + matrix_storage
+            // Read: (2n+2) * ValueType + matrix_storage
             // Write: n * ValueType
             // FLOPs: 2*nnz + n
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),

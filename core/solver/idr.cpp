@@ -81,7 +81,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 }
 
 // s is subspace vector size
-// Read: (2n + 2) * ValueType + matrix_storage
+// Read: (3n + 2) * ValueType + matrix_storage
 // + loops * (
 //   (s * n + n) * ValueType
 //   + loops_s * ((s^2/2 + 13s/2 + 8n - 5k + 3nk + 2ns) * ValueType + precond_storage + matrix_storage)
@@ -95,7 +95,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 // )
 
 // loops_s * k = 0 + 1 + 2 + ... + (s-1) = (s-1) * s/2 (loops_sk), others is s
-// Read: (2n + 2) * ValueType + matrix_storage
+// Read: (3n + 2) * ValueType + matrix_storage
 // + loops * (
 //   (s * n + n) * ValueType
 //   + s * ((s^2/2 + 13s/2 + 8n + 2ns) * ValueType + precond_storage + matrix_storage)
@@ -182,7 +182,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     // Write: n * ValueType
     // residual = b - Ax
     residual->copy_from(dense_b);
-    // Read: (n+2) * ValueType + matrix_storage
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPS: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),

@@ -88,7 +88,7 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 // iter_sh: second half of the solver loop
 // Note: iter is increased 2x in the whole loop
 
-// Read: (3n + 2) * ValueType + matrix_storage
+// Read: (4n + 2) * ValueType + matrix_storage
 // + iter_fh * ((11n + 6) * ValueType + precond_storage + matrix_storage)
 // + iter_sh * ((10n + 3) * ValueType + precond_storage + matrix_storage)
 // Write: (10 * n + 6) * ValueType
@@ -142,7 +142,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
-    // Read: (n+2) * ValueType + matrix_storage
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());

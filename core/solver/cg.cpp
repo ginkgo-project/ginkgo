@@ -85,7 +85,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 }
 
 
-// Read: (2* n + 2) * ValueType  + matrix_storage
+// Read: (3n + 2) * ValueType  + matrix_storage
 // + loops * ((12n + 4) * ValueType + precond_storage + matrix_storage)
 // Write: (5 * n + 2) * ValueType + loops * ((5 * n + 2) * ValueType)
 // FLOPs: 2*nnz + n + loops * (2*nnz + 12*n - 2)
@@ -128,7 +128,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = 1.0
     // z = p = q = 0
 
-    // Read: (n+2) * ValueType + matrix_storage
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());

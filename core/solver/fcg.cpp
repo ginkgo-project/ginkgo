@@ -82,7 +82,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 }
 
 
-// Read: (2n + 2) * ValueType + matrix_storage
+// Read: (3n + 2) * ValueType + matrix_storage
 // + loops * ((14n + 4) * ValueType + precond_storage + matrix_storage)
 // Write: (6 * n + 3) * ValueType + loops * ((6 * n + 3) * ValueType)
 // FLOPs: 2*nnz + 5*n - 2 + loops * (2*nnz + 15*n - 3)
@@ -132,7 +132,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_t = 1.0
     // z = p = q = 0
 
-    // Read: (n+2) * ValueType + matrix_storage
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
