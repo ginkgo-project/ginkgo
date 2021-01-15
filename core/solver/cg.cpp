@@ -85,8 +85,8 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 }
 
 
-// Read: (4 * n + 2 * nnz) * ValueType  + 2 * nnz * IndexType
-// + loops * ((15 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Read: (2* n + 2) * ValueType  + matrix_storage
+// + loops * ((12n + 4) * ValueType + precond_storage + matrix_storage)
 // Write: (5 * n + 2) * ValueType + loops * ((5 * n + 2) * ValueType)
 // FLOPs: 2*nnz + n + loops * (2*nnz + 12*n - 2)
 template <typename ValueType>
@@ -120,7 +120,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // TODO: replace this with automatic merged kernel generator
     // Read: n * ValueType
-    // Write: (4 * n + 2) * ValueType
+    // Write: (4n + 2) * ValueType
     exec->run(cg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
                                   prev_rho.get(), rho.get(), &stop_status));
     // r = dense_b
@@ -128,7 +128,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = 1.0
     // z = p = q = 0
 
-    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
+    // Read: (n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
@@ -138,7 +138,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         // FLOPs: ignored
         get_preconditioner()->apply(r.get(), z.get());
@@ -158,7 +158,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        // Read: 4 * n * ValueType
+        // Read: (2n + 2) * ValueType
         // Write: n * ValueType
         // FLOPs: 3*n (includes n rho / prev_rho computations)
         exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
@@ -166,7 +166,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // tmp = rho / prev_rho
         // p = z + tmp * p
 
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         // FLOPs: 2*nnz
         system_matrix_->apply(p.get(), q.get());
@@ -174,7 +174,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + (n-1)
         p->compute_dot(q.get(), beta.get());
-        // Read: 6 * n * ValueType
+        // Read: (4n+2) * ValueType
         // Write: 2 * n * ValueType
         // FLOPS: 5 * n (includes n rho / beta computations)
         exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),

@@ -81,6 +81,34 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 }
 
 // s is subspace vector size
+// Read: (2n + 2) * ValueType + matrix_storage
+// + loops * (
+//   (s * n + n) * ValueType
+//   + loops_s * ((s^2/2 + 13s/2 + 8n - 5k + 3nk + 2ns) * ValueType + precond_storage + matrix_storage)
+//   + (11n + 6) * ValueType + matrix_storage + precond_storage
+// )
+// Write: (s^2 + 4n + 1) * ValueType
+// + loops * (
+//   s * ValueType
+//   + loops_s * ((3nk + 6n + 3s - k) * ValueType)
+//   + (5n + 5) * ValueType
+// )
+
+// loops_s * k = 0 + 1 + 2 + ... + (s-1) = (s-1) * s/2 (loops_sk), others is s
+// Read: (2n + 2) * ValueType + matrix_storage
+// + loops * (
+//   (s * n + n) * ValueType
+//   + s * ((s^2/2 + 13s/2 + 8n + 2ns) * ValueType + precond_storage + matrix_storage)
+//   + loops_sk * (3n - 5) * ValueType
+//   + (11n + 6) * ValueType + matrix_storage + precond_storage
+// )
+// Write: (s^2 + 4n + 1) * ValueType
+// + loops * (
+//   s * ValueType
+//   + s * (6n + 3s) * ValueType
+//   + loops_sk * (3n - 1) * ValueType
+//   + (5n + 5) * ValueType
+// )
 // FLOPS: 2nnz + n + loops * (2 * n * s + s^3 + 11ns/2 + 2nnz*s + 11ns^2/2 + s^2 + 2 * nnz + n + n - 1 +n + n - 1 +n + n - 1 +6+n+4n)
 // = 2nnz + n + loops * (s^3 + s^2 + 15ns/2 + 2nnz*s + 11ns^2/2 + 2 * nnz + 11n + 3)
 template <typename ValueType>
@@ -139,21 +167,28 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     auto subspace_vectors =
         Vector::create(exec, gko::dim<2>(subspace_dim_, problem_size));
 
+    // Write: s * s * ValueType
     // Initialization
     // m = identity
     exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
                                    deterministic_, &stop_status));
 
+    // Write: ValueType
     // omega = 1
     exec->run(
         idr::make_fill_array(omega->get_values(), nrhs, one<SubspaceType>()));
 
+    // Read: n * ValueType
+    // Write: n * ValueType
     // residual = b - Ax
     residual->copy_from(dense_b);
+    // Read: (n+2) * ValueType + matrix_storage
+    // Write: n * ValueType
     // FLOPS: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
 
+    // Write: 2n * ValueType
     // g = u = 0
     exec->run(idr::make_fill_array(
         g->get_values(), problem_size * g->get_stride(), zero<SubspaceType>()));
@@ -180,6 +215,9 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
+        // s * n x n = s
+        // Read: (s * n + n) * ValueType
+        // Write: s * ValueType
         // FLOPS: 2 * n * s
         subspace_vectors->apply(residual.get(), f.get());
         // f = P^H * residual
@@ -192,15 +230,22 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         // = s^2 - 1 + 6n + 2nnz +  6*n*k  + (s - k) (5n + 2)
         // = s^2 - 1 + 6n + 2nnz + 5ns + 2s + nk - 2k
         for (size_type k = 0; k < subspace_dim_; k++) {
+            // Read: ((s + 1) * s /2 )* ValueType + s * ValueType + 2 * (s-k) * ValueType + n * ValueType
+            // Write: s * ValueType + n * ValueType
             // FLOPS: 2n * (s - k) + s^2 - 1
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
                                        residual.get(), g.get(), c.get(),
                                        v.get(), &stop_status));
             // c = M \ f = (c_1, ..., c_s)^T
+            // ---
             // v = residual - c_k * g_k - ... - c_s * g_s
 
+            // Read: n * ValueType + precond_storage
+            // Write: n * ValueType
             get_preconditioner()->apply(v.get(), helper.get());
 
+            // Read: (n + 2 * (s - k) + 1) * ValueType
+            // Write: n * ValueType
             // FLOPS: n + 2n(s-k)
             exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
                                        c.get(), u.get(), &stop_status));
@@ -208,47 +253,74 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
-
+            // Read: n * ValueType + matrix_storage
+            // Write: n * ValueType
             // FLOPS: 2 * nnz
             system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
-
+            // Read: (3nk + 2ns + 4n + s - k - 1) * ValueType
+            // Write: (3nk + 2n + 2s - k) * ValueType
             exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
                                        alpha.get(), residual.get(), dense_x,
                                        &stop_status));
+            // R: k * (2n + 2n + n) * ValueType
+            // W: k * (1 + 2n + n) * ValueType
             // FLOPS: 6*n*k
             // for i = 1 to k - 1 do
             //     alpha = p^H_i * g_k / m_i,i
+            //     ---
             //     g_k -= alpha * g_i
             //     u_k -= alpha * u_i
             // end for
+            // update g_k to g_(k) copy back the vector to matrix
+            // ---
+            // R: (s - k) * 2n * ValueType
+            // W: (s-k) * ValueType
             // FLOPS: (s - k) * n
             // for i = k to s do
             //     m_i,k = p^H_i * g_k
             // end for
+            // ---
+            // R: (2n + 2n + (s - k - 1)) * ValueType
+            // W: (n + n + (s - k - 1) + 1) * ValueType
             // FLOPS: 5n + 2 * (s - k)
             // beta = f_k / m_k,k
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s - beta * m_s,k)
         }
-
+        // Read: n * ValueType + precond_storage
+        // Write: n * ValueType
         get_preconditioner()->apply(residual.get(), helper.get());
+        // Read: n * ValueType + matrix_storage
+        // Write: n * ValueType
         // FLOPS: 2 * nnz
         system_matrix_->apply(helper.get(), t.get());
+        // Read: 2n * ValueType
+        // Write: ValueType
         // FLOPS: n + n - 1
         t->compute_dot(residual.get(), omega.get());
+        // Read: n * ValueType
+        // Write: ValueType
         // FLOPS: n + n - 1
         t->compute_dot(t.get(), tht.get());
+        // Read: n * ValueType
+        // Write: ValueType
         // FLOPS: n + n - 1
         residual->compute_norm2(residual_norm.get());
+        // Read: 3 * ValueType
+        // Write: 2 * ValueType
         // FLOPS: 6
         exec->run(idr::make_compute_omega(nrhs, kappa_, tht.get(),
                                           residual_norm.get(), omega.get(),
                                           &stop_status));
+        // Read: (n + 1) * ValueType
+        // Write: n * ValueType
         // FLOPS: n
         t->scale(subspace_neg_one_op.get());
+        // Read: (2n + 1 + 2n + 1) * ValueType
+        // Write: (n + n) * ValueType
         // FLOPS: 4n
         residual->add_scaled(omega.get(), t.get());
         dense_x->add_scaled(omega.get(), helper.get());

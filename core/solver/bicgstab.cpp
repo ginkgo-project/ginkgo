@@ -88,9 +88,9 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 // iter_sh: second half of the solver loop
 // Note: iter is increased 2x in the whole loop
 
-// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
-// + iter_fh * ((16 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
-// + iter_sh * ((13 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Read: (3n + 2) * ValueType + matrix_storage
+// + iter_fh * ((11n + 6) * ValueType + precond_storage + matrix_storage)
+// + iter_sh * ((10n + 3) * ValueType + precond_storage + matrix_storage)
 // Write: (10 * n + 6) * ValueType
 // + iter_fh * ((4 * n + 2) * ValueType)
 // + iter_sh * ((4 * n + 3) * ValueType)
@@ -142,7 +142,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
-    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
+    // Read: (n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
@@ -169,7 +169,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + (n-1)
         rr->compute_dot(r.get(), rho.get());
-        // Read: 7 * n * ValueType
+        // Read: (3n + 4) * ValueType
         // Write: n * ValueType
         // FLOPs: 8*n (includes n times `prev_rho * omega` and `tmp` comp.)
         exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
@@ -177,11 +177,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                         omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         // FLOPs: ignored
         get_preconditioner()->apply(p.get(), y.get());
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         // FLOPs: 2*nnz
         system_matrix_->apply(y.get(), v.get());
@@ -189,7 +189,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + (n-1)
         rr->compute_dot(v.get(), beta.get());
-        // Read: 4 * n * ValueType
+        // Read: (2n + 2) * ValueType
         // Write: n * ValueType
         // FLOPs: 3*n (incl. n times `alpha` computation)
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
@@ -214,11 +214,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         if (all_converged) {
             break;
         }
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         // FLOPs: ignored
         get_preconditioner()->apply(s.get(), z.get());
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         // FLOPs: 2*nnz
         system_matrix_->apply(z.get(), t.get());
@@ -226,11 +226,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + n-1
         s->compute_dot(t.get(), gamma.get());
-        // Read: 2 * n * ValueType
+        // Read: n * ValueType
         // Write: ValueType
         // FLOPs: n + n-1
         t->compute_dot(t.get(), beta.get());
-        // Read: 8 * n * ValueType
+        // Read: (5n + 3) * ValueType
         // Write: (2 * n + 1) * ValueType
         // FLOPs: 7*n (incl. n `omega` comp.)
         exec->run(bicgstab::make_step_3(
