@@ -30,61 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
-
-// clang-format off
-#define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
-#define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@
-#define GKO_VERSION_PATCH @Ginkgo_VERSION_PATCH@
-#define GKO_VERSION_TAG "@Ginkgo_VERSION_TAG@"
-#define GKO_VERSION_STR @Ginkgo_VERSION_MAJOR@, @Ginkgo_VERSION_MINOR@, @Ginkgo_VERSION_PATCH@
-// clang-format on
-
-/*
- * Controls the amount of messages output by Ginkgo.
- * 0 disables all output (except for test, benchmarks and examples).
- * 1 activates important messages.
- */
-// clang-format off
-#define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
-// clang-format on
+#ifndef GKO_BENCHMARK_UTILS_TUNING_VARIABLES_HPP_
+#define GKO_BENCHMARK_UTILS_TUNING_VARIABLES_HPP_
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
+#include <ginkgo/core/base/types.hpp>
 
 
-/* Should we use all optimizations for Jacobi? */
-#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
+namespace gko {
 
 
-/* Should we compile Ginkgo specifically to tune values? */
-#cmakedefine GINKGO_BENCHMARK_ENABLE_TUNING
+extern bool _tuning_flag;
 
 
-/* What is HIP compiled for, hcc or nvcc? */
-// clang-format off
-#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
+extern size_type _tuned_value;
 
 
-#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
-// clang-format on
+}  // namespace gko
 
 
-/* Is PAPI SDE available for Logging? */
-// clang-format off
-#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
-// clang-format on
-
-/* Is HWLOC available ? */
-// clang-format off
-#define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
-// clang-format on
-
-/* Set the system provided XML config file*/
-// clang-format off
-#define GKO_HWLOC_XMLFILE "@GKO_HWLOC_XMLFILE@"
-// clang-format on
-
-#endif  // GKO_INCLUDE_CONFIG_H
+#endif  // GKO_BENCHMARK_UTILS_TUNING_VARIABLES_HPP_

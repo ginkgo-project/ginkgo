@@ -44,6 +44,9 @@ option(GINKGO_CHECK_CIRCULAR_DEPS
     OFF)
 option(GINKGO_CONFIG_LOG_DETAILED
     "Enable printing of detailed configuration log to screen in addition to the writing of files," OFF)
+option(GINKGO_BENCHMARK_ENABLE_TUNING
+    "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required."
+    OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -73,6 +76,13 @@ option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
+
+if(GINKGO_BENCHMARK_ENABLE_TUNING)
+    # In this state, the tests and examples cannot be compiled without extra
+    # complexity/intrusiveness, so we simply disable them.
+    set(GINKGO_BUILD_TESTS OFF)
+    set(GINKGO_BUILD_EXAMPLES OFF)
+endif()
 
 if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
     # Change shared libraries output only if this build has executable program

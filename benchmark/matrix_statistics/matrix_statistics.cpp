@@ -45,6 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/types.hpp"
 
 
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
+
 // See en.wikipedia.org/wiki/Five-number_summary
 // Quartile computation uses Method 3 from en.wikipedia.org/wiki/Quartile
 void compute_summary(const std::vector<gko::size_type> &dist,

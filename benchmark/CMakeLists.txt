@@ -11,6 +11,12 @@ if (GINKGO_BUILD_CUDA AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc"
         "or use `export HIP_PLATFORM=nvcc` in your build environment instead.")
 endif()
 
+function(ginkgo_benchmark_add_tuning_maybe name)
+    if(GINKGO_BENCHMARK_ENABLE_TUNING)
+        target_sources(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../utils/tuning_variables.cpp)
+    endif()
+endfunction()
+
 function(ginkgo_benchmark_cusp_linops name)
     target_compile_definitions("${name}" PRIVATE HAS_CUDA=1)
     target_link_libraries("${name}" ginkgo ${CUDA_RUNTIME_LIBS}
@@ -69,6 +75,7 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def)
     add_executable("${name}" ${ARGN})
     target_link_libraries("${name}" ginkgo gflags rapidjson)
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
+    ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if (GINKGO_BUILD_CUDA)
             ginkgo_benchmark_cusp_linops("${name}")

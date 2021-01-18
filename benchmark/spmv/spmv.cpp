@@ -51,8 +51,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/types.hpp"
 
 
-// Command-line arguments
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
+
+// Command-line arguments
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 
@@ -94,6 +98,47 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             system_matrix->apply(lend(b), lend(x_clone));
             exec->synchronize();
         }
+
+        // tuning run
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+        auto &format_case = spmv_case[format_name];
+        if (!format_case.HasMember("tuning")) {
+            format_case.AddMember(
+                "tuning", rapidjson::Value(rapidjson::kObjectType), allocator);
+        }
+        auto &tuning_case = format_case["tuning"];
+        add_or_set_member(tuning_case, "time",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
+        add_or_set_member(tuning_case, "values",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
+
+        // Enable tuning for this portion of code
+        gko::_tuning_flag = true;
+        // Select some values we want to tune.
+        std::vector<gko::size_type> tuning_values{
+            1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+        for (auto val : tuning_values) {
+            // Actually set the value that will be tuned. See
+            // cuda/components/format_conversion.cuh for an example of how this
+            // variable is used.
+            gko::_tuned_value = val;
+            auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
+            for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+                auto x_clone = clone(x);
+                exec->synchronize();
+                tuning_timer->tic();
+                system_matrix->apply(lend(b), lend(x_clone));
+                tuning_timer->toc();
+            }
+            tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
+                                         allocator);
+            tuning_case["values"].PushBack(val, allocator);
+        }
+        // We put back the flag to false to use the default (non-tuned) values
+        // for the following
+        gko::_tuning_flag = false;
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {

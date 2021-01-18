@@ -130,7 +130,7 @@ foreach(log_type ${log_types})
         "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
     ginkgo_print_foreach_variable(
-        "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS")
+        "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING")
     ginkgo_print_module_footer(${${log_type}} "  Documentation:")
     ginkgo_print_foreach_variable("GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
     ginkgo_print_module_footer(${${log_type}} "  Developer helpers:")
