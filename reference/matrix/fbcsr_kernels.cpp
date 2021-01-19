@@ -390,6 +390,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
+template <int matBlkSz, typename ValueType, typename IndexType>
+static void sort_by_column_index_impl(
+    matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+{
+    auto row_ptrs = to_sort->get_const_row_ptrs();
+    auto col_idxs = to_sort->get_col_idxs();
+    auto values = to_sort->get_values();
+    const auto nbrows = to_sort->get_num_block_rows();
+    constexpr int bs2 = matBlkSz * matBlkSz;
+    for (IndexType i = 0; i < nbrows; ++i) {
+        IndexType *const brow_col_idxs = col_idxs + row_ptrs[i];
+        ValueType *const brow_vals = values + row_ptrs[i] * bs2;
+        const IndexType nbnz_brow = row_ptrs[i + 1] - row_ptrs[i];
+
+        std::vector<IndexType> col_permute(nbnz_brow);
+        std::iota(col_permute.begin(), col_permute.end(), 0);
+        auto helper = detail::IteratorFactory<IndexType, IndexType>(
+            brow_col_idxs, col_permute.data(), nbnz_brow);
+        std::sort(helper.begin(), helper.end());
+
+        std::vector<ValueType> oldvalues(nbnz_brow * bs2);
+        std::copy(brow_vals, brow_vals + nbnz_brow * bs2, oldvalues.begin());
+        for (IndexType ibz = 0; ibz < nbnz_brow; ibz++) {
+            for (int i = 0; i < bs2; i++) {
+                brow_vals[ibz * bs2 + i] =
+                    oldvalues[col_permute[ibz] * bs2 + i];
+            }
+        }
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
+                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+{
+    const int bs = to_sort->get_block_size();
+    if (bs == 2)
+        sort_by_column_index_impl<2>(to_sort);
+    else if (bs == 3)
+        sort_by_column_index_impl<3>(to_sort);
+    else if (bs == 4)
+        sort_by_column_index_impl<4>(to_sort);
+    else
+        GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
+
+
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
                       const matrix::Fbcsr<ValueType, IndexType> *const orig,

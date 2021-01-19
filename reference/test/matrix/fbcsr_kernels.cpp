@@ -623,6 +623,23 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
 }
 
 
+TYPED_TEST(Fbcsr, SortUnsortedMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    const gko::testing::FbcsrSampleUnsorted<value_type, index_type> fbsample(
+        this->exec);
+    auto unsrt_mtx = fbsample.generate_fbcsr();
+    auto srt_mtx = unsrt_mtx->clone();
+
+    srt_mtx->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(unsrt_mtx, srt_mtx, 0.0);
+    ASSERT_TRUE(srt_mtx->is_sorted_by_column_index());
+}
+
+
 TYPED_TEST(Fbcsr, ExtractsDiagonal)
 {
     using T = typename TestFixture::value_type;
