@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_FIXED_BLOCK_MATRIX_GENERATOR_HPP_
 
 
-#include <algorithm>
-#include <iterator>
 #include <numeric>
 #include <random>
 #include <type_traits>
@@ -46,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
