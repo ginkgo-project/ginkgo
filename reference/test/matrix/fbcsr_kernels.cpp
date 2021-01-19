@@ -555,6 +555,22 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 }
 
 
+TYPED_TEST(Fbcsr, CalculatesMaxNnzPerRow)
+{
+    using IndexType = typename TestFixture::index_type;
+    gko::size_type max_row_nnz{};
+
+    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
+        this->exec, this->mtx2.get(), &max_row_nnz);
+
+    gko::size_type ref_max_row_nnz{};
+    gko::kernels::reference::csr::calculate_max_nnz_per_row(
+        this->exec, this->ref2csrmtx.get(), &ref_max_row_nnz);
+
+    ASSERT_EQ(max_row_nnz, ref_max_row_nnz);
+}
+
+
 TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;
