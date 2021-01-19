@@ -34,11 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_MPI_BINDINGS_HPP_
 
 
+#include <iostream>
+
+
 #include <mpi.h>
+
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include <iostream>
 
 namespace gko {
 /**
