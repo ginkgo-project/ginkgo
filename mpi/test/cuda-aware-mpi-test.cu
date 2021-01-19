@@ -30,48 +30,53 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+
+#include <cuda.h>
+#include <mpi.h>
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
-
-
-namespace gko {
-
-
-void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const HipExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const MpiExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
+int main(int argc, char *argv[])
 {
-    this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
+    int num_cuda_devices = 0;
+    cudaGetDeviceCount(&num_cuda_devices);
+    if (num_cuda_devices < 1) std::exit(-1);
+    MPI_Init(&argc, &argv);
+    int rank = 0;
+    int size = 0;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    assert(size > 1);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    cudaSetDevice(rank);
+    int *d_buf;
+    int *buf;
+    unsigned long len = 10;
+    buf = (int *)malloc(sizeof(int) * len);
+    for (int i = 0; i < len; ++i) {
+        buf[i] = (i + 1) * (rank + 1);
+    }
+    cudaMalloc(&d_buf, sizeof(int) * len);
+    cudaMemcpy(d_buf, buf, sizeof(int) * len, cudaMemcpyHostToDevice);
+    if (rank == 0) {
+        MPI_Send(d_buf, len, MPI_INT, 1, 12, MPI_COMM_WORLD);
+    } else {
+        MPI_Status status;
+        MPI_Recv(d_buf, len, MPI_INT, 0, 12, MPI_COMM_WORLD, &status);
+        for (int i = 0; i < len; ++i) {
+            bool flag = (buf[i] == (i + 1) * 2);
+            if (!flag) std::exit(-1);
+        }
+        cudaMemcpy(buf, d_buf, sizeof(int) * len, cudaMemcpyDeviceToHost);
+        for (int i = 0; i < len; ++i) {
+            bool flag = (buf[i] == (i + 1));
+            if (!flag) std::exit(-1);
+        }
+    }
+    cudaFree(d_buf);
+    free(buf);
+    MPI_Finalize();
+    return 0;
 }
-
-
-const char *Operation::get_name() const noexcept
-{
-    static auto name = name_demangling::get_dynamic_type(*this);
-    return name.c_str();
-}
-
-
-}  // namespace gko

@@ -30,48 +30,26 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+
+#include <mpi.h>
+
+#include <string>
 
 
 #include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
 
 
 namespace gko {
 
 
-void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const HipExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const MpiExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
+std::string MpiError::get_error(int64 error_code)
 {
-    this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
+    int len = MPI_MAX_ERROR_STRING;
+    char *error_string = new char[len];
+    MPI_Error_string(error_code, error_string, &len);
+    std::string message = "MPI Error: " + std::string(error_string);
+    delete[] error_string;
+    return message;
 }
-
-
-const char *Operation::get_name() const noexcept
-{
-    static auto name = name_demangling::get_dynamic_type(*this);
-    return name.c_str();
-}
-
 
 }  // namespace gko

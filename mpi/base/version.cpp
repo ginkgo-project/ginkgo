@@ -30,47 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/version.hpp>
 
 
 namespace gko {
 
 
-void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const HipExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const MpiExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
-
-
-void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
+version version_info::get_mpi_version() noexcept
 {
-    this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
-}
-
-
-const char *Operation::get_name() const noexcept
-{
-    static auto name = name_demangling::get_dynamic_type(*this);
-    return name.c_str();
+    // When compiling the module, the header version is the same as the library
+    // version. Mismatch between the header and the module versions may happen
+    // if using shared libraries from different versions of Ginkgo.
+    return version_info::get_header_version();
 }
 
 
