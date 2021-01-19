@@ -30,10 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "benchmark/utils/tuning_variables.hpp"
-
-
 #include <ginkgo/core/base/types.hpp>
+
+
+#include "benchmark/utils/tuning_variables.hpp"
 
 
 namespace gko {
