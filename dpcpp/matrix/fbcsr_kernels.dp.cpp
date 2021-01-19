@@ -166,6 +166,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void sort_by_column_index(const std::shared_ptr<const DpcppExecutor> exec,
+                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Fbcsr<ValueType, IndexType> *orig,
                       matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;

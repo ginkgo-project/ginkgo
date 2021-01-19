@@ -512,6 +512,52 @@ public:
     }
 };
 
+
+/**
+ * Generates a fixed-block CSR matrix with longer and unsorted columns
+ */
+template <typename ValueType, typename IndexType>
+class FbcsrSampleUnsorted {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+
+
+    const size_type nbrows = 3;
+    const size_type nbcols = 20;
+    const size_type nbnz = 30;
+    const int bs = 3;
+    const size_type nrows = nbrows * bs;
+    const size_type ncols = nbcols * bs;
+    const size_type nnz = nbnz * bs * bs;
+    const std::shared_ptr<const gko::Executor> exec;
+
+
+    FbcsrSampleUnsorted(std::shared_ptr<const gko::ReferenceExecutor> rexec)
+        : exec(rexec)
+    {}
+
+    std::unique_ptr<Fbcsr> generate_fbcsr() const
+    {
+        gko::Array<index_type> r(exec, {0, 8, 19, 30});
+        gko::Array<index_type> c(
+            exec, {0,  1,  20, 15, 12, 18, 5, 28, 3,  10, 29, 5,  9,  2,  16,
+                   12, 21, 2,  0,  1,  5,  9, 12, 15, 17, 20, 22, 24, 27, 28});
+        gko::Array<value_type> vals(exec, nnz);
+        value_type *const v = vals.get_data();
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = static_cast<value_type>(i + 0.15 + FBCSR_TEST_OFFSET);
+        }
+
+        return Fbcsr::create(exec,
+                             gko::dim<2>{static_cast<size_type>(nrows),
+                                         static_cast<size_type>(ncols)},
+                             bs, vals, c, r);
+    }
+};
+
+
 }  // namespace testing
 }  // namespace gko
 

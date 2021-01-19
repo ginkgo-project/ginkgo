@@ -70,6 +70,7 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        fbcsr::calculate_nonzeros_per_row);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        fbcsr::is_sorted_by_column_index);
+GKO_REGISTER_OPERATION(sort_by_column_index, fbcsr::sort_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, fbcsr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -447,7 +448,11 @@ std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
+void Fbcsr<ValueType, IndexType>::sort_by_column_index()
+{
+    auto exec = this->get_executor();
+    exec->run(fbcsr::make_sort_by_column_index(this));
+}
 
 
 template <typename ValueType, typename IndexType>
