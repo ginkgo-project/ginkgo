@@ -47,7 +47,7 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The Compressed sparse row matrix format namespace.
+ * @brief The fixed-size block compressed sparse row matrix format namespace.
  *
  * @ingroup fbcsr
  */
