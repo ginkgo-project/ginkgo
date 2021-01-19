@@ -104,9 +104,4 @@ void MpiExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
                               void *dest_ptr) const GKO_NOT_IMPLEMENTED;
 
 
-void OmpExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
-                              const void *src_ptr,
-                              void *dest_ptr) const GKO_NOT_IMPLEMENTED;
-
-
 }  // namespace gko

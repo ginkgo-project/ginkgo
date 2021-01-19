@@ -97,6 +97,11 @@ void OmpExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 }
 
 
+void OmpExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
+                              const void *src_ptr,
+                              void *dest_ptr) const GKO_NOT_IMPLEMENTED;
+
+
 void OmpExecutor::synchronize() const
 {
     // This is a no-op for single-threaded OMP

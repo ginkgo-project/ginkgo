@@ -33,9 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_MPI_HELPERS_HPP_
 #define GKO_MPI_HELPERS_HPP_
 
+
 #include <functional>
 
+
 #include <mpi.h>
+
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
