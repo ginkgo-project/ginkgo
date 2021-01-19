@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/fb_matrix_generator.hpp"
 
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
@@ -78,7 +79,7 @@ protected:
     }
 
     const int nbrows = 100;
-    const int nbcols = 20;
+    const int nbcols = nbrows;
     const int blk_sz = 5;
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<gko::matrix::Csr<real_type, int>> mtx;
@@ -86,7 +87,6 @@ protected:
     std::unique_ptr<gko::matrix::Fbcsr<real_type, int>> rbmtx_dd;
     std::unique_ptr<gko::matrix::Fbcsr<std::complex<real_type>, int>> cbmtx;
 
-    // TODO: Move this function out and use for both classes in this file
     template <typename InputIterator, typename ValueType>
     ValueType get_nth_moment(int n, ValueType c, InputIterator sample_start,
                              InputIterator sample_end)
@@ -138,16 +138,18 @@ TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
     const int *const row_ptrs = rbmtx_dd->get_const_row_ptrs();
     const int *const col_idxs = rbmtx_dd->get_const_col_idxs();
 
+    real_type min_diag_dom{1000.0}, avg_diag_dom{};
+
     for (int irow = 0; irow < nbrows; irow++) {
         std::vector<real_type> row_del_sum(blk_sz, 0.0);
         std::vector<real_type> diag_val(blk_sz, 0.0);
+        bool diagfound{false};
         for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
             if (col_idxs[iz] == irow) {
-                std::cout << "Found diag block";
+                diagfound = true;
                 for (int i = 0; i < blk_sz; i++)
                     for (int j = 0; j < blk_sz; j++)
                         if (i == j) {
-                            std::cout << "Found diag ";
                             diag_val[i] = abs(vals(iz, i, i));
                         } else
                             row_del_sum[i] += abs(vals(iz, i, j));
@@ -158,44 +160,24 @@ TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
             }
         }
 
+        std::vector<real_type> diag_dom(blk_sz);
         for (int i = 0; i < blk_sz; i++) {
-            if (diag_val[i] <= row_del_sum[i])
-                std::cout << "Blk-row " << irow << ": row " << i
-                          << ": diag val = " << diag_val[i]
-                          << ", off-diag sum = " << row_del_sum[i] << std::endl;
-            ASSERT_TRUE(diag_val[i] > row_del_sum[i]);
+            diag_dom[i] = diag_val[i] - row_del_sum[i];
+            avg_diag_dom += diag_dom[i];
+        }
+        auto min_it = std::min_element(diag_dom.begin(), diag_dom.end());
+        if (*min_it < min_diag_dom) min_diag_dom = *min_it;
+
+        ASSERT_TRUE(diagfound);
+        for (int i = 0; i < blk_sz; i++) {
+            ASSERT_GT(diag_val[i], row_del_sum[i]);
         }
     }
+
+    std::cout << "\t\tMin diag dom = " << min_diag_dom
+              << ", avg diag dom = " << avg_diag_dom / (nbrows * blk_sz)
+              << std::endl;
 }
-
-// TEST_F(BlockMatrixGenerator, OutputHasCorrectNonzeroAverageAndDeviation)
-// {
-//     using std::sqrt;
-//     auto average = get_nth_moment(1, 0.0, begin(nnz_per_row_sample),
-//                                   end(nnz_per_row_sample));
-//     auto deviation = sqrt(get_nth_moment(2, average,
-//     begin(nnz_per_row_sample),
-//                                          end(nnz_per_row_sample)));
-
-//     // check that average & deviation is within 10% of the required amount
-//     ASSERT_NEAR(average, 50.0, 5);
-//     ASSERT_NEAR(deviation, 5.0, 0.5);
-// }
-
-
-// TEST_F(BlockMatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
-// {
-//     using std::sqrt;
-//     auto average =
-//         get_nth_moment(1, 0.0, begin(values_sample), end(values_sample));
-//     auto deviation = sqrt(
-//         get_nth_moment(2, average, begin(values_sample),
-//         end(values_sample)));
-
-//     // check that average and deviation is within 10% of the required amount
-//     ASSERT_NEAR(average, 20.0, 2.0);
-//     ASSERT_NEAR(deviation, 5.0, 0.5);
-// }
 
 
 }  // namespace
