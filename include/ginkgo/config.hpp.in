@@ -76,6 +76,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+// clang-format off
+#define GKO_HAVE_MPI @GINKGO_HAVE_MPI@
+
+
+#define GKO_HAVE_CUDA_AWARE_MPI @GINKGO_HAVE_CUDA_AWARE_MPI@
+// clang-format on
+
+
 /* Is PAPI SDE available for Logging? */
 // clang-format off
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
