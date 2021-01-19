@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
+#include <ginkgo/core/base/mpi_headers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -242,7 +243,7 @@ class ExecutorBase;
  *         [&]() { os << "HIP("    // HIP closure
  *                    << static_cast<gko::HipExecutor&>(exec)
  *                         .get_device_id()
- *                    << ")"; });
+ *                    << ")"; }),
  *         [&]() { os << "DPC++("    // DPC++ closure
  *                    << static_cast<gko::DpcppExecutor&>(exec)
  *                         .get_device_id()
@@ -499,6 +500,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *      operations executed on either an NVIDIA or AMD GPU accelerator;
  * +    DpcppExecutor specifies that the data should be stored and the
  *      operations executed on an hardware supporting DPC++;
+ * +    MpiExecutor specifies the operations be executed with MPI;
  * +    ReferenceExecutor executes a non-optimized reference implementation,
  *      which can be used to debug the library.
  *
@@ -610,12 +612,14 @@ public:
      * @param op_dpcpp  functor to run in case of a DpcppExecutor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
-    void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
-             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
+              typename ClosureDpcpp, typename ClosureMpi>
+    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+             const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp,
+             const ClosureMpi &op_mpi) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
-            op_omp, op_cuda, op_hip, op_dpcpp);
+        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp,
+                        ClosureMpi>
+            op(op_omp, op_cuda, op_hip, op_dpcpp, op_mpi);
         this->run(op);
     }
 
@@ -744,6 +748,18 @@ public:
      * @copydoc get_master
      */
     virtual std::shared_ptr<const Executor> get_master() const noexcept = 0;
+
+    /**
+     * Returns the sub-executor of this Executor.
+     * @return the sub-executor of this Executor.
+     */
+    virtual std::shared_ptr<Executor> get_sub_executor() noexcept = 0;
+
+    /**
+     * @copydoc get_sub_executor
+     */
+    virtual std::shared_ptr<const Executor> get_sub_executor()
+        const noexcept = 0;
 
     /**
      * Synchronize the operations launched on the executor with its master.
@@ -994,7 +1010,7 @@ private:
      * @tparam ClosureDpcpp  the type of the fourth functor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
+              typename ClosureDpcpp, typename ClosureMpi>
     class LambdaOperation : public Operation {
     public:
         /**
@@ -1006,13 +1022,16 @@ private:
          * @param op_hip  a functor object which will be called by HipExecutor
          * @param op_dpcpp  a functor object which will be called by
          *                  DpcppExecutor
+         * @param op_mpi  a functor object which will be called by MpiExecutor
          */
-        LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
-                        const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
+        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+                        const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp,
+                        const ClosureMpi &op_mpi)
             : op_omp_(op_omp),
               op_cuda_(op_cuda),
               op_hip_(op_hip),
-              op_dpcpp_(op_dpcpp)
+              op_dpcpp_(op_dpcpp),
+              op_mpi_(op_mpi)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1035,11 +1054,17 @@ private:
             op_dpcpp_();
         }
 
+        void run(std::shared_ptr<const MpiExecutor>) const override
+        {
+            op_mpi_();
+        }
+
     private:
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
         ClosureDpcpp op_dpcpp_;
+        ClosureMpi op_mpi_;
     };
 };
 
@@ -1226,6 +1251,10 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
+    std::shared_ptr<Executor> get_sub_executor() noexcept override;
+
+    std::shared_ptr<const Executor> get_sub_executor() const noexcept override;
+
     void synchronize() const override;
 
     int get_num_cores() const
@@ -1260,7 +1289,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
+
+    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
 };
 
 
@@ -1321,6 +1352,8 @@ protected:
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
 };
 
 
@@ -1362,6 +1395,10 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<Executor> get_sub_executor() noexcept override;
+
+    std::shared_ptr<const Executor> get_sub_executor() const noexcept override;
 
     void synchronize() const override;
 
@@ -1504,7 +1541,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    bool verify_memory_to(const HipExecutor* dest_exec) const override;
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
+
+    bool verify_memory_to(const HipExecutor *dest_exec) const override;
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
@@ -1566,6 +1605,10 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<Executor> get_sub_executor() noexcept override;
+
+    std::shared_ptr<const Executor> get_sub_executor() const noexcept override;
 
     void synchronize() const override;
 
@@ -1708,7 +1751,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    bool verify_memory_to(const CudaExecutor* dest_exec) const override;
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
+
+    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
@@ -1766,6 +1811,10 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<Executor> get_sub_executor() noexcept override;
+
+    std::shared_ptr<const Executor> get_sub_executor() const noexcept override;
 
     void synchronize() const override;
 
@@ -1880,7 +1929,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    bool verify_memory_to(const OmpExecutor* dest_exec) const override;
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
+
+    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
 
     bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
 
@@ -1898,6 +1949,198 @@ namespace dpcpp {
 using DefaultExecutor = DpcppExecutor;
 }  // namespace dpcpp
 }  // namespace kernels
+
+
+/**
+ * This Executor subclass represents a distributed executor.
+ *
+ * The MpiExecutor itself does not run any kernels. It needs to be created with
+ * a sub_executor which executes the kernels for its data. Hence it is assumed
+ * that that data has been distributed appropriately and delegates the kernel
+ * launches to the sub_executors.
+ *
+ * @ingroup exec_mpi
+ * @ingroup Executor
+ */
+class MpiExecutor : public detail::ExecutorBase<MpiExecutor>,
+                    public std::enable_shared_from_this<MpiExecutor> {
+    friend class detail::ExecutorBase<MpiExecutor>;
+
+public:
+    template <typename T>
+    using request_manager = std::unique_ptr<T, std::function<void(T *)>>;
+
+    /**
+     * Creates a new MpiExecutor.
+     */
+    static std::shared_ptr<MpiExecutor> create(
+        std::shared_ptr<Executor> sub_executor);
+
+    /**
+     * Creates a new MpiExecutor.
+     */
+    static std::shared_ptr<MpiExecutor> create(
+        std::shared_ptr<Executor> sub_executor, const MPI_Comm &comm);
+
+    std::shared_ptr<Executor> get_master() noexcept override;
+
+    std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<Executor> get_sub_executor() noexcept override;
+
+    std::shared_ptr<const Executor> get_sub_executor() const noexcept override;
+
+    void run(const Operation &op) const override
+    {
+        this->template log<log::Logger::operation_launched>(this, &op);
+        op.run(std::static_pointer_cast<const MpiExecutor>(
+            this->shared_from_this()));
+        this->template log<log::Logger::operation_completed>(this, &op);
+    }
+
+    int get_num_ranks(const MPI_Comm &comm) const;
+
+    int get_my_rank(const MPI_Comm &comm) const;
+
+    MPI_Comm get_communicator() const { return comm_.get(); }
+
+    void set_root_rank(int rank) { root_rank_ = rank; }
+
+    int get_root_rank() const { return root_rank_; }
+
+    int get_local_rank(const MPI_Comm &comm) const;
+
+    double get_walltime() const;
+
+    void synchronize() const override;
+
+    void synchronize_communicator(const MPI_Comm &comm) const;
+
+    void set_communicator(const MPI_Comm &comm);
+
+    MPI_Op create_operation(
+        std::function<void(void *, void *, int *, MPI_Datatype *)> func,
+        void *arg1, void *arg2, int *len, MPI_Datatype *type);
+
+    request_manager<MPI_Request> create_requests_array(int size);
+
+    void wait(MPI_Request *req, MPI_Status *status = nullptr);
+
+    // MPI_Send
+    template <typename SendType>
+    void send(const SendType *send_buffer, const int send_count,
+              const int destination_rank, const int send_tag,
+              MPI_Request *req = nullptr) const;
+
+    // MPI_Recv
+    template <typename RecvType>
+    void recv(RecvType *recv_buffer, const int recv_count,
+              const int source_rank, const int recv_tag,
+              MPI_Request *req = nullptr) const;
+
+    // MPI_Put
+    template <typename PutType>
+    void put(const PutType *origin_buffer, const int origin_count,
+             const int target_rank, const unsigned int target_disp,
+             const int target_count, MPI_Win window,
+             MPI_Request *req = nullptr) const;
+
+    // MPI_Get
+    template <typename GetType>
+    void get(GetType *origin_buffer, const int origin_count,
+             const int target_rank, const unsigned int target_disp,
+             const int target_count, MPI_Win window,
+             MPI_Request *req = nullptr) const;
+
+    // MPI_Gather
+    template <typename SendType, typename RecvType>
+    void gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count,
+                int root_rank) const;
+
+    // MPI_Gatherv
+    template <typename SendType, typename RecvType>
+    void gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int *recv_counts,
+                const int *displacements, int root_rank = 0) const;
+
+    // MPI_Scatter
+    template <typename SendType, typename RecvType>
+    void scatter(const SendType *send_buffer, const int send_count,
+                 RecvType *recv_buffer, const int recv_count,
+                 int root_rank = 0) const;
+
+    // MPI_Scatterv
+    template <typename SendType, typename RecvType>
+    void scatter(const SendType *send_buffer, const int *send_counts,
+                 const int *displacements, RecvType *recv_buffer,
+                 const int recv_count, int root_rank = 0) const;
+
+    // MPI_Bcast
+    template <typename BroadcastType>
+    void broadcast(BroadcastType *buffer, int count = 1,
+                   int root_rank = 0) const;
+
+    // MPI_Reduce
+    template <typename ReduceType>
+    void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
+                int count = 1, mpi::op_type op_enum = mpi::op_type::sum,
+                int root_rank = 0, MPI_Request *req = nullptr) const;
+
+    // MPI_Allreduce
+    template <typename ReduceType>
+    void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
+                    int count = 1, mpi::op_type op_enum = mpi::op_type::sum,
+                    MPI_Request *req = nullptr) const;
+
+protected:
+    MpiExecutor() = delete;
+
+    MpiExecutor(std::shared_ptr<Executor> sub_executor, const MPI_Comm &comm)
+        : num_ranks_(1), sub_executor_(sub_executor), comm_(comm)
+    {
+        GKO_ASSERT(mpi::init_finalize::is_initialized() &&
+                   !(mpi::init_finalize::is_finalized()));
+        this->num_ranks_ = this->get_num_ranks(this->get_communicator());
+        this->root_rank_ = 0;
+    }
+
+    MpiExecutor(std::shared_ptr<Executor> sub_executor)
+        : num_ranks_(1), sub_executor_(sub_executor), comm_(MPI_COMM_WORLD)
+    {
+        GKO_ASSERT(mpi::init_finalize::is_initialized() &&
+                   !(mpi::init_finalize::is_finalized()));
+        this->num_ranks_ = this->get_num_ranks(this->get_communicator());
+        this->root_rank_ = 0;
+    }
+
+    void populate_exec_info(const MachineTopology *mach_topo) override;
+
+    void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(MpiExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
+
+private:
+    int num_ranks_;
+    int root_rank_;
+    std::shared_ptr<Executor> sub_executor_;
+    mpi::communicator comm_;
+    std::unique_ptr<MPI_Status> mpi_status_;
+};
 
 
 #undef GKO_OVERRIDE_RAW_COPY_TO

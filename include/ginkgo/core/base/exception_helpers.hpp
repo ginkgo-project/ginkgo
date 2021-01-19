@@ -129,6 +129,22 @@ namespace gko {
                   "semi-colon warnings")
 
 
+/**
+ * Helper assert that assert the function is being called on MPI executor.
+ *
+ * @param _exec  the passed in executor.
+ * @param _func  the passed in function to be executed.
+ */
+#define GKO_ASSERT_MPI_EXEC(_exec)                                           \
+    if (auto chk = dynamic_cast<const gko::MpiExecutor *>(_exec)) {          \
+    } else {                                                                 \
+        GKO_NOT_SUPPORTED(_exec);                                            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 namespace detail {
 
 
@@ -336,6 +352,52 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op2)[0],                               \
             ::gko::detail::get_size(_op2)[1], "expected equal dimensions"); \
     }
+
+
+/**
+ * Asserts that a MPI library call completed without errors.
+ *
+ * @param _mpi_call  a library call expression
+ */
+#define GKO_ASSERT_NO_MPI_ERRORS(_mpi_call) \
+    do {                                    \
+        auto _errcode = _mpi_call;          \
+        if (_errcode != MPI_SUCCESS) {      \
+            throw GKO_MPI_ERROR(_errcode);  \
+        }                                   \
+    } while (false)
+
+/**
+ * Instantiates a MpiError.
+ *
+ * @param errcode  The error code returned from a MPI routine.
+ */
+#define GKO_MPI_ERROR(_errcode) \
+    ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
+
+/**
+ * Throws when MPI has already been initialized.
+ *
+ */
+#define GKO_MPI_INITIALIZED                                                  \
+    {                                                                        \
+        throw ::gko::MpiInitialized(__FILE__, __LINE__, __func__);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+/**
+ * Throws when MPI has already been finalized.
+ *
+ */
+#define GKO_MPI_FINALIZED                                                    \
+    {                                                                        \
+        throw ::gko::MpiFinalized(__FILE__, __LINE__, __func__);             \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
