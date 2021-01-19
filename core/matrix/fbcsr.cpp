@@ -85,9 +85,10 @@ namespace detail {
 
 
 /**
+ * @internal
  * A lightweight dynamic block type on the host
  *
- * @internal Currently used only while reading a FBCSR matrix from matrix_data.
+ * Currently used only while reading a FBCSR matrix from matrix_data.
  *
  * @tparam ValueType  The numeric type of entries of the block
  */
