@@ -58,10 +58,12 @@ if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
-if(GINKGO_HAVE_MPI)
+if (GINKGO_BUILD_MPI)
     target_sources(ginkgo PRIVATE
         distributed/matrix.cpp
         distributed/vector.cpp)
+    target_link_libraries(ginkgo PUBLIC "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
+    target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
 endif()
 
 ginkgo_compile_features(ginkgo)
@@ -71,7 +73,7 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+    PUBLIC ginkgo_core_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp ginkgo_mpi)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 if(GINKGO_HAVE_PAPI_SDE)
