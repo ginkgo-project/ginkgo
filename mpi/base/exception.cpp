@@ -30,47 +30,26 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
 
+#include <mpi.h>
 
-#include <cstdlib>
-#include <cstring>
+#include <string>
 
 
 #include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> DpcppExecutor::get_master() noexcept
+std::string MpiError::get_error(int64 error_code)
 {
-    return master_;
+    int len = MPI_MAX_ERROR_STRING;
+    char *error_string = new char[len];
+    MPI_Error_string(error_code, error_string, &len);
+    std::string message = "MPI Error: " + std::string(error_string);
+    delete[] error_string;
+    return message;
 }
-
-
-std::shared_ptr<const Executor> DpcppExecutor::get_master() const noexcept
-{
-    return master_;
-}
-
-
-std::shared_ptr<Executor> DpcppExecutor::get_sub_executor() noexcept
-{
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<const Executor> DpcppExecutor::get_sub_executor() const noexcept
-{
-    return this->shared_from_this();
-}
-
-
-void DpcppExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
-                                const void *src_ptr,
-                                void *dest_ptr) const GKO_NOT_IMPLEMENTED;
-
 
 }  // namespace gko

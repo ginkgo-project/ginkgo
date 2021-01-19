@@ -30,47 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include <cstdlib>
-#include <cstring>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/version.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> DpcppExecutor::get_master() noexcept
+version version_info::get_mpi_version() noexcept
 {
-    return master_;
+    // When compiling the module, the header version is the same as the library
+    // version. Mismatch between the header and the module versions may happen
+    // if using shared libraries from different versions of Ginkgo.
+    return version_info::get_header_version();
 }
-
-
-std::shared_ptr<const Executor> DpcppExecutor::get_master() const noexcept
-{
-    return master_;
-}
-
-
-std::shared_ptr<Executor> DpcppExecutor::get_sub_executor() noexcept
-{
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<const Executor> DpcppExecutor::get_sub_executor() const noexcept
-{
-    return this->shared_from_this();
-}
-
-
-void DpcppExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
-                                const void *src_ptr,
-                                void *dest_ptr) const GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace gko

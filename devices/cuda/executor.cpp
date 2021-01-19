@@ -48,7 +48,24 @@ std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
+std::shared_ptr<const Executor> CudaExecutor::get_sub_executor() const noexcept
+{
+    return this->shared_from_this();
+}
+
+
+std::shared_ptr<Executor> CudaExecutor::get_sub_executor() noexcept
+{
+    return this->shared_from_this();
+}
+
+
+void CudaExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
+                               const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_IMPLEMENTED;
+
+
+bool CudaExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
 {
     return this->get_device_id() == dest_exec->get_device_id();
 }
