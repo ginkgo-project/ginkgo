@@ -57,13 +57,6 @@ namespace cuda {
 namespace fbcsr {
 
 
-constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
-constexpr int classical_overweight = 32;
-
-
 /**
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.

@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -58,6 +57,32 @@ class Fbcsr;
 
 template <typename ValueType, typename IndexType>
 class FbcsrBuilder;
+
+
+namespace detail {
+
+
+/**
+ * Computes the number of blocks in some array of given size
+ *
+ * @param  block_size The size of each block
+ * @param  size The total size of some array/vector
+ * @return  The number of blocks, ie.,
+ *          quotient of the size divided by the block size.
+ *
+ * @throw BlockSizeError  when block_size does not divide the total size.
+ */
+template <typename IndexType>
+IndexType get_num_blocks(const int block_size, const IndexType size)
+{
+    if (size % block_size != 0) {
+        throw BlockSizeError<IndexType>(__FILE__, __LINE__, block_size, size);
+    }
+    return size / block_size;
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -189,7 +214,8 @@ public:
     void compute_absolute_inplace() override;
 
     /**
-     * Sorts all (value, col_idx) pairs in each row by column index
+     * Sorts the values blocks and block-column indices in each row
+     * by column index
      */
     void sort_by_column_index();
 
@@ -253,9 +279,7 @@ public:
     }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
-     *
-     * @return the number of elements explicitly stored in the matrix
+     * @return  The number of elements explicitly stored in the matrix
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -263,21 +287,29 @@ public:
     }
 
     /**
+     * @return  The number of non-zero blocks explicitly stored in the matrix
+     */
+    size_type get_num_stored_blocks() const noexcept
+    {
+        return col_idxs_.get_num_elems();
+    }
+
+    /**
      * @return The fixed block size for this matrix
      */
-    int get_block_size() const { return bs_; }
+    int get_block_size() const noexcept { return bs_; }
 
     /**
      * Set the fixed block size for this matrix
      *
      * @param block_size The block size
      */
-    void set_block_size(const int block_size) { bs_ = block_size; }
+    void set_block_size(const int block_size) noexcept { bs_ = block_size; }
 
     /**
      * @return The number of block-rows in the matrix
      */
-    index_type get_num_block_rows() const
+    index_type get_num_block_rows() const noexcept
     {
         return row_ptrs_.get_num_elems() - 1;
     }
@@ -285,7 +317,7 @@ public:
     /**
      * @return The number of block-columns in the matrix
      */
-    index_type get_num_block_cols() const { return nbcols_; }
+    index_type get_num_block_cols() const noexcept { return nbcols_; }
 
 protected:
     /**
@@ -312,11 +344,11 @@ protected:
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
           nbcols_{static_cast<index_type>(
-              blockutils::get_num_blocks(block_size, size[1]))},
+              detail::get_num_blocks(block_size, size[1]))},
           values_(exec, num_nonzeros),
-          col_idxs_(exec, blockutils::get_num_blocks(block_size * block_size,
-                                                     num_nonzeros)),
-          row_ptrs_(exec, blockutils::get_num_blocks(block_size, size[0]) + 1)
+          col_idxs_(exec, detail::get_num_blocks(block_size * block_size,
+                                                 num_nonzeros)),
+          row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
     {}
 
     /**
@@ -348,7 +380,7 @@ protected:
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
           nbcols_{static_cast<index_type>(
-              blockutils::get_num_blocks(block_size, size[1]))},
+              detail::get_num_blocks(block_size, size[1]))},
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
