@@ -73,79 +73,63 @@ public:
      */
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        std::unique_ptr<Fbcsr> mtx =
-            Fbcsr::create(exec,
-                          gko::dim<2>{static_cast<size_type>(nrows),
-                                      static_cast<size_type>(ncols)},
-                          nnz, bs);
+        Array<index_type> rarr(exec, {0, 3, 5, 7});
+        Array<index_type> carr(exec, {0, 1, 2, 1, 2, 0, 2});
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
-        r[0] = 0;
-        r[1] = 3;
-        r[2] = 5;
-        r[3] = 7;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        c[4] = 2;
-        c[5] = 0;
-        c[6] = 2;
-
-        gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs, bs);
-        vb(0, 0, 0) = 2.0;
-        vb(0, 0, 1) = -1.0;
-        vb(0, 0, 2) = 0.0;
-        vb(0, 1, 0) = -1.0;
-        vb(0, 1, 1) = 2.0;
-        vb(0, 1, 2) = -1.0;
-        vb(0, 2, 0) = 0.0;
-        vb(0, 2, 1) = -1.0;
-        vb(0, 2, 2) = 2.0;
-        for (int i = 0; i < bs; i++)
+        Array<value_type> varr(exec, nnz);
+        blockutils::DenseBlocksView<value_type, index_type> vb(varr.get_data(),
+                                                               bs, bs);
+        // clang-format off
+        vb(0, 0, 0) = 2.0;  vb(0, 0, 1) = -1.0; vb(0, 0, 2) = 0.0;
+        vb(0, 1, 0) = -1.0; vb(0, 1, 1) = 2.0;  vb(0, 1, 2) = -1.0;
+        vb(0, 2, 0) = 0.0;  vb(0, 2, 1) = -1.0; vb(0, 2, 2) = 2.0;
+        for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
                 vb(1, i, j) = 0.0;
                 vb(2, i, j) = 0.0;
                 vb(4, i, j) = 0.0;
             }
-        vb(1, 0, 0) = 1.0;
-        vb(1, 1, 1) = 2.0;
-        vb(1, 2, 2) = 1.0;
-        vb(2, 0, 0) = 2.0;
-        vb(2, 1, 1) = 1.0;
-        vb(2, 2, 2) = 2.0;
-        vb(3, 0, 0) = 4.0;
-        vb(3, 0, 1) = 1.0;
-        vb(3, 0, 2) = 1.0;
-        vb(3, 1, 0) = 2.0;
-        vb(3, 1, 1) = 4.0;
-        vb(3, 1, 2) = 1.0;
-        vb(3, 2, 0) = 0.0;
-        vb(3, 2, 1) = 2.0;
-        vb(3, 2, 2) = 5.0;
-        vb(4, 0, 0) = 2.0;
-        vb(4, 0, 1) = 1.0;
-        vb(4, 1, 1) = 1.0;
-        vb(4, 2, 2) = 1.0;
-        vb(5, 0, 0) = 2.0;
-        vb(5, 0, 1) = -2.0;
-        vb(5, 0, 2) = 2.0;
-        vb(5, 1, 0) = 3.0;
-        vb(5, 1, 1) = 4.0;
-        vb(5, 1, 2) = 5.0;
+        }
+        vb(1, 0, 0) = 1.0;  vb(1, 1, 1) = 2.0;  vb(1, 2, 2) = 1.0;
+        vb(2, 0, 0) = 2.0;  vb(2, 1, 1) = 1.0;  vb(2, 2, 2) = 2.0;
+        vb(3, 0, 0) = 4.0;  vb(3, 0, 1) = 1.0;  vb(3, 0, 2) = 1.0;
+        vb(3, 1, 0) = 2.0;  vb(3, 1, 1) = 4.0;  vb(3, 1, 2) = 1.0;
+        vb(3, 2, 0) = 0.0;  vb(3, 2, 1) = 2.0;  vb(3, 2, 2) = 5.0;
+        vb(4, 0, 0) = 2.0;  vb(4, 0, 1) = 1.0;
+        vb(4, 1, 1) = 1.0;  vb(4, 2, 2) = 1.0;
+        vb(5, 0, 0) = 2.0;  vb(5, 0, 1) = -2.0; vb(5, 0, 2) = 2.0;
+        vb(5, 1, 0) = 3.0;  vb(5, 1, 1) = 4.0;  vb(5, 1, 2) = 5.0;
         vb(5, 2, 0) = vb(5, 2, 1) = vb(5, 2, 2) = 1.0;
-        vb(6, 0, 0) = 5.0;
-        vb(6, 0, 1) = 2.0;
-        vb(6, 0, 2) = -1.0;
-        vb(6, 1, 0) = 0.5;
-        vb(6, 1, 1) = 10.0;
-        vb(6, 1, 2) = 1.0;
-        vb(6, 2, 0) = -0.5;
-        vb(6, 2, 1) = 1.0;
-        vb(6, 2, 2) = 5.0;
+        vb(6, 0, 0) = 5.0;  vb(6, 0, 1) = 2.0;  vb(6, 0, 2) = -1.0;
+        vb(6, 1, 0) = 0.5;  vb(6, 1, 1) = 10.0; vb(6, 1, 2) = 1.0;
+        vb(6, 2, 0) = -0.5; vb(6, 2, 1) = 1.0; vb(6, 2, 2) = 5.0;
+        // clang-format on
 
+        return Fbcsr::create(exec,
+                             gko::dim<2>{static_cast<size_type>(nrows),
+                                         static_cast<size_type>(ncols)},
+                             bs, varr, carr, rarr);
+    }
+
+    /**
+     * @return  The same matrix as generate_fbcsr but with columns unsorted
+     */
+    std::unique_ptr<Fbcsr> generate_unsorted_fbcsr() const
+    {
+        auto mtx = generate_fbcsr();
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs, bs);
+        std::swap(c[0], c[1]);
+        std::swap(c[3], c[4]);
+        std::swap(c[5], c[6]);
+        for (int i = 0; i < bs; i++) {
+            for (int j = 0; j < bs; j++) {
+                std::swap(vb(0, i, j), vb(1, i, j));
+                std::swap(vb(3, i, j), vb(4, i, j));
+                std::swap(vb(5, i, j), vb(6, i, j));
+            }
+        }
         return mtx;
     }
 
@@ -296,6 +280,10 @@ public:
     }
 };
 
+
+/**
+ * Sample block matrix to check addition of diagonal blocks
+ */
 template <typename ValueType, typename IndexType>
 class BlockDiagSample {
 public:

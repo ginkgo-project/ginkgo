@@ -94,6 +94,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+    using Composition = gko::Composition<value_type>;
 
     BlockFactorization()
         : refexec(gko::ReferenceExecutor::create()), sample(refexec)
@@ -101,6 +102,28 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> refexec;
     gko::testing::Bilu0Sample<value_type, index_type> sample;
+
+    void test_initialize_row_ptrs_BLU(const Fbcsr *const mat,
+                                      const Composition *const reflu)
+    {
+        const gko::size_type nbrowsp1 = mat->get_num_block_rows() + 1;
+
+        auto refL = gko::as<Fbcsr>(reflu->get_operators()[0]);
+        auto refU = gko::as<Fbcsr>(reflu->get_operators()[1]);
+
+        gko::Array<index_type> l_row_ptrs(this->refexec, nbrowsp1);
+        gko::Array<index_type> u_row_ptrs(this->refexec, nbrowsp1);
+
+        gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
+            this->refexec, mat, l_row_ptrs.get_data(), u_row_ptrs.get_data());
+
+        for (index_type i = 0; i < nbrowsp1; i++) {
+            ASSERT_EQ(l_row_ptrs.get_const_data()[i],
+                      refL->get_const_row_ptrs()[i]);
+            ASSERT_EQ(u_row_ptrs.get_const_data()[i],
+                      refU->get_const_row_ptrs()[i]);
+        }
+    }
 };
 
 TYPED_TEST_SUITE(BlockFactorization, gko::test::ValueIndexTypes);
@@ -191,30 +214,21 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquareUnsorted)
 
 TYPED_TEST(BlockFactorization, KernelInitializeRowptrsBLUSorted)
 {
-    using index_type = typename TestFixture::index_type;
-    using value_type = typename TestFixture::value_type;
     using Fbcsr = typename TestFixture::Fbcsr;
-
     std::unique_ptr<const Fbcsr> matrixx = this->sample.generate_fbcsr();
     const auto reflu = this->sample.generate_initial_values();
-    const gko::size_type nbrowsp1 = matrixx->get_num_block_rows() + 1;
 
-    auto refL = gko::as<Fbcsr>(reflu->get_operators()[0]);
-    auto refU = gko::as<Fbcsr>(reflu->get_operators()[1]);
+    this->test_initialize_row_ptrs_BLU(matrixx.get(), reflu.get());
+}
 
-    gko::Array<index_type> l_row_ptrs(this->refexec, nbrowsp1);
-    gko::Array<index_type> u_row_ptrs(this->refexec, nbrowsp1);
+TYPED_TEST(BlockFactorization, KernelInitializeRowptrsBLUUnsorted)
+{
+    using Fbcsr = typename TestFixture::Fbcsr;
+    std::unique_ptr<const Fbcsr> matrixx =
+        this->sample.generate_unsorted_fbcsr();
+    const auto reflu = this->sample.generate_initial_values();
 
-    gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
-        this->refexec, matrixx.get(), l_row_ptrs.get_data(),
-        u_row_ptrs.get_data());
-
-    for (index_type i = 0; i < nbrowsp1; i++) {
-        ASSERT_EQ(l_row_ptrs.get_const_data()[i],
-                  refL->get_const_row_ptrs()[i]);
-        ASSERT_EQ(u_row_ptrs.get_const_data()[i],
-                  refU->get_const_row_ptrs()[i]);
-    }
+    this->test_initialize_row_ptrs_BLU(matrixx.get(), reflu.get());
 }
 
 TYPED_TEST(BlockFactorization, KernelInitializeBLUSorted)
