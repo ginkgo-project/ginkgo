@@ -184,9 +184,10 @@ TEST_F(Isai, OmpIsaiGenerateAinverseShortIsEquivalentToRef)
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::kernels::omp::isai::generate_general_inverse(
-        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data());
+        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
@@ -252,9 +253,10 @@ TEST_F(Isai, OmpIsaiGenerateAinverseLongIsEquivalentToRef)
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::kernels::omp::isai::generate_general_inverse(
-        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data());
+        omp, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
@@ -333,7 +335,7 @@ TEST_F(Isai, OmpIsaiGenerateExcessAinverseLongIsEquivalentToRef)
     gko::Array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::Array<index_type> da1(omp, a1);
     gko::Array<index_type> da2(omp, a2);
     auto e_dim = a1.get_data()[num_rows];
@@ -354,6 +356,31 @@ TEST_F(Isai, OmpIsaiGenerateExcessAinverseLongIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
     GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
     ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, OmpIsaiScaleExcessSolutionIsEquivalentToRef)
+{
+    initialize_data(matrix_type::lower, 572, 52);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
+    gko::Array<index_type> da1(omp, a1);
+    auto e_dim = a1.get_data()[num_rows];
+    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    std::fill_n(e_rhs->get_values(), e_dim, 123456);
+    auto de_rhs = Dense::create(omp);
+    de_rhs->copy_from(lend(e_rhs));
+    d_inverse->copy_from(lend(inverse));
+
+    gko::kernels::reference::isai::scale_excess_solution(
+        ref, a1.get_const_data(), e_rhs.get(), 0, num_rows);
+    gko::kernels::omp::isai::scale_excess_solution(omp, da1.get_const_data(),
+                                                   de_rhs.get(), 0, num_rows);
+
+    GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
 }
 
 
@@ -417,7 +444,7 @@ TEST_F(Isai, OmpIsaiScatterExcessSolutionAIsEquivalentToRef)
     gko::Array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::Array<index_type> da1(omp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));

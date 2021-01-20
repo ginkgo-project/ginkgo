@@ -68,6 +68,7 @@ protected:
     using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
     using GeneralIsai =
         gko::preconditioner::GeneralIsai<value_type, index_type>;
+    using SpdIsai = gko::preconditioner::SpdIsai<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -88,12 +89,19 @@ protected:
               {{4., 1., -1.}, {0., -2., 4.}, {0., 0., 8.}}, exec)},
           u_dense_inv{gko::initialize<Dense>(
               {{.25, .125, -0.03125}, {0., -.5, .25}, {0., 0., .125}}, exec)},
+          spd_dense{gko::initialize<Dense>(
+              {{.0625, -.0625, .25}, {-.0625, .3125, -.5}, {.25, -.5, 2.25}},
+              exec)},
+          spd_dense_inv{gko::initialize<Dense>(
+              {{4., 0., 0.}, {2., 2., 0.}, {-3., 1., 1.}}, exec)},
           a_csr{Csr::create(exec)},
           a_csr_inv{Csr::create(exec)},
           l_csr{Csr::create(exec)},
           l_csr_inv{Csr::create(exec)},
           u_csr{Csr::create(exec)},
           u_csr_inv{Csr::create(exec)},
+          spd_csr{Csr::create(exec)},
+          spd_csr_inv{Csr::create(exec)},
           l_sparse{Csr::create(exec, gko::dim<2>(4, 4),
                                I<value_type>{-1., 2., 4., 5., -4., 8., -8.},
                                I<index_type>{0, 0, 1, 1, 2, 2, 3},
@@ -147,29 +155,45 @@ protected:
                                                   .125, -.0625, -.5, .25, .5},
                                     I<index_type>{0, 1, 2, 3, 1, 2, 3, 2, 3, 3},
                                     I<index_type>{0, 4, 7, 9, 10})},
-          a_sparse{Csr::create(exec, gko::dim<2>{4, 4},
-                               I<value_type>{1, 4, 1, 4, 2, 1, 2, 1, 1},
-                               I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
-                               I<index_type>{0, 2, 5, 7, 9})},
-          a_s_unsorted{Csr::create(exec, gko::dim<2>{4, 4},
-                                   I<value_type>{4, 1, 1, 2, 4, 2, 1, 1, 1},
-                                   I<index_type>{3, 0, 0, 3, 1, 2, 1, 2, 3},
-                                   I<index_type>{0, 2, 5, 7, 9})},
+          a_sparse{
+              Csr::create(exec, gko::dim<2>{4, 4},
+                          I<value_type>{1., 4., 1., 4., 2., 1., 2., 1., 1.},
+                          I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
+                          I<index_type>{0, 2, 5, 7, 9})},
+          a_s_unsorted{
+              Csr::create(exec, gko::dim<2>{4, 4},
+                          I<value_type>{4., 1., 1., 2., 4., 2., 1., 1., 1.},
+                          I<index_type>{3, 0, 0, 3, 1, 2, 1, 2, 3},
+                          I<index_type>{0, 2, 5, 7, 9})},
           a_sparse_inv{Csr::create(
               exec, gko::dim<2>{4, 4},
-              I<value_type>{1, -4, -.25, .25, .5, -.125, .5, -.5, 1},
+              I<value_type>{1., -4, -.25, .25, .5, -.125, .5, -.5, 1},
               I<index_type>{0, 3, 0, 1, 3, 1, 2, 2, 3},
-              I<index_type>{0, 2, 5, 7, 9})}
+              I<index_type>{0, 2, 5, 7, 9})},
+          spd_sparse{Csr::create(exec, gko::dim<2>{4, 4},
+                                 I<value_type>{.25, -.25, -.25, .5, 4., 4.},
+                                 I<index_type>{0, 1, 0, 1, 2, 3},
+                                 I<index_type>{0, 2, 4, 5, 6})},
+          spd_s_unsorted{Csr::create(exec, gko::dim<2>{4, 4},
+                                     I<value_type>{-.25, .25, .5, -.25, 4., 4.},
+                                     I<index_type>{1, 0, 1, 0, 2, 3},
+                                     I<index_type>{0, 2, 4, 5, 6})},
+          spd_sparse_inv{Csr::create(
+              exec, gko::dim<2>{4, 4}, I<value_type>{2., 2., 2., .5, .5},
+              I<index_type>{0, 0, 1, 2, 3}, I<index_type>{0, 1, 3, 4, 5})}
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
         general_isai_factory = GeneralIsai::build().on(exec);
+        spd_isai_factory = SpdIsai::build().on(exec);
         a_dense->convert_to(lend(a_csr));
         a_dense_inv->convert_to(lend(a_csr_inv));
         l_dense->convert_to(lend(l_csr));
         l_dense_inv->convert_to(lend(l_csr_inv));
         u_dense->convert_to(lend(u_csr));
         u_dense_inv->convert_to(lend(u_csr_inv));
+        spd_dense->convert_to(lend(spd_csr));
+        spd_dense_inv->convert_to(lend(spd_csr_inv));
         l_csr_longrow = read<Csr>("isai_l.mtx");
         l_csr_longrow_e = read<Csr>("isai_l_excess.mtx");
         l_csr_longrow_e_rhs = read<Dense>("isai_l_excess_rhs.mtx");
@@ -185,6 +209,11 @@ protected:
         a_csr_longrow_e_rhs = read<Dense>("isai_a_excess_rhs.mtx");
         a_csr_longrow_inv_partial = read<Csr>("isai_a_inv_partial.mtx");
         a_csr_longrow_inv = read<Csr>("isai_a_inv.mtx");
+        spd_csr_longrow = read<Csr>("isai_spd.mtx");
+        spd_csr_longrow_e = read<Csr>("isai_spd_excess.mtx");
+        spd_csr_longrow_e_rhs = read<Dense>("isai_spd_excess_rhs.mtx");
+        spd_csr_longrow_inv_partial = read<Csr>("isai_spd_inv_partial.mtx");
+        spd_csr_longrow_inv = read<Csr>("isai_spd_inv.mtx");
     }
 
     template <typename ReadMtx>
@@ -222,12 +251,15 @@ protected:
     std::unique_ptr<typename LowerIsai::Factory> lower_isai_factory;
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
     std::unique_ptr<typename GeneralIsai::Factory> general_isai_factory;
+    std::unique_ptr<typename SpdIsai::Factory> spd_isai_factory;
     std::shared_ptr<Dense> a_dense;
     std::shared_ptr<Dense> a_dense_inv;
     std::shared_ptr<Dense> l_dense;
     std::shared_ptr<Dense> l_dense_inv;
     std::shared_ptr<Dense> u_dense;
     std::shared_ptr<Dense> u_dense_inv;
+    std::shared_ptr<Dense> spd_dense;
+    std::shared_ptr<Dense> spd_dense_inv;
     std::shared_ptr<Csr> a_csr;
     std::shared_ptr<Csr> a_csr_inv;
     std::shared_ptr<Csr> l_csr;
@@ -263,6 +295,16 @@ protected:
     std::shared_ptr<Dense> a_csr_longrow_e_rhs;
     std::shared_ptr<Csr> a_csr_longrow_inv_partial;
     std::shared_ptr<Csr> a_csr_longrow_inv;
+    std::shared_ptr<Csr> spd_csr;
+    std::shared_ptr<Csr> spd_csr_inv;
+    std::shared_ptr<Csr> spd_csr_longrow;
+    std::shared_ptr<Csr> spd_csr_longrow_e;
+    std::shared_ptr<Dense> spd_csr_longrow_e_rhs;
+    std::shared_ptr<Csr> spd_csr_longrow_inv_partial;
+    std::shared_ptr<Csr> spd_csr_longrow_inv;
+    std::shared_ptr<Csr> spd_sparse;
+    std::shared_ptr<Csr> spd_s_unsorted;
+    std::shared_ptr<Csr> spd_sparse_inv;
 };
 
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
@@ -283,7 +325,7 @@ TYPED_TEST(Isai, KernelGenerateA)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_csr), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_inv, r<value_type>::value);
@@ -309,7 +351,7 @@ TYPED_TEST(Isai, KernelGenerateA2)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(a_transpose), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     const auto expected = this->transpose(lend(this->a_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -335,7 +377,7 @@ TYPED_TEST(Isai, KernelGenerateAsparse)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_sparse), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_sparse_inv, r<value_type>::value);
@@ -367,7 +409,7 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_csr_longrow), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_longrow_inv_partial,
@@ -806,6 +848,115 @@ TYPED_TEST(Isai, KernelGenerateExcessULongrow)
 }
 
 
+TYPED_TEST(Isai, KernelGenerateSpd)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->spd_csr_inv));
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+
+    gko::kernels::reference::isai::generate_general_inverse(
+        this->exec, lend(this->spd_csr), lend(result), a1.get_data(),
+        a2.get_data(), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_inv);
+    GKO_ASSERT_MTX_NEAR(result, this->spd_csr_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateSpdsparse)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->spd_sparse_inv));
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+
+    gko::kernels::reference::isai::generate_general_inverse(
+        this->exec, lend(this->spd_sparse), lend(result), a1.get_data(),
+        a2.get_data(), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(result, this->spd_sparse_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateSpdLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->spd_csr_longrow_inv));
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 36th row has some excess storage
+    auto a1_expect = zeros;
+    std::fill_n(a1_expect.get_data() + 36, 65, 36);
+    auto a2_expect = zeros;
+    std::fill_n(a2_expect.get_data() + 36, 65, 338);
+
+    gko::kernels::reference::isai::generate_general_inverse(
+        this->exec, lend(this->spd_csr_longrow), lend(result), a1.get_data(),
+        a2.get_data(), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_inv_partial);
+    GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_inv_partial,
+                        r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(a1, a1_expect);
+    GKO_ASSERT_ARRAY_EQ(a2, a2_expect);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateExcessSpdLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto num_rows = this->spd_csr_longrow->get_size()[0];
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 36th row has some excess storage
+    auto a1 = zeros;
+    std::fill_n(a1.get_data() + 36, 65, 36);
+    auto a2 = zeros;
+    std::fill_n(a2.get_data() + 36, 65, 338);
+    auto result = Csr::create(this->exec, gko::dim<2>(36, 36), 338);
+    auto result_rhs = Dense::create(this->exec, gko::dim<2>(36, 1));
+
+    gko::kernels::reference::isai::generate_excess_system(
+        this->exec, lend(this->spd_csr_longrow),
+        lend(this->spd_csr_longrow_inv_partial), a1.get_const_data(),
+        a2.get_const_data(), lend(result), lend(result_rhs), 0, num_rows);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_e);
+    GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_e, 0);
+    GKO_ASSERT_MTX_NEAR(result_rhs, this->spd_csr_longrow_e_rhs, 0);
+}
+
+
 TYPED_TEST(Isai, KernelScatterExcessSolution)
 {
     using Csr = typename TestFixture::Csr;
@@ -855,7 +1006,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseALongrow)
     // need to reduce precision due to general ISAI using GMRES instead of
     // direct solve
     GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_longrow_inv,
-                        10 * r<value_type>::value);
+                        20 * r<value_type>::value);
 }
 
 
@@ -971,6 +1122,48 @@ TYPED_TEST(Isai, ReturnsCorrectInverseUWithU3)
 }
 
 
+TYPED_TEST(Isai, ReturnsCorrectInverseSpd)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->spd_isai_factory->generate(this->spd_sparse);
+    const auto expected_transpose =
+        gko::as<Csr>(this->spd_sparse_inv->transpose());
+
+    // In the spd case, the approximate inverse is a composition of L^T and L.
+    const auto composition = isai->get_approximate_inverse()->get_operators();
+    const auto lower_t = gko::as<Csr>(composition[0]);
+    const auto lower = gko::as<Csr>(composition[1]);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower, this->spd_sparse_inv);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower_t, expected_transpose);
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_sparse_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->spd_isai_factory->generate(this->spd_csr_longrow);
+    const auto expected_transpose =
+        gko::as<Csr>(this->spd_csr_longrow_inv->transpose());
+
+    const auto composition = isai->get_approximate_inverse()->get_operators();
+    const auto lower_t = gko::as<Csr>(composition[0]);
+    const auto lower = gko::as<Csr>(composition[1]);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower, this->spd_csr_longrow_inv);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower_t, expected_transpose);
+    // need to reduce precision due to spd ISAI using GMRES instead of
+    // direct solve
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
+                        10 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose, 10 * r<value_type>::value);
+}
+
+
 TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
 {
     using Csr = typename TestFixture::Csr;
@@ -980,13 +1173,23 @@ TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
         this->general_isai_factory->generate(this->a_s_unsorted);
     const auto l_isai = this->lower_isai_factory->generate(this->l_s_unsorted);
     const auto u_isai = this->upper_isai_factory->generate(this->u_s_unsorted);
+    const auto spd_isai =
+        this->spd_isai_factory->generate(this->spd_s_unsorted);
     auto a_inv = a_isai->get_approximate_inverse();
     auto l_inv = l_isai->get_approximate_inverse();
     auto u_inv = u_isai->get_approximate_inverse();
+    auto spd_l_t_inv =
+        gko::as<Csr>(spd_isai->get_approximate_inverse()->get_operators()[0]);
+    auto spd_l_inv =
+        gko::as<Csr>(spd_isai->get_approximate_inverse()->get_operators()[1]);
 
     GKO_ASSERT_MTX_NEAR(a_inv, this->a_sparse_inv, r<T>::value);
     GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<T>::value);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<T>::value);
+    GKO_ASSERT_MTX_NEAR(spd_l_inv, this->spd_sparse_inv, r<T>::value);
+    GKO_ASSERT_MTX_NEAR(spd_l_t_inv,
+                        gko::as<Csr>(this->spd_sparse_inv->transpose()),
+                        r<T>::value);
 }
 
 
@@ -1029,6 +1232,20 @@ TYPED_TEST(Isai, ApplyWithUMtx)
     u_isai->apply(lend(vec), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({6.125, -5., 1.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, ApplyWithSpdComposition)
+{
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto vec = gko::initialize<Dense>({18., 16., 12.}, this->exec);
+    auto result = Dense::create_with_config_of(lend(vec));
+    const auto spd_isai = this->spd_isai_factory->generate(this->spd_dense);
+
+    spd_isai->apply(lend(vec), lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l({502., 110., -26.}), r<T>::value);
 }
 
 
@@ -1077,6 +1294,22 @@ TYPED_TEST(Isai, AdvancedApplyUMtx)
     u_isai->apply(lend(alpha), lend(vec), lend(beta), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({10.375, -3., 0.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, AdvancedApplySpdComposition)
+{
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto alpha = gko::initialize<Dense>({3.}, this->exec);
+    const auto beta = gko::initialize<Dense>({-4.}, this->exec);
+    const auto vec = gko::initialize<Dense>({18., 16., 12}, this->exec);
+    auto result = gko::initialize<Dense>({2., -3., 1.}, this->exec);
+    const auto spd_isai = this->spd_isai_factory->generate(this->spd_dense);
+
+    spd_isai->apply(lend(alpha), lend(vec), lend(beta), lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l({1498., 342., -82.}), r<T>::value);
 }
 
 
@@ -1150,6 +1383,28 @@ TYPED_TEST(Isai, ReturnsTransposedCorrectInverseU)
 }
 
 
+TYPED_TEST(Isai, ReturnsTransposedCorrectInverseSpd)
+{
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->spd_isai_factory->generate(this->spd_sparse);
+
+    auto transpose =
+        gko::as<SpdIsai>(isai->transpose())->get_approximate_inverse();
+    auto lower_t = gko::as<Csr>(transpose->get_operators()[0]);
+    auto lower = gko::as<Csr>(transpose->get_operators()[1]);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower, this->spd_sparse_inv);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower_t,
+                               gko::as<Csr>(this->spd_sparse_inv->transpose()));
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_sparse_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t,
+                        gko::as<Csr>(this->spd_sparse_inv->transpose()),
+                        r<value_type>::value);
+}
+
+
 TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseA)
 {
     using GeneralIsai = typename TestFixture::GeneralIsai;
@@ -1195,6 +1450,28 @@ TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseU)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseSpd)
+{
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->spd_isai_factory->generate(this->spd_sparse);
+
+    auto transpose =
+        gko::as<SpdIsai>(isai->conj_transpose())->get_approximate_inverse();
+    auto lower_t = gko::as<Csr>(transpose->get_operators()[0]);
+    auto lower = gko::as<Csr>(transpose->get_operators()[1]);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower, this->spd_sparse_inv);
+    GKO_ASSERT_MTX_EQ_SPARSITY(
+        lower_t, gko::as<Csr>(this->spd_sparse_inv->conj_transpose()));
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_sparse_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t,
+                        gko::as<Csr>(this->spd_sparse_inv->conj_transpose()),
+                        r<value_type>::value);
 }
 
 

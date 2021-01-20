@@ -19,3 +19,8 @@ configure_file("test/isai_a_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai
 configure_file("test/isai_a_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_excess_rhs.mtx")
 configure_file("test/isai_a_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv.mtx")
 configure_file("test/isai_a_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv_partial.mtx")
+configure_file("test/isai_spd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd.mtx")
+configure_file("test/isai_spd_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess.mtx")
+configure_file("test/isai_spd_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess_rhs.mtx")
+configure_file("test/isai_spd_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv.mtx")
+configure_file("test/isai_spd_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv_partial.mtx")
