@@ -88,7 +88,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
-#include <ginkgo/core/multigrid/restrict_prolong.hpp>
+#include <ginkgo/core/multigrid/interface.hpp>
 
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>

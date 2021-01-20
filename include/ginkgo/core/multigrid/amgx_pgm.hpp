@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MULTIGRID_AMGX_PGM_HPP_
-#define GKO_CORE_MULTIGRID_AMGX_PGM_HPP_
+#ifndef GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_
+#define GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_
 
 
 #include <vector>
@@ -41,7 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/multigrid/restrict_prolong.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/interface.hpp>
 
 
 namespace gko {
@@ -71,9 +72,10 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public EnableRestrictProlong<AmgxPgm<ValueType, IndexType>> {
-    friend class EnableRestrictProlong<AmgxPgm>;
-    friend class EnablePolymorphicObject<AmgxPgm, RestrictProlong>;
+class AmgxPgm : public EnableLinOp<AmgxPgm<ValueType, IndexType>>,
+                public MultigridLevel {
+    friend class EnableLinOp<AmgxPgm>;
+    friend class EnablePolymorphicObject<AmgxPgm, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -135,7 +137,7 @@ public:
          */
         bool GKO_FACTORY_PARAMETER(deterministic, false);
     };
-    GKO_ENABLE_RESTRICT_PROLONG_FACTORY(AmgxPgm, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(AmgxPgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -143,13 +145,43 @@ protected:
 
     void prolong_applyadd_impl(const LinOp *b, LinOp *x) const override;
 
+    void prolong_apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *b, LinOp *x) const override
+    {
+        // x = op(b) = prolong(coarse(restrict(b)))
+        auto exec = this->get_executor();
+        auto num_cols = b->get_size()[1];
+        auto coarse = this->get_coarse_matrix();
+        auto coarse_b = matrix::Dense<ValueType>::create(
+            exec, dim<2>{coarse->get_size()[1], num_cols});
+        auto coarse_x = matrix::Dense<ValueType>::create(
+            exec, dim<2>{coarse->get_size()[0], num_cols});
+        this->restrict_apply(b, lend(coarse_b));
+        coarse->apply(lend(coarse_b), lend(coarse_x));
+        this->prolong_apply(lend(coarse_x), x);
+    }
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override
+    {
+        auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+        auto x_clone = dense_x->clone();
+        this->apply(b, x_clone.get());
+        dense_x->scale(beta);
+        dense_x->add_scaled(alpha, x_clone.get());
+    }
+
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableRestrictProlong<AmgxPgm>(std::move(exec))
+        : EnableLinOp<AmgxPgm>(exec), MultigridLevel(exec, true)
     {}
 
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableRestrictProlong<AmgxPgm>(factory->get_executor()),
+        : EnableLinOp<AmgxPgm>(factory->get_executor(),
+                               system_matrix->get_size()),
+          MultigridLevel(factory->get_executor(), true),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
@@ -161,7 +193,6 @@ protected:
             this->generate();
         }
     }
-
     void generate();
 
 private:
@@ -174,4 +205,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MULTIGRID_AMGX_PGM_HPP_
+#endif  // GKO_PUBLIC_CORE_MULTIGRID_AMGX_PGM_HPP_

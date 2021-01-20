@@ -36,8 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
-#include <hip/hip_runtime.h>
-#include <hipsparse.h>
+#include <CL/sycl.hpp>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -45,15 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 
 
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/solver/common_trs_kernels.hip.hpp"
-
-
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace dpcpp {
 /**
  * @brief The AMGX_PGM solver namespace.
  *
@@ -63,7 +56,7 @@ namespace amgx_pgm {
 
 
 template <typename ValueType, typename IndexType>
-void restrict_apply(std::shared_ptr<const HipExecutor> exec,
+void restrict_apply(std::shared_ptr<const DpcppExecutor> exec,
                     const Array<IndexType> &agg,
                     const matrix::Dense<ValueType> *b,
                     matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
@@ -73,7 +66,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void prolong_applyadd(std::shared_ptr<const HipExecutor> exec,
+void prolong_applyadd(std::shared_ptr<const DpcppExecutor> exec,
                       const Array<IndexType> &agg,
                       const matrix::Dense<ValueType> *b,
                       matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
@@ -83,7 +76,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void match_edge(std::shared_ptr<const HipExecutor> exec,
+void match_edge(std::shared_ptr<const DpcppExecutor> exec,
                 const Array<IndexType> &strongest_neighbor,
                 Array<IndexType> &agg) GKO_NOT_IMPLEMENTED;
 
@@ -91,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
-void count_unagg(std::shared_ptr<const HipExecutor> exec,
+void count_unagg(std::shared_ptr<const DpcppExecutor> exec,
                  const Array<IndexType> &agg,
                  size_type *num_unagg) GKO_NOT_IMPLEMENTED;
 
@@ -99,7 +92,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 
 template <typename IndexType>
-void renumber(std::shared_ptr<const HipExecutor> exec, Array<IndexType> &agg,
+void renumber(std::shared_ptr<const DpcppExecutor> exec, Array<IndexType> &agg,
               size_type *num_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
@@ -107,7 +100,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
-    std::shared_ptr<const HipExecutor> exec,
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *weight_mtx,
     const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
     Array<IndexType> &strongest_neighbor)
@@ -120,7 +113,7 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void assign_to_exist_agg(std::shared_ptr<const HipExecutor> exec,
+void assign_to_exist_agg(std::shared_ptr<const DpcppExecutor> exec,
                          const matrix::Csr<ValueType, IndexType> *weight_mtx,
                          const matrix::Diagonal<ValueType> *diag,
                          Array<IndexType> &agg,
@@ -134,7 +127,7 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void amgx_pgm_generate(std::shared_ptr<const HipExecutor> exec,
+void amgx_pgm_generate(std::shared_ptr<const DpcppExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        const Array<IndexType> &agg,
                        matrix::Csr<ValueType, IndexType> *coarse)
@@ -146,6 +139,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_GENERATE);
 
 
 }  // namespace amgx_pgm
-}  // namespace hip
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
