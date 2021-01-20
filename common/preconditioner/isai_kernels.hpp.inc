@@ -364,6 +364,32 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
 }
 
 template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void scale_excess_solution(
+    const IndexType *__restrict__ excess_block_ptrs,
+    ValueType *__restrict__ excess_solution, const size_type e_start,
+    const size_type e_end)
+{
+    const auto warp_id = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto local_id = threadIdx.x % warp_id;
+
+    if (warp_id >= e_end - e_start) {
+        return;
+    }
+
+    const IndexType offset =
+        excess_block_ptrs[e_start] const IndexType block_begin =
+            excess_block_ptrs[warp_id] - offset;
+    const IndexType block_end = excess_block_ptrs[warp_id + 1] - offset;
+    const ValueType scal =
+        one<ValueType>() / sqrt(excess_solution[block_end - 1]);
+
+    for (size_type i = block_begin + local_id; i < block_end;
+         i += subwarp_size) {
+        excess_solution[i] *= scal;
+    }
+}
+
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ excess_rhs_ptrs,

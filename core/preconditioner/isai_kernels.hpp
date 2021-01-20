@@ -69,6 +69,12 @@ namespace kernels {
         matrix::Dense<ValueType> *excess_rhs, const size_type excess_start,  \
         const size_type excess_end)
 
+#define GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
+    void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec, \
+                               const IndexType *excess_block_ptrs,          \
+                               matrix::Dense<ValueType> *excess_solution,   \
+                               const size_type e_start, const size_type e_end)
+
 #define GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
     void scatter_excess_solution(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                          \
@@ -85,6 +91,8 @@ namespace kernels {
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
 

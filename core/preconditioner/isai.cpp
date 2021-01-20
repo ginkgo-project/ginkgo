@@ -64,6 +64,7 @@ GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
 GKO_REGISTER_OPERATION(generate_general_inverse,
                        isai::generate_general_inverse);
 GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
+GKO_REGISTER_OPERATION(scale_excess_solution, isai::scale_excess_solution);
 GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
                        factorization::initialize_row_ptrs_l);
@@ -161,7 +162,6 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                        ? std::move(inverted_base)
                        : extend_sparsity<Csr>(exec, inverted_base, power);
     }
-    auto excess_lim = excess_limit == 0 ? num_rows : excess_limit;
 
     // This stores the beginning of the RHS for the sparse block associated with
     // each row of inverted_l
@@ -182,6 +182,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     auto total_excess_dim =
         exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
+    auto excess_lim = excess_limit == 0 ? total_excess_dim : excess_limit;
     // if we had long rows:
     if (total_excess_dim > 0) {
         bool done = false;
@@ -245,6 +246,11 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             }
             trs_factory->generate(share(excess_system->transpose()))
                 ->apply(lend(excess_rhs), lend(excess_solution));
+            if (is_spd) {
+                exec->run(isai::make_scale_excess_solution(
+                    excess_block_ptrs.get_const_data(), lend(excess_solution),
+                    excess_start, block));
+            }
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
                 excess_block_ptrs.get_const_data(), lend(excess_solution),
