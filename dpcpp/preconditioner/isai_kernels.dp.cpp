@@ -114,6 +114,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                           const IndexType *excess_block_ptrs,
+                           matrix::Dense<ValueType> *excess_solution,
+                           const size_type e_start,
+                           const size_type e_end) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
                              const IndexType *excess_block_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,

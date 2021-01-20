@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 
 
@@ -122,7 +123,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
         excess_rhs_ptrs[row] = excess_rhs_begin;
         excess_nz_ptrs[row] = excess_nz_begin;
 
-        if (i_size <= row_size_limit) {
+        if (i_size <= 0) {  // row_size_limit) {
             // short rows: treat directly as dense system
             // we need this ugly workaround to get rid of a few
             // warnings and compilation issues
@@ -394,6 +395,31 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                           const IndexType *excess_block_ptrs,
+                           matrix::Dense<ValueType> *excess_solution,
+                           const size_type e_start, const size_type e_end)
+{
+    auto excess_values = excess_solution->get_values();
+    IndexType block_start = 0;
+    IndexType block_end = 0;
+    auto offset = excess_block_ptrs[e_start];
+    for (size_type row = e_start; row < e_end; ++row) {
+        block_start = excess_block_ptrs[row] - offset;
+        block_end = excess_block_ptrs[row + 1] - offset;
+        const ValueType scal =
+            one<ValueType>() / sqrt(excess_values[block_end - 1]);
+        for (size_type i = block_start; i < block_end; i++) {
+            excess_values[i] *= scal;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
