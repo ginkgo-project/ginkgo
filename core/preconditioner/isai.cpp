@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
 
@@ -64,6 +65,9 @@ GKO_REGISTER_OPERATION(generate_general_inverse,
                        isai::generate_general_inverse);
 GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
 GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
+GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
+                       factorization::initialize_row_ptrs_l);
+GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
 }  // namespace isai
@@ -124,11 +128,39 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     using bj = preconditioner::Jacobi<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
-    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
-    auto inverted = extend_sparsity(exec, to_invert, power);
-    auto num_rows = inverted->get_size()[0];
     auto is_lower = IsaiType == isai_type::lower;
     auto is_general = IsaiType == isai_type::general;
+    auto is_spd = IsaiType == isai_type::spd;
+    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
+    auto num_rows = to_invert->get_size()[0];
+    std::shared_ptr<Csr> inverted;
+    if (!is_spd) {
+        inverted = extend_sparsity(exec, to_invert, power);
+    } else {
+        // Extract lower triangular part: compute non-zeros
+        Array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
+        exec->run(isai::make_initialize_row_ptrs_l(
+            to_invert.get(), inverted_row_ptrs.get_data()));
+
+        // Get nnz from device memory
+        auto inverted_nnz = static_cast<size_type>(
+            exec->copy_val_to_host(inverted_row_ptrs.get_data() + num_rows));
+
+        // Init arrays
+        Array<IndexType> inverted_col_idxs{exec, inverted_nnz};
+        Array<ValueType> inverted_vals{exec, inverted_nnz};
+        std::shared_ptr<Csr> inverted_base = Csr::create(
+            exec, dim<2>{num_rows, num_rows}, std::move(inverted_vals),
+            std::move(inverted_col_idxs), std::move(inverted_row_ptrs));
+
+        // Extract lower factor: columns and values
+        exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
+                                          false));
+
+        inverted = power == 1
+                       ? std::move(inverted_base)
+                       : extend_sparsity<Csr>(exec, inverted_base, power);
+    }
     auto excess_lim = excess_limit == 0 ? num_rows : excess_limit;
 
     // This stores the beginning of the RHS for the sparse block associated with
@@ -138,10 +170,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     // system of excess blocks
     Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
-    if (is_general) {
+    if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
             lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
-            excess_row_ptrs_full.get_data()));
+            excess_row_ptrs_full.get_data(), is_spd));
     } else {
         exec->run(isai::make_generate_tri_inverse(
             lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
@@ -190,7 +222,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto rhs_copy = Dense::create(exec->get_master());
             rhs_copy->copy_from(excess_rhs.get());
             std::unique_ptr<LinOpFactory> trs_factory;
-            if (is_general) {
+            if (is_general || is_spd) {
                 trs_factory =
                     Gmres::build()
                         .with_preconditioner(
@@ -262,6 +294,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
 #define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType) \
     class Isai<isai_type::general, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI);
+
+#define GKO_DECLARE_SPD_ISAI(ValueType, IndexType) \
+    class Isai<isai_type::spd, ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI);
 
 
 }  // namespace preconditioner

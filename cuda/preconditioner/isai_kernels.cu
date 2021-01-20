@@ -114,7 +114,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *input,
                               matrix::Csr<ValueType, IndexType> *inverse,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs)
+                              IndexType *excess_nz_ptrs, bool spd)
 {
     const auto num_rows = input->get_size()[0];
 
@@ -126,7 +126,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             input->get_const_col_idxs(),
             as_cuda_type(input->get_const_values()), inverse->get_row_ptrs(),
             inverse->get_col_idxs(), as_cuda_type(inverse->get_values()),
-            excess_rhs_ptrs, excess_nz_ptrs);
+            excess_rhs_ptrs, excess_nz_ptrs, spd);
     components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
     components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
 }
