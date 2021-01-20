@@ -264,12 +264,12 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *mtx,
                               matrix::Csr<ValueType, IndexType> *inverse_mtx,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs)
+                              IndexType *excess_nz_ptrs, bool spd)
 {
     using std::swap;
     auto general_solve =
-        [](const range<accessor::row_major<ValueType, 2>> system,
-           ValueType *rhs, const IndexType rhs_one_idx) {
+        [spd](const range<accessor::row_major<ValueType, 2>> system,
+              ValueType *rhs, const IndexType rhs_one_idx) {
             const IndexType size = system.length(0);
             if (size <= 0) {
                 return;
@@ -317,6 +317,13 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 rhs[col] /= d;
                 transposed_system[col * size + col] = one<ValueType>() / d;
+            }
+
+            if (spd) {
+                const auto scal = one<ValueType>() / sqrt(rhs[size - 1]);
+                for (IndexType row = 0; row < size; row++) {
+                    rhs[row] *= scal;
+                }
             }
         };
 

@@ -283,7 +283,7 @@ TYPED_TEST(Isai, KernelGenerateA)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_csr), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_inv, r<value_type>::value);
@@ -309,7 +309,7 @@ TYPED_TEST(Isai, KernelGenerateA2)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(a_transpose), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     const auto expected = this->transpose(lend(this->a_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -335,7 +335,7 @@ TYPED_TEST(Isai, KernelGenerateAsparse)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_sparse), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_sparse_inv, r<value_type>::value);
@@ -367,7 +367,7 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
 
     gko::kernels::reference::isai::generate_general_inverse(
         this->exec, lend(this->a_csr_longrow), lend(result), a1.get_data(),
-        a2.get_data());
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_longrow_inv_partial,

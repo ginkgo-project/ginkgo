@@ -60,7 +60,7 @@ namespace preconditioner {
  * ISAI can either generate a general matrix, a lower triangular matrix, or an
  * upper triangular matrix.
  */
-enum struct isai_type { lower, upper, general };
+enum struct isai_type { lower, upper, general, spd };
 
 /**
  * The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates
@@ -101,6 +101,7 @@ class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
     friend class Isai<isai_type::general, ValueType, IndexType>;
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;
+    friend class Isai<isai_type::spd, ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
@@ -108,8 +109,10 @@ public:
     using transposed_type =
         Isai<IsaiType == isai_type::general
                  ? isai_type::general
-                 : IsaiType == isai_type::lower ? isai_type::upper
-                                                : isai_type::lower,
+                 : IsaiType == isai_type::spd
+                       ? isai_type::spd
+                       : IsaiType == isai_type::lower ? isai_type::upper
+                                                      : isai_type::lower,
              ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
@@ -229,6 +232,9 @@ using UpperIsai = Isai<isai_type::upper, ValueType, IndexType>;
 
 template <typename ValueType = default_precision, typename IndexType = int32>
 using GeneralIsai = Isai<isai_type::general, ValueType, IndexType>;
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+using SpdIsai = Isai<isai_type::spd, ValueType, IndexType>;
 
 
 }  // namespace preconditioner

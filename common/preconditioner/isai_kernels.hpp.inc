@@ -251,7 +251,7 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz)
+    IndexType *__restrict__ excess_nnz, bool spd)
 {
     auto general_solve = [](IndexType num_elems,
                             ValueType *__restrict__ local_row,
@@ -274,6 +274,10 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
 
             apply_gauss_jordan_transform_with_rhs<subwarp_size>(
                 subwarp, piv, i, local_row, &rhs, status);
+        }
+
+        if (spd) {
+            rhs /= sqrt(subwarp.shfl(piv));
         }
 
         return subwarp.shfl(rhs, perm);

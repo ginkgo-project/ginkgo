@@ -205,9 +205,10 @@ TEST_F(Isai, CudaIsaiGenerateAinverseShortIsEquivalentToRef)
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::kernels::cuda::isai::generate_general_inverse(
-        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data());
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
@@ -273,9 +274,10 @@ TEST_F(Isai, CudaIsaiGenerateAinverseLongIsEquivalentToRef)
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::kernels::cuda::isai::generate_general_inverse(
-        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data());
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 10 * r<value_type>::value);
@@ -354,7 +356,7 @@ TEST_F(Isai, CudaIsaiGenerateExcessAinverseLongIsEquivalentToRef)
     gko::Array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::Array<index_type> da1(cuda, a1);
     gko::Array<index_type> da2(cuda, a2);
     auto e_dim = a1.get_data()[num_rows];
@@ -438,7 +440,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionAIsEquivalentToRef)
     gko::Array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data());
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
     gko::Array<index_type> da1(cuda, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));

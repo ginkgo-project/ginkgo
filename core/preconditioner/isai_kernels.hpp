@@ -57,7 +57,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Csr<ValueType, IndexType> *input,                        \
         matrix::Csr<ValueType, IndexType> *inverse,                            \
-        IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs)
+        IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs, bool spd)
 
 #define GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType) \
     void generate_excess_system(                                             \
