@@ -114,7 +114,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *input,
                               matrix::Csr<ValueType, IndexType> *inverse,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs)
+                              IndexType *excess_nz_ptrs, bool spd)
 {
     const auto num_rows = input->get_size()[0];
 
@@ -126,7 +126,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
             input->get_const_col_idxs(),
             as_cuda_type(input->get_const_values()), inverse->get_row_ptrs(),
             inverse->get_col_idxs(), as_cuda_type(inverse->get_values()),
-            excess_rhs_ptrs, excess_nz_ptrs);
+            excess_rhs_ptrs, excess_nz_ptrs, spd);
     components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
     components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
 }
@@ -143,7 +143,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                             const IndexType *excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType> *excess_system,
                             matrix::Dense<ValueType> *excess_rhs,
-                            const size_type e_start, const size_type e_end)
+                            size_type e_start, size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
 
@@ -164,11 +164,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                           const IndexType *excess_block_ptrs,
+                           matrix::Dense<ValueType> *excess_solution,
+                           size_type e_start, size_type e_end)
+{
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
+    kernel::scale_excess_solution<subwarp_size><<<grid, block>>>(
+        excess_block_ptrs, as_cuda_type(excess_solution->get_values()), e_start,
+        e_end);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
                              const IndexType *excess_rhs_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse,
-                             const size_type e_start, const size_type e_end)
+                             size_type e_start, size_type e_end)
 {
     const auto num_rows = inverse->get_size()[0];
 

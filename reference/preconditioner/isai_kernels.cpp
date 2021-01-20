@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 
 
@@ -142,8 +143,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 forall_matching(
                     m_cols + m_begin, m_size, i_cols + i_begin, i_size,
                     [&](IndexType, IndexType m_idx, IndexType i_idx) {
-                        if (m_cols[m_idx + m_begin] < row && col == row)
+                        if (m_cols[m_idx + m_begin] < row && col == row) {
                             rhs_one_idx++;
+                        }
                         dense_system(i, i_idx) = m_vals[m_idx + m_begin];
                     });
             }
@@ -264,12 +266,12 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               const matrix::Csr<ValueType, IndexType> *mtx,
                               matrix::Csr<ValueType, IndexType> *inverse_mtx,
                               IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs)
+                              IndexType *excess_nz_ptrs, bool spd)
 {
     using std::swap;
     auto general_solve =
-        [](const range<accessor::row_major<ValueType, 2>> system,
-           ValueType *rhs, const IndexType rhs_one_idx) {
+        [spd](const range<accessor::row_major<ValueType, 2>> system,
+              ValueType *rhs, const IndexType rhs_one_idx) {
             const IndexType size = system.length(0);
             if (size <= 0) {
                 return;
@@ -318,6 +320,13 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                 rhs[col] /= d;
                 transposed_system[col * size + col] = one<ValueType>() / d;
             }
+
+            if (spd) {
+                const auto scal = one<ValueType>() / sqrt(rhs[size - 1]);
+                for (IndexType row = 0; row < size; row++) {
+                    rhs[row] *= scal;
+                }
+            }
         };
 
     generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
@@ -335,7 +344,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                             const IndexType *, const IndexType *,
                             matrix::Csr<ValueType, IndexType> *excess_system,
                             matrix::Dense<ValueType> *excess_rhs,
-                            const size_type e_start, const size_type e_end)
+                            size_type e_start, size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
     const auto m_row_ptrs = input->get_const_row_ptrs();
@@ -390,11 +399,36 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                           const IndexType *excess_block_ptrs,
+                           matrix::Dense<ValueType> *excess_solution,
+                           size_type e_start, size_type e_end)
+{
+    auto excess_values = excess_solution->get_values();
+    IndexType block_start = 0;
+    IndexType block_end = 0;
+    auto offset = excess_block_ptrs[e_start];
+    for (size_type row = e_start; row < e_end; ++row) {
+        block_start = excess_block_ptrs[row] - offset;
+        block_end = excess_block_ptrs[row + 1] - offset;
+        const ValueType scal =
+            one<ValueType>() / sqrt(excess_values[block_end - 1]);
+        for (size_type i = block_start; i < block_end; i++) {
+            excess_values[i] *= scal;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
                              const IndexType *excess_block_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse,
-                             const size_type e_start, const size_type e_end)
+                             size_type e_start, size_type e_end)
 {
     auto excess_values = excess_solution->get_const_values();
     auto values = inverse->get_values();

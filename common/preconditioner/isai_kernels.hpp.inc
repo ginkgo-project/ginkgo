@@ -55,9 +55,6 @@ __forceinline__ __device__ void generic_generate(
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
 
-    // For general ISAI, the index of the one in the rhs depends on the number
-    // of nonzeros in the lower half of the matrix of the according row.
-    __shared__ size_type rhs_one_idxs[subwarps_per_block];
     if (row >= num_rows) {
         return;
     }
@@ -117,6 +114,7 @@ __forceinline__ __device__ void generic_generate(
 
         subwarp.sync();
 
+        IndexType rhs_one_idx{};
         for (IndexType nz = 0; nz < i_row_size; ++nz) {
             auto col = i_col_idxs[i_row_begin + nz];
             auto m_row_begin = m_row_ptrs[col];
@@ -128,10 +126,10 @@ __forceinline__ __device__ void generic_generate(
                 i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
+                    rhs_one_idx += popcnt(subwarp.ballot(
+                        valid && m_col_idxs[m_row_begin + m_idx] < row &&
+                        col == row));
                     if (valid) {
-                        if (m_col_idxs[m_row_begin + m_idx] < row && col == row)
-                            atomic_add(&rhs_one_idxs[row % subwarps_per_block],
-                                       size_type{1});
                         dense_system(nz, i_idx) = m_values[m_row_begin + m_idx];
                     }
                 });
@@ -147,8 +145,8 @@ __forceinline__ __device__ void generic_generate(
             local_row[i] = dense_system(i, local_id);
         }
 
-        const auto rhs = direct_solve(i_row_size, local_row, subwarp,
-                                      rhs_one_idxs[row % subwarps_per_block]);
+        const auto rhs =
+            direct_solve(i_row_size, local_row, subwarp, rhs_one_idx);
 
         // Write back:
         if (local_id < i_row_size) {
@@ -251,12 +249,12 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz)
+    IndexType *__restrict__ excess_nnz, bool spd)
 {
-    auto general_solve = [](IndexType num_elems,
-                            ValueType *__restrict__ local_row,
-                            group::thread_block_tile<subwarp_size> &subwarp,
-                            size_type rhs_one_idx) {
+    auto general_solve = [spd](IndexType num_elems,
+                               ValueType *__restrict__ local_row,
+                               group::thread_block_tile<subwarp_size> &subwarp,
+                               size_type rhs_one_idx) {
         const int local_id = subwarp.thread_rank();
         ValueType rhs =
             local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
@@ -276,7 +274,13 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
                 subwarp, piv, i, local_row, &rhs, status);
         }
 
-        return subwarp.shfl(rhs, perm);
+        ValueType sol = subwarp.shfl(rhs, perm);
+
+        if (spd) {
+            sol /= sqrt(subwarp.shfl(rhs, num_elems - 1));
+        }
+
+        return sol;
     };
 
     generic_generate<subwarp_size, subwarps_per_block>(
@@ -297,7 +301,7 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     IndexType *__restrict__ excess_row_ptrs,
     IndexType *__restrict__ excess_col_idxs,
     ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs,
-    const size_type e_start, const size_type e_end)
+    size_type e_start, size_type e_end)
 {
     const auto row =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>() + e_start;
@@ -360,12 +364,37 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
 }
 
 template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void scale_excess_solution(
+    const IndexType *__restrict__ excess_block_ptrs,
+    ValueType *__restrict__ excess_solution, size_type e_start, size_type e_end)
+{
+    const auto warp_id = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const int local_id = subwarp.thread_rank();
+
+    if (warp_id >= e_end - e_start) {
+        return;
+    }
+
+    const IndexType offset = excess_block_ptrs[e_start];
+    const IndexType block_begin = excess_block_ptrs[warp_id] - offset;
+    const IndexType block_end = excess_block_ptrs[warp_id + 1] - offset;
+    const ValueType scal =
+        one<ValueType>() / sqrt(excess_solution[block_end - 1]);
+
+    for (size_type i = block_begin + local_id; i < block_end;
+         i += subwarp_size) {
+        excess_solution[i] *= scal;
+    }
+}
+
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ excess_rhs_ptrs,
     const ValueType *__restrict__ excess_solution,
-    ValueType *__restrict__ i_values, const size_type e_start,
-    const size_type e_end)
+    ValueType *__restrict__ i_values, size_type e_start, size_type e_end)
 {
     const auto excess_row =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>();
