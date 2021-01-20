@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,6 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
-    using T = value_type;
     AmgxPgmFactory()
         : exec(gko::ReferenceExecutor::create()),
           amgxpgm_factory(RestrictProlong::build()

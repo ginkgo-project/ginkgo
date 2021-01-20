@@ -1,0 +1,293 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2021, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_
+#define GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_
+
+
+#include <functional>
+#include <memory>
+
+
+#include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+namespace gko {
+namespace multigrid {
+
+
+/**
+ * A class implementing this interface can be restrict operation.
+ *
+ * @ingroup multigrid
+ */
+class RestrictOp {
+public:
+    /**
+     * Applies a prolong operator to a vector (or a sequence of vectors).
+     *
+     * Performs the operation x = op(b), where op is this prolong operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    void restrict_apply(const LinOp *b, LinOp *x) const
+    {
+        this->validate_parameters(b, x);
+        this->restrict_apply_impl(make_temporary_clone(exec_, b).get(),
+                                  make_temporary_clone(exec_, x).get());
+    }
+
+protected:
+    /**
+     * Sets the size of the restrict operator.
+     *
+     * @param value  the new size of the restrict operator
+     */
+    void set_restrict_size(const dim<2> &value) noexcept { size_ = value; }
+
+    virtual void restrict_apply_impl(const LinOp *b, LinOp *x) const = 0;
+
+    /**
+     * Creates a RestrictOp with settings
+     *
+     * @param exec  Executor associated to the RestrictOp
+     * @param size  the size of RestrictOp.
+     *
+     * @note the multigrid is generated in the generation not the construction,
+     *       so needs to call `set_restrict_size` to set restrict size after
+     *       generation.
+     */
+    explicit RestrictOp(std::shared_ptr<const Executor> exec,
+                        const gko::dim<2> &size = gko::dim<2>{})
+        : exec_(exec), size_(size)
+    {}
+
+private:
+    /**
+     * Throws a DimensionMismatch exception if the parameters to
+     * `restrict_apply` are of the wrong size.
+     *
+     * @param b  vector(s) on which the operator is applied
+     * @param x  output vector(s)
+     */
+    void validate_parameters(const LinOp *b, LinOp *x) const
+    {
+        GKO_ASSERT_CONFORMANT(size_, b);
+        GKO_ASSERT_EQUAL_ROWS(size_, x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+    }
+
+    std::shared_ptr<const Executor> exec_;
+    gko::dim<2> size_;
+};
+
+
+/**
+ * A class implementing this interface can be prolong operation.
+ *
+ * @ingroup multigrid
+ */
+class ProlongOp {
+public:
+    /**
+     * Applies a prolong operator to a vector (or a sequence of vectors).
+     *
+     * Performs the operation x = op(b), where op is this prolong operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    void prolong_apply(const LinOp *b, LinOp *x) const
+    {
+        this->validate_parameters(b, x);
+        this->prolong_apply_impl(make_temporary_clone(exec_, b).get(),
+                                 make_temporary_clone(exec_, x).get());
+    }
+
+    /**
+     * Applies a prolong operator onto a vector (or a sequence of vectors).
+     *
+     * Performs the operation x += op(b), where op is this prolong operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    void prolong_applyadd(const LinOp *b, LinOp *x) const
+    {
+        this->validate_parameters(b, x);
+        this->prolong_applyadd_impl(make_temporary_clone(exec_, b).get(),
+                                    make_temporary_clone(exec_, x).get());
+    }
+
+protected:
+    /**
+     * Sets the size of the prolong operator.
+     *
+     * @param value  the new size of the prolong operator
+     */
+    void set_prolong_size(const dim<2> &value) noexcept { size_ = value; }
+
+    virtual void prolong_apply_impl(const LinOp *b, LinOp *x) const = 0;
+
+    virtual void prolong_applyadd_impl(const LinOp *b, LinOp *x) const = 0;
+
+    /**
+     * Creates a ProlongOp with settings
+     *
+     * @param exec  Executor associated to the ProlongOp
+     * @param native_applyadd  the prolong applyadd is natively implemented in
+     *                         one kernel or not. This argument does not has
+     *                         effect yet.
+     * @param size  the size of ProlongOp.
+     *
+     * @note the multigrid is generated in the generation not the construction,
+     *       so needs to call `set_prolong_size` to set prolong size after
+     *       generation.
+     */
+    explicit ProlongOp(std::shared_ptr<const Executor> exec,
+                       bool native_applyadd = false,
+                       const gko::dim<2> &size = gko::dim<2>{})
+        : exec_(exec), native_applyadd_(native_applyadd), size_(size)
+    {}
+
+private:
+    /**
+     * Throws a DimensionMismatch exception if the parameters to
+     * `prolong_applyadd` are of the wrong size.
+     *
+     * @param b  vector(s) on which the operator is applied
+     * @param x  output vector(s)
+     */
+    void validate_parameters(const LinOp *b, LinOp *x) const
+    {
+        GKO_ASSERT_CONFORMANT(size_, b);
+        GKO_ASSERT_EQUAL_ROWS(size_, x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+    }
+
+    std::shared_ptr<const Executor> exec_;
+    gko::dim<2> size_;
+    bool native_applyadd_;
+};
+
+
+/**
+ * A class implementing this interface can be coarse generation operation.
+ *
+ * @ingroup multigrid
+ */
+class CoarseOp {
+public:
+    /**
+     * Gets the fine operator (matrix)
+     *
+     * @return the fine operator (matrix)
+     */
+    std::shared_ptr<const LinOp> get_fine_matrix() const { return fine_; }
+
+    /**
+     * Gets the coarse operator (matrix)
+     *
+     * @return the coarse operator (matrix)
+     */
+    std::shared_ptr<const LinOp> get_coarse_matrix() const { return coarse_; }
+
+protected:
+    /**
+     * Sets the fine and coarse information.
+     *
+     * @param fine  the matrix on fine level
+     * @param coarse  the matrix on coarse level
+     */
+    void set_fine_coarse(std::shared_ptr<const LinOp> fine,
+                         std::shared_ptr<const LinOp> coarse)
+    {
+        fine_ = fine;
+        coarse_ = coarse;
+    }
+
+private:
+    std::shared_ptr<const LinOp> coarse_;
+    std::shared_ptr<const LinOp> fine_;
+};
+
+
+/**
+ * A class implementing this interface can contain restrict, prolong, coarse
+ * generation operation.
+ *
+ * @ingroup multigrid
+ */
+class MultigridLevel : public RestrictOp, public ProlongOp, public CoarseOp {
+protected:
+    /**
+     * Sets the fine and coarse information.
+     *
+     * @param fine  the matrix on fine level
+     * @param coarse  the matrix on coarse level
+     */
+    void set_multigrid_level(std::shared_ptr<const LinOp> fine,
+                             std::shared_ptr<const LinOp> coarse)
+    {
+        this->set_fine_coarse(fine, coarse);
+        auto fine_dim = fine->get_size()[0];
+        auto coarse_dim = coarse->get_size()[0];
+        this->set_restrict_size(dim<2>{coarse_dim, fine_dim});
+        this->set_prolong_size(dim<2>{fine_dim, coarse_dim});
+    }
+
+    /**
+     * Creates a MultigridLevel with settings
+     *
+     * @param exec  Executor associated to the multigrid_level
+     * @param native_applyadd  the prolong applyadd is natively implemented in
+     *                         one kernel or not. This argument does not has
+     *                         effect yet.
+     *
+     * @note the multigrid is generated in the generation not the construction,
+     *       so needs to call `set_multigrid_level` to set corresponding
+     *       information after generation.
+     */
+    explicit MultigridLevel(std::shared_ptr<const Executor> exec,
+                            bool native_applyadd = false)
+        : RestrictOp(exec), ProlongOp(exec, native_applyadd)
+    {}
+};
+
+
+}  // namespace multigrid
+}  // namespace gko
+
+
+#endif  // GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_

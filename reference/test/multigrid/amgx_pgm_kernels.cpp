@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
-    using T = value_type;
+    using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
     using WeightMtx = gko::matrix::Csr<real_type, index_type>;
     AmgxPgm()
@@ -78,20 +78,24 @@ protected:
                               .with_max_unassigned_percentage(0.1)
                               .on(exec)),
           fine_b(gko::initialize<Vec>(
-              {I<T>({2.0, -1.0}), I<T>({-1.0, 2.0}), I<T>({0.0, -1.0}),
-               I<T>({3.0, -2.0}), I<T>({-2.0, 1.0})},
+              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
               exec)),
-          coarse_b(gko::initialize<Vec>({I<T>({2.0, -1.0}), I<T>({0.0, -1.0})},
-                                        exec)),
+          coarse_b(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0})}, exec)),
           restrict_ans((gko::initialize<Vec>(
-              {I<T>({0.0, -1.0}), I<T>({2.0, 0.0})}, exec))),
+              {I<VT>({0.0, -1.0}), I<VT>({2.0, 0.0})}, exec))),
           prolong_ans(gko::initialize<Vec>(
-              {I<T>({0.0, -2.0}), I<T>({1.0, -2.0}), I<T>({1.0, -2.0}),
-               I<T>({0.0, -1.0}), I<T>({2.0, 1.0})},
+              {I<VT>({0.0, -2.0}), I<VT>({1.0, -2.0}), I<VT>({1.0, -2.0}),
+               I<VT>({0.0, -1.0}), I<VT>({2.0, 1.0})},
+              exec)),
+          prolong_applyans(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0}),
+               I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0})},
               exec)),
           fine_x(gko::initialize<Vec>(
-              {I<T>({-2.0, -1.0}), I<T>({1.0, -1.0}), I<T>({-1.0, -1.0}),
-               I<T>({0.0, 0.0}), I<T>({0.0, 2.0})},
+              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
               exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           std::make_shared<typename Mtx::classical>())),
@@ -269,12 +273,13 @@ protected:
     std::shared_ptr<Vec> fine_b;
     std::shared_ptr<Vec> restrict_ans;
     std::shared_ptr<Vec> prolong_ans;
+    std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
     std::unique_ptr<typename RestrictProlong::Factory> amgxpgm_factory;
     std::unique_ptr<RestrictProlong> rstr_prlg;
 };
 
-TYPED_TEST_CASE(AmgxPgm, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(AmgxPgm, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(AmgxPgm, CanBeCopied)
@@ -288,7 +293,7 @@ TYPED_TEST(AmgxPgm, CanBeCopied)
     auto copy_mtx =
         static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
     auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
-    auto copy_coarse = copy->get_coarse_operator();
+    auto copy_coarse = copy->get_coarse_matrix();
 
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
                                this->mtx.get());
@@ -310,7 +315,7 @@ TYPED_TEST(AmgxPgm, CanBeMoved)
     auto copy_mtx =
         static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
     auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
-    auto copy_coarse = copy->get_coarse_operator();
+    auto copy_coarse = copy->get_coarse_matrix();
 
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
                                this->mtx.get());
@@ -333,7 +338,7 @@ TYPED_TEST(AmgxPgm, CanBeCloned)
         static_cast<RestrictProlong *>(clone.get())->get_system_matrix();
     auto clone_agg =
         static_cast<RestrictProlong *>(clone.get())->get_const_agg();
-    auto clone_coarse = clone->get_coarse_operator();
+    auto clone_coarse = clone->get_coarse_matrix();
 
     this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
                                this->mtx.get());
@@ -352,7 +357,7 @@ TYPED_TEST(AmgxPgm, CanBeCleared)
 
     auto mtx = static_cast<RestrictProlong *>(this->rstr_prlg.get())
                    ->get_system_matrix();
-    auto coarse = this->rstr_prlg->get_coarse_operator();
+    auto coarse = this->rstr_prlg->get_coarse_matrix();
     auto agg = static_cast<RestrictProlong *>(this->rstr_prlg.get())->get_agg();
 
     ASSERT_EQ(mtx, nullptr);
@@ -469,14 +474,14 @@ TYPED_TEST(AmgxPgm, Generate)
 
 TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 {
-    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->amgxpgm_factory->generate(this->mtx)};
+    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
 
     // fine->coarse
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
     amgx_pgm->restrict_apply(this->fine_b.get(), x.get());
+
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans,
                         gko::remove_complex<value_type>{0});
 }
@@ -485,12 +490,25 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
-    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->amgxpgm_factory->generate(this->mtx)};
+    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
     auto x = gko::clone(this->fine_x);
 
     amgx_pgm->prolong_applyadd(this->coarse_b.get(), x.get());
+
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
+                        gko::remove_complex<value_type>{0});
+}
+
+
+TYPED_TEST(AmgxPgm, CoarseFineProlongApply)
+{
+    using value_type = typename TestFixture::value_type;
+    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto x = gko::clone(this->fine_x);
+
+    amgx_pgm->prolong_apply(this->coarse_b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans,
                         gko::remove_complex<value_type>{0});
 }
 

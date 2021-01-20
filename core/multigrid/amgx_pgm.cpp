@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -157,8 +157,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
     // Construct the coarse matrix
-    auto coarse = amgx_pgm_generate(exec, amgxpgm_op, num_agg, agg_);
-    this->set_coarse_fine(std::move(coarse), num_rows);
+    auto coarse_matrix =
+        share(amgx_pgm_generate(exec, amgxpgm_op, num_agg, agg_));
+    this->set_multigrid_level(system_matrix_, coarse_matrix);
 }
 
 
@@ -181,6 +182,20 @@ void AmgxPgm<ValueType, IndexType>::prolong_applyadd_impl(const LinOp *b,
     exec->run(amgx_pgm::make_prolong_applyadd(agg_,
                                               as<matrix::Dense<ValueType>>(b),
                                               as<matrix::Dense<ValueType>>(x)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void AmgxPgm<ValueType, IndexType>::prolong_apply_impl(const LinOp *b,
+                                                       LinOp *x) const
+{
+    auto exec = this->get_executor();
+    auto vec_x = as<matrix::Dense<ValueType>>(x);
+    exec->run(amgx_pgm::make_fill_array(
+        vec_x->get_values(), vec_x->get_size()[0] * vec_x->get_stride(),
+        zero<ValueType>()));
+    exec->run(amgx_pgm::make_prolong_applyadd(
+        agg_, as<matrix::Dense<ValueType>>(b), vec_x));
 }
 
 
