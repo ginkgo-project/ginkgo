@@ -160,21 +160,22 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
     /* Memory movement summary for average iteration with krylov_dim d:
-     * (5/2d+15/2+12/d)n * values + (1+1/d) * matrix/preconditioner storage
+     * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner storage
      * 1x SpMV:                2n * values + storage
      * 1x Preconditioner:      2n * values + storage
-     * MGS:           (5/2d+5/2)n = sum k=0 to d-1 of (5k+5)n/d
+     * MGS:          (5/2d+11/2)n = sum k=0 to d-1 of (5k+8)n/d
      *       1x dots           2(k+1)n in iteration k (0-based)
      *       1x axpys          3(k+1)n in iteration k (0-based)
      *       1x norm2               n
      *       1x scal               2n
-     * Restart:         (1+12/d)n  (every dth iteration)
+     * Restart:         (1+14/d)n  (every dth iteration)
      *       1x gemm           (d+1)n
      *       1x Preconditioner     2n * values + storage
      *       1x axpy               3n
+     *       1x copy               2n
      *       1x Advanced SpMV      3n * values + storage
      *       1x norm2               n
-     *       2x scal               2n
+     *       1x scal               2n
      */
     while (true) {
         ++total_iter;
