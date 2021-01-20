@@ -648,9 +648,10 @@ TYPED_TEST(Fbcsr, ExtractsDiagonal)
     auto diag = matrix->extract_diagonal();
 
     ASSERT_EQ(this->m2diag->get_size(), diag->get_size());
-    for (gko::size_type i = 0; i < this->m2diag->get_size()[0]; i++)
+    for (gko::size_type i = 0; i < this->m2diag->get_size()[0]; i++) {
         ASSERT_EQ(this->m2diag->get_const_values()[i],
                   diag->get_const_values()[i]);
+    }
 }
 
 

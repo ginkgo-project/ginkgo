@@ -154,7 +154,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
 {
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
-        // if b is a FBCSR matrix, we compute a SpGeMM
+        // if b is a FBCSR matrix, we need an SpGeMM
         throw NotImplemented(__FILE__, __LINE__, "SpGeMM for Fbcsr");
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
@@ -172,10 +172,10 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
 {
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
-        // if b is a FBCSR matrix, we compute a SpGeMM
+        // if b is a FBCSR matrix, we need an SpGeMM
         throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
-        // if b is an identity matrix, we compute an SpGEAM
+        // if b is an identity matrix, we need an SpGEAM
         throw NotImplemented(__FILE__, __LINE__, "Adv SpGEAM for Fbcsr");
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
@@ -263,13 +263,12 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType> *const result) const
 {
-    using blockutils::get_num_blocks;
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
         exec,
-        gko::dim<2>{get_num_blocks(bs_, this->get_size()[0]),
-                    get_num_blocks(bs_, this->get_size()[1])},
-        get_num_blocks(bs_ * bs_, this->get_num_stored_elements()));
+        gko::dim<2>{static_cast<size_type>(this->get_num_block_rows()),
+                    static_cast<size_type>(this->get_num_block_cols())},
+        this->get_num_stored_blocks());
 
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;
@@ -298,7 +297,6 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
                          std::numeric_limits<index_type>::max());
 
     const auto nnz = static_cast<index_type>(data.nonzeros.size());
-
     const int bs = this->bs_;
 
     using Block_t = detail::DenseBlock<value_type>;
@@ -362,11 +360,11 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
         GKO_ENSURE_IN_BOUNDS(cur_brow, num_brows);
 
         tmp->col_idxs_.get_data()[cur_bnz] = it->first.block_column;
-
-        for (int ibr = 0; ibr < bs; ibr++)
-            for (int jbr = 0; jbr < bs; jbr++)
+        for (int ibr = 0; ibr < bs; ibr++) {
+            for (int jbr = 0; jbr < bs; jbr++) {
                 values(cur_bnz, ibr, jbr) = it->second(ibr, jbr);
-
+            }
+        }
         if (it->first.block_row > cur_brow) {
             tmp->row_ptrs_.get_data()[++cur_brow] = cur_bnz;
         } else {

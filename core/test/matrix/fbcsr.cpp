@@ -311,8 +311,9 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
 
     ASSERT_EQ(data.size, refdata.size);
     ASSERT_EQ(data.nonzeros.size(), refdata.nonzeros.size());
-    for (size_t i = 0; i < data.nonzeros.size(); i++)
+    for (size_t i = 0; i < data.nonzeros.size(); i++) {
         ASSERT_EQ(data.nonzeros[i], refdata.nonzeros[i]);
+    }
 }
 
 
@@ -332,10 +333,13 @@ TYPED_TEST(Fbcsr, DenseBlocksViewWorksCorrectly)
     Dbv refdbv(ref_dbv_array.data(), fbsample.bs, fbsample.bs);
     fbsample.fill_value_blocks_view(refdbv);
 
-    for (index_type ibz = 0; ibz < fbsample.nbnz; ibz++)
-        for (int i = 0; i < fbsample.bs; ++i)
-            for (int j = 0; j < fbsample.bs; ++j)
+    for (index_type ibz = 0; ibz < fbsample.nbnz; ibz++) {
+        for (int i = 0; i < fbsample.bs; ++i) {
+            for (int j = 0; j < fbsample.bs; ++j) {
                 ASSERT_EQ(testdbv(ibz, i, j), refdbv(ibz, i, j));
+            }
+        }
+    }
 }
 
 
