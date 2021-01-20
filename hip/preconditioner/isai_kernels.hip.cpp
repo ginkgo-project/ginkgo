@@ -175,7 +175,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
                            const size_type e_start, const size_type e_end)
 {
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start), block.x / subwarp_size), 1, 1);
+    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::scale_excess_solution<subwarp_size>), grid,
         block, excess_block_ptrs, as_cuda_type(excess_solution->get_values()),

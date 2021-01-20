@@ -115,6 +115,7 @@ public:
                                                       : isai_type::lower,
              ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
+    using Dense = matrix::Dense<ValueType>;
     static constexpr isai_type type{IsaiType};
 
     /**
@@ -192,11 +193,22 @@ protected:
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+        if (IsaiType == isai_type::spd) {
+            approximate_inverse_transpose_ =
+                share(as<Csr>(approximate_inverse_->transpose()));
+            x_ = Dense::create(factory->get_executor(),
+                               gko::dim<2>{system_matrix->get_size()[0], 1});
+        }
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        approximate_inverse_->apply(b, x);
+        if (IsaiType == isai_type::spd) {
+            approximate_inverse_->apply(b, x_.get());
+            approximate_inverse_transpose_->apply(x_.get(), x);
+        } else {
+            approximate_inverse_->apply(b, x);
+        }
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -221,6 +233,8 @@ private:
 
 private:
     std::shared_ptr<Csr> approximate_inverse_;
+    std::shared_ptr<Csr> approximate_inverse_transpose_;
+    std::shared_ptr<Dense> x_;
 };
 
 

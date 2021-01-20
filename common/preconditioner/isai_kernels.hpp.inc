@@ -376,9 +376,8 @@ __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
         return;
     }
 
-    const IndexType offset =
-        excess_block_ptrs[e_start] const IndexType block_begin =
-            excess_block_ptrs[warp_id] - offset;
+    const IndexType offset = excess_block_ptrs[e_start];
+    const IndexType block_begin = excess_block_ptrs[warp_id] - offset;
     const IndexType block_end = excess_block_ptrs[warp_id + 1] - offset;
     const ValueType scal =
         one<ValueType>() / sqrt(excess_solution[block_end - 1]);
