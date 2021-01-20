@@ -253,10 +253,10 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     IndexType *__restrict__ excess_rhs_sizes,
     IndexType *__restrict__ excess_nnz, bool spd)
 {
-    auto general_solve = [](IndexType num_elems,
-                            ValueType *__restrict__ local_row,
-                            group::thread_block_tile<subwarp_size> &subwarp,
-                            size_type rhs_one_idx) {
+    auto general_solve = [spd](IndexType num_elems,
+                               ValueType *__restrict__ local_row,
+                               group::thread_block_tile<subwarp_size> &subwarp,
+                               size_type rhs_one_idx) {
         const int local_id = subwarp.thread_rank();
         ValueType rhs =
             local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
@@ -276,11 +276,13 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
                 subwarp, piv, i, local_row, &rhs, status);
         }
 
+        ValueType sol = subwarp.shfl(rhs, perm);
+
         if (spd) {
-            rhs /= sqrt(subwarp.shfl(piv));
+            sol /= sqrt(rhs, subwarp.shfl(num_elems - 1));
         }
 
-        return subwarp.shfl(rhs, perm);
+        return sol;
     };
 
     generic_generate<subwarp_size, subwarps_per_block>(
