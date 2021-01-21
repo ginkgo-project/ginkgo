@@ -166,7 +166,7 @@ compute_matrix_statistics() {
 run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
+    ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
@@ -182,7 +182,7 @@ run_conversion_benchmarks() {
 run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
+    ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
@@ -198,7 +198,7 @@ run_spmv_benchmarks() {
 run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
+    ./solver/solver${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
@@ -377,7 +377,7 @@ EOT
 generate_problem() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.tmp"
-    ./matrix_generator/matrix_generator <"$1.tmp" 2>&1 >"$1"
+    ./matrix_generator/matrix_generator${BENCH_SUFFIX} <"$1.tmp" 2>&1 >"$1"
     keep_latest "$1" "$1.tmp"
 }
 
