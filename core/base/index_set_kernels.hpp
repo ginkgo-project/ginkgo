@@ -49,7 +49,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const IndexType index_space_size, const Array<IndexType> *indices, \
         Array<IndexType> *subset_begin, Array<IndexType> *subset_end,      \
-        Array<IndexType> *superset_indices)
+        Array<IndexType> *superset_indices, const bool is_sorted)
 
 #define GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType)       \
     void global_to_local(std::shared_ptr<const DefaultExecutor> exec, \
@@ -58,7 +58,8 @@ namespace kernels {
                          const Array<IndexType> *subset_end,          \
                          const Array<IndexType> *superset_indices,    \
                          const Array<IndexType> *global_indices,      \
-                         Array<IndexType> *local_indices)
+                         Array<IndexType> *local_indices,             \
+                         const bool is_sorted)
 
 #define GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)       \
     void local_to_global(std::shared_ptr<const DefaultExecutor> exec, \
@@ -67,7 +68,8 @@ namespace kernels {
                          const Array<IndexType> *subset_end,          \
                          const Array<IndexType> *superset_indices,    \
                          const Array<IndexType> *local_indices,       \
-                         Array<IndexType> *global_indices)
+                         Array<IndexType> *global_indices,            \
+                         const bool is_sorted)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                         \

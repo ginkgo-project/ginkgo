@@ -67,15 +67,16 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const Array<IndexType> *indices,
                       Array<IndexType> *subset_begin,
                       Array<IndexType> *subset_end,
-                      Array<IndexType> *superset_indices)
+                      Array<IndexType> *superset_indices, const bool is_sorted)
 {
     auto num_indices = indices->get_num_elems();
     auto tmp_indices = gko::Array<IndexType>(*indices);
-    GKO_ASSERT(*std::max_element(indices->get_const_data(),
-                                 indices->get_const_data() + num_indices) <=
+    // Sort the indices if not sorted.
+    if (!is_sorted) {
+        std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
+    }
+    GKO_ASSERT(tmp_indices.get_const_data()[num_indices - 1] <=
                index_space_size);
-    // Sort the indices.
-    std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
 
     // Detect subsets.
     auto tmp_subset_begin = gko::vector<IndexType>(exec);
@@ -83,19 +84,18 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
     auto tmp_subset_superset_index = gko::vector<IndexType>(exec);
     tmp_subset_begin.push_back(tmp_indices.get_data()[0]);
     tmp_subset_superset_index.push_back(0);
-    for (auto i = 1; i < num_indices; ++i) {
+    for (size_type i = 1; i < num_indices; ++i) {
         if ((tmp_indices.get_data()[i] ==
              (tmp_indices.get_data()[i - 1] + 1)) ||
             (tmp_indices.get_data()[i] == tmp_indices.get_data()[i - 1])) {
             continue;
-        } else {
-            tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
-            tmp_subset_superset_index.push_back(
-                tmp_subset_superset_index.back() + tmp_subset_end.back() -
-                tmp_subset_begin.back());
-            if (i < num_indices) {
-                tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
-            }
+        }
+        tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
+        tmp_subset_superset_index.push_back(tmp_subset_superset_index.back() +
+                                            tmp_subset_end.back() -
+                                            tmp_subset_begin.back());
+        if (i < num_indices) {
+            tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
         }
     }
     tmp_subset_end.push_back(tmp_indices.get_data()[num_indices - 1] + 1);
@@ -103,6 +103,8 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                                         tmp_subset_end.back() -
                                         tmp_subset_begin.back());
 
+    // Make sure the sizes of the indices match and move them to their final
+    // arrays.
     GKO_ASSERT(tmp_subset_begin.size() == tmp_subset_end.size());
     GKO_ASSERT((tmp_subset_begin.size() + 1) ==
                tmp_subset_superset_index.size());
@@ -127,10 +129,10 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *subset_end,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *global_indices,
-                     Array<IndexType> *local_indices)
+                     Array<IndexType> *local_indices, const bool is_sorted)
 {
 #pragma omp parallel for
-    for (auto i = 0; i < global_indices->get_num_elems(); ++i) {
+    for (size_type i = 0; i < global_indices->get_num_elems(); ++i) {
         auto index = global_indices->get_const_data()[i];
         GKO_ASSERT(index < index_space_size);
         auto bucket =
@@ -141,7 +143,7 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                                            index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
         if (subset_end->get_const_data()[shifted_bucket] <= index) {
-            local_indices->get_data()[i] = -1;
+            local_indices->get_data()[i] = invalid_index<IndexType>();
         } else {
             local_indices->get_data()[i] =
                 index - subset_begin->get_const_data()[shifted_bucket] +
@@ -161,10 +163,10 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *subset_end,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *local_indices,
-                     Array<IndexType> *global_indices)
+                     Array<IndexType> *global_indices, const bool is_sorted)
 {
 #pragma omp parallel for
-    for (auto i = 0; i < local_indices->get_num_elems(); ++i) {
+    for (size_type i = 0; i < local_indices->get_num_elems(); ++i) {
         auto index = local_indices->get_const_data()[i];
         GKO_ASSERT(
             index <=

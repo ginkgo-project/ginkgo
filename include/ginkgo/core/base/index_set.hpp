@@ -61,8 +61,19 @@ namespace gko {
  * 42). Instead of storing the entire array of indices, one can store subsets
  * ([1,9), [10,13), [18,22), [42,43)), thereby only using half the storage.
  *
- * For fast querying we also store an additional cumulative array that contains
- * information on the number of elements in each of the subsets.
+ * We store three arrays, one (subsets_begin) with the starting indices of the
+ * subsets in the index set, another (subsets_end) storing one
+ * index beyond the end indices of the subsets and the last
+ * (superset_cumulative_indices) storing the cumulative number of indices in the
+ * subsequent subsets with an initial zero which speeds up the
+ * querying.
+ *
+ * Therefore the storage would look as follows
+ *
+ * > index_set = (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 18, 19, 20, 21, 42)
+ * > subsets_begin = {1, 10, 18, 42}
+ * > subsets_end = {9, 13, 22, 43}
+ * > superset_cumulative_indices = {0, 8, 11, 15, 16}
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
@@ -116,9 +127,12 @@ public:
      * @param size  the maximum index the index set it allowed to hold. This
      *              is the size of the index space.
      * @param indices  the indices that the index set should hold.
+     * @param is_sorted  a parameter that specifies if the indices array is
+     *                   sorted or not. `true` if sorted.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size, const gko::Array<index_type> &indices)
+             const index_type size, const gko::Array<index_type> &indices,
+             const bool is_sorted = false)
         : index_set_id_(0),
           index_space_size_(size),
           exec_(executor),
@@ -126,7 +140,7 @@ public:
           subsets_end_(exec_),
           superset_cumulative_indices_(exec_)
     {
-        this->populate_subsets(indices);
+        this->populate_subsets(indices, is_sorted);
     }
 
 
@@ -138,9 +152,12 @@ public:
      * @param size  the maximum index the index set it allowed to hold. This
      *              is the size of the index space.
      * @param indices  the indices that the index set should hold.
+     * @param is_sorted  a parameter that specifies if the indices array is
+     *                   sorted or not. `true` if sorted.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor, const index_type id,
-             const index_type size, const gko::Array<index_type> &indices)
+             const index_type size, const gko::Array<index_type> &indices,
+             const bool is_sorted = false)
         : index_set_id_(id),
           index_space_size_(size),
           exec_(executor),
@@ -148,7 +165,7 @@ public:
           subsets_end_(exec_),
           superset_cumulative_indices_(exec_)
     {
-        this->populate_subsets(indices);
+        this->populate_subsets(indices, is_sorted);
     }
 
     /**
@@ -208,10 +225,10 @@ public:
      *       It is probably more efficient to use the Array functions that
      *       take and return arrays which allow for more throughput.
      *
-     * @param  the local index.
+     * @param local_index  the local index.
      * @return  the global index from the index set.
      */
-    index_type get_global_index(const index_type &local_index) const;
+    index_type get_global_index(const index_type local_index) const;
 
     /**
      * Return the local index given a global index.
@@ -225,35 +242,46 @@ public:
      *       It is probably more efficient to use the Array functions that
      *       take and return arrays which allow for more throughput.
      *
-     * @param  the global index.
+     * @param global_index  the global index.
      * @return  the local index of the element in the index set.
      */
-    index_type get_local_index(const index_type &global_index) const;
+    index_type get_local_index(const index_type global_index) const;
 
     /**
      * This is an array version of the scalar function above.
      *
-     * @param  the local index array.
+     * @param local_indices  the local index array.
+     * @param is_sorted  a parameter that specifies if the query array is sorted
+     *                   or not. `true` if sorted .
      * @return  the global index array from the index set.
+     *
+     * @note Whenever possible, passing a sorted array is preferred as the
+     * queries can be significantly faster.
      */
-    Array<index_type> get_global_indices(
-        const Array<index_type> &local_indices) const;
+    Array<index_type> get_global_indices(const Array<index_type> &local_indices,
+                                         const bool is_sorted = false) const;
 
     /**
      * This is an array version of the scalar function above.
      *
-     * @param  the global index array.
+     * @param global_indices  the global index array.
+     * @param is_sorted  a parameter that specifies if the query array is sorted
+     *                   or not. `true` if sorted.
      * @return  the local index array from the index set.
+     *
+     * @note Whenever possible, passing a sorted array is preferred as the
+     * queries can be significantly faster.
      */
-    Array<index_type> get_local_indices(
-        const Array<index_type> &global_indices) const;
+    Array<index_type> get_local_indices(const Array<index_type> &global_indices,
+                                        const bool is_sorted = false) const;
 
     /**
      * Checks if the element exists in the index set.
      *
+     * @param index  the index to check.
      * @return  whether the element exists in the index set.
      */
-    bool is_element(const index_type &index) const;
+    bool is_element(const index_type index) const;
 
     /**
      * Returns the number of subsets stored in the index set.
@@ -298,7 +326,8 @@ public:
     }
 
 private:
-    void populate_subsets(const gko::Array<index_type> &indices);
+    void populate_subsets(const gko::Array<index_type> &indices,
+                          const bool is_sorted);
 
     std::shared_ptr<const gko::Executor> exec_;
 

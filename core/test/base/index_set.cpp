@@ -47,7 +47,7 @@ namespace {
 template <typename T>
 class IndexSet : public ::testing::Test {
 protected:
-    using value_type = T;
+    using index_type = T;
     IndexSet() : exec(gko::ReferenceExecutor::create()) {}
 
     void TearDown()
@@ -58,24 +58,11 @@ protected:
         }
     }
 
-    static void assert_equal_to_original(gko::IndexSet<T> &a)
-    {
-        ASSERT_EQ(a.get_size(), 10);
-    }
-
     static void assert_equal_index_sets(gko::IndexSet<T> &a,
                                         gko::IndexSet<T> &b)
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         ASSERT_EQ(a.get_num_subsets(), b.get_num_subsets());
-        if (a.get_num_subsets() > 0) {
-            for (auto i = 0; i < a.get_num_subsets(); ++i) {
-                ASSERT_EQ(a.get_subsets_begin()[i], b.get_subsets_begin()[i]);
-                ASSERT_EQ(a.get_subsets_end()[i], b.get_subsets_end()[i]);
-                ASSERT_EQ(a.get_superset_indices()[i],
-                          b.get_superset_indices()[i]);
-            }
-        }
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -118,7 +105,7 @@ TYPED_TEST(IndexSet, CanBeMoveConstructed)
 
     auto idx_set2(std::move(idx_set));
 
-    this->assert_equal_to_original(idx_set2);
+    ASSERT_EQ(idx_set2.get_size(), 10);
 }
 
 
@@ -138,7 +125,7 @@ TYPED_TEST(IndexSet, CanBeMoveAssigned)
 
     auto idx_set2 = std::move(idx_set);
 
-    this->assert_equal_to_original(idx_set2);
+    ASSERT_EQ(idx_set2.get_size(), 10);
 }
 
 
