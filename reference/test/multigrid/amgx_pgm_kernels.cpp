@@ -289,7 +289,6 @@ TYPED_TEST(AmgxPgm, CanBeCopied)
     auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(this->rstr_prlg.get());
-
     auto copy_mtx =
         static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
     auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
@@ -311,7 +310,6 @@ TYPED_TEST(AmgxPgm, CanBeMoved)
     auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(std::move(this->rstr_prlg));
-
     auto copy_mtx =
         static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
     auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
@@ -333,7 +331,6 @@ TYPED_TEST(AmgxPgm, CanBeCloned)
     auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
 
     auto clone = this->rstr_prlg->clone();
-
     auto clone_mtx =
         static_cast<RestrictProlong *>(clone.get())->get_system_matrix();
     auto clone_agg =
@@ -354,7 +351,6 @@ TYPED_TEST(AmgxPgm, CanBeCleared)
     using RestrictProlong = typename TestFixture::RestrictProlong;
 
     this->rstr_prlg->clear();
-
     auto mtx = static_cast<RestrictProlong *>(this->rstr_prlg.get())
                    ->get_system_matrix();
     auto coarse = this->rstr_prlg->get_coarse_matrix();
@@ -376,8 +372,7 @@ TYPED_TEST(AmgxPgm, RestrictApply)
     gko::kernels::reference::amgx_pgm::restrict_apply(
         this->exec, this->agg, this->fine_b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans,
-                        gko::remove_complex<value_type>{0});
+    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
 
 TYPED_TEST(AmgxPgm, ProlongApplyadd)
@@ -388,8 +383,7 @@ TYPED_TEST(AmgxPgm, ProlongApplyadd)
     gko::kernels::reference::amgx_pgm::prolong_applyadd(
         this->exec, this->agg, this->coarse_b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
-                        gko::remove_complex<value_type>{0});
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
 
 TYPED_TEST(AmgxPgm, MatchEdge)
@@ -482,8 +476,7 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
     amgx_pgm->restrict_apply(this->fine_b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans,
-                        gko::remove_complex<value_type>{0});
+    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
 
 
@@ -495,8 +488,7 @@ TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 
     amgx_pgm->prolong_applyadd(this->coarse_b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
-                        gko::remove_complex<value_type>{0});
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
 
 
@@ -508,8 +500,47 @@ TYPED_TEST(AmgxPgm, CoarseFineProlongApply)
 
     amgx_pgm->prolong_apply(this->coarse_b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans,
-                        gko::remove_complex<value_type>{0});
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
+}
+
+
+TYPED_TEST(AmgxPgm, Apply)
+{
+    using VT = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto b = gko::clone(this->fine_x);
+    auto x = gko::clone(this->fine_x);
+    auto exec = amgx_pgm->get_executor();
+    auto answer = gko::initialize<Vec>(
+        {I<VT>({-23.0, 5.0}), I<VT>({17.0, -5.0}), I<VT>({-23.0, 5.0}),
+         I<VT>({17.0, -5.0}), I<VT>({-23.0, 5.0})},
+        exec);
+
+    amgx_pgm->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
+}
+
+
+TYPED_TEST(AmgxPgm, AdvancedApply)
+{
+    using VT = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto b = gko::clone(this->fine_x);
+    auto x = gko::clone(this->fine_x);
+    auto exec = amgx_pgm->get_executor();
+    auto alpha = gko::initialize<Vec>({1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+    auto answer = gko::initialize<Vec>(
+        {I<VT>({-27.0, 3.0}), I<VT>({19.0, -7.0}), I<VT>({-25.0, 3.0}),
+         I<VT>({17.0, -5.0}), I<VT>({-23.0, 9.0})},
+        exec);
+
+    amgx_pgm->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
 
 

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+
 namespace gko {
 namespace multigrid {
 
@@ -268,6 +269,54 @@ protected:
     }
 
     /**
+     * A default apply of multigrid_level
+     *
+     * Performs the operation x = op(b) = prolong(coarse(restrict(b)))
+     *
+     * @tparam ValueType  precision of input and result vectors
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    template <typename ValueType>
+    void multigrid_level_default_apply(const LinOp *b, LinOp *x) const
+    {
+        auto num_cols = b->get_size()[1];
+        auto coarse = this->get_coarse_matrix();
+        auto coarse_b = matrix::Dense<ValueType>::create(
+            exec_, dim<2>{coarse->get_size()[1], num_cols});
+        auto coarse_x = matrix::Dense<ValueType>::create(
+            exec_, dim<2>{coarse->get_size()[0], num_cols});
+        this->restrict_apply(b, lend(coarse_b));
+        coarse->apply(lend(coarse_b), lend(coarse_x));
+        this->prolong_apply(lend(coarse_x), x);
+    }
+
+    /**
+     * A default advanced_apply of multigrid_level
+     *
+     * Performs the operation x = alpha * op(b) + beta * x
+     * = alpha * prolong(coarse(restrict(b))) + beta * x
+     *
+     * @tparam ValueType  precision of input and result vectors
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    template <typename ValueType>
+    void multigrid_level_default_apply(const LinOp *alpha, const LinOp *b,
+                                       const LinOp *beta, LinOp *x) const
+    {
+        auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+        auto x_clone = dense_x->clone();
+        this->template multigrid_level_default_apply<ValueType>(b,
+                                                                x_clone.get());
+        dense_x->scale(beta);
+        dense_x->add_scaled(alpha, x_clone.get());
+    }
+
+    /**
      * Creates a MultigridLevel with settings
      *
      * @param exec  Executor associated to the multigrid_level
@@ -281,8 +330,11 @@ protected:
      */
     explicit MultigridLevel(std::shared_ptr<const Executor> exec,
                             bool native_applyadd = false)
-        : RestrictOp(exec), ProlongOp(exec, native_applyadd)
+        : exec_(exec), RestrictOp(exec), ProlongOp(exec, native_applyadd)
     {}
+
+private:
+    std::shared_ptr<const Executor> exec_;
 };
 
 

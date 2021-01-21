@@ -149,28 +149,14 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        // x = op(b) = prolong(coarse(restrict(b)))
-        auto exec = this->get_executor();
-        auto num_cols = b->get_size()[1];
-        auto coarse = this->get_coarse_matrix();
-        auto coarse_b = matrix::Dense<ValueType>::create(
-            exec, dim<2>{coarse->get_size()[1], num_cols});
-        auto coarse_x = matrix::Dense<ValueType>::create(
-            exec, dim<2>{coarse->get_size()[0], num_cols});
-        this->restrict_apply(b, lend(coarse_b));
-        coarse->apply(lend(coarse_b), lend(coarse_x));
-        this->prolong_apply(lend(coarse_x), x);
+        this->template multigrid_level_default_apply<ValueType>(b, x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-        auto x_clone = dense_x->clone();
-        this->apply(b, x_clone.get());
-        dense_x->scale(beta);
-        dense_x->add_scaled(alpha, x_clone.get());
+        this->template multigrid_level_default_apply<ValueType>(alpha, b, beta,
+                                                                x);
     }
 
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
