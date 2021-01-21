@@ -226,6 +226,12 @@ void HipExecutor::set_gpu_property()
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
             &this->get_exec_info().minor,
             hipDeviceAttributeComputeCapabilityMinor, this->get_device_id()));
+        auto max_threads_per_block = 0;
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_threads_per_block, hipDeviceAttributeMaxThreadsPerBlock,
+            this->get_device_id()));
+        this->get_exec_info().max_workitem_sizes.push_back(
+            max_threads_per_block);
 #if GINKGO_HIP_PLATFORM_NVCC
         this->get_exec_info().num_pe_per_cu =
             convert_sm_ver_to_cores(this->get_exec_info().major,

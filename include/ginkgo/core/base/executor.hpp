@@ -728,7 +728,7 @@ public:
         /**
          * The processing units closest to the device.
          *
-         * @note Only relevant for CUDA, HIP and DPCPP executors.
+         * @note Currently only relevant for CUDA, HIP and DPCPP executors.
          */
         std::vector<int> closest_pu_ids{};
     };
@@ -1057,6 +1057,7 @@ public:
         MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
     }
 };
+
 
 /**
  * Controls whether the DeviceReset function should be called thanks to a
@@ -1685,7 +1686,10 @@ public:
      *
      * @return the DPCPP device id of the device associated to this executor
      */
-    int get_device_id() const noexcept { return get_exec_info().device_id; }
+    int get_device_id() const noexcept
+    {
+        return this->get_exec_info().device_id;
+    }
 
     ::cl::sycl::queue *get_queue() const { return queue_.get(); }
 
@@ -1705,7 +1709,7 @@ public:
      */
     const std::vector<int> &get_subgroup_sizes() const noexcept
     {
-        return get_exec_info().subgroup_sizes;
+        return this->get_exec_info().subgroup_sizes;
     }
 
     /**
@@ -1715,7 +1719,7 @@ public:
      */
     size_type get_num_computing_units() const noexcept
     {
-        return get_exec_info().num_computing_units;
+        return this->get_exec_info().num_computing_units;
     }
 
     /**
@@ -1725,7 +1729,7 @@ public:
      */
     const std::vector<int> &get_max_workitem_sizes() const noexcept
     {
-        return get_exec_info().max_workitem_sizes;
+        return this->get_exec_info().max_workitem_sizes;
     }
 
     /**
@@ -1735,7 +1739,7 @@ public:
      */
     size_type get_max_workgroup_size() const noexcept
     {
-        return get_exec_info().num_pe_per_cu;
+        return this->get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1745,7 +1749,7 @@ public:
      */
     std::string get_device_type() const noexcept
     {
-        return get_exec_info().device_type;
+        return this->get_exec_info().device_type;
     }
 
 protected:
@@ -1782,14 +1786,6 @@ protected:
 
 private:
     std::shared_ptr<Executor> master_;
-
-    // struct dpcpp_exec_info : public exec_info {
-    //     int device_id;
-    //     std::string device_type;
-    //     int num_computing_units;
-    //     std::vector<size_type> subgroup_sizes{};
-    //     std::vector<size_type> max_workitem_sizes{};
-    // } get_exec_info();
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T *)>>;
