@@ -39,15 +39,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class ParIc : public ::testing::Test {
 public:
-    using value_type = double;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using ic_factory_type = gko::factorization::ParIc<value_type, index_type>;
-    using strategy_type = ic_factory_type::matrix_type::classical;
+    using strategy_type = typename ic_factory_type::matrix_type::classical;
 
 protected:
     ParIc() : ref(gko::ReferenceExecutor::create()) {}
@@ -55,47 +61,53 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
+TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes);
 
-TEST_F(ParIc, SetIterations)
+
+TYPED_TEST(ParIc, SetIterations)
 {
-    auto factory = ic_factory_type::build().with_iterations(5u).on(this->ref);
+    auto factory =
+        TestFixture::ic_factory_type::build().with_iterations(5u).on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 5u);
 }
 
 
-TEST_F(ParIc, SetSkip)
+TYPED_TEST(ParIc, SetSkip)
 {
     auto factory =
-        ic_factory_type::build().with_skip_sorting(true).on(this->ref);
+        TestFixture::ic_factory_type::build().with_skip_sorting(true).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().skip_sorting, true);
 }
 
 
-TEST_F(ParIc, SetLStrategy)
+TYPED_TEST(ParIc, SetLStrategy)
 {
-    auto strategy = std::make_shared<strategy_type>();
+    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
 
     auto factory =
-        ic_factory_type::build().with_l_strategy(strategy).on(this->ref);
+        TestFixture::ic_factory_type::build().with_l_strategy(strategy).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
 }
 
 
-TEST_F(ParIc, SetBothFactors)
+TYPED_TEST(ParIc, SetBothFactors)
 {
     auto factory =
-        ic_factory_type::build().with_both_factors(false).on(this->ref);
+        TestFixture::ic_factory_type::build().with_both_factors(false).on(
+            this->ref);
 
     ASSERT_FALSE(factory->get_parameters().both_factors);
 }
 
 
-TEST_F(ParIc, SetDefaults)
+TYPED_TEST(ParIc, SetDefaults)
 {
-    auto factory = ic_factory_type::build().on(this->ref);
+    auto factory = TestFixture::ic_factory_type::build().on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 0u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
@@ -104,11 +116,11 @@ TEST_F(ParIc, SetDefaults)
 }
 
 
-TEST_F(ParIc, SetEverything)
+TYPED_TEST(ParIc, SetEverything)
 {
-    auto strategy = std::make_shared<strategy_type>();
+    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
 
-    auto factory = ic_factory_type::build()
+    auto factory = TestFixture::ic_factory_type::build()
                        .with_iterations(7u)
                        .with_skip_sorting(false)
                        .with_l_strategy(strategy)

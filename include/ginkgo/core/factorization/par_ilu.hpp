@@ -78,8 +78,10 @@ namespace factorization {
  * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
  * system matrix $A$). The number of ParILU sweeps needed for convergence
  * depends on the parallelism level: For sequential execution, a single sweep
- * is sufficient, for fine-grained parallelism, 3 sweeps are typically
- * generating a good approximation.
+ * is sufficient, for fine-grained parallelism, the number of sweeps necessary
+ * to get a good approximation of the incomplete factors depends heavily on the
+ * problem. On the OpenMP executor, 3 sweeps usually give a decent approximation
+ * in our experiments, while GPU executors can take 10 or more iterations.
  *
  * The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel,
  * Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific
@@ -131,13 +133,6 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 0);
 
         /**
-         * @brief `true` means it is known that the matrix given to this
-         *        factory will be sorted first by row, then by column index,
-         *        `false` means it is unknown or not sorted, so an additional
-         *        sorting step will be performed during the factorization
-         *        (it will not change the matrix given).
-         *        The matrix must be sorted for this factorization to work.
-         *
          * The `system_matrix`, which will be given to this factory, must be
          * sorted (first by row, then by column) in order for the algorithm
          * to work. If it is known that the matrix will be sorted, this

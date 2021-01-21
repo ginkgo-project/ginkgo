@@ -111,13 +111,6 @@ public:
             GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
 
         /**
-         * @brief `true` means it is known that the matrix given to this
-         *        factory will be sorted first by row, then by column index,
-         *        `false` means it is unknown or not sorted, so an additional
-         *        sorting step will be performed during the factorization
-         *        (it will not change the matrix given).
-         *        The matrix must be sorted for this factorization to work.
-         *
          * The `system_matrix`, which will be given to this factory, must be
          * sorted (first by row, then by column) in order for the algorithm
          * to work. If it is known that the matrix will be sorted, this

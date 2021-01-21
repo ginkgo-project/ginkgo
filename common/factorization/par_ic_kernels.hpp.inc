@@ -61,17 +61,17 @@ __global__ __launch_bounds__(default_block_size) void ic_sweep(
     const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_vals,
     IndexType l_nnz)
 {
-    auto l_nz = thread::get_thread_id_flat<IndexType>();
+    const auto l_nz = thread::get_thread_id_flat<IndexType>();
     if (l_nz >= l_nnz) {
         return;
     }
-    auto row = a_row_idxs[l_nz];
-    auto col = l_col_idxs[l_nz];
-    auto a_val = a_vals[l_nz];
+    const auto row = a_row_idxs[l_nz];
+    const auto col = l_col_idxs[l_nz];
+    const auto a_val = a_vals[l_nz];
     auto l_row_begin = l_row_ptrs[row];
-    auto l_row_end = l_row_ptrs[row + 1];
+    const auto l_row_end = l_row_ptrs[row + 1];
     auto lh_col_begin = l_row_ptrs[col];
-    auto lh_col_end = l_row_ptrs[col + 1];
+    const auto lh_col_end = l_row_ptrs[col + 1];
     ValueType sum{};
     auto last_entry = col;
     while (l_row_begin < l_row_end && lh_col_begin < lh_col_end) {

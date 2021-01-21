@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -210,11 +211,15 @@ protected:
         set_cache_to(b);
         if (!ReverseApply) {
             l_solver_->apply(b, cache_.intermediate.get());
-            x->copy_from(cache_.intermediate.get());
+            if (u_solver_->apply_uses_initial_guess()) {
+                x->copy_from(cache_.intermediate.get());
+            }
             u_solver_->apply(cache_.intermediate.get(), x);
         } else {
             u_solver_->apply(b, cache_.intermediate.get());
-            x->copy_from(cache_.intermediate.get());
+            if (l_solver_->apply_uses_initial_guess()) {
+                x->copy_from(cache_.intermediate.get());
+            }
             l_solver_->apply(cache_.intermediate.get(), x);
         }
     }
@@ -294,9 +299,6 @@ protected:
      */
     void set_cache_to(const LinOp *b) const
     {
-        dim<2> expected_size =
-            ReverseApply ? dim<2>{u_solver_->get_size()[0], b->get_size()[1]}
-                         : dim<2>{l_solver_->get_size()[0], b->get_size()[1]};
         if (cache_.intermediate == nullptr) {
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor());
@@ -304,45 +306,6 @@ protected:
         // Use b as the initial guess for the first triangular solve
         cache_.intermediate->copy_from(b);
     }
-
-    /**
-     * @internal  Looks at the build() method to determine the type of the
-     *            factory.
-     */
-    template <typename T>
-    using factory_type_t = decltype(T::build());
-
-    // Parameter type of function `with_criteria`.
-    using with_criteria_param_type =
-        std::shared_ptr<const stop::CriterionFactory>;
-
-    /**
-     * Helper structure to test if the Factory of SolverType has a function
-     * `with_criteria`.
-     *
-     * Contains a constexpr boolean `value`, which is true if the Factory class
-     * of SolverType has a `with_criteria`, and false otherwise.
-     *
-     * @tparam SolverType   Solver to test if its factory has a with_criteria
-     *                      function.
-     *
-     */
-    template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {};
-
-    /**
-     * @copydoc has_with_criteria
-     *
-     * @internal  The second template parameter (which uses SFINAE) must match
-     *            the default value of the general case in order to be accepted
-     *            as a specialization, which is why `xstd::void_t` is used.
-     */
-    template <typename SolverType>
-    struct has_with_criteria<
-        SolverType,
-        xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
-                                  .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {};
 
 
     /**
@@ -353,7 +316,7 @@ protected:
      * preconditioner.
      */
     template <typename SolverType>
-    static std::enable_if_t<has_with_criteria<SolverType>::value,
+    static std::enable_if_t<solver::has_with_criteria<SolverType>(),
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
@@ -377,7 +340,7 @@ protected:
      * @copydoc generate_default_solver
      */
     template <typename SolverType>
-    static std::enable_if_t<!has_with_criteria<SolverType>::value,
+    static std::enable_if_t<!solver::has_with_criteria<SolverType>(),
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)

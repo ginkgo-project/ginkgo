@@ -100,12 +100,12 @@ TEST_F(Ic, ComputeICIsEquivalentToRefSorted)
 
     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), cuda_fact->get_l_factor(),
                         1e-14);
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_lh_factor(), cuda_fact->get_lh_factor(),
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_lt_factor(), cuda_fact->get_lt_factor(),
                         1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
                                cuda_fact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_lh_factor(),
-                               cuda_fact->get_lh_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_lt_factor(),
+                               cuda_fact->get_lt_factor());
 }
 
 
@@ -121,12 +121,12 @@ TEST_F(Ic, ComputeICIsEquivalentToRefUnsorted)
 
     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), cuda_fact->get_l_factor(),
                         1e-14);
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_lh_factor(), cuda_fact->get_lh_factor(),
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_lt_factor(), cuda_fact->get_lt_factor(),
                         1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
                                cuda_fact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_lh_factor(),
-                               cuda_fact->get_lh_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_lt_factor(),
+                               cuda_fact->get_lt_factor());
 }
 
 
@@ -139,7 +139,7 @@ TEST_F(Ic, SetsCorrectStrategy)
 
     ASSERT_EQ(cuda_fact->get_l_factor()->get_strategy()->get_name(),
               "merge_path");
-    ASSERT_EQ(cuda_fact->get_lh_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(cuda_fact->get_lt_factor()->get_strategy()->get_name(),
               "merge_path");
 }
 

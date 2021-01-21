@@ -30,83 +30,58 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_IC_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_IC_KERNELS_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_SOLVER_TRAITS_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_SOLVER_TRAITS_HPP_
 
 
-#include <ginkgo/core/factorization/ic.hpp>
-
-
-#include <memory>
-
-
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
-namespace kernels {
+namespace solver {
+namespace detail {
 
 
-#define GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)   \
-    void compute(std::shared_ptr<const DefaultExecutor> exec, \
-                 matrix::Csr<ValueType, IndexType> *system_matrix)
+/**
+ * Helper structure to test if the Factory of SolverType has a function
+ * `with_criteria`.
+ *
+ * Contains a constexpr boolean `value`, which is true if the Factory class
+ * of SolverType has a `with_criteria`, and false otherwise.
+ *
+ * @tparam SolverType   Solver to test if its factory has a with_criteria
+ *                      function.
+ *
+ */
+template <typename SolverType, typename = void>
+struct has_with_criteria_impl : std::false_type {};
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)
-
-
-namespace omp {
-namespace ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ic_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ic_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ic_factorization
-}  // namespace reference
+/**
+ * @copydoc has_with_criteria
+ *
+ * @internal  The second template parameter (which uses SFINAE) must match
+ *            the default value of the general case in order to be accepted
+ *            as a specialization, which is why `xstd::void_t` is used.
+ */
+template <typename SolverType>
+struct has_with_criteria_impl<
+    SolverType, xstd::void_t<decltype(SolverType::build().with_criteria(
+                    std::shared_ptr<const stop::CriterionFactory>()))>>
+    : std::true_type {};
 
 
-namespace hip {
-namespace ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ic_factorization
-}  // namespace hip
+}  // namespace detail
 
 
-namespace dpcpp {
-namespace ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ic_factorization
-}  // namespace dpcpp
+template <typename SolverType>
+constexpr bool has_with_criteria()
+{
+    return detail::has_with_criteria_impl<SolverType>::value;
+}
 
 
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-}  // namespace kernels
+}  // namespace solver
 }  // namespace gko
 
-
-#endif  // GKO_CORE_FACTORIZATION_IC_KERNELS_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_SOLVER_TRAITS_HPP_

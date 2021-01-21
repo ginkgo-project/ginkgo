@@ -99,7 +99,6 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
             auto a_val = a_vals[l_nz];
             // accumulate l(row,:) * l(col,:) without the last entry l(col, col)
             ValueType sum{};
-            IndexType lh_nz{};
             auto l_begin = l_row_ptrs[row];
             auto l_end = l_row_ptrs[row + 1];
             auto lh_begin = l_row_ptrs[col];
@@ -109,9 +108,6 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                 auto lh_row = l_col_idxs[lh_begin];
                 if (l_col == lh_row && l_col < col) {
                     sum += l_vals[l_begin] * conj(l_vals[lh_begin]);
-                }
-                if (lh_row == row) {
-                    lh_nz = lh_begin;
                 }
                 l_begin += (l_col <= lh_row);
                 lh_begin += (lh_row <= l_col);

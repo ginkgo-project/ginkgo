@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -58,18 +59,18 @@ namespace preconditioner {
 
 
 /**
- * The Incomplete LU (ILU) preconditioner solves the equation $LUx = b$ for a
- * given lower triangular matrix L, an upper triangular matrix U and the right
- * hand side b (can contain multiple right hand sides).
+ * The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$
+ * for a given lower triangular matrix L and the right hand side b (can contain
+ * multiple right hand sides).
  *
- * It allows to set both the solver for L and the solver for U independently,
- * while providing the defaults solver::LowerTrs and solver::UpperTrs, which
- * are direct triangular solvers.
- * For these solvers, a factory can be provided (with `with_l_solver_factory`
- * and `with_u_solver_factory`) to have more control over their behavior.
- * In particular, it is possible to use an iterative method for solving the
- * triangular systems. The default parameters for an iterative triangluar
- * solver are:
+ * It allows to set both the solver for L defaulting to solver::LowerTrs, which
+ * is a direct triangular solvers. The solver for L^H is the
+ * conjugate-transposed solver for L, ensuring that the preconditioner is
+ * symmetric and positive-definite. For this L solver, a factory can be provided
+ * (using `with_l_solver_factory`) to have more control over their behavior. In
+ * particular, it is possible to use an iterative method for solving the
+ * triangular systems. The default parameters for an iterative triangluar solver
+ * are:
  * - reduction factor = 1e-4
  * - max iteration = <number of rows of the matrix given to the solver>
  * Solvers without such criteria can also be used, in which case none are set.
@@ -78,15 +79,16 @@ namespace preconditioner {
  * containing two matrices. If created with a matrix, it is factorized before
  * creating the solver. If a gko::Composition (containing two matrices) is
  * used, the first operand will be taken as the L matrix, the second will be
- * considered the U matrix. ParIlu can be directly used, since it orders the
- * factors in the correct way.
+ * considered the L^H matrix, which helps to avoid the otherwise necessary
+ * transposition of L inside the solver. ParIc can be directly used, since it
+ * orders the factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix ($L$), and the second matrix must be the upper matrix ($U$).
- *       If they are swapped, solving might crash or return the wrong result.
+ *       matrix ($L$), and the second matrix must be its conjugate-transpose
+ * ($L^H$). If they are swapped, solving might crash or return the wrong result.
  *
- * @note Do not use symmetric solvers (like CG) for L or U solvers since both
- *       matrices (L and U) are, by design, not symmetric.
+ * @note Do not use symmetric solvers (like CG) for the L solver since both
+ *       matrices (L and L^H) are, by design, not symmetric.
  *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies.
@@ -95,14 +97,8 @@ namespace preconditioner {
  *
  * @tparam LSolverType  type of the solver used for the L matrix.
  *                      Defaults to solver::LowerTrs
- * @tparam USolverType  type of the solver used for the U matrix
- *                      Defaults to solver::UpperTrs
- * @tparam ReverseApply  default behavior (ReverseApply = false) is first to
- *                       solve with L (Ly = b) and then with U (Ux = y).
- *                       When set to true, it will solve first with U, and then
- *                       with L.
- * @tparam IndexTypeParIlu  Type of the indices when ParIlu is used to generate
- *                          both L and U factors. Irrelevant otherwise.
+ * @tparam IndexType  type of the indices when ParIc is used to generate
+ *                    the L and L^H factors. Irrelevant otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
@@ -196,7 +192,9 @@ protected:
     {
         set_cache_to(b);
         l_solver_->apply(b, cache_.intermediate.get());
-        x->copy_from(cache_.intermediate.get());
+        if (lh_solver_->apply_uses_initial_guess()) {
+            x->copy_from(cache_.intermediate.get());
+        }
         lh_solver_->apply(cache_.intermediate.get(), x);
     }
 
@@ -274,8 +272,6 @@ protected:
      */
     void set_cache_to(const LinOp *b) const
     {
-        dim<2> expected_size =
-            dim<2>{l_solver_->get_size()[0], b->get_size()[1]};
         if (cache_.intermediate == nullptr) {
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor());
@@ -283,45 +279,6 @@ protected:
         // Use b as the initial guess for the first triangular solve
         cache_.intermediate->copy_from(b);
     }
-
-    /**
-     * @internal  Looks at the build() method to determine the type of the
-     *            factory.
-     */
-    template <typename T>
-    using factory_type_t = decltype(T::build());
-
-    // Parameter type of function `with_criteria`.
-    using with_criteria_param_type =
-        std::shared_ptr<const stop::CriterionFactory>;
-
-    /**
-     * Helper structure to test if the Factory of SolverType has a function
-     * `with_criteria`.
-     *
-     * Contains a constexpr boolean `value`, which is true if the Factory
-     * class of SolverType has a `with_criteria`, and false otherwise.
-     *
-     * @tparam SolverType   Solver to test if its factory has a
-     * with_criteria function.
-     *
-     */
-    template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {};
-
-    /**
-     * @copydoc has_with_criteria
-     *
-     * @internal  The second template parameter (which uses SFINAE) must
-     * match the default value of the general case in order to be accepted
-     *            as a specialization, which is why `xstd::void_t` is used.
-     */
-    template <typename SolverType>
-    struct has_with_criteria<
-        SolverType,
-        xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
-                                  .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {};
 
 
     /**
@@ -332,7 +289,7 @@ protected:
      * preconditioner.
      */
     template <typename SolverType>
-    static std::enable_if_t<has_with_criteria<SolverType>::value,
+    static std::enable_if_t<solver::has_with_criteria<SolverType>(),
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
@@ -356,7 +313,7 @@ protected:
      * @copydoc generate_default_solver
      */
     template <typename SolverType>
-    static std::enable_if_t<!has_with_criteria<SolverType>::value,
+    static std::enable_if_t<!solver::has_with_criteria<SolverType>(),
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
@@ -386,7 +343,7 @@ private:
         cache_struct &operator=(cache_struct &&) { return *this; }
         std::unique_ptr<LinOp> intermediate{};
     } cache_;
-};  // namespace preconditioner
+};
 
 
 }  // namespace preconditioner

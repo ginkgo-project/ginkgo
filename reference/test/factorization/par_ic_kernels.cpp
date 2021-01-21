@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/factorization/factorization_kernels.hpp"
@@ -188,7 +189,7 @@ TYPED_TEST(ParIc, SetStrategy)
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
     ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
               l_strategy->get_name());
-    ASSERT_EQ(fact->get_lh_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(fact->get_lt_factor()->get_strategy()->get_name(),
               l_strategy->get_name());
 }
 
@@ -198,7 +199,7 @@ TYPED_TEST(ParIc, IsConsistentWithComposition)
     auto fact = this->fact_fact->generate(this->mtx_system);
 
     auto lin_op_l_factor = gko::as<gko::LinOp>(fact->get_l_factor());
-    auto lin_op_lt_factor = gko::as<gko::LinOp>(fact->get_lh_factor());
+    auto lin_op_lt_factor = gko::as<gko::LinOp>(fact->get_lt_factor());
     auto first_operator = fact->get_operators()[0];
     auto second_operator = fact->get_operators()[1];
 
@@ -216,7 +217,7 @@ TYPED_TEST(ParIc, GenerateSingleFactor)
     auto fact = factory->generate(this->mtx_system);
 
     auto lin_op_l_factor = fact->get_l_factor();
-    auto lin_op_lt_factor = fact->get_lh_factor();
+    auto lin_op_lt_factor = fact->get_lt_factor();
     auto first_operator = gko::as<Csr>(fact->get_operators()[0]);
     auto first_operator_h = gko::as<Csr>(first_operator->conj_transpose());
 
@@ -231,7 +232,7 @@ TYPED_TEST(ParIc, GenerateIdentity)
     auto fact = this->fact_fact->generate(this->identity);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(), this->identity, this->tol);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), this->identity, this->tol);
 }
 
 
@@ -243,7 +244,7 @@ TYPED_TEST(ParIc, GenerateDenseIdentity)
     auto fact = this->fact_fact->generate(gko::share(dense_id));
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(), this->identity, this->tol);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), this->identity, this->tol);
 }
 
 
@@ -255,7 +256,7 @@ TYPED_TEST(ParIc, GenerateBanded)
         factorization_type::build().on(this->exec)->generate(this->banded);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->banded_l_expect, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
                         gko::as<Csr>(this->banded_l_expect->conj_transpose()),
                         this->tol);
 }
@@ -269,7 +270,7 @@ TYPED_TEST(ParIc, GenerateGeneral)
         factorization_type::build().on(this->exec)->generate(this->mtx_system);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_it_expect, this->tol);
-    GKO_ASSERT_MTX_NEAR(fact->get_lh_factor(),
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
                         gko::as<Csr>(this->mtx_l_it_expect->conj_transpose()),
                         this->tol);
 }
