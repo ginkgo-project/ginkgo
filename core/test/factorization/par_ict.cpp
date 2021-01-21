@@ -39,15 +39,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class ParIct : public ::testing::Test {
 public:
-    using value_type = gko::default_precision;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using ict_factory_type = gko::factorization::ParIct<value_type, index_type>;
-    using strategy_type = ict_factory_type::matrix_type::classical;
+    using strategy_type = typename ict_factory_type::matrix_type::classical;
 
 protected:
     ParIct() : ref(gko::ReferenceExecutor::create()) {}
@@ -55,63 +61,74 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes);
 
-TEST_F(ParIct, SetIterations)
+
+TYPED_TEST(ParIct, SetIterations)
 {
-    auto factory = ict_factory_type::build().with_iterations(6u).on(ref);
+    auto factory =
+        TestFixture::ict_factory_type::build().with_iterations(6u).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 6u);
 }
 
 
-TEST_F(ParIct, SetSkip)
+TYPED_TEST(ParIct, SetSkip)
 {
-    auto factory = ict_factory_type::build().with_skip_sorting(true).on(ref);
+    auto factory =
+        TestFixture::ict_factory_type::build().with_skip_sorting(true).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().skip_sorting, true);
 }
 
 
-TEST_F(ParIct, SetApprox)
+TYPED_TEST(ParIct, SetApprox)
 {
-    auto factory =
-        ict_factory_type::build().with_approximate_select(false).on(ref);
+    auto factory = TestFixture::ict_factory_type::build()
+                       .with_approximate_select(false)
+                       .on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().approximate_select, false);
 }
 
 
-TEST_F(ParIct, SetDeterministic)
+TYPED_TEST(ParIct, SetDeterministic)
 {
-    auto factory =
-        ict_factory_type::build().with_deterministic_sample(true).on(ref);
+    auto factory = TestFixture::ict_factory_type::build()
+                       .with_deterministic_sample(true)
+                       .on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().deterministic_sample, true);
 }
 
 
-TEST_F(ParIct, SetFillIn)
+TYPED_TEST(ParIct, SetFillIn)
 {
-    auto factory = ict_factory_type::build().with_fill_in_limit(1.2).on(ref);
+    auto factory =
+        TestFixture::ict_factory_type::build().with_fill_in_limit(1.2).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().fill_in_limit, 1.2);
 }
 
 
-TEST_F(ParIct, SetLStrategy)
+TYPED_TEST(ParIct, SetLStrategy)
 {
-    auto strategy = std::make_shared<strategy_type>();
+    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
 
     auto factory =
-        ict_factory_type::build().with_l_strategy(strategy).on(this->ref);
+        TestFixture::ict_factory_type::build().with_l_strategy(strategy).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
 }
 
 
-TEST_F(ParIct, SetDefaults)
+TYPED_TEST(ParIct, SetDefaults)
 {
-    auto factory = ict_factory_type::build().on(ref);
+    auto factory = TestFixture::ict_factory_type::build().on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 5u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
@@ -122,18 +139,18 @@ TEST_F(ParIct, SetDefaults)
 }
 
 
-TEST_F(ParIct, SetEverything)
+TYPED_TEST(ParIct, SetEverything)
 {
-    auto strategy = std::make_shared<strategy_type>();
+    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
 
-    auto factory = ict_factory_type::build()
+    auto factory = TestFixture::ict_factory_type::build()
                        .with_iterations(7u)
                        .with_skip_sorting(true)
                        .with_approximate_select(false)
                        .with_deterministic_sample(true)
                        .with_fill_in_limit(1.2)
                        .with_l_strategy(strategy)
-                       .on(ref);
+                       .on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 7u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, true);

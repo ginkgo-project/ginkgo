@@ -168,9 +168,9 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
     gko::kernels::reference::par_ic_factorization::compute_factor(
         this->ref, 1, lend(mtx_l_coo), lend(this->mtx_l_ani_init));
     gko::kernels::omp::par_ic_factorization::compute_factor(
-        this->omp, 20, lend(dmtx_l_coo), lend(this->dmtx_l_ani_init));
+        this->omp, 100, lend(dmtx_l_coo), lend(this->dmtx_l_ani_init));
 
-    GKO_ASSERT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, 1e-2);
+    GKO_ASSERT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, 1e-4);
 }
 
 

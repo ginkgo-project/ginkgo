@@ -42,11 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
 namespace kernels {
+
 
 #define GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL(ValueType, IndexType) \
     void init_factor(std::shared_ptr<const DefaultExecutor> exec,   \
@@ -57,7 +59,6 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations, \
         const matrix::Coo<ValueType, IndexType> *lower_system_matrix,      \
         matrix::Csr<ValueType, IndexType> *l_factor)
-
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     template <typename ValueType, typename IndexType>            \

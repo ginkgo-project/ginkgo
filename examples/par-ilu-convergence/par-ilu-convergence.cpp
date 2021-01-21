@@ -73,11 +73,13 @@ auto try_generate(Function fun) -> decltype(fun())
 }
 
 
-double compute_ilu_residual_norm(const gko::matrix::Csr<> *residual,
-                                 const gko::matrix::Csr<> *mtx)
+template <typename ValueType, typename IndexType>
+double compute_ilu_residual_norm(
+    const gko::matrix::Csr<ValueType, IndexType> *residual,
+    const gko::matrix::Csr<ValueType, IndexType> *mtx)
 {
-    gko::matrix_data<> residual_data;
-    gko::matrix_data<> mtx_data;
+    gko::matrix_data<ValueType, IndexType> residual_data;
+    gko::matrix_data<ValueType, IndexType> mtx_data;
     residual->write(residual_data);
     mtx->write(mtx_data);
     residual_data.ensure_row_major_order();
@@ -98,6 +100,9 @@ double compute_ilu_residual_norm(const gko::matrix::Csr<> *residual,
 
 int main(int argc, char *argv[])
 {
+    using ValueType = double;
+    using IndexType = int;
+
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
         std::cerr << "Usage: executable"
@@ -124,46 +129,54 @@ int main(int argc, char *argv[])
             throw GKO_STREAM_ERROR("Unable to open matrix file");
         }
         std::cerr << "Reading " << matrix << std::endl;
-        return gko::read<gko::matrix::Csr<>>(mtx_stream, exec);
+        return gko::read<gko::matrix::Csr<ValueType, IndexType>>(mtx_stream,
+                                                                 exec);
     }));
 
     std::shared_ptr<gko::LinOpFactory> factory;
     std::function<void(int)> set_iterations;
     if (precond == "parilu") {
-        factory = gko::factorization::ParIlu<>::build().on(exec);
+        factory =
+            gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
         set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIlu<>::Factory>(factory)
+            gko::as<gko::factorization::ParIlu<ValueType, IndexType>::Factory>(
+                factory)
                 ->get_parameters()
                 .iterations = it;
         };
     } else if (precond == "paric") {
-        factory = gko::factorization::ParIc<>::build().on(exec);
+        factory =
+            gko::factorization::ParIc<ValueType, IndexType>::build().on(exec);
         set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIc<>::Factory>(factory)
+            gko::as<gko::factorization::ParIc<ValueType, IndexType>::Factory>(
+                factory)
                 ->get_parameters()
                 .iterations = it;
         };
     } else if (precond == "parilut") {
-        factory =
-            gko::factorization::ParIlut<>::build().with_fill_in_limit(limit).on(
-                exec);
+        factory = gko::factorization::ParIlut<ValueType, IndexType>::build()
+                      .with_fill_in_limit(limit)
+                      .on(exec);
         set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIlut<>::Factory>(factory)
+            gko::as<gko::factorization::ParIlut<ValueType, IndexType>::Factory>(
+                factory)
                 ->get_parameters()
                 .iterations = it;
         };
     } else if (precond == "parict") {
-        factory =
-            gko::factorization::ParIct<>::build().with_fill_in_limit(limit).on(
-                exec);
+        factory = gko::factorization::ParIct<ValueType, IndexType>::build()
+                      .with_fill_in_limit(limit)
+                      .on(exec);
         set_iterations = [&](int it) {
-            gko::as<gko::factorization::ParIct<>::Factory>(factory)
+            gko::as<gko::factorization::ParIct<ValueType, IndexType>::Factory>(
+                factory)
                 ->get_parameters()
                 .iterations = it;
         };
     }
-    auto one = gko::initialize<gko::matrix::Dense<>>({1.0}, exec);
-    auto minus_one = gko::initialize<gko::matrix::Dense<>>({-1.0}, exec);
+    auto one = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
+    auto minus_one =
+        gko::initialize<gko::matrix::Dense<ValueType>>({-1.0}, exec);
     for (int it = 1; it <= max_iterations; ++it) {
         set_iterations(it);
         std::cout << it << ';';
@@ -171,7 +184,8 @@ int main(int argc, char *argv[])
         std::vector<double> residuals;
         for (int rep = 0; rep < num_repetitions; ++rep) {
             auto tic = std::chrono::high_resolution_clock::now();
-            auto result = gko::as<gko::Composition<>>(factory->generate(mtx));
+            auto result =
+                gko::as<gko::Composition<ValueType>>(factory->generate(mtx));
             exec->synchronize();
             auto toc = std::chrono::high_resolution_clock::now();
             auto residual = gko::clone(exec, mtx);

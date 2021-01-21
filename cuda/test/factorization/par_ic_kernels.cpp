@@ -158,9 +158,9 @@ TEST_F(ParIc, KernelComputeFactorIsEquivalentToRef)
     gko::kernels::reference::par_ic_factorization::compute_factor(
         ref, 1, lend(mtx_l_coo), lend(mtx_l_ani_init));
     gko::kernels::cuda::par_ic_factorization::compute_factor(
-        cuda, 20, lend(dmtx_l_coo), lend(dmtx_l_ani_init));
+        cuda, 100, lend(dmtx_l_coo), lend(dmtx_l_ani_init));
 
-    GKO_ASSERT_MTX_NEAR(mtx_l_ani_init, dmtx_l_ani_init, 1e-2);
+    GKO_ASSERT_MTX_NEAR(mtx_l_ani_init, dmtx_l_ani_init, 1e-4);
 }
 
 
