@@ -165,14 +165,14 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
     auto device = detail::get_devices(
-        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
+        get_exec_info().device_type)[get_exec_info().device_id];
     return device.is_host() || device.is_cpu();
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     auto device = detail::get_devices(
-        dpcpp_exec_info_.device_type)[dpcpp_exec_info_.device_id];
+        get_exec_info().device_type)[get_exec_info().device_id];
     auto other_device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
     return ((device.is_host() || device.is_cpu()) &&
@@ -198,28 +198,31 @@ void delete_queue(sycl::queue *queue)
 
 void DpcppExecutor::set_device_property()
 {
-    assert(this->dpcpp_exec_info_.device_id <
-           DpcppExecutor::get_num_devices(this->dpcpp_exec_info_.device_type));
+    assert(this->get_exec_info().device_id <
+           DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
     auto device = detail::get_devices(
-        this->dpcpp_exec_info_.device_type)[this->dpcpp_exec_info_.device_id];
+        this->get_exec_info().device_type)[this->get_exec_info().device_id];
     if (!device.is_host()) {
         try {
-            this->dpcpp_exec_info_.subgroup_sizes =
+            auto subgroup_sizes =
                 device.get_info<cl::sycl::info::device::sub_group_sizes>();
+            for (auto &i : subgroup_sizes) {
+                this->get_exec_info().subgroup_sizes.push_back(i);
+            }
         } catch (cl::sycl::runtime_error &err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
-    this->dpcpp_exec_info_.num_computing_units =
+    this->get_exec_info().num_computing_units =
         device.get_info<sycl::info::device::max_compute_units>();
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
     // There is no way to get the dimension of a sycl::id object
     for (std::size_t i = 0; i < 3; i++) {
-        this->dpcpp_exec_info_.max_workitem_sizes.push_back(
+        this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
     }
-    this->dpcpp_exec_info_.num_work_groups_per_core =
+    this->get_exec_info().num_pe_per_cu =
         device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to

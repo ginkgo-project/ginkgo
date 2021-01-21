@@ -142,30 +142,6 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 }
 
 
-#if GKO_HAVE_HWLOC
-
-
-inline int get_os_id(int log_id)
-{
-    return gko::get_machine_topology()->get_core(log_id)->os_id;
-}
-
-
-TEST_F(HipExecutor, CanBindToCores)
-{
-    auto hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-    auto cpu_sys = sched_getcpu();
-    const int bind_core[2] = {6, 3};
-    hip->bind_to_cores(bind_core, 2);
-
-    cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(6));
-}
-
-
-#endif
-
-
 TEST_F(HipExecutor, AllocatesAndFreesMemory)
 {
     int *ptr = nullptr;

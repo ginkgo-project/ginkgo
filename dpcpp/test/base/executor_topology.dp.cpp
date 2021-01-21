@@ -30,25 +30,64 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_TEST_UTILS_HPP_
-#define GKO_CUDA_TEST_UTILS_HPP_
-
-
-#include "core/test/utils.hpp"
-
-
 #include <ginkgo/core/base/executor.hpp>
+
+
+#include <exception>
+#include <memory>
+#include <type_traits>
+
+
+#include <CL/sycl.hpp>
+
+
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace {
 
 
-// prevent device reset after each test
-auto no_reset_exec =
-    gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(), true);
+class DpcppExecutor : public ::testing::Test {
+protected:
+    DpcppExecutor()
+        : omp(gko::OmpExecutor::create()), dpcpp(nullptr), dpcpp2(nullptr)
+    {}
+
+    void SetUp()
+    {
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("cpu"), 0);
+        dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+        if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
+            dpcpp2 = gko::DpcppExecutor::create(0, omp, "gpu");
+        }
+    }
+
+    void TearDown()
+    {
+        if (dpcpp != nullptr) {
+            // ensure that previous calls finished and didn't throw an error
+            ASSERT_NO_THROW(dpcpp->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::Executor> omp;
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp2;
+};
+
+
+TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
+{
+    dpcpp = gko::DpcppExecutor::create(0, omp);
+    dpcpp2 = gko::DpcppExecutor::create(0, omp);
+
+    // We want automatic deinitialization to not create any error
+}
 
 
 }  // namespace
-
-
-#endif  // GKO_CUDA_TEST_UTILS_HPP_

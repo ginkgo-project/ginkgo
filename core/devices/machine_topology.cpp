@@ -44,26 +44,45 @@ namespace gko {
 namespace detail {
 
 
-std::shared_ptr<const MachineTopology> machine_topology{};
-std::mutex machine_topology_mutex{};
-std::atomic<bool> initialized_machine_topology{};
+class topo_bitmap {
+public:
+#if GKO_HAVE_HWLOC
+    using bitmap_type =
+        std::remove_pointer<decltype(hwloc_bitmap_alloc())>::type;
+    topo_bitmap() : bitmap(hwloc_bitmap_alloc()) {}
+    ~topo_bitmap() { hwloc_bitmap_free(bitmap); }
+#else
+    using bitmap_type = void;
+#endif
+    bitmap_type *get() { return bitmap; }
+
+private:
+    bitmap_type *bitmap;
+};
+
+
+hwloc_topology *init_topology()
+{
+#if GKO_HAVE_HWLOC
+    hwloc_topology_t tmp;
+    hwloc_topology_init(&tmp);
+
+    hwloc_topology_set_io_types_filter(tmp, HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
+    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_BRIDGE,
+                                   HWLOC_TYPE_FILTER_KEEP_NONE);
+    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_OS_DEVICE,
+                                   HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
+    hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
+    hwloc_topology_load(tmp);
+
+    return tmp;
+#else
+    return nullptr;
+#endif
+}
 
 
 }  // namespace detail
-
-
-const MachineTopology *get_machine_topology()
-{
-    if (!detail::initialized_machine_topology.load()) {
-        std::lock_guard<std::mutex> guard(detail::machine_topology_mutex);
-        if (!detail::machine_topology) {
-            detail::machine_topology = MachineTopology::create();
-            detail::initialized_machine_topology.store(true);
-        }
-    }
-    assert(detail::machine_topology.get() != nullptr);
-    return detail::machine_topology.get();
-}
 
 
 const MachineTopology::io_obj_info *MachineTopology::get_pci_device(
@@ -84,8 +103,8 @@ MachineTopology::MachineTopology()
 #if GKO_HAVE_HWLOC
 
     // Initialize the topology from hwloc
-    this->topo_ =
-        hwloc_manager<hwloc_topology>(init_topology(), hwloc_topology_destroy);
+    this->topo_ = hwloc_manager<hwloc_topology>(detail::init_topology(),
+                                                hwloc_topology_destroy);
     // load objects of type Package . See HWLOC_OBJ_PACKAGE for more details.
     load_objects(HWLOC_OBJ_PACKAGE, this->packages_);
     // load objects of type NUMA Node. See HWLOC_OBJ_NUMANODE for more details.
@@ -109,22 +128,23 @@ MachineTopology::MachineTopology()
 
 
 void MachineTopology::hwloc_binding_helper(
-    const std::vector<MachineTopology::normal_obj_info> &obj, const int *id,
-    const size_type num_ids) const
+    const std::vector<MachineTopology::normal_obj_info> &obj,
+    const std::vector<int> &bind_ids) const
 {
 #if GKO_HAVE_HWLOC
-    auto bitmap_toset = hwloc_bitmap_alloc();
+    detail::topo_bitmap bitmap_toset;
+    auto num_ids = bind_ids.size();
+    auto id = bind_ids.data();
     // Set the given ids to a bitmap
     for (auto i = 0; i < num_ids; ++i) {
         GKO_ASSERT(id[i] < obj.size());
         GKO_ASSERT(id[i] >= 0);
-        hwloc_bitmap_set(bitmap_toset, obj[id[i]].os_id);
+        hwloc_bitmap_set(bitmap_toset.get(), obj[id[i]].os_id);
     }
 
     // Singlify to reduce expensive migrations.
-    hwloc_bitmap_singlify(bitmap_toset);
-    hwloc_set_cpubind(this->topo_.get(), bitmap_toset, 0);
-    hwloc_bitmap_free(bitmap_toset);
+    hwloc_bitmap_singlify(bitmap_toset.get());
+    hwloc_set_cpubind(this->topo_.get(), bitmap_toset.get(), 0);
 #endif
 }
 
@@ -137,6 +157,7 @@ void MachineTopology::load_objects(
     // Get the number of normal objects of a certain type (Core, PU, Machine
     // etc.).
     unsigned num_objects = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
+    objects.reserve(num_objects);
     for (unsigned i = 0; i < num_objects; i++) {
         // Get the actual normal object of the given type.
         hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
@@ -186,6 +207,7 @@ void MachineTopology::load_objects(
     GKO_ASSERT(this->cores_.size() != 0);
     GKO_ASSERT(this->pus_.size() != 0);
     unsigned num_objects = hwloc_get_nbobjs_by_type(this->topo_.get(), type);
+    vector.reserve(num_objects);
     for (unsigned i = 0; i < num_objects; i++) {
         // Get the actual PCI object.
         hwloc_obj_t obj = hwloc_get_obj_by_type(this->topo_.get(), type, i);
@@ -197,17 +219,17 @@ void MachineTopology::load_objects(
             io_obj_info{obj, obj->logical_index, obj->os_index, obj->gp_index,
                         hwloc_bitmap_first(ancestor->nodeset), ancestor});
         // Get the corresponding cpuset of the ancestor nodeset
-        hwloc_cpuset_t ancestor_cpuset = hwloc_bitmap_alloc();
-        hwloc_cpuset_from_nodeset(this->topo_.get(), ancestor_cpuset,
+        detail::topo_bitmap ancestor_cpuset;
+        hwloc_cpuset_from_nodeset(this->topo_.get(), ancestor_cpuset.get(),
                                   ancestor->nodeset);
         // Find the cpu objects closest to this device from the ancestor cpuset
         // and store their ids for binding purposes
-        int closest_cpu_id = -1;
-        int closest_os_id = hwloc_bitmap_first(ancestor_cpuset);
+        int closest_pu_id = -1;
+        int closest_os_id = hwloc_bitmap_first(ancestor_cpuset.get());
         // clang-format off
-        hwloc_bitmap_foreach_begin(closest_os_id, ancestor_cpuset)
-            closest_cpu_id = get_obj_id_by_os_index(this->pus_, closest_os_id);
-            vector.back().closest_cpu_ids.push_back(closest_cpu_id);
+        hwloc_bitmap_foreach_begin(closest_os_id, ancestor_cpuset.get())
+            closest_pu_id = get_obj_id_by_os_index(this->pus_, closest_os_id);
+            vector.back().closest_pu_ids.push_back(closest_pu_id);
         hwloc_bitmap_foreach_end();
         // clang-format on
 
@@ -223,7 +245,6 @@ void MachineTopology::load_objects(
             vector.back().ancestor_local_id =
                 get_obj_id_by_gp_index(this->numa_nodes_, ancestor->gp_index);
         }
-        hwloc_bitmap_free(ancestor_cpuset);
         // Get type of the ancestor object and store it as a string.
         char ances_type[24];
         hwloc_obj_type_snprintf(ances_type, sizeof(ances_type), ancestor, 0);
@@ -235,28 +256,6 @@ void MachineTopology::load_objects(
                  obj->attr->pcidev.dev, obj->attr->pcidev.func);
         vector.back().pci_bus_id = std::string(pci_bus_id);
     }
-#endif
-}
-
-
-hwloc_topology *MachineTopology::init_topology()
-{
-#if GKO_HAVE_HWLOC
-    hwloc_topology_t tmp;
-    hwloc_topology_init(&tmp);
-
-    hwloc_topology_set_io_types_filter(tmp, HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_BRIDGE,
-                                   HWLOC_TYPE_FILTER_KEEP_NONE);
-    hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_OS_DEVICE,
-                                   HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-    hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
-    hwloc_topology_load(tmp);
-
-    return tmp;
-#else
-    // MSVC complains if there is no return statement.
-    return nullptr;
 #endif
 }
 

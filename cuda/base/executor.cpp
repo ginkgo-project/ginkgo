@@ -72,17 +72,20 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 
 void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
 {
-    this->cuda_exec_info_.num_cores = mach_topo->get_num_cores();
-    cuda::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetPCIBusId(
-        const_cast<char *>(this->cuda_exec_info_.pci_bus_id.data()), 13,
-        this->get_device_id()));
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetPCIBusId(
+            const_cast<char *>(this->get_exec_info().pci_bus_id.data()), 13,
+            this->get_device_id()));
 
-    auto cuda_hwloc_obj =
-        mach_topo->get_pci_device(this->cuda_exec_info_.pci_bus_id);
-    if (cuda_hwloc_obj) {
-        this->cuda_exec_info_.numa_node = cuda_hwloc_obj->numa;
-        this->cuda_exec_info_.closest_cpu_ids = cuda_hwloc_obj->closest_cpu_ids;
+        auto cuda_hwloc_obj =
+            mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
+        if (cuda_hwloc_obj) {
+            this->get_exec_info().numa_node = cuda_hwloc_obj->numa;
+            this->get_exec_info().closest_pu_ids =
+                cuda_hwloc_obj->closest_pu_ids;
+        }
     }
 }
 
@@ -210,31 +213,32 @@ int CudaExecutor::get_num_devices()
 
 void CudaExecutor::set_gpu_property()
 {
-    if (this->cuda_exec_info_.device_id < this->get_num_devices() &&
-        this->cuda_exec_info_.device_id >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &this->cuda_exec_info_.major, cudaDevAttrComputeCapabilityMajor,
-            this->cuda_exec_info_.device_id));
+            &this->get_exec_info().major, cudaDevAttrComputeCapabilityMajor,
+            this->get_device_id()));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &this->cuda_exec_info_.minor, cudaDevAttrComputeCapabilityMinor,
-            this->cuda_exec_info_.device_id));
+            &this->get_exec_info().minor, cudaDevAttrComputeCapabilityMinor,
+            this->get_device_id()));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &this->cuda_exec_info_.num_cores, cudaDevAttrMultiProcessorCount,
-            this->cuda_exec_info_.device_id));
-        this->cuda_exec_info_.num_work_groups_per_core =
-            convert_sm_ver_to_cores(this->cuda_exec_info_.major,
-                                    this->cuda_exec_info_.minor) /
+            &this->get_exec_info().num_computing_units,
+            cudaDevAttrMultiProcessorCount, this->get_device_id()));
+        this->get_exec_info().num_pe_per_cu =
+            convert_sm_ver_to_cores(this->get_exec_info().major,
+                                    this->get_exec_info().minor) /
             kernels::cuda::config::warp_size;
-        this->cuda_exec_info_.warp_size = kernels::cuda::config::warp_size;
+        this->get_exec_info().subgroup_sizes.push_back(
+            kernels::cuda::config::warp_size);
     }
 }
 
 
 void CudaExecutor::init_handles()
 {
-    if (this->cuda_exec_info_.device_id < this->get_num_devices() &&
-        this->cuda_exec_info_.device_id >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         const auto id = this->get_device_id();
         cuda::device_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(
