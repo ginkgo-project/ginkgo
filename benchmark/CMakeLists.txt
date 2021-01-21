@@ -77,8 +77,6 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def)
             ginkgo_benchmark_hipsp_linops("${name}")
         endif()
     endif()
-
-
 endfunction(ginkgo_add_single_benchmark_executable)
 
 
