@@ -557,7 +557,7 @@ struct is_scalar<gko::half> : std::true_type {};
 
 template <>
 struct numeric_limits<gko::half> {
-    static constexpr bool is_specializec{true};
+    static constexpr bool is_specialized{true};
     static constexpr bool is_signed{true};
     static constexpr bool is_integer{false};
     static constexpr bool is_exact{false};
