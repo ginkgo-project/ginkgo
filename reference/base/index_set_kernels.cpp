@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -39,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/allocator.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -67,35 +69,35 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const Array<IndexType> *indices,
                       Array<IndexType> *subset_begin,
                       Array<IndexType> *subset_end,
-                      Array<IndexType> *superset_indices)
+                      Array<IndexType> *superset_indices, const bool is_sorted)
 {
     auto num_indices = indices->get_num_elems();
     auto tmp_indices = gko::Array<IndexType>(*indices);
-    GKO_ASSERT(*std::max_element(indices->get_const_data(),
-                                 indices->get_const_data() + num_indices) <=
+    // Sort the indices if not sorted.
+    if (!is_sorted) {
+        std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
+    }
+    GKO_ASSERT(tmp_indices.get_const_data()[num_indices - 1] <=
                index_space_size);
-    // Sort the indices.
-    std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
 
-    // Detect subsets.
     auto tmp_subset_begin = gko::vector<IndexType>(exec);
     auto tmp_subset_end = gko::vector<IndexType>(exec);
     auto tmp_subset_superset_index = gko::vector<IndexType>(exec);
     tmp_subset_begin.push_back(tmp_indices.get_data()[0]);
     tmp_subset_superset_index.push_back(0);
-    for (auto i = 1; i < num_indices; ++i) {
+    // Detect subsets.
+    for (size_type i = 1; i < num_indices; ++i) {
         if ((tmp_indices.get_data()[i] ==
              (tmp_indices.get_data()[i - 1] + 1)) ||
             (tmp_indices.get_data()[i] == tmp_indices.get_data()[i - 1])) {
             continue;
-        } else {
-            tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
-            tmp_subset_superset_index.push_back(
-                tmp_subset_superset_index.back() + tmp_subset_end.back() -
-                tmp_subset_begin.back());
-            if (i < num_indices) {
-                tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
-            }
+        }
+        tmp_subset_end.push_back(tmp_indices.get_data()[i - 1] + 1);
+        tmp_subset_superset_index.push_back(tmp_subset_superset_index.back() +
+                                            tmp_subset_end.back() -
+                                            tmp_subset_begin.back());
+        if (i < num_indices) {
+            tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
         }
     }
     tmp_subset_end.push_back(tmp_indices.get_data()[num_indices - 1] + 1);
@@ -103,6 +105,8 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                                         tmp_subset_end.back() -
                                         tmp_subset_begin.back());
 
+    // Make sure the sizes of the indices match and move them to their final
+    // arrays.
     GKO_ASSERT(tmp_subset_begin.size() == tmp_subset_end.size());
     GKO_ASSERT((tmp_subset_begin.size() + 1) ==
                tmp_subset_superset_index.size());
@@ -127,20 +131,29 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *subset_end,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *global_indices,
-                     Array<IndexType> *local_indices)
+                     Array<IndexType> *local_indices, const bool is_sorted)
 {
-    for (auto i = 0; i < global_indices->get_num_elems(); ++i) {
+    IndexType shifted_bucket = 0;
+    // Loop over all the query indices.
+    for (size_type i = 0; i < global_indices->get_num_elems(); ++i) {
+        // If the query indices are sorted, then we dont need to search in the
+        // entire set, but can search only in the successive complement set of
+        // the previous search
+        if (!is_sorted) {
+            shifted_bucket = 0;
+        }
         auto index = global_indices->get_const_data()[i];
         GKO_ASSERT(index < index_space_size);
+        auto shifted_subset = &subset_begin->get_const_data()[shifted_bucket];
         auto bucket =
             std::distance(subset_begin->get_const_data(),
-                          std::upper_bound(subset_begin->get_const_data(),
+                          std::upper_bound(shifted_subset,
                                            subset_begin->get_const_data() +
                                                subset_begin->get_num_elems(),
                                            index));
-        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+        shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
         if (subset_end->get_const_data()[shifted_bucket] <= index) {
-            local_indices->get_data()[i] = -1;
+            local_indices->get_data()[i] = invalid_index<IndexType>();
         } else {
             local_indices->get_data()[i] =
                 index - subset_begin->get_const_data()[shifted_bucket] +
@@ -160,21 +173,30 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<IndexType> *subset_end,
                      const Array<IndexType> *superset_indices,
                      const Array<IndexType> *local_indices,
-                     Array<IndexType> *global_indices)
+                     Array<IndexType> *global_indices, const bool is_sorted)
 {
-    for (auto i = 0; i < local_indices->get_num_elems(); ++i) {
+    IndexType shifted_bucket = 0;
+    for (size_type i = 0; i < local_indices->get_num_elems(); ++i) {
+        // If the query indices are sorted, then we dont need to search in the
+        // entire set, but can search only in the successive complement set of
+        // the previous search
+        if (!is_sorted) {
+            shifted_bucket = 0;
+        }
         auto index = local_indices->get_const_data()[i];
         GKO_ASSERT(
             index <=
             (superset_indices
                  ->get_const_data()[superset_indices->get_num_elems() - 1]));
+        auto shifted_superset =
+            &superset_indices->get_const_data()[shifted_bucket];
         auto bucket = std::distance(
             superset_indices->get_const_data(),
-            std::upper_bound(superset_indices->get_const_data(),
+            std::upper_bound(shifted_superset,
                              superset_indices->get_const_data() +
                                  superset_indices->get_num_elems(),
                              index));
-        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+        shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
         global_indices->get_data()[i] =
             subset_begin->get_const_data()[shifted_bucket] + index -
             superset_indices->get_const_data()[shifted_bucket];

@@ -107,7 +107,7 @@ protected:
 TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes);
 
 
-TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReference)
+TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
 {
     auto rand_arr = this->setup_random_indices(512);
     auto ref_begin_comp = gko::Array<TypeParam>{this->ref};
@@ -119,10 +119,39 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReference)
 
     gko::kernels::reference::index_set::populate_subsets(
         this->ref, TypeParam(520), &rand_arr, &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp);
+        &ref_superset_comp, false);
     gko::kernels::omp::index_set::populate_subsets(
         this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp);
+        &omp_superset_comp, false);
+
+    auto num_subsets = ref_begin_comp.get_num_elems();
+    this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
+                              omp_begin_comp.get_data());
+    this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
+                              omp_end_comp.get_data());
+    this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
+                              omp_superset_comp.get_data());
+}
+
+
+TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForSortedInput)
+{
+    auto rand_arr = this->setup_random_indices(512);
+    std::sort(rand_arr.get_data(),
+              rand_arr.get_data() + rand_arr.get_num_elems());
+    auto ref_begin_comp = gko::Array<TypeParam>{this->ref};
+    auto ref_end_comp = gko::Array<TypeParam>{this->ref};
+    auto ref_superset_comp = gko::Array<TypeParam>{this->ref};
+    auto omp_begin_comp = gko::Array<TypeParam>{this->omp};
+    auto omp_end_comp = gko::Array<TypeParam>{this->omp};
+    auto omp_superset_comp = gko::Array<TypeParam>{this->omp};
+
+    gko::kernels::reference::index_set::populate_subsets(
+        this->ref, TypeParam(520), &rand_arr, &ref_begin_comp, &ref_end_comp,
+        &ref_superset_comp, false);
+    gko::kernels::omp::index_set::populate_subsets(
+        this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
+        &omp_superset_comp, false);
 
     auto num_subsets = ref_begin_comp.get_num_elems();
     this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
@@ -163,12 +192,12 @@ TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
         gko::Array<TypeParam>{this->ref, rand_global_arr.get_num_elems()};
     gko::kernels::reference::index_set::global_to_local(
         this->ref, TypeParam(520), &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, &rand_global_arr, &ref_local_arr);
+        &ref_superset_comp, &rand_global_arr, &ref_local_arr, false);
     auto omp_local_arr =
         gko::Array<TypeParam>{this->omp, rand_global_arr.get_num_elems()};
     gko::kernels::omp::index_set::global_to_local(
         this->omp, TypeParam(520), &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, &rand_global_arr, &omp_local_arr);
+        &omp_superset_comp, &rand_global_arr, &omp_local_arr, false);
 
     ASSERT_EQ(rand_global_arr.get_num_elems(), omp_local_arr.get_num_elems());
     auto num_elems = ref_local_arr.get_num_elems();
@@ -206,12 +235,12 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
         gko::Array<TypeParam>{this->ref, rand_local_arr.get_num_elems()};
     gko::kernels::reference::index_set::local_to_global(
         this->ref, TypeParam(520), &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, &rand_local_arr, &ref_global_arr);
+        &ref_superset_comp, &rand_local_arr, &ref_global_arr, false);
     auto omp_global_arr =
         gko::Array<TypeParam>{this->omp, rand_local_arr.get_num_elems()};
     gko::kernels::omp::index_set::local_to_global(
         this->omp, TypeParam(520), &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, &rand_local_arr, &omp_global_arr);
+        &omp_superset_comp, &rand_local_arr, &omp_global_arr, false);
 
     ASSERT_EQ(rand_local_arr.get_num_elems(), omp_global_arr.get_num_elems());
     auto num_elems = ref_global_arr.get_num_elems();

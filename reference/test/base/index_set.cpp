@@ -188,11 +188,27 @@ TYPED_TEST(IndexSet, CanGetGlobalIndex)
 }
 
 
-TYPED_TEST(IndexSet, CanGetGlobalIndexFromArrays)
+TYPED_TEST(IndexSet, CanGetGlobalIndexFromSortedArrays)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto lidx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 4, 6, 7}};
     auto gidx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 6, 8, 9}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+    ASSERT_EQ(idx_set.get_num_elems(), 8);
+
+    auto idx_set_gidx = idx_set.get_global_indices(lidx_arr, true);
+
+    this->assert_equal_arrays(gidx_arr.get_num_elems(),
+                              idx_set_gidx.get_const_data(),
+                              gidx_arr.get_const_data());
+}
+
+
+TYPED_TEST(IndexSet, CanGetGlobalIndexFromUnsortedArrays)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto lidx_arr = gko::Array<TypeParam>{this->exec, {4, 7, 0, 6, 1}};
+    auto gidx_arr = gko::Array<TypeParam>{this->exec, {6, 9, 0, 8, 1}};
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
@@ -230,7 +246,23 @@ TYPED_TEST(IndexSet, CanDetectNonExistentIndices)
 }
 
 
-TYPED_TEST(IndexSet, CanGetLocalIndexFromArrays)
+TYPED_TEST(IndexSet, CanGetLocalIndexFromSortedArrays)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto gidx_arr = gko::Array<TypeParam>{this->exec, {0, 4, 6, 8, 9}};
+    auto lidx_arr = gko::Array<TypeParam>{this->exec, {0, 3, 4, 6, 7}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+    ASSERT_EQ(idx_set.get_num_elems(), 8);
+
+    auto idx_set_lidx = idx_set.get_local_indices(gidx_arr, true);
+
+    this->assert_equal_arrays(lidx_arr.get_num_elems(),
+                              idx_set_lidx.get_const_data(),
+                              lidx_arr.get_const_data());
+}
+
+
+TYPED_TEST(IndexSet, CanGetLocalIndexFromUnsortedArrays)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto gidx_arr = gko::Array<TypeParam>{this->exec, {6, 0, 4, 8, 9}};

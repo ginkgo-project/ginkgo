@@ -649,12 +649,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  * Value for an invalid int.
  */
 template <typename IndexType>
-inline const IndexType invalid_index_type()
+inline IndexType invalid_index()
 {
     return static_cast<IndexType>(-1);
 }
 
-#define GKO_DECLARE_INVALID_TYPES(_itype) _itype invalid_index_type()
+#define GKO_DECLARE_INVALID_TYPES(_itype) _itype invalid_index()
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVALID_TYPES);
 
@@ -663,7 +663,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVALID_TYPES);
  * Value for an invalid unsigned int.
  */
 template <>
-inline unsigned int invalid_index_type()
+inline unsigned int invalid_index()
 {
     return std::numeric_limits<unsigned int>::max();
 }
@@ -673,7 +673,7 @@ inline unsigned int invalid_index_type()
  * Value for an invalid index.
  */
 template <>
-inline gko::size_type invalid_index_type()
+inline gko::size_type invalid_index()
 {
     return std::numeric_limits<gko::size_type>::max();
 }
