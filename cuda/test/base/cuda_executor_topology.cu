@@ -80,8 +80,8 @@ protected:
     }
 
     std::shared_ptr<gko::Executor> omp;
-    std::shared_ptr<gko::CudaExecutor> cuda;
-    std::shared_ptr<gko::CudaExecutor> cuda2;
+    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::CudaExecutor> cuda2;
 };
 
 
@@ -90,47 +90,57 @@ protected:
 
 inline int get_cpu_os_id(int log_id)
 {
-    return gko::get_machine_topology()->get_pu(log_id)->os_id;
+    return gko::MachineTopology::get_instance()->get_pu(log_id)->os_id;
 }
 
 
 inline int get_core_os_id(int log_id)
 {
-    return gko::get_machine_topology()->get_core(log_id)->os_id;
+    return gko::MachineTopology::get_instance()->get_core(log_id)->os_id;
 }
 
 
-TEST_F(CudaExecutor, CanBindToCpus)
+TEST_F(CudaExecutor, CanBindToSinglePu)
 {
-    auto cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+
+    const int bind_pu = 6;
+    cuda->bind_to_pu(bind_pu);
+
     auto cpu_sys = sched_getcpu();
+    ASSERT_TRUE(cpu_sys == get_cpu_os_id(6));
+}
 
-    const int bind_cpu[2] = {6, 3};
-    cuda->bind_to_cpus(bind_cpu, 2);
 
-    cpu_sys = sched_getcpu();
+TEST_F(CudaExecutor, CanBindToPus)
+{
+    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+
+    std::vector<int> bind_pus = {6, 3};
+    cuda->bind_to_pus(bind_pus);
+
+    auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(6));
 }
 
 
 TEST_F(CudaExecutor, CanBindToCores)
 {
-    auto cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+
+    std::vector<int> bind_cores = {6, 3};
+    cuda->bind_to_cores(bind_cores);
+
     auto cpu_sys = sched_getcpu();
-
-    const int bind_cores[2] = {6, 3};
-    cuda->bind_to_cores(bind_cores, 2);
-
-    cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(6));
 }
 
 
 TEST_F(CudaExecutor, KnowsItsClosestCpus)
 {
-    auto cuda0 = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     auto cpu_sys = sched_getcpu();
-    auto close_cpus0 = cuda0->get_closest_cpus();
+    auto close_cpus0 = cuda->get_closest_pus();
 
     ASSERT_NE(close_cpus0[0], -1);
 }
@@ -138,10 +148,10 @@ TEST_F(CudaExecutor, KnowsItsClosestCpus)
 
 TEST_F(CudaExecutor, KnowsItsNuma)
 {
-    auto cuda0 = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    auto exec_info0 = cuda0->get_exec_info();
+    cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto exec_info0 = cuda->get_exec_info();
     auto numa0 = exec_info0.numa_node;
-    auto close_cpu0 = cuda0->get_closest_cpus()[0];
+    auto close_cpu0 = cuda->get_closest_pus()[0];
 
     auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpu0));
 

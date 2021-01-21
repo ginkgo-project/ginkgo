@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 
@@ -68,23 +69,6 @@ struct hwloc_bitmap_s;
 namespace gko {
 
 
-class MachineTopology;
-
-
-/**
- * This global function initializes the topology in its first call and stores
- * the MachineTopology global object in a shared_ptr that any gko function/class
- * can query.
- *
- * This makes sure that the topology object is not re-initialized every
- * time it is needed. Since the topology is tied to the machine anyway,
- * each re-initialization would populate the exact same topology tree.
- *
- * @return  the global MachineTopology object.
- */
-extern const MachineTopology *get_machine_topology();
-
-
 /**
  * The machine topology class represents the hierarchical topology of a machine,
  * including NUMA nodes, cores and PCI Devices. Various infomation of the
@@ -104,8 +88,6 @@ extern const MachineTopology *get_machine_topology();
  * read.
  */
 class MachineTopology {
-    friend const MachineTopology *get_machine_topology();
-
     template <typename T>
     using hwloc_manager = std::unique_ptr<T, std::function<void(T *)>>;
 
@@ -213,7 +195,7 @@ private:
         /**
          * The array of CPU ids closest to the object.
          */
-        std::vector<int> closest_cpu_ids;
+        std::vector<int> closest_pu_ids;
 
         /**
          * The PCI Bus ID
@@ -222,6 +204,17 @@ private:
     };
 
 public:
+    /**
+     * Returns an instance of the MachineTopology object.
+     *
+     * @return  the MachineTopology instance
+     */
+    static MachineTopology *get_instance()
+    {
+        static MachineTopology instance;
+        return &instance;
+    }
+
     /**
      * Do not allow the MachineTopology object to be copied/moved. There should
      * be only one global object per execution.
@@ -233,23 +226,23 @@ public:
     ~MachineTopology() = default;
 
     /**
-     * Bind the object associated with the id to a core.
+     * Bind the object associated with the ids to a core.
      *
-     * @param id  The id of the object to be bound.
+     * @param ids  The ids of the object to be bound.
      */
-    void bind_to_cores(const int *ids, const size_type num_ids) const
+    void bind_to_cores(const std::vector<int> &ids) const
     {
-        hwloc_binding_helper(this->cores_, ids, num_ids);
+        hwloc_binding_helper(this->cores_, ids);
     }
 
     /**
-     * Bind the object associated with the id to a Processing unit(PU).
+     * Bind the object associated with the ids to a Processing unit(PU).
      *
-     * @param id  The id of the object to be bound.
+     * @param ids  The ids of the object to be bound.
      */
-    void bind_to_pus(const int *ids, const size_type num_ids) const
+    void bind_to_pus(const std::vector<int> &ids) const
     {
-        hwloc_binding_helper(this->pus_, ids, num_ids);
+        hwloc_binding_helper(this->pus_, ids);
     }
 
     /**
@@ -341,11 +334,11 @@ protected:
     /**
      * @internal
      *
-     * A helper function that binds the object with an id.
+     * A helper function that binds the object with ids.
      */
     void hwloc_binding_helper(
-        const std::vector<MachineTopology::normal_obj_info> &obj, const int *id,
-        const size_type num_ids) const;
+        const std::vector<MachineTopology::normal_obj_info> &obj,
+        const std::vector<int> &ids) const;
 
     /**
      * @internal
@@ -368,20 +361,6 @@ protected:
      */
     void load_objects(hwloc_obj_type_t type,
                       std::vector<io_obj_info> &vector) const;
-
-    /**
-     * @internal
-     *
-     * Initialize the topology object.
-     */
-    hwloc_topology *init_topology();
-
-    /**
-     * @internal
-     *
-     * Initialize the bitmap.
-     */
-    hwloc_bitmap_s *init_bitmap();
 
     /**
      *

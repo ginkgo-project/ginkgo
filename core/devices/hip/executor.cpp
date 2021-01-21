@@ -47,31 +47,17 @@ std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
 
 bool HipExecutor::verify_memory_to(const HipExecutor *dest_exec) const
 {
-    return this->hip_exec_info_.device_id == dest_exec->get_device_id();
+    return this->get_exec_info().device_id == dest_exec->get_device_id();
 }
 
 
 bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC
-    return this->hip_exec_info_.device_id == dest_exec->get_device_id();
+    return this->get_exec_info().device_id == dest_exec->get_device_id();
 #else
     return false;
 #endif
-}
-
-
-void HipExecutor::bind_to_cpus(const int *cpu_ids,
-                               const size_type num_ids) const
-{
-    get_machine_topology()->bind_to_pus(cpu_ids, num_ids);
-}
-
-
-void HipExecutor::bind_to_cores(const int *core_ids,
-                                const size_type num_ids) const
-{
-    get_machine_topology()->bind_to_cores(core_ids, num_ids);
 }
 
 

@@ -73,6 +73,7 @@ function(ginkgo_load_and_configure_package package_name package_url package_hash
     if(result)
         message(FATAL_ERROR
             "CMake step for ${package_name}/download failed: ${result}")
+        return()
     endif()
     execute_process(COMMAND ${CMAKE_COMMAND} --build .
         RESULT_VARIABLE result
@@ -80,6 +81,7 @@ function(ginkgo_load_and_configure_package package_name package_url package_hash
     if(result)
         message(FATAL_ERROR
             "Build step for ${package_name}/download failed: ${result}")
+        return()
     endif()
 endfunction()
 

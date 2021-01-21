@@ -1,4 +1,27 @@
-# Modified function from Morse
+###
+#
+# @copyright (c) 2012-2020 Inria. All rights reserved.
+# @copyright (c) 2012-2014 Bordeaux INP, CNRS (LaBRI UMR 5800), Inria, Univ. Bordeaux. All rights reserved.
+#
+# Copyright 2012-2013 Emmanuel Agullo
+# Copyright 2012-2013 Mathieu Faverge
+# Copyright 2012      Cedric Castagnede
+# Copyright 2013-2020 Florent Pruvost
+# Copyright 2020-2021 Ginkgo Project
+#
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file MORSE-Copyright.txt for details.
+#
+# This software is distributed WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
+#=============================================================================
+# (To distribute this file outside of Morse, substitute the full
+#  License text for the above reference.)
+#
+# Modified for Ginkgo (See ABOUT-LICENSING.md for additional details).
+#
+
 macro(ginkgo_set_required_test_lib_link name)
     set(CMAKE_REQUIRED_INCLUDES "${${name}${STATIC}_INCLUDE_DIRS}")
     if (${name}${STATIC}_CFLAGS_OTHER)

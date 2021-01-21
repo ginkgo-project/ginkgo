@@ -19,7 +19,7 @@
 # (To distribute this file outside of Morse, substitute the full
 #  License text for the above reference.)
 #
-# Modified for Ginkgo.
+# Modified for Ginkgo (See ABOUT-LICENSING.md for additional details).
 #
 ###
 #

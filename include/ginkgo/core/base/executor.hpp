@@ -34,12 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
 
 
+#include <array>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 
 #include <ginkgo/core/base/machine_topology.hpp>
@@ -647,6 +649,97 @@ public:
         return this->verify_memory_from(other.get());
     }
 
+    /**
+     * A struct that abstracts the executor info for different executors
+     * classes.
+     */
+    struct exec_info {
+        /**
+         * The id of the device.
+         */
+        int device_id = -1;
+
+        /**
+         * The type of the device, relevant only for the dpcpp executor.
+         */
+        std::string device_type;
+
+        /**
+         * The numa node of the executor.
+         */
+        int numa_node = -1;
+
+        /**
+         * The number of computing units in the executor.
+         *
+         * @note In CPU executors this is equivalent to the number of cores.
+         *       In CUDA and HIP executors this is the number of Streaming
+         *       Multiprocessors. In DPCPP, this is the number of computing
+         *       units.
+         */
+        int num_computing_units = -1;
+
+        /**
+         * The number of processing elements per computing unit in the executor.
+         *
+         * @note In CPU executors this is equivalent to the number of SIMD units
+         *       per core. In CUDA and HIP executors this is the number of warps
+         *       per SM. In DPCPP, this is the max work group size.
+         */
+        int num_pe_per_cu = -1;
+
+        /**
+         * The sizes of the subgroup for the executor.
+         *
+         * @note In CPU executors this is invalid.
+         *       In CUDA and HIP executors warp size.
+         *       In DPCPP, this is the subgroup sizes for the device associated
+         *       with the dpcpp executor.
+         */
+        std::vector<int> subgroup_sizes{};
+
+        /**
+         * The sizes of the work items for the executor.
+         *
+         * @note In CPU executors this is invalid.
+         *       In CUDA and HIP executors this is invalid.
+         *       In DPCPP, this is the maximum sizes for the workitems for the
+         *       device associated with the dpcpp executor.
+         */
+        std::vector<int> max_workitem_sizes{};
+
+        /**
+         * The major version for CUDA/HIP device.
+         */
+        int major = -1;
+
+        /**
+         * The minor version for CUDA/HIP device.
+         */
+        int minor = -1;
+
+        /**
+         * The PCI bus id of the device.
+         *
+         * @note Only relevant for I/O devices (GPUs).
+         */
+        std::string pci_bus_id = std::string(13, 'x');
+
+        /**
+         * The processing units closest to the device.
+         *
+         * @note Only relevant for CUDA, HIP and DPCPP executors.
+         */
+        std::vector<int> closest_pu_ids{};
+    };
+
+    /**
+     * Gets the exec info struct
+     *
+     * @return  the exec_info struct
+     */
+    const exec_info &get_exec_info() const { return this->exec_info_; }
+
 protected:
     /**
      * Allocates raw memory in this Executor.
@@ -733,17 +826,18 @@ protected:
      */
     virtual void populate_exec_info(const MachineTopology *mach_topo) = 0;
 
-    struct exec_info {
-        int device_id = -1;
-        int numa_node = -1;
-        int num_cores = -1;
-        int num_work_groups_per_core = -1;
-        int major = -1;
-        int minor = -1;
-        int warp_size = -1;
-        std::string pci_bus_id = std::string(13, 'x');
-        std::vector<int> closest_cpu_ids{};
-    };
+    /**
+     * Gets the modifiable exec info object
+     *
+     * @return  the pointer to the exec_info object
+     */
+    exec_info &get_exec_info()
+    {
+        return const_cast<exec_info &>(
+            static_cast<const Executor &>(*this).get_exec_info());
+    }
+
+    exec_info exec_info_;
 
 private:
     /**
@@ -913,6 +1007,57 @@ private:
 
 #undef GKO_DECLARE_EXECUTOR_FRIEND
 
+
+/**
+ * This class provides some binding functions from the MachineTopology class and
+ * the executors can derive from this class as necessary.
+ *
+ * The executor object can then be bound to the bind-able objects from the
+ * machine topology by calling the member functions of this class.
+ */
+class EnableBinding {
+public:
+    /**
+     * Bind to Processing units (PU)
+     *
+     * @param ids  The ids to be bound to the object.
+     */
+    void bind_to_pus(const std::vector<int> &ids) const
+    {
+        MachineTopology::get_instance()->bind_to_pus(ids);
+    }
+
+    /**
+     * Bind to a Processing unit (PU)
+     *
+     * @param id  The id to be bound to the object.
+     */
+    void bind_to_pu(const int &id) const
+    {
+        MachineTopology::get_instance()->bind_to_pus(std::vector<int>{id});
+    }
+
+    /**
+     * Bind to cores
+     *
+     * @param ids  The ids to be bound to the calling object.
+     */
+    void bind_to_cores(const std::vector<int> &ids) const
+    {
+        MachineTopology::get_instance()->bind_to_cores(ids);
+    }
+
+    /**
+     * Bind to core
+     *
+     * @param id  The id to be bound to the calling object.
+     */
+    void bind_to_core(const int &id) const
+    {
+        MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
+    }
+};
+
 /**
  * Controls whether the DeviceReset function should be called thanks to a
  * boolean. Note that in any case, `DeviceReset` is called only after destroying
@@ -994,17 +1139,20 @@ public:
 
     void synchronize() const override;
 
-    int get_num_cores() const { return this->omp_exec_info_.num_cores; }
+    int get_num_cores() const
+    {
+        return this->get_exec_info().num_computing_units;
+    }
 
     int get_num_threads_per_core() const
     {
-        return this->omp_exec_info_.num_work_groups_per_core;
+        return this->get_exec_info().num_pe_per_cu;
     }
 
 protected:
     OmpExecutor()
     {
-        this->OmpExecutor::populate_exec_info(get_machine_topology());
+        this->OmpExecutor::populate_exec_info(MachineTopology::get_instance());
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1024,9 +1172,6 @@ protected:
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
     bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
-
-private:
-    exec_info omp_exec_info_;
 };
 
 
@@ -1062,14 +1207,15 @@ public:
 protected:
     ReferenceExecutor()
     {
-        this->ReferenceExecutor::populate_exec_info(get_machine_topology());
+        this->ReferenceExecutor::populate_exec_info(
+            MachineTopology::get_instance());
     }
 
     void populate_exec_info(const MachineTopology *) override
     {
-        this->ref_exec_info_.device_id = -1;
-        this->ref_exec_info_.num_cores = 1;
-        this->ref_exec_info_.num_work_groups_per_core = 1;
+        this->get_exec_info().device_id = -1;
+        this->get_exec_info().num_computing_units = 1;
+        this->get_exec_info().num_pe_per_cu = 1;
     }
 
     bool verify_memory_from(const Executor *src_exec) const override
@@ -1086,9 +1232,6 @@ protected:
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
-
-private:
-    exec_info ref_exec_info_;
 };
 
 
@@ -1107,12 +1250,11 @@ using DefaultExecutor = ReferenceExecutor;
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor>,
+                     public detail::EnableBinding,
                      public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
-    using cuda_exec_info = exec_info;
-
     /**
      * Creates a new CudaExecutor.
      *
@@ -1124,7 +1266,7 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
 
-    ~CudaExecutor() { decrease_num_execs(this->cuda_exec_info_.device_id); }
+    ~CudaExecutor() { decrease_num_execs(this->get_exec_info().device_id); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1139,7 +1281,7 @@ public:
      */
     int get_device_id() const noexcept
     {
-        return this->cuda_exec_info_.device_id;
+        return this->get_exec_info().device_id;
     }
 
     /**
@@ -1152,7 +1294,7 @@ public:
      */
     int get_num_warps_per_sm() const noexcept
     {
-        return this->cuda_exec_info_.num_work_groups_per_core;
+        return this->get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1160,7 +1302,7 @@ public:
      */
     int get_num_multiprocessor() const noexcept
     {
-        return this->cuda_exec_info_.num_cores;
+        return this->get_exec_info().num_computing_units;
     }
 
     /**
@@ -1168,8 +1310,8 @@ public:
      */
     int get_num_warps() const noexcept
     {
-        return this->cuda_exec_info_.num_cores *
-               this->cuda_exec_info_.num_work_groups_per_core;
+        return this->get_exec_info().num_computing_units *
+               this->get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1177,7 +1319,9 @@ public:
      */
     int get_warp_size() const noexcept
     {
-        return this->cuda_exec_info_.warp_size;
+        return (this->get_exec_info().subgroup_sizes.size()
+                    ? this->get_exec_info().subgroup_sizes[0]
+                    : -1);
     }
 
     /**
@@ -1185,7 +1329,7 @@ public:
      */
     int get_major_version() const noexcept
     {
-        return this->cuda_exec_info_.major;
+        return this->get_exec_info().major;
     }
 
     /**
@@ -1193,7 +1337,7 @@ public:
      */
     int get_minor_version() const noexcept
     {
-        return this->cuda_exec_info_.minor;
+        return this->get_exec_info().minor;
     }
 
     /**
@@ -1214,37 +1358,14 @@ public:
     }
 
     /**
-     * Get the closest CPUs
+     * Get the closest PUs
      *
-     * @return  the array of CPUs closest to this device
+     * @return  the array of PUs closest to this device
      */
-    std::vector<int> get_closest_cpus() const
+    std::vector<int> get_closest_pus() const
     {
-        return this->cuda_exec_info_.closest_cpu_ids;
+        return this->get_exec_info().closest_pu_ids;
     }
-
-    /**
-     * Gets the exec info struct
-     *
-     * @return  the exec_info struct
-     */
-    cuda_exec_info get_exec_info() const { return this->cuda_exec_info_; }
-
-    /**
-     * Bind the current executor thread to the list of cpus
-     *
-     * @param  ids  the logical ids of the cpus.
-     * @param  num_ids  the number of cpus to bind
-     */
-    void bind_to_cpus(const int *ids, const size_type num_ids) const;
-
-    /**
-     * Bind the current executor thread to the list of cores
-     *
-     * @param  ids  the logical ids of the cores.
-     * @param  num_ids  the number of cores to bind
-     */
-    void bind_to_cores(const int *ids, const size_type num_ids) const;
 
 protected:
     void set_gpu_property();
@@ -1255,19 +1376,16 @@ protected:
                  bool device_reset = false)
         : EnableDeviceReset{device_reset}, master_(master)
     {
-        this->cuda_exec_info_.device_id = device_id;
-        this->cuda_exec_info_.num_cores = 0;
-        this->cuda_exec_info_.num_work_groups_per_core = 0;
-        assert(this->cuda_exec_info_.device_id < max_devices &&
-               this->cuda_exec_info_.device_id >= 0);
-        this->CudaExecutor::populate_exec_info(get_machine_topology());
-        if (this->cuda_exec_info_.closest_cpu_ids.size()) {
-            this->bind_to_cpus(this->cuda_exec_info_.closest_cpu_ids.data(),
-                               this->cuda_exec_info_.closest_cpu_ids.size());
+        this->get_exec_info().device_id = device_id;
+        this->get_exec_info().num_computing_units = 0;
+        this->get_exec_info().num_pe_per_cu = 0;
+        this->CudaExecutor::populate_exec_info(MachineTopology::get_instance());
+        if (this->get_exec_info().closest_pu_ids.size()) {
+            this->bind_to_pus(this->get_exec_info().closest_pu_ids);
         }
         this->set_gpu_property();
         this->init_handles();
-        increase_num_execs(this->cuda_exec_info_.device_id);
+        increase_num_execs(this->get_exec_info().device_id);
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1308,7 +1426,6 @@ protected:
 
 private:
     std::shared_ptr<Executor> master_;
-    cuda_exec_info cuda_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1336,12 +1453,11 @@ using DefaultExecutor = CudaExecutor;
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
                     public std::enable_shared_from_this<HipExecutor>,
+                    public detail::EnableBinding,
                     public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
-    using hip_exec_info = exec_info;
-
     /**
      * Creates a new HipExecutor.
      *
@@ -1353,7 +1469,7 @@ public:
                                                std::shared_ptr<Executor> master,
                                                bool device_reset = false);
 
-    ~HipExecutor() { decrease_num_execs(this->hip_exec_info_.device_id); }
+    ~HipExecutor() { decrease_num_execs(this->get_exec_info().device_id); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1368,7 +1484,7 @@ public:
      */
     int get_device_id() const noexcept
     {
-        return this->hip_exec_info_.device_id;
+        return this->get_exec_info().device_id;
     }
 
     /**
@@ -1381,7 +1497,7 @@ public:
      */
     int get_num_warps_per_sm() const noexcept
     {
-        return this->hip_exec_info_.num_work_groups_per_core;
+        return this->get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1389,7 +1505,7 @@ public:
      */
     int get_num_multiprocessor() const noexcept
     {
-        return this->hip_exec_info_.num_cores;
+        return this->get_exec_info().num_computing_units;
     }
 
     /**
@@ -1397,7 +1513,7 @@ public:
      */
     int get_major_version() const noexcept
     {
-        return this->hip_exec_info_.major;
+        return this->get_exec_info().major;
     }
 
     /**
@@ -1405,7 +1521,7 @@ public:
      */
     int get_minor_version() const noexcept
     {
-        return this->hip_exec_info_.minor;
+        return this->get_exec_info().minor;
     }
 
     /**
@@ -1413,8 +1529,8 @@ public:
      */
     int get_num_warps() const noexcept
     {
-        return this->hip_exec_info_.num_cores *
-               this->hip_exec_info_.num_work_groups_per_core;
+        return this->get_exec_info().num_computing_units *
+               this->get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1422,7 +1538,9 @@ public:
      */
     int get_warp_size() const noexcept
     {
-        return this->hip_exec_info_.warp_size;
+        return (this->get_exec_info().subgroup_sizes.size()
+                    ? this->get_exec_info().subgroup_sizes[0]
+                    : -1);
     }
 
     /**
@@ -1443,37 +1561,14 @@ public:
     }
 
     /**
-     * Get the closest CPUs
+     * Get the closest PUs
      *
-     * @return  the array of CPUs closest to this device
+     * @return  the array of PUs closest to this device
      */
-    std::vector<int> get_closest_cpus() const
+    std::vector<int> get_closest_pus() const
     {
-        return this->hip_exec_info_.closest_cpu_ids;
+        return this->get_exec_info().closest_pu_ids;
     }
-
-    /**
-     * Gets the exec info struct
-     *
-     * @return  the exec_info struct
-     */
-    hip_exec_info get_exec_info() const { return this->hip_exec_info_; }
-
-    /**
-     * Bind the current executor thread to the list of cpus
-     *
-     * @param  ids  the logical ids of the cpus.
-     * @param  num_ids  the number of cpus to bind
-     */
-    void bind_to_cpus(const int *ids, const size_type num_ids) const;
-
-    /**
-     * Bind the current executor thread to the list of cores
-     *
-     * @param  ids  the logical ids of the cores.
-     * @param  num_ids  the number of cores to bind
-     */
-    void bind_to_cores(const int *ids, const size_type num_ids) const;
 
 protected:
     void set_gpu_property();
@@ -1484,18 +1579,16 @@ protected:
                 bool device_reset = false)
         : EnableDeviceReset{device_reset}, master_(master)
     {
-        this->hip_exec_info_.device_id = device_id;
-        this->hip_exec_info_.num_cores = 0;
-        this->hip_exec_info_.num_work_groups_per_core = 0;
-        assert(this->hip_exec_info_.device_id < max_devices);
-        this->HipExecutor::populate_exec_info(get_machine_topology());
-        if (this->hip_exec_info_.closest_cpu_ids.size()) {
-            this->bind_to_cpus(this->hip_exec_info_.closest_cpu_ids.data(),
-                               this->hip_exec_info_.closest_cpu_ids.size());
+        this->get_exec_info().device_id = device_id;
+        this->get_exec_info().num_computing_units = 0;
+        this->get_exec_info().num_pe_per_cu = 0;
+        this->HipExecutor::populate_exec_info(MachineTopology::get_instance());
+        if (this->get_exec_info().closest_pu_ids.size()) {
+            this->bind_to_pus(this->get_exec_info().closest_pu_ids);
         }
         this->set_gpu_property();
         this->init_handles();
-        increase_num_execs(this->hip_exec_info_.device_id);
+        increase_num_execs(this->get_exec_info().device_id);
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1536,7 +1629,6 @@ protected:
 
 private:
     std::shared_ptr<Executor> master_;
-    hip_exec_info hip_exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1593,7 +1685,7 @@ public:
      *
      * @return the DPCPP device id of the device associated to this executor
      */
-    int get_device_id() const noexcept { return dpcpp_exec_info_.device_id; }
+    int get_device_id() const noexcept { return get_exec_info().device_id; }
 
     ::cl::sycl::queue *get_queue() const { return queue_.get(); }
 
@@ -1611,9 +1703,9 @@ public:
      *
      * @return the available subgroup sizes for this device
      */
-    const std::vector<size_type> &get_subgroup_sizes() const noexcept
+    const std::vector<int> &get_subgroup_sizes() const noexcept
     {
-        return dpcpp_exec_info_.subgroup_sizes;
+        return get_exec_info().subgroup_sizes;
     }
 
     /**
@@ -1623,7 +1715,7 @@ public:
      */
     size_type get_num_computing_units() const noexcept
     {
-        return dpcpp_exec_info_.num_computing_units;
+        return get_exec_info().num_computing_units;
     }
 
     /**
@@ -1631,9 +1723,9 @@ public:
      *
      * @return the maximum work item sizes
      */
-    const std::vector<size_type> &get_max_workitem_sizes() const noexcept
+    const std::vector<int> &get_max_workitem_sizes() const noexcept
     {
-        return dpcpp_exec_info_.max_workitem_sizes;
+        return get_exec_info().max_workitem_sizes;
     }
 
     /**
@@ -1643,7 +1735,7 @@ public:
      */
     size_type get_max_workgroup_size() const noexcept
     {
-        return dpcpp_exec_info_.num_work_groups_per_core;
+        return get_exec_info().num_pe_per_cu;
     }
 
     /**
@@ -1653,7 +1745,7 @@ public:
      */
     std::string get_device_type() const noexcept
     {
-        return dpcpp_exec_info_.device_type;
+        return get_exec_info().device_type;
     }
 
 protected:
@@ -1665,8 +1757,8 @@ protected:
     {
         std::for_each(device_type.begin(), device_type.end(),
                       [](char &c) { c = std::tolower(c); });
-        this->dpcpp_exec_info_.device_type = std::string(device_type);
-        this->dpcpp_exec_info_.device_id = device_id;
+        this->get_exec_info().device_type = std::string(device_type);
+        this->get_exec_info().device_id = device_id;
         this->set_device_property();
     }
 
@@ -1691,13 +1783,13 @@ protected:
 private:
     std::shared_ptr<Executor> master_;
 
-    struct dpcpp_exec_info : public exec_info {
-        int device_id;
-        std::string device_type;
-        int num_computing_units;
-        std::vector<size_type> subgroup_sizes{};
-        std::vector<size_type> max_workitem_sizes{};
-    } dpcpp_exec_info_;
+    // struct dpcpp_exec_info : public exec_info {
+    //     int device_id;
+    //     std::string device_type;
+    //     int num_computing_units;
+    //     std::vector<size_type> subgroup_sizes{};
+    //     std::vector<size_type> max_workitem_sizes{};
+    // } get_exec_info();
 
     template <typename T>
     using queue_manager = std::unique_ptr<T, std::function<void(T *)>>;
