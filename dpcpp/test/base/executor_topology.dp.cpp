@@ -81,12 +81,13 @@ protected:
 };
 
 
-TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
+TEST_F(DpcppExecutor, CanGetExecInfo)
 {
     dpcpp = gko::DpcppExecutor::create(0, omp);
-    dpcpp2 = gko::DpcppExecutor::create(0, omp);
 
-    // We want automatic deinitialization to not create any error
+    auto exec_info = dpcpp->get_exec_info();
+
+    ASSERT_TRUE(exec_info.max_workitem_sizes.size() > 0);
 }
 
 

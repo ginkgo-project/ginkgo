@@ -136,10 +136,9 @@ TEST_F(CudaExecutor, CanBindToCores)
 }
 
 
-TEST_F(CudaExecutor, KnowsItsClosestCpus)
+TEST_F(CudaExecutor, ClosestCpusIsPopulated)
 {
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    auto cpu_sys = sched_getcpu();
     auto close_cpus0 = cuda->get_closest_pus();
 
     ASSERT_NE(close_cpus0[0], -1);

@@ -141,10 +141,9 @@ TEST_F(HipExecutor, CanBindToCores)
 }
 
 
-TEST_F(HipExecutor, KnowsItsClosestCpus)
+TEST_F(HipExecutor, ClosestCpusIsPopulated)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-    auto cpu_sys = sched_getcpu();
     auto close_cpus0 = hip->get_closest_pus();
 
     ASSERT_NE(close_cpus0[0], -1);
