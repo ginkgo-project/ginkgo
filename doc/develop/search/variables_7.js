@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['header_5fversion_1548',['header_version',['../classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378',1,'gko::version_info']]],
-  ['hip_5fversion_1549',['hip_version',['../classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182',1,'gko::version_info']]]
+  ['header_5fversion_1556',['header_version',['../classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378',1,'gko::version_info']]],
+  ['hip_5fversion_1557',['hip_version',['../classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182',1,'gko::version_info']]]
 ];

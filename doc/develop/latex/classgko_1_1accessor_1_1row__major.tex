@@ -27,10 +27,15 @@ using \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02
 \begin{DoxyCompactList}\small\item\em Type of values returned by the accessor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}\label{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}} 
 using \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_a898459c9506607cd7df2b1f2728eac39}{data\+\_\+type}} = \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type}} $\ast$
-\begin{DoxyCompactList}\small\item\em Type of underlying data storage. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Type of underlying data storage. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_abaacebb6a53ae02d1ef44f60c256fd1e}\label{classgko_1_1accessor_1_1row__major_abaacebb6a53ae02d1ef44f60c256fd1e}} 
+using {\bfseries const\+\_\+accessor} = \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major}}$<$ const Value\+Type, Dimensionality $>$
+\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
+constexpr \mbox{\hyperlink{classgko_1_1range}{range}}$<$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{const\+\_\+accessor}} $>$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_af670e48b658904235274e6f821b8a1b6}{to\+\_\+const}} () const
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major}} range which contains a read-\/only version of the current accessor. \end{DoxyCompactList}\item 
 constexpr \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_a687bda931be92c31abf02965fa72ceba}{value\+\_\+type}} \& \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_a669d87e6198b1bdb4c915b909a61f756}{operator()}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} col) const
 \begin{DoxyCompactList}\small\item\em Returns the data element at position (row, col) \end{DoxyCompactList}\item 
 constexpr \mbox{\hyperlink{classgko_1_1range}{range}}$<$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major}} $>$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major_ad1a38f9d96e849ae10de733809a3494d}{operator()}} (const \mbox{\hyperlink{structgko_1_1span}{span}} \&rows, const \mbox{\hyperlink{structgko_1_1span}{span}} \&cols) const
@@ -98,6 +103,9 @@ void \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row
 
 Copies data from another accessor. 
 
+\begin{DoxyWarning}{Warning}
+Do not use this function since it is not optimized for a specific executor. It will always be performed sequentially. Please write an optimized version (adjusted to the architecture) by iterating through the values yourself.
+\end{DoxyWarning}
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em Other\+Accessor} & type of the other accessor\\
@@ -180,6 +188,24 @@ Returns the data element at position (row, col)
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
 data element at (row, col) 
+\end{DoxyReturn}
+
+
+References gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::data, gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::lengths, and gko\+::accessor\+::row\+\_\+major$<$ Value\+Type, Dimensionality $>$\+::stride.
+
+\mbox{\Hypertarget{classgko_1_1accessor_1_1row__major_af670e48b658904235274e6f821b8a1b6}\label{classgko_1_1accessor_1_1row__major_af670e48b658904235274e6f821b8a1b6}} 
+\index{gko::accessor::row\_major$<$ ValueType, Dimensionality $>$@{gko::accessor::row\_major$<$ ValueType, Dimensionality $>$}!to\_const@{to\_const}}
+\index{to\_const@{to\_const}!gko::accessor::row\_major$<$ ValueType, Dimensionality $>$@{gko::accessor::row\_major$<$ ValueType, Dimensionality $>$}}
+\doxysubsubsection{\texorpdfstring{to\_const()}{to\_const()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type Dimensionality$>$ \\
+constexpr \mbox{\hyperlink{classgko_1_1range}{range}}$<$\mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{const\+\_\+accessor}}$>$ \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{gko\+::accessor\+::row\+\_\+major}}$<$ Value\+Type, Dimensionality $>$\+::to\+\_\+const (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{row\+\_\+major}} range which contains a read-\/only version of the current accessor. 
+
+\begin{DoxyReturn}{Returns}
+a row major range which is read-\/only. 
 \end{DoxyReturn}
 
 
