@@ -82,16 +82,15 @@ namespace gko {
  * (https://www.open-mpi.org/projects/hwloc/doc/) for more detailed
  * information on topology detection and binding interfaces.
  *
- * @note A global object of MachineTopology type is created when first needed
- * and only destroyed at the end of the program. This means that any subsequent
- * queries will be from the same global object and hence use an extra atomic
- * read.
+ * @note A global object of MachineTopology type is created in a thread safe
+ *       manner and only destroyed at the end of the program. This means that
+ *       any subsequent queries will be from the same global object and hence
+ *       use an extra atomic read.
  */
 class MachineTopology {
     template <typename T>
     using hwloc_manager = std::unique_ptr<T, std::function<void(T *)>>;
 
-private:
     /**
      * This struct holds the attributes for a normal non-IO object.
      */
@@ -106,7 +105,7 @@ private:
          * proximity).
          *
          * @note Use this rather than os_id for all purposes other than binding.
-         * [Reference](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00364.php#faq_indexes)
+         *       [Reference](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00364.php#faq_indexes)
          */
         size_type logical_id;
 
@@ -175,7 +174,7 @@ private:
         /**
          * The closest numa.
          */
-        int numa;
+        int closest_numa;
 
         /**
          * The non-io parent object.
@@ -214,16 +213,6 @@ public:
         static MachineTopology instance;
         return &instance;
     }
-
-    /**
-     * Do not allow the MachineTopology object to be copied/moved. There should
-     * be only one global object per execution.
-     */
-    MachineTopology(MachineTopology &) = delete;
-    MachineTopology(MachineTopology &&) = delete;
-    MachineTopology &operator=(MachineTopology &) = delete;
-    MachineTopology &operator=(MachineTopology &&) = delete;
-    ~MachineTopology() = default;
 
     /**
      * Bind the object associated with the ids to a core.
@@ -317,20 +306,6 @@ public:
      */
     size_type get_num_numas() const { return this->num_numas_; }
 
-protected:
-    /**
-     * Creates a new MachineTopology object.
-     */
-    static std::shared_ptr<MachineTopology> create()
-    {
-        return std::shared_ptr<MachineTopology>(new MachineTopology());
-    }
-
-    /**
-     * The default constructor that loads the different objects.
-     */
-    MachineTopology();
-
     /**
      * @internal
      *
@@ -368,8 +343,8 @@ protected:
      *
      * Get object id from the os index
      */
-    inline int get_obj_id_by_os_index(
-        const std::vector<normal_obj_info> &objects, size_type os_index) const;
+    int get_obj_id_by_os_index(const std::vector<normal_obj_info> &objects,
+                               size_type os_index) const;
 
     /**
      *
@@ -377,11 +352,21 @@ protected:
      *
      * Get object id from the hwloc index
      */
-    inline int get_obj_id_by_gp_index(
-        const std::vector<normal_obj_info> &objects, size_type gp_index) const;
-
+    int get_obj_id_by_gp_index(const std::vector<normal_obj_info> &objects,
+                               size_type gp_index) const;
 
 private:
+    /**
+     * Do not allow the MachineTopology object to be copied/moved. There should
+     * be only one global object per execution.
+     */
+    MachineTopology();
+    MachineTopology(MachineTopology &) = delete;
+    MachineTopology(MachineTopology &&) = delete;
+    MachineTopology &operator=(MachineTopology &) = delete;
+    MachineTopology &operator=(MachineTopology &&) = delete;
+    ~MachineTopology() = default;
+
     std::vector<normal_obj_info> pus_;
     std::vector<normal_obj_info> cores_;
     std::vector<normal_obj_info> packages_;

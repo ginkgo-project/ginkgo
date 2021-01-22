@@ -1267,7 +1267,7 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
 
-    ~CudaExecutor() { decrease_num_execs(this->get_exec_info().device_id); }
+    ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1470,7 +1470,7 @@ public:
                                                std::shared_ptr<Executor> master,
                                                bool device_reset = false);
 
-    ~HipExecutor() { decrease_num_execs(this->get_exec_info().device_id); }
+    ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 

@@ -46,13 +46,10 @@ namespace detail {
 
 class topo_bitmap {
 public:
+    using bitmap_type = hwloc_bitmap_s;
 #if GKO_HAVE_HWLOC
-    using bitmap_type =
-        std::remove_pointer<decltype(hwloc_bitmap_alloc())>::type;
     topo_bitmap() : bitmap(hwloc_bitmap_alloc()) {}
     ~topo_bitmap() { hwloc_bitmap_free(bitmap); }
-#else
-    using bitmap_type = void;
 #endif
     bitmap_type *get() { return bitmap; }
 
@@ -88,7 +85,7 @@ hwloc_topology *init_topology()
 const MachineTopology::io_obj_info *MachineTopology::get_pci_device(
     const std::string &pci_bus_id) const
 {
-    for (auto id = 0; id < this->pci_devices_.size(); ++id) {
+    for (size_type id = 0; id < this->pci_devices_.size(); ++id) {
         if (this->pci_devices_[id].pci_bus_id.compare(0, 12, pci_bus_id, 0,
                                                       12) == 0) {
             return &this->pci_devices_[id];
@@ -136,7 +133,7 @@ void MachineTopology::hwloc_binding_helper(
     auto num_ids = bind_ids.size();
     auto id = bind_ids.data();
     // Set the given ids to a bitmap
-    for (auto i = 0; i < num_ids; ++i) {
+    for (size_type i = 0; i < num_ids; ++i) {
         GKO_ASSERT(id[i] < obj.size());
         GKO_ASSERT(id[i] >= 0);
         hwloc_bitmap_set(bitmap_toset.get(), obj[id[i]].os_id);
@@ -174,7 +171,7 @@ inline int MachineTopology::get_obj_id_by_os_index(
     size_type os_index) const
 {
 #if GKO_HAVE_HWLOC
-    for (auto id = 0; id < objects.size(); ++id) {
+    for (size_type id = 0; id < objects.size(); ++id) {
         if (objects[id].os_id == os_index) {
             return id;
         }
@@ -189,7 +186,7 @@ inline int MachineTopology::get_obj_id_by_gp_index(
     size_type gp_index) const
 {
 #if GKO_HAVE_HWLOC
-    for (auto id = 0; id < objects.size(); ++id) {
+    for (size_type id = 0; id < objects.size(); ++id) {
         if (objects[id].gp_id == gp_index) {
             return id;
         }
