@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using gmres_mixed = gko::solver::GmresMixed<double>;
-    // using gmres_mixed = gko::solver::GmresMixed<>;
+    using cb_gmres = gko::solver::CbGmres<double>;
+    // using cb_gmres = gko::solver::CbGmres<>;
     using bj = gko::preconditioner::Jacobi<>;
 
     // Print the ginkgo version information.
@@ -200,14 +200,14 @@ int main(int argc, char *argv[])
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
     // build solvers with certain
-    // properties. Observe the Fluent interface used here. Here a gmres_mixed
+    // properties. Observe the Fluent interface used here. Here a cb_gmres
     // solver is generated with a stopping criteria of maximum iterations of 20
     // and a residual norm reduction of 1e-15. You also observe that the
     // stopping criteria(gko::stop) are also generated from factories using
     // their build methods. You need to specify the executors which each of the
     // object needs to be built on.
     auto solver_gen =
-        gmres_mixed::build()
+        cb_gmres::build()
             .with_criteria(
                 //    gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::Iteration::build()
@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
             // difference from the simple solver example
             //    .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
             .with_storage_precision(
-                gko::solver::gmres_mixed_storage_precision::keep)
+                gko::solver::cb_gmres_storage_precision::keep)
             .with_preconditioner(bj::build().with_max_block_size(1u).on(exec))
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the

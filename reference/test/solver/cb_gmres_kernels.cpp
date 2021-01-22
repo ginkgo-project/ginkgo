@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/gmres_mixed.hpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 
 
 #include <type_traits>
@@ -56,7 +56,7 @@ namespace {
 
 
 template <typename ValueEnumType>
-class GmresMixed : public ::testing::Test {
+class CbGmres : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueEnumType())>::type;
@@ -64,7 +64,7 @@ protected:
     using storage_helper_type =
         typename std::tuple_element<1, decltype(ValueEnumType())>::type;
     using Mtx = gko::matrix::Dense<value_type>;
-    using gmres_type = gko::solver::GmresMixed<value_type>;
+    using gmres_type = gko::solver::CbGmres<value_type>;
 
     /**
      * Used to extract the precision of the given value_type.
@@ -83,14 +83,14 @@ protected:
                 : std::is_same<rc_type, float>::value ? 1e-6 : 1e-3;
     };
 
-    GmresMixed()
+    CbGmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
           storage_precision{storage_helper_type::value},
-          gmres_mixed_factory(
+          cb_gmres_factory(
               gmres_type::build()
                   .with_storage_precision(storage_precision)
                   .with_criteria(
@@ -111,7 +111,7 @@ protected:
                {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
                {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
               exec)),
-          gmres_mixed_factory_big(
+          cb_gmres_factory_big(
               gmres_type::build()
                   .with_storage_precision(storage_precision)
                   .with_criteria(
@@ -133,20 +133,20 @@ protected:
     nc_value_type precision() const noexcept
     {
         using gko::reduce_precision;
-        using gko::solver::gmres_mixed_storage_precision;
+        using gko::solver::cb_gmres_storage_precision;
 
         // Note: integer and floating point are assumed to have similar
         //       target precision.
         switch (storage_precision) {
-        case gmres_mixed_storage_precision::reduce1:
-        case gmres_mixed_storage_precision::ireduce1:
+        case cb_gmres_storage_precision::reduce1:
+        case cb_gmres_storage_precision::ireduce1:
             return precision_target<reduce_precision<value_type>>::value * 1e-2;
-        case gmres_mixed_storage_precision::reduce2:
-        case gmres_mixed_storage_precision::ireduce2:
+        case cb_gmres_storage_precision::reduce2:
+        case cb_gmres_storage_precision::ireduce2:
             return precision_target<
                        reduce_precision<reduce_precision<value_type>>>::value *
                    1e-2;
-        case gmres_mixed_storage_precision::integer:
+        case cb_gmres_storage_precision::integer:
         default:
             return precision_target<value_type>::value;
         }
@@ -157,9 +157,9 @@ protected:
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
-    gko::solver::gmres_mixed_storage_precision storage_precision;
-    std::unique_ptr<typename gmres_type::Factory> gmres_mixed_factory;
-    std::unique_ptr<typename gmres_type::Factory> gmres_mixed_factory_big;
+    gko::solver::cb_gmres_storage_precision storage_precision;
+    std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory;
+    std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory_big;
 };
 
 
@@ -167,7 +167,7 @@ protected:
  * This creates a helper structure which translates a type into an enum
  * parameter.
  */
-using st_enum = gko::solver::gmres_mixed_storage_precision;
+using st_enum = gko::solver::cb_gmres_storage_precision;
 
 template <st_enum P>
 struct st_helper_type {
@@ -193,14 +193,14 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_r2>,
                      std::tuple<std::complex<float>, st_keep>>;
 
-TYPED_TEST_CASE(GmresMixed, TestTypes);
+TYPED_TEST_CASE(CbGmres, TestTypes);
 
 
-TYPED_TEST(GmresMixed, SolvesStencilSystem)
+TYPED_TEST(CbGmres, SolvesStencilSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory->generate(this->mtx);
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
@@ -210,7 +210,7 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesStencilSystem2)
+TYPED_TEST(CbGmres, SolvesStencilSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -238,11 +238,11 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem2)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesMultipleStencilSystems)
+TYPED_TEST(CbGmres, SolvesMultipleStencilSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory->generate(this->mtx);
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<T>{13.0, 6.0}, I<T>{7.0, 4.0}, I<T>{1.0, 1.0}}, this->exec);
     auto x = gko::initialize<Mtx>(
@@ -255,11 +255,11 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystems)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesStencilSystemUsingAdvancedApply)
+TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory->generate(this->mtx);
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
@@ -271,11 +271,11 @@ TYPED_TEST(GmresMixed, SolvesStencilSystemUsingAdvancedApply)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TYPED_TEST(CbGmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory->generate(this->mtx);
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
     auto b = gko::initialize<Mtx>(
@@ -290,11 +290,11 @@ TYPED_TEST(GmresMixed, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesBigDenseSystem1)
+TYPED_TEST(CbGmres, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory_big->generate(this->mtx_big);
+    auto solver = this->cb_gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
         this->exec);
@@ -307,11 +307,11 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesBigDenseSystem2)
+TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory_big->generate(this->mtx_big);
+    auto solver = this->cb_gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
         this->exec);
@@ -338,11 +338,11 @@ gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesMultipleDenseSystemForDivergenceCheck)
+TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto solver = this->gmres_mixed_factory_big->generate(this->mtx_big);
+    auto solver = this->cb_gmres_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
         this->exec);
@@ -406,13 +406,13 @@ TYPED_TEST(GmresMixed, SolvesMultipleDenseSystemForDivergenceCheck)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
+TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using gmres_type = typename TestFixture::gmres_type;
     const auto half_tol = std::sqrt(this->precision());
-    auto gmres_mixed_factory_restart =
+    auto cb_gmres_factory_restart =
         gmres_type::build()
             .with_krylov_dim(4u)
             .with_storage_precision(this->storage_precision)
@@ -423,7 +423,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
                     .with_reduction_factor(this->precision())
                     .on(this->exec))
             .on(this->exec);
-    auto solver = gmres_mixed_factory_restart->generate(this->mtx_medium);
+    auto solver = cb_gmres_factory_restart->generate(this->mtx_medium);
     auto b = gko::initialize<Mtx>(
         {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
@@ -435,12 +435,12 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
 }
 
 
-TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
+TYPED_TEST(CbGmres, SolvesWithPreconditioner)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using gmres_type = typename TestFixture::gmres_type;
-    auto gmres_mixed_factory_preconditioner =
+    auto cb_gmres_factory_preconditioner =
         gmres_type::build()
             .with_storage_precision(this->storage_precision)
             .with_criteria(
@@ -454,7 +454,7 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
                     .with_max_block_size(3u)
                     .on(this->exec))
             .on(this->exec);
-    auto solver = gmres_mixed_factory_preconditioner->generate(this->mtx_big);
+    auto solver = cb_gmres_factory_preconditioner->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
         this->exec);

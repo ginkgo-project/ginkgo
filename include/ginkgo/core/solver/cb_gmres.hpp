@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_GMRES_MIXED_HPP_
-#define GKO_CORE_SOLVER_GMRES_MIXED_HPP_
+#ifndef GKO_CORE_SOLVER_CB_GMRES_HPP_
+#define GKO_CORE_SOLVER_CB_GMRES_HPP_
 
 
 #include <vector>
@@ -55,7 +55,7 @@ namespace solver {
 constexpr size_type default_krylov_dim_mixed = 100u;
 
 
-enum class gmres_mixed_storage_precision {
+enum class cb_gmres_storage_precision {
     keep,
     reduce1,
     reduce2,
@@ -66,11 +66,11 @@ enum class gmres_mixed_storage_precision {
 
 
 /**
- * GMRES_MIXED or the generalized minimal residual method is an iterative type
+ * CB-GMRES or the generalized minimal residual method is an iterative type
  * Krylov subspace method which is suitable for nonsymmetric linear systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of GMRES_MIXED
+ * use of data locality. The inner operations in one iteration of CB-GMRES
  * are merged into 2 separate steps.
  *
  * @tparam ValueType  precision of matrix elements
@@ -79,10 +79,10 @@ enum class gmres_mixed_storage_precision {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class GmresMixed : public EnableLinOp<GmresMixed<ValueType>>,
-                   public Preconditionable {
-    friend class EnableLinOp<GmresMixed>;
-    friend class EnablePolymorphicObject<GmresMixed, LinOp>;
+class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+                public Preconditionable {
+    friend class EnableLinOp<CbGmres>;
+    friend class EnablePolymorphicObject<CbGmres, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -109,8 +109,8 @@ public:
         /**
          * Determines which storage type is used.
          */
-        gmres_mixed_storage_precision GKO_FACTORY_PARAMETER_SCALAR(
-            storage_precision, gmres_mixed_storage_precision::keep);
+        cb_gmres_storage_precision GKO_FACTORY_PARAMETER_SCALAR(
+            storage_precision, cb_gmres_storage_precision::keep);
 
         /**
          * Criterion factories.
@@ -136,7 +136,7 @@ public:
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(GmresMixed, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -145,14 +145,14 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    explicit GmresMixed(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<GmresMixed>(std::move(exec))
+    explicit CbGmres(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<CbGmres>(std::move(exec))
     {}
 
-    explicit GmresMixed(const Factory *factory,
-                        std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<GmresMixed>(factory->get_executor(),
-                                  transpose(system_matrix->get_size())),
+    explicit CbGmres(const Factory *factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<CbGmres>(factory->get_executor(),
+                               transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
@@ -181,7 +181,7 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
-    gmres_mixed_storage_precision storage_precision_;
+    cb_gmres_storage_precision storage_precision_;
 };
 
 
@@ -189,4 +189,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_GMRES_MIXED_HPP_
+#endif  // GKO_CORE_SOLVER_CB_GMRES_HPP_

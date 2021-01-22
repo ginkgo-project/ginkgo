@@ -21,8 +21,8 @@ set(EXAMPLES_LIST
     custom-matrix-format
     custom-stopping-criterion
     ginkgo-overhead
+    cb-gmres-solver
     gmres-solver
-    gmres-mixed-solver
     heat-equation
     minimal-cuda-solver
     papi-logging

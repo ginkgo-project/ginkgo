@@ -113,7 +113,7 @@ target_sources(ginkgo_cuda
     solver/cgs_kernels.cu
     solver/fcg_kernels.cu
     solver/gmres_kernels.cu
-    solver/gmres_mixed_kernels.cu
+    solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
     solver/ir_kernels.cu
     solver/lower_trs_kernels.cu

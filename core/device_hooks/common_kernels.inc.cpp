@@ -57,11 +57,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/solver/cb_gmres_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
-#include "core/solver/gmres_mixed_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
@@ -571,43 +571,41 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
 }  // namespace gmres
 
 
-namespace gmres_mixed {
+namespace cb_gmres {
 
 
 template <typename ValueType>
-GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(ValueType)
+GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(ValueType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
 
 template <typename ValueType, typename ValueTypeKrylovBases>
-GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(ValueType, ValueTypeKrylovBases)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 /*
 template <typename ValueType, typename ValueTypeKrylovBases, bool
 Reorthogonalization, bool MGS_CGS>
-GKO_DECLARE_GMRES_MIXED_BOOL_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases,
+GKO_DECLARE_CB_GMRES_BOOL_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases,
                                            Reorthogonalization, MGS_CGS)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(GKO_DECLARE_GMRES_MIXED_BOOL_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(GKO_DECLARE_CB_GMRES_BOOL_STEP_1_KERNEL);
 */
 template <typename ValueType, typename ValueTypeKrylovBases>
-GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 template <typename ValueType, typename ValueTypeKrylovBases>
-GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, ValueTypeKrylovBases)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 
 
 namespace ir {

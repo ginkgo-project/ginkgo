@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/gmres_mixed_kernels.hpp"
+#include "core/solver/cb_gmres_kernels.hpp"
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/solver/gmres_mixed.hpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 
 #include <iostream>
 
 
-#include "core/solver/gmres_mixed_accessor.hpp"
+#include "core/solver/cb_gmres_accessor.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The GMRES_MIXED solver namespace.
+ * @brief The CB_GMRES solver namespace.
  *
- * @ingroup gmres_mixed
+ * @ingroup cb_gmres
  */
-namespace gmres_mixed {
+namespace cb_gmres {
 
 
 namespace {
@@ -329,8 +329,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
@@ -390,8 +389,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
 // template <typename ValueType, typename ValueTypeKrylovBases, bool
@@ -430,8 +429,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
                                  stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 
 template <typename ValueType, typename ConstAccessor3d>
@@ -449,11 +447,11 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
                  final_iter_nums->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
