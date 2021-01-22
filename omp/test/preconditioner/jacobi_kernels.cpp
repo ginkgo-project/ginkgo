@@ -308,7 +308,7 @@ TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithBlockSize32Sorted)
 TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithBlockSize32Unsorted)
 {
     std::ranlux48 engine(43);
-    initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 0.1, false);
+    initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
     gko::test::unsort_matrix(mtx.get(), engine);
 
     auto bj = bj_factory->generate(mtx);

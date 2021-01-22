@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -87,6 +88,8 @@ public:
      */
     static constexpr size_type dimensionality = 2;
 
+    using const_accessor = row_major<const ValueType, Dimensionality>;
+
 protected:
     /**
      * Creates a row_major accessor.
@@ -95,10 +98,10 @@ protected:
      * @param num_row  number of rows of the accessor
      * @param num_cols  number of columns of the accessor
      * @param stride  distance (in elements) between starting positions of
-     *                consecutive rows (i.e. `data + i * stride` points to the
-     *                `i`-th row)
+     *                consecutive rows (i.e. `data + i * stride` points to
+     *                the `i`-th row)
      */
-    GKO_ATTRIBUTES constexpr explicit row_major(data_type data,
+    constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
                                                 size_type num_rows,
                                                 size_type num_cols,
                                                 size_type stride)
@@ -107,6 +110,17 @@ protected:
 
 public:
     /**
+     * Creates a row_major range which contains a read-only version of the
+     * current accessor.
+     *
+     * @returns  a row major range which is read-only.
+     */
+    constexpr GKO_ATTRIBUTES range<const_accessor> to_const() const
+    {
+        return range<const_accessor>{data, lengths[0], lengths[1], stride};
+    }
+
+    /**
      * Returns the data element at position (row, col)
      *
      * @param row  row index
@@ -114,7 +128,7 @@ public:
      *
      * @return data element at (row, col)
      */
-    GKO_ATTRIBUTES constexpr value_type &operator()(size_type row,
+    constexpr GKO_ATTRIBUTES value_type &operator()(size_type row,
                                                     size_type col) const
     {
         return GKO_ASSERT(row < lengths[0]), GKO_ASSERT(col < lengths[1]),
@@ -129,7 +143,7 @@ public:
      *
      * @return sub-range spanning the range (rows, cols)
      */
-    GKO_ATTRIBUTES constexpr range<row_major> operator()(const span &rows,
+    constexpr GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
                                                          const span &cols) const
     {
         return GKO_ASSERT(rows.is_valid()), GKO_ASSERT(cols.is_valid()),
@@ -147,13 +161,18 @@ public:
      *
      * @return length in dimension `dimension`
      */
-    GKO_ATTRIBUTES constexpr size_type length(size_type dimension) const
+    constexpr GKO_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < 2 ? lengths[dimension] : 1;
     }
 
     /**
      * Copies data from another accessor
+     *
+     * @warning Do not use this function since it is not optimized for a
+     *          specific executor. It will always be performed sequentially.
+     *          Please write an optimized version (adjusted to the architecture)
+     *          by iterating through the values yourself.
      *
      * @tparam OtherAccessor  type of the other accessor
      *

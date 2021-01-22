@@ -52,9 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
+#define GKO_RESTRICT __restrict__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
+#define GKO_RESTRICT
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
@@ -189,6 +191,24 @@ using default_precision = double;
  * Number of bits in a byte
  */
 constexpr size_type byte_size = CHAR_BIT;
+
+
+/**
+ * Evaluates if all template arguments Args fulfill std::is_integral. If that is
+ * the case, this class inherits from `std::true_type`, otherwise, it inherits
+ * from `std::false_type`.
+ * If no values are passed in, `std::true_type` is inherited from.
+ *
+ * @tparam Args...  Arguments to test for std::is_integral
+ */
+template <typename... Args>
+struct are_all_integral : public std::true_type {};
+
+template <typename First, typename... Args>
+struct are_all_integral<First, Args...>
+    : public std::conditional<std::is_integral<std::decay_t<First>>::value,
+                              are_all_integral<Args...>,
+                              std::false_type>::type {};
 
 
 /**

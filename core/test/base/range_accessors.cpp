@@ -36,6 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
@@ -51,7 +57,7 @@ protected:
         3, 4, -2,
         5, 6, -3
     };
-    //clang-format on
+    // clang-format on
     row_major_int_range r{data, 3u, 2u, 3u};
 };
 
@@ -64,6 +70,14 @@ TEST_F(RowMajorAccessor, CanAccessData)
     EXPECT_EQ(r(1, 1), 4);
     EXPECT_EQ(r(2, 0), 5);
     EXPECT_EQ(r(2, 1), 6);
+}
+
+
+TEST_F(RowMajorAccessor, CanWriteData)
+{
+    r(0, 0) = 4;
+
+    EXPECT_EQ(r(0, 0), 4);
 }
 
 
