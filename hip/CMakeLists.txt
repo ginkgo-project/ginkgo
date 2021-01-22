@@ -204,7 +204,7 @@ set(GINKGO_HIP_SOURCES
     solver/cgs_kernels.hip.cpp
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
-    solver/gmres_mixed_kernels.hip.cpp
+    solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp

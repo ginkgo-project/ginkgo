@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/gmres_mixed_kernels.hpp"
+#include "core/solver/cb_gmres_kernels.hpp"
 
 
 #include <algorithm>
@@ -38,30 +38,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/accessors.hpp"
 #include "core/components/fill_array.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
+#include "cuda/base/config.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/atomic.cuh"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/reduction.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
- * @brief The GMRES_MIXED solver namespace.
+ * @brief The CB_GMRES solver namespace.
  *
- * @ingroup gmres_mixed
+ * @ingroup cb_gmres
  */
-namespace gmres_mixed {
+namespace cb_gmres {
 
 
 constexpr int default_block_size = 512;
@@ -71,32 +72,35 @@ constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
-#include "common/solver/gmres_mixed_kernels.hpp.inc"
+constexpr int default_update_dim = 32;
+
+
+#include "common/solver/cb_gmres_kernels.hpp.inc"
 
 
 // Specialization, so the Accessor can use the same function as regular pointers
 template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_hip_accessor(
+GKO_INLINE auto as_cuda_accessor(
     const range<accessor::reduced_row_major<dim, Type1, Type2>> &acc)
 {
     return range<
-        accessor::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
+        accessor::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
         acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
+        as_cuda_type(acc.get_accessor().get_stored_data()),
         acc.get_accessor().get_stride());
 }
 
 template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_hip_accessor(
+GKO_INLINE auto as_cuda_accessor(
     const range<accessor::scaled_reduced_row_major<dim, Type1, Type2, mask>>
         &acc)
 {
-    return range<accessor::scaled_reduced_row_major<dim, hip_type<Type1>,
-                                                    hip_type<Type2>, mask>>(
+    return range<accessor::scaled_reduced_row_major<dim, cuda_type<Type1>,
+                                                    cuda_type<Type2>, mask>>(
         acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
+        as_cuda_type(acc.get_accessor().get_stored_data()),
         acc.get_accessor().get_storage_stride(),
-        as_hip_type(acc.get_accessor().get_scalar()),
+        as_cuda_type(acc.get_accessor().get_scalar()),
         acc.get_accessor().get_scalar_stride());
 }
 
@@ -106,13 +110,13 @@ void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    hipLaunchKernelGGL(zero_matrix_kernel, grid_size, block_size, 0, 0, m, n,
-                       stride, as_hip_type(array));
+    zero_matrix_kernel<<<grid_size, block_size, 0, 0>>>(m, n, stride,
+                                                        as_cuda_type(array));
 }
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const HipExecutor> exec,
+void initialize_1(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
@@ -127,22 +131,20 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
     constexpr auto block_size = default_block_size;
 
     b->compute_norm2(b_norm);
-    hipLaunchKernelGGL(
-        initialize_1_kernel<block_size>, grid_dim, block_dim, 0, 0,
+    initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], krylov_dim,
-        as_hip_type(b->get_const_values()), b->get_stride(),
-        as_hip_type(residual->get_values()), residual->get_stride(),
-        as_hip_type(givens_sin->get_values()), givens_sin->get_stride(),
-        as_hip_type(givens_cos->get_values()), givens_cos->get_stride(),
-        as_hip_type(stop_status->get_data()));
+        as_cuda_type(b->get_const_values()), b->get_stride(),
+        as_cuda_type(residual->get_values()), residual->get_stride(),
+        as_cuda_type(givens_sin->get_values()), givens_sin->get_stride(),
+        as_cuda_type(givens_cos->get_values()), givens_cos->get_stride(),
+        as_cuda_type(stop_status->get_data()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
-void initialize_2(std::shared_ptr<const HipExecutor> exec,
+void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
@@ -160,11 +162,11 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    hipLaunchKernelGGL(initialize_2_1_kernel<block_size>, grid_dim_1, block_dim,
-                       0, 0, residual->get_size()[0], residual->get_size()[1],
-                       krylov_dim, as_hip_accessor(krylov_bases),
-                       as_hip_type(residual_norm_collection->get_values()),
-                       residual_norm_collection->get_stride());
+    initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
+        residual->get_size()[0], residual->get_size()[1], krylov_dim,
+        as_cuda_accessor(krylov_bases),
+        as_cuda_type(residual_norm_collection->get_values()),
+        residual_norm_collection->get_stride());
     residual->compute_norm2(residual_norm);
 
     components::fill_array(exec, arnoldi_norm->get_values() + 2 * num_rhs,
@@ -172,40 +174,43 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                              exec->get_num_multiprocessor() * 2);
     const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
-    hipLaunchKernelGGL(
-        multinorminf_kernel_without_stop, grid_size_nrm, block_size_nrm, 0, 0,
-        num_rows, num_rhs, as_hip_type(residual->get_const_values()), num_rhs,
-        as_hip_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
+    multinorminf_kernel_without_stop<<<grid_size_nrm, block_size_nrm>>>(
+        num_rows, num_rhs, as_cuda_type(residual->get_const_values()), num_rhs,
+        as_cuda_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
 
+    // helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scalar(
+    //     krylov_bases, col_idx, arnoldi_norm->at(2, j) / residual_norm->at(0,
+    //     j));
+    /* */
+    // std::cout << "Before set_scale_kernel" << '\n';
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    hipLaunchKernelGGL(
-        set_scale_kernel<default_block_size>,
-        dim3(ceildiv(num_rhs * (krylov_dim + 1), default_block_size)),
-        dim3(default_block_size), 0, 0, num_rhs, krylov_dim + 1,
-        as_hip_type(residual_norm->get_const_values()), num_rhs,
-        as_hip_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
-        stride_arnoldi, as_hip_accessor(krylov_bases));
+    set_scale_kernel<default_block_size>
+        <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
+           default_block_size>>>(
+            num_rhs, krylov_dim + 1,
+            as_cuda_type(residual_norm->get_const_values()), num_rhs,
+            as_cuda_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
+            stride_arnoldi, as_cuda_accessor(krylov_bases));
 
     const dim3 grid_dim_2(
         ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
-    hipLaunchKernelGGL(initialize_2_2_kernel<block_size>, grid_dim_2, block_dim,
-                       0, 0, residual->get_size()[0], residual->get_size()[1],
-                       as_hip_type(residual->get_const_values()),
-                       residual->get_stride(),
-                       as_hip_type(residual_norm->get_const_values()),
-                       as_hip_type(residual_norm_collection->get_values()),
-                       as_hip_accessor(krylov_bases),
-                       as_hip_type(next_krylov_basis->get_values()),
-                       next_krylov_basis->get_stride(),
-                       as_hip_type(final_iter_nums->get_data()));
+    initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
+        residual->get_size()[0], residual->get_size()[1],
+        as_cuda_type(residual->get_const_values()), residual->get_stride(),
+        as_cuda_type(residual_norm->get_const_values()),
+        as_cuda_type(residual_norm_collection->get_values()),
+        as_cuda_accessor(krylov_bases),
+        as_cuda_type(next_krylov_basis->get_values()),
+        next_krylov_basis->get_stride(),
+        as_cuda_type(final_iter_nums->get_data()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
-void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
+void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Dense<ValueType> *next_krylov_basis,
                          Accessor3dim krylov_bases,
                          matrix::Dense<ValueType> *hessenberg_iter,
@@ -245,42 +250,41 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());
-    hipLaunchKernelGGL(
-        multinorm2_kernel, grid_size, block_size, 0, 0, dim_size[0],
-        dim_size[1], as_hip_type(next_krylov_basis->get_const_values()),
-        stride_next_krylov, as_hip_type(arnoldi_norm->get_values()),
-        as_hip_type(stop_status));
+    multinorm2_kernel<<<grid_size, block_size>>>(
+        dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(arnoldi_norm->get_values()), as_cuda_type(stop_status));
     // nrmP = norm(next_krylov_basis
     zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
     if (dim_size[1] > 1) {
-        hipLaunchKernelGGL(multidot_kernel_num_iters_2<default_dot_dim>,
-                           grid_size_num_iters_2, block_size, 0, 0, iter + 1,
-                           dim_size[0], dim_size[1],
-                           as_hip_type(next_krylov_basis->get_const_values()),
-                           stride_next_krylov, as_hip_accessor(krylov_bases),
-                           as_hip_type(hessenberg_iter->get_values()),
-                           stride_hessenberg, as_hip_type(stop_status));
+        multidot_kernel_num_iters_2<default_dot_dim>
+            <<<grid_size_num_iters_2, block_size>>>(
+                iter + 1, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(stop_status));
     } else {
-        hipLaunchKernelGGL(singledot_kernel_num_iters_2<singledot_block_size>,
-                           grid_size_iters_single, block_size_iters_single, 0,
-                           0, iter + 1, dim_size[0],
-                           as_hip_type(next_krylov_basis->get_const_values()),
-                           stride_next_krylov, as_hip_accessor(krylov_bases),
-                           as_hip_type(hessenberg_iter->get_values()),
-                           stride_hessenberg, as_hip_type(stop_status));
+        singledot_kernel_num_iters_2<singledot_block_size>
+            <<<grid_size_iters_single, block_size_iters_single>>>(
+                iter + 1, dim_size[0],
+                as_cuda_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(stop_status));
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
     // end
-    hipLaunchKernelGGL(
-        update_next_krylov_kernel_num_iters<default_block_size>,
-        dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
-        as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_hip_accessor(krylov_bases),
-        as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-        as_hip_type(stop_status));
+    update_next_krylov_kernel_num_iters<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size>>>(
+            iter + 1, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_cuda_accessor(krylov_bases),
+            as_cuda_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -289,23 +293,20 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
                            dim_size[1], zero<non_complex>());
     components::fill_array(exec, arnoldi_norm->get_values() + 2 * dim_size[1],
                            dim_size[1], zero<non_complex>());
-    hipLaunchKernelGGL(
-        multinorm2_inf_kernel<use_scale>, grid_size, block_size, 0, 0,
+    multinorm2_inf_kernel<use_scale><<<grid_size, block_size>>>(
         dim_size[0], dim_size[1],
-        as_hip_type(next_krylov_basis->get_const_values()), stride_next_krylov,
-        as_hip_type(arnoldi_norm->get_values() + dim_size[1]),
-        as_hip_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
-        as_hip_type(stop_status));
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(arnoldi_norm->get_values() + dim_size[1]),
+        as_cuda_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+        as_cuda_type(stop_status));
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
-    hipLaunchKernelGGL(
-        check_arnoldi_norms_new<default_block_size>,
-        dim3(ceildiv(dim_size[1], default_block_size)),
-        dim3(default_block_size), 0, 0, as_hip_type(arnoldi_norm->get_values()),
-        stride_arnoldi, as_hip_type(hessenberg_iter->get_values()),
-        stride_hessenberg, iter + 1, as_hip_accessor(krylov_bases),
-        as_hip_type(stop_status), as_hip_type(reorth_status),
-        as_hip_type(num_reorth->get_data()));
+    check_arnoldi_norms_new<default_block_size>
+        <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
+            as_cuda_type(arnoldi_norm->get_values()), stride_arnoldi,
+            as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+            iter + 1, as_cuda_accessor(krylov_bases), as_cuda_type(stop_status),
+            as_cuda_type(reorth_status), as_cuda_type(num_reorth->get_data()));
     numReorth = 0;
     exec->get_master()->copy_from(exec.get(), 1, num_reorth->get_const_data(),
                                   &numReorth);
@@ -316,35 +317,35 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
-            hipLaunchKernelGGL(
-                multidot_kernel_num_iters_2<default_dot_dim>,
-                grid_size_num_iters_2, block_size, 0, 0, iter + 1, dim_size[0],
-                dim_size[1], as_hip_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_hip_accessor(krylov_bases),
-                as_hip_type(buffer_iter->get_values()), stride_buffer,
-                as_hip_type(stop_status));
+            multidot_kernel_num_iters_2<default_dot_dim>
+                <<<grid_size_num_iters_2, block_size>>>(
+                    iter + 1, dim_size[0], dim_size[1],
+                    as_cuda_type(next_krylov_basis->get_const_values()),
+                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    as_cuda_type(buffer_iter->get_values()), stride_buffer,
+                    as_cuda_type(stop_status));
         } else {
-            hipLaunchKernelGGL(
-                singledot_kernel_num_iters_2<singledot_block_size>,
-                grid_size_iters_single, block_size_iters_single, 0, 0, iter + 1,
-                dim_size[0], as_hip_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_hip_accessor(krylov_bases),
-                as_hip_type(buffer_iter->get_values()), stride_buffer,
-                as_hip_type(stop_status));
+            singledot_kernel_num_iters_2<singledot_block_size>
+                <<<grid_size_iters_single, block_size_iters_single>>>(
+                    iter + 1, dim_size[0],
+                    as_cuda_type(next_krylov_basis->get_const_values()),
+                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    as_cuda_type(buffer_iter->get_values()), stride_buffer,
+                    as_cuda_type(stop_status));
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
         //*
-        hipLaunchKernelGGL(
-            update_next_krylov_kernel_num_iters_and_add<default_block_size>,
-            dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-            dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_hip_accessor(krylov_bases),
-            as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-            as_hip_type(buffer_iter->get_const_values()), stride_buffer,
-            as_hip_type(stop_status), as_hip_type(reorth_status));
+        update_next_krylov_kernel_num_iters_and_add<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size>>>(
+                iter + 1, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
+                as_cuda_type(stop_status), as_cuda_type(reorth_status));
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -353,46 +354,44 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         components::fill_array(exec,
                                arnoldi_norm->get_values() + 2 * dim_size[1],
                                dim_size[1], zero<non_complex>());
-        hipLaunchKernelGGL(
-            multinorm2_inf_kernel<use_scale>, grid_size, block_size, 0, 0,
+        multinorm2_inf_kernel<use_scale><<<grid_size, block_size>>>(
             dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_const_values()),
+            as_cuda_type(next_krylov_basis->get_const_values()),
             stride_next_krylov,
-            as_hip_type(arnoldi_norm->get_values() + dim_size[1]),
-            as_hip_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
-            as_hip_type(stop_status));
+            as_cuda_type(arnoldi_norm->get_values() + dim_size[1]),
+            as_cuda_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+            as_cuda_type(stop_status));
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth->get_data(), 1,
                                zero<size_type>());
-        hipLaunchKernelGGL(
-            check_arnoldi_norms_new<default_block_size>,
-            dim3(ceildiv(dim_size[1], default_block_size)),
-            dim3(default_block_size), 0, 0,
-            as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
-            as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-            iter + 1, as_hip_accessor(krylov_bases), as_hip_type(stop_status),
-            as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
+        check_arnoldi_norms_new<default_block_size>
+            <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
+                as_cuda_type(arnoldi_norm->get_values()), stride_arnoldi,
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                iter + 1, as_cuda_accessor(krylov_bases),
+                as_cuda_type(stop_status), as_cuda_type(reorth_status),
+                as_cuda_type(num_reorth->get_data()));
         numReorth = 0;
         exec->get_master()->copy_from(exec.get(), 1,
                                       num_reorth->get_const_data(), &numReorth);
         // numReorth <= number of next_krylov vector to be reorthogonalization
     }
 
-    hipLaunchKernelGGL(
-        update_krylov_next_krylov_kernel<default_block_size>,
-        dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter, dim_size[0], dim_size[1],
-        as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_hip_accessor(krylov_bases),
-        as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-        as_hip_type(stop_status));
+    update_krylov_next_krylov_kernel<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size>>>(
+            iter, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_cuda_accessor(krylov_bases),
+            as_cuda_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
 }
 
 template <typename ValueType>
-void givens_rotation(std::shared_ptr<const HipExecutor> exec,
+void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter,
@@ -408,22 +407,21 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_dim{
         static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
 
-    hipLaunchKernelGGL(
-        givens_rotation_kernel<block_size>, grid_dim, block_dim, 0, 0,
+    givens_rotation_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1], iter,
-        as_hip_type(hessenberg_iter->get_values()),
-        hessenberg_iter->get_stride(), as_hip_type(givens_sin->get_values()),
-        givens_sin->get_stride(), as_hip_type(givens_cos->get_values()),
-        givens_cos->get_stride(), as_hip_type(residual_norm->get_values()),
-        as_hip_type(residual_norm_collection->get_values()),
+        as_cuda_type(hessenberg_iter->get_values()),
+        hessenberg_iter->get_stride(), as_cuda_type(givens_sin->get_values()),
+        givens_sin->get_stride(), as_cuda_type(givens_cos->get_values()),
+        givens_cos->get_stride(), as_cuda_type(residual_norm->get_values()),
+        as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride(),
-        as_hip_type(b_norm->get_const_values()),
-        as_hip_type(stop_status->get_const_data()));
+        as_cuda_type(b_norm->get_const_values()),
+        as_cuda_type(stop_status->get_const_data()));
 }
 
 
 template <typename ValueType, typename Accessor3d>
-void step_1(std::shared_ptr<const HipExecutor> exec,
+void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
@@ -438,14 +436,12 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
             Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
             int *num_reorth_steps, int *num_reorth_vectors)
 {
-    hipLaunchKernelGGL(
-        increase_final_iteration_numbers_kernel,
-        dim3(static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size))),
-        dim3(default_block_size), 0, 0,
-        as_hip_type(final_iter_nums->get_data()),
-        as_hip_type(stop_status->get_const_data()),
-        final_iter_nums->get_num_elems());
+    increase_final_iteration_numbers_kernel<<<
+        static_cast<unsigned int>(
+            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
+        default_block_size>>>(as_cuda_type(final_iter_nums->get_data()),
+                              as_cuda_type(stop_status->get_const_data()),
+                              final_iter_nums->get_num_elems());
     finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                         buffer_iter, arnoldi_norm, iter,
                         stop_status->get_const_data(),
@@ -456,8 +452,7 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
                     stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -473,14 +468,13 @@ void solve_upper_triangular(
     const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
                         1, 1};
 
-    hipLaunchKernelGGL(
-        solve_upper_triangular_kernel<block_size>, grid_dim, block_dim, 0, 0,
+    solve_upper_triangular_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg->get_size()[1], num_rhs,
-        as_hip_type(residual_norm_collection->get_const_values()),
+        as_cuda_type(residual_norm_collection->get_const_values()),
         residual_norm_collection->get_stride(),
-        as_hip_type(hessenberg->get_const_values()), hessenberg->get_stride(),
-        as_hip_type(y->get_values()), y->get_stride(),
-        as_hip_type(final_iter_nums->get_const_data()));
+        as_cuda_type(hessenberg->get_const_values()), hessenberg->get_stride(),
+        as_cuda_type(y->get_values()), y->get_stride(),
+        as_cuda_type(final_iter_nums->get_const_data()));
 }
 
 
@@ -503,19 +497,19 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
     const dim3 block_dim{block_size, 1, 1};
 
 
-    hipLaunchKernelGGL(calculate_Qy_kernel<block_size>, grid_dim, block_dim, 0,
-                       0, num_rows, num_cols, as_hip_accessor(krylov_bases),
-                       as_hip_type(y->get_const_values()), y->get_stride(),
-                       as_hip_type(before_preconditioner->get_values()),
-                       stride_before_preconditioner,
-                       as_hip_type(final_iter_nums->get_const_data()));
+    calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(
+        num_rows, num_cols, as_cuda_accessor(krylov_bases),
+        as_cuda_type(y->get_const_values()), y->get_stride(),
+        as_cuda_type(before_preconditioner->get_values()),
+        stride_before_preconditioner,
+        as_cuda_type(final_iter_nums->get_const_data()));
     // Calculate qy
     // before_preconditioner = krylov_bases * y
 }
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void step_2(std::shared_ptr<const HipExecutor> exec,
+void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
             ConstAccessor3d krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,
@@ -534,12 +528,11 @@ void step_2(std::shared_ptr<const HipExecutor> exec,
                  final_iter_nums);
 }
 
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
-GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(
-    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL);
 
-
-}  // namespace gmres_mixed
-}  // namespace hip
+}  // namespace cb_gmres
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

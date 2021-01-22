@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/gmres_mixed.hpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
-#include "core/solver/gmres_mixed_accessor.hpp"
-#include "core/solver/gmres_mixed_kernels.hpp"
+#include "core/solver/cb_gmres_accessor.hpp"
+#include "core/solver/cb_gmres_kernels.hpp"
 
 
 //#define TIMING 1
@@ -65,16 +65,16 @@ namespace gko {
 namespace solver {
 
 
-namespace gmres_mixed {
+namespace cb_gmres {
 
 
-GKO_REGISTER_OPERATION(initialize_1, gmres_mixed::initialize_1);
-GKO_REGISTER_OPERATION(initialize_2, gmres_mixed::initialize_2);
-GKO_REGISTER_OPERATION(step_1, gmres_mixed::step_1);
-GKO_REGISTER_OPERATION(step_2, gmres_mixed::step_2);
+GKO_REGISTER_OPERATION(initialize_1, cb_gmres::initialize_1);
+GKO_REGISTER_OPERATION(initialize_2, cb_gmres::initialize_2);
+GKO_REGISTER_OPERATION(step_1, cb_gmres::step_1);
+GKO_REGISTER_OPERATION(step_2, cb_gmres::step_2);
 
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 
 // TODO: Remove output
 template <typename T>
@@ -159,22 +159,22 @@ template <typename ValueType>
 struct helper {
     template <typename Callable>
     static void call(Callable callable,
-                     gko::solver::gmres_mixed_storage_precision st)
+                     gko::solver::cb_gmres_storage_precision st)
     {
         switch (st) {
-        case gmres_mixed_storage_precision::reduce1:
+        case cb_gmres_storage_precision::reduce1:
             callable(reduce_precision_count<ValueType, 1>{});
             break;
-        case gmres_mixed_storage_precision::reduce2:
+        case cb_gmres_storage_precision::reduce2:
             callable(reduce_precision_count<ValueType, 2>{});
             break;
-        case gmres_mixed_storage_precision::integer:
+        case cb_gmres_storage_precision::integer:
             callable(to_integer<ValueType>{});
             break;
-        case gmres_mixed_storage_precision::ireduce1:
+        case cb_gmres_storage_precision::ireduce1:
             callable(to_integer<reduce_precision_count<ValueType, 1>>{});
             break;
-        case gmres_mixed_storage_precision::ireduce2:
+        case cb_gmres_storage_precision::ireduce2:
             callable(to_integer<reduce_precision_count<ValueType, 2>>{});
             break;
         default:
@@ -192,18 +192,18 @@ struct helper<std::complex<T>> {
 
     template <typename Callable>
     static void call(Callable callable,
-                     gko::solver::gmres_mixed_storage_precision st)
+                     gko::solver::cb_gmres_storage_precision st)
     {
         switch (st) {
-        case gmres_mixed_storage_precision::reduce1:
+        case cb_gmres_storage_precision::reduce1:
             callable(reduce_precision_skip_count<ValueType, skip_type, 1>{});
             break;
-        case gmres_mixed_storage_precision::reduce2:
+        case cb_gmres_storage_precision::reduce2:
             callable(reduce_precision_skip_count<ValueType, skip_type, 2>{});
             break;
-        case gmres_mixed_storage_precision::integer:
-        case gmres_mixed_storage_precision::ireduce1:
-        case gmres_mixed_storage_precision::ireduce2:
+        case cb_gmres_storage_precision::integer:
+        case cb_gmres_storage_precision::ireduce1:
+        case cb_gmres_storage_precision::ireduce2:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
@@ -214,7 +214,7 @@ struct helper<std::complex<T>> {
 
 
 template <typename ValueType>
-void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     // Current workaround to get a lambda with a template argument (only the
     // type of `value` matters, the content does not)
@@ -300,7 +300,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         // std::cout << "Before initializate_1" << std::endl;
         // Initialization
-        exec->run(gmres_mixed::make_initialize_1(
+        exec->run(cb_gmres::make_initialize_1(
             dense_b, b_norm.get(), residual.get(), givens_sin.get(),
             givens_cos.get(), &stop_status, krylov_dim_));
         // b_norm = norm(b)
@@ -311,7 +311,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // residual = residual - Ax
 
         // std::cout << "Before initializate_2" << std::endl;
-        exec->run(gmres_mixed::make_initialize_2(
+        exec->run(cb_gmres::make_initialize_2(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
             arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
             &final_iter_nums, krylov_dim_));
@@ -436,7 +436,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                     span{0, restart_iter},
                     span{0, dense_b->get_size()[1] * (restart_iter)});
 
-                exec->run(gmres_mixed::make_step_2(
+                exec->run(cb_gmres::make_step_2(
                     residual_norm_collection.get(),
                     krylov_bases_range.get_accessor().to_const(),
                     hessenberg_view.get(), y.get(), before_preconditioner.get(),
@@ -454,7 +454,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                       residual.get());
                 // residual = residual - Ax
-                exec->run(gmres_mixed::make_initialize_2(
+                exec->run(cb_gmres::make_initialize_2(
                     residual.get(), residual_norm.get(),
                     residual_norm_collection.get(), arnoldi_norm.get(),
                     krylov_bases_range, next_krylov_basis.get(),
@@ -501,7 +501,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec->synchronize();
             auto t_aux_2 = std::chrono::steady_clock::now();
 #endif
-            exec->run(gmres_mixed::make_step_1(
+            exec->run(cb_gmres::make_step_1(
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                 residual_norm.get(), residual_norm_collection.get(),
                 krylov_bases_range, hessenberg_iter.get(), buffer_iter.get(),
@@ -551,7 +551,7 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{0, restart_iter},
             span{0, dense_b->get_size()[1] * (restart_iter)});
 
-        exec->run(gmres_mixed::make_step_2(
+        exec->run(cb_gmres::make_step_2(
             residual_norm_collection.get(),
             krylov_bases_range.get_accessor().to_const(),
             hessenberg_small.get(), y.get(), before_preconditioner.get(),
@@ -621,9 +621,9 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void GmresMixed<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                       const LinOp *residual_norm_collection,
-                                       LinOp *x) const
+void CbGmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                    const LinOp *residual_norm_collection,
+                                    LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -633,8 +633,8 @@ void GmresMixed<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
     dense_x->add_scaled(alpha, x_clone.get());
 }
 
-#define GKO_DECLARE_GMRES_MIXED(_type1) class GmresMixed<_type1>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MIXED);
+#define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES);
 
 
 }  // namespace solver

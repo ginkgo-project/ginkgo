@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_GMRES_MIXED_KERNELS_HPP_
-#define GKO_CORE_SOLVER_GMRES_MIXED_KERNELS_HPP_
+#ifndef GKO_CORE_SOLVER_CB_GMRES_KERNELS_HPP_
+#define GKO_CORE_SOLVER_CB_GMRES_KERNELS_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -44,14 +44,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/accessors.hpp"
 #include "core/base/extended_float.hpp"
-#include "core/solver/gmres_mixed_accessor.hpp"
+#include "core/solver/cb_gmres_accessor.hpp"
 
 
 // TODO Find way around using it!
 #define GKO_UNPACK(...) __VA_ARGS__
 /**
  * Instantiates a template for each value type with each lower precision type
- * supported by Ginkgo for GmresMixed.
+ * supported by Ginkgo for CbGmres.
  *
  * @param _macro  A macro which expands the template instantiation
  *                (not including the leading `template` specifier).
@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                     (precisions supported by Ginkgo), and
  *                2. the second the value type of the reduced precision.
  */
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)                      \
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(_macro)                         \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(range<accessor::reduced_row_major<3, double, double>>));    \
@@ -111,7 +111,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<float>,   \
                                                      std::complex<float>>>))
 
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_CONST_TYPE(_macro)                \
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(_macro)                   \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
@@ -165,10 +165,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 
-#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(_type)                     \
+#define GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(_type)                        \
     void initialize_1(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Dense<_type> *b,                                         \
@@ -178,7 +178,7 @@ namespace gmres_mixed {
         size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _range)         \
+#define GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(_type1, _range)            \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec,          \
                       const matrix::Dense<_type1> *residual,                \
                       matrix::Dense<remove_complex<_type1>> *residual_norm, \
@@ -189,7 +189,7 @@ namespace gmres_mixed {
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _range)                 \
+#define GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(_type1, _range)                    \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         matrix::Dense<_type1> *next_krylov_basis,                             \
@@ -206,7 +206,7 @@ namespace gmres_mixed {
         int *num_reorth_steps, int *num_reorth_vectors)
 
 
-#define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _range)                 \
+#define GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(_type1, _range)                    \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
                 const matrix::Dense<_type1> *residual_norm_collection,        \
                 _range krylov_bases, const matrix::Dense<_type1> *hessenberg, \
@@ -215,62 +215,62 @@ namespace gmres_mixed {
                 const Array<size_type> *final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    template <typename ValueType>                                       \
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(ValueType);             \
-    template <typename ValueType, typename Accessor3d>                  \
-    GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>                  \
-    GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(ValueType, Accessor3d);       \
-    template <typename ValueType, typename Accessor3d>                  \
-    GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(ValueType, Accessor3d)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    template <typename ValueType>                                    \
+    GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(ValueType);             \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, Accessor3d);       \
+    template <typename ValueType, typename Accessor3d>               \
+    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, Accessor3d)
 
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 
 
 namespace omp {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace omp
 
 
 namespace cuda {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace cuda
 
 
 namespace reference {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace reference
 
 
 namespace hip {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace hip
 
 
 namespace dpcpp {
-namespace gmres_mixed {
+namespace cb_gmres {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace gmres_mixed
+}  // namespace cb_gmres
 }  // namespace dpcpp
 
 
@@ -281,4 +281,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_GMRES_MIXED_KERNELS_HPP_
+#endif  // GKO_CORE_SOLVER_CB_GMRES_KERNELS_HPP_

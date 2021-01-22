@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/gmres_mixed.cpp>
-#include <ginkgo/core/solver/gmres_mixed.hpp>
+#include <core/solver/cb_gmres.cpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 
 #include <typeinfo>
 
@@ -45,18 +45,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-class GmresMixed : public ::testing::Test {
+class CbGmres : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::GmresMixed<>;
-    //    using Solver = gko::solver::GmresMixed<double,double>;
-    using Big_solver = gko::solver::GmresMixed<double>;
+    using Solver = gko::solver::CbGmres<>;
+    //    using Solver = gko::solver::CbGmres<double,double>;
+    using Big_solver = gko::solver::CbGmres<double>;
 
-    GmresMixed()
+    CbGmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
-          gmres_mixed_factory(
+          cb_gmres_factory(
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
@@ -64,8 +64,8 @@ protected:
                           .with_reduction_factor(1e-6)
                           .on(exec))
                   .on(exec)),
-          solver(gmres_mixed_factory->generate(mtx)),
-          gmres_mixed_big_factory(
+          solver(cb_gmres_factory->generate(mtx)),
+          cb_gmres_big_factory(
               Big_solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
@@ -74,14 +74,14 @@ protected:
                           .with_reduction_factor(1e-6)
                           .on(exec))
                   .on(exec)),
-          big_solver(gmres_mixed_big_factory->generate(mtx))
+          big_solver(cb_gmres_big_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Solver::Factory> gmres_mixed_factory;
+    std::unique_ptr<Solver::Factory> cb_gmres_factory;
     std::unique_ptr<gko::LinOp> solver;
-    std::unique_ptr<Big_solver::Factory> gmres_mixed_big_factory;
+    std::unique_ptr<Big_solver::Factory> cb_gmres_big_factory;
     std::unique_ptr<gko::LinOp> big_solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -96,22 +96,22 @@ protected:
     }
 };
 
-TEST_F(GmresMixed, GmresMixedFactoryKnowsItsExecutor)
+TEST_F(CbGmres, CbGmresFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(gmres_mixed_factory->get_executor(), exec);
+    ASSERT_EQ(cb_gmres_factory->get_executor(), exec);
 }
 
-TEST_F(GmresMixed, GmresMixedFactoryCreatesCorrectSolver)
+TEST_F(CbGmres, CbGmresFactoryCreatesCorrectSolver)
 {
     ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto gmres_mixed_solver = static_cast<Solver *>(solver.get());
-    ASSERT_NE(gmres_mixed_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(gmres_mixed_solver->get_system_matrix(), mtx);
+    auto cb_gmres_solver = static_cast<Solver *>(solver.get());
+    ASSERT_NE(cb_gmres_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(cb_gmres_solver->get_system_matrix(), mtx);
 }
 
-TEST_F(GmresMixed, CanBeCopied)
+TEST_F(CbGmres, CanBeCopied)
 {
-    auto copy = gmres_mixed_factory->generate(Mtx::create(exec));
+    auto copy = cb_gmres_factory->generate(Mtx::create(exec));
 
     copy->copy_from(solver.get());
 
@@ -120,9 +120,9 @@ TEST_F(GmresMixed, CanBeCopied)
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
-TEST_F(GmresMixed, CanBeMoved)
+TEST_F(CbGmres, CanBeMoved)
 {
-    auto copy = gmres_mixed_factory->generate(Mtx::create(exec));
+    auto copy = cb_gmres_factory->generate(Mtx::create(exec));
 
     copy->copy_from(std::move(solver));
 
@@ -131,7 +131,7 @@ TEST_F(GmresMixed, CanBeMoved)
     assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
-TEST_F(GmresMixed, CanBeCloned)
+TEST_F(CbGmres, CanBeCloned)
 {
     auto clone = solver->clone();
 
@@ -140,7 +140,7 @@ TEST_F(GmresMixed, CanBeCloned)
     assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
 
-TEST_F(GmresMixed, CanBeCleared)
+TEST_F(CbGmres, CanBeCleared)
 {
     solver->clear();
 
@@ -149,9 +149,9 @@ TEST_F(GmresMixed, CanBeCleared)
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
-TEST_F(GmresMixed, CanSetPreconditionerGenerator)
+TEST_F(CbGmres, CanSetPreconditionerGenerator)
 {
-    auto gmres_mixed_factory =
+    auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec),
@@ -165,9 +165,9 @@ TEST_F(GmresMixed, CanSetPreconditionerGenerator)
                             exec))
                     .on(exec))
             .on(exec);
-    auto solver = gmres_mixed_factory->generate(mtx);
-    auto precond = dynamic_cast<const gko::solver::GmresMixed<> *>(
-        static_cast<gko::solver::GmresMixed<> *>(solver.get())
+    auto solver = cb_gmres_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::CbGmres<> *>(
+        static_cast<gko::solver::CbGmres<> *>(solver.get())
             ->get_preconditioner()
             .get());
 
@@ -176,9 +176,9 @@ TEST_F(GmresMixed, CanSetPreconditionerGenerator)
     ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 
-TEST_F(GmresMixed, CanSetKrylovDim)
+TEST_F(CbGmres, CanSetKrylovDim)
 {
-    auto gmres_mixed_factory =
+    auto cb_gmres_factory =
         Solver::build()
             .with_krylov_dim(4u)
             .with_criteria(
@@ -187,74 +187,74 @@ TEST_F(GmresMixed, CanSetKrylovDim)
                     .with_reduction_factor(1e-6)
                     .on(exec))
             .on(exec);
-    auto solver = gmres_mixed_factory->generate(mtx);
+    auto solver = cb_gmres_factory->generate(mtx);
     auto krylov_dim = solver->get_krylov_dim();
 
     ASSERT_EQ(krylov_dim, 4);
 }
 
-TEST_F(GmresMixed, CanSetPreconditionerInFactory)
+TEST_F(CbGmres, CanSetPreconditionerInFactory)
 {
-    std::shared_ptr<Solver> gmres_mixed_precond =
+    std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec)
             ->generate(mtx);
 
-    auto gmres_mixed_factory =
+    auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .with_generated_preconditioner(gmres_mixed_precond)
+            .with_generated_preconditioner(cb_gmres_precond)
             .on(exec);
-    auto solver = gmres_mixed_factory->generate(mtx);
+    auto solver = cb_gmres_factory->generate(mtx);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
-    ASSERT_EQ(precond.get(), gmres_mixed_precond.get());
+    ASSERT_EQ(precond.get(), cb_gmres_precond.get());
 }
 
-TEST_F(GmresMixed, ThrowsOnWrongPreconditionerInFactory)
+TEST_F(CbGmres, ThrowsOnWrongPreconditionerInFactory)
 {
     std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
-    std::shared_ptr<Solver> gmres_mixed_precond =
+    std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec)
             ->generate(wrong_sized_mtx);
 
-    auto gmres_mixed_factory =
+    auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .with_generated_preconditioner(gmres_mixed_precond)
+            .with_generated_preconditioner(cb_gmres_precond)
             .on(exec);
 
-    ASSERT_THROW(gmres_mixed_factory->generate(mtx), gko::DimensionMismatch);
+    ASSERT_THROW(cb_gmres_factory->generate(mtx), gko::DimensionMismatch);
 }
 
-TEST_F(GmresMixed, CanSetPreconditioner)
+TEST_F(CbGmres, CanSetPreconditioner)
 {
-    std::shared_ptr<Solver> gmres_mixed_precond =
+    std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec)
             ->generate(mtx);
 
-    auto gmres_mixed_factory =
+    auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .on(exec);
-    auto solver = gmres_mixed_factory->generate(mtx);
-    solver->set_preconditioner(gmres_mixed_precond);
+    auto solver = cb_gmres_factory->generate(mtx);
+    solver->set_preconditioner(cb_gmres_precond);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
-    ASSERT_EQ(precond.get(), gmres_mixed_precond.get());
+    ASSERT_EQ(precond.get(), cb_gmres_precond.get());
 }
 
 }  // namespace
