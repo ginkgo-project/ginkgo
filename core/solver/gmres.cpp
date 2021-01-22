@@ -169,7 +169,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
      *       1x norm2               n
      *       1x scal               2n
      * Restart:         (1+14/d)n  (every dth iteration)
-     *       1x gemm           (d+1)n
+     *       1x gemv           (d+1)n
      *       1x Preconditioner     2n * values + storage
      *       1x axpy               3n
      *       1x copy               2n

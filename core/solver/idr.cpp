@@ -173,22 +173,22 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
     /* Memory movement summary for iteration with subspace dimension s
      * Per iteration:
-     * (11/2s+10+5/(s+1))n * values + matrix/preconditioner storage
+     * (11/2s+10+7/(s+1))n * values + matrix/preconditioner storage
      * For (s+1) iterations:
-     * (11/2s^2+31/2s+15)n * values + (s+1) * matrix/preconditioner storage
-     * dx SpMV:                    2(s+1)n * values + (s+1) * storage
-     * dx Preconditioner:          2(s+1)n * values + (s+1) * storage
-     * 1x multidot (gemm)           (s+1)n
-     * dx step 1 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
-     * dx step 2 (fused axpys) s(s/2+5/2)n = approx 1 + sum k=[0,s) of (s-k+1)n
-     * dx step 3:            s(9/2s+11/2)n = sum k=[0,s) of (8k+2+s-k+1+6)n
+     * (11/2s^2+31/2s+17)n * values + (s+1) * matrix/preconditioner storage
+     * (s+1)x SpMV:                2(s+1)n * values + (s+1) * storage
+     * (s+1)x Preconditioner:      2(s+1)n * values + (s+1) * storage
+     * 1x multidot (gemv)           (s+1)n
+     * sx step 1 (fused axpys) s(s/2+5/2)n = sum k=[0,s) of (s-k+2)n
+     * sx step 2 (fused axpys) s(s/2+5/2)n = sum k=[0,s) of (s-k+2)n
+     * sx step 3:            s(9/2s+11/2)n = sum k=[0,s) of (8k+2+s-k+1+6)n
      *       1x orthogonalize g+u      (8k+2)n in iteration k (0-based)
-     *       1x multidot (gemm)       (s-k+1)n in iteration k (0-based)
+     *       1x multidot (gemv)       (s-k+1)n in iteration k (0-based)
      *       2x axpy                        6n
      * 1x dot                           2n
      * 2x norm2                         2n
      * 1x scale                         2n
-     * 2x axpy                          4n
+     * 2x axpy                          6n
      */
     while (true) {
         ++total_iter;
