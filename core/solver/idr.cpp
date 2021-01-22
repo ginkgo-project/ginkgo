@@ -81,33 +81,33 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 }
 
 // s is subspace vector size
-// Read: n * SubspaceType + (2n + 2) * ValueType + matrix_storage
+// Read: n * SubspaceType + (2n + 2) * SubspaceType + matrix_storage
 // + loops * (
 //   (s * n + n) * SubspaceType
-//   + loops_s * ((s^2/2 + 13s/2 + 8n - 5k + 3nk + 2ns) * SubspaceType + n * ValueType + precond_storage + matrix_storage)
-//   + (10n + 5) * SubspaceType + (n + 1) * ValueType + matrix_storage + precond_storage
+//   + loops_s * ((s^2/2 + 9s/2 - 3k + (3s + 2k + 10)n + 2) * SubspaceType + precond_storage + matrix_storage)
+//   + (11n + 5) * SubspaceType + ValueType + matrix_storage + precond_storage
 // )
-// Write: (s^2 + 3n + 1) * SubspaceType + n * ValueType
+// Write: (s^2 + 3n + 1) * SubspaceType + n * SubspaceType
 // + loops * (
 //   s * SubspaceType
-//   + loops_s * ((3nk + 6n + 3s - k) * SubspaceType + n * ValueType)
-//   + (4n + 4) * SubspaceType + (n + 1) * ValueType
+//   + loops_s * ((3nk + 7n + 3s - k) * SubspaceType)
+//   + (5n + 4) * SubspaceType + ValueType
 // )
 
 // loops_s * k = 0 + 1 + 2 + ... + (s-1) = (s-1) * s/2 (loops_sk), others is s
-// Read: n * SubspaceType + (2n + 2) * ValueType +matrix_storage
+// Read: n * SubspaceType + (2n + 2) * SubspaceType + matrix_storage
 // + loops * (
 //   (s * n + n) * SubspaceType
-//   + s * ((s^2/2 + 13s/2 + 8n + 2ns) * SubspaceType + n * ValueType + precond_storage + matrix_storage)
-//   + loops_sk * (3n - 5) * SubspaceType
-//   + (10n + 5) * SubspaceType + (n + 1) * ValueType + matrix_storage + precond_storage
+//   + s * ((s^2/2 + 9s/2 + (3s + 10)n + 2) * SubspaceType + precond_storage + matrix_storage)
+//   + loops_sk * (2n - 3) * SubspaceType
+//   + (11n + 5) * SubspaceType + ValueType + matrix_storage + precond_storage
 // )
-// Write: (s^2 + 3n + 1) * SubspaceType + n * ValueType
+// Write: (s^2 + 3n + 1) * SubspaceType + n * SubspaceType
 // + loops * (
 //   s * SubspaceType
-//   + s * ((6n + 3s) * SubspaceType + n * ValueType)
+//   + s * ((7n + 3s) * SubspaceType)
 //   + loops_sk * (3n - 1) * SubspaceType
-//   + (4n + 4) * SubspaceType + (n + 1) * ValueType
+//   + (5n + 4) * SubspaceType + ValueType
 // )
 // FLOPS: 2nnz + n + loops * (2 * n * s + s^3 + 11ns/2 + 2nnz*s + 11ns^2/2 + s^2 + 2 * nnz + n + n - 1 +n + n - 1 +n + n - 1 +6+n+4n)
 // = 2nnz + n + loops * (s^3 + s^2 + 15ns/2 + 2nnz*s + 11ns^2/2 + 2 * nnz + 11n + 3)
@@ -183,8 +183,8 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     // residual = b - Ax
     residual->copy_from(dense_b);
     // Real
-    // Read: (2n+2) * ValueType + matrix_storage
-    // Write: n * ValueType
+    // Read: (2n+2) * SubspaceType + matrix_storage
+    // Write: n * SubspaceType
     // FLOPS: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
@@ -231,7 +231,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         // = s^2 - 1 + 6n + 2nnz +  6*n*k  + (s - k) (5n + 2)
         // = s^2 - 1 + 6n + 2nnz + 5ns + 2s + nk - 2k
         for (size_type k = 0; k < subspace_dim_; k++) {
-            // Read: ((s + 1) * s /2 )* SubspaceType + s * SubspaceType + 2 * (s-k) * SubspaceType + n * SubspaceType
+            // Read: ((s + 1) * s /2 )* SubspaceType + s * SubspaceType + (n+1)(s-k) * SubspaceType + n * SubspaceType
             // Write: s * SubspaceType + n * SubspaceType
             // FLOPS: 2n * (s - k) + s^2 - 1
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
@@ -246,7 +246,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             // Write: n * SubspaceType
             get_preconditioner()->apply(v.get(), helper.get());
 
-            // Read: (n + 2 * (s - k) + 1) * SubspaceType
+            // Read: (n + n * (s-k) + (s - k) + 1) * SubspaceType
             // Write: n * SubspaceType
             // FLOPS: n + 2n(s-k)
             exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
@@ -256,12 +256,12 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
             // Real
-            // Read: n * ValueType + matrix_storage
-            // Write: n * ValueType
+            // Read: n * SubspaceType + matrix_storage
+            // Write: n * SubspaceType
             // FLOPS: 2 * nnz
             system_matrix_->apply(u_k.get(), helper.get());
             // g_k = Au_k
-            // Read: (3nk + 2ns + 5n + s - k - 1) * SubspaceType
+            // Read: (4nk + ns + 6n + s - k - 1) * SubspaceType
             // Write: (3nk + 3n + 2s - k) * SubspaceType
             exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
                                        helper.get(), u.get(), m.get(), f.get(),
@@ -278,7 +278,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             // end for
             // update g_k to g_(k) copy back the vector to matrix
             // ---
-            // R: (s - k) * 2n * SubspaceType
+            // R: (s - k + 1) * n * SubspaceType
             // W: (s-k) * SubspaceType
             // FLOPS: (s - k) * n
             // for i = k to s do
@@ -297,8 +297,8 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         // Write: n * SubspaceType
         get_preconditioner()->apply(residual.get(), helper.get());
         // Real
-        // Read: n * ValueType + matrix_storage
-        // Write: n * ValueType
+        // Read: n * SubspaceType + matrix_storage
+        // Write: n * SubspaceType
         // FLOPS: 2 * nnz
         system_matrix_->apply(helper.get(), t.get());
         // Read: 2n * SubspaceType

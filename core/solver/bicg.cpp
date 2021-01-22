@@ -107,10 +107,12 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
 }
 
 
-// Read: IndexType * (1 + n + 5 * nnz) + ValueType * (4 * n + 5 * nnz) +
-// loops * (IndexType *(2 * n + 3*nnz) + ValueType * (20 * n + 4 * nnz))
-// Write: 2*ValueType*n + 2*IndexType*(n + 1) + 2*nnz*(IndexType + ValueType) + ValueType*(8*n + 2) +
-// loops * (2*ValueType + 9*ValueType*n)
+// Read: (4n + 2) * ValueType + matrix_storage + csr_convert_read + csr_transpose_read 
+// + iter_fh * (4n * ValueType + precond_storage + conj_precond_storage)
+// + iter_sh * (14n * ValueType + matrix_storage + conj_matrix_storage)
+// Write: (10n + 2) * ValueType + csr_convert_write + csr_transpose_write
+// + iter_fh * ((2n + 1) * ValueType)
+// + iter_sh * ((7n + 1) * ValueType)
 template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -156,11 +158,11 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // z2 = p2 = q2 = 0
 
     // convert to csr
-    // Read: nnz * (ValueType + 2 * IndexType)
-    // Write: nnz * (ValueType + IndexType) + (n + 1) * IndexType
+    // Read: csr_convert_read
+    // Write: csr_convert_write
     // transpose
-    // Read: nnz * (ValueType + IndexType) + IndexType * (n + 1)
-    // Write: nnz * (ValueType + IndexType) + IndexType * (n + 1)
+    // Read: csr_transpose_read
+    // Write: csr_transpose_write
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
         dynamic_cast<const Transposable *>(system_matrix_.get());
@@ -186,7 +188,7 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto conj_trans_preconditioner =
         conj_trans_preconditioner_tmp->conj_transpose();
 
-    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
@@ -201,10 +203,10 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = -1;
 
     while (true) {
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         get_preconditioner()->apply(r.get(), z.get());
-        // Read: n * ValueType
+        // Read: n * ValueType + conj_precond_storage
         // Write: n * ValueType
         conj_trans_preconditioner->apply(r2.get(), z2.get());
         // Read: 2 * n * ValueType
@@ -221,24 +223,24 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        // Read: 6 * n * ValueType
+        // Read: 4 * n * ValueType
         // Write: 2 * n * ValueType
         exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
                                     rho.get(), prev_rho.get(), &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         system_matrix_->apply(p.get(), q.get());
         // CSR apply
-        // Read: (2 * ValueType + IndexType)*nnz + 2 * n * IndexType
+        // Read: n * ValueType + conj_matrix_storage
         // Write: n * ValueType
         conj_trans_A->apply(p2.get(), q2.get());
         // Read: 2 * n * ValueType
         // Write: ValueType
         p2->compute_dot(q.get(), beta.get());
-        // Read: 8 * n * ValueType
+        // Read: 6 * n * ValueType
         // Write: 3 * n * ValueType
         exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
                                     q.get(), q2.get(), beta.get(), rho.get(),

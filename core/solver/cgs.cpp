@@ -88,10 +88,11 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 // iter_fh: first half of the loop, iter_sh: second half of the loop
 // Note: iter is increased for each part of the loop!
 
-// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
-// + iter_fh * ((14 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
-// + iter_sh * ((6 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
-// Write: (10 * n + 2) * ValueType + iter_fh * (6 * n + 3) * ValueType
+// Read: (4n+2) * ValueType + matrix_storage
+// + iter_fh * (11n * ValueType + matrix_storage + precond_storage)
+// + iter_sh * (6n * ValueType + matrix_storage + precond_storage)
+// Write: (10 * n + 2) * ValueType
+// + iter_fh * (6 * n + 3) * ValueType
 // + iter_sh * (4 * n * ValueType)
 // FLOPs: 2*nnz + n + iter_fh * (2*nnz + 15*n - 2) + iter_sh * (2*nnz + 4*n)
 template <typename ValueType>
@@ -142,7 +143,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_prev = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
-    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
+    // Read: (2n+2) * ValueType + matrix_storage
     // Write: n * ValueType
     // FLOPs: 2*nnz + n
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
@@ -159,7 +160,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + n-1
         r->compute_dot(r_tld.get(), rho.get());
-        // Read: 5 * n * ValueType
+        // Read: 3 * n * ValueType
         // Write: (2 * n + 1)* ValueType
         // FLOPs: 7*n (incl. n times `beta` comp.)
         exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
@@ -169,11 +170,11 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
 
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         // FLOPs: ignored
         get_preconditioner()->apply(p.get(), t.get());
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         // FLOPs: 2*nnz
         system_matrix_->apply(t.get(), v_hat.get());
@@ -181,7 +182,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         // FLOPs: n + n-1
         r_tld->compute_dot(v_hat.get(), gamma.get());
-        // Read: 4 * n * ValueType
+        // Read: 2 * n * ValueType
         // Write: 2 * n * ValueType
         // FLOPs: 4*n (incl. n times `alpha` computation)
         exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
@@ -195,15 +196,15 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        // Read: n * ValueType
+        // Read: n * ValueType + precond_storage
         // Write: n * ValueType
         // FLOPs: ignored
         get_preconditioner()->apply(t.get(), u_hat.get());
-        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Read: n * ValueType + matrix_storage
         // Write: n * ValueType
         // FLOPs: 2*nnz
         system_matrix_->apply(u_hat.get(), t.get());
-        // Read: 5 * n * ValueType
+        // Read: 4 * n * ValueType
         // Write: 2 * n * ValueType
         // FLOPs: 4*n
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
