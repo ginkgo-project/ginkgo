@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/245399772 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/245739483 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -127,6 +127,7 @@ benchmark options">available benchmark options</a>. Here are the most important 
 <li><code>SYSTEM_NAME=&lt;name&gt;</code> - a name which will be used to designate this platform (e.g. V100, RadeonVII, ...).</li>
 <li><code>SEGMENTS=&lt;N&gt;</code> - Split the benchmarked matrix space into <code>&lt;N&gt;</code> segments. If specified, <code>SEGMENT_ID</code> also has to be set.</li>
 <li><code>SEGMENT_ID=&lt;I&gt;</code> - used in combination with the <code>SEGMENTS</code> variable. <code>&lt;I&gt;</code> should be an integer between 1 and <code>&lt;N&gt;</code>, the number of <code>SEGMENTS</code>. If specified, only the <code>&lt;I&gt;</code>-th segment of the benchmark suite will be run.</li>
+<li><code>BENCHMARK_PRECISION</code> - defines the precision the benchmarks are run in. Supported values are: "double" (default), "single", "dcomplex" and "scomplex"</li>
 <li><p class="startli"><code>MATRIX_LIST_FILE=/path/to/matrix_list.file</code> - allows to list SuiteSparse matrix id or name to benchmark. As an example, a matrix list file containing the following will ensure that benchmarks are ran for only those three matrices:</p>
 <p class="startli">``` 1903 Freescale/circuit5M thermal2 ```</p>
 </li>
