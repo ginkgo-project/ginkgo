@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_kernels.hpp"
 
 
-#include <omp.h>
-
-
 #include <iostream>
+
+
+#include <omp.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -44,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
-
-
-#include <iostream>
 
 
 // #define TIMING 1

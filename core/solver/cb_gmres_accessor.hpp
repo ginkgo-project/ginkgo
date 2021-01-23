@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <array>
 #include <cinttypes>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -51,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/accessors.hpp"
-
-
-#include <iostream>
 #define GKO_DEBUG_OUTPUT false
 
 
