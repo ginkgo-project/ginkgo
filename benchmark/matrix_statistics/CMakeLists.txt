@@ -1,2 +1,1 @@
-add_executable(matrix_statistics matrix_statistics.cpp)
-target_link_libraries(matrix_statistics ginkgo gflags rapidjson)
+ginkgo_add_typed_benchmark_executables(matrix_statistics "NO" matrix_statistics.cpp)

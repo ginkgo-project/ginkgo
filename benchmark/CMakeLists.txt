@@ -54,6 +54,51 @@ function(ginkgo_benchmark_hipsp_linops name)
     target_link_libraries("${name}" ${HIPSPARSE_LIBRARIES})
 endfunction()
 
+
+# Generates an executable for one precision. Each executable will be linked to
+# `ginkgo`, `gflags` and `rapidjson`.
+# Note: This should only be used by `ginkgo_add_typed_benchmark_executables`
+#
+# \param name            name for the executable to create (including type suffix)
+# \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
+#                        is necessary
+# \param macro_def       preprocessor macro name that will be defined during
+#                        building (to compile for a specific type)
+# All remaining arguments will be treated as source files
+function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def)
+    add_executable("${name}" ${ARGN})
+    target_link_libraries("${name}" ginkgo gflags rapidjson)
+    target_compile_definitions("${name}" PRIVATE "${macro_def}")
+    if("${use_lib_linops}")
+        if (GINKGO_BUILD_CUDA)
+            ginkgo_benchmark_cusp_linops("${name}")
+        endif()
+        if (GINKGO_BUILD_HIP)
+            ginkgo_benchmark_hipsp_linops("${name}")
+        endif()
+    endif()
+endfunction(ginkgo_add_single_benchmark_executable)
+
+
+# Generates an executable for each supported precision. Each executable will be
+# linked to `ginkgo`, `gflags` and `rapidjson`.
+#
+# \param name            base-name for the executable to create
+# \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
+#                        is necessary
+# All remaining arguments will be treated as source files
+function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
+    ginkgo_add_single_benchmark_executable(
+        "${name}" use_lib_linops "GKO_BENCHMARK_USE_DOUBLE_PRECISION" ${ARGN})
+    ginkgo_add_single_benchmark_executable(
+        "${name}_single" use_lib_linops "GKO_BENCHMARK_USE_SINGLE_PRECISION" ${ARGN})
+    ginkgo_add_single_benchmark_executable(
+        "${name}_dcomplex" use_lib_linops "GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION" ${ARGN})
+    ginkgo_add_single_benchmark_executable(
+        "${name}_scomplex" use_lib_linops "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" ${ARGN})
+endfunction(ginkgo_add_typed_benchmark_executables)
+
+
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)

@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <sstream>
 #include <vector>
 
 
@@ -50,10 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/overhead_linop.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/timer.hpp"
-
-
-// some Ginkgo shortcuts
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // Command-line arguments
@@ -131,13 +130,15 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
-        residual_stop = gko::share(gko::stop::RelativeResidualNorm<>::build()
-                                       .with_tolerance(FLAGS_rel_res_goal)
-                                       .on(exec));
+        residual_stop = gko::share(
+            gko::stop::RelativeResidualNorm<rc_etype>::build()
+                .with_tolerance(static_cast<rc_etype>(FLAGS_rel_res_goal))
+                .on(exec));
     } else {
         residual_stop =
-            gko::share(gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(FLAGS_rel_res_goal)
+            gko::share(gko::stop::ResidualNormReduction<rc_etype>::build()
+                           .with_reduction_factor(
+                               static_cast<rc_etype>(FLAGS_rel_res_goal))
                            .on(exec));
     }
     auto iteration_stop = gko::share(
@@ -164,25 +165,25 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
                                 std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<>>},
-                   {"bicg", create_solver<gko::solver::Bicg<>>},
-                   {"cg", create_solver<gko::solver::Cg<>>},
-                   {"cgs", create_solver<gko::solver::Cgs<>>},
-                   {"fcg", create_solver<gko::solver::Fcg<>>},
+    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<etype>>},
+                   {"bicg", create_solver<gko::solver::Bicg<etype>>},
+                   {"cg", create_solver<gko::solver::Cg<etype>>},
+                   {"cgs", create_solver<gko::solver::Cgs<etype>>},
+                   {"fcg", create_solver<gko::solver::Fcg<etype>>},
                    {"idr",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Idr<>::build()
+                        return gko::solver::Idr<etype>::build()
                             .with_criteria(create_criterion(exec))
                             .with_subspace_dim(FLAGS_idr_subspace_dim)
-                            .with_kappa(FLAGS_idr_kappa)
+                            .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
                             .with_preconditioner(give(precond))
                             .on(exec);
                     }},
                    {"gmres",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Gmres<>::build()
+                        return gko::solver::Gmres<etype>::build()
                             .with_criteria(create_criterion(exec))
                             .with_krylov_dim(FLAGS_gmres_restart)
                             .with_preconditioner(give(precond))
@@ -191,18 +192,18 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"lower_trs",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::LowerTrs<>::build()
+                        return gko::solver::LowerTrs<etype>::build()
                             .with_num_rhs(FLAGS_nrhs)
                             .on(exec);
                     }},
                    {"upper_trs",
                     [](std::shared_ptr<const gko::Executor> exec,
                        std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::UpperTrs<>::build()
+                        return gko::solver::UpperTrs<etype>::build()
                             .with_num_rhs(FLAGS_nrhs)
                             .on(exec);
                     }},
-                   {"overhead", create_solver<gko::Overhead<>>}};
+                   {"overhead", create_solver<gko::Overhead<etype>>}};
 
 
 void write_precond_info(const gko::LinOp *precond,
@@ -415,12 +416,14 @@ int main(int argc, char *argv[])
         "format\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "Running " + FLAGS_solvers + " with " +
-                                    std::to_string(FLAGS_max_iters) +
-                                    " iterations and residual goal of " +
-                                    std::to_string(FLAGS_rel_res_goal) +
-                                    "\nThe number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs) + "\n";
+    std::stringstream ss_rel_res_goal;
+    ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
+
+    std::string extra_information =
+        "Running " + FLAGS_solvers + " with " +
+        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
+        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
+        std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
     auto exec = get_executor();
@@ -472,13 +475,14 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
 
-            using Vec = gko::matrix::Dense<>;
+            using Vec = gko::matrix::Dense<etype>;
             std::shared_ptr<gko::LinOp> system_matrix;
             std::unique_ptr<Vec> b;
             std::unique_ptr<Vec> x;
             if (FLAGS_overhead) {
                 system_matrix = gko::initialize<Vec>({1.0}, exec);
-                b = gko::initialize<Vec>({std::nan("")}, exec);
+                b = gko::initialize<Vec>(
+                    {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
                 x = gko::initialize<Vec>({0.0}, exec);
             } else {
                 auto data = gko::read_raw<etype>(mtx_fd);

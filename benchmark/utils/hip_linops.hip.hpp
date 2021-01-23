@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hipsparse.h>
 
 
+#include "benchmark/utils/types.hpp"
 #include "hip/base/device_guard.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
@@ -321,14 +322,14 @@ private:
 
 
 // Some shortcuts
-using hipsp_csr = detail::HipspCsr<>;
-using hipsp_csrmm = detail::HipspCsrmm<>;
+using hipsp_csr = detail::HipspCsr<etype>;
+using hipsp_csrmm = detail::HipspCsrmm<etype>;
 
 
 using hipsp_coo =
-    detail::HipspHybrid<double, gko::int32, HIPSPARSE_HYB_PARTITION_USER, 0>;
+    detail::HipspHybrid<etype, gko::int32, HIPSPARSE_HYB_PARTITION_USER, 0>;
 using hipsp_ell =
-    detail::HipspHybrid<double, gko::int32, HIPSPARSE_HYB_PARTITION_MAX, 0>;
-using hipsp_hybrid = detail::HipspHybrid<>;
+    detail::HipspHybrid<etype, gko::int32, HIPSPARSE_HYB_PARTITION_MAX, 0>;
+using hipsp_hybrid = detail::HipspHybrid<etype>;
 
 #endif  // GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_

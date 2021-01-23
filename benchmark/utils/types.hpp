@@ -30,46 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
-#define GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+#ifndef GKO_BENCHMARK_UTILS_TYPES_HPP_
+#define GKO_BENCHMARK_UTILS_TYPES_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
+#include <complex>
 
 
-#include <cstdlib>
-#include <iostream>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <rapidjson/document.h>
+#if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION)
+using etype = double;
+#elif defined(GKO_BENCHMARK_USE_SINGLE_PRECISION)
+using etype = float;
+#elif defined(GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
+using etype = std::complex<double>;
+#elif defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+using etype = std::complex<float>;
+#else  // default to double precision
+using etype = double;
+#endif
+
+using rc_etype = gko::remove_complex<etype>;
 
 
-/**
- * Function which outputs the input format for benchmarks similar to the spmv.
- */
-[[noreturn]] void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\" },\n"
-              << "    { \"filename\": \"my_file2.mtx\" }\n"
-              << "  ]" << std::endl;
-    std::exit(1);
-}
-
-
-/**
- * Validates whether the input format is correct for spmv-like benchmarks.
- *
- * @param value  the JSON value to test.
- */
-void validate_option_object(const rapidjson::Value &value)
-{
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
-        print_config_error_and_exit();
-    }
-}
-
-
-#endif  // GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
+#endif  // GKO_BENCHMARK_UTILS_TYPES_HPP_

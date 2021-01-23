@@ -48,9 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
 #include "benchmark/utils/timer.hpp"
-
-
-using etype = double;
+#include "benchmark/utils/types.hpp"
 
 
 // This function supposes that management of `FLAGS_overwrite` is done before
@@ -66,7 +64,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         add_or_set_member(conversion_case, conversion_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        gko::matrix_data<> data{gko::dim<2>{1, 1}, 1};
+        gko::matrix_data<etype> data{gko::dim<2>{1, 1}, 1};
         auto matrix_to =
             share(formats::matrix_factory.at(format_to)(exec, data));
         // warm run
@@ -138,7 +136,7 @@ int main(int argc, char *argv[])
 
         std::clog << "Running test case: " << test_case << std::endl;
         std::ifstream mtx_fd(test_case["filename"].GetString());
-        gko::matrix_data<> data;
+        gko::matrix_data<etype> data;
         try {
             data = gko::read_raw<etype>(mtx_fd);
         } catch (std::exception &e) {
