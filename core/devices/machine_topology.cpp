@@ -126,7 +126,7 @@ MachineTopology::MachineTopology()
 
 void MachineTopology::hwloc_binding_helper(
     const std::vector<MachineTopology::normal_obj_info> &obj,
-    const std::vector<int> &bind_ids) const
+    const std::vector<int> &bind_ids, const bool singlify) const
 {
 #if GKO_HAVE_HWLOC
     detail::topo_bitmap bitmap_toset;
@@ -139,8 +139,10 @@ void MachineTopology::hwloc_binding_helper(
         hwloc_bitmap_set(bitmap_toset.get(), obj[id[i]].os_id);
     }
 
-    // Singlify to reduce expensive migrations.
-    hwloc_bitmap_singlify(bitmap_toset.get());
+    // Singlify to reduce expensive migrations, if asked for.
+    if (singlify) {
+        hwloc_bitmap_singlify(bitmap_toset.get());
+    }
     hwloc_set_cpubind(this->topo_.get(), bitmap_toset.get(), 0);
 #endif
 }

@@ -215,23 +215,39 @@ public:
     }
 
     /**
-     * Bind the object associated with the ids to a core.
+     * Bind the calling process to the CPU cores associated with
+     * the ids.
      *
-     * @param ids  The ids of the object to be bound.
+     * @param ids  The ids of cores to be bound.
+     * @param singlify  The ids of PUs are singlified to prevent possibly
+     *                  expensive migrations by the OS. This means that the
+     *                  binding is performed for only one of the ids in the
+     *                  set of ids passed in.
+     *                  See hwloc doc for
+     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_cores(const std::vector<int> &ids) const
+    void bind_to_cores(const std::vector<int> &ids,
+                       const bool singlify = true) const
     {
-        hwloc_binding_helper(this->cores_, ids);
+        hwloc_binding_helper(this->cores_, ids, singlify);
     }
 
     /**
-     * Bind the object associated with the ids to a Processing unit(PU).
+     * Bind the calling process to PUs associated with
+     * the ids.
      *
-     * @param ids  The ids of the object to be bound.
+     * @param ids  The ids of PUs to be bound.
+     * @param singlify  The ids of PUs are singlified to prevent possibly
+     *                  expensive migrations by the OS. This means that the
+     *                  binding is performed for only one of the ids in the
+     *                  set of ids passed in.
+     *                  See hwloc doc for
+     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_pus(const std::vector<int> &ids) const
+    void bind_to_pus(const std::vector<int> &ids,
+                     const bool singlify = true) const
     {
-        hwloc_binding_helper(this->pus_, ids);
+        hwloc_binding_helper(this->pus_, ids, singlify);
     }
 
     /**
@@ -309,11 +325,12 @@ public:
     /**
      * @internal
      *
-     * A helper function that binds the object with ids.
+     * A helper function that binds the calling process with the ids of `obj`
+     * object .
      */
     void hwloc_binding_helper(
         const std::vector<MachineTopology::normal_obj_info> &obj,
-        const std::vector<int> &ids) const;
+        const std::vector<int> &ids, const bool singlify = true) const;
 
     /**
      * @internal
