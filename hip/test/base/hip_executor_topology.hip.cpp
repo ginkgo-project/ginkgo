@@ -109,11 +109,11 @@ TEST_F(HipExecutor, CanBindToSinglePu)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
-    const int bind_pu = 6;
+    const int bind_pu = 1;
     hip->bind_to_pu(bind_pu);
 
     auto cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_cpu_os_id(6));
+    ASSERT_TRUE(cpu_sys == get_cpu_os_id(1));
 }
 
 
@@ -121,11 +121,11 @@ TEST_F(HipExecutor, CanBindToPus)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
-    std::vector<int> bind_pus = {6, 3};
+    std::vector<int> bind_pus = {1, 3};
     hip->bind_to_pus(bind_pus);
 
     auto cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(6));
+    ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(1));
 }
 
 
@@ -133,11 +133,11 @@ TEST_F(HipExecutor, CanBindToCores)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
-    std::vector<int> bind_cores = {6, 3};
+    std::vector<int> bind_cores = {1, 3};
     hip->bind_to_cores(bind_cores);
 
     auto cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(6));
+    ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(1));
 }
 
 

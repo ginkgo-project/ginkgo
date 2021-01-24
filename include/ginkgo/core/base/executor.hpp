@@ -692,7 +692,7 @@ public:
          * The sizes of the subgroup for the executor.
          *
          * @note In CPU executors this is invalid.
-         *       In CUDA and HIP executors warp size.
+         *       In CUDA and HIP executors this is the warp size.
          *       In DPCPP, this is the subgroup sizes for the device associated
          *       with the dpcpp executor.
          */
@@ -702,9 +702,11 @@ public:
          * The sizes of the work items for the executor.
          *
          * @note In CPU executors this is invalid.
-         *       In CUDA and HIP executors this is invalid.
-         *       In DPCPP, this is the maximum sizes for the workitems for the
-         *       device associated with the dpcpp executor.
+         *       In CUDA and HIP executors this is the maximum number of threads
+         *       per block.
+         *       In DPCPP, this is the maximum number of workitems, in each
+         *       direction of the workgroup for the device associated with the
+         *       dpcpp executor.
          */
         std::vector<int> max_workitem_sizes{};
 
@@ -729,6 +731,11 @@ public:
          * The processing units closest to the device.
          *
          * @note Currently only relevant for CUDA, HIP and DPCPP executors.
+         *       [Definition from hwloc
+         *       documentation:](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00350.php)
+         *       "The smallest processing element that can be represented by a
+         *       hwloc object. It may be a single-core processor, a core of a
+         *       multicore processor, or a single thread in a SMT processor"
          */
         std::vector<int> closest_pu_ids{};
     };
@@ -834,7 +841,7 @@ protected:
     exec_info &get_exec_info()
     {
         return const_cast<exec_info &>(
-            static_cast<const Executor &>(*this).get_exec_info());
+            const_cast<const Executor &>(*this).get_exec_info());
     }
 
     exec_info exec_info_;
@@ -1020,17 +1027,24 @@ public:
     /**
      * Bind to Processing units (PU)
      *
-     * @param ids  The ids to be bound to the object.
+     * @param ids  The ids of PUs to be bound to the calling process.
+     * @param singlify  The ids of PUs are singlified to prevent possibly
+     *                  expensive migrations by the OS. This means that the
+     *                  binding is performed for only one of the ids in the
+     *                  set of ids passed in.
+     *                  See hwloc doc for
+     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_pus(const std::vector<int> &ids) const
+    void bind_to_pus(const std::vector<int> &ids,
+                     const bool singlify = true) const
     {
-        MachineTopology::get_instance()->bind_to_pus(ids);
+        MachineTopology::get_instance()->bind_to_pus(ids, singlify);
     }
 
     /**
      * Bind to a Processing unit (PU)
      *
-     * @param id  The id to be bound to the object.
+     * @param ids  The ids of PUs to be bound to the calling process.
      */
     void bind_to_pu(const int &id) const
     {
@@ -1038,19 +1052,26 @@ public:
     }
 
     /**
-     * Bind to cores
+     * Bind to a set of cores
      *
-     * @param ids  The ids to be bound to the calling object.
+     * @param ids  The ids of cores to be bound to the calling process.
+     * @param singlify  The ids of PUs are singlified to prevent possibly
+     *                  expensive migrations by the OS. This means that the
+     *                  binding is performed for only one of the ids in the
+     *                  set of ids passed in.
+     *                  See hwloc doc for
+     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
-    void bind_to_cores(const std::vector<int> &ids) const
+    void bind_to_cores(const std::vector<int> &ids,
+                       const bool singlify = true) const
     {
-        MachineTopology::get_instance()->bind_to_cores(ids);
+        MachineTopology::get_instance()->bind_to_cores(ids, singlify);
     }
 
     /**
-     * Bind to core
+     * Bind to a single core
      *
-     * @param id  The id to be bound to the calling object.
+     * @param ids  The ids of the core to be bound to the calling process.
      */
     void bind_to_core(const int &id) const
     {

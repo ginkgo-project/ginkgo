@@ -181,12 +181,11 @@ inline int get_os_id(int log_id)
 }
 
 
-TEST(OmpExecutor, CanBindToASpecificCore)
+TEST(MachineTopology, CanBindToASpecificCore)
 {
-    auto omp = gko::OmpExecutor::create();
     auto cpu_sys = sched_getcpu();
 
-    const int bind_core = 4;
+    const int bind_core = 3;
     gko::MachineTopology::get_instance()->bind_to_cores(
         std::vector<int>{bind_core});
 
@@ -195,16 +194,15 @@ TEST(OmpExecutor, CanBindToASpecificCore)
 }
 
 
-TEST(OmpExecutor, CanBindToARangeofCores)
+TEST(MachineTopology, CanBindToARangeofCores)
 {
-    auto omp = gko::OmpExecutor::create();
     auto cpu_sys = sched_getcpu();
 
-    const std::vector<int> bind_core = {6, 3};
+    const std::vector<int> bind_core = {1, 3};
     gko::MachineTopology::get_instance()->bind_to_cores(bind_core);
 
     cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(6));
+    ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(1));
 }
 
 
