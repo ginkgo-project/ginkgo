@@ -155,7 +155,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
-        throw NotImplemented(__FILE__, __LINE__, "SpGeMM for Fbcsr");
+        GKO_NOT_SUPPORTED(b_fbcsr);
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -173,29 +173,16 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
-        throw NotImplemented(__FILE__, __LINE__, "Adv SpGeMM for Fbcsr");
-    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
+        GKO_NOT_SUPPORTED(b_fbcsr);
+    } else if (auto b_ident = dynamic_cast<const Identity<ValueType> *>(b)) {
         // if b is an identity matrix, we need an SpGEAM
-        throw NotImplemented(__FILE__, __LINE__, "Adv SpGEAM for Fbcsr");
+        GKO_NOT_SUPPORTED(b_ident);
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
             fbcsr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
                                       as<Dense>(beta), as<Dense>(x)));
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<ValueType, IndexType> *const result) const
-{
-    result->values_ = this->values_;
-    result->col_idxs_ = this->col_idxs_;
-    result->row_ptrs_ = this->row_ptrs_;
-    result->set_size(this->get_size());
-    result->bs_ = this->bs_;
-    result->nbcols_ = this->nbcols_;
 }
 
 

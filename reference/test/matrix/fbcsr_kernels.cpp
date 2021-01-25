@@ -159,7 +159,6 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     const index_type nrows = this->mtx2->get_size()[0];
     const index_type ncols = this->mtx2->get_size()[1];
     auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
@@ -168,13 +167,12 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
         xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
     auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
-
-    this->mtx2->apply(x.get(), y.get());
-
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
                                std::make_shared<typename Csr::classical>());
     this->mtx2->convert_to(csr_mtx.get());
+
+    this->mtx2->apply(x.get(), y.get());
     csr_mtx->apply(x.get(), yref.get());
 
     const double tolerance =
@@ -188,12 +186,10 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
     auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-
     for (index_type i = 0; i < ncols; i++)
         for (index_type j = 0; j < nvecs; j++)
             x->at(i, j) = (static_cast<T>(3.0 * i) + get_some_number<T>()) /
@@ -202,7 +198,6 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
     this->mtx2->apply(x.get(), y.get());
-
     this->ref2csrmtx->apply(x.get(), yref.get());
 
     const double tolerance =
@@ -216,17 +211,14 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     const T alphav = -1.0;
     const T betav = 2.0;
     auto alpha = gko::initialize<Vec>({alphav}, this->exec);
     auto beta = gko::initialize<Vec>({betav}, this->exec);
-
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     auto x = Vec::create(this->exec, gko::dim<2>{ncols, 1});
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, 1});
-
     for (index_type i = 0; i < ncols; i++) {
         x->at(i, 0) = (i + 1.0) * (i + 1.0);
     }
@@ -234,11 +226,9 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
         y->at(i, 0) = static_cast<T>(std::sin(2 * 3.14 * (i + 0.1) / nrows)) +
                       get_some_number<T>();
     }
-
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
-
     this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
 
     const double tolerance =
@@ -252,18 +242,15 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     const T alphav = -1.0;
     const T betav = 2.0;
     auto alpha = gko::initialize<Vec>({alphav}, this->exec);
     auto beta = gko::initialize<Vec>({betav}, this->exec);
-
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
     auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-
     for (index_type i = 0; i < ncols; i++)
         for (index_type j = 0; j < nvecs; j++) {
             x->at(i, j) =
@@ -275,11 +262,9 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
                 static_cast<T>(std::sin(2 * 3.14 * (i + j + 0.1) / nrows)) +
                 get_some_number<T>();
         }
-
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
-
     this->ref2csrmtx->apply(alpha.get(), x.get(), beta.get(), yref.get());
 
     const double tolerance =
@@ -543,7 +528,6 @@ TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
 
     gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
         this->exec, this->mtx2.get(), &row_nnz);
-
     gko::Array<gko::size_type> refrnnz(this->exec, this->mtx2->get_size()[0]);
     gko::kernels::reference::csr ::calculate_nonzeros_per_row(
         this->exec, this->ref2csrmtx.get(), &refrnnz);
@@ -562,7 +546,6 @@ TYPED_TEST(Fbcsr, CalculatesMaxNnzPerRow)
 
     gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
         this->exec, this->mtx2.get(), &max_row_nnz);
-
     gko::size_type ref_max_row_nnz{};
     gko::kernels::reference::csr::calculate_max_nnz_per_row(
         this->exec, this->ref2csrmtx.get(), &ref_max_row_nnz);
@@ -578,9 +561,9 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
     auto csrmtxsq =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
     this->mtxsq->convert_to(csrmtxsq.get());
+
     std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
     auto reftmtx_as_csr = static_cast<const Csr *>(reftmtx.get());
-
     auto trans = this->mtxsq->transpose();
     auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
 
@@ -595,9 +578,9 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
     auto csrmtx =
         Csr::create(this->exec, std::make_shared<typename Csr::classical>());
     this->mtx2->convert_to(csrmtx.get());
+
     std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
     auto reftmtx_as_csr = static_cast<Csr *>(reftmtx.get());
-
     auto trans = this->mtx2->transpose();
     auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
 
@@ -680,9 +663,9 @@ TYPED_TEST(Fbcsr, OutplaceAbsolute)
     using AbsCsr = typename gko::remove_complex<typename TestFixture::Csr>;
     using AbsMtx = typename gko::remove_complex<typename TestFixture::Mtx>;
     auto mtx = this->fbsample2.generate_fbcsr();
+
     const std::unique_ptr<const AbsCsr> refabs =
         this->ref2csrmtx->compute_absolute();
-
     auto abs_mtx = mtx->compute_absolute();
 
     const gko::remove_complex<value_type> tolerance =
