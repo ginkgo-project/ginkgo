@@ -103,8 +103,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     const matrix_type *amgxpgm_op = nullptr;
     // Store the csr matrix if needed
     auto amgxpgm_op_unique_ptr = matrix_type::create(exec);
-    if (!(amgxpgm_op =
-              dynamic_cast<const matrix_type *>(system_matrix_.get()))) {
+    amgxpgm_op = dynamic_cast<const matrix_type *>(system_matrix_.get());
+    if (!amgxpgm_op) {
         // if original matrix is not csr, converting it to csr.
         as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
             ->convert_to(amgxpgm_op_unique_ptr.get());
@@ -114,8 +114,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Initial agg = -1
     exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                         -one<IndexType>()));
-    size_type num_unagg{0};
-    size_type num_unagg_prev{0};
+    IndexType num_unagg{0};
+    IndexType num_unagg_prev{0};
     // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
     // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
     auto abs_mtx = amgxpgm_op->compute_absolute();
@@ -145,14 +145,14 @@ void AmgxPgm<ValueType, IndexType>::generate()
         num_unagg_prev = num_unagg;
     }
     // Handle the left unassign points
-    if (num_unagg != 0 && intermediate_agg.get_num_elems() > 0) {
+    if (num_unagg != 0 && parameters_.deterministic) {
         // copy the agg to intermediate_agg
         intermediate_agg = agg_;
     }
     // Assign all left points
     exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
                                                  agg_, intermediate_agg));
-    size_type num_agg;
+    IndexType num_agg;
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
