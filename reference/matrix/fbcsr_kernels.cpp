@@ -81,9 +81,9 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
-             ++i)
+             ++i) {
             c->get_values()[i] = zero<ValueType>();
-
+        }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
             for (int ib = 0; ib < bs; ib++) {
@@ -91,8 +91,9 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
                 for (int jb = 0; jb < bs; jb++) {
                     const auto val = avalues(inz, ib, jb);
                     const auto col = col_idxs[inz] * bs + jb;
-                    for (size_type j = 0; j < nvecs; ++j)
+                    for (size_type j = 0; j < nvecs; ++j) {
                         c->at(row, j) += val * b->at(col, j);
+                    }
                 }
             }
         }
@@ -162,18 +163,21 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
         for (size_type bcol = 0; bcol < nbcols; ++bcol) {
-            for (int ib = 0; ib < bs; ib++)
-                for (int jb = 0; jb < bs; jb++)
+            for (int ib = 0; ib < bs; ib++) {
+                for (int jb = 0; jb < bs; jb++) {
                     result->at(brow * bs + ib, bcol * bs + jb) =
                         zero<ValueType>();
+                }
+            }
         }
         for (IndexType ibnz = row_ptrs[brow]; ibnz < row_ptrs[brow + 1];
              ++ibnz) {
             for (int ib = 0; ib < bs; ib++) {
                 const IndexType row = brow * bs + ib;
-                for (int jb = 0; jb < bs; jb++)
+                for (int jb = 0; jb < bs; jb++) {
                     result->at(row, col_idxs[ibnz] * bs + jb) =
                         values(ibnz, ib, jb);
+                }
             }
         }
     }
@@ -258,11 +262,13 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
             const auto dest_idx = col_ptrs[col_idxs[i]];
             col_ptrs[col_idxs[i]]++;
             row_idxs[dest_idx] = brow;
-            for (int ib = 0; ib < blksz; ib++)
-                for (int jb = 0; jb < blksz; jb++)
+            for (int ib = 0; ib < blksz; ib++) {
+                for (int jb = 0; jb < blksz; jb++) {
                     cvalues(dest_idx, ib, jb) =
                         op(transpose_blocks ? rvalues(i, jb, ib)
                                             : rvalues(i, ib, jb));
+                }
+            }
         }
     }
 }
@@ -425,14 +431,15 @@ void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
                           matrix::Fbcsr<ValueType, IndexType> *const to_sort)
 {
     const int bs = to_sort->get_block_size();
-    if (bs == 2)
+    if (bs == 2) {
         sort_by_column_index_impl<2>(to_sort);
-    else if (bs == 3)
+    } else if (bs == 3) {
         sort_by_column_index_impl<3>(to_sort);
-    else if (bs == 4)
+    } else if (bs == 4) {
         sort_by_column_index_impl<4>(to_sort);
-    else
+    } else {
         GKO_NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -460,8 +467,9 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
         for (IndexType idx = row_ptrs[ibrow]; idx < row_ptrs[ibrow + 1];
              ++idx) {
             if (col_idxs[idx] == ibrow) {
-                for (int ib = 0; ib < bs; ib++)
+                for (int ib = 0; ib < bs; ib++) {
                     diag_values[ibrow * bs + ib] = vblocks(idx, ib, ib);
+                }
                 break;
             }
         }

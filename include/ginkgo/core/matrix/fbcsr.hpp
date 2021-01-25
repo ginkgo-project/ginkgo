@@ -152,15 +152,18 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Fbcsr>;
 
-
-    void convert_to(Fbcsr<ValueType, IndexType> *result) const override;
-
     /**
      * For moving to another Fbcsr of the same type, use the default
      *  implementation provided by EnableLinOp via the
      *  EnablePolymorphicAssignment mixin.
      */
     using EnableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
+
+    /**
+     * For converting (copying) to another Fbcsr of the same type,
+     * use the default implementation provided by EnableLinOp.
+     */
+    using EnableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
 
     friend class Fbcsr<next_precision<ValueType>, IndexType>;
 
