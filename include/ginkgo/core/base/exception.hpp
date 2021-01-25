@@ -424,7 +424,7 @@ public:
 /**
  * Error that denotes issues between block sizes and matrix dimensions
  *
- * \tparam IntexType  Type of index used by the linear algebra object that is
+ * \tparam IndexType  Type of index used by the linear algebra object that is
  *                    incompatible with the requried block size.
  */
 template <typename IndexType>
@@ -439,7 +439,7 @@ public:
     BlockSizeError(const std::string &file, const int line,
                    const int block_size, const IndexType size)
         : Error(file, line,
-                " block size = " + std::to_string(block_size) +
+                "block size = " + std::to_string(block_size) +
                     ", size = " + std::to_string(size))
     {}
 };

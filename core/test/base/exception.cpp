@@ -148,6 +148,14 @@ TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, BlockSizeErrorCorrectWhatMessage)
+{
+    gko::BlockSizeError<int> error("test_file.cpp", 243, 3, 20);
+    ASSERT_EQ(std::string("test_file.cpp:243: block size = 3, size = 20"),
+              error.what());
+}
+
+
 TEST(ExceptionClasses, AllocationErrorReturnsCorrectWhatMessage)
 {
     gko::AllocationError error("test_file.cpp", 42, "OMP", 135);
