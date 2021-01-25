@@ -39,7 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -48,16 +50,20 @@ namespace multigrid {
 
 
 /**
- * A class implementing this interface can be restrict operation.
+ * This interface allows to implement the restrict operation of
+ * a multigrid method.
  *
- * @ingroup multigrid
+ * Implementers of this interface only need to overload the
+ * RestrictOp::restrict_apply_impl() method.
+ *
+ * @ingroup Multigrid
  */
 class RestrictOp {
 public:
     /**
-     * Applies a prolong operator to a vector (or a sequence of vectors).
+     * Applies a restrict operator to a vector (or a sequence of vectors).
      *
-     * Performs the operation x = op(b), where op is this prolong operator.
+     * Performs the operation x = op(b), where op is this restrict operator.
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
@@ -86,8 +92,8 @@ protected:
      * @param size  the size of RestrictOp.
      *
      * @note the multigrid is generated in the generation not the construction,
-     *       so needs to call `set_restrict_size` to set restrict size after
-     *       generation.
+     *       so calling `set_restrict_size` is needed to set the restrict
+     *       size after generation.
      */
     explicit RestrictOp(std::shared_ptr<const Executor> exec,
                         const gko::dim<2> &size = gko::dim<2>{})
@@ -115,9 +121,14 @@ private:
 
 
 /**
- * A class implementing this interface can be prolong operation.
+ * This interface allows to implement the prolongation operation
+ * of a multigrid method.
  *
- * @ingroup multigrid
+ * Implementers of this interface need to overload both the
+ * ProlongOp::prolong_apply_impl() and
+ * ProlongOp::prolong_applyadd_impl() methods.
+ *
+ * @ingroup Multigrid
  */
 class ProlongOp {
 public:
@@ -204,9 +215,10 @@ private:
 
 
 /**
- * A class implementing this interface can be coarse generation operation.
+ * This class provides functionality for managing the coarse and fine operator
+ * for a multigrid method.
  *
- * @ingroup multigrid
+ * @ingroup Multigrid
  */
 class CoarseOp {
 public:
@@ -246,9 +258,16 @@ private:
 
 /**
  * A class implementing this interface can contain restrict, prolong, coarse
- * generation operation.
+ * generation operation. MultigridLevel provides multigrid_level_default_apply
+ * to represent op(b) = prolong(coarse(restrict(b))). Those classes implementing
+ * all MultigridLevel operation must inherit this class.
  *
- * @ingroup multigrid
+ * Implementers of this interface need to overloadthe
+ * MultigridLevel::prolong_apply_impl(),
+ * MultigridLevel::prolong_applyadd_impl(), and
+ * MultigridLevel::restrict_apply_impl() methods.
+ *
+ * @ingroup Multigrid
  */
 class MultigridLevel : public RestrictOp, public ProlongOp, public CoarseOp {
 protected:

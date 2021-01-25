@@ -86,14 +86,14 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const DpcppExecutor> exec,
                  const Array<IndexType> &agg,
-                 size_type *num_unagg) GKO_NOT_IMPLEMENTED;
+                 IndexType *num_unagg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 
 template <typename IndexType>
 void renumber(std::shared_ptr<const DpcppExecutor> exec, Array<IndexType> &agg,
-              size_type *num_agg) GKO_NOT_IMPLEMENTED;
+              IndexType *num_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
@@ -103,24 +103,18 @@ void find_strongest_neighbor(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *weight_mtx,
     const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
-    Array<IndexType> &strongest_neighbor)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+    Array<IndexType> &strongest_neighbor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR);
 
 
 template <typename ValueType, typename IndexType>
-void assign_to_exist_agg(std::shared_ptr<const DpcppExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *weight_mtx,
-                         const matrix::Diagonal<ValueType> *diag,
-                         Array<IndexType> &agg,
-                         Array<IndexType> &intermediate_agg)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+void assign_to_exist_agg(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *weight_mtx,
+    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
+    Array<IndexType> &intermediate_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
@@ -131,9 +125,7 @@ void amgx_pgm_generate(std::shared_ptr<const DpcppExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        const Array<IndexType> &agg,
                        matrix::Csr<ValueType, IndexType> *coarse)
-{
     GKO_NOT_IMPLEMENTED;
-}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_GENERATE);
 

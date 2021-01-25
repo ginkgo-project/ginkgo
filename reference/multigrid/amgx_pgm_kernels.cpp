@@ -132,7 +132,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType> &agg, size_type *num_unagg)
+                 const Array<IndexType> &agg, IndexType *num_unagg)
 {
     IndexType unagg = 0;
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
@@ -146,7 +146,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 template <typename IndexType>
 void renumber(std::shared_ptr<const ReferenceExecutor> exec,
-              Array<IndexType> &agg, size_type *num_agg)
+              Array<IndexType> &agg, IndexType *num_agg)
 {
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);

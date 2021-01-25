@@ -68,11 +68,11 @@ namespace amgx_pgm {
 
 #define GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL(_itype)           \
     void count_unagg(std::shared_ptr<const DefaultExecutor> exec, \
-                     const Array<_itype> &agg, size_type *num_unagg)
+                     const Array<_itype> &agg, _itype *num_unagg)
 
 #define GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(_itype)           \
     void renumber(std::shared_ptr<const DefaultExecutor> exec, \
-                  Array<_itype> &agg, size_type *num_agg)
+                  Array<_itype> &agg, _itype *num_agg)
 
 #define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType) \
     void find_strongest_neighbor(                                          \

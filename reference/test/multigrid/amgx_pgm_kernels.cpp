@@ -114,16 +114,13 @@ protected:
     void create_mtx(Mtx *fine, WeightMtx *weight, gko::Array<index_type> *agg,
                     Mtx *coarse)
     {
-        auto vals = fine->get_values();
-        auto cols = fine->get_col_idxs();
-        auto rows = fine->get_row_ptrs();
-        auto w_vals = weight->get_values();
-        auto w_cols = weight->get_col_idxs();
-        auto w_rows = weight->get_row_ptrs();
         auto agg_val = agg->get_data();
-        auto c_vals = coarse->get_values();
-        auto c_cols = coarse->get_col_idxs();
-        auto c_rows = coarse->get_row_ptrs();
+        agg_val[0] = 0;
+        agg_val[1] = 1;
+        agg_val[2] = 0;
+        agg_val[3] = 1;
+        agg_val[4] = 0;
+
         /* this matrix is stored:
          *  5 -3 -3  0  0
          * -3  5  0 -2 -1
@@ -131,44 +128,22 @@ protected:
          *  0 -3  0  5  0
          *  0 -2 -2  0  5
          */
-        vals[0] = 5;
-        vals[1] = -3;
-        vals[2] = -3;
-        vals[3] = -3;
-        vals[4] = 5;
-        vals[5] = -2;
-        vals[6] = -1;
-        vals[7] = -3;
-        vals[8] = 5;
-        vals[9] = -1;
-        vals[10] = -3;
-        vals[11] = 5;
-        vals[12] = -2;
-        vals[13] = -2;
-        vals[14] = 5;
-
-        rows[0] = 0;
-        rows[1] = 3;
-        rows[2] = 7;
-        rows[3] = 10;
-        rows[4] = 12;
-        rows[5] = 15;
-
-        cols[0] = 0;
-        cols[1] = 1;
-        cols[2] = 2;
-        cols[3] = 0;
-        cols[4] = 1;
-        cols[5] = 3;
-        cols[6] = 4;
-        cols[7] = 0;
-        cols[8] = 2;
-        cols[9] = 4;
-        cols[10] = 1;
-        cols[11] = 3;
-        cols[12] = 1;
-        cols[13] = 2;
-        cols[14] = 4;
+        fine->read({{5, 5},
+                    {{0, 0, 5},
+                     {0, 1, -3},
+                     {0, 2, -3},
+                     {1, 0, -3},
+                     {1, 1, 5},
+                     {1, 3, -2},
+                     {1, 4, -1},
+                     {2, 0, -3},
+                     {2, 2, 5},
+                     {2, 4, -1},
+                     {3, 1, -3},
+                     {3, 3, 5},
+                     {4, 1, -2},
+                     {4, 2, -2},
+                     {4, 4, 5}}});
 
         /* weight matrix is stored:
          * 5   3   3   0   0
@@ -177,68 +152,28 @@ protected:
          * 0   2.5 0   5   0
          * 0   1.5 1.5 0   5
          */
-        w_vals[0] = 5;
-        w_vals[1] = 3;
-        w_vals[2] = 3;
-        w_vals[3] = 3;
-        w_vals[4] = 5;
-        w_vals[5] = 2.5;
-        w_vals[6] = 1.5;
-        w_vals[7] = 3;
-        w_vals[8] = 5;
-        w_vals[9] = 1.5;
-        w_vals[10] = 2.5;
-        w_vals[11] = 5;
-        w_vals[12] = 1.5;
-        w_vals[13] = 1.5;
-        w_vals[14] = 5;
-
-        w_rows[0] = 0;
-        w_rows[1] = 3;
-        w_rows[2] = 7;
-        w_rows[3] = 10;
-        w_rows[4] = 12;
-        w_rows[5] = 15;
-
-        w_cols[0] = 0;
-        w_cols[1] = 1;
-        w_cols[2] = 2;
-        w_cols[3] = 0;
-        w_cols[4] = 1;
-        w_cols[5] = 3;
-        w_cols[6] = 4;
-        w_cols[7] = 0;
-        w_cols[8] = 2;
-        w_cols[9] = 4;
-        w_cols[10] = 1;
-        w_cols[11] = 3;
-        w_cols[12] = 1;
-        w_cols[13] = 2;
-        w_cols[14] = 4;
-
-        agg_val[0] = 0;
-        agg_val[1] = 1;
-        agg_val[2] = 0;
-        agg_val[3] = 1;
-        agg_val[4] = 0;
+        weight->read({{5, 5},
+                      {{0, 0, 5.0},
+                       {0, 1, 3.0},
+                       {0, 2, 3.0},
+                       {1, 0, 3.0},
+                       {1, 1, 5.0},
+                       {1, 3, 2.5},
+                       {1, 4, 1.5},
+                       {2, 0, 3.0},
+                       {2, 2, 5.0},
+                       {2, 4, 1.5},
+                       {3, 1, 2.5},
+                       {3, 3, 5.0},
+                       {4, 1, 1.5},
+                       {4, 2, 1.5},
+                       {4, 4, 5.0}}});
 
         /* this coarse is stored:
          *  6 -5
          * -4  5
          */
-        c_vals[0] = 6;
-        c_vals[1] = -5;
-        c_vals[2] = -4;
-        c_vals[3] = 5;
-
-        c_rows[0] = 0;
-        c_rows[1] = 2;
-        c_rows[2] = 4;
-
-        c_cols[0] = 0;
-        c_cols[1] = 1;
-        c_cols[2] = 0;
-        c_cols[3] = 1;
+        coarse->read({{2, 2}, {{0, 0, 6}, {0, 1, -5}, {1, 0, -4}, {1, 1, 5}}});
     }
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -375,6 +310,7 @@ TYPED_TEST(AmgxPgm, RestrictApply)
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
 
+
 TYPED_TEST(AmgxPgm, ProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
@@ -385,6 +321,7 @@ TYPED_TEST(AmgxPgm, ProlongApplyadd)
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
+
 
 TYPED_TEST(AmgxPgm, MatchEdge)
 {
@@ -411,12 +348,13 @@ TYPED_TEST(AmgxPgm, MatchEdge)
     ASSERT_EQ(agg_val[4], -1);
 }
 
+
 TYPED_TEST(AmgxPgm, CountUnagg)
 {
     using index_type = typename TestFixture::index_type;
     gko::Array<index_type> agg(this->exec, 5);
     auto agg_val = agg.get_data();
-    gko::size_type num_unagg = 0;
+    index_type num_unagg = 0;
     agg_val[0] = 0;
     agg_val[1] = -1;
     agg_val[2] = 0;
@@ -434,7 +372,7 @@ TYPED_TEST(AmgxPgm, Renumber)
     using index_type = typename TestFixture::index_type;
     gko::Array<index_type> agg(this->exec, 5);
     auto agg_val = agg.get_data();
-    gko::size_type num_agg = 0;
+    index_type num_agg = 0;
     agg_val[0] = 0;
     agg_val[1] = 1;
     agg_val[2] = 0;
@@ -469,11 +407,10 @@ TYPED_TEST(AmgxPgm, Generate)
 TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 {
     auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
-
-    // fine->coarse
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
+
     amgx_pgm->restrict_apply(this->fine_b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
@@ -606,38 +543,23 @@ TYPED_TEST(AmgxPgm, GenerateMtx)
     agg_vals[2] = 0;
     agg_vals[3] = 1;
     agg_vals[4] = 2;
+    auto coarse_ans = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
+    coarse_ans->read({{3, 3},
+                      {{0, 0, 4},
+                       {0, 1, -3},
+                       {0, 2, -1},
+                       {1, 0, -3},
+                       {1, 1, 5},
+                       {1, 2, -1},
+                       {2, 0, -2},
+                       {2, 1, -2},
+                       {2, 2, 5}}});
     auto csr_coarse = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
 
     gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
         this->exec, this->mtx.get(), agg, csr_coarse.get());
 
-    auto r = csr_coarse->get_const_row_ptrs();
-    auto c = csr_coarse->get_const_col_idxs();
-    auto v = csr_coarse->get_const_values();
-    ASSERT_EQ(csr_coarse->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(csr_coarse->get_num_stored_elements(), 9);
-    ASSERT_EQ(r[0], 0);
-    ASSERT_EQ(r[1], 3);
-    ASSERT_EQ(r[2], 6);
-    ASSERT_EQ(r[3], 9);
-    ASSERT_EQ(c[0], 0);
-    ASSERT_EQ(c[1], 1);
-    ASSERT_EQ(c[2], 2);
-    ASSERT_EQ(c[3], 0);
-    ASSERT_EQ(c[4], 1);
-    ASSERT_EQ(c[5], 2);
-    ASSERT_EQ(c[6], 0);
-    ASSERT_EQ(c[7], 1);
-    ASSERT_EQ(c[8], 2);
-    ASSERT_EQ(v[0], value_type{4});
-    ASSERT_EQ(v[1], value_type{-3});
-    ASSERT_EQ(v[2], value_type{-1});
-    ASSERT_EQ(v[3], value_type{-3});
-    ASSERT_EQ(v[4], value_type{5});
-    ASSERT_EQ(v[5], value_type{-1});
-    ASSERT_EQ(v[6], value_type{-2});
-    ASSERT_EQ(v[7], value_type{-2});
-    ASSERT_EQ(v[8], value_type{5});
+    GKO_ASSERT_MTX_NEAR(csr_coarse, coarse_ans, r<value_type>::value);
 }
 
 

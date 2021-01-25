@@ -124,7 +124,7 @@ public:
         /**
          * The maximum ratio of unassigned number, which is valid in the
          * interval 0.0 ~ 1.0. We use the same default value as NVIDIA AMGX
-         * Rerference Manual (October 2017, API Version 2).
+         * Reference Manual (October 2017, API Version 2).
          */
         double GKO_FACTORY_PARAMETER(max_unassigned_percentage, 0.05);
 
