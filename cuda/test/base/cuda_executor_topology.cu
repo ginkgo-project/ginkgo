@@ -105,7 +105,7 @@ TEST_F(CudaExecutor, CanBindToSinglePu)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     const int bind_pu = 1;
-    cuda->bind_to_pu(bind_pu);
+    gko::MachineTopology::get_instance()->bind_to_pu(bind_pu);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(1));
@@ -117,7 +117,7 @@ TEST_F(CudaExecutor, CanBindToPus)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_pus = {1, 3};
-    cuda->bind_to_pus(bind_pus);
+    gko::MachineTopology::get_instance()->bind_to_pus(bind_pus);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(1));
@@ -129,7 +129,7 @@ TEST_F(CudaExecutor, CanBindToCores)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_cores = {1, 3};
-    cuda->bind_to_cores(bind_cores);
+    gko::MachineTopology::get_instance()->bind_to_cores(bind_cores);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(1));
@@ -148,8 +148,7 @@ TEST_F(CudaExecutor, ClosestCpusIsPopulated)
 TEST_F(CudaExecutor, KnowsItsNuma)
 {
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    auto exec_info0 = cuda->get_exec_info();
-    auto numa0 = exec_info0.numa_node;
+    auto numa0 = cuda->get_closest_numa();
     auto close_cpu0 = cuda->get_closest_pus()[0];
 
     auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpu0));

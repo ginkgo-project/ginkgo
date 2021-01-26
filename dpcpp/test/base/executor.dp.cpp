@@ -76,8 +76,8 @@ protected:
     }
 
     std::shared_ptr<gko::Executor> omp;
-    std::shared_ptr<gko::DpcppExecutor> dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> dpcpp2;
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp2;
 };
 
 
@@ -87,6 +87,18 @@ TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
     auto dpcpp2 = gko::DpcppExecutor::create(0, omp);
 
     // We want automatic deinitialization to not create any error
+}
+
+
+TEST_F(DpcppExecutor, CanGetExecInfo)
+{
+    dpcpp = gko::DpcppExecutor::create(0, omp);
+
+    ASSERT_TRUE(dpcpp->get_num_computing_units() > 0);
+    ASSERT_TRUE(dpcpp->get_subgroup_sizes().size() > 0);
+    ASSERT_TRUE(dpcpp->get_max_workitem_sizes().size() > 0);
+    ASSERT_TRUE(dpcpp->get_max_workgroup_size() > 0);
+    ASSERT_TRUE(dpcpp->get_max_subgroup_size() > 0);
 }
 
 

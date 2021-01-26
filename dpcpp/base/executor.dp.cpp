@@ -217,17 +217,24 @@ void DpcppExecutor::set_device_property()
             GKO_NOT_SUPPORTED(device);
         }
     }
-    this->get_exec_info().num_computing_units =
-        device.get_info<sycl::info::device::max_compute_units>();
+    this->get_exec_info().num_computing_units = static_cast<int>(
+        device.get_info<sycl::info::device::max_compute_units>());
+    const auto subgroup_sizes = this->get_exec_info().subgroup_sizes;
+    if (subgroup_sizes.size()) {
+        this->get_exec_info().max_subgroup_size = static_cast<int>(
+            *std::max_element(subgroup_sizes.begin(), subgroup_sizes.end()));
+    }
+    this->get_exec_info().max_workgroup_size = static_cast<int>(
+        device.get_info<sycl::info::device::max_work_group_size>());
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
-    // There is no way to get the dimension of a sycl::id object
-    for (std::size_t i = 0; i < 3; i++) {
+    // Get the max dimension of a sycl::id object
+    auto max_work_item_dimensions =
+        device.get_info<sycl::info::device::max_work_item_dimensions>();
+    for (uint32 i = 0; i < max_work_item_dimensions; i++) {
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
     }
-    this->get_exec_info().num_pe_per_cu =
-        device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.
