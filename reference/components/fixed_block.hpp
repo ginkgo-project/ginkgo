@@ -45,7 +45,7 @@ namespace blockutils {
 /**
  * @brief A dense block of values with compile-time constant dimensions
  *
- * The blocks are interpreted as row-major. However, in the future,
+ * The blocks are interpreted as column-major. However, in the future,
  *  a layout template parameter can be added if needed.
  *
  * The primary use is to reinterpret subsets of entries in a big array as
@@ -65,12 +65,12 @@ public:
 
     value_type &at(const int row, const int col)
     {
-        return vals[row * ncols + col];
+        return vals[row + col * nrows];
     }
 
     const value_type &at(const int row, const int col) const
     {
-        return vals[row * ncols + col];
+        return vals[row + col * nrows];
     }
 
     value_type &operator()(const int row, const int col)
