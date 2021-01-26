@@ -46,7 +46,7 @@ namespace blockutils {
  *
  * Accessing BSR values using this type of view abstracts away the
  * storage layout within the individual blocks, as long as all blocks use the
- * same layout. For now, row-major blocks are assumed.
+ * same layout. For now, column-major blocks are assumed.
  *
  * @tparam ValueType  The numeric type of entries of the block
  * @tparam IndexType  The type of integer used to identify the different blocks
@@ -70,13 +70,13 @@ public:
 
     value_type &at(const index_type block, const int row, const int col)
     {
-        return vals_[block * nrows * ncols + row * ncols + col];
+        return vals_[block * nrows * ncols + row + col * nrows];
     }
 
     const value_type &at(const index_type block, const int row,
                          const int col) const
     {
-        return vals_[block * nrows * ncols + row * ncols + col];
+        return vals_[block * nrows * ncols + row + col * nrows];
     }
 
     value_type &operator()(const index_type block, const int row, const int col)
