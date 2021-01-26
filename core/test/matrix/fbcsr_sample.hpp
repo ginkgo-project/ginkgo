@@ -136,8 +136,8 @@ public:
         vals(0, 2, 2) = gko::zero<value_type>();
         vals(3, 0, 0) = gko::zero<value_type>();
 
-        v[34] += FBCSR_TEST_IMAGINARY;
-        v[35] += FBCSR_TEST_IMAGINARY;
+        vals(3, 2, 1) += FBCSR_TEST_IMAGINARY;
+        vals(3, 2, 2) += FBCSR_TEST_IMAGINARY;
 
         return mtx;
     }
@@ -302,14 +302,14 @@ public:
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
 
         v[0] = 1;
-        v[1] = 2;
-        v[2] = 3;
+        v[1] = 3;
+        v[2] = 2;
         v[3] = 0;
-        v[10] = 0;
+        v[9] = 0;
         v[11] = 0;
         v[12] = -12;
-        v[13] = -1;
-        v[14] = -2;
+        v[13] = -2;
+        v[14] = -1;
         v[15] = -11;
 
         return Fbcsr::create(exec,
@@ -385,7 +385,7 @@ private:
 };
 
 /**
- * @brief Generates the a sample block CSR square matrix and its transpose
+ * @brief Generates the a sample block CSR square matrix
  *
  * This currently a 4 x 4 matrix with 2x2 blocks.
  */
@@ -467,14 +467,14 @@ public:
 
         using namespace std::complex_literals;
         v[0] = 1.0 + 1.15i;
-        v[1] = 2.0 + 2.15i;
-        v[2] = 3.0 - 3.15i;
+        v[2] = 2.0 + 2.15i;
+        v[1] = 3.0 - 3.15i;
         v[3] = 0.0 - 0.15i;
-        v[10] = 0.0;
+        v[9] = 0.0;
         v[11] = 0.0;
         v[12] = -12.0 + 12.15i;
-        v[13] = -1.0 + 1.15i;
-        v[14] = -2.0 - 2.15i;
+        v[14] = -1.0 + 1.15i;
+        v[13] = -2.0 - 2.15i;
         v[15] = -11.0 - 11.15i;
 
         return Fbcsr::create(exec,

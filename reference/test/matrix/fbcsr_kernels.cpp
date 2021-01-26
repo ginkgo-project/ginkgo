@@ -163,8 +163,9 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     const index_type ncols = this->mtx2->get_size()[1];
     auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
     T *const xvals = x->get_values();
-    for (index_type i = 0; i < ncols; i++)
+    for (index_type i = 0; i < ncols; i++) {
         xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
+    }
     auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     using Csr = typename TestFixture::Csr;
@@ -190,10 +191,12 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
     auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    for (index_type i = 0; i < ncols; i++)
-        for (index_type j = 0; j < nvecs; j++)
+    for (index_type i = 0; i < ncols; i++) {
+        for (index_type j = 0; j < nvecs; j++) {
             x->at(i, j) = (static_cast<T>(3.0 * i) + get_some_number<T>()) /
                           static_cast<T>(j + 1.0);
+        }
+    }
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
@@ -251,17 +254,19 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     const gko::size_type nvecs = 3;
     auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    for (index_type i = 0; i < ncols; i++)
+    for (index_type i = 0; i < ncols; i++) {
         for (index_type j = 0; j < nvecs; j++) {
             x->at(i, j) =
                 std::log(static_cast<T>(0.1 + static_cast<float>((i + 1) ^ 2)));
         }
-    for (index_type i = 0; i < nrows; i++)
+    }
+    for (index_type i = 0; i < nrows; i++) {
         for (index_type j = 0; j < nvecs; j++) {
             y->at(i, j) =
                 static_cast<T>(std::sin(2 * 3.14 * (i + j + 0.1) / nrows)) +
                 get_some_number<T>();
         }
+    }
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
