@@ -649,6 +649,7 @@ public:
         return this->verify_memory_from(other.get());
     }
 
+protected:
     /**
      * A struct that abstracts the executor info for different executors
      * classes.
@@ -680,35 +681,58 @@ public:
         int num_computing_units = -1;
 
         /**
-         * The number of processing elements per computing unit in the executor.
+         * The number of processing units per computing unit in the executor.
          *
          * @note In CPU executors this is equivalent to the number of SIMD units
-         *       per core. In CUDA and HIP executors this is the number of warps
-         *       per SM. In DPCPP, this is the max work group size.
+         *       per core.
+         *       In CUDA and HIP executors this is the number of warps
+         *       per SM.
+         *       In DPCPP, this is currently undefined.
          */
-        int num_pe_per_cu = -1;
+        int num_pu_per_cu = -1;
 
         /**
          * The sizes of the subgroup for the executor.
          *
          * @note In CPU executors this is invalid.
-         *       In CUDA and HIP executors this is the warp size.
+         *       In CUDA and HIP executors this is invalid.
          *       In DPCPP, this is the subgroup sizes for the device associated
          *       with the dpcpp executor.
          */
         std::vector<int> subgroup_sizes{};
 
         /**
+         * The maximum subgroup size for the executor.
+         *
+         * @note In CPU executors this is invalid.
+         *       In CUDA and HIP executors this is the warp size.
+         *       In DPCPP, this is the maximum subgroup size for the device
+         *       associated with the dpcpp executor.
+         */
+        int max_subgroup_size = -1;
+
+        /**
          * The sizes of the work items for the executor.
          *
          * @note In CPU executors this is invalid.
          *       In CUDA and HIP executors this is the maximum number of threads
-         *       per block.
+         *       in each dimension of a block (x, y, z).
          *       In DPCPP, this is the maximum number of workitems, in each
          *       direction of the workgroup for the device associated with the
          *       dpcpp executor.
          */
         std::vector<int> max_workitem_sizes{};
+
+        /**
+         * The sizes of the work items for the executor.
+         *
+         * @note In CPU executors this is invalid.
+         *       In CUDA and HIP executors this is the maximum number of threads
+         *       in block.
+         *       In DPCPP, this is the maximum number of workitems that are
+         *       permitted in a workgroup.
+         */
+        int max_workgroup_size;
 
         /**
          * The major version for CUDA/HIP device.
@@ -728,7 +752,7 @@ public:
         std::string pci_bus_id = std::string(13, 'x');
 
         /**
-         * The processing units closest to the device.
+         * The host processing units closest to the device.
          *
          * @note Currently only relevant for CUDA, HIP and DPCPP executors.
          *       [Definition from hwloc
@@ -747,7 +771,6 @@ public:
      */
     const exec_info &get_exec_info() const { return this->exec_info_; }
 
-protected:
     /**
      * Allocates raw memory in this Executor.
      *
@@ -838,11 +861,7 @@ protected:
      *
      * @return  the pointer to the exec_info object
      */
-    exec_info &get_exec_info()
-    {
-        return const_cast<exec_info &>(
-            const_cast<const Executor &>(*this).get_exec_info());
-    }
+    exec_info &get_exec_info() { return this->exec_info_; }
 
     exec_info exec_info_;
 
@@ -1016,71 +1035,6 @@ private:
 
 
 /**
- * This class provides some binding functions from the MachineTopology class and
- * the executors can derive from this class as necessary.
- *
- * The executor object can then be bound to the bind-able objects from the
- * machine topology by calling the member functions of this class.
- */
-class EnableBinding {
-public:
-    /**
-     * Bind to Processing units (PU)
-     *
-     * @param ids  The ids of PUs to be bound to the calling process.
-     * @param singlify  The ids of PUs are singlified to prevent possibly
-     *                  expensive migrations by the OS. This means that the
-     *                  binding is performed for only one of the ids in the
-     *                  set of ids passed in.
-     *                  See hwloc doc for
-     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
-     */
-    void bind_to_pus(const std::vector<int> &ids,
-                     const bool singlify = true) const
-    {
-        MachineTopology::get_instance()->bind_to_pus(ids, singlify);
-    }
-
-    /**
-     * Bind to a Processing unit (PU)
-     *
-     * @param ids  The ids of PUs to be bound to the calling process.
-     */
-    void bind_to_pu(const int &id) const
-    {
-        MachineTopology::get_instance()->bind_to_pus(std::vector<int>{id});
-    }
-
-    /**
-     * Bind to a set of cores
-     *
-     * @param ids  The ids of cores to be bound to the calling process.
-     * @param singlify  The ids of PUs are singlified to prevent possibly
-     *                  expensive migrations by the OS. This means that the
-     *                  binding is performed for only one of the ids in the
-     *                  set of ids passed in.
-     *                  See hwloc doc for
-     *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
-     */
-    void bind_to_cores(const std::vector<int> &ids,
-                       const bool singlify = true) const
-    {
-        MachineTopology::get_instance()->bind_to_cores(ids, singlify);
-    }
-
-    /**
-     * Bind to a single core
-     *
-     * @param ids  The ids of the core to be bound to the calling process.
-     */
-    void bind_to_core(const int &id) const
-    {
-        MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
-    }
-};
-
-
-/**
  * Controls whether the DeviceReset function should be called thanks to a
  * boolean. Note that in any case, `DeviceReset` is called only after destroying
  * the last Ginkgo executor. Therefore, it is sufficient to set this flag to the
@@ -1168,7 +1122,7 @@ public:
 
     int get_num_threads_per_core() const
     {
-        return this->get_exec_info().num_pe_per_cu;
+        return this->get_exec_info().num_pu_per_cu;
     }
 
 protected:
@@ -1237,7 +1191,7 @@ protected:
     {
         this->get_exec_info().device_id = -1;
         this->get_exec_info().num_computing_units = 1;
-        this->get_exec_info().num_pe_per_cu = 1;
+        this->get_exec_info().num_pu_per_cu = 1;
     }
 
     bool verify_memory_from(const Executor *src_exec) const override
@@ -1272,7 +1226,6 @@ using DefaultExecutor = ReferenceExecutor;
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor>,
-                     public detail::EnableBinding,
                      public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<CudaExecutor>;
 
@@ -1316,7 +1269,7 @@ public:
      */
     int get_num_warps_per_sm() const noexcept
     {
-        return this->get_exec_info().num_pe_per_cu;
+        return this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -1333,7 +1286,7 @@ public:
     int get_num_warps() const noexcept
     {
         return this->get_exec_info().num_computing_units *
-               this->get_exec_info().num_pe_per_cu;
+               this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -1341,9 +1294,7 @@ public:
      */
     int get_warp_size() const noexcept
     {
-        return (this->get_exec_info().subgroup_sizes.size()
-                    ? this->get_exec_info().subgroup_sizes[0]
-                    : -1);
+        return this->get_exec_info().max_subgroup_size;
     }
 
     /**
@@ -1389,6 +1340,13 @@ public:
         return this->get_exec_info().closest_pu_ids;
     }
 
+    /**
+     * Get the closest NUMA node
+     *
+     * @return  the closest NUMA node closest to this device
+     */
+    int get_closest_numa() const { return this->get_exec_info().numa_node; }
+
 protected:
     void set_gpu_property();
 
@@ -1400,10 +1358,11 @@ protected:
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
-        this->get_exec_info().num_pe_per_cu = 0;
+        this->get_exec_info().num_pu_per_cu = 0;
         this->CudaExecutor::populate_exec_info(MachineTopology::get_instance());
         if (this->get_exec_info().closest_pu_ids.size()) {
-            this->bind_to_pus(this->get_exec_info().closest_pu_ids);
+            MachineTopology::get_instance()->bind_to_pus(
+                this->get_closest_pus());
         }
         this->set_gpu_property();
         this->init_handles();
@@ -1475,7 +1434,6 @@ using DefaultExecutor = CudaExecutor;
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
                     public std::enable_shared_from_this<HipExecutor>,
-                    public detail::EnableBinding,
                     public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<HipExecutor>;
 
@@ -1519,7 +1477,7 @@ public:
      */
     int get_num_warps_per_sm() const noexcept
     {
-        return this->get_exec_info().num_pe_per_cu;
+        return this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -1552,7 +1510,7 @@ public:
     int get_num_warps() const noexcept
     {
         return this->get_exec_info().num_computing_units *
-               this->get_exec_info().num_pe_per_cu;
+               this->get_exec_info().num_pu_per_cu;
     }
 
     /**
@@ -1560,9 +1518,7 @@ public:
      */
     int get_warp_size() const noexcept
     {
-        return (this->get_exec_info().subgroup_sizes.size()
-                    ? this->get_exec_info().subgroup_sizes[0]
-                    : -1);
+        return this->get_exec_info().max_subgroup_size;
     }
 
     /**
@@ -1581,6 +1537,13 @@ public:
     {
         return hipsparse_handle_.get();
     }
+
+    /**
+     * Get the closest NUMA node
+     *
+     * @return  the closest NUMA node closest to this device
+     */
+    int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
     /**
      * Get the closest PUs
@@ -1603,10 +1566,11 @@ protected:
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
-        this->get_exec_info().num_pe_per_cu = 0;
+        this->get_exec_info().num_pu_per_cu = 0;
         this->HipExecutor::populate_exec_info(MachineTopology::get_instance());
         if (this->get_exec_info().closest_pu_ids.size()) {
-            this->bind_to_pus(this->get_exec_info().closest_pu_ids);
+            MachineTopology::get_instance()->bind_to_pus(
+                this->get_closest_pus());
         }
         this->set_gpu_property();
         this->init_handles();
@@ -1738,7 +1702,7 @@ public:
      *
      * @return the number of Computing Units of this executor
      */
-    size_type get_num_computing_units() const noexcept
+    int get_num_computing_units() const noexcept
     {
         return this->get_exec_info().num_computing_units;
     }
@@ -1758,9 +1722,19 @@ public:
      *
      * @return the maximum workgroup size
      */
-    size_type get_max_workgroup_size() const noexcept
+    int get_max_workgroup_size() const noexcept
     {
-        return this->get_exec_info().num_pe_per_cu;
+        return this->get_exec_info().max_workgroup_size;
+    }
+
+    /**
+     * Get the maximum subgroup size.
+     *
+     * @return the maximum subgroup size
+     */
+    int get_max_subgroup_size() const noexcept
+    {
+        return this->get_exec_info().max_subgroup_size;
     }
 
     /**

@@ -233,6 +233,16 @@ public:
     }
 
     /**
+     * Bind to a single core
+     *
+     * @param ids  The ids of the core to be bound to the calling process.
+     */
+    void bind_to_core(const int &id) const
+    {
+        MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
+    }
+
+    /**
      * Bind the calling process to PUs associated with
      * the ids.
      *
@@ -248,6 +258,16 @@ public:
                      const bool singlify = true) const
     {
         hwloc_binding_helper(this->pus_, ids, singlify);
+    }
+
+    /**
+     * Bind to a Processing unit (PU)
+     *
+     * @param ids  The ids of PUs to be bound to the calling process.
+     */
+    void bind_to_pu(const int &id) const
+    {
+        MachineTopology::get_instance()->bind_to_pus(std::vector<int>{id});
     }
 
     /**

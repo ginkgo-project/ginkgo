@@ -230,14 +230,24 @@ void CudaExecutor::set_gpu_property()
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &max_threads_per_block, cudaDevAttrMaxThreadsPerBlock,
             this->get_device_id()));
-        this->get_exec_info().max_workitem_sizes.push_back(
-            max_threads_per_block);
-        this->get_exec_info().num_pe_per_cu =
+        std::vector<int> max_threads_per_block_dim{3, 0};
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[0], cudaDevAttrMaxBlockDimX,
+            this->get_device_id()));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[1], cudaDevAttrMaxBlockDimY,
+            this->get_device_id()));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[2], cudaDevAttrMaxBlockDimZ,
+            this->get_device_id()));
+        this->get_exec_info().max_workgroup_size = max_threads_per_block;
+        this->get_exec_info().max_workitem_sizes = max_threads_per_block_dim;
+        this->get_exec_info().num_pu_per_cu =
             convert_sm_ver_to_cores(this->get_exec_info().major,
                                     this->get_exec_info().minor) /
             kernels::cuda::config::warp_size;
-        this->get_exec_info().subgroup_sizes.push_back(
-            kernels::cuda::config::warp_size);
+        this->get_exec_info().max_subgroup_size =
+            kernels::cuda::config::warp_size;
     }
 }
 

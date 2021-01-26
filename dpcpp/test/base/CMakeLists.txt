@@ -1,2 +1,1 @@
 ginkgo_create_dpcpp_test(executor)
-ginkgo_create_dpcpp_test(executor_topology)
