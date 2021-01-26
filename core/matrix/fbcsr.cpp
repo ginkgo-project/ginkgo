@@ -106,12 +106,12 @@ public:
 
     value_type &at(const int row, const int col)
     {
-        return vals_[row * ncols_ + col];
+        return vals_[row + col * nrows_];
     }
 
     const value_type &at(const int row, const int col) const
     {
-        return vals_[row * ncols_ + col];
+        return vals_[row + col * nrows_];
     }
 
     value_type &operator()(const int row, const int col)
