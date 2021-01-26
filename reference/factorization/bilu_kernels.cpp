@@ -65,8 +65,11 @@ static blockutils::FixedBlock<ValueType, bs, bs> extract_diag_block(
         bcolidx + browptr[blk_row], bcolidx + browptr[blk_row + 1], blk_row);
     const ptrdiff_t dbz = didx - bcolidx;
     blockutils::FixedBlock<ValueType, bs, bs> diag;
-    for (int i = 0; i < bs; i++)
-        for (int j = 0; j < bs; j++) diag(i, j) = vals[dbz](i, j);
+    for (int i = 0; i < bs; i++) {
+        for (int j = 0; j < bs; j++) {
+            diag(i, j) = vals[dbz](i, j);
+        }
+    }
     return diag;
 }
 
@@ -117,12 +120,13 @@ static void compute_bilu_impl(
                     }
                 }
                 if (foundbz != -1) {
-                    for (int i = 0; i < bs; i++)
+                    for (int i = 0; i < bs; i++) {
                         for (int j = 0; j < bs; j++) {
                             for (int k = 0; k < bs; k++)
                                 sum(i, j) -=
                                     vals[kbz](i, k) * vals[foundbz](k, j);
                         }
+                    }
                 }
             }
 
@@ -143,13 +147,17 @@ static void compute_bilu_impl(
                 for (int i = 0; i < bs; i++)
                     for (int j = 0; j < bs; j++) {
                         vals[ibz](i, j) = 0;
-                        for (int k = 0; k < bs; k++)
+                        for (int k = 0; k < bs; k++) {
                             vals[ibz](i, j) += sum(i, k) * invU(k, j);
+                        }
                     }
             } else {
                 // modify entry in U
-                for (int i = 0; i < bs; i++)
-                    for (int j = 0; j < bs; j++) vals[ibz](i, j) = sum(i, j);
+                for (int i = 0; i < bs; i++) {
+                    for (int j = 0; j < bs; j++) {
+                        vals[ibz](i, j) = sum(i, j);
+                    }
+                }
             }
         }
     }

@@ -121,10 +121,16 @@ inline void permute_block(Blkv_t<ValueType, block_size> &mat,
                           const int *const perm)
 {
     Blkv_t<ValueType, block_size> temp;
-    for (int i = 0; i < block_size; i++)
-        for (int j = 0; j < block_size; j++) temp(i, j) = mat(i, j);
-    for (int i = 0; i < block_size; i++)
-        for (int j = 0; j < block_size; j++) mat(perm[i], j) = temp(i, j);
+    for (int i = 0; i < block_size; i++) {
+        for (int j = 0; j < block_size; j++) {
+            temp(i, j) = mat(i, j);
+        }
+    }
+    for (int i = 0; i < block_size; i++) {
+        for (int j = 0; j < block_size; j++) {
+            mat(perm[i], j) = temp(i, j);
+        }
+    }
 }
 
 

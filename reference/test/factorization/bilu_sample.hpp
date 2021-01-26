@@ -282,7 +282,7 @@ public:
 
 
 /**
- * Sample block matrix to check addition of diagonal blocks
+ * Sample block matrix to check addition of missing diagonal blocks
  */
 template <typename ValueType, typename IndexType>
 class BlockDiagSample {

@@ -45,6 +45,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
+TEST(BiluSample, TriangularFactorsDimensionsAreCorrect)
+{
+    using value_type = double;
+    using index_type = int;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+    auto refexec = gko::ReferenceExecutor::create();
+    gko::testing::Bilu0Sample<value_type, index_type> bilus(refexec);
+    auto mtx = bilus.generate_fbcsr();
+    const value_type *const testvals = mtx->get_values();
+    const index_type *const testrowptrs = mtx->get_row_ptrs();
+    const index_type *const testcolidxs = mtx->get_col_idxs();
+    const index_type nbrows = mtx->get_num_block_rows();
+    index_type testnbnzL{}, testnbnzU{};
+    for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
+        for (index_type ibz = testrowptrs[ibrow]; ibz < testrowptrs[ibrow + 1];
+             ibz++) {
+            const index_type jbcol = testcolidxs[ibz];
+            if (jbcol < ibrow) {
+                testnbnzL++;
+            } else {
+                testnbnzU++;
+            }
+        }
+    }
+
+    auto reffacts = bilus.generate_factors();
+    const auto refL =
+        std::dynamic_pointer_cast<const Fbcsr>(reffacts->get_operators()[0]);
+    const auto refU =
+        std::dynamic_pointer_cast<const Fbcsr>(reffacts->get_operators()[1]);
+
+    ASSERT_TRUE(refL);
+    ASSERT_TRUE(refU);
+    ASSERT_EQ(refL->get_size(), mtx->get_size());
+    ASSERT_EQ(refU->get_size(), mtx->get_size());
+    ASSERT_EQ(testnbnzL + nbrows,
+              refL->get_const_row_ptrs()[refL->get_num_block_rows()]);
+    ASSERT_EQ(testnbnzU,
+              refU->get_const_row_ptrs()[refU->get_num_block_rows()]);
+}
+
+
 template <typename ValueIndexType>
 class Bilu : public ::testing::Test {
 protected:
@@ -110,39 +153,19 @@ TYPED_TEST(Bilu, KernelFactorizationSorted)
     using Fbcsr = typename TestFixture::Fbcsr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-
     auto mtxcopy = this->mtx->clone();
-    gko::kernels::reference::bilu_factorization::compute_bilu(this->refexec,
-                                                              mtxcopy.get());
-
-    const auto refL = std::dynamic_pointer_cast<const Fbcsr>(
-        this->reffacts->get_operators()[0]);
-    const auto refU = std::dynamic_pointer_cast<const Fbcsr>(
-        this->reffacts->get_operators()[1]);
-
-    ASSERT_TRUE(refL);
-    ASSERT_TRUE(refU);
-
-    ASSERT_EQ(refL->get_size(), mtxcopy->get_size());
-    ASSERT_EQ(refU->get_size(), mtxcopy->get_size());
-
     const int bs = this->mtx->get_block_size();
     const value_type *const testvals = mtxcopy->get_values();
     const index_type *const testrowptrs = mtxcopy->get_row_ptrs();
     const index_type *const testcolidxs = mtxcopy->get_col_idxs();
     const index_type nbrows = mtxcopy->get_num_block_rows();
+    const auto refL = std::dynamic_pointer_cast<const Fbcsr>(
+        this->reffacts->get_operators()[0]);
+    const auto refU = std::dynamic_pointer_cast<const Fbcsr>(
+        this->reffacts->get_operators()[1]);
 
-    index_type testnbnzL{}, testnbnzU{};
-    for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
-        for (index_type ibz = testrowptrs[ibrow]; ibz < testrowptrs[ibrow + 1];
-             ibz++) {
-            const index_type jbcol = testcolidxs[ibz];
-            if (jbcol < ibrow)
-                testnbnzL++;
-            else
-                testnbnzU++;
-        }
-    }
+    gko::kernels::reference::bilu_factorization::compute_bilu(this->refexec,
+                                                              mtxcopy.get());
 
     const value_type *const refLvals = refL->get_const_values();
     const index_type *const refLrowptrs = refL->get_const_row_ptrs();
@@ -150,15 +173,8 @@ TYPED_TEST(Bilu, KernelFactorizationSorted)
     const value_type *const refUvals = refU->get_const_values();
     const index_type *const refUrowptrs = refU->get_const_row_ptrs();
     const index_type *const refUcolidxs = refU->get_const_col_idxs();
-
-    ASSERT_EQ(testnbnzL + nbrows,
-              refL->get_const_row_ptrs()[refL->get_num_block_rows()]);
-    ASSERT_EQ(testnbnzU,
-              refU->get_const_row_ptrs()[refU->get_num_block_rows()]);
-
     constexpr auto eps =
         std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
-
     index_type lbz = 0, ubz = 0;
     for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
         for (index_type ibz = testrowptrs[ibrow]; ibz < testrowptrs[ibrow + 1];

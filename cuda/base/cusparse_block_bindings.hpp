@@ -88,7 +88,7 @@ template <>
 struct is_supported<std::complex<double>, int32> : std::true_type {};
 
 /// Default storage layout within each small dense block
-constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
+constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_COLUMN;
 
 
 #define GKO_BIND_CUSPARSE32_BSRMV(ValueType, CusparseName)                    \
