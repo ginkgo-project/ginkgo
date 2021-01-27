@@ -322,7 +322,7 @@ TYPED_TEST(Fbcsr, GetNumBlocksCorrectlyThrows)
     const int blk_sz = 9;
 
     ASSERT_THROW(gko::matrix::detail::get_num_blocks(blk_sz, vec_sz),
-                 gko::BlockSizeError<index_type>);
+                 gko::BlockSizeError<decltype(vec_sz)>);
 }
 
 
