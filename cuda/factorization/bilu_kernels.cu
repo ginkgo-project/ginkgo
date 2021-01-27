@@ -66,20 +66,22 @@ void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
     // get buffer size for ILU
     const IndexType num_rows = m->get_size()[0];
     const IndexType nnz = m->get_num_stored_elements();
+    const IndexType num_b_rows = m->get_num_block_rows();
+    const IndexType nnzb = m->get_num_stored_blocks();
     const int bs = m->get_block_size();
     const size_type buffer_size = cusparse::bilu0_buffer_size(
-        handle, num_rows, nnz, desc, m->get_const_values(),
+        handle, num_b_rows, nnzb, desc, m->get_const_values(),
         m->get_const_row_ptrs(), m->get_const_col_idxs(), bs, info);
 
     Array<char> buffer{exec, buffer_size};
 
     // set up ILU(0)
-    cusparse::bilu0_analysis(handle, num_rows, nnz, desc, m->get_values(),
+    cusparse::bilu0_analysis(handle, num_b_rows, nnzb, desc, m->get_values(),
                              m->get_const_row_ptrs(), m->get_const_col_idxs(),
                              bs, info, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
                              buffer.get_data());
 
-    cusparse::bilu0(handle, num_rows, nnz, desc, m->get_values(),
+    cusparse::bilu0(handle, num_b_rows, nnzb, desc, m->get_values(),
                     m->get_const_row_ptrs(), m->get_const_col_idxs(), bs, info,
                     CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
