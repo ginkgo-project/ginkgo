@@ -258,8 +258,8 @@ TEST_F(AmgxPgm, MatchEdgeIsEquivalentToRef)
 TEST_F(AmgxPgm, CountUnaggIsEquivalentToRef)
 {
     initialize_data();
-    gko::size_type num_unagg;
-    gko::size_type d_num_unagg;
+    index_type num_unagg;
+    index_type d_num_unagg;
 
     gko::kernels::reference::amgx_pgm::count_unagg(ref, agg, &num_unagg);
     gko::kernels::omp::amgx_pgm::count_unagg(omp, d_agg, &d_num_unagg);
@@ -273,8 +273,8 @@ TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
     initialize_data();
     auto x = unfinished_agg;
     auto d_x = d_unfinished_agg;
-    gko::size_type num_agg;
-    gko::size_type d_num_agg;
+    index_type num_agg;
+    index_type d_num_agg;
 
     gko::kernels::reference::amgx_pgm::renumber(ref, agg, &num_agg);
     gko::kernels::omp::amgx_pgm::renumber(omp, d_agg, &d_num_agg);
@@ -322,7 +322,7 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
     initialize_data();
     auto d_x = d_unfinished_agg;
     auto d_intermediate_agg = gko::Array<index_type>(omp, 0);
-    gko::size_type d_num_unagg;
+    index_type d_num_unagg;
 
     gko::kernels::omp::amgx_pgm::assign_to_exist_agg(
         omp, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
