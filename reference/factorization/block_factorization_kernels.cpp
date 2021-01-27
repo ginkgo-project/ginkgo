@@ -103,8 +103,7 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
         return;
     }
 
-    const auto old_nbnz =
-        blockutils::get_num_blocks(bs * bs, mtx->get_num_stored_elements());
+    const auto old_nbnz = mtx->get_num_stored_blocks();
     const auto new_nbnz = old_nbnz + missing_blocks;
     Array<ValueType> new_values_array{exec, new_nbnz * bs * bs};
     Array<IndexType> new_col_idxs_array{exec, new_nbnz};
