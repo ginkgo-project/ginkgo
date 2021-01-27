@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/multigrid/interface.hpp>
+#include <ginkgo/core/multigrid/multigrid_base.hpp>
 
 
 namespace gko {
@@ -117,14 +117,17 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The maximum number of iterations.
+         * The maximum number of iterations. We use the same default value as
+         * NVIDIA AMGX Reference Manual (October 2017, API Version 2,
+         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
          */
         unsigned GKO_FACTORY_PARAMETER(max_iterations, 15u);
 
         /**
          * The maximum ratio of unassigned number, which is valid in the
          * interval 0.0 ~ 1.0. We use the same default value as NVIDIA AMGX
-         * Reference Manual (October 2017, API Version 2).
+         * Reference Manual (October 2017, API Version 2,
+         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
          */
         double GKO_FACTORY_PARAMETER(max_unassigned_percentage, 0.05);
 
@@ -179,6 +182,7 @@ protected:
             this->generate();
         }
     }
+
     void generate();
 
 private:
