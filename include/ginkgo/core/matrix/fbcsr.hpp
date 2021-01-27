@@ -73,11 +73,9 @@ namespace detail {
  * @throw BlockSizeError  when block_size does not divide the total size.
  */
 template <typename IndexType>
-IndexType get_num_blocks(const int block_size, const IndexType size)
+inline IndexType get_num_blocks(const int block_size, const IndexType size)
 {
-    if (size % block_size != 0) {
-        throw BlockSizeError<IndexType>(__FILE__, __LINE__, block_size, size);
-    }
+    GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size, block_size);
     return size / block_size;
 }
 
