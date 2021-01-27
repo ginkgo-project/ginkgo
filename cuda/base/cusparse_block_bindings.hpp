@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "core/components/fixed_block.hpp"
 #include "cuda/base/types.hpp"
 
 
@@ -93,16 +92,12 @@ constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
 
 #define GKO_BIND_CUSPARSE32_BSRMV(ValueType, CusparseName)                    \
     inline void bsrmv(cusparseHandle_t handle, cusparseOperation_t transA,    \
-                      int32 m, int32 n, int32 nnz, const ValueType *alpha,    \
+                      int32 mb, int32 nb, int32 nnzb, const ValueType *alpha, \
                       const cusparseMatDescr_t descrA, const ValueType *valA, \
                       const int32 *rowPtrA, const int32 *colIndA,             \
                       int blocksize, const ValueType *x,                      \
                       const ValueType *beta, ValueType *y)                    \
     {                                                                         \
-        const int32 mb = blockutils::get_num_blocks(blocksize, m);            \
-        const int32 nb = blockutils::get_num_blocks(blocksize, n);            \
-        const int32 nnzb =                                                    \
-            blockutils::get_num_blocks(blocksize * blocksize, nnz);           \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                           \
             handle, blockDir, transA, mb, nb, nnzb, as_culibs_type(alpha),    \
             descrA, as_culibs_type(valA), rowPtrA, colIndA, blocksize,        \
@@ -112,15 +107,15 @@ constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-#define GKO_BIND_CUSPARSE64_BSRMV(ValueType, CusparseName)                     \
-    inline void bsrmv(                                                         \
-        cusparseHandle_t handle, cusparseOperation_t transA, int64 m, int64 n, \
-        int64 nnz, const ValueType *alpha, const cusparseMatDescr_t descrA,    \
-        const ValueType *csrValA, const int64 *csrRowPtrA,                     \
-        const int64 *csrColIndA, const ValueType *x, const ValueType *beta,    \
-        ValueType *y) GKO_NOT_IMPLEMENTED;                                     \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_BIND_CUSPARSE64_BSRMV(ValueType, CusparseName)                    \
+    inline void bsrmv(                                                        \
+        cusparseHandle_t handle, cusparseOperation_t transA, int64 mb,        \
+        int64 nb, int64 nnzb, const ValueType *alpha,                         \
+        const cusparseMatDescr_t descrA, const ValueType *csrValA,            \
+        const int64 *csrRowPtrA, const int64 *csrColIndA, const ValueType *x, \
+        const ValueType *beta, ValueType *y) GKO_NOT_IMPLEMENTED;             \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 GKO_BIND_CUSPARSE32_BSRMV(float, cusparseSbsrmv);
@@ -143,17 +138,13 @@ GKO_BIND_CUSPARSE64_BSRMV(ValueType, detail::not_implemented);
 
 #define GKO_BIND_CUSPARSE32_BSRMM(ValueType, CusparseName)                     \
     inline void bsrmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                      int32 m, int32 n, int32 k, int32 nnz,                    \
+                      int32 mb, int32 n, int32 kb, int32 nnzb,                 \
                       const ValueType *alpha, const cusparseMatDescr_t descrA, \
                       const ValueType *valA, const int32 *rowPtrA,             \
                       const int32 *colIndA, int block_size,                    \
                       const ValueType *B, int32 ldb, const ValueType *beta,    \
                       ValueType *C, int32 ldc)                                 \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_size, m);            \
-        const int32 kb = blockutils::get_num_blocks(block_size, k);            \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_size * block_size, nnz);          \
         constexpr cusparseOperation_t transB =                                 \
             CUSPARSE_OPERATION_NON_TRANSPOSE;                                  \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
@@ -168,7 +159,7 @@ GKO_BIND_CUSPARSE64_BSRMV(ValueType, detail::not_implemented);
 
 #define GKO_BIND_CUSPARSE64_BSRMM(ValueType, CusparseName)                     \
     inline void bsrmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                      int64 m, int64 n, int64 k, int64 nnz,                    \
+                      int64 mb, int64 n, int64 kb, int64 nnzb,                 \
                       const ValueType *alpha, const cusparseMatDescr_t descrA, \
                       const ValueType *valA, const int64 *rowPtrA,             \
                       const int64 *colIndA, const ValueType *B, int64 ldb,     \
@@ -195,7 +186,7 @@ GKO_BIND_CUSPARSE64_BSRMM(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_BSRMM
 #undef GKO_BIND_CUSPARSE64_BSRMM
 
-#if 0
+#if 0  // don't compile
 template <typename ValueType, typename IndexType>
 inline
 int transpose_buffersize(cusparseHandle_t handle, size_type m, size_type n,
@@ -265,7 +256,7 @@ GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32(std::complex<float>, cusparseCgebsr2gebsc);
 GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32(std::complex<double>, cusparseZgebsr2gebsc);
 
 #undef GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32
-#endif
+#endif  // end uncompiled
 
 
 inline cusparseMatDescr_t create_bsr_mat_descr()
@@ -313,13 +304,10 @@ inline void destroy(bsrilu02Info_t info)
 #define GKO_BIND_CUSPARSE32_BSRSM_BUFFERSIZE(ValueType, CusparseName)          \
     inline int bsrsm2_buffer_size(                                             \
         cusparseHandle_t handle, cusparseOperation_t transA,                   \
-        cusparseOperation_t transX, int32 m, int32 n, int32 nnz,               \
+        cusparseOperation_t transX, int32 mb, int32 n, int32 nnzb,             \
         const cusparseMatDescr_t descr, ValueType *val, const int32 *rowPtr,   \
         const int32 *colInd, int block_sz, bsrsm2Info_t factor_info)           \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         int factor_work_size = -1;                                             \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, transA, transX, mb, n, nnzb, descr, \
@@ -333,7 +321,7 @@ inline void destroy(bsrilu02Info_t info)
 
 #define GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, CusparseName)        \
     inline size_type bsrsm2_buffer_size(                                     \
-        cusparseHandle_t handle, size_type m, size_type n, size_type nnz,    \
+        cusparseHandle_t handle, size_type mb, size_type n, size_type nnzb,  \
         const cusparseMatDescr_t descr, ValueType *val, const int64 *rowPtr, \
         const int64 *colInd, int block_size, bsrsm2Info_t factor_info)       \
         GKO_NOT_IMPLEMENTED;                                                 \
@@ -364,15 +352,12 @@ GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, detail::not_implemented);
 #define GKO_BIND_CUSPARSE32_BSRSM2_ANALYSIS(ValueType, CusparseName)           \
     inline void bsrsm2_analysis(                                               \
         cusparseHandle_t handle, cusparseOperation_t trans1,                   \
-        cusparseOperation_t trans2, int32 m, int32 n, int32 nnz,               \
+        cusparseOperation_t trans2, int32 mb, int32 n, int32 nnzb,             \
         const cusparseMatDescr_t descr, const ValueType *val,                  \
         const int32 *rowPtr, const int32 *colInd, int block_size,              \
         bsrsm2Info_t factor_info, cusparseSolvePolicy_t policy,                \
         void *factor_work_vec)                                                 \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_size, m);            \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_size * block_size, nnz);          \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, trans1, trans2, mb, n, nnzb, descr, \
                          as_culibs_type(val), rowPtr, colInd, block_size,      \
@@ -382,16 +367,16 @@ GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-#define GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, CusparseName)         \
-    inline void bsrsm2_analysis(                                             \
-        cusparseHandle_t handle, cusparseOperation_t trans1,                 \
-        cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        const cusparseMatDescr_t descr, const ValueType *val,                \
-        const int64 *rowPtr, const int64 *colInd, bsrsm2Info_t factor_info,  \
-        cusparseSolvePolicy_t policy, void *factor_work_vec)                 \
-        GKO_NOT_IMPLEMENTED;                                                 \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, CusparseName)           \
+    inline void bsrsm2_analysis(                                               \
+        cusparseHandle_t handle, cusparseOperation_t trans1,                   \
+        cusparseOperation_t trans2, size_type mb, size_type n, size_type nnzb, \
+        const cusparseMatDescr_t descr, const ValueType *val,                  \
+        const int64 *rowPtr, const int64 *colInd, bsrsm2Info_t factor_info,    \
+        cusparseSolvePolicy_t policy, void *factor_work_vec)                   \
+        GKO_NOT_IMPLEMENTED;                                                   \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 GKO_BIND_CUSPARSE32_BSRSM2_ANALYSIS(float, cusparseSbsrsm2_analysis);
@@ -417,16 +402,13 @@ GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #define GKO_BIND_CUSPARSE32_BSRSM2_SOLVE(ValueType, CusparseName)              \
     inline void bsrsm2_solve(                                                  \
         cusparseHandle_t handle, cusparseDirection_t dirA,                     \
-        cusparseOperation_t transA, cusparseOperation_t transX, int32 m,       \
-        int32 n, int32 nnz, const ValueType *alpha,                            \
+        cusparseOperation_t transA, cusparseOperation_t transX, int32 mb,      \
+        int32 n, int32 nnzb, const ValueType *alpha,                           \
         const cusparseMatDescr_t descrA, const ValueType *valA,                \
         const int32 *rowPtrA, const int32 *colIndA, int blockSizeA,            \
         bsrsm2Info_t factor_info, const ValueType *B, int32 ldb, ValueType *X, \
         int32 ldx, cusparseSolvePolicy_t policy, void *factor_work_vec)        \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(blockSizeA, m);            \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(blockSizeA * blockSizeA, nnz);          \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, dirA, transA, transX, mb, n, nnzb, as_culibs_type(alpha),  \
             descrA, as_culibs_type(valA), rowPtrA, colIndA, blockSizeA,        \
@@ -440,8 +422,8 @@ GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #define GKO_BIND_CUSPARSE64_BSRSM2_SOLVE(ValueType, CusparseName)              \
     inline void bsrsm2_solve(                                                  \
         cusparseHandle_t handle, cusparseDirection_t dirA,                     \
-        cusparseOperation_t trans1, cusparseOperation_t trans2, size_type m,   \
-        size_type n, size_type nnz, const ValueType *alpha,                    \
+        cusparseOperation_t trans1, cusparseOperation_t trans2, size_type mb,  \
+        size_type n, size_type nnzb, const ValueType *alpha,                   \
         const cusparseMatDescr_t descr, const ValueType *val,                  \
         const int64 *rowPtr, const int64 *colInd, int block_size,              \
         bsrsm2Info_t factor_info, const ValueType *B, int64 ldb, ValueType *X, \
@@ -468,7 +450,7 @@ GKO_BIND_CUSPARSE64_BSRSM2_SOLVE(ValueType, detail::not_implemented);
 
 
 template <typename ValueType, typename IndexType>
-int bilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
+int bilu0_buffer_size(cusparseHandle_t handle, IndexType mb, IndexType nnzb,
                       const cusparseMatDescr_t descr, const ValueType *vals,
                       const IndexType *row_ptrs, const IndexType *col_idxs,
                       int block_sz, bsrilu02Info_t info) GKO_NOT_IMPLEMENTED;
@@ -476,14 +458,11 @@ int bilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
 #define GKO_BIND_CUSPARSE_BILU0_BUFFER_SIZE(ValueType, CusparseName)           \
     template <>                                                                \
     inline int bilu0_buffer_size<ValueType, int32>(                            \
-        cusparseHandle_t handle, int32 m, int32 nnz,                           \
+        cusparseHandle_t handle, int32 mb, int32 nnzb,                         \
         const cusparseMatDescr_t descr, const ValueType *vals,                 \
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info)                                                   \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         int tmp_buffer_sz{};                                                   \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, mb, nnzb, descr,                    \
@@ -506,24 +485,21 @@ GKO_BIND_CUSPARSE_BILU0_BUFFER_SIZE(std::complex<double>,
 
 
 template <typename ValueType, typename IndexType>
-inline void bilu0_analysis(cusparseHandle_t handle, IndexType m, IndexType nnz,
-                           const cusparseMatDescr_t descr, ValueType *vals,
-                           const IndexType *row_ptrs, const IndexType *col_idxs,
-                           int block_sz, bsrilu02Info_t info,
-                           cusparseSolvePolicy_t policy,
+inline void bilu0_analysis(cusparseHandle_t handle, IndexType mb,
+                           IndexType nnzb, const cusparseMatDescr_t descr,
+                           ValueType *vals, const IndexType *row_ptrs,
+                           const IndexType *col_idxs, int block_sz,
+                           bsrilu02Info_t info, cusparseSolvePolicy_t policy,
                            void *buffer) GKO_NOT_IMPLEMENTED;
 
 #define GKO_BIND_CUSPARSE_BILU0_ANALYSIS(ValueType, CusparseName)              \
     template <>                                                                \
     inline void bilu0_analysis<ValueType, int32>(                              \
-        cusparseHandle_t handle, int32 m, int32 nnz,                           \
+        cusparseHandle_t handle, int32 mb, int32 nnzb,                         \
         const cusparseMatDescr_t descr, ValueType *vals,                       \
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info, cusparseSolvePolicy_t policy, void *buffer)       \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, blockDir, mb, nnzb, descr, as_culibs_type(vals), row_ptrs, \
             col_idxs, block_sz, info, policy, buffer));                        \
@@ -543,7 +519,7 @@ GKO_BIND_CUSPARSE_BILU0_ANALYSIS(std::complex<double>,
 
 
 template <typename ValueType, typename IndexType>
-void bilu0(cusparseHandle_t handle, IndexType m, IndexType nnz,
+void bilu0(cusparseHandle_t handle, IndexType mb, IndexType nnzb,
            const cusparseMatDescr_t descr, ValueType *vals,
            const IndexType *row_ptrs, const IndexType *col_idxs, int block_sz,
            bsrilu02Info_t info, cusparseSolvePolicy_t policy,
@@ -552,14 +528,11 @@ void bilu0(cusparseHandle_t handle, IndexType m, IndexType nnz,
 #define GKO_BIND_CUSPARSE_BILU0(ValueType, CusparseName)                       \
     template <>                                                                \
     inline void bilu0<ValueType, int32>(                                       \
-        cusparseHandle_t handle, int32 m, int32 nnz,                           \
+        cusparseHandle_t handle, int32 mb, int32 nnzb,                         \
         const cusparseMatDescr_t descr, ValueType *vals,                       \
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info, cusparseSolvePolicy_t policy, void *buffer)       \
     {                                                                          \
-        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
-        const int32 nnzb =                                                     \
-            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, blockDir, mb, nnzb, descr, as_culibs_type(vals), row_ptrs, \
             col_idxs, block_sz, info, policy, buffer));                        \
