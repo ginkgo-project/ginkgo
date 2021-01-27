@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "fixed_block.hpp"
+#include "core/components/fixed_block.hpp"
 
 
 namespace gko {
