@@ -567,6 +567,26 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
                   "semi-colon warnings")
 
 
+/**
+ * Ensures that a given size, typically of a linear algebraic object,
+ * is divisible by a given block size.
+ *
+ * @param _size  A size of a vector or matrix
+ * @param _block_size  Size of small dense blocks that make up
+ *                     the vector or matrix
+ *
+ * @throw BlockSizeError  if _block_size does not divide _size
+ */
+#define GKO_ASSERT_BLOCK_SIZE_CONFORMANT(_size, _block_size)                   \
+    if (_size % _block_size != 0) {                                            \
+        throw BlockSizeError<decltype(_size)>(__FILE__, __LINE__, _block_size, \
+                                              _size);                          \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
 }  // namespace gko
 
 
