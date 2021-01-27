@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_
-#define GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_
+#ifndef GKO_PUBLIC_CORE_MULTIGRID_MULTIGRID_BASE_HPP_
+#define GKO_PUBLIC_CORE_MULTIGRID_MULTIGRID_BASE_HPP_
 
 
 #include <functional>
@@ -267,6 +267,48 @@ private:
  * MultigridLevel::prolong_applyadd_impl(), and
  * MultigridLevel::restrict_apply_impl() methods.
  *
+ * ```c++
+ * class MyMultigridLevel : public EnableLinOp<MyMultigridLevel>,
+ *                          public MultigridLevel {
+ *     GKO_CREATE_FACTORY_PARAMETERS(MyMultigridLevel, Factory) {
+ *         // some parameter settings as LinOpFactory
+ *     };
+ *     GKO_ENABLE_LIN_OP_FACTORY(MyMultigridLevel, parameters, Factory);
+ *     GKO_ENABLE_BUILD_METHOD(Factory);
+ *
+ *     // Need to implement the following override function:
+ *     // prolong_apply_impl, prolong_applyadd_impl, restict_apply_impl
+ *
+ *     // could use the default apply implementation of MultigridLevel
+ *     void apply_impl(const LinOp* b, LinOp* x) const override {
+ *         this->template multigrid_level_default_apply<ValueType>(b, x);
+ *     }
+ *
+ *     // could use the default apply implementation of MultigridLevel
+ *     void apply_impl(const LinOp *alpha, const LinOp *b,
+ *                     const LinOp *beta, LinOp *x) const override {
+ *         this->template multigrid_level_default_apply<ValueType>(
+ *             alpha, b, beta, x);
+ *     }
+ *
+ *     // constructor needed by EnableLinOp
+ *     explicit MyMultigridLevel(std::shared_ptr<const Executor> exec) {
+ *         : EnableLinOp<MyMultigridLevel>(exec) {}
+ *
+ *     // constructor needed by the factory
+ *     explicit MyMultigridLevel(const Factory *factory,
+ *                      std::shared_ptr<const LinOp> matrix)
+ *         : EnableLinOp<MyMultigridLevel>(factory->get_executor()),
+ *                                         matrix->get_size()),
+ *           // store factory's parameters locally
+ *           my_parameters_{factory->get_parameters()},
+ *     {
+ *          // do something with parameter to generate fine/coarse matrices
+ *          // set the information such that the checks work properly
+ *          this->set_fine_coarse(fine, corase);
+ *     }
+ * ```
+ *
  * @ingroup Multigrid
  */
 class MultigridLevel : public RestrictOp, public ProlongOp, public CoarseOp {
@@ -361,4 +403,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MULTIGRID_INTERFACE_HPP_
+#endif  // GKO_PUBLIC_CORE_MULTIGRID_MULTIGRID_BASE_HPP_
