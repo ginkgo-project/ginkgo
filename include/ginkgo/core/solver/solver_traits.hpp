@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace detail {
 
 
 /**
@@ -55,7 +54,7 @@ namespace detail {
  *
  */
 template <typename SolverType, typename = void>
-struct has_with_criteria_impl : std::false_type {};
+struct has_with_criteria : std::false_type {};
 
 /**
  * @copydoc has_with_criteria
@@ -65,20 +64,10 @@ struct has_with_criteria_impl : std::false_type {};
  *            as a specialization, which is why `xstd::void_t` is used.
  */
 template <typename SolverType>
-struct has_with_criteria_impl<
+struct has_with_criteria<
     SolverType, xstd::void_t<decltype(SolverType::build().with_criteria(
                     std::shared_ptr<const stop::CriterionFactory>()))>>
     : std::true_type {};
-
-
-}  // namespace detail
-
-
-template <typename SolverType>
-constexpr bool has_with_criteria()
-{
-    return detail::has_with_criteria_impl<SolverType>::value;
-}
 
 
 }  // namespace solver
