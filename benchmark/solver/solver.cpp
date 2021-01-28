@@ -262,7 +262,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_double",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::keep)
                  .with_criteria(create_criterion(exec))
@@ -273,7 +273,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_float",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::reduce1)
                  .with_criteria(create_criterion(exec))
@@ -284,7 +284,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_half",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::reduce2)
                  .with_criteria(create_criterion(exec))
@@ -295,7 +295,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_int64",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::integer)
                  .with_criteria(create_criterion(exec))
@@ -306,7 +306,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_int32",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::ireduce1)
                  .with_criteria(create_criterion(exec))
@@ -317,7 +317,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"cb_gmres_int16",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<double>::build()
+             return gko::solver::CbGmres<etype>::build()
                  .with_storage_precision(
                      gko::solver::cb_gmres_storage_precision::ireduce2)
                  .with_criteria(create_criterion(exec))
