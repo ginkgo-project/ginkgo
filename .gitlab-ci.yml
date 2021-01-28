@@ -22,7 +22,7 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
-  DISABLE_HWLOC: "OFF"
+  BUILD_HWLOC: "ON"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
@@ -64,7 +64,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_DISABLE_HWLOC=${DISABLE_HWLOC}
+        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
@@ -96,7 +96,7 @@ stages:
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_DISABLE_HWLOC=${DISABLE_HWLOC}
+        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
@@ -266,7 +266,7 @@ build/cuda92/intel/cuda/release/static:
     CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    DISABLE_HWLOC: "ON"
+    BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -422,7 +422,7 @@ build/clang-cuda101/clang/cuda/debug/static:
 
 # cuda 10.2 and friends
 
-# Use TPL hwloc
+# works when there is no hwloc and tpl hwloc is also switched off.
 build/cuda102/gcc/all/debug/shared:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
@@ -432,7 +432,7 @@ build/cuda102/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
-    DISABLE_HWLOC: "ON"
+    BUILD_HWLOC: "OFF"
     CUDA_ARCH: 35
   only:
     variables:
@@ -442,6 +442,7 @@ build/cuda102/gcc/all/debug/shared:
     - cuda
     - gpu
 
+# Use TPL hwloc when no system hwloc is available
 build/cuda102/clang/all/release/static:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
@@ -587,7 +588,7 @@ build/nocuda/gcc/core/debug/static:
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
-    DISABLE_HWLOC: "ON"
+    BUILD_HWLOC: "OFF"
   only:
     variables:
       - $RUN_CI_TAG
