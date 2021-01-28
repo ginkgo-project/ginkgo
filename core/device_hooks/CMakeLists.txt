@@ -12,7 +12,7 @@ if (NOT GINKGO_BUILD_DPCPP)
     add_library(ginkgo_dpcpp
         $<TARGET_OBJECTS:ginkgo_dpcpp_device>
         dpcpp_hooks.cpp)
-    target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_core_device )
+    target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_core_device)
     ginkgo_compile_features(ginkgo_dpcpp)
     ginkgo_default_includes(ginkgo_dpcpp)
     ginkgo_install_library(ginkgo_dpcpp dpcpp)
