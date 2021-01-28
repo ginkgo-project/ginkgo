@@ -10,6 +10,8 @@
     - FixInclude: "core/factorization/par_ilut_kernels.hpp"
 - "(cuda|hip|omp|dpcpp)/test/factorization/par_ict_kernels"
     - FixInclude: "core/factorization/par_ict_kernels.hpp"
+- "(cuda|hip|omp|dpcpp)/test/factorization/par_ic_kernels"
+    - FixInclude: "core/factorization/par_ic_kernels.hpp"
 - "cuda/factorization/par_ilut_select_common"
     - FixInclude: "cuda/factorization/par_ilut_select_common.cuh"
 - "hip/factorization/par_ilut_select_common"

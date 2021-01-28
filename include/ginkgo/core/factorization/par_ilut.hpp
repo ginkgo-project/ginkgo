@@ -100,20 +100,21 @@ class ParIlut : public Composition<ValueType> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using l_matrix_type = matrix::Csr<ValueType, IndexType>;
-    using u_matrix_type = matrix::Csr<ValueType, IndexType>;
+    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using l_matrix_type = matrix_type;
+    using u_matrix_type = matrix_type;
 
-    std::shared_ptr<const l_matrix_type> get_l_factor() const
+    std::shared_ptr<const matrix_type> get_l_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const l_matrix_type>(
+        return std::static_pointer_cast<const matrix_type>(
             this->get_operators()[0]);
     }
 
-    std::shared_ptr<const u_matrix_type> get_u_factor() const
+    std::shared_ptr<const matrix_type> get_u_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const u_matrix_type>(
+        return std::static_pointer_cast<const matrix_type>(
             this->get_operators()[1]);
     }
 
@@ -204,14 +205,14 @@ public:
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename l_matrix_type::strategy_type>
+        std::shared_ptr<typename matrix_type::strategy_type>
             GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename u_matrix_type::strategy_type>
+        std::shared_ptr<typename matrix_type::strategy_type>
             GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlut, parameters, Factory);
@@ -225,11 +226,11 @@ protected:
     {
         if (parameters_.l_strategy == nullptr) {
             parameters_.l_strategy =
-                std::make_shared<typename l_matrix_type::classical>();
+                std::make_shared<typename matrix_type::classical>();
         }
         if (parameters_.u_strategy == nullptr) {
             parameters_.u_strategy =
-                std::make_shared<typename u_matrix_type::classical>();
+                std::make_shared<typename matrix_type::classical>();
         }
         generate_l_u(std::move(system_matrix))->move_to(this);
     }

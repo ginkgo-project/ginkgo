@@ -86,18 +86,18 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llt,
+                    const matrix::Csr<ValueType, IndexType> *llh,
                     const matrix::Csr<ValueType, IndexType> *a,
                     const matrix::Csr<ValueType, IndexType> *l,
                     matrix::Csr<ValueType, IndexType> *l_new)
 {
-    auto num_rows = static_cast<IndexType>(llt->get_size()[0]);
+    auto num_rows = static_cast<IndexType>(llh->get_size()[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
     matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
-    auto llt_row_ptrs = llt->get_const_row_ptrs();
-    auto llt_col_idxs = llt->get_const_col_idxs();
-    auto llt_vals = llt->get_const_values();
+    auto llh_row_ptrs = llh->get_const_row_ptrs();
+    auto llh_col_idxs = llh->get_const_col_idxs();
+    auto llh_vals = llh->get_const_values();
     auto a_row_ptrs = a->get_const_row_ptrs();
     auto a_col_idxs = a->get_const_col_idxs();
     auto a_vals = a->get_const_values();
@@ -108,8 +108,8 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     // count non-zeros per row
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::ict_tri_spgeam_nnz<subwarp_size>),
-        dim3(num_blocks), dim3(default_block_size), 0, 0, llt_row_ptrs,
-        llt_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs, num_rows);
+        dim3(num_blocks), dim3(default_block_size), 0, 0, llh_row_ptrs,
+        llh_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs, num_rows);
 
     // build row ptrs
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
@@ -125,8 +125,8 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     // fill columns and values
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::ict_tri_spgeam_init<subwarp_size>),
-        dim3(num_blocks), dim3(default_block_size), 0, 0, llt_row_ptrs,
-        llt_col_idxs, as_hip_type(llt_vals), a_row_ptrs, a_col_idxs,
+        dim3(num_blocks), dim3(default_block_size), 0, 0, llh_row_ptrs,
+        llh_col_idxs, as_hip_type(llh_vals), a_row_ptrs, a_col_idxs,
         as_hip_type(a_vals), l_row_ptrs, l_col_idxs, as_hip_type(l_vals),
         l_new_row_ptrs, l_new_col_idxs, as_hip_type(l_new_vals), num_rows);
 }
@@ -163,14 +163,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_factor, compute_factor);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llt,
+                    const matrix::Csr<ValueType, IndexType> *llh,
                     const matrix::Csr<ValueType, IndexType> *a,
                     const matrix::Csr<ValueType, IndexType> *l,
                     matrix::Csr<ValueType, IndexType> *l_new)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =
-        llt->get_num_stored_elements() + a->get_num_stored_elements();
+        llh->get_num_stored_elements() + a->get_num_stored_elements();
     auto total_nnz_per_row = total_nnz / num_rows;
     select_add_candidates(
         compiled_kernels(),
@@ -178,7 +178,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, llt, a, l, l_new);
+        syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

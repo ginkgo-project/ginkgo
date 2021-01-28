@@ -74,14 +74,12 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
         1, 1};
     for (size_type i = 0; i < iterations; ++i) {
         kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
-            num_elements, as_cuda_type(system_matrix->get_const_row_idxs()),
-            as_cuda_type(system_matrix->get_const_col_idxs()),
+            num_elements, system_matrix->get_const_row_idxs(),
+            system_matrix->get_const_col_idxs(),
             as_cuda_type(system_matrix->get_const_values()),
-            as_cuda_type(l_factor->get_const_row_ptrs()),
-            as_cuda_type(l_factor->get_const_col_idxs()),
+            l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
             as_cuda_type(l_factor->get_values()),
-            as_cuda_type(u_factor->get_const_row_ptrs()),
-            as_cuda_type(u_factor->get_const_col_idxs()),
+            u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
             as_cuda_type(u_factor->get_values()));
     }
 }

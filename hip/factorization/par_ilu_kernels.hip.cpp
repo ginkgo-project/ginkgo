@@ -77,17 +77,15 @@ void compute_l_u_factors(std::shared_ptr<const HipExecutor> exec,
             ceildiv(num_elements, static_cast<size_type>(block_size.x))),
         1, 1};
     for (size_type i = 0; i < iterations; ++i) {
-        hipLaunchKernelGGL(kernel::compute_l_u_factors, dim3(grid_dim),
-                           dim3(block_size), 0, 0, num_elements,
-                           as_hip_type(system_matrix->get_const_row_idxs()),
-                           as_hip_type(system_matrix->get_const_col_idxs()),
-                           as_hip_type(system_matrix->get_const_values()),
-                           as_hip_type(l_factor->get_const_row_ptrs()),
-                           as_hip_type(l_factor->get_const_col_idxs()),
-                           as_hip_type(l_factor->get_values()),
-                           as_hip_type(u_factor->get_const_row_ptrs()),
-                           as_hip_type(u_factor->get_const_col_idxs()),
-                           as_hip_type(u_factor->get_values()));
+        hipLaunchKernelGGL(
+            kernel::compute_l_u_factors, dim3(grid_dim), dim3(block_size), 0, 0,
+            num_elements, system_matrix->get_const_row_idxs(),
+            system_matrix->get_const_col_idxs(),
+            as_hip_type(system_matrix->get_const_values()),
+            l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
+            as_hip_type(l_factor->get_values()), u_factor->get_const_row_ptrs(),
+            u_factor->get_const_col_idxs(),
+            as_hip_type(u_factor->get_values()));
     }
 }
 

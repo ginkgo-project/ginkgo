@@ -11,7 +11,9 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    factorization/ic.cpp
     factorization/ilu.cpp
+    factorization/par_ic.cpp
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp

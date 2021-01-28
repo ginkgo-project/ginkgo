@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/sellp_kernels.hpp"
-#include "core/test/utils.hpp"
 #include "cuda/test/utils.hpp"
 
 

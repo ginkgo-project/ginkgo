@@ -65,7 +65,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
         - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: mingw/${{ matrix.config.name }}
     runs-on: [windows-latest]
@@ -98,7 +97,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
         - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: cygwin/${{ matrix.config.name }}
     runs-on: [windows-latest]
