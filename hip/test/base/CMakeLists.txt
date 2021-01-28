@@ -1,4 +1,7 @@
 ginkgo_create_hip_test(hip_executor)
+if(GINKGO_HAVE_HWLOC)
+    ginkgo_create_hip_test(hip_executor_topology numa)
+endif()
 ginkgo_create_hip_test(lin_op)
 ginkgo_create_hip_test(math)
 # Only hcc needs the libraries. nvcc only requires the headers.

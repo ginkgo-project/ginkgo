@@ -71,6 +71,26 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
+void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetPCIBusId(
+            const_cast<char *>(this->get_exec_info().pci_bus_id.data()), 13,
+            this->get_device_id()));
+
+        auto hip_hwloc_obj =
+            mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
+        if (hip_hwloc_obj) {
+            this->get_exec_info().numa_node = hip_hwloc_obj->closest_numa;
+            this->get_exec_info().closest_pu_ids =
+                hip_hwloc_obj->closest_pu_ids;
+        }
+    }
+}
+
+
 void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
@@ -89,9 +109,10 @@ void HipExecutor::raw_free(void *ptr) const noexcept
     if (error_code != hipSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable HIP error on device " << this->device_id_
-                  << " in " << __func__ << ": " << hipGetErrorName(error_code)
-                  << ": " << hipGetErrorString(error_code) << std::endl
+        std::cerr << "Unrecoverable HIP error on device "
+                  << this->get_device_id() << " in " << __func__ << ": "
+                  << hipGetErrorName(error_code) << ": "
+                  << hipGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
 #endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
@@ -193,31 +214,56 @@ int HipExecutor::get_num_devices()
 
 void HipExecutor::set_gpu_property()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         hip::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &num_multiprocessor_, hipDeviceAttributeMultiprocessorCount,
-            device_id_));
+            &this->get_exec_info().num_computing_units,
+            hipDeviceAttributeMultiprocessorCount, this->get_device_id()));
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &major_, hipDeviceAttributeComputeCapabilityMajor, device_id_));
+            &this->get_exec_info().major,
+            hipDeviceAttributeComputeCapabilityMajor, this->get_device_id()));
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
-            &minor_, hipDeviceAttributeComputeCapabilityMinor, device_id_));
+            &this->get_exec_info().minor,
+            hipDeviceAttributeComputeCapabilityMinor, this->get_device_id()));
+        auto max_threads_per_block = 0;
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_threads_per_block, hipDeviceAttributeMaxThreadsPerBlock,
+            this->get_device_id()));
+        this->get_exec_info().max_workitem_sizes.push_back(
+            max_threads_per_block);
+        std::vector<int> max_threads_per_block_dim{3, 0};
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_threads_per_block_dim[0], hipDeviceAttributeMaxBlockDimX,
+            this->get_device_id()));
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_threads_per_block_dim[1], hipDeviceAttributeMaxBlockDimY,
+            this->get_device_id()));
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_threads_per_block_dim[2], hipDeviceAttributeMaxBlockDimZ,
+            this->get_device_id()));
+        this->get_exec_info().max_workgroup_size = max_threads_per_block;
+        this->get_exec_info().max_workitem_sizes = max_threads_per_block_dim;
 #if GINKGO_HIP_PLATFORM_NVCC
-        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
-                            kernels::hip::config::warp_size;
+        this->get_exec_info().num_pu_per_cu =
+            convert_sm_ver_to_cores(this->get_exec_info().major,
+                                    this->get_exec_info().minor) /
+            kernels::hip::config::warp_size;
 #else
         // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
         // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
-        num_warps_per_sm_ = 4;
+        this->get_exec_info().num_pu_per_cu = 4;
 #endif  // GINKGO_HIP_PLATFORM_NVCC
-        warp_size_ = kernels::hip::config::warp_size;
+        this->get_exec_info().max_subgroup_size =
+            kernels::hip::config::warp_size;
     }
 }
 
 
 void HipExecutor::init_handles()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         const auto id = this->get_device_id();
         hip::device_guard g(id);
         this->hipblas_handle_ = handle_manager<hipblasContext>(

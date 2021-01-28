@@ -240,6 +240,50 @@ also licensed the same as the deal.II library.
 > page](https://github.com/dealii/dealii/blob/master/LICENSE.md) or on the
 > official [GNU license page](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
 
+
+For detecting the HWLOC library, we used a modified version of the FindHWLOC.cmake file from the MORSE-cmake library. The library is [available on gitlab](https://gitlab.inria.fr/solverstack/morse_cmake), and its LICENSE is available below:
+
+> ###
+> #
+> # @copyright (c) 2012-2020 Inria. All rights reserved.
+> # @copyright (c) 2012-2020 Bordeaux INP, CNRS (LaBRI UMR 5800), Inria, Univ. Bordeaux. All rights reserved.
+> #
+> ###
+> #
+> # This software is a computer program whose purpose is to process
+> # Matrices Over Runtime Systems @ Exascale (MORSE). More information
+> # can be found on the following website: http://www.inria.fr/en/teams/morse.
+> #
+> # This software is governed by the CeCILL-C license under French law and
+> # abiding by the rules of distribution of free software.  You can  use,
+> # modify and/ or redistribute the software under the terms of the CeCILL-C
+> # license as circulated by CEA, CNRS and INRIA at the following URL
+> # "http://www.cecill.info".
+> #
+> # As a counterpart to the access to the source code and  rights to copy,
+> # modify and redistribute granted by the license, users are provided only
+> # with a limited warranty  and the software's author,  the holder of the
+> # economic rights,  and the successive licensors  have only  limited
+> # liability.
+> #
+> # In this respect, the user's attention is drawn to the risks associated
+> # with loading,  using,  modifying and/or developing or reproducing the
+> # software by the user in light of its specific status of free software,
+> # that may mean  that it is complicated to manipulate,  and  that  also
+> # therefore means  that it is reserved for developers  and  experienced
+> # professionals having in-depth computer knowledge. Users are therefore
+> # encouraged to load and test the software's suitability as regards their
+> # requirements in conditions enabling the security of their systems and/or
+> # data to be ensured and,  more generally, to use and operate it in the
+> # same conditions as regards security.
+> #
+> # The fact that you are presently reading this means that you have had
+> # knowledge of the CeCILL-C license and that you accept its terms.
+> #
+> ###
+
+
+
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
 third-party licensing. Refer to the [Installation section in

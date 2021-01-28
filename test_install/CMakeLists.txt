@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.9)
 project(TestInstall LANGUAGES CXX)
 
 find_package(Ginkgo REQUIRED
-            PATHS # The Path where ginkgo was installed
-            # Alternatively, use `cmake -DCMAKE_PREFIX_PATH=<ginkgo_install_dir>` to specify the install directory
-            )
+    PATHS # The Path where ginkgo was installed
+    # Alternatively, use `cmake -DCMAKE_PREFIX_PATH=<ginkgo_install_dir>` to specify the install directory
+    )
 
 if(MSVC)
     if(GINKGO_BUILD_SHARED_LIBS)

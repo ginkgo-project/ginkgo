@@ -15,7 +15,7 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-# Determine which executors can be compiled
+# Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
@@ -70,6 +70,7 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -143,6 +144,20 @@ if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
 
+if(GINKGO_BUILD_HWLOC)
+    # By default always use external HWLOC
+    set(GINKGO_USE_EXTERNAL_HWLOC 1)
+    set(GINKGO_HAVE_HWLOC 1)
+else()
+    set(GINKGO_USE_EXTERNAL_HWLOC 0)
+    set(GINKGO_HAVE_HWLOC 0)
+    message(STATUS "HWLOC is being forcibly switched off")
+endif()
+# Switch off HWLOC for Windows and MacOS
+if(MSVC OR WIN32 OR CYGWIN OR APPLE)
+    set(GINKGO_HAVE_HWLOC 0)
+endif()
+
 set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
@@ -194,6 +209,11 @@ include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+if(GINKGO_HAVE_HWLOC)
+    ginkgo_find_package(HWLOC hwloc FALSE 2.1)
+endif()
+set(GKO_HWLOC_XMLFILE "$ENV{HWLOC_XMLFILE}")
+message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Ginkgo core libraries
@@ -305,6 +325,7 @@ add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
     -B${Ginkgo_BINARY_DIR}/test_install
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DHWLOC_DIR=${HWLOC_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.

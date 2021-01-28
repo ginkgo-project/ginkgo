@@ -13,6 +13,10 @@ if(GINKGO_BUILD_TESTS)
     ginkgo_add_subdirectory(GTest gtest)
 endif()
 
+if(GINKGO_HAVE_HWLOC)
+    ginkgo_add_subdirectory(HWLOC hwloc)
+endif()
+
 if(GINKGO_DEVEL_TOOLS)
     set(GCF_IGNORE_LIST "third_party" CACHE STRING "Ignore directories for GCF")
     add_subdirectory(git-cmake-format)

@@ -71,6 +71,26 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
+void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetPCIBusId(
+            const_cast<char *>(this->get_exec_info().pci_bus_id.data()), 13,
+            this->get_device_id()));
+
+        auto cuda_hwloc_obj =
+            mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
+        if (cuda_hwloc_obj) {
+            this->get_exec_info().numa_node = cuda_hwloc_obj->closest_numa;
+            this->get_exec_info().closest_pu_ids =
+                cuda_hwloc_obj->closest_pu_ids;
+        }
+    }
+}
+
+
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
@@ -89,9 +109,10 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
     if (error_code != cudaSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
-                  << " in " << __func__ << ": " << cudaGetErrorName(error_code)
-                  << ": " << cudaGetErrorString(error_code) << std::endl
+        std::cerr << "Unrecoverable CUDA error on device "
+                  << this->get_device_id() << " in " << __func__ << ": "
+                  << cudaGetErrorName(error_code) << ": "
+                  << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
 #endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
@@ -193,24 +214,48 @@ int CudaExecutor::get_num_devices()
 
 void CudaExecutor::set_gpu_property()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
+            &this->get_exec_info().major, cudaDevAttrComputeCapabilityMajor,
+            this->get_device_id()));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
+            &this->get_exec_info().minor, cudaDevAttrComputeCapabilityMinor,
+            this->get_device_id()));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-            &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
-        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
-                            kernels::cuda::config::warp_size;
-        warp_size_ = kernels::cuda::config::warp_size;
+            &this->get_exec_info().num_computing_units,
+            cudaDevAttrMultiProcessorCount, this->get_device_id()));
+        auto max_threads_per_block = 0;
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block, cudaDevAttrMaxThreadsPerBlock,
+            this->get_device_id()));
+        std::vector<int> max_threads_per_block_dim{3, 0};
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[0], cudaDevAttrMaxBlockDimX,
+            this->get_device_id()));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[1], cudaDevAttrMaxBlockDimY,
+            this->get_device_id()));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &max_threads_per_block_dim[2], cudaDevAttrMaxBlockDimZ,
+            this->get_device_id()));
+        this->get_exec_info().max_workgroup_size = max_threads_per_block;
+        this->get_exec_info().max_workitem_sizes = max_threads_per_block_dim;
+        this->get_exec_info().num_pu_per_cu =
+            convert_sm_ver_to_cores(this->get_exec_info().major,
+                                    this->get_exec_info().minor) /
+            kernels::cuda::config::warp_size;
+        this->get_exec_info().max_subgroup_size =
+            kernels::cuda::config::warp_size;
     }
 }
 
 
 void CudaExecutor::init_handles()
 {
-    if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
+    if (this->get_device_id() < this->get_num_devices() &&
+        this->get_device_id() >= 0) {
         const auto id = this->get_device_id();
         cuda::device_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(

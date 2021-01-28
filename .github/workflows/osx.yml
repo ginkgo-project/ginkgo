@@ -16,7 +16,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: setup
-      run: brew install libomp
+      run: |
+        brew install libomp
     - name: info
       run: |
         g++ -v

@@ -37,6 +37,7 @@ target_sources(ginkgo_reference
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp)
 
+target_link_libraries(ginkgo_reference PUBLIC ginkgo_core_device)
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)

@@ -59,6 +59,12 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
+void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    // This method is always called, so cannot throw when not compiled.
+}
+
+
 void OmpExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
@@ -123,14 +129,15 @@ void DpcppExecutor::set_device_property() {}
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
     // Dummy check
-    return device_type_ == "cpu" || device_type_ == "host";
+    return this->get_device_type() == "cpu" ||
+           this->get_device_type() == "host";
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
     // Dummy check
-    return dest_exec->get_device_type() == device_type_ &&
-           dest_exec->get_device_id() == device_id_;
+    return dest_exec->get_device_type() == this->get_device_type() &&
+           dest_exec->get_device_id() == this->get_device_id();
 }
 
 

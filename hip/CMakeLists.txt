@@ -298,6 +298,8 @@ endif()
 
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 
+target_link_libraries(ginkgo_hip PUBLIC ginkgo_core_device)
+
 target_include_directories(ginkgo_hip
     PUBLIC
         ${HIP_INCLUDE_DIRS}
@@ -326,6 +328,5 @@ if(GINKGO_BUILD_TESTS)
             set(GINKGO_RPATH_FOR_HIP "${GINKGO_RPATH_FOR_HIP}:$<TARGET_FILE_DIR:${target}>")
         endif()
     endforeach()
-
     add_subdirectory(test)
 endif()

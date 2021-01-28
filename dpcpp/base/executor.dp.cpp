@@ -93,6 +93,13 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
+void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    // Closest CPUs, NUMA node can be updated when there is a way to identify
+    // the device itself, which is currently not available with DPC++.
+}
+
+
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
     sycl::free(ptr, queue_->get_context());
@@ -161,13 +168,15 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 
 bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(device_type_)[device_id_];
+    auto device = detail::get_devices(
+        get_exec_info().device_type)[get_exec_info().device_id];
     return device.is_host() || device.is_cpu();
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(device_type_)[device_id_];
+    auto device = detail::get_devices(
+        get_exec_info().device_type)[get_exec_info().device_id];
     auto other_device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
     return ((device.is_host() || device.is_cpu()) &&
@@ -193,26 +202,39 @@ void delete_queue(sycl::queue *queue)
 
 void DpcppExecutor::set_device_property()
 {
-    assert(device_id_ < DpcppExecutor::get_num_devices(device_type_));
-    auto device = detail::get_devices(device_type_)[device_id_];
+    assert(this->get_exec_info().device_id <
+           DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
+    auto device = detail::get_devices(
+        this->get_exec_info().device_type)[this->get_exec_info().device_id];
     if (!device.is_host()) {
         try {
-            subgroup_sizes_ =
+            auto subgroup_sizes =
                 device.get_info<cl::sycl::info::device::sub_group_sizes>();
+            for (auto &i : subgroup_sizes) {
+                this->get_exec_info().subgroup_sizes.push_back(i);
+            }
         } catch (cl::sycl::runtime_error &err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
-    num_computing_units_ =
-        device.get_info<sycl::info::device::max_compute_units>();
+    this->get_exec_info().num_computing_units = static_cast<int>(
+        device.get_info<sycl::info::device::max_compute_units>());
+    const auto subgroup_sizes = this->get_exec_info().subgroup_sizes;
+    if (subgroup_sizes.size()) {
+        this->get_exec_info().max_subgroup_size = static_cast<int>(
+            *std::max_element(subgroup_sizes.begin(), subgroup_sizes.end()));
+    }
+    this->get_exec_info().max_workgroup_size = static_cast<int>(
+        device.get_info<sycl::info::device::max_work_group_size>());
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes>();
-    // There is no way to get the dimension of a sycl::id object
-    for (std::size_t i = 0; i < 3; i++) {
-        max_workitem_sizes_.push_back(max_workitem_sizes[i]);
+    // Get the max dimension of a sycl::id object
+    auto max_work_item_dimensions =
+        device.get_info<sycl::info::device::max_work_item_dimensions>();
+    for (uint32 i = 0; i < max_work_item_dimensions; i++) {
+        this->get_exec_info().max_workitem_sizes.push_back(
+            max_workitem_sizes[i]);
     }
-    max_workgroup_size_ =
-        device.get_info<sycl::info::device::max_work_group_size>();
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.
