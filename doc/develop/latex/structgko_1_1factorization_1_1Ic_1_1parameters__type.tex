@@ -1,0 +1,75 @@
+\hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type}{}\doxysection{gko\+::factorization\+::Ic$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1factorization_1_1Ic_1_1parameters__type}\index{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::factorization\+::Ic$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1factorization_1_1Ic_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_a777500993a47cc7684e6827badb5090c}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_a777500993a47cc7684e6827badb5090c}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+l\+\_\+strategy} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_a2ebbb0db490c68a894db75817854d1e7}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_a2ebbb0db490c68a894db75817854d1e7}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+skip\+\_\+sorting} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_af00d31a7bb1a91659f68acd39766206c}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_af00d31a7bb1a91659f68acd39766206c}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+both\+\_\+factors} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1Ic_1_1parameters__type_a960c3ea111af566f3d565175e67adf6b}{l\+\_\+strategy}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Strategy which will be used by the L matrix. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structgko_1_1factorization_1_1Ic_1_1parameters__type_aa42db756a50ec8afafd7a7fd49561832}{skip\+\_\+sorting}} \{ false \}
+\begin{DoxyCompactList}\small\item\em The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structgko_1_1factorization_1_1Ic_1_1parameters__type_afb4c7814334072ab39c2e2b04925cdc4}{both\+\_\+factors}} \{ true \}
+\begin{DoxyCompactList}\small\item\em {\ttfamily true} will generate both L and L$^\wedge$H, {\ttfamily false} will only generate the L factor, resulting in a \mbox{\hyperlink{classgko_1_1Composition}{Composition}} of only a single \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_afb4c7814334072ab39c2e2b04925cdc4}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_afb4c7814334072ab39c2e2b04925cdc4}} 
+\index{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}!both\_factors@{both\_factors}}
+\index{both\_factors@{both\_factors}!gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{both\_factors}{both\_factors}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = gko\+::default\+\_\+precision, typename Index\+Type  = gko\+::int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1factorization_1_1Ic}{gko\+::factorization\+::\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::both\+\_\+factors \{ true \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+{\ttfamily true} will generate both L and L$^\wedge$H, {\ttfamily false} will only generate the L factor, resulting in a \mbox{\hyperlink{classgko_1_1Composition}{Composition}} of only a single \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+This can be used to avoid the transposition operation. \mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_a960c3ea111af566f3d565175e67adf6b}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_a960c3ea111af566f3d565175e67adf6b}} 
+\index{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}!l\_strategy@{l\_strategy}}
+\index{l\_strategy@{l\_strategy}!gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{l\_strategy}{l\_strategy}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = gko\+::default\+\_\+precision, typename Index\+Type  = gko\+::int32$>$ \\
+std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1Ic}{gko\+::factorization\+::\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::l\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Strategy which will be used by the L matrix. 
+
+The default value {\ttfamily nullptr} will result in the strategy {\ttfamily classical}. \mbox{\Hypertarget{structgko_1_1factorization_1_1Ic_1_1parameters__type_aa42db756a50ec8afafd7a7fd49561832}\label{structgko_1_1factorization_1_1Ic_1_1parameters__type_aa42db756a50ec8afafd7a7fd49561832}} 
+\index{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}!skip\_sorting@{skip\_sorting}}
+\index{skip\_sorting@{skip\_sorting}!gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ic$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{skip\_sorting}{skip\_sorting}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = gko\+::default\+\_\+precision, typename Index\+Type  = gko\+::int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1factorization_1_1Ic}{gko\+::factorization\+::\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::skip\+\_\+sorting \{ false \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. 
+
+If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, this factorization might be incorrect. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/ic.\+hpp\end{DoxyCompactItemize}

@@ -28,6 +28,8 @@ Collaboration diagram for Preconditioners\+:
 \item 
 class \mbox{\hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}}
 \begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ic}{gko\+::preconditioner\+::\+Ic$<$ L\+Solver\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$ for a given lower triangular matrix L and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\+::\+Isai$<$ Isai\+Type, Value\+Type, Index\+Type $>$}}

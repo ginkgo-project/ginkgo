@@ -1,0 +1,4 @@
+<map id="gko::solver::has_with_criteria&lt; SolverType, typename &gt;" name="gko::solver::has_with_criteria&lt; SolverType, typename &gt;">
+<area shape="rect" id="node1" title="Helper structure to test if the Factory of SolverType has a function with_criteria." alt="" coords="5,80,171,136"/>
+<area shape="rect" id="node2" title=" " alt="" coords="43,5,133,32"/>
+</map>

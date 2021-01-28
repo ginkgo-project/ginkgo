@@ -47,9 +47,9 @@ bool \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_
 \begin{DoxyCompactList}\small\item\em {\ttfamily true} means the sample used for the selection algorithm will be chosen deterministically. \end{DoxyCompactList}\item 
 double \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a03e53ddc63f7e4d2a957d171a4c1f717}{fill\+\_\+in\+\_\+limit}} \{ 2.\+0 \}
 \begin{DoxyCompactList}\small\item\em the amount of fill-\/in that is allowed in L and U compared to the I\+L\+U(0) factorization. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{l\+\_\+matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a61304f1377aef10bae5e1c10965a783e}{l\+\_\+strategy}} \{ nullptr \}
+std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a622a71f8e11db4c3b3755116e902c1ca}{l\+\_\+strategy}} \{ nullptr \}
 \begin{DoxyCompactList}\small\item\em Strategy which will be used by the L matrix. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{u\+\_\+matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_ab98d2662b4742e17f89ecf2c7035b15f}{u\+\_\+strategy}} \{ nullptr \}
+std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a67d30ba48b75f7a386383e9a5c1bbfc2}{u\+\_\+strategy}} \{ nullptr \}
 \begin{DoxyCompactList}\small\item\em Strategy which will be used by the U matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Additional Inherited Members}
 
@@ -111,12 +111,12 @@ The default value {\ttfamily 2.\+0} allows twice the number of non-\/zeros in L 
 
 The number of total iterations of Par\+I\+L\+UT that will be executed. 
 
-The default value is 5. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a61304f1377aef10bae5e1c10965a783e}\label{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a61304f1377aef10bae5e1c10965a783e}} 
+The default value is 5. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a622a71f8e11db4c3b3755116e902c1ca}\label{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a622a71f8e11db4c3b3755116e902c1ca}} 
 \index{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type}!l\_strategy@{l\_strategy}}
 \index{l\_strategy@{l\_strategy}!gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type}}
 \doxysubsubsection{\texorpdfstring{l\_strategy}{l\_strategy}}
 {\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
-std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{l\+\_\+matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko\+::factorization\+::\+Par\+Ilut}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::l\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko\+::factorization\+::\+Par\+Ilut}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::l\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
 
 
 
@@ -135,12 +135,12 @@ bool \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko\+::factorization
 
 The matrix must be sorted for this factorization to work.
 
-The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, the factorization might be incorrect. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_ab98d2662b4742e17f89ecf2c7035b15f}\label{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_ab98d2662b4742e17f89ecf2c7035b15f}} 
+The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, the factorization might be incorrect. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a67d30ba48b75f7a386383e9a5c1bbfc2}\label{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_a67d30ba48b75f7a386383e9a5c1bbfc2}} 
 \index{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type}!u\_strategy@{u\_strategy}}
 \index{u\_strategy@{u\_strategy}!gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIlut$<$ ValueType, IndexType $>$::parameters\_type}}
 \doxysubsubsection{\texorpdfstring{u\_strategy}{u\_strategy}}
 {\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
-std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{u\+\_\+matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko\+::factorization\+::\+Par\+Ilut}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::u\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko\+::factorization\+::\+Par\+Ilut}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::u\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
 
 
 

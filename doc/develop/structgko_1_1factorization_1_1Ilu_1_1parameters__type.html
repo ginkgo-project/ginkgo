@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/245739483 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/248021664 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -112,7 +112,7 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:ae39206eef0cd32835df5b636e1a60236"><td class="mdescLeft">&#160;</td><td class="mdescRight">Strategy which will be used by the U matrix.  <a href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#ae39206eef0cd32835df5b636e1a60236">More...</a><br /></td></tr>
 <tr class="separator:ae39206eef0cd32835df5b636e1a60236"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a12cbd76c5a9cce1814fd5c2dc918323f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a12cbd76c5a9cce1814fd5c2dc918323f">skip_sorting</a> { false }</td></tr>
-<tr class="memdesc:a12cbd76c5a9cce1814fd5c2dc918323f"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>true</code> means it is known that the matrix given to this factory will be sorted first by row, then by column index, <code>false</code> means it is unknown or not sorted, so an additional sorting step will be performed during the factorization (it will not change the matrix given).  <a href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a12cbd76c5a9cce1814fd5c2dc918323f">More...</a><br /></td></tr>
+<tr class="memdesc:a12cbd76c5a9cce1814fd5c2dc918323f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <code>system_matrix</code>, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work.  <a href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a12cbd76c5a9cce1814fd5c2dc918323f">More...</a><br /></td></tr>
 <tr class="separator:a12cbd76c5a9cce1814fd5c2dc918323f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
@@ -172,9 +172,8 @@ template&lt;typename ValueType  = gko::default_precision, typename IndexType  = 
 </table>
 </div><div class="memdoc">
 
-<p><code>true</code> means it is known that the matrix given to this factory will be sorted first by row, then by column index, <code>false</code> means it is unknown or not sorted, so an additional sorting step will be performed during the factorization (it will not change the matrix given). </p>
-<p>The matrix must be sorted for this factorization to work.</p>
-<p>The <code>system_matrix</code>, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. If it is known that the matrix will be sorted, this parameter can be set to <code>true</code> to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain <code>false</code>, otherwise, this factorization might be incorrect. </p>
+<p>The <code>system_matrix</code>, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. </p>
+<p>If it is known that the matrix will be sorted, this parameter can be set to <code>true</code> to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain <code>false</code>, otherwise, this factorization might be incorrect. </p>
 
 </div>
 </div>

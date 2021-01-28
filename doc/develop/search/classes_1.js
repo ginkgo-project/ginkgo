@@ -1,12 +1,12 @@
 var searchData=
 [
-  ['baddimension_839',['BadDimension',['../classgko_1_1BadDimension.html',1,'gko']]],
-  ['bicg_840',['Bicg',['../classgko_1_1solver_1_1Bicg.html',1,'gko::solver']]],
-  ['bicgstab_841',['Bicgstab',['../classgko_1_1solver_1_1Bicgstab.html',1,'gko::solver']]],
-  ['bitwise_5fand_842',['bitwise_and',['../structgko_1_1accessor_1_1bitwise__and.html',1,'gko::accessor']]],
-  ['bitwise_5fnot_843',['bitwise_not',['../structgko_1_1accessor_1_1bitwise__not.html',1,'gko::accessor']]],
-  ['bitwise_5for_844',['bitwise_or',['../structgko_1_1accessor_1_1bitwise__or.html',1,'gko::accessor']]],
-  ['bitwise_5fxor_845',['bitwise_xor',['../structgko_1_1accessor_1_1bitwise__xor.html',1,'gko::accessor']]],
-  ['block_5finterleaved_5fstorage_5fscheme_846',['block_interleaved_storage_scheme',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
-  ['block_5finterleaved_5fstorage_5fscheme_3c_20index_5ftype_20_3e_847',['block_interleaved_storage_scheme&lt; index_type &gt;',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]]
+  ['baddimension_851',['BadDimension',['../classgko_1_1BadDimension.html',1,'gko']]],
+  ['bicg_852',['Bicg',['../classgko_1_1solver_1_1Bicg.html',1,'gko::solver']]],
+  ['bicgstab_853',['Bicgstab',['../classgko_1_1solver_1_1Bicgstab.html',1,'gko::solver']]],
+  ['bitwise_5fand_854',['bitwise_and',['../structgko_1_1accessor_1_1bitwise__and.html',1,'gko::accessor']]],
+  ['bitwise_5fnot_855',['bitwise_not',['../structgko_1_1accessor_1_1bitwise__not.html',1,'gko::accessor']]],
+  ['bitwise_5for_856',['bitwise_or',['../structgko_1_1accessor_1_1bitwise__or.html',1,'gko::accessor']]],
+  ['bitwise_5fxor_857',['bitwise_xor',['../structgko_1_1accessor_1_1bitwise__xor.html',1,'gko::accessor']]],
+  ['block_5finterleaved_5fstorage_5fscheme_858',['block_interleaved_storage_scheme',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
+  ['block_5finterleaved_5fstorage_5fscheme_3c_20index_5ftype_20_3e_859',['block_interleaved_storage_scheme&lt; index_type &gt;',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]]
 ];

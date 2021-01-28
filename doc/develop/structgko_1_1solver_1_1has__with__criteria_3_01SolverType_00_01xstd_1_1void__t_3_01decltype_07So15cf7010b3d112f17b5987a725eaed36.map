@@ -1,0 +1,4 @@
+<map id="gko::solver::has_with_criteria&lt; SolverType, xstd::void_t&lt; decltype(SolverType::build().with_criteria(std::shared_ptr&lt; const stop::CriterionFactory &gt;()))&gt; &gt;" name="gko::solver::has_with_criteria&lt; SolverType, xstd::void_t&lt; decltype(SolverType::build().with_criteria(std::shared_ptr&lt; const stop::CriterionFactory &gt;()))&gt; &gt;">
+<area shape="rect" id="node1" title="Helper structure to test if the Factory of SolverType has a function with_criteria." alt="" coords="5,80,220,195"/>
+<area shape="rect" id="node2" title=" " alt="" coords="71,5,155,32"/>
+</map>

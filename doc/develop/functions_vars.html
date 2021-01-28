@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/245739483 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/248021664 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -90,6 +90,10 @@ $(function() {
 </li>
 <li>block_pointers
 : <a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type</a>
+</li>
+<li>both_factors
+: <a class="el" href="structgko_1_1factorization_1_1Ic_1_1parameters__type.html#afb4c7814334072ab39c2e2b04925cdc4">gko::factorization::Ic&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#abfa3c5afbc05b7c25b09ae225e6c966a">gko::factorization::ParIc&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 </ul>
 
@@ -160,7 +164,8 @@ $(function() {
 
 <h3><a id="index_f"></a>- f -</h3><ul>
 <li>factorization_factory
-: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a68e7a88f645857ec123c40deef7006ed">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1preconditioner_1_1Ic_1_1parameters__type.html#a8906ab5a90ec25f08a507d7dc7bb8159">gko::preconditioner::Ic&lt; LSolverType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a68e7a88f645857ec123c40deef7006ed">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
 </li>
 <li>fill_in_limit
 : <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a9c1f1299d890eb206bcaf0df6e58ada8">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
@@ -203,7 +208,8 @@ $(function() {
 
 <h3><a id="index_i"></a>- i -</h3><ul>
 <li>iterations
-: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a4d677e4243e1c6749a0bb6ada7bdaf5d">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#a358fe00ecabfa3fb2b06bf90175020a4">gko::factorization::ParIc&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a4d677e4243e1c6749a0bb6ada7bdaf5d">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#aed39c89593c4e33f8473cc641fc4a44c">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
@@ -222,13 +228,16 @@ $(function() {
 
 <h3><a id="index_l"></a>- l -</h3><ul>
 <li>l_solver_factory
-: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#add4867e836fa4f842f216e00b6e905cf">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1preconditioner_1_1Ic_1_1parameters__type.html#acc0f7e2e262a8a1fa886a8d8dfe9280c">gko::preconditioner::Ic&lt; LSolverType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#add4867e836fa4f842f216e00b6e905cf">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
 </li>
 <li>l_strategy
-: <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a78cb05198d399f30b435626048c23415">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1factorization_1_1Ic_1_1parameters__type.html#a960c3ea111af566f3d565175e67adf6b">gko::factorization::Ic&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a78cb05198d399f30b435626048c23415">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#ae6ab63d45702d7085f63d78a27c58e9e">gko::factorization::ParIc&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a3d2c10eb0c925ec719c42a22dc2afebb">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
-, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
-, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a61304f1377aef10bae5e1c10965a783e">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a0b128513d656928794772ea0c6eaa6a0">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a622a71f8e11db4c3b3755116e902c1ca">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>lengths
 : <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</a>
@@ -322,7 +331,9 @@ $(function() {
 : <a class="el" href="structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b">gko::matrix_data&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>skip_sorting
-: <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a12cbd76c5a9cce1814fd5c2dc918323f">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1factorization_1_1Ic_1_1parameters__type.html#aa42db756a50ec8afafd7a7fd49561832">gko::factorization::Ic&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a12cbd76c5a9cce1814fd5c2dc918323f">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#a435591bb86e3a8afa4a32c667ebb4c07">gko::factorization::ParIc&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a31ec633347a364e086a66aae6e9522f4">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a9d9e9355e743fed16dba89eadd9db9cf">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
@@ -370,8 +381,8 @@ $(function() {
 </li>
 <li>u_strategy
 : <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#ae39206eef0cd32835df5b636e1a60236">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
-, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
-, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#ab98d2662b4742e17f89ecf2c7035b15f">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#afb44e05b0d0df2a56589f5986a7c4539">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a67d30ba48b75f7a386383e9a5c1bbfc2">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 </ul>
 </div><!-- contents -->

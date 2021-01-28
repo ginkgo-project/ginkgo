@@ -46,14 +46,14 @@ if (edges && edges.length) {
         </defs>
 
 <script type="text/javascript">
-var viewWidth = 1670;
+var viewWidth = 1870;
 var viewHeight = 412;
 </script>
 <script xlink:href="svgpan.js"/>
 <svg id="graph" class="graph">
 <g id="viewport">
 <title>ExamplesMap</title>
-<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-408 1666,-408 1666,4 -4,4"/>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-408 1866,-408 1866,4 -4,4"/>
 <!-- adaptiveprecision_blockjacobi -->
 <g id="node1" class="node">
 <title>adaptiveprecision_blockjacobi</title>
@@ -67,8 +67,8 @@ var viewHeight = 412;
 <g id="node2" class="node">
 <title>custom_logger</title>
 <g id="a_node2"><a xlink:href="custom_logger.html" target="_top" xlink:title="Creating a custom logger with Ginkgo">
-<polygon fill="#ffd700" stroke="#000000" points="543,-47.5 438,-47.5 438,-26.5 543,-26.5 543,-47.5"/>
-<text text-anchor="middle" x="490.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_logger</text>
+<polygon fill="#ffd700" stroke="#000000" points="287,-47.5 182,-47.5 182,-26.5 287,-26.5 287,-47.5"/>
+<text text-anchor="middle" x="234.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_logger</text>
 </a>
 </g>
 </g>
@@ -76,8 +76,8 @@ var viewHeight = 412;
 <g id="node3" class="node">
 <title>custom_matrix_format</title>
 <g id="a_node3"><a xlink:href="custom_matrix_format.html" target="_top" xlink:title="Create a custom matrix format. Matrix free iterative solve.">
-<polygon fill="#ff7f50" stroke="#000000" points="797,-49.5 644,-49.5 644,-24.5 797,-24.5 797,-49.5"/>
-<text text-anchor="middle" x="720.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_matrix_format</text>
+<polygon fill="#ff7f50" stroke="#000000" points="884,-49.5 731,-49.5 731,-24.5 884,-24.5 884,-49.5"/>
+<text text-anchor="middle" x="807.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_matrix_format</text>
 </a>
 </g>
 </g>
@@ -85,8 +85,8 @@ var viewHeight = 412;
 <g id="node4" class="node">
 <title>custom_stopping_criterion</title>
 <g id="a_node4"><a xlink:href="custom_stopping_criterion.html" target="_top" xlink:title="Create a custom stopping criterion.">
-<polygon fill="#00bfff" stroke="#000000" points="628.5,-157.5 454.5,-157.5 454.5,-136.5 628.5,-136.5 628.5,-157.5"/>
-<text text-anchor="middle" x="541.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_stopping_criterion</text>
+<polygon fill="#00bfff" stroke="#000000" points="666.5,-157.5 492.5,-157.5 492.5,-136.5 666.5,-136.5 666.5,-157.5"/>
+<text text-anchor="middle" x="579.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">custom_stopping_criterion</text>
 </a>
 </g>
 </g>
@@ -94,8 +94,8 @@ var viewHeight = 412;
 <g id="node5" class="node">
 <title>external_lib_interfacing</title>
 <g id="a_node5"><a xlink:href="external_lib_interfacing.html" target="_top" xlink:title="Interface with an external library.">
-<polygon fill="#ff7f50" stroke="#000000" points="1029.5,-379.5 873.5,-379.5 873.5,-354.5 1029.5,-354.5 1029.5,-379.5"/>
-<text text-anchor="middle" x="951.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">external_lib_interfacing</text>
+<polygon fill="#ff7f50" stroke="#000000" points="1105.5,-379.5 949.5,-379.5 949.5,-354.5 1105.5,-354.5 1105.5,-379.5"/>
+<text text-anchor="middle" x="1027.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">external_lib_interfacing</text>
 </a>
 </g>
 </g>
@@ -103,8 +103,8 @@ var viewHeight = 412;
 <g id="node6" class="node">
 <title>ginkgo_overhead</title>
 <g id="a_node6"><a xlink:href="ginkgo_overhead.html" target="_top" xlink:title="Measure ginkgo overhead.">
-<polygon fill="#ff7f50" stroke="#000000" points="1167,-379.5 1048,-379.5 1048,-354.5 1167,-354.5 1167,-379.5"/>
-<text text-anchor="middle" x="1107.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ginkgo_overhead</text>
+<polygon fill="#ff7f50" stroke="#000000" points="1243,-379.5 1124,-379.5 1124,-354.5 1243,-354.5 1243,-379.5"/>
+<text text-anchor="middle" x="1183.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ginkgo_overhead</text>
 </a>
 </g>
 </g>
@@ -112,8 +112,8 @@ var viewHeight = 412;
 <g id="node7" class="node">
 <title>ginkgo_ranges</title>
 <g id="a_node7"><a xlink:href="ginkgo_ranges.html" target="_top" xlink:title="Use the ranges concept in ginkgo.">
-<polygon fill="#ff7f50" stroke="#000000" points="1289.5,-379.5 1185.5,-379.5 1185.5,-354.5 1289.5,-354.5 1289.5,-379.5"/>
-<text text-anchor="middle" x="1237.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ginkgo_ranges</text>
+<polygon fill="#ff7f50" stroke="#000000" points="1365.5,-379.5 1261.5,-379.5 1261.5,-354.5 1365.5,-354.5 1365.5,-379.5"/>
+<text text-anchor="middle" x="1313.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ginkgo_ranges</text>
 </a>
 </g>
 </g>
@@ -121,8 +121,8 @@ var viewHeight = 412;
 <g id="node8" class="node">
 <title>ilu_preconditioned_solver</title>
 <g id="a_node8"><a xlink:href="ilu_preconditioned_solver.html" target="_top" xlink:title="Generate an incomplete factorization. ">
-<polygon fill="#dc143c" stroke="#000000" points="1164.5,-267.5 996.5,-267.5 996.5,-246.5 1164.5,-246.5 1164.5,-267.5"/>
-<text text-anchor="middle" x="1080.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ilu_preconditioned_solver</text>
+<polygon fill="#dc143c" stroke="#000000" points="1206.5,-267.5 1038.5,-267.5 1038.5,-246.5 1206.5,-246.5 1206.5,-267.5"/>
+<text text-anchor="middle" x="1122.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ilu_preconditioned_solver</text>
 </a>
 </g>
 </g>
@@ -130,23 +130,23 @@ var viewHeight = 412;
 <g id="node10" class="node">
 <title>ir_ilu_preconditioned_solver</title>
 <g id="a_node10"><a xlink:href="ir_ilu_preconditioned_solver.html" target="_top" xlink:title="Generate an incomplete factorization.">
-<polygon fill="#dc143c" stroke="#000000" points="1230.5,-157.5 1048.5,-157.5 1048.5,-136.5 1230.5,-136.5 1230.5,-157.5"/>
-<text text-anchor="middle" x="1139.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ir_ilu_preconditioned_solver</text>
+<polygon fill="#dc143c" stroke="#000000" points="1231.5,-157.5 1049.5,-157.5 1049.5,-136.5 1231.5,-136.5 1231.5,-157.5"/>
+<text text-anchor="middle" x="1140.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ir_ilu_preconditioned_solver</text>
 </a>
 </g>
 </g>
 <!-- ilu_preconditioned_solver&#45;&gt;ir_ilu_preconditioned_solver -->
 <g id="edge12" class="edge">
 <title>ilu_preconditioned_solver&#45;&gt;ir_ilu_preconditioned_solver</title>
-<path fill="none" stroke="#000000" d="M1086.1572,-246.4527C1095.9996,-228.1025 1116.4183,-190.0336 1128.9428,-166.6829"/>
-<polygon fill="#000000" stroke="#000000" points="1132.1309,-168.1437 1133.7733,-157.677 1125.9622,-164.835 1132.1309,-168.1437"/>
+<path fill="none" stroke="#000000" d="M1124.2259,-246.4527C1127.1885,-228.3482 1133.2919,-191.0498 1137.1244,-167.6289"/>
+<polygon fill="#000000" stroke="#000000" points="1140.592,-168.1109 1138.7529,-157.677 1133.6838,-166.9805 1140.592,-168.1109"/>
 </g>
 <!-- inverse_iteration -->
 <g id="node9" class="node">
 <title>inverse_iteration</title>
 <g id="a_node9"><a xlink:href="inverse_iteration.html" target="_top" xlink:title="Compute eigenvalues with inverse iteration method.">
-<polygon fill="#ff7f50" stroke="#000000" points="1494.5,-269.5 1378.5,-269.5 1378.5,-244.5 1494.5,-244.5 1494.5,-269.5"/>
-<text text-anchor="middle" x="1436.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">inverse_iteration</text>
+<polygon fill="#ff7f50" stroke="#000000" points="1536.5,-269.5 1420.5,-269.5 1420.5,-244.5 1536.5,-244.5 1536.5,-269.5"/>
+<text text-anchor="middle" x="1478.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">inverse_iteration</text>
 </a>
 </g>
 </g>
@@ -154,95 +154,95 @@ var viewHeight = 412;
 <g id="node11" class="node">
 <title>iterative_refinement</title>
 <g id="a_node11"><a xlink:href="iterative_refinement.html" target="_top" xlink:title="Use an iterative refinement method in Ginkgo. Solve a linear system.">
-<polygon fill="#228b22" stroke="#000000" points="1352.3858,-244.9878 1352.3858,-269.0122 1305.004,-286 1237.996,-286 1190.6142,-269.0122 1190.6142,-244.9878 1237.996,-228 1305.004,-228 1352.3858,-244.9878"/>
-<polygon fill="none" stroke="#000000" points="1356.3949,-242.1748 1356.3949,-271.8252 1305.7024,-290 1237.2976,-290 1186.6051,-271.8252 1186.6051,-242.1748 1237.2976,-224 1305.7024,-224 1356.3949,-242.1748"/>
-<polygon fill="none" stroke="#000000" points="1360.404,-239.3617 1360.404,-274.6383 1306.4009,-294 1236.5991,-294 1182.596,-274.6383 1182.596,-239.3617 1236.5991,-220 1306.4009,-220 1360.404,-239.3617"/>
-<text text-anchor="middle" x="1271.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">iterative_refinement</text>
+<polygon fill="#228b22" stroke="#000000" points="1394.3858,-244.9878 1394.3858,-269.0122 1347.004,-286 1279.996,-286 1232.6142,-269.0122 1232.6142,-244.9878 1279.996,-228 1347.004,-228 1394.3858,-244.9878"/>
+<polygon fill="none" stroke="#000000" points="1398.3949,-242.1748 1398.3949,-271.8252 1347.7024,-290 1279.2976,-290 1228.6051,-271.8252 1228.6051,-242.1748 1279.2976,-224 1347.7024,-224 1398.3949,-242.1748"/>
+<polygon fill="none" stroke="#000000" points="1402.404,-239.3617 1402.404,-274.6383 1348.4009,-294 1278.5991,-294 1224.596,-274.6383 1224.596,-239.3617 1278.5991,-220 1348.4009,-220 1402.404,-239.3617"/>
+<text text-anchor="middle" x="1313.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">iterative_refinement</text>
 </a>
 </g>
 </g>
 <!-- iterative_refinement&#45;&gt;ir_ilu_preconditioned_solver -->
 <g id="edge13" class="edge">
 <title>iterative_refinement&#45;&gt;ir_ilu_preconditioned_solver</title>
-<path fill="none" stroke="#000000" d="M1229.7344,-222.1953C1206.5475,-202.8729 1178.7266,-179.6888 1160.1641,-164.2201"/>
-<polygon fill="#000000" stroke="#000000" points="1162.2597,-161.4104 1152.3368,-157.6973 1157.7784,-166.788 1162.2597,-161.4104"/>
+<path fill="none" stroke="#000000" d="M1263.4612,-225.1834C1231.4654,-204.8393 1191.323,-179.3152 1165.7843,-163.0767"/>
+<polygon fill="#000000" stroke="#000000" points="1167.3948,-159.9531 1157.0782,-157.541 1163.6388,-165.8602 1167.3948,-159.9531"/>
 </g>
 <!-- mixed_precision_ir -->
 <g id="node13" class="node">
 <title>mixed_precision_ir</title>
 <g id="a_node13"><a xlink:href="mixed_precision_ir.html" target="_top" xlink:title="Manually implement a Mixed Precision Iterative Refinement (MPIR) method in Ginkgo. Solve a linear system.">
-<polygon fill="#ff7f50" stroke="#000000" points="1376.5,-159.5 1248.5,-159.5 1248.5,-134.5 1376.5,-134.5 1376.5,-159.5"/>
-<text text-anchor="middle" x="1312.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">mixed_precision_ir</text>
+<polygon fill="#ff7f50" stroke="#000000" points="1377.5,-159.5 1249.5,-159.5 1249.5,-134.5 1377.5,-134.5 1377.5,-159.5"/>
+<text text-anchor="middle" x="1313.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">mixed_precision_ir</text>
 </a>
 </g>
 </g>
 <!-- iterative_refinement&#45;&gt;mixed_precision_ir -->
 <g id="edge16" class="edge">
 <title>iterative_refinement&#45;&gt;mixed_precision_ir</title>
-<path fill="none" stroke="#000000" d="M1285.3807,-219.759C1291.6245,-203.0074 1298.786,-183.7937 1304.1812,-169.3187"/>
-<polygon fill="#000000" stroke="#000000" points="1307.5462,-170.3118 1307.7592,-159.7191 1300.987,-167.867 1307.5462,-170.3118"/>
+<path fill="none" stroke="#000000" d="M1313.5,-219.759C1313.5,-203.1701 1313.5,-184.1665 1313.5,-169.7416"/>
+<polygon fill="#000000" stroke="#000000" points="1317.0001,-169.7191 1313.5,-159.7191 1310.0001,-169.7192 1317.0001,-169.7191"/>
 </g>
 <!-- minimal_cuda_solver -->
 <g id="node12" class="node">
 <title>minimal_cuda_solver</title>
 <g id="a_node12"><a xlink:href="minimal_cuda_solver.html" target="_top" xlink:title="Use the CUDA executor. Solve a linear system.">
-<polygon fill="#228b22" stroke="#000000" points="508.8921,-244.9878 508.8921,-269.0122 460.6279,-286 392.3721,-286 344.1079,-269.0122 344.1079,-244.9878 392.3721,-228 460.6279,-228 508.8921,-244.9878"/>
-<polygon fill="none" stroke="#000000" points="512.8896,-242.1546 512.8896,-271.8454 461.3105,-290 391.6895,-290 340.1104,-271.8454 340.1104,-242.1546 391.6895,-224 461.3105,-224 512.8896,-242.1546"/>
-<polygon fill="none" stroke="#000000" points="516.8871,-239.3214 516.8871,-274.6786 461.9931,-294 391.0069,-294 336.1129,-274.6786 336.1129,-239.3214 391.0069,-220 461.9931,-220 516.8871,-239.3214"/>
-<text text-anchor="middle" x="426.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">minimal_cuda_solver</text>
+<polygon fill="#228b22" stroke="#000000" points="562.8921,-244.9878 562.8921,-269.0122 514.6279,-286 446.3721,-286 398.1079,-269.0122 398.1079,-244.9878 446.3721,-228 514.6279,-228 562.8921,-244.9878"/>
+<polygon fill="none" stroke="#000000" points="566.8896,-242.1546 566.8896,-271.8454 515.3105,-290 445.6895,-290 394.1104,-271.8454 394.1104,-242.1546 445.6895,-224 515.3105,-224 566.8896,-242.1546"/>
+<polygon fill="none" stroke="#000000" points="570.8871,-239.3214 570.8871,-274.6786 515.9931,-294 445.0069,-294 390.1129,-274.6786 390.1129,-239.3214 445.0069,-220 515.9931,-220 570.8871,-239.3214"/>
+<text text-anchor="middle" x="480.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">minimal_cuda_solver</text>
 </a>
 </g>
 </g>
 <!-- minimal_cuda_solver&#45;&gt;custom_logger -->
 <g id="edge4" class="edge">
 <title>minimal_cuda_solver&#45;&gt;custom_logger</title>
-<path fill="none" stroke="#000000" d="M427.0009,-219.754C428.4188,-189.4212 432.7819,-145.8987 445.5,-110 452.5148,-90.1997 465.4666,-70.0504 475.6802,-55.9515"/>
-<polygon fill="#000000" stroke="#000000" points="478.7211,-57.7292 481.9067,-47.6246 473.1151,-53.5372 478.7211,-57.7292"/>
+<path fill="none" stroke="#000000" d="M389.9732,-242.7225C351.3197,-232.3608 308.522,-214.5506 279.5,-184 246.1017,-148.8426 237.4437,-89.5452 235.2314,-58.0816"/>
+<polygon fill="#000000" stroke="#000000" points="238.7126,-57.6403 234.6741,-47.8454 231.723,-58.0209 238.7126,-57.6403"/>
 </g>
 <!-- minimal_cuda_solver&#45;&gt;custom_stopping_criterion -->
 <g id="edge9" class="edge">
 <title>minimal_cuda_solver&#45;&gt;custom_stopping_criterion</title>
-<path fill="none" stroke="#000000" d="M464.474,-220.677C484.0848,-201.9189 507.134,-179.8718 522.8741,-164.8161"/>
-<polygon fill="#000000" stroke="#000000" points="525.5748,-167.0762 530.3819,-157.6347 520.7362,-162.0177 525.5748,-167.0762"/>
+<path fill="none" stroke="#000000" d="M514.0169,-219.759C530.4878,-201.458 549.6035,-180.2183 562.9135,-165.4294"/>
+<polygon fill="#000000" stroke="#000000" points="565.5688,-167.7111 569.657,-157.9367 560.3657,-163.0283 565.5688,-167.7111"/>
 </g>
 <!-- performance_debugging -->
-<g id="node16" class="node">
+<g id="node17" class="node">
 <title>performance_debugging</title>
-<g id="a_node16"><a xlink:href="performance_debugging.html" target="_top" xlink:title="Logging to debug performance within Ginkgo.">
-<polygon fill="#ffd700" stroke="#000000" points="419.5,-47.5 255.5,-47.5 255.5,-26.5 419.5,-26.5 419.5,-47.5"/>
-<text text-anchor="middle" x="337.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">performance_debugging</text>
+<g id="a_node17"><a xlink:href="performance_debugging.html" target="_top" xlink:title="Logging to debug performance within Ginkgo.">
+<polygon fill="#ffd700" stroke="#000000" points="579.5,-47.5 415.5,-47.5 415.5,-26.5 579.5,-26.5 579.5,-47.5"/>
+<text text-anchor="middle" x="497.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">performance_debugging</text>
 </a>
 </g>
 </g>
 <!-- minimal_cuda_solver&#45;&gt;performance_debugging -->
-<g id="edge22" class="edge">
+<g id="edge23" class="edge">
 <title>minimal_cuda_solver&#45;&gt;performance_debugging</title>
-<path fill="none" stroke="#000000" d="M412.1039,-219.7387C400.5251,-189.9597 383.7323,-147.1948 368.5,-110 361.1937,-92.1593 352.6063,-71.9969 346.3247,-57.3893"/>
-<polygon fill="#000000" stroke="#000000" points="349.3835,-55.6435 342.2095,-47.847 342.9557,-58.4156 349.3835,-55.6435"/>
+<path fill="none" stroke="#000000" d="M479.527,-219.7361C479.1665,-189.9557 479.5828,-147.1901 483.5,-110 485.3743,-92.2054 489.3253,-72.2717 492.5535,-57.7362"/>
+<polygon fill="#000000" stroke="#000000" points="496.0088,-58.3276 494.835,-47.798 489.1862,-56.7613 496.0088,-58.3276"/>
 </g>
 <!-- simple_solver_logging -->
-<g id="node21" class="node">
+<g id="node22" class="node">
 <title>simple_solver_logging</title>
-<g id="a_node21"><a xlink:href="simple_solver_logging.html" target="_top" xlink:title="Logging within Ginkgo.">
-<polygon fill="#ffd700" stroke="#000000" points="360,-157.5 213,-157.5 213,-136.5 360,-136.5 360,-157.5"/>
-<text text-anchor="middle" x="286.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">simple_solver_logging</text>
+<g id="a_node22"><a xlink:href="simple_solver_logging.html" target="_top" xlink:title="Logging within Ginkgo.">
+<polygon fill="#ffd700" stroke="#000000" points="436,-157.5 289,-157.5 289,-136.5 436,-136.5 436,-157.5"/>
+<text text-anchor="middle" x="362.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">simple_solver_logging</text>
 </a>
 </g>
 </g>
 <!-- minimal_cuda_solver&#45;&gt;simple_solver_logging -->
-<g id="edge27" class="edge">
+<g id="edge28" class="edge">
 <title>minimal_cuda_solver&#45;&gt;simple_solver_logging</title>
-<path fill="none" stroke="#000000" d="M382.9705,-222.7983C358.0786,-203.2404 327.9496,-179.5675 308.0591,-163.9393"/>
-<polygon fill="#000000" stroke="#000000" points="309.9772,-160.9952 299.9516,-157.5691 305.6524,-166.4995 309.9772,-160.9952"/>
+<path fill="none" stroke="#000000" d="M441.8624,-220.9819C421.7149,-202.2003 397.9565,-180.0527 381.7208,-164.9177"/>
+<polygon fill="#000000" stroke="#000000" points="383.6766,-161.956 373.9753,-157.6973 378.9034,-167.0763 383.6766,-161.956"/>
 </g>
 <!-- nine_pt_stencil_solver -->
 <g id="node14" class="node">
 <title>nine_pt_stencil_solver</title>
 <g id="a_node14"><a xlink:href="nine_pt_stencil_solver.html" target="_top" xlink:title="Use array views to generate a nine point 2D stencil matrix. Solve a linear system.">
-<polygon fill="#228b22" stroke="#000000" points="992.0525,-24.9878 992.0525,-49.0122 942.5228,-66 872.4772,-66 822.9475,-49.0122 822.9475,-24.9878 872.4772,-8 942.5228,-8 992.0525,-24.9878"/>
-<polygon fill="none" stroke="#000000" points="996.0424,-22.1287 996.0424,-51.8713 943.1864,-70 871.8136,-70 818.9576,-51.8713 818.9576,-22.1287 871.8136,-4 943.1864,-4 996.0424,-22.1287"/>
-<polygon fill="none" stroke="#000000" points="1000.0324,-19.2695 1000.0324,-54.7305 943.8501,-74 871.1499,-74 814.9676,-54.7305 814.9676,-19.2695 871.1499,0 943.8501,0 1000.0324,-19.2695"/>
-<text text-anchor="middle" x="907.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">nine_pt_stencil_solver</text>
+<polygon fill="#228b22" stroke="#000000" points="1079.0525,-24.9878 1079.0525,-49.0122 1029.5228,-66 959.4772,-66 909.9475,-49.0122 909.9475,-24.9878 959.4772,-8 1029.5228,-8 1079.0525,-24.9878"/>
+<polygon fill="none" stroke="#000000" points="1083.0424,-22.1287 1083.0424,-51.8713 1030.1864,-70 958.8136,-70 905.9576,-51.8713 905.9576,-22.1287 958.8136,-4 1030.1864,-4 1083.0424,-22.1287"/>
+<polygon fill="none" stroke="#000000" points="1087.0324,-19.2695 1087.0324,-54.7305 1030.8501,-74 958.1499,-74 901.9676,-54.7305 901.9676,-19.2695 958.1499,0 1030.8501,0 1087.0324,-19.2695"/>
+<text text-anchor="middle" x="994.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">nine_pt_stencil_solver</text>
 </a>
 </g>
 </g>
@@ -250,193 +250,208 @@ var viewHeight = 412;
 <g id="node15" class="node">
 <title>papi_logging</title>
 <g id="a_node15"><a xlink:href="papi_logging.html" target="_top" xlink:title="Logging with PAPI.">
-<polygon fill="#ffd700" stroke="#000000" points="237.5,-47.5 145.5,-47.5 145.5,-26.5 237.5,-26.5 237.5,-47.5"/>
-<text text-anchor="middle" x="191.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">papi_logging</text>
+<polygon fill="#ffd700" stroke="#000000" points="397.5,-47.5 305.5,-47.5 305.5,-26.5 397.5,-26.5 397.5,-47.5"/>
+<text text-anchor="middle" x="351.5" y="-33.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">papi_logging</text>
+</a>
+</g>
+</g>
+<!-- par_ilu_convergence -->
+<g id="node16" class="node">
+<title>par_ilu_convergence</title>
+<g id="a_node16"><a xlink:href="par_ilu_convergence.html" target="_top" xlink:title="Compute runtimes and residuals for different ParILU(T)/IC(T) iteration counts.">
+<polygon fill="#dc143c" stroke="#000000" points="1694.5,-267.5 1554.5,-267.5 1554.5,-246.5 1694.5,-246.5 1694.5,-267.5"/>
+<text text-anchor="middle" x="1624.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">par_ilu_convergence</text>
 </a>
 </g>
 </g>
 <!-- poisson_solver -->
-<g id="node17" class="node">
+<g id="node18" class="node">
 <title>poisson_solver</title>
-<g id="a_node17"><a xlink:href="poisson_solver.html" target="_top" xlink:title="Solve the poisson problem. Generate the matrix within Ginkgo.">
-<polygon fill="#228b22" stroke="#000000" points="850.7764,-244.9878 850.7764,-269.0122 815.4673,-286 765.5327,-286 730.2236,-269.0122 730.2236,-244.9878 765.5327,-228 815.4673,-228 850.7764,-244.9878"/>
-<polygon fill="none" stroke="#000000" points="854.7695,-242.4715 854.7695,-271.5285 816.3765,-290 764.6235,-290 726.2305,-271.5285 726.2305,-242.4715 764.6235,-224 816.3765,-224 854.7695,-242.4715"/>
-<polygon fill="none" stroke="#000000" points="858.7626,-239.9552 858.7626,-274.0448 817.2857,-294 763.7143,-294 722.2374,-274.0448 722.2374,-239.9552 763.7143,-220 817.2857,-220 858.7626,-239.9552"/>
-<text text-anchor="middle" x="790.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">poisson_solver</text>
+<g id="a_node18"><a xlink:href="poisson_solver.html" target="_top" xlink:title="Solve the poisson problem. Generate the matrix within Ginkgo.">
+<polygon fill="#228b22" stroke="#000000" points="974.7764,-244.9878 974.7764,-269.0122 939.4673,-286 889.5327,-286 854.2236,-269.0122 854.2236,-244.9878 889.5327,-228 939.4673,-228 974.7764,-244.9878"/>
+<polygon fill="none" stroke="#000000" points="978.7695,-242.4715 978.7695,-271.5285 940.3765,-290 888.6235,-290 850.2305,-271.5285 850.2305,-242.4715 888.6235,-224 940.3765,-224 978.7695,-242.4715"/>
+<polygon fill="none" stroke="#000000" points="982.7626,-239.9552 982.7626,-274.0448 941.2857,-294 887.7143,-294 846.2374,-274.0448 846.2374,-239.9552 887.7143,-220 941.2857,-220 982.7626,-239.9552"/>
+<text text-anchor="middle" x="914.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">poisson_solver</text>
 </a>
 </g>
 </g>
 <!-- poisson_solver&#45;&gt;custom_matrix_format -->
 <g id="edge6" class="edge">
 <title>poisson_solver&#45;&gt;custom_matrix_format</title>
-<path fill="none" stroke="#000000" d="M771.4156,-219.6975C766.1138,-208.4173 760.6727,-195.8707 756.5,-184 741.4336,-141.1388 730.2964,-89.1148 724.654,-59.8592"/>
-<polygon fill="#000000" stroke="#000000" points="728.0551,-59.007 722.7638,-49.8281 721.1761,-60.3033 728.0551,-59.007"/>
+<path fill="none" stroke="#000000" d="M928.1172,-219.8225C937.1512,-188.5364 944.2486,-143.6451 925.5,-110 910.5658,-83.2 881.2856,-64.9981 855.6299,-53.4723"/>
+<polygon fill="#000000" stroke="#000000" points="856.9464,-50.2288 846.375,-49.5245 854.1998,-56.6675 856.9464,-50.2288"/>
 </g>
 <!-- poisson_solver&#45;&gt;nine_pt_stencil_solver -->
 <g id="edge19" class="edge">
 <title>poisson_solver&#45;&gt;nine_pt_stencil_solver</title>
-<path fill="none" stroke="#000000" d="M780.6044,-219.7751C774.4354,-188.4597 770.8032,-143.552 789.5,-110 799.0361,-92.8871 814.4216,-79.2799 830.9777,-68.6781"/>
-<polygon fill="#000000" stroke="#000000" points="832.9631,-71.568 839.7174,-63.4053 829.347,-65.5743 832.9631,-71.568"/>
+<path fill="none" stroke="#000000" d="M939.831,-219.8772C946.6286,-208.7071 953.4771,-196.1745 958.5,-184 971.767,-151.8437 980.9399,-113.6323 986.7051,-84.2286"/>
+<polygon fill="#000000" stroke="#000000" points="990.1786,-84.697 988.6033,-74.2199 983.3012,-83.3926 990.1786,-84.697"/>
 </g>
 <!-- three_pt_stencil_solver -->
-<g id="node22" class="node">
+<g id="node23" class="node">
 <title>three_pt_stencil_solver</title>
-<g id="a_node22"><a xlink:href="three_pt_stencil_solver.html" target="_top" xlink:title="Use array views to generate stencil matrix. Solve a linear system.">
-<polygon fill="#228b22" stroke="#000000" points="984.1743,-134.9878 984.1743,-159.0122 932.2301,-176 858.7699,-176 806.8257,-159.0122 806.8257,-134.9878 858.7699,-118 932.2301,-118 984.1743,-134.9878"/>
-<polygon fill="none" stroke="#000000" points="988.1673,-132.0859 988.1673,-161.9141 932.8654,-180 858.1346,-180 802.8327,-161.9141 802.8327,-132.0859 858.1346,-114 932.8654,-114 988.1673,-132.0859"/>
-<polygon fill="none" stroke="#000000" points="992.1603,-129.184 992.1603,-164.816 933.5007,-184 857.4993,-184 798.8397,-164.816 798.8397,-129.184 857.4993,-110 933.5007,-110 992.1603,-129.184"/>
-<text text-anchor="middle" x="895.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">three_pt_stencil_solver</text>
+<g id="a_node23"><a xlink:href="three_pt_stencil_solver.html" target="_top" xlink:title="Use array views to generate stencil matrix. Solve a linear system.">
+<polygon fill="#228b22" stroke="#000000" points="908.1743,-134.9878 908.1743,-159.0122 856.2301,-176 782.7699,-176 730.8257,-159.0122 730.8257,-134.9878 782.7699,-118 856.2301,-118 908.1743,-134.9878"/>
+<polygon fill="none" stroke="#000000" points="912.1673,-132.0859 912.1673,-161.9141 856.8654,-180 782.1346,-180 726.8327,-161.9141 726.8327,-132.0859 782.1346,-114 856.8654,-114 912.1673,-132.0859"/>
+<polygon fill="none" stroke="#000000" points="916.1603,-129.184 916.1603,-164.816 857.5007,-184 781.4993,-184 722.8397,-164.816 722.8397,-129.184 781.4993,-110 857.5007,-110 916.1603,-129.184"/>
+<text text-anchor="middle" x="819.5" y="-143.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">three_pt_stencil_solver</text>
 </a>
 </g>
 </g>
 <!-- poisson_solver&#45;&gt;three_pt_stencil_solver -->
-<g id="edge29" class="edge">
+<g id="edge30" class="edge">
 <title>poisson_solver&#45;&gt;three_pt_stencil_solver</title>
-<path fill="none" stroke="#000000" d="M823.1471,-222.7983C832.5451,-212.9528 842.9384,-202.0646 852.8464,-191.6847"/>
-<polygon fill="#000000" stroke="#000000" points="855.581,-193.8888 859.9541,-184.2386 850.5175,-189.0555 855.581,-193.8888"/>
+<path fill="none" stroke="#000000" d="M883.9185,-221.5898C875.7865,-212.1739 866.8936,-201.8768 858.3826,-192.0219"/>
+<polygon fill="#000000" stroke="#000000" points="860.8457,-189.5192 851.6606,-184.2386 855.5479,-194.0945 860.8457,-189.5192"/>
 </g>
 <!-- preconditioned_solver -->
-<g id="node18" class="node">
+<g id="node19" class="node">
 <title>preconditioned_solver</title>
-<g id="a_node18"><a xlink:href="preconditioned_solver.html" target="_top" xlink:title="Use a preconditioner in Ginkgo. Solve a linear system.">
-<polygon fill="#dc143c" stroke="#000000" points="216,-267.5 67,-267.5 67,-246.5 216,-246.5 216,-267.5"/>
-<text text-anchor="middle" x="141.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">preconditioned_solver</text>
+<g id="a_node19"><a xlink:href="preconditioned_solver.html" target="_top" xlink:title="Use a preconditioner in Ginkgo. Solve a linear system.">
+<polygon fill="#dc143c" stroke="#000000" points="184,-267.5 35,-267.5 35,-246.5 184,-246.5 184,-267.5"/>
+<text text-anchor="middle" x="109.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">preconditioned_solver</text>
 </a>
 </g>
 </g>
 <!-- preconditioned_solver&#45;&gt;adaptiveprecision_blockjacobi -->
 <g id="edge1" class="edge">
 <title>preconditioned_solver&#45;&gt;adaptiveprecision_blockjacobi</title>
-<path fill="none" stroke="#000000" d="M137.2811,-246.4527C129.9738,-228.1844 114.8493,-190.3731 105.4986,-166.9965"/>
-<polygon fill="#000000" stroke="#000000" points="108.7344,-165.6618 101.7708,-157.677 102.2351,-168.2616 108.7344,-165.6618"/>
+<path fill="none" stroke="#000000" d="M108.3494,-246.4527C106.3744,-228.3482 102.3054,-191.0498 99.7504,-167.6289"/>
+<polygon fill="#000000" stroke="#000000" points="103.2287,-167.2384 98.6648,-157.677 96.27,-167.9976 103.2287,-167.2384"/>
 </g>
 <!-- preconditioner_export -->
-<g id="node19" class="node">
+<g id="node20" class="node">
 <title>preconditioner_export</title>
-<g id="a_node19"><a xlink:href="preconditioner_export.html" target="_top" xlink:title="Generate and store different preconditioners on the disk.">
-<polygon fill="#dc143c" stroke="#000000" points="1662,-267.5 1513,-267.5 1513,-246.5 1662,-246.5 1662,-267.5"/>
-<text text-anchor="middle" x="1587.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">preconditioner_export</text>
+<g id="a_node20"><a xlink:href="preconditioner_export.html" target="_top" xlink:title="Generate and store different preconditioners on the disk.">
+<polygon fill="#dc143c" stroke="#000000" points="1862,-267.5 1713,-267.5 1713,-246.5 1862,-246.5 1862,-267.5"/>
+<text text-anchor="middle" x="1787.5" y="-253.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">preconditioner_export</text>
 </a>
 </g>
 </g>
 <!-- simple_solver -->
-<g id="node20" class="node">
+<g id="node21" class="node">
 <title>simple_solver</title>
-<g id="a_node20"><a xlink:href="simple_solver.html" target="_top" xlink:title="Solve a simple linear system with CG. Read a matrix and right hand side from a file.">
-<polygon fill="#228b22" stroke="#000000" points="847.3081,-354.9878 847.3081,-379.0122 814.0307,-396 766.9693,-396 733.6919,-379.0122 733.6919,-354.9878 766.9693,-338 814.0307,-338 847.3081,-354.9878"/>
-<polygon fill="none" stroke="#000000" points="851.3018,-352.537 851.3018,-381.463 814.9897,-400 766.0103,-400 729.6982,-381.463 729.6982,-352.537 766.0103,-334 814.9897,-334 851.3018,-352.537"/>
-<polygon fill="none" stroke="#000000" points="855.2955,-350.0861 855.2955,-383.9139 815.9488,-404 765.0512,-404 725.7045,-383.9139 725.7045,-350.0861 765.0512,-330 815.9488,-330 855.2955,-350.0861"/>
-<text text-anchor="middle" x="790.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">simple_solver</text>
+<g id="a_node21"><a xlink:href="simple_solver.html" target="_top" xlink:title="Solve a simple linear system with CG. Read a matrix and right hand side from a file.">
+<polygon fill="#228b22" stroke="#000000" points="923.3081,-354.9878 923.3081,-379.0122 890.0307,-396 842.9693,-396 809.6919,-379.0122 809.6919,-354.9878 842.9693,-338 890.0307,-338 923.3081,-354.9878"/>
+<polygon fill="none" stroke="#000000" points="927.3018,-352.537 927.3018,-381.463 890.9897,-400 842.0103,-400 805.6982,-381.463 805.6982,-352.537 842.0103,-334 890.9897,-334 927.3018,-352.537"/>
+<polygon fill="none" stroke="#000000" points="931.2955,-350.0861 931.2955,-383.9139 891.9488,-404 841.0512,-404 801.7045,-383.9139 801.7045,-350.0861 841.0512,-330 891.9488,-330 931.2955,-350.0861"/>
+<text text-anchor="middle" x="866.5" y="-363.9" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">simple_solver</text>
 </a>
 </g>
 </g>
 <!-- simple_solver&#45;&gt;custom_logger -->
 <g id="edge2" class="edge">
 <title>simple_solver&#45;&gt;custom_logger</title>
-<path fill="none" stroke="#000000" d="M743.2799,-340.8389C725.1299,-328.6993 705.6355,-312.7735 692.5,-294 643.5681,-224.0657 692.4968,-175.2724 637.5,-110 612.7079,-80.5757 573.1714,-61.882 541.3425,-50.7852"/>
-<polygon fill="#000000" stroke="#000000" points="542.3306,-47.4253 531.7369,-47.5818 540.116,-54.0658 542.3306,-47.4253"/>
+<path fill="none" stroke="#000000" d="M801.5455,-362.856C681.3619,-354.3651 429.4363,-332.4776 351.5,-294 288.9385,-263.113 267.58,-247.8707 239.5,-184 221.092,-142.1292 225.9955,-86.887 230.6011,-57.4824"/>
+<polygon fill="#000000" stroke="#000000" points="234.0621,-58.0073 232.3025,-47.5597 227.1628,-56.8243 234.0621,-58.0073"/>
 </g>
 <!-- simple_solver&#45;&gt;custom_matrix_format -->
 <g id="edge5" class="edge">
 <title>simple_solver&#45;&gt;custom_matrix_format</title>
-<path fill="none" stroke="#000000" d="M748.4874,-338.2716C734.6524,-326.3568 720.9211,-311.2616 713.5,-294 678.9818,-213.7098 701.3614,-105.8946 713.795,-59.6296"/>
-<polygon fill="#000000" stroke="#000000" points="717.2393,-60.3082 716.5591,-49.7353 710.4975,-58.4248 717.2393,-60.3082"/>
+<path fill="none" stroke="#000000" d="M828.6746,-336.3006C791.2379,-303.2448 736.3184,-246.8673 713.5,-184 702.2789,-153.0845 699.0393,-139.5393 713.5,-110 725.5036,-85.48 750.1558,-66.8249 771.203,-54.5124"/>
+<polygon fill="#000000" stroke="#000000" points="772.9304,-57.5565 779.9551,-49.6253 769.5176,-51.4448 772.9304,-57.5565"/>
 </g>
 <!-- simple_solver&#45;&gt;custom_stopping_criterion -->
 <g id="edge8" class="edge">
 <title>simple_solver&#45;&gt;custom_stopping_criterion</title>
-<path fill="none" stroke="#000000" d="M732.3023,-346.4377C703.2074,-334.2383 668.7103,-316.689 642.5,-294 599.592,-256.8565 566.3534,-197.5499 550.9322,-166.854"/>
-<polygon fill="#000000" stroke="#000000" points="553.9453,-165.0492 546.3973,-157.6143 547.6614,-168.1334 553.9453,-165.0492"/>
+<path fill="none" stroke="#000000" d="M801.3398,-351.7433C763.2212,-340.4402 715.8084,-322.0538 680.5,-294 636.0663,-258.6959 603.4866,-198.5949 588.5629,-167.2992"/>
+<polygon fill="#000000" stroke="#000000" points="591.5707,-165.4659 584.1871,-157.8677 585.2208,-168.412 591.5707,-165.4659"/>
 </g>
 <!-- simple_solver&#45;&gt;ilu_preconditioned_solver -->
 <g id="edge10" class="edge">
 <title>simple_solver&#45;&gt;ilu_preconditioned_solver</title>
-<path fill="none" stroke="#000000" d="M838.9312,-341.341C847.3468,-337.3003 856.096,-333.3555 864.5,-330 915.4219,-309.6682 930.6022,-311.6928 982.5,-294 1003.2192,-286.9365 1026.1199,-278.3356 1044.5702,-271.2045"/>
-<polygon fill="#000000" stroke="#000000" points="1045.9962,-274.4054 1054.0483,-267.5196 1043.4597,-267.8811 1045.9962,-274.4054"/>
+<path fill="none" stroke="#000000" d="M915.5878,-341.7513C923.8494,-337.7053 932.3778,-333.652 940.5,-330 989.6673,-307.8927 1047.6441,-285.2041 1084.7203,-271.1117"/>
+<polygon fill="#000000" stroke="#000000" points="1086.025,-274.3603 1094.1379,-267.5463 1083.5465,-267.8137 1086.025,-274.3603"/>
 </g>
 <!-- simple_solver&#45;&gt;inverse_iteration -->
 <g id="edge11" class="edge">
 <title>simple_solver&#45;&gt;inverse_iteration</title>
-<path fill="none" stroke="#000000" d="M836.7698,-340.4346C845.7264,-336.2891 855.2184,-332.5429 864.5,-330 1081.5169,-270.5442 1153.7447,-357.8825 1369.5,-294 1383.7142,-289.7914 1398.2638,-282.2241 1410.157,-275.0248"/>
-<polygon fill="#000000" stroke="#000000" points="1412.0888,-277.9444 1418.6844,-269.6529 1408.3577,-272.0216 1412.0888,-277.9444"/>
+<path fill="none" stroke="#000000" d="M912.7805,-340.4734C921.736,-336.3241 931.2249,-332.5666 940.5,-330 1142.8397,-274.0082 1210.3479,-354.1189 1411.5,-294 1425.7034,-289.755 1440.2516,-282.183 1452.1466,-274.99"/>
+<polygon fill="#000000" stroke="#000000" points="1454.075,-277.9119 1460.676,-269.6248 1450.3478,-271.9867 1454.075,-277.9119"/>
 </g>
 <!-- simple_solver&#45;&gt;iterative_refinement -->
 <g id="edge14" class="edge">
 <title>simple_solver&#45;&gt;iterative_refinement</title>
-<path fill="none" stroke="#000000" d="M837.2678,-340.5867C846.0964,-336.4807 855.4153,-332.7091 864.5,-330 996.9963,-290.4881 1039.1513,-326.663 1173.5,-294 1181.5653,-292.0392 1189.8698,-289.6014 1198.0717,-286.9192"/>
-<polygon fill="#000000" stroke="#000000" points="1199.2892,-290.2021 1207.6325,-283.6721 1197.0381,-283.5739 1199.2892,-290.2021"/>
+<path fill="none" stroke="#000000" d="M913.2999,-340.6931C922.1253,-336.5762 931.4348,-332.7735 940.5,-330 1058.3717,-293.9369 1095.9336,-323.9689 1215.5,-294 1223.4878,-291.9979 1231.7159,-289.5464 1239.8494,-286.8672"/>
+<polygon fill="#000000" stroke="#000000" points="1241.0002,-290.1728 1249.334,-283.6308 1238.7394,-283.5479 1241.0002,-290.1728"/>
 </g>
 <!-- simple_solver&#45;&gt;minimal_cuda_solver -->
 <g id="edge15" class="edge">
 <title>simple_solver&#45;&gt;minimal_cuda_solver</title>
-<path fill="none" stroke="#000000" d="M728.7524,-348.34C669.208,-330.3458 578.5804,-302.9584 512.0887,-282.8647"/>
-<polygon fill="#000000" stroke="#000000" points="513.0451,-279.4975 502.4601,-279.955 511.0201,-286.1982 513.0451,-279.4975"/>
+<path fill="none" stroke="#000000" d="M803.6233,-349.0818C739.6594,-330.8537 640.0027,-302.4541 568.2744,-282.0134"/>
+<polygon fill="#000000" stroke="#000000" points="568.9216,-278.5586 558.3452,-279.1839 567.0031,-285.2906 568.9216,-278.5586"/>
 </g>
 <!-- simple_solver&#45;&gt;nine_pt_stencil_solver -->
 <g id="edge17" class="edge">
 <title>simple_solver&#45;&gt;nine_pt_stencil_solver</title>
-<path fill="none" stroke="#000000" d="M840.0521,-342.1423C892.3201,-312.6725 971.2214,-258.058 1001.5,-184 1013.9465,-153.5572 1015.9607,-139.5393 1001.5,-110 994.6437,-95.9943 983.6606,-83.9022 971.5797,-73.8126"/>
-<polygon fill="#000000" stroke="#000000" points="973.5391,-70.9009 963.5147,-67.4714 969.2125,-76.4037 973.5391,-70.9009"/>
+<path fill="none" stroke="#000000" d="M915.0761,-341.6123C948.2384,-323.7866 986.966,-301.7927 991.5,-294 1029.2354,-229.1432 1018.6898,-138.5987 1007.0105,-84.0996"/>
+<polygon fill="#000000" stroke="#000000" points="1010.3552,-83.0192 1004.7508,-74.028 1003.525,-84.5517 1010.3552,-83.0192"/>
+</g>
+<!-- simple_solver&#45;&gt;par_ilu_convergence -->
+<g id="edge21" class="edge">
+<title>simple_solver&#45;&gt;par_ilu_convergence</title>
+<path fill="none" stroke="#000000" d="M912.7457,-340.3455C921.7046,-336.2086 931.2036,-332.4884 940.5,-330 1200.7041,-260.3506 1284.4245,-360.3085 1545.5,-294 1563.8028,-289.3514 1583.0175,-280.4537 1597.9138,-272.5487"/>
+<polygon fill="#000000" stroke="#000000" points="1599.9407,-275.429 1607.0263,-267.5521 1596.5751,-269.2912 1599.9407,-275.429"/>
 </g>
 <!-- simple_solver&#45;&gt;poisson_solver -->
-<g id="edge23" class="edge">
+<g id="edge24" class="edge">
 <title>simple_solver&#45;&gt;poisson_solver</title>
-<path fill="none" stroke="#000000" d="M790.5,-329.759C790.5,-321.6058 790.5,-312.8692 790.5,-304.3797"/>
-<polygon fill="#000000" stroke="#000000" points="794.0001,-304.2026 790.5,-294.2026 787.0001,-304.2027 794.0001,-304.2026"/>
+<path fill="none" stroke="#000000" d="M882.7506,-329.759C886.4257,-321.337 890.3723,-312.2926 894.1912,-303.5409"/>
+<polygon fill="#000000" stroke="#000000" points="897.4745,-304.7679 898.2661,-294.2026 891.0587,-301.9682 897.4745,-304.7679"/>
 </g>
 <!-- simple_solver&#45;&gt;preconditioned_solver -->
-<g id="edge24" class="edge">
+<g id="edge25" class="edge">
 <title>simple_solver&#45;&gt;preconditioned_solver</title>
-<path fill="none" stroke="#000000" d="M725.6767,-360.0203C628.8788,-349.0676 441.0678,-325.7681 283.5,-294 251.0268,-287.4529 214.9064,-278.0109 187.222,-270.3039"/>
-<polygon fill="#000000" stroke="#000000" points="188.0005,-266.8872 177.4265,-267.5516 186.1069,-273.6263 188.0005,-266.8872"/>
+<path fill="none" stroke="#000000" d="M801.6137,-365.101C682.5357,-360.4523 421.7633,-344.8522 208.5,-294 185.8536,-288.6 161.3361,-279.4637 142.3655,-271.6212"/>
+<polygon fill="#000000" stroke="#000000" points="143.564,-268.3281 132.99,-267.6647 140.8424,-274.7774 143.564,-268.3281"/>
 </g>
 <!-- simple_solver&#45;&gt;preconditioner_export -->
-<g id="edge25" class="edge">
+<g id="edge26" class="edge">
 <title>simple_solver&#45;&gt;preconditioner_export</title>
-<path fill="none" stroke="#000000" d="M836.7393,-340.3215C845.6988,-336.187 855.1997,-332.4737 864.5,-330 1139.3927,-256.8835 1226.9072,-360.3961 1503.5,-294 1523.0046,-289.3179 1543.6369,-280.2948 1559.5724,-272.3315"/>
-<polygon fill="#000000" stroke="#000000" points="1561.5493,-275.2503 1568.8354,-267.5585 1558.3429,-269.0278 1561.5493,-275.2503"/>
+<path fill="none" stroke="#000000" d="M912.721,-340.252C921.6823,-336.1242 931.1885,-332.4312 940.5,-330 1268.9764,-244.2351 1373.0312,-371.735 1703.5,-294 1723.0257,-289.407 1743.6584,-280.3854 1759.5888,-272.4006"/>
+<polygon fill="#000000" stroke="#000000" points="1761.5735,-275.3145 1768.8481,-267.6118 1758.3578,-269.0969 1761.5735,-275.3145"/>
 </g>
 <!-- simple_solver&#45;&gt;simple_solver_logging -->
-<g id="edge26" class="edge">
+<g id="edge27" class="edge">
 <title>simple_solver&#45;&gt;simple_solver_logging</title>
-<path fill="none" stroke="#000000" d="M725.5566,-365.1976C612.3074,-360.7219 385.2307,-345.4141 327.5,-294 291.2169,-261.6868 285.8768,-200.2384 285.7668,-167.9758"/>
-<polygon fill="#000000" stroke="#000000" points="289.2678,-167.9236 285.9039,-157.8769 282.2684,-167.8285 289.2678,-167.9236"/>
+<path fill="none" stroke="#000000" d="M801.4763,-361.5497C676.0639,-350.4203 410.5075,-323.6188 381.5,-294 348.482,-260.2861 353.0179,-199.4437 358.2484,-167.6377"/>
+<polygon fill="#000000" stroke="#000000" points="361.7114,-168.157 360.067,-157.6905 354.8255,-166.898 361.7114,-168.157"/>
 </g>
 <!-- simple_solver&#45;&gt;three_pt_stencil_solver -->
-<g id="edge28" class="edge">
+<g id="edge29" class="edge">
 <title>simple_solver&#45;&gt;three_pt_stencil_solver</title>
-<path fill="none" stroke="#000000" d="M830.7872,-337.4316C844.4355,-325.4258 858.4897,-310.4878 867.5,-294 884.2168,-263.4103 891.1019,-224.503 893.8693,-194.4009"/>
-<polygon fill="#000000" stroke="#000000" points="897.3807,-194.395 894.6858,-184.1487 890.4028,-193.8393 897.3807,-194.395"/>
+<path fill="none" stroke="#000000" d="M849.5628,-329.7241C845.0221,-318.4447 840.5364,-305.8918 837.5,-294 829.1438,-261.2736 824.6238,-223.4255 822.2032,-194.33"/>
+<polygon fill="#000000" stroke="#000000" points="825.6673,-193.7311 821.4032,-184.0322 818.6884,-194.2733 825.6673,-193.7311"/>
 </g>
 <!-- simple_solver_logging&#45;&gt;custom_logger -->
 <g id="edge3" class="edge">
 <title>simple_solver_logging&#45;&gt;custom_logger</title>
-<path fill="none" stroke="#000000" d="M308.3767,-136.2907C336.4589,-122.4214 386.5646,-97.2617 428.5,-74 440.5747,-67.3021 453.7377,-59.5176 464.8166,-52.8218"/>
-<polygon fill="#000000" stroke="#000000" points="466.8387,-55.6885 473.5631,-47.5011 463.2007,-49.7081 466.8387,-55.6885"/>
+<path fill="none" stroke="#000000" d="M350.2268,-136.4527C328.1112,-117.4471 281.3821,-77.2893 254.5598,-54.2389"/>
+<polygon fill="#000000" stroke="#000000" points="256.7895,-51.5402 246.9241,-47.677 252.2271,-56.8491 256.7895,-51.5402"/>
 </g>
 <!-- simple_solver_logging&#45;&gt;papi_logging -->
 <g id="edge20" class="edge">
 <title>simple_solver_logging&#45;&gt;papi_logging</title>
-<path fill="none" stroke="#000000" d="M277.391,-136.4527C261.26,-117.7748 227.4858,-78.6677 207.4308,-55.4462"/>
-<polygon fill="#000000" stroke="#000000" points="209.9061,-52.9575 200.721,-47.677 204.6084,-57.5329 209.9061,-52.9575"/>
+<path fill="none" stroke="#000000" d="M361.4453,-136.4527C359.6348,-118.3482 355.905,-81.0498 353.5629,-57.6289"/>
+<polygon fill="#000000" stroke="#000000" points="357.0455,-57.279 352.5677,-47.677 350.0802,-57.9756 357.0455,-57.279"/>
 </g>
 <!-- simple_solver_logging&#45;&gt;performance_debugging -->
-<g id="edge21" class="edge">
+<g id="edge22" class="edge">
 <title>simple_solver_logging&#45;&gt;performance_debugging</title>
-<path fill="none" stroke="#000000" d="M291.3901,-136.4527C299.86,-118.1844 317.3906,-80.3731 328.2289,-56.9965"/>
-<polygon fill="#000000" stroke="#000000" points="331.5188,-58.2215 332.5498,-47.677 325.1681,-55.2771 331.5188,-58.2215"/>
+<path fill="none" stroke="#000000" d="M375.4444,-136.4527C398.7695,-117.4471 448.0541,-77.2893 476.3431,-54.2389"/>
+<polygon fill="#000000" stroke="#000000" points="478.855,-56.7071 484.3965,-47.677 474.4332,-51.2804 478.855,-56.7071"/>
 </g>
 <!-- three_pt_stencil_solver&#45;&gt;custom_matrix_format -->
 <g id="edge7" class="edge">
 <title>three_pt_stencil_solver&#45;&gt;custom_matrix_format</title>
-<path fill="none" stroke="#000000" d="M843.468,-114.2942C812.6449,-94.9196 774.7534,-71.1022 749.2453,-55.0685"/>
-<polygon fill="#000000" stroke="#000000" points="751.1001,-52.1004 740.7711,-49.7418 747.3749,-58.0268 751.1001,-52.1004"/>
+<path fill="none" stroke="#000000" d="M815.4373,-109.759C813.6276,-93.1701 811.5545,-74.1665 809.9809,-59.7416"/>
+<polygon fill="#000000" stroke="#000000" points="813.4515,-59.2806 808.8875,-49.7191 806.4927,-60.0398 813.4515,-59.2806"/>
 </g>
 <!-- three_pt_stencil_solver&#45;&gt;nine_pt_stencil_solver -->
 <g id="edge18" class="edge">
 <title>three_pt_stencil_solver&#45;&gt;nine_pt_stencil_solver</title>
-<path fill="none" stroke="#000000" d="M899.5627,-109.759C900.4521,-101.6058 901.4052,-92.8692 902.3313,-84.3797"/>
-<polygon fill="#000000" stroke="#000000" points="905.8363,-84.5232 903.4415,-74.2026 898.8776,-83.7641 905.8363,-84.5232"/>
+<path fill="none" stroke="#000000" d="M871.532,-114.2942C891.4557,-101.7707 914.3328,-87.3908 934.9098,-74.4567"/>
+<polygon fill="#000000" stroke="#000000" points="936.9686,-77.2967 943.5723,-69.0117 933.2433,-71.3702 936.9686,-77.2967"/>
 </g>
 </g>
 </svg>

@@ -1,0 +1,83 @@
+\hypertarget{classgko_1_1factorization_1_1Ic}{}\doxysection{gko\+::factorization\+::Ic$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1Ic}\index{gko::factorization::Ic$<$ ValueType, IndexType $>$@{gko::factorization::Ic$<$ ValueType, IndexType $>$}}
+
+
+Represents an incomplete Cholesky factorization (I\+C(0)) of a sparse matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/ic.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Ic$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1Ic__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1Ic_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1Ic_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_ad590a6c5e76c24b32a7ec7791b763e4b}\label{classgko_1_1factorization_1_1Ic_ad590a6c5e76c24b32a7ec7791b763e4b}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_ac2a796881f714e2c3ee7ffadaba10bbe}\label{classgko_1_1factorization_1_1Ic_ac2a796881f714e2c3ee7ffadaba10bbe}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_a85235be779fda62c975616bc95ade03d}\label{classgko_1_1factorization_1_1Ic_a85235be779fda62c975616bc95ade03d}} 
+using {\bfseries matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_a7e2cca63366309d60c2f82bce638b627}\label{classgko_1_1factorization_1_1Ic_a7e2cca63366309d60c2f82bce638b627}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_a660f4229d2ad657b8dacc75427891f3d}\label{classgko_1_1factorization_1_1Ic_a660f4229d2ad657b8dacc75427891f3d}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+lt\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_aa9e297606f08692ffe65cb86c1dc5356}\label{classgko_1_1factorization_1_1Ic_aa9e297606f08692ffe65cb86c1dc5356}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1Ic_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_adad67ae331f0d688cd51e9c6d5187105}\label{classgko_1_1factorization_1_1Ic_adad67ae331f0d688cd51e9c6d5187105}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ic_a0b579abd79f9b034a94c8391e79d80d4}\label{classgko_1_1factorization_1_1Ic_a0b579abd79f9b034a94c8391e79d80d4}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1Ic_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = gko\+::default\+\_\+precision, typename Index\+Type = gko\+::int32$>$\newline
+class gko\+::factorization\+::\+Ic$<$ Value\+Type, Index\+Type $>$}
+
+Represents an incomplete Cholesky factorization (I\+C(0)) of a sparse matrix. 
+
+More specifically, it consists of a lower triangular factor $L$ and its conjugate transpose $L^H$ with sparsity pattern $\mathcal S(L + L^H)$ = $\mathcal S(A)$ fulfilling $LL^H = A$ at every non-\/zero location of $A$.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/ic.\+hpp\end{DoxyCompactItemize}

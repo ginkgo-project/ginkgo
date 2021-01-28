@@ -152,7 +152,7 @@ jacobi\+: max\+\_\+block\+\_\+size, accuracy, storage\+\_\+optimization
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(exec);}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\_block\_size}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        factory-\/>get\_parameters().max\_block\_size = std::stoi(argv[4]);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 6) \{}
 \DoxyCodeLine{        factory-\/>get\_parameters().accuracy = std::stod(argv[5]);}
@@ -190,7 +190,7 @@ parilu\+: iterations
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec);}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type_acf87db3479a61d53d301101b51e419c6}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(}
 \DoxyCodeLine{        try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
@@ -208,7 +208,7 @@ parilut\+: iterations, fill-\/in limit
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec);}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_aed39c89593c4e33f8473cc641fc4a44c}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 6) \{}
 \DoxyCodeLine{        factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}
@@ -482,7 +482,7 @@ When specifying an executor\+:
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"jacobi"}) \{}
 \DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(exec);}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\_block\_size}} = std::stoi(argv[4]);}
+\DoxyCodeLine{            factory-\/>get\_parameters().max\_block\_size = std::stoi(argv[4]);}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
 \DoxyCodeLine{            factory-\/>get\_parameters().accuracy = std::stod(argv[5]);}
@@ -506,7 +506,7 @@ When specifying an executor\+:
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu"}) \{}
 \DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec);}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type_acf87db3479a61d53d301101b51e419c6}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{            factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(}
 \DoxyCodeLine{            try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
@@ -517,7 +517,7 @@ When specifying an executor\+:
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut"}) \{}
 \DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec);}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
-\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_aed39c89593c4e33f8473cc641fc4a44c}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{            factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
 \DoxyCodeLine{            factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}

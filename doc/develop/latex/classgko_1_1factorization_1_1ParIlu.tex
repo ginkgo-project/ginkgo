@@ -35,20 +35,23 @@ using {\bfseries value\+\_\+type} = Value\+Type
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a261e5d91114bf308e98fc50141615618}\label{classgko_1_1factorization_1_1ParIlu_a261e5d91114bf308e98fc50141615618}} 
 using {\bfseries index\+\_\+type} = Index\+Type
 \item 
-\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}\label{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}} 
-using {\bfseries l\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a6a793a21d2c75c9ddc29e33281fe2988}\label{classgko_1_1factorization_1_1ParIlu_a6a793a21d2c75c9ddc29e33281fe2988}} 
+using {\bfseries matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
 \item 
-\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}\label{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}} 
-using {\bfseries u\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a7f0e147d3cf75ac091fb659a26bd5cad}\label{classgko_1_1factorization_1_1ParIlu_a7f0e147d3cf75ac091fb659a26bd5cad}} 
+using {\bfseries l\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a02f5af49115cc020895bc99b21b4648c}\label{classgko_1_1factorization_1_1ParIlu_a02f5af49115cc020895bc99b21b4648c}} 
+using {\bfseries u\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}}
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}\label{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}} 
-std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{l\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_ac53ed9e9f4501e72a41bfe138bfe815e}\label{classgko_1_1factorization_1_1ParIlu_ac53ed9e9f4501e72a41bfe138bfe815e}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
 \item 
-\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}\label{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}} 
-std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{u\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a84855b395160b6ed4fc90465783c7b82}\label{classgko_1_1factorization_1_1ParIlu_a84855b395160b6ed4fc90465783c7b82}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}\label{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}} 
 const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
@@ -76,7 +79,7 @@ The Par\+I\+LU algorithm generates the incomplete factors iteratively, using a f
 
 $ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j \end{cases} $
 
-In general, the entries of $L$ and $U$ can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the pre-\/defined sparsity pattern (in case of I\+L\+U(0) the sparsity pattern of the system matrix $A$). The number of Par\+I\+LU sweeps needed for convergence depends on the parallelism level\+: For sequential execution, a single sweep is sufficient, for fine-\/grained parallelism, 3 sweeps are typically generating a good approximation.
+In general, the entries of $L$ and $U$ can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the pre-\/defined sparsity pattern (in case of I\+L\+U(0) the sparsity pattern of the system matrix $A$). The number of Par\+I\+LU sweeps needed for convergence depends on the parallelism level\+: For sequential execution, a single sweep is sufficient, for fine-\/grained parallelism, the number of sweeps necessary to get a good approximation of the incomplete factors depends heavily on the problem. On the Open\+MP executor, 3 sweeps usually give a decent approximation in our experiments, while G\+PU executors can take 10 or more iterations.
 
 The Par\+I\+LU algorithm in Ginkgo follows the design of E. Chow and A. Patel, Fine-\/grained Parallel Incomplete LU Factorization, S\+I\+AM Journal on Scientific Computing, 37, C169-\/\+C193 (2015).
 

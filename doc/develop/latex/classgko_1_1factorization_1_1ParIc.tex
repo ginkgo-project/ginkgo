@@ -1,0 +1,91 @@
+\hypertarget{classgko_1_1factorization_1_1ParIc}{}\doxysection{gko\+::factorization\+::Par\+Ic$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1ParIc}\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$@{gko::factorization::ParIc$<$ ValueType, IndexType $>$}}
+
+
+Par\+IC is an incomplete Cholesky factorization which is computed in parallel.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/par\+\_\+ic.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Par\+Ic$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1ParIc__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_a026af028479e76e3262bbff36256c964}\label{classgko_1_1factorization_1_1ParIc_a026af028479e76e3262bbff36256c964}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_a66618e297ba44f78a1d5c87b337e68fd}\label{classgko_1_1factorization_1_1ParIc_a66618e297ba44f78a1d5c87b337e68fd}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_ad69e729338fc1956e80bf5a891a7e5cb}\label{classgko_1_1factorization_1_1ParIc_ad69e729338fc1956e80bf5a891a7e5cb}} 
+using {\bfseries matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_a7bd48e6e4e7b83e2ea79d7a0c0152981}\label{classgko_1_1factorization_1_1ParIc_a7bd48e6e4e7b83e2ea79d7a0c0152981}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_ad97b9c7fe03efe436d972a438c58a28a}\label{classgko_1_1factorization_1_1ParIc_ad97b9c7fe03efe436d972a438c58a28a}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+lt\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_a722575ebf393208af5bfac13f2007f9e}\label{classgko_1_1factorization_1_1ParIc_a722575ebf393208af5bfac13f2007f9e}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_a57ac5d1579afd5870292a8649f390f1c}\label{classgko_1_1factorization_1_1ParIc_a57ac5d1579afd5870292a8649f390f1c}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIc_ab422e413285713bf32f39fd6b48b55f1}\label{classgko_1_1factorization_1_1ParIc_ab422e413285713bf32f39fd6b48b55f1}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIc_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::factorization\+::\+Par\+Ic$<$ Value\+Type, Index\+Type $>$}
+
+Par\+IC is an incomplete Cholesky factorization which is computed in parallel. 
+
+$L$ is a lower triangular matrix, which approximates a given matrix $A$ with $A \approx LL^H$. Here, $L + L^H$ has the same sparsity pattern as $A$, which is also called I\+C(0).
+
+The Par\+IC algorithm generates the incomplete factors iteratively, using a fixed-\/point iteration of the form
+
+$ F(L) = \begin{cases} \sqrt{a_{ii}-\sum_{k=1}^{i-1}|l_{ik}|^2}, \quad & i == j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i < j \end{cases} $
+
+In general, the entries of $L$ can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors $L$ and $L^H$ fulfilling $\left(R = A - L \cdot L^H\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the pre-\/defined sparsity pattern (in case of I\+C(0) the sparsity pattern of the system matrix $A$). The number of Par\+IC sweeps needed for convergence depends on the parallelism level\+: For sequential execution, a single sweep is sufficient, for fine-\/grained parallelism, the number of sweeps necessary to get a good approximation of the incomplete factors depends heavily on the problem. On the Open\+MP executor, 3 sweeps usually give a decent approximation in our experiments, while G\+PU executors can take 10 or more iterations.
+
+The Par\+IC algorithm in Ginkgo follows the design of E. Chow and A. Patel, Fine-\/grained Parallel Incomplete LU Factorization, S\+I\+AM Journal on Scientific Computing, 37, C169-\/\+C193 (2015).
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/par\+\_\+ic.\+hpp\end{DoxyCompactItemize}

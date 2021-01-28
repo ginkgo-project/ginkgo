@@ -30,7 +30,7 @@ std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_
 std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1Ilu_1_1parameters__type_ae39206eef0cd32835df5b636e1a60236}{u\+\_\+strategy}} \{ nullptr \}
 \begin{DoxyCompactList}\small\item\em Strategy which will be used by the U matrix. \end{DoxyCompactList}\item 
 bool \mbox{\hyperlink{structgko_1_1factorization_1_1Ilu_1_1parameters__type_a12cbd76c5a9cce1814fd5c2dc918323f}{skip\+\_\+sorting}} \{ false \}
-\begin{DoxyCompactList}\small\item\em {\ttfamily true} means it is known that the matrix given to this factory will be sorted first by row, then by column index, {\ttfamily false} means it is unknown or not sorted, so an additional sorting step will be performed during the factorization (it will not change the matrix given). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Additional Inherited Members}
 
 
@@ -55,11 +55,9 @@ bool \mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko\+::factorization\+::
 
 
 
-{\ttfamily true} means it is known that the matrix given to this factory will be sorted first by row, then by column index, {\ttfamily false} means it is unknown or not sorted, so an additional sorting step will be performed during the factorization (it will not change the matrix given). 
+The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. 
 
-The matrix must be sorted for this factorization to work.
-
-The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, this factorization might be incorrect. \mbox{\Hypertarget{structgko_1_1factorization_1_1Ilu_1_1parameters__type_ae39206eef0cd32835df5b636e1a60236}\label{structgko_1_1factorization_1_1Ilu_1_1parameters__type_ae39206eef0cd32835df5b636e1a60236}} 
+If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, this factorization might be incorrect. \mbox{\Hypertarget{structgko_1_1factorization_1_1Ilu_1_1parameters__type_ae39206eef0cd32835df5b636e1a60236}\label{structgko_1_1factorization_1_1Ilu_1_1parameters__type_ae39206eef0cd32835df5b636e1a60236}} 
 \index{gko::factorization::Ilu$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ilu$<$ ValueType, IndexType $>$::parameters\_type}!u\_strategy@{u\_strategy}}
 \index{u\_strategy@{u\_strategy}!gko::factorization::Ilu$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::Ilu$<$ ValueType, IndexType $>$::parameters\_type}}
 \doxysubsubsection{\texorpdfstring{u\_strategy}{u\_strategy}}

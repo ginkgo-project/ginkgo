@@ -1,0 +1,91 @@
+\hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type}{}\doxysection{gko\+::factorization\+::Par\+Ic$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type}\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::factorization\+::Par\+Ic$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1factorization_1_1ParIc_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a29d377c42c0755d46e689d1f83b2f973}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a29d377c42c0755d46e689d1f83b2f973}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+iterations} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a89b99a32ab82c1d728f168387b2ed228}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a89b99a32ab82c1d728f168387b2ed228}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+skip\+\_\+sorting} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_ac407980ea9254e7c9ca72c5628152810}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_ac407980ea9254e7c9ca72c5628152810}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+l\+\_\+strategy} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_aa52f3eb16b0994341a40c55a41a5c097}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_aa52f3eb16b0994341a40c55a41a5c097}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+both\+\_\+factors} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a358fe00ecabfa3fb2b06bf90175020a4}{iterations}} \{ 0 \}
+\begin{DoxyCompactList}\small\item\em The number of iterations the {\ttfamily compute} kernel will use when doing the factorization. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a435591bb86e3a8afa4a32c667ebb4c07}{skip\+\_\+sorting}} \{ false \}
+\begin{DoxyCompactList}\small\item\em The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type_ae6ab63d45702d7085f63d78a27c58e9e}{l\+\_\+strategy}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Strategy which will be used by the L matrix. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structgko_1_1factorization_1_1ParIc_1_1parameters__type_abfa3c5afbc05b7c25b09ae225e6c966a}{both\+\_\+factors}} \{ true \}
+\begin{DoxyCompactList}\small\item\em {\ttfamily true} will generate both L and L$^\wedge$H, {\ttfamily false} will only generate the L factor, resulting in a \mbox{\hyperlink{classgko_1_1Composition}{Composition}} of only a single \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_abfa3c5afbc05b7c25b09ae225e6c966a}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_abfa3c5afbc05b7c25b09ae225e6c966a}} 
+\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}!both\_factors@{both\_factors}}
+\index{both\_factors@{both\_factors}!gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{both\_factors}{both\_factors}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko\+::factorization\+::\+Par\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::both\+\_\+factors \{ true \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+{\ttfamily true} will generate both L and L$^\wedge$H, {\ttfamily false} will only generate the L factor, resulting in a \mbox{\hyperlink{classgko_1_1Composition}{Composition}} of only a single \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+This can be used to avoid the transposition operation. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a358fe00ecabfa3fb2b06bf90175020a4}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a358fe00ecabfa3fb2b06bf90175020a4}} 
+\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}!iterations@{iterations}}
+\index{iterations@{iterations}!gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{iterations}{iterations}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko\+::factorization\+::\+Par\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::iterations \{ 0 \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The number of iterations the {\ttfamily compute} kernel will use when doing the factorization. 
+
+The default value {\ttfamily 0} means {\ttfamily Auto}, so the implementation decides on the actual value depending on the ressources that are available. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_ae6ab63d45702d7085f63d78a27c58e9e}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_ae6ab63d45702d7085f63d78a27c58e9e}} 
+\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}!l\_strategy@{l\_strategy}}
+\index{l\_strategy@{l\_strategy}!gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{l\_strategy}{l\_strategy}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$typename \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{matrix\+\_\+type\+::strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko\+::factorization\+::\+Par\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::l\+\_\+strategy \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Strategy which will be used by the L matrix. 
+
+The default value {\ttfamily nullptr} will result in the strategy {\ttfamily classical}. \mbox{\Hypertarget{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a435591bb86e3a8afa4a32c667ebb4c07}\label{structgko_1_1factorization_1_1ParIc_1_1parameters__type_a435591bb86e3a8afa4a32c667ebb4c07}} 
+\index{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}!skip\_sorting@{skip\_sorting}}
+\index{skip\_sorting@{skip\_sorting}!gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type@{gko::factorization::ParIc$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{skip\_sorting}{skip\_sorting}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+bool \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko\+::factorization\+::\+Par\+Ic}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::skip\+\_\+sorting \{ false \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The {\ttfamily system\+\_\+matrix}, which will be given to this factory, must be sorted (first by row, then by column) in order for the algorithm to work. 
+
+If it is known that the matrix will be sorted, this parameter can be set to {\ttfamily true} to skip the sorting (therefore, shortening the runtime). However, if it is unknown or if the matrix is known to be not sorted, it must remain {\ttfamily false}, otherwise, the factorization might be incorrect. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/par\+\_\+ic.\+hpp\end{DoxyCompactItemize}

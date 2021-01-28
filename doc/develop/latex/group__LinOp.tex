@@ -47,8 +47,12 @@ class \mbox{\hyperlink{classgko_1_1EnableLinOp}{gko\+::\+Enable\+Lin\+Op$<$ Conc
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1EnableLinOp}{Enable\+Lin\+Op}} mixin can be used to provide sensible default implementations of the majority of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation$<$ Value\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class can be used to construct a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1Ic}{gko\+::factorization\+::\+Ic$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Represents an incomplete Cholesky factorization (I\+C(0)) of a sparse matrix. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko\+::factorization\+::\+Ilu$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em Represents an incomplete LU factorization -- I\+L\+U(0) -- of a sparse matrix. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko\+::factorization\+::\+Par\+Ic$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Par\+IC is an incomplete Cholesky factorization which is computed in parallel. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIct}{gko\+::factorization\+::\+Par\+Ict$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em Par\+I\+CT is an incomplete threshold-\/based Cholesky factorization which is computed in parallel. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}}
@@ -77,6 +81,8 @@ class \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp$<$ 
 \begin{DoxyCompactList}\small\item\em S\+E\+L\+L-\/P is a matrix format similar to E\+LL format. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{Sparsity\+Csr}} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ic}{gko\+::preconditioner\+::\+Ic$<$ L\+Solver\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$ for a given lower triangular matrix L and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\+::\+Isai$<$ Isai\+Type, Value\+Type, Index\+Type $>$}}

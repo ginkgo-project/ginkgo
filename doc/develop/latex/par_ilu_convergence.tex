@@ -1,0 +1,457 @@
+The Par\+I\+LU convergence example..
+
+This example depends on simple-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+This example can be used to inspect the convergence behavior of parallel incomplete factorizations. $\ast$ \label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{const} std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    executors\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"dpcpp"}, [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Function>}
+\DoxyCodeLine{\textcolor{keyword}{auto} try\_generate(Function fun) -\/> decltype(fun())}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    decltype(fun()) result;}
+\DoxyCodeLine{    try \{}
+\DoxyCodeLine{        result = fun();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{catch} (\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Error}{gko::Error}} \&err) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error: "} << err.\mbox{\hyperlink{classgko_1_1Error_a38cf4e9e4463088091a344f218c2dd8f}{what}}() << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_ilu\_residual\_norm(}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}} *residual,}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}} *mtx)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<ValueType, IndexType>}} residual\_data;}
+\DoxyCodeLine{    \mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<ValueType, IndexType>}} mtx\_data;}
+\DoxyCodeLine{    residual-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{write}}(residual\_data);}
+\DoxyCodeLine{    mtx-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{write}}(mtx\_data);}
+\DoxyCodeLine{    residual\_data.\mbox{\hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\_row\_major\_order}}();}
+\DoxyCodeLine{    mtx\_data.\mbox{\hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\_row\_major\_order}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} it = mtx\_data.\mbox{\hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}}.begin();}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} residual\_norm\{\};}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} entry : residual\_data.\mbox{\hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ref\_row = it-\/>row;}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ref\_col = it-\/>column;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (entry.row == ref\_row \&\& entry.column == ref\_col) \{}
+\DoxyCodeLine{            residual\_norm += \mbox{\hyperlink{namespacegko_abbb55709b10d707b2cbef803832aa834}{gko::squared\_norm}}(entry.value);}
+\DoxyCodeLine{            ++it;}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} std::sqrt(residual\_norm);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\end{DoxyCode}
+
+
+print usage message
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<parilu|parilut|paric|parict] [<max-\/iterations>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<num-\/repetitions>] [<fill-\/in-\/limit>]\(\backslash\)n"};}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} -\/1;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+generate executor based on first argument
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} exec = try\_generate([\&] \{ \textcolor{keywordflow}{return} executors.at(argv[1])(); \});}
+\end{DoxyCode}
+
+
+set matrix and preconditioner name with default values
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::string matrix = argc < 3 ? \textcolor{stringliteral}{"data/A.mtx"} : argv[2];}
+\DoxyCodeLine{std::string precond = argc < 4 ? \textcolor{stringliteral}{"parilu"} : argv[3];}
+\DoxyCodeLine{\textcolor{keywordtype}{int} max\_iterations = argc < 5 ? 10 : std::stoi(argv[4]);}
+\DoxyCodeLine{\textcolor{keywordtype}{int} num\_repetitions = argc < 6 ? 10 : std::stoi(argv[5]);}
+\DoxyCodeLine{\textcolor{keywordtype}{double} limit = argc < 7 ? 2 : std::stod(argv[6]);}
+\end{DoxyCode}
+
+
+load matrix file into Csr format
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} mtx = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(try\_generate([\&] \{}
+\DoxyCodeLine{        std::ifstream mtx\_stream\{matrix\};}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (!mtx\_stream) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{throw} GKO\_STREAM\_ERROR(\textcolor{stringliteral}{"Unable to open matrix file"});}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Reading "} << matrix << std::endl;}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} gko::read<gko::matrix::Csr<ValueType, IndexType>>(mtx\_stream,}
+\DoxyCodeLine{                                                                 exec);}
+\DoxyCodeLine{    \}));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::LinOpFactory> factory;}
+\DoxyCodeLine{    std::function<void(\textcolor{keywordtype}{int})> set\_iterations;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu"}) \{}
+\DoxyCodeLine{        factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<ValueType, IndexType>::build}}().on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIlu<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"paric"}) \{}
+\DoxyCodeLine{        factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko::factorization::ParIc<ValueType, IndexType>::build}}().on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIc<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut"}) \{}
+\DoxyCodeLine{        factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<ValueType, IndexType>::build}}()}
+\DoxyCodeLine{                      .with\_fill\_in\_limit(limit)}
+\DoxyCodeLine{                      .on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIlut<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parict"}) \{}
+\DoxyCodeLine{        factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIct}{gko::factorization::ParIct<ValueType, IndexType>::build}}()}
+\DoxyCodeLine{                      .with\_fill\_in\_limit(limit)}
+\DoxyCodeLine{                      .on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIct<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<gko::matrix::Dense<ValueType>>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} minus\_one =}
+\DoxyCodeLine{        gko::initialize<gko::matrix::Dense<ValueType>>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} it = 1; it <= max\_iterations; ++it) \{}
+\DoxyCodeLine{        set\_iterations(it);}
+\DoxyCodeLine{        std::cout << it << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        std::vector<long> times;}
+\DoxyCodeLine{        std::vector<double> residuals;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} rep = 0; rep < num\_repetitions; ++rep) \{}
+\DoxyCodeLine{            \textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} result =}
+\DoxyCodeLine{                gko::as<gko::Composition<ValueType>>(factory-\/>generate(mtx));}
+\DoxyCodeLine{            exec-\/>synchronize();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} residual = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(exec, mtx);}
+\DoxyCodeLine{            result-\/>get\_operators()[0]-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one),}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(result-\/>get\_operators()[1]),}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(minus\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(residual));}
+\DoxyCodeLine{            times.push\_back(}
+\DoxyCodeLine{                std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic)}
+\DoxyCodeLine{                    .count());}
+\DoxyCodeLine{            residuals.push\_back(}
+\DoxyCodeLine{                compute\_ilu\_residual\_norm(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(residual), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(mtx)));}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} el : times) \{}
+\DoxyCodeLine{            std::cout << el << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} el : residuals) \{}
+\DoxyCodeLine{            std::cout << el << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cout << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Usage: executable <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] [<parilu|parilut|paric|parict] [<\mbox{\hyperlink{namespacegko_af1812df45c6ec07780d579a12b64c753}{max}}-\/iterations>] [<num-\/repetitions>] [fill-\/in-\/limit]}
+\end{DoxyCode}
+
+
+When specifying an executor\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Reading data/A.mtx}
+\DoxyCodeLine{1;71800;10300;8800;8200;8000;7700;7500;7500;7500;7400;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;1.0331e-\/14;}
+\DoxyCodeLine{2;15500;9100;13500;9000;8600;8800;8700;8600;8600;8500;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{3;16500;10200;10100;10100;9900;10000;9800;9800;9900;9900;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{4;17500;11500;11200;15600;11300;11200;11400;11200;11200;11100;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{5;18800;12800;12700;12600;12500;12400;12400;12400;12400;14100;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{6;19200;13400;23100;15400;13200;13000;13000;13000;13100;13000;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{7;20500;14500;14400;14200;14200;14300;14200;14100;14300;14200;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{8;21600;15700;86200;16300;15700;15600;15500;15400;15500;15600;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{9;22700;17000;16700;16600;16700;16800;20400;17400;17500;17400;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\DoxyCodeLine{10;25500;19000;18800;18700;18700;18800;18600;18700;18600;18700;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;4.15407e-\/16;}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2021, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{const} std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    executors\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"},}
+\DoxyCodeLine{         [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"dpcpp"}, [] \{}
+\DoxyCodeLine{             \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1DpcppExecutor_ac46044fcb00b2d224b45d93eaf8c579d}{gko::DpcppExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{         \}\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Function>}
+\DoxyCodeLine{\textcolor{keyword}{auto} try\_generate(Function fun) -\/> decltype(fun())}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    decltype(fun()) result;}
+\DoxyCodeLine{    try \{}
+\DoxyCodeLine{        result = fun();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{catch} (\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Error}{gko::Error}} \&err) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error: "} << err.\mbox{\hyperlink{classgko_1_1Error_a38cf4e9e4463088091a344f218c2dd8f}{what}}() << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_ilu\_residual\_norm(}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}} *residual,}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}} *mtx)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<ValueType, IndexType>}} residual\_data;}
+\DoxyCodeLine{    \mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<ValueType, IndexType>}} mtx\_data;}
+\DoxyCodeLine{    residual-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{write}}(residual\_data);}
+\DoxyCodeLine{    mtx-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a205fc391f4cf4f7718a55b0a61f62bc9}{write}}(mtx\_data);}
+\DoxyCodeLine{    residual\_data.\mbox{\hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\_row\_major\_order}}();}
+\DoxyCodeLine{    mtx\_data.\mbox{\hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\_row\_major\_order}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} it = mtx\_data.\mbox{\hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}}.begin();}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} residual\_norm\{\};}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} entry : residual\_data.\mbox{\hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ref\_row = it-\/>row;}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ref\_col = it-\/>column;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (entry.row == ref\_row \&\& entry.column == ref\_col) \{}
+\DoxyCodeLine{            residual\_norm += \mbox{\hyperlink{namespacegko_abbb55709b10d707b2cbef803832aa834}{gko::squared\_norm}}(entry.value);}
+\DoxyCodeLine{            ++it;}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} std::sqrt(residual\_norm);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: executable"}}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{" <reference|omp|cuda|hip|dpcpp> [<matrix-\/file>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<parilu|parilut|paric|parict] [<max-\/iterations>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<num-\/repetitions>] [<fill-\/in-\/limit>]\(\backslash\)n"};}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} -\/1;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} exec = try\_generate([\&] \{ \textcolor{keywordflow}{return} executors.at(argv[1])(); \});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::string matrix = argc < 3 ? \textcolor{stringliteral}{"data/A.mtx"} : argv[2];}
+\DoxyCodeLine{    std::string precond = argc < 4 ? \textcolor{stringliteral}{"parilu"} : argv[3];}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} max\_iterations = argc < 5 ? 10 : std::stoi(argv[4]);}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} num\_repetitions = argc < 6 ? 10 : std::stoi(argv[5]);}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} limit = argc < 7 ? 2 : std::stod(argv[6]);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} mtx = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(try\_generate([\&] \{}
+\DoxyCodeLine{        std::ifstream mtx\_stream\{matrix\};}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (!mtx\_stream) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{throw} GKO\_STREAM\_ERROR(\textcolor{stringliteral}{"Unable to open matrix file"});}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Reading "} << matrix << std::endl;}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} gko::read<gko::matrix::Csr<ValueType, IndexType>>(mtx\_stream,}
+\DoxyCodeLine{                                                                 exec);}
+\DoxyCodeLine{    \}));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::LinOpFactory> factory;}
+\DoxyCodeLine{    std::function<void(\textcolor{keywordtype}{int})> set\_iterations;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu"}) \{}
+\DoxyCodeLine{        factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<ValueType, IndexType>::build}}().on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIlu<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"paric"}) \{}
+\DoxyCodeLine{        factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1factorization_1_1ParIc}{gko::factorization::ParIc<ValueType, IndexType>::build}}().on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIc<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut"}) \{}
+\DoxyCodeLine{        factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<ValueType, IndexType>::build}}()}
+\DoxyCodeLine{                      .with\_fill\_in\_limit(limit)}
+\DoxyCodeLine{                      .on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIlut<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parict"}) \{}
+\DoxyCodeLine{        factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIct}{gko::factorization::ParIct<ValueType, IndexType>::build}}()}
+\DoxyCodeLine{                      .with\_fill\_in\_limit(limit)}
+\DoxyCodeLine{                      .on(exec);}
+\DoxyCodeLine{        set\_iterations = [\&](\textcolor{keywordtype}{int} it) \{}
+\DoxyCodeLine{            gko::as<gko::factorization::ParIct<ValueType, IndexType>::Factory>(}
+\DoxyCodeLine{                factory)}
+\DoxyCodeLine{                -\/>get\_parameters()}
+\DoxyCodeLine{                .iterations = it;}
+\DoxyCodeLine{        \};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<gko::matrix::Dense<ValueType>>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} minus\_one =}
+\DoxyCodeLine{        gko::initialize<gko::matrix::Dense<ValueType>>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} it = 1; it <= max\_iterations; ++it) \{}
+\DoxyCodeLine{        set\_iterations(it);}
+\DoxyCodeLine{        std::cout << it << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        std::vector<long> times;}
+\DoxyCodeLine{        std::vector<double> residuals;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} rep = 0; rep < num\_repetitions; ++rep) \{}
+\DoxyCodeLine{            \textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} result =}
+\DoxyCodeLine{                gko::as<gko::Composition<ValueType>>(factory-\/>generate(mtx));}
+\DoxyCodeLine{            exec-\/>synchronize();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{            \textcolor{keyword}{auto} residual = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(exec, mtx);}
+\DoxyCodeLine{            result-\/>get\_operators()[0]-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one),}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(result-\/>get\_operators()[1]),}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(minus\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(residual));}
+\DoxyCodeLine{            times.push\_back(}
+\DoxyCodeLine{                std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic)}
+\DoxyCodeLine{                    .count());}
+\DoxyCodeLine{            residuals.push\_back(}
+\DoxyCodeLine{                compute\_ilu\_residual\_norm(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(residual), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(mtx)));}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} el : times) \{}
+\DoxyCodeLine{            std::cout << el << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} el : residuals) \{}
+\DoxyCodeLine{            std::cout << el << \textcolor{charliteral}{';'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cout << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

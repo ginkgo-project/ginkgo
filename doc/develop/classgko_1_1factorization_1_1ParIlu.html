@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/245739483 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/248021664 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -106,12 +106,15 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = Val
 <tr class="memitem:a261e5d91114bf308e98fc50141615618"><td class="memItemLeft" align="right" valign="top"><a id="a261e5d91114bf308e98fc50141615618"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>index_type</b> = IndexType</td></tr>
 <tr class="separator:a261e5d91114bf308e98fc50141615618"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a125b96d5b1c81df5b2dd4479d8eb7854"><td class="memItemLeft" align="right" valign="top"><a id="a125b96d5b1c81df5b2dd4479d8eb7854"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>l_matrix_type</b> = <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix::Csr</a>&lt; ValueType, IndexType &gt;</td></tr>
-<tr class="separator:a125b96d5b1c81df5b2dd4479d8eb7854"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a42829761e1a7a7713cbace50a8197811"><td class="memItemLeft" align="right" valign="top"><a id="a42829761e1a7a7713cbace50a8197811"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>u_matrix_type</b> = <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix::Csr</a>&lt; ValueType, IndexType &gt;</td></tr>
-<tr class="separator:a42829761e1a7a7713cbace50a8197811"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a793a21d2c75c9ddc29e33281fe2988"><td class="memItemLeft" align="right" valign="top"><a id="a6a793a21d2c75c9ddc29e33281fe2988"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>matrix_type</b> = <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix::Csr</a>&lt; ValueType, IndexType &gt;</td></tr>
+<tr class="separator:a6a793a21d2c75c9ddc29e33281fe2988"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f0e147d3cf75ac091fb659a26bd5cad"><td class="memItemLeft" align="right" valign="top"><a id="a7f0e147d3cf75ac091fb659a26bd5cad"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>l_matrix_type</b> = <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix_type</a></td></tr>
+<tr class="separator:a7f0e147d3cf75ac091fb659a26bd5cad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02f5af49115cc020895bc99b21b4648c"><td class="memItemLeft" align="right" valign="top"><a id="a02f5af49115cc020895bc99b21b4648c"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>u_matrix_type</b> = <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix_type</a></td></tr>
+<tr class="separator:a02f5af49115cc020895bc99b21b4648c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1Composition"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1Composition')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1Composition.html">gko::Composition&lt; ValueType &gt;</a></td></tr>
 <tr class="memitem:ab565c6599fe56bf6b96f4c48f5992d6b inherit pub_types_classgko_1_1Composition"><td class="memItemLeft" align="right" valign="top"><a id="ab565c6599fe56bf6b96f4c48f5992d6b"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = ValueType</td></tr>
@@ -130,12 +133,12 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = <a
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a237f590d6f802b732936b6da20dae86c"><td class="memItemLeft" align="right" valign="top"><a id="a237f590d6f802b732936b6da20dae86c"></a>
-std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">l_matrix_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>get_l_factor</b> () const</td></tr>
-<tr class="separator:a237f590d6f802b732936b6da20dae86c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a75d0504d863b0dc2a8fd8efa395b2a39"><td class="memItemLeft" align="right" valign="top"><a id="a75d0504d863b0dc2a8fd8efa395b2a39"></a>
-std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">u_matrix_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>get_u_factor</b> () const</td></tr>
-<tr class="separator:a75d0504d863b0dc2a8fd8efa395b2a39"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac53ed9e9f4501e72a41bfe138bfe815e"><td class="memItemLeft" align="right" valign="top"><a id="ac53ed9e9f4501e72a41bfe138bfe815e"></a>
+std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>get_l_factor</b> () const</td></tr>
+<tr class="separator:ac53ed9e9f4501e72a41bfe138bfe815e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84855b395160b6ed4fc90465783c7b82"><td class="memItemLeft" align="right" valign="top"><a id="a84855b395160b6ed4fc90465783c7b82"></a>
+std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>get_u_factor</b> () const</td></tr>
+<tr class="separator:a84855b395160b6ed4fc90465783c7b82"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1055caaa79b253fad67fa4e6d584c420"><td class="memItemLeft" align="right" valign="top"><a id="a1055caaa79b253fad67fa4e6d584c420"></a>
 const <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a1055caaa79b253fad67fa4e6d584c420"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -287,10 +290,10 @@ static std::unique_ptr&lt; <a class="el" href="classgko_1_1Composition.html">Com
 class gko::factorization::ParIlu&lt; ValueType, IndexType &gt;</h3>
 
 <p>ParILU is an incomplete LU factorization which is computed in parallel. </p>
-<p><img class="formulaInl" alt="$L$" src="form_9.png"/> is a lower unitriangular, while <img class="formulaInl" alt="$U$" src="form_15.png"/> is an upper triangular matrix, which approximate a given matrix <img class="formulaInl" alt="$A$" src="form_0.png"/> with <img class="formulaInl" alt="$A \approx LU$" src="form_23.png"/>. Here, <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> have the same sparsity pattern as <img class="formulaInl" alt="$A$" src="form_0.png"/>, which is also called ILU(0).</p>
+<p><img class="formulaInl" alt="$L$" src="form_9.png"/> is a lower unitriangular, while <img class="formulaInl" alt="$U$" src="form_19.png"/> is an upper triangular matrix, which approximate a given matrix <img class="formulaInl" alt="$A$" src="form_0.png"/> with <img class="formulaInl" alt="$A \approx LU$" src="form_31.png"/>. Here, <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_19.png"/> have the same sparsity pattern as <img class="formulaInl" alt="$A$" src="form_0.png"/>, which is also called ILU(0).</p>
 <p>The ParILU algorithm generates the incomplete factors iteratively, using a fixed-point iteration of the form</p>
-<p><img class="formulaInl" alt="$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad &amp; i&gt;j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad &amp; i\leq j \end{cases} $" src="form_24.png"/></p>
-<p>In general, the entries of <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> fulfilling <img class="formulaInl" alt="$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$" src="form_25.png"/> where <img class="formulaInl" alt="$\mathcal{S}$" src="form_26.png"/> is the pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the system matrix <img class="formulaInl" alt="$A$" src="form_0.png"/>). The number of ParILU sweeps needed for convergence depends on the parallelism level: For sequential execution, a single sweep is sufficient, for fine-grained parallelism, 3 sweeps are typically generating a good approximation.</p>
+<p><img class="formulaInl" alt="$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad &amp; i&gt;j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad &amp; i\leq j \end{cases} $" src="form_32.png"/></p>
+<p>In general, the entries of <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_19.png"/> can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_19.png"/> fulfilling <img class="formulaInl" alt="$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$" src="form_33.png"/> where <img class="formulaInl" alt="$\mathcal{S}$" src="form_26.png"/> is the pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the system matrix <img class="formulaInl" alt="$A$" src="form_0.png"/>). The number of ParILU sweeps needed for convergence depends on the parallelism level: For sequential execution, a single sweep is sufficient, for fine-grained parallelism, the number of sweeps necessary to get a good approximation of the incomplete factors depends heavily on the problem. On the OpenMP executor, 3 sweeps usually give a decent approximation in our experiments, while GPU executors can take 10 or more iterations.</p>
 <p>The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel, Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific Computing, 37, C169-C193 (2015).</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
