@@ -36,14 +36,16 @@ int \mbox{\hyperlink{classgko_1_1DpcppExecutor_aefdd7095f2d18ff8e4ab8354006f305b
 \mbox{\Hypertarget{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}\label{classgko_1_1DpcppExecutor_a06bb83c8a4a7e06095b5d06d262efbaa}} 
 \+::cl\+::sycl\+::queue $\ast$ {\bfseries get\+\_\+queue} () const
 \item 
-const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}{get\+\_\+subgroup\+\_\+sizes}} () const noexcept
+const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_a5a8a807279c9dfeef114bd8875c7a369}{get\+\_\+subgroup\+\_\+sizes}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the available subgroup sizes for this device. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}{get\+\_\+num\+\_\+computing\+\_\+units}} () const noexcept
+int \mbox{\hyperlink{classgko_1_1DpcppExecutor_a1a9ef86016a05905955e2d05812bf00d}{get\+\_\+num\+\_\+computing\+\_\+units}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of Computing Units of this executor. \end{DoxyCompactList}\item 
-const std\+::vector$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}{get\+\_\+max\+\_\+workitem\+\_\+sizes}} () const noexcept
+const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classgko_1_1DpcppExecutor_a1ebddf08efc499ab31d1fbfcccc4d2f5}{get\+\_\+max\+\_\+workitem\+\_\+sizes}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the maximum work item sizes. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}{get\+\_\+max\+\_\+workgroup\+\_\+size}} () const noexcept
+int \mbox{\hyperlink{classgko_1_1DpcppExecutor_a2a4b81ed45477d3c4d38a340cb994ec5}{get\+\_\+max\+\_\+workgroup\+\_\+size}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the maximum workgroup size. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{classgko_1_1DpcppExecutor_a950a8f15ace58f5f54af3a9b52a11998}{get\+\_\+max\+\_\+subgroup\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the maximum subgroup size. \end{DoxyCompactList}\item 
 std\+::string \mbox{\hyperlink{classgko_1_1DpcppExecutor_ab6ff2a7bc51dca54ef9cce5c836ade2f}{get\+\_\+device\+\_\+type}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get a string representing the device type. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
@@ -138,11 +140,24 @@ the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mb
 
 Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
 
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}\label{classgko_1_1DpcppExecutor_a702cf49fb65b0867a00c6841d5e2b373}} 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a950a8f15ace58f5f54af3a9b52a11998}\label{classgko_1_1DpcppExecutor_a950a8f15ace58f5f54af3a9b52a11998}} 
+\index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_max\_subgroup\_size@{get\_max\_subgroup\_size}}
+\index{get\_max\_subgroup\_size@{get\_max\_subgroup\_size}!gko::DpcppExecutor@{gko::DpcppExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_max\_subgroup\_size()}{get\_max\_subgroup\_size()}}
+{\footnotesize\ttfamily int gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+subgroup\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the maximum subgroup size. 
+
+\begin{DoxyReturn}{Returns}
+the maximum subgroup size 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a2a4b81ed45477d3c4d38a340cb994ec5}\label{classgko_1_1DpcppExecutor_a2a4b81ed45477d3c4d38a340cb994ec5}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_max\_workgroup\_size@{get\_max\_workgroup\_size}}
 \index{get\_max\_workgroup\_size@{get\_max\_workgroup\_size}!gko::DpcppExecutor@{gko::DpcppExecutor}}
 \doxysubsubsection{\texorpdfstring{get\_max\_workgroup\_size()}{get\_max\_workgroup\_size()}}
-{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workgroup\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily int gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workgroup\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -151,11 +166,11 @@ Get the maximum workgroup size.
 \begin{DoxyReturn}{Returns}
 the maximum workgroup size 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}\label{classgko_1_1DpcppExecutor_ae88efd8a0bf731150c7036b89a9c3109}} 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a1ebddf08efc499ab31d1fbfcccc4d2f5}\label{classgko_1_1DpcppExecutor_a1ebddf08efc499ab31d1fbfcccc4d2f5}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_max\_workitem\_sizes@{get\_max\_workitem\_sizes}}
 \index{get\_max\_workitem\_sizes@{get\_max\_workitem\_sizes}!gko::DpcppExecutor@{gko::DpcppExecutor}}
 \doxysubsubsection{\texorpdfstring{get\_max\_workitem\_sizes()}{get\_max\_workitem\_sizes()}}
-{\footnotesize\ttfamily const std\+::vector$<$\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workitem\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily const std\+::vector$<$int$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+max\+\_\+workitem\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -164,11 +179,11 @@ Get the maximum work item sizes.
 \begin{DoxyReturn}{Returns}
 the maximum work item sizes 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}\label{classgko_1_1DpcppExecutor_a15bccf2c4baebe32d5c8ce3d1ad27474}} 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a1a9ef86016a05905955e2d05812bf00d}\label{classgko_1_1DpcppExecutor_a1a9ef86016a05905955e2d05812bf00d}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_num\_computing\_units@{get\_num\_computing\_units}}
 \index{get\_num\_computing\_units@{get\_num\_computing\_units}!gko::DpcppExecutor@{gko::DpcppExecutor}}
 \doxysubsubsection{\texorpdfstring{get\_num\_computing\_units()}{get\_num\_computing\_units()}}
-{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Dpcpp\+Executor\+::get\+\_\+num\+\_\+computing\+\_\+units (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily int gko\+::\+Dpcpp\+Executor\+::get\+\_\+num\+\_\+computing\+\_\+units (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -195,11 +210,11 @@ Get the number of devices present on the system.
 \begin{DoxyReturn}{Returns}
 the number of devices present on the system 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}\label{classgko_1_1DpcppExecutor_a9cb3395e6ecc15fcce575f55e5694d24}} 
+\mbox{\Hypertarget{classgko_1_1DpcppExecutor_a5a8a807279c9dfeef114bd8875c7a369}\label{classgko_1_1DpcppExecutor_a5a8a807279c9dfeef114bd8875c7a369}} 
 \index{gko::DpcppExecutor@{gko::DpcppExecutor}!get\_subgroup\_sizes@{get\_subgroup\_sizes}}
 \index{get\_subgroup\_sizes@{get\_subgroup\_sizes}!gko::DpcppExecutor@{gko::DpcppExecutor}}
 \doxysubsubsection{\texorpdfstring{get\_subgroup\_sizes()}{get\_subgroup\_sizes()}}
-{\footnotesize\ttfamily const std\+::vector$<$\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+subgroup\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily const std\+::vector$<$int$>$\& gko\+::\+Dpcpp\+Executor\+::get\+\_\+subgroup\+\_\+sizes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

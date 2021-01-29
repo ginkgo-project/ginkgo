@@ -1,0 +1,301 @@
+\hypertarget{classgko_1_1MachineTopology}{}\doxysection{gko\+::Machine\+Topology Class Reference}
+\label{classgko_1_1MachineTopology}\index{gko::MachineTopology@{gko::MachineTopology}}
+
+
+The machine topology class represents the hierarchical topology of a machine, including N\+U\+MA nodes, cores and P\+CI Devices.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/machine\+\_\+topology.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classgko_1_1MachineTopology_ab65c939db26749a90cdf6c8bc0f39ec5}{bind\+\_\+to\+\_\+cores}} (const std\+::vector$<$ int $>$ \&ids, const bool singlify=true) const
+\begin{DoxyCompactList}\small\item\em Bind the calling process to the C\+PU cores associated with the ids. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1MachineTopology_a68f3cce8033874ff8b91c4d7fc239d43}{bind\+\_\+to\+\_\+core}} (const int \&id) const
+\begin{DoxyCompactList}\small\item\em Bind to a single core. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1MachineTopology_a0b43359799dfa1aac9ab8147ab96d8f0}{bind\+\_\+to\+\_\+pus}} (const std\+::vector$<$ int $>$ \&ids, const bool singlify=true) const
+\begin{DoxyCompactList}\small\item\em Bind the calling process to P\+Us associated with the ids. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1MachineTopology_ad197b510b83d4c2476708908d6e1fde0}{bind\+\_\+to\+\_\+pu}} (const int \&id) const
+\begin{DoxyCompactList}\small\item\em Bind to a Processing unit (PU) \end{DoxyCompactList}\item 
+const normal\+\_\+obj\+\_\+info $\ast$ \mbox{\hyperlink{classgko_1_1MachineTopology_ad797df175047226774837aea972a6635}{get\+\_\+pu}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} id) const
+\begin{DoxyCompactList}\small\item\em Get the object of type PU associated with the id. \end{DoxyCompactList}\item 
+const normal\+\_\+obj\+\_\+info $\ast$ \mbox{\hyperlink{classgko_1_1MachineTopology_aca83d3b6105f9b8f91fac80d69eb91b2}{get\+\_\+core}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} id) const
+\begin{DoxyCompactList}\small\item\em Get the object of type core associated with the id. \end{DoxyCompactList}\item 
+const io\+\_\+obj\+\_\+info $\ast$ \mbox{\hyperlink{classgko_1_1MachineTopology_af6333e8f1532774100b42aa0cf6c96bf}{get\+\_\+pci\+\_\+device}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} id) const
+\begin{DoxyCompactList}\small\item\em Get the object of type pci device associated with the id. \end{DoxyCompactList}\item 
+const io\+\_\+obj\+\_\+info $\ast$ \mbox{\hyperlink{classgko_1_1MachineTopology_a571101a16b7137b19a712b2fd318f2b7}{get\+\_\+pci\+\_\+device}} (const std\+::string \&pci\+\_\+bus\+\_\+id) const
+\begin{DoxyCompactList}\small\item\em Get the object of type pci device associated with the P\+CI bus id. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1MachineTopology_ac9ab64cf6d2194b91b985e14985bd468}{get\+\_\+num\+\_\+pus}} () const
+\begin{DoxyCompactList}\small\item\em Get the number of PU objects stored in this Topology tree. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1MachineTopology_a32808dc96fcbb6061436d5c00a89f5b5}{get\+\_\+num\+\_\+cores}} () const
+\begin{DoxyCompactList}\small\item\em Get the number of core objects stored in this Topology tree. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1MachineTopology_aae076d7275e6dedb159e5aa784dff222}{get\+\_\+num\+\_\+pci\+\_\+devices}} () const
+\begin{DoxyCompactList}\small\item\em Get the number of P\+CI device objects stored in this Topology tree. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1MachineTopology_ac7c8493f69323a1c3c330747d070e3b8}{get\+\_\+num\+\_\+numas}} () const
+\begin{DoxyCompactList}\small\item\em Get the number of N\+U\+MA objects stored in this Topology tree. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a368ff7d10d0014e57e2635f7d918af9e}\label{classgko_1_1MachineTopology_a368ff7d10d0014e57e2635f7d918af9e}} 
+void {\bfseries hwloc\+\_\+binding\+\_\+helper} (const std\+::vector$<$ Machine\+Topology\+::normal\+\_\+obj\+\_\+info $>$ \&obj, const std\+::vector$<$ int $>$ \&ids, const bool singlify=true) const
+\item 
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a532db6a84fd7949665310e957ad1d737}\label{classgko_1_1MachineTopology_a532db6a84fd7949665310e957ad1d737}} 
+void {\bfseries load\+\_\+objects} (\mbox{\hyperlink{structhwloc__obj__type__t}{hwloc\+\_\+obj\+\_\+type\+\_\+t}} type, std\+::vector$<$ normal\+\_\+obj\+\_\+info $>$ \&objects) const
+\item 
+\mbox{\Hypertarget{classgko_1_1MachineTopology_aba4afee9c74e356091f31cfff07b3f0f}\label{classgko_1_1MachineTopology_aba4afee9c74e356091f31cfff07b3f0f}} 
+void {\bfseries load\+\_\+objects} (\mbox{\hyperlink{structhwloc__obj__type__t}{hwloc\+\_\+obj\+\_\+type\+\_\+t}} type, std\+::vector$<$ io\+\_\+obj\+\_\+info $>$ \&vector) const
+\item 
+\mbox{\Hypertarget{classgko_1_1MachineTopology_adbc2e4eca48a62b50914a10b43ade5f4}\label{classgko_1_1MachineTopology_adbc2e4eca48a62b50914a10b43ade5f4}} 
+int {\bfseries get\+\_\+obj\+\_\+id\+\_\+by\+\_\+os\+\_\+index} (const std\+::vector$<$ normal\+\_\+obj\+\_\+info $>$ \&objects, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} os\+\_\+index) const
+\item 
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ad471e5c85a93a941373ecf43b8e1bb3e}\label{classgko_1_1MachineTopology_ad471e5c85a93a941373ecf43b8e1bb3e}} 
+int {\bfseries get\+\_\+obj\+\_\+id\+\_\+by\+\_\+gp\+\_\+index} (const std\+::vector$<$ normal\+\_\+obj\+\_\+info $>$ \&objects, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gp\+\_\+index) const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}} $\ast$ \mbox{\hyperlink{classgko_1_1MachineTopology_a978fd84f5004f201d7099e9980d9b58e}{get\+\_\+instance}} ()
+\begin{DoxyCompactList}\small\item\em Returns an instance of the \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The machine topology class represents the hierarchical topology of a machine, including N\+U\+MA nodes, cores and P\+CI Devices. 
+
+Various infomation of the machine are gathered with the help of the Hardware Locality library (hwloc).
+
+This class also provides functionalities to bind objects in the topology to the execution objects. Binding can enhance performance by allowing data to be closer to the executing object.
+
+See the hwloc documentation (\href{https://www.open-mpi.org/projects/hwloc/doc/}{\texttt{ https\+://www.\+open-\/mpi.\+org/projects/hwloc/doc/}}) for more detailed information on topology detection and binding interfaces.
+
+\begin{DoxyNote}{Note}
+A global object of \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}} type is created in a thread safe manner and only destroyed at the end of the program. This means that any subsequent queries will be from the same global object and hence use an extra atomic read. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a68f3cce8033874ff8b91c4d7fc239d43}\label{classgko_1_1MachineTopology_a68f3cce8033874ff8b91c4d7fc239d43}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!bind\_to\_core@{bind\_to\_core}}
+\index{bind\_to\_core@{bind\_to\_core}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{bind\_to\_core()}{bind\_to\_core()}}
+{\footnotesize\ttfamily void gko\+::\+Machine\+Topology\+::bind\+\_\+to\+\_\+core (\begin{DoxyParamCaption}\item[{const int \&}]{id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Bind to a single core. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ids} & The ids of the core to be bound to the calling process. \\
+\hline
+\end{DoxyParams}
+
+
+References bind\+\_\+to\+\_\+cores(), and get\+\_\+instance().
+
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ab65c939db26749a90cdf6c8bc0f39ec5}\label{classgko_1_1MachineTopology_ab65c939db26749a90cdf6c8bc0f39ec5}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!bind\_to\_cores@{bind\_to\_cores}}
+\index{bind\_to\_cores@{bind\_to\_cores}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{bind\_to\_cores()}{bind\_to\_cores()}}
+{\footnotesize\ttfamily void gko\+::\+Machine\+Topology\+::bind\+\_\+to\+\_\+cores (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ int $>$ \&}]{ids,  }\item[{const bool}]{singlify = {\ttfamily true} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Bind the calling process to the C\+PU cores associated with the ids. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ids} & The ids of cores to be bound. \\
+\hline
+{\em singlify} & The ids of P\+Us are singlified to prevent possibly expensive migrations by the OS. This means that the binding is performed for only one of the ids in the set of ids passed in. See hwloc doc for \href{https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php\#gaa611a77c092e679246afdf9a60d5db8b}{\texttt{ singlify}} \\
+\hline
+\end{DoxyParams}
+
+
+Referenced by bind\+\_\+to\+\_\+core().
+
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ad197b510b83d4c2476708908d6e1fde0}\label{classgko_1_1MachineTopology_ad197b510b83d4c2476708908d6e1fde0}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!bind\_to\_pu@{bind\_to\_pu}}
+\index{bind\_to\_pu@{bind\_to\_pu}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{bind\_to\_pu()}{bind\_to\_pu()}}
+{\footnotesize\ttfamily void gko\+::\+Machine\+Topology\+::bind\+\_\+to\+\_\+pu (\begin{DoxyParamCaption}\item[{const int \&}]{id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Bind to a Processing unit (PU) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ids} & The ids of P\+Us to be bound to the calling process. \\
+\hline
+\end{DoxyParams}
+
+
+References bind\+\_\+to\+\_\+pus(), and get\+\_\+instance().
+
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a0b43359799dfa1aac9ab8147ab96d8f0}\label{classgko_1_1MachineTopology_a0b43359799dfa1aac9ab8147ab96d8f0}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!bind\_to\_pus@{bind\_to\_pus}}
+\index{bind\_to\_pus@{bind\_to\_pus}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{bind\_to\_pus()}{bind\_to\_pus()}}
+{\footnotesize\ttfamily void gko\+::\+Machine\+Topology\+::bind\+\_\+to\+\_\+pus (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ int $>$ \&}]{ids,  }\item[{const bool}]{singlify = {\ttfamily true} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Bind the calling process to P\+Us associated with the ids. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ids} & The ids of P\+Us to be bound. \\
+\hline
+{\em singlify} & The ids of P\+Us are singlified to prevent possibly expensive migrations by the OS. This means that the binding is performed for only one of the ids in the set of ids passed in. See hwloc doc for \href{https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php\#gaa611a77c092e679246afdf9a60d5db8b}{\texttt{ singlify}} \\
+\hline
+\end{DoxyParams}
+
+
+Referenced by bind\+\_\+to\+\_\+pu().
+
+\mbox{\Hypertarget{classgko_1_1MachineTopology_aca83d3b6105f9b8f91fac80d69eb91b2}\label{classgko_1_1MachineTopology_aca83d3b6105f9b8f91fac80d69eb91b2}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_core@{get\_core}}
+\index{get\_core@{get\_core}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_core()}{get\_core()}}
+{\footnotesize\ttfamily const normal\+\_\+obj\+\_\+info$\ast$ gko\+::\+Machine\+Topology\+::get\+\_\+core (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the object of type core associated with the id. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & The id of the core \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the core object struct. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a978fd84f5004f201d7099e9980d9b58e}\label{classgko_1_1MachineTopology_a978fd84f5004f201d7099e9980d9b58e}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_instance@{get\_instance}}
+\index{get\_instance@{get\_instance}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_instance()}{get\_instance()}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}}$\ast$ gko\+::\+Machine\+Topology\+::get\+\_\+instance (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Returns an instance of the \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}} object. 
+
+\begin{DoxyReturn}{Returns}
+the \mbox{\hyperlink{classgko_1_1MachineTopology}{Machine\+Topology}} instance 
+\end{DoxyReturn}
+
+
+Referenced by bind\+\_\+to\+\_\+core(), and bind\+\_\+to\+\_\+pu().
+
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a32808dc96fcbb6061436d5c00a89f5b5}\label{classgko_1_1MachineTopology_a32808dc96fcbb6061436d5c00a89f5b5}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_num\_cores@{get\_num\_cores}}
+\index{get\_num\_cores@{get\_num\_cores}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_num\_cores()}{get\_num\_cores()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Machine\+Topology\+::get\+\_\+num\+\_\+cores (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the number of core objects stored in this Topology tree. 
+
+\begin{DoxyReturn}{Returns}
+the number of cores. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ac7c8493f69323a1c3c330747d070e3b8}\label{classgko_1_1MachineTopology_ac7c8493f69323a1c3c330747d070e3b8}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_num\_numas@{get\_num\_numas}}
+\index{get\_num\_numas@{get\_num\_numas}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_num\_numas()}{get\_num\_numas()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Machine\+Topology\+::get\+\_\+num\+\_\+numas (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the number of N\+U\+MA objects stored in this Topology tree. 
+
+\begin{DoxyReturn}{Returns}
+the number of N\+U\+MA objects. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_aae076d7275e6dedb159e5aa784dff222}\label{classgko_1_1MachineTopology_aae076d7275e6dedb159e5aa784dff222}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_num\_pci\_devices@{get\_num\_pci\_devices}}
+\index{get\_num\_pci\_devices@{get\_num\_pci\_devices}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_num\_pci\_devices()}{get\_num\_pci\_devices()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Machine\+Topology\+::get\+\_\+num\+\_\+pci\+\_\+devices (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the number of P\+CI device objects stored in this Topology tree. 
+
+\begin{DoxyReturn}{Returns}
+the number of P\+CI devices. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ac9ab64cf6d2194b91b985e14985bd468}\label{classgko_1_1MachineTopology_ac9ab64cf6d2194b91b985e14985bd468}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_num\_pus@{get\_num\_pus}}
+\index{get\_num\_pus@{get\_num\_pus}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_num\_pus()}{get\_num\_pus()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} gko\+::\+Machine\+Topology\+::get\+\_\+num\+\_\+pus (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the number of PU objects stored in this Topology tree. 
+
+\begin{DoxyReturn}{Returns}
+the number of P\+Us. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_a571101a16b7137b19a712b2fd318f2b7}\label{classgko_1_1MachineTopology_a571101a16b7137b19a712b2fd318f2b7}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_pci\_device@{get\_pci\_device}}
+\index{get\_pci\_device@{get\_pci\_device}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_pci\_device()}{get\_pci\_device()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily const io\+\_\+obj\+\_\+info$\ast$ gko\+::\+Machine\+Topology\+::get\+\_\+pci\+\_\+device (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{pci\+\_\+bus\+\_\+id }\end{DoxyParamCaption}) const}
+
+
+
+Get the object of type pci device associated with the P\+CI bus id. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pci\+\_\+bus\+\_\+id} & The P\+CI bus id of the pci device \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the P\+CI object struct. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_af6333e8f1532774100b42aa0cf6c96bf}\label{classgko_1_1MachineTopology_af6333e8f1532774100b42aa0cf6c96bf}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_pci\_device@{get\_pci\_device}}
+\index{get\_pci\_device@{get\_pci\_device}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_pci\_device()}{get\_pci\_device()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily const io\+\_\+obj\+\_\+info$\ast$ gko\+::\+Machine\+Topology\+::get\+\_\+pci\+\_\+device (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the object of type pci device associated with the id. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & The id of the pci device \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the P\+CI object struct. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1MachineTopology_ad797df175047226774837aea972a6635}\label{classgko_1_1MachineTopology_ad797df175047226774837aea972a6635}} 
+\index{gko::MachineTopology@{gko::MachineTopology}!get\_pu@{get\_pu}}
+\index{get\_pu@{get\_pu}!gko::MachineTopology@{gko::MachineTopology}}
+\doxysubsubsection{\texorpdfstring{get\_pu()}{get\_pu()}}
+{\footnotesize\ttfamily const normal\+\_\+obj\+\_\+info$\ast$ gko\+::\+Machine\+Topology\+::get\+\_\+pu (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the object of type PU associated with the id. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & The id of the PU \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the PU object struct. 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/machine\+\_\+topology.\+hpp\end{DoxyCompactItemize}

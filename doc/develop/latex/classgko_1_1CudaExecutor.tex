@@ -55,7 +55,11 @@ int \mbox{\hyperlink{classgko_1_1CudaExecutor_aa7d7a5cd7aeb38b8ab8fe3e4d1538481}
 cublas\+Context $\ast$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}{get\+\_\+cublas\+\_\+handle}} () const
 \begin{DoxyCompactList}\small\item\em Get the cublas handle for this executor. \end{DoxyCompactList}\item 
 cusparse\+Context $\ast$ \mbox{\hyperlink{classgko_1_1CudaExecutor_ade84197157cc2695e5c94310692ab323}{get\+\_\+cusparse\+\_\+handle}} () const
-\begin{DoxyCompactList}\small\item\em Get the cusparse handle for this executor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Get the cusparse handle for this executor. \end{DoxyCompactList}\item 
+std\+::vector$<$ int $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_ab7e9f82cce904e2649a61d39e7161538}{get\+\_\+closest\+\_\+pus}} () const
+\begin{DoxyCompactList}\small\item\em Get the closest P\+Us. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a23a13ee1b82ea850660da25376d6cf4e}{get\+\_\+closest\+\_\+numa}} () const
+\begin{DoxyCompactList}\small\item\em Get the closest N\+U\+MA node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -87,6 +91,32 @@ Creates a new \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}.
 {\em master} & an executor on the host that is used to invoke the device kernels \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_a23a13ee1b82ea850660da25376d6cf4e}\label{classgko_1_1CudaExecutor_a23a13ee1b82ea850660da25376d6cf4e}} 
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_closest\_numa@{get\_closest\_numa}}
+\index{get\_closest\_numa@{get\_closest\_numa}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_closest\_numa()}{get\_closest\_numa()}}
+{\footnotesize\ttfamily int gko\+::\+Cuda\+Executor\+::get\+\_\+closest\+\_\+numa (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the closest N\+U\+MA node. 
+
+\begin{DoxyReturn}{Returns}
+the closest N\+U\+MA node closest to this device 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_ab7e9f82cce904e2649a61d39e7161538}\label{classgko_1_1CudaExecutor_ab7e9f82cce904e2649a61d39e7161538}} 
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_closest\_pus@{get\_closest\_pus}}
+\index{get\_closest\_pus@{get\_closest\_pus}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_closest\_pus()}{get\_closest\_pus()}}
+{\footnotesize\ttfamily std\+::vector$<$int$>$ gko\+::\+Cuda\+Executor\+::get\+\_\+closest\+\_\+pus (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the closest P\+Us. 
+
+\begin{DoxyReturn}{Returns}
+the array of P\+Us closest to this device 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}\label{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}} 
 \index{gko::CudaExecutor@{gko::CudaExecutor}!get\_cublas\_handle@{get\_cublas\_handle}}
 \index{get\_cublas\_handle@{get\_cublas\_handle}!gko::CudaExecutor@{gko::CudaExecutor}}

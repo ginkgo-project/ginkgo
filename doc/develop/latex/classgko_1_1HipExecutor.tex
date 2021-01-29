@@ -55,7 +55,11 @@ int \mbox{\hyperlink{classgko_1_1HipExecutor_ae470cdfd4273b02b2563101d6146db26}{
 hipblas\+Context $\ast$ \mbox{\hyperlink{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}{get\+\_\+hipblas\+\_\+handle}} () const
 \begin{DoxyCompactList}\small\item\em Get the hipblas handle for this executor. \end{DoxyCompactList}\item 
 hipsparse\+Context $\ast$ \mbox{\hyperlink{classgko_1_1HipExecutor_ac644de4030c96e20db7489957a949c49}{get\+\_\+hipsparse\+\_\+handle}} () const
-\begin{DoxyCompactList}\small\item\em Get the hipsparse handle for this executor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Get the hipsparse handle for this executor. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_ae39be6e255dfe5ecf6fe542da914afec}{get\+\_\+closest\+\_\+numa}} () const
+\begin{DoxyCompactList}\small\item\em Get the closest N\+U\+MA node. \end{DoxyCompactList}\item 
+std\+::vector$<$ int $>$ \mbox{\hyperlink{classgko_1_1HipExecutor_a7c6f4683d767aa1588dc69d79280bf72}{get\+\_\+closest\+\_\+pus}} () const
+\begin{DoxyCompactList}\small\item\em Get the closest P\+Us. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -87,6 +91,32 @@ Creates a new \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}}.
 {\em master} & an executor on the host that is used to invoke the device kernels \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_ae39be6e255dfe5ecf6fe542da914afec}\label{classgko_1_1HipExecutor_ae39be6e255dfe5ecf6fe542da914afec}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_closest\_numa@{get\_closest\_numa}}
+\index{get\_closest\_numa@{get\_closest\_numa}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_closest\_numa()}{get\_closest\_numa()}}
+{\footnotesize\ttfamily int gko\+::\+Hip\+Executor\+::get\+\_\+closest\+\_\+numa (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the closest N\+U\+MA node. 
+
+\begin{DoxyReturn}{Returns}
+the closest N\+U\+MA node closest to this device 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a7c6f4683d767aa1588dc69d79280bf72}\label{classgko_1_1HipExecutor_a7c6f4683d767aa1588dc69d79280bf72}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_closest\_pus@{get\_closest\_pus}}
+\index{get\_closest\_pus@{get\_closest\_pus}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_closest\_pus()}{get\_closest\_pus()}}
+{\footnotesize\ttfamily std\+::vector$<$int$>$ gko\+::\+Hip\+Executor\+::get\+\_\+closest\+\_\+pus (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the closest P\+Us. 
+
+\begin{DoxyReturn}{Returns}
+the array of P\+Us closest to this device 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}\label{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}} 
 \index{gko::HipExecutor@{gko::HipExecutor}!get\_hipblas\_handle@{get\_hipblas\_handle}}
 \index{get\_hipblas\_handle@{get\_hipblas\_handle}!gko::HipExecutor@{gko::HipExecutor}}

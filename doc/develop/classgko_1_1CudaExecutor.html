@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/248021664 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/248364599 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -138,6 +138,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 <tr class="memitem:ade84197157cc2695e5c94310692ab323"><td class="memItemLeft" align="right" valign="top">cusparseContext *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#ade84197157cc2695e5c94310692ab323">get_cusparse_handle</a> () const</td></tr>
 <tr class="memdesc:ade84197157cc2695e5c94310692ab323"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the cusparse handle for this executor.  <a href="classgko_1_1CudaExecutor.html#ade84197157cc2695e5c94310692ab323">More...</a><br /></td></tr>
 <tr class="separator:ade84197157cc2695e5c94310692ab323"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7e9f82cce904e2649a61d39e7161538"><td class="memItemLeft" align="right" valign="top">std::vector&lt; int &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#ab7e9f82cce904e2649a61d39e7161538">get_closest_pus</a> () const</td></tr>
+<tr class="memdesc:ab7e9f82cce904e2649a61d39e7161538"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the closest PUs.  <a href="classgko_1_1CudaExecutor.html#ab7e9f82cce904e2649a61d39e7161538">More...</a><br /></td></tr>
+<tr class="separator:ab7e9f82cce904e2649a61d39e7161538"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23a13ee1b82ea850660da25376d6cf4e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a23a13ee1b82ea850660da25376d6cf4e">get_closest_numa</a> () const</td></tr>
+<tr class="memdesc:a23a13ee1b82ea850660da25376d6cf4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the closest NUMA node.  <a href="classgko_1_1CudaExecutor.html#a23a13ee1b82ea850660da25376d6cf4e">More...</a><br /></td></tr>
+<tr class="separator:a23a13ee1b82ea850660da25376d6cf4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -200,6 +206,62 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a23a13ee1b82ea850660da25376d6cf4e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a23a13ee1b82ea850660da25376d6cf4e">&#9670;&nbsp;</a></span>get_closest_numa()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int gko::CudaExecutor::get_closest_numa </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get the closest NUMA node. </p>
+<dl class="section return"><dt>Returns</dt><dd>the closest NUMA node closest to this device </dd></dl>
+
+</div>
+</div>
+<a id="ab7e9f82cce904e2649a61d39e7161538"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7e9f82cce904e2649a61d39e7161538">&#9670;&nbsp;</a></span>get_closest_pus()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;int&gt; gko::CudaExecutor::get_closest_pus </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get the closest PUs. </p>
+<dl class="section return"><dt>Returns</dt><dd>the array of PUs closest to this device </dd></dl>
 
 </div>
 </div>
