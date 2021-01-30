@@ -1,0 +1,1 @@
+Assemble a 2D finite difference matrix. Use it to build an implicit Euler integrator.

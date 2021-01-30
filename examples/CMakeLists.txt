@@ -21,6 +21,7 @@ set(EXAMPLES_LIST
     custom-matrix-format
     custom-stopping-criterion
     ginkgo-overhead
+    heat-equation
     minimal-cuda-solver
     papi-logging
     par-ilu-convergence

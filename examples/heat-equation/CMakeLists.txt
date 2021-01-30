@@ -1,0 +1,12 @@
+set(target_name "heat-equation")
+find_package(OpenCV)
+
+if (OpenCV_FOUND)
+    add_executable(${target_name} ${target_name}.cpp)
+    target_link_libraries(${target_name} Ginkgo::ginkgo ${OpenCV_LIBS})
+    target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+    configure_file(data/initial.mtx data/initial.mtx COPYONLY)
+    configure_file(data/source.mtx data/source.mtx COPYONLY)
+else()
+    message("OpenCV not found, skipping heat-equation example")
+endif()
