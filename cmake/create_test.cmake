@@ -89,9 +89,8 @@ function(ginkgo_create_cuda_test test_name)
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
         )
-    cas_target_cuda_architectures(${TEST_TARGET_NAME}
-        ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
-        UNSUPPORTED "20" "21")
+    target_compile_options(${TEST_TARGET_NAME}
+        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
 

@@ -240,10 +240,19 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
         ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
         UNSUPPORTED "20" "21")
 endif()
+
+# `target_compile_options` do not work with hip_add_library
+# Thus, we need to pass the flags to `hip_add_library` itself
+if(GINKGO_HIP_AMDGPU)
+    foreach(target ${GINKGO_HIP_AMDGPU})
+        list(APPEND GINKGO_AMDGPU_FLAGS --amdgpu-target=${target})
+    endforeach()
+endif()
+
 set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
-set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
-set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS})
+set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS} ${GINKGO_AMDGPU_FLAGS})
+set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMDGPU_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 if (GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5")
@@ -261,12 +270,6 @@ else()
         ${GINKGO_STATIC_OR_SHARED})
 endif()
 
-if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM MATCHES "hcc")
-    foreach(target ${GINKGO_HIP_AMDGPU})
-        target_compile_options(ginkgo_hip PRIVATE --amdgpu-target=${target})
-        target_link_libraries(ginkgo_hip PRIVATE --amdgpu-target=${target})
-    endforeach()
-endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
