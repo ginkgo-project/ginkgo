@@ -249,7 +249,7 @@ void MachineTopology::load_objects(
         hwloc_obj_type_snprintf(ances_type, sizeof(ances_type), ancestor, 0);
         vector.back().ancestor_type = std::string(ances_type);
         // Write the PCI Bus ID from the object info.
-        char pci_bus_id[13];
+        char pci_bus_id[14];
         snprintf(pci_bus_id, sizeof(pci_bus_id), "%04x:%02x:%02x.%01x",
                  obj->attr->pcidev.domain, obj->attr->pcidev.bus,
                  obj->attr->pcidev.dev, obj->attr->pcidev.func);
