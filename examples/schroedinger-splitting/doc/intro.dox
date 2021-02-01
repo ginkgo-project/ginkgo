@@ -1,0 +1,38 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example shows how to use the FFT and iFFT implementations in Ginkgo
+to solve the non-linear Schrödinger equation with a splitting method.
+
+The non-linear Schrödinger equation (NLS) is given by
+
+$
+    i \partial_t \theta = -\delta \theta + |\theta|^2 \theta
+$
+
+This equation can be split in to its linear (1) and non-linear (2) part
+
+$
+    (1) \quad i \partial_t \theta = -\delta \theta\\
+    (2) \quad i \partial_t \theta = |\theta|^2 \theta
+$
+
+For both of these equations, we can compute exact solutions, assuming periodic
+boundary conditions and using the Fourier series expansion for (1) and using the
+fact that $| \theta |^2$ is constant in (2):
+
+$
+    (\hat 1) \quad \partial_t \hat\theta_k = -i |k|^2 \theta
+    (2') \quad \partial_t |\theta|^2 = i |\theta|^2 (\theta - \theta) = 0
+$
+
+The exact solutions are then given by
+
+$
+    (\hat 1) \hat\theta(t) = e^{-i |k|^2 t} \hat\theta(0)\\
+    (2) \theta(t) = e^{i\delta t} \theta(0)
+$
+
+These partial solutions can be used to approximate a solution to the full NLS
+by alternating between small time steps for (1) and (2).
+
+<h3> About the example </h3>

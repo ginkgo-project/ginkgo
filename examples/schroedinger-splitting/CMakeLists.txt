@@ -1,0 +1,12 @@
+set(target_name "schroedinger-splitting")
+find_package(OpenCV)
+
+if (OpenCV_FOUND)
+    add_executable(${target_name} ${target_name}.cpp)
+    target_link_libraries(${target_name} Ginkgo::ginkgo ${OpenCV_LIBS})
+    target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+    configure_file(../../matrices/examples/gko_logo_2d.mtx data/gko_logo_2d.mtx COPYONLY)
+    configure_file(../../matrices/examples/gko_text_2d.mtx data/gko_text_2d.mtx COPYONLY)
+else()
+    message("OpenCV not found, skipping schroedinger-splitting example")
+endif()
