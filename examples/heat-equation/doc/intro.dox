@@ -7,7 +7,8 @@ $
     \partial_t u = \delta u + f
 $
 
-with Dirichlet boundary conditions and given initial condition and function f.
+with Dirichlet boundary conditions and given initial condition and
+constant-in-time source function f.
 
 The partial differential equation (PDE) is solved with a finite difference
 spatial discretization on an equidistant grid: For `n` grid points,
@@ -24,7 +25,7 @@ $
     \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} =
     \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1}
                -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2}
-    +f_{i,j}^{k+1}
+    +f_{i,j}
 $
 
 and solve the resulting linear system for $ u_{\cdot}^{k+1}$ using Ginkgo's CG
