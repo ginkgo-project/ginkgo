@@ -223,7 +223,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), 4 * this->assert_precision());
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), 8 * this->assert_precision());
 }
 
 
