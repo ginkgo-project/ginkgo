@@ -33,8 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
 
-#include <iostream>
-#include <typeinfo>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -52,15 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_kernels.hpp"
 
 
-//#define TIMING 1
-
-
-#ifdef TIMING
-using double_seconds = std::chrono::duration<double>;
-#define TIMING_STEPS 1
-#endif
-
-
 namespace gko {
 namespace solver {
 
@@ -75,24 +65,6 @@ GKO_REGISTER_OPERATION(step_2, cb_gmres::step_2);
 
 
 }  // namespace cb_gmres
-
-// TODO: Remove output
-template <typename T>
-struct type_string {
-    static const char *get() { return typeid(T).name(); }
-};
-
-#define GKO_SPECIALIZE_TYPE_STRING(type)           \
-    template <>                                    \
-    struct type_string<type> {                     \
-        static const char *get() { return #type; } \
-    }
-
-GKO_SPECIALIZE_TYPE_STRING(int32);
-GKO_SPECIALIZE_TYPE_STRING(int16);
-GKO_SPECIALIZE_TYPE_STRING(double);
-GKO_SPECIALIZE_TYPE_STRING(float);
-GKO_SPECIALIZE_TYPE_STRING(half);
 
 
 template <typename T>
@@ -298,7 +270,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                     dense_b->get_size()[1]);
         int num_restarts = 0, num_reorth_steps = 0, num_reorth_vectors = 0;
 
-        // std::cout << "Before initializate_1" << std::endl;
         // Initialization
         exec->run(cb_gmres::make_initialize_1(
             dense_b, b_norm.get(), residual.get(), givens_sin.get(),
@@ -310,7 +281,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                               residual.get());
         // residual = residual - Ax
 
-        // std::cout << "Before initializate_2" << std::endl;
         exec->run(cb_gmres::make_initialize_2(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
             arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
@@ -334,15 +304,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto after_preconditioner =
             matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
-#ifdef TIMING
-        exec->synchronize();
-        auto start = std::chrono::steady_clock::now();
-#ifdef TIMING_STEPS
-        auto time_RSTRT = start - start;
-        auto time_SPMV = start - start;
-        auto time_STEP1 = start - start;
-#endif
-#endif
         Array<bool> stop_encountered_rhs(exec->get_master(),
                                          dense_b->get_size()[1]);
         Array<bool> fully_converged_rhs(exec->get_master(),
@@ -353,20 +314,26 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             stop_encountered_rhs.get_data()[i] = false;
             fully_converged_rhs.get_data()[i] = false;
         }
+        // Start only after this value with performing forced iterations after
+        // convergence detection
+        constexpr decltype(total_iter) start_force_reset{10};
         bool perform_reset{false};
-        decltype(krylov_dim_) forced_iterations{0};
-        const decltype(forced_iterations) forced_limit{krylov_dim_ / 10};
-        decltype(krylov_dim_) total_checks{0};  // TODO: Remove debug output
-        const char *type_str = type_string<storage_type>::get();
-        // TODO: take care of multiple RHS. Currently, we restart
-        // everything,
-        //       even though a lot of parts might have already converged!
-        //       Use `one_changed` to take care of that!
+        // Fraction of the krylov_dim_ (or total_iter if it is lower),
+        // determining the number of forced iteration to perform
+        constexpr decltype(krylov_dim_) forced_iteration_fraction{10};
+        const decltype(krylov_dim_) forced_limit{krylov_dim_ /
+                                                 forced_iteration_fraction};
+        // Counter for the forced iterations. Start at max in order to properly
+        // test convergence at the beginning
+        decltype(krylov_dim_) forced_iterations{forced_limit};
+
         while (true) {
             ++total_iter;
             this->template log<log::Logger::iteration_complete>(
                 this, total_iter, residual.get(), dense_x, residual_norm.get());
-            if (forced_iterations < forced_limit) {
+            // In the beginning, only force a fraction of the total iterations
+            if (forced_iterations < forced_limit &&
+                forced_iterations < total_iter / forced_iteration_fraction) {
                 ++forced_iterations;
             } else {
                 bool all_changed = stop_criterion->update()
@@ -377,25 +344,20 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        .check(RelativeStoppingId, true,
                                               &stop_status, &one_changed);
                 if (one_changed || all_changed) {
-                    /*
-                    std::cout << type_str << ": " << ++total_checks
-                              << ". check in iteration " << total_iter << ";
-                    "
-                              << forced_iterations << " / " << forced_limit
-                    <<
-                    '\n';
-                    */
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
                     for (size_type i = 0; i < host_stop_status.get_num_elems();
                          ++i) {
                         auto local_status = host_stop_status.get_data() + i;
-                        // TODO: ignore all actually converged ones!
+                        // Ignore all actually converged ones!
                         if (fully_converged_rhs.get_data()[i]) {
                             continue;
                         }
                         if (local_status->has_converged()) {
-                            if (stop_encountered_rhs.get_data()[i]) {
+                            // If convergence was detected earlier, or
+                            // at the very beginning:
+                            if (stop_encountered_rhs.get_data()[i] ||
+                                total_iter < start_force_reset) {
                                 fully_converged_rhs.get_data()[i] = true;
                             } else {
                                 stop_encountered_rhs.get_data()[i] = true;
@@ -425,10 +387,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             if (perform_reset || restart_iter == krylov_dim_) {
                 perform_reset = false;
-#ifdef TIMING_STEPS
-                exec->synchronize();
-                auto t_aux_0 = std::chrono::steady_clock::now();
-#endif
                 num_restarts++;
                 // Restart
                 // use a view in case this is called earlier
@@ -465,10 +423,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 // next_krylov_basis = residual / residual_norm
                 // final_iter_nums = {0, ..., 0}
                 restart_iter = 0;
-#ifdef TIMING_STEPS
-                exec->synchronize();
-                time_RSTRT += std::chrono::steady_clock::now() - t_aux_0;
-#endif
             }
 
             this->get_preconditioner()->apply(next_krylov_basis.get(),
@@ -484,23 +438,10 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             auto buffer_iter = buffer->create_submatrix(
                 span{0, restart_iter + 2}, span{0, dense_b->get_size()[1]});
 
-#ifdef TIMING_STEPS
-            exec->synchronize();
-            auto t_aux_1 = std::chrono::steady_clock::now();
-#endif
             // Start of arnoldi
             system_matrix_->apply(preconditioned_vector.get(),
                                   next_krylov_basis.get());
             // next_krylov_basis = A * preconditioned_vector
-#ifdef TIMING_STEPS
-            exec->synchronize();
-            time_SPMV += std::chrono::steady_clock::now() - t_aux_1;
-#endif
-
-#ifdef TIMING_STEPS
-            exec->synchronize();
-            auto t_aux_2 = std::chrono::steady_clock::now();
-#endif
             exec->run(cb_gmres::make_step_1(
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                 residual_norm.get(), residual_norm_collection.get(),
@@ -508,10 +449,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 b_norm.get(), arnoldi_norm.get(), restart_iter,
                 &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
                 &num_reorth_steps, &num_reorth_vectors));
-#ifdef TIMING_STEPS
-            exec->synchronize();
-            time_STEP1 += std::chrono::steady_clock::now() - t_aux_2;
-#endif
             // for i in 0:restart_iter
             //     hessenberg(restart_iter, i) = next_krylov_basis' *
             //     krylov_bases(:, i) next_krylov_basis  -=
@@ -537,15 +474,7 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             restart_iter++;
         }
-        std::cout << type_str << ": " << total_checks
-                  << ": exiting in iteration " << total_iter << "; "
-                  << forced_iterations << " / " << forced_limit << '\n';
-
         // Solve x
-#ifdef TIMING_STEPS
-        exec->synchronize();
-        auto t_aux_3 = std::chrono::steady_clock::now();
-#endif
 
         auto hessenberg_small = hessenberg->create_submatrix(
             span{0, restart_iter},
@@ -558,61 +487,11 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             &final_iter_nums));
         // Solve upper triangular.
         // y = hessenberg \ residual_norm_collection
-#ifdef TIMING_STEPS
-        exec->synchronize();
-        auto time_STEP2 = std::chrono::steady_clock::now() - t_aux_3;
-#endif
-
-#ifdef TIMING_STEPS
-        exec->synchronize();
-        auto t_aux_4 = std::chrono::steady_clock::now();
-#endif
         this->get_preconditioner()->apply(before_preconditioner.get(),
                                           after_preconditioner.get());
         dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-#ifdef TIMING_STEPS
-        exec->synchronize();
-        auto time_SOLVEX = std::chrono::steady_clock::now() - t_aux_4;
-#endif
         // Solve x
         // x = x + get_preconditioner() * krylov_bases * y
-
-#ifdef TIMING
-        exec->synchronize();
-        auto time = std::chrono::steady_clock::now() - start;
-#endif
-#ifdef TIMING
-        std::cout << "total_iter = " << total_iter << std::endl;
-        std::cout << "num_restarts = " << num_restarts << std::endl;
-        std::cout << "reorth_steps = " << num_reorth_steps << std::endl;
-        std::cout << "reorth_vectors = " << num_reorth_vectors << std::endl;
-        std::cout << "time = "
-                  << std::chrono::duration_cast<double_seconds>(time).count()
-                  << std::endl;
-#ifdef TIMING_STEPS
-        std::cout
-            << "time_RSTRT = "
-            << std::chrono::duration_cast<double_seconds>(time_RSTRT).count()
-            << std::endl;
-        std::cout
-            << "time_SPMV = "
-            << std::chrono::duration_cast<double_seconds>(time_SPMV).count()
-            << std::endl;
-        std::cout
-            << "time_STEP1 = "
-            << std::chrono::duration_cast<double_seconds>(time_STEP1).count()
-            << std::endl;
-        std::cout
-            << "time_STEP2 = "
-            << std::chrono::duration_cast<double_seconds>(time_STEP2).count()
-            << std::endl;
-        std::cout
-            << "time_SOLVEX = "
-            << std::chrono::duration_cast<double_seconds>(time_SOLVEX).count()
-            << std::endl;
-#endif
-        write(std::cout, lend(residual_norm));
-#endif
     };  // End of apply_lambda
 
     // Look which precision to use as the storage type
