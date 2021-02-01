@@ -30,7 +30,7 @@ jobs:
         $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
         mkdir build
         cd build
-        cmake -DCMAKE_CXX_FLAGS=/bigobj -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
+        cmake -DCMAKE_CXX_FLAGS=/bigobj -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_CUDA_ARCHITECTURES=60 ..
         cmake --build . -j4 --config Release
 
   windows_ref:
