@@ -66,23 +66,6 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using gmres_type = gko::solver::CbGmres<value_type>;
 
-    /**
-     * Used to extract the precision of the given value_type.
-     *
-     * @internal
-     * This struct is required because the `r<T>` stores a value of type
-     * remove_complex<T>, which is not possible for half since it can't be
-     * constructed as a constexpr.
-     */
-    template <typename T>
-    struct precision_target {
-        using rc_type = gko::remove_complex<T>;
-        static constexpr nc_value_type value =
-            std::is_same<rc_type, double>::value
-                ? 1e-14
-                : std::is_same<rc_type, float>::value ? 1e-6 : 1e-3;
-    };
-
     CbGmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
@@ -100,7 +83,7 @@ protected:
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(this->precision())
+                          .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -118,7 +101,7 @@ protected:
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(this->precision())
+                          .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
           mtx_medium(
@@ -130,7 +113,14 @@ protected:
                                    exec))
     {}
 
-    nc_value_type precision() const noexcept
+    constexpr nc_value_type reduction_factor() const noexcept
+    {
+        return r<nc_value_type>::value;
+    }
+
+    // For such small matrices, it seems to be impossible to reach the actual
+    // `reduction_factor()` when operating in lower precision.
+    nc_value_type assert_precision() const noexcept
     {
         using gko::reduce_precision;
         using gko::solver::cb_gmres_storage_precision;
@@ -140,15 +130,14 @@ protected:
         switch (storage_precision) {
         case cb_gmres_storage_precision::reduce1:
         case cb_gmres_storage_precision::ireduce1:
-            return precision_target<reduce_precision<value_type>>::value * 1e-2;
+            return r<reduce_precision<value_type>, nc_value_type>::value;
         case cb_gmres_storage_precision::reduce2:
         case cb_gmres_storage_precision::ireduce2:
-            return precision_target<
-                       reduce_precision<reduce_precision<value_type>>>::value *
-                   1e-2;
+            return r<reduce_precision<reduce_precision<value_type>>,
+                     nc_value_type>::value;
         case cb_gmres_storage_precision::integer:
         default:
-            return precision_target<value_type>::value;
+            return r<nc_value_type>::value;
         }
     }
 
@@ -206,7 +195,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->precision());
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), this->assert_precision());
 }
 
 
@@ -225,7 +214,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
                     .with_time_limit(std::chrono::seconds(6))
                     .on(this->exec),
                 gko::stop::ResidualNormReduction<T>::build()
-                    .with_reduction_factor(this->precision())
+                    .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
     auto solver = factory->generate(this->mtx2);
@@ -234,7 +223,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), this->precision() * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), 4 * this->assert_precision());
 }
 
 
@@ -251,7 +240,7 @@ TYPED_TEST(CbGmres, SolvesMultipleStencilSystems)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.0, 1.0}, I<T>{3.0, 1.0}, I<T>{2.0, 1.0}}),
-                        this->precision());
+                        this->assert_precision());
 }
 
 
@@ -267,7 +256,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->precision());
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->assert_precision());
 }
 
 
@@ -286,7 +275,7 @@ TYPED_TEST(CbGmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({I<T>{1.5, 1.0}, I<T>{5.0, 0.0}, I<T>{2.0, -1.0}}),
-                        this->precision());
+                        this->assert_precision());
 }
 
 
@@ -303,7 +292,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
-                        this->precision());
+                        this->assert_precision());
 }
 
 
@@ -320,7 +309,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision());
+                        this->assert_precision());
 }
 
 
@@ -328,10 +317,11 @@ template <typename T>
 gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
 {
     using std::abs;
+    auto host_data = clone(mat->get_executor()->get_master(), mat);
     using no_cpx_t = gko::remove_complex<T>;
     no_cpx_t norm = 0.0;
-    for (size_t i = 0; i < mat->get_size()[0]; ++i) {
-        no_cpx_t absEntry = abs(mat->at(i, col));
+    for (size_t i = 0; i < host_data->get_size()[0]; ++i) {
+        no_cpx_t absEntry = abs(host_data->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
     return norm;
@@ -397,12 +387,12 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
-    ASSERT_LE(normC1 / normB1, normS1 / normB1 + this->precision());
-    ASSERT_LE(normC2 / normB2, normS2 / normB2 + this->precision());
+    ASSERT_LE(normC1 / normB1, normS1 / normB1 + this->assert_precision());
+    ASSERT_LE(normC2 / normB2, normS2 / normB2 + this->assert_precision());
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    GKO_ASSERT_MTX_NEAR(xc, mergedRes, this->precision());
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, this->assert_precision());
 }
 
 
@@ -411,7 +401,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using gmres_type = typename TestFixture::gmres_type;
-    const auto half_tol = std::sqrt(this->precision());
+    const auto half_tol = std::sqrt(this->assert_precision());
     auto cb_gmres_factory_restart =
         gmres_type::build()
             .with_krylov_dim(4u)
@@ -420,7 +410,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
                 gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(this->precision())
+                    .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
     auto solver = cb_gmres_factory_restart->generate(this->mtx_medium);
@@ -447,7 +437,7 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
                 gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(this->precision())
+                    .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
@@ -463,7 +453,7 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        this->precision());
+                        4 * this->assert_precision());
 }
 
 
