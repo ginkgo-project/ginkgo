@@ -36,7 +36,8 @@ This example solves a 2D heat conduction equation
     u : [0, d]^2 \rightarrow R\\
     \partial_t u = \delta u + f
 
-with Dirichlet boundary conditions and given initial condition and function f.
+with Dirichlet boundary conditions and given initial condition and
+constant-in-time source function f.
 
 The partial differential equation (PDE) is solved with a finite difference
 spatial discretization on an equidistant grid: For `n` grid points,
@@ -51,7 +52,7 @@ We then build an implicit Euler integrator by discretizing with time step $\tau$
     (u_{i,j}^{k+1} - u_{i,j}^k) / \tau =
     \alpha (u_{i-1,j}^{k+1} - u_{i+1,j}^{k+1}
           + u_{i,j-1}^{k+1} - u_{i,j+1}^{k+1} - 4 u_{i,j}^{k+1}) / h^2
-    + f_{i,j}^{k+1}
+    + f_{i,j}
 
 and solve the resulting linear system for $ u_{\cdot}^{k+1}$ using Ginkgo's CG
 solver preconditioned with an incomplete Cholesky factorization for each time
@@ -65,9 +66,11 @@ setting.
 
 #include <ginkgo/ginkgo.hpp>
 
+
 #include <chrono>
 #include <fstream>
 #include <iostream>
+
 
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
@@ -131,7 +134,7 @@ int main(int argc, char *argv[])
     // scaling factor for heat source
     auto source_scale = 2.5;
     // Simulation parameters:
-    // grid size for inner points
+    // inner grid points per discretization direction
     auto n = 256;
     // number of simulation steps per second
     auto steps_per_sec = 500;
@@ -139,8 +142,8 @@ int main(int argc, char *argv[])
     auto fps = 25;
     // number of grid points
     auto n2 = n * n;
-    // grid point distance
-    auto h = 1.0 / n;
+    // grid point distance (ignoring boundary points)
+    auto h = 1.0 / (n + 1);
     auto h2 = h * h;
     // time step size for the simulation
     auto tau = 1.0 / steps_per_sec;
@@ -167,13 +170,19 @@ int main(int argc, char *argv[])
             auto off_val = -diffusion * tau / h2;
             // for each grid point: insert 5 stencil points
             // with Dirichlet boundary conditions, i.e. with zero boundary value
-            // clang-format off
-            if (i > 0) mtx_data.nonzeros.emplace_back(c, c - n, off_val);
-            if (j > 0) mtx_data.nonzeros.emplace_back(c, c - 1, off_val);
+            if (i > 0) {
+                mtx_data.nonzeros.emplace_back(c, c - n, off_val);
+            }
+            if (j > 0) {
+                mtx_data.nonzeros.emplace_back(c, c - 1, off_val);
+            }
             mtx_data.nonzeros.emplace_back(c, c, c_val);
-            if (j < n - 1) mtx_data.nonzeros.emplace_back(c, c + 1, off_val);
-            if (i < n - 1) mtx_data.nonzeros.emplace_back(c, c + n, off_val);
-            // clang-format on
+            if (j < n - 1) {
+                mtx_data.nonzeros.emplace_back(c, c + 1, off_val);
+            }
+            if (i < n - 1) {
+                mtx_data.nonzeros.emplace_back(c, c + n, off_val);
+            }
         }
     }
     stencil_matrix->read(mtx_data);
@@ -189,20 +198,20 @@ int main(int argc, char *argv[])
                                .on(exec))
             .on(exec)
             ->generate(stencil_matrix);
-    // time stamp of the last output frame (sentinel value)
+    // time stamp of the last output frame (initialized to a sentinel value)
     double last_t = -t0;
     // execute implicit Euler method: for each timestep, solve stencil system
     for (double t = 0; t < t0; t += tau) {
-        // if enough time has passed, output the next frame
+        // if enough time has passed, output the next video frame
         if (t - last_t > 1.0 / fps) {
             last_t = t;
             std::cout << t << std::endl;
             output_timestep(output, n, in_vector->get_const_values());
         }
-        // add heat
-        in_vector->add_scaled(lend(tau_source_scalar), lend(source));
+        // add heat source contribution
+        in_vector->add_scaled(gko::lend(tau_source_scalar), gko::lend(source));
         // execute Euler step
-        solver->apply(lend(in_vector), lend(out_vector));
+        solver->apply(gko::lend(in_vector), gko::lend(out_vector));
         // swap input and output
         std::swap(in_vector, out_vector);
     }
