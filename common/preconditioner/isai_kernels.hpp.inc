@@ -279,7 +279,7 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
         ValueType sol = subwarp.shfl(rhs, perm);
 
         if (spd) {
-            sol /= sqrt(rhs, subwarp.shfl(num_elems - 1));
+            sol /= sqrt(subwarp.shfl(rhs, num_elems - 1));
         }
 
         return sol;
