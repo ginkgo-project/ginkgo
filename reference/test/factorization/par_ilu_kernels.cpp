@@ -483,6 +483,9 @@ TYPED_TEST(ParIlu, SetLStrategy)
         par_ilu_type::build().with_l_strategy(l_strategy).on(this->ref);
     auto par_ilu = factory->generate(this->mtx_small);
 
+    auto clone_ilu = par_ilu->clone();
+    auto clone_l = dynamic_cast<par_ilu_type *>(clone_ilu.get());
+    ASSERT_NE(clone_l, nullptr);
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
     ASSERT_EQ(par_ilu->get_l_factor()->get_strategy()->get_name(),
               l_strategy->get_name());

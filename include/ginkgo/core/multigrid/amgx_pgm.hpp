@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/mapping.hpp>
 #include <ginkgo/core/multigrid/multigrid_base.hpp>
-
 
 namespace gko {
 namespace multigrid {
@@ -72,11 +72,7 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public EnableLinOp<AmgxPgm<ValueType, IndexType>>,
-                public MultigridLevel {
-    friend class EnableLinOp<AmgxPgm>;
-    friend class EnablePolymorphicObject<AmgxPgm, LinOp>;
-
+class AmgxPgm : public MultigridLevelOp<ValueType>, public MultigridLevel {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -113,6 +109,10 @@ public:
     {
         return agg_.get_const_data();
     }
+
+    template <typename... Args>
+    static std::unique_ptr<MultigridLevelOp<ValueType>> create(
+        Args &&... args) = delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -163,27 +163,26 @@ protected:
     }
 
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AmgxPgm>(exec), MultigridLevel(exec, true)
+        : MultigridLevelOp<ValueType>(exec), MultigridLevel(exec, true)
     {}
 
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<AmgxPgm>(factory->get_executor(),
-                               system_matrix->get_size()),
-          MultigridLevel(system_matrix),
+        : MultigridLevelOp<ValueType>(factory->get_executor()),
+          MultigridLevel(factory->get_executor(), true),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
     {
         GKO_ASSERT(parameters_.max_unassigned_percentage <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_percentage >= 0.0);
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
+        // if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate()->move_to(this);
+        // }
     }
 
-    void generate();
+    std::unique_ptr<MultigridLevelOp<ValueType>> generate();
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
