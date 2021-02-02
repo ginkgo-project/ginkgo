@@ -186,6 +186,7 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_sweep_kernel.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
+    matrix/cvcsr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp

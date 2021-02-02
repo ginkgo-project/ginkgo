@@ -56,6 +56,9 @@ class Coo;
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType, typename StorageType, typename IndexType>
+class Cvcsr;
+
 template <typename ValueType>
 class Diagonal;
 
@@ -96,6 +99,8 @@ class Dense
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
+      public ConvertibleTo<Cvcsr<ValueType, ValueType, int32>>,
+      public ConvertibleTo<Cvcsr<ValueType, ValueType, int64>>,
       public ConvertibleTo<Ell<ValueType, int32>>,
       public ConvertibleTo<Ell<ValueType, int64>>,
       public ConvertibleTo<Hybrid<ValueType, int32>>,
@@ -119,6 +124,8 @@ class Dense
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Cvcsr<ValueType, ValueType, int32>;
+    friend class Cvcsr<ValueType, ValueType, int64>;
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
@@ -173,6 +180,14 @@ public:
     void convert_to(Coo<ValueType, int64> *result) const override;
 
     void move_to(Coo<ValueType, int64> *result) override;
+
+    void convert_to(Cvcsr<ValueType, ValueType, int32> *result) const override;
+
+    void move_to(Cvcsr<ValueType, ValueType, int32> *result) override;
+
+    void convert_to(Cvcsr<ValueType, ValueType, int64> *result) const override;
+
+    void move_to(Cvcsr<ValueType, ValueType, int64> *result) override;
 
     void convert_to(Csr<ValueType, int32> *result) const override;
 

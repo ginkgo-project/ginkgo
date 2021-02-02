@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/cvcsr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -809,6 +810,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace coo
+
+
+// TODO (script:cvcsr): adapt this block as needed
+namespace cvcsr {
+
+
+template <typename ValueType, typename StorageType, typename IndexType>
+GKO_DECLARE_CVCSR_SPMV_KERNEL(ValueType, StorageType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(
+    GKO_DECLARE_CVCSR_SPMV_KERNEL);
+
+template <typename ValueType, typename StorageType, typename IndexType>
+GKO_DECLARE_CVCSR_ADVANCED_SPMV_KERNEL(ValueType, StorageType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(
+    GKO_DECLARE_CVCSR_ADVANCED_SPMV_KERNEL);
+
+
+}  // namespace cvcsr
 
 
 namespace ell {

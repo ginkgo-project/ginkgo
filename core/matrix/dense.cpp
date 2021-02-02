@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/cvcsr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -392,6 +393,64 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Cvcsr<ValueType, ValueType, int32> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, int32>::create(exec);
+    conversion_helper(
+        tmp.get(), this,
+        dense::template make_convert_to_csr<const Dense<ValueType> *&,
+                                            decltype(tmp.get())>);
+    tmp->make_srow();
+    auto nnz = tmp->get_num_stored_elements();
+    auto num_rows = tmp->get_size()[0];
+    auto tmp_result = Cvcsr<ValueType, ValueType, int32>::create(
+        exec, tmp->get_size(),
+        Array<ValueType>::view(exec, nnz, tmp->get_values()),
+        Array<int32>::view(exec, nnz, tmp->get_col_idxs()),
+        Array<int32>::view(exec, num_rows + 1, tmp->get_row_ptrs()));
+    tmp_result->move_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Cvcsr<ValueType, ValueType, int32> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Cvcsr<ValueType, ValueType, int64> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, int64>::create(exec);
+    conversion_helper(
+        tmp.get(), this,
+        dense::template make_convert_to_csr<const Dense<ValueType> *&,
+                                            decltype(tmp.get())>);
+    tmp->make_srow();
+    auto nnz = tmp->get_num_stored_elements();
+    auto num_rows = tmp->get_size()[0];
+    auto tmp_result = Cvcsr<ValueType, ValueType, int64>::create(
+        exec, tmp->get_size(),
+        Array<ValueType>::view(exec, nnz, tmp->get_values()),
+        Array<int64>::view(exec, nnz, tmp->get_col_idxs()),
+        Array<int64>::view(exec, num_rows + 1, tmp->get_row_ptrs()));
+    tmp_result->move_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Cvcsr<ValueType, ValueType, int64> *result)
 {
     this->convert_to(result);
 }

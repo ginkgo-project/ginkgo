@@ -90,6 +90,7 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_sweep_kernel.cu
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
+    matrix/cvcsr_kernels.cu
     matrix/dense_kernels.cu
     matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
