@@ -24,10 +24,5 @@ jobs:
         choco install cuda -y
     - name: configure
       run: |
-        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
-        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-        refreshenv
-        $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
-        echo $env:PATH
-        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/bin/nvcc.exe --help"
-        nvcc.exe --help
+        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/bin/nvcc.exe" --help
+      shell: cmd
