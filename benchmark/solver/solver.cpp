@@ -92,16 +92,17 @@ DEFINE_double(
 DEFINE_string(
     rhs_generation, "1",
     "Method used to generate the right hand side. Supported values are:"
-    "1, random, sinus. 1 sets all values of the right hand side to 1, "
-    "random assigns the values to a uniformly distributed random number "
-    "in [-1, 1), and sinus assigns b = A * (s / |s|) with A := system matrix, "
-    "s := vector with s(i) = sin(i).");
+    "`1`, `random`, `sinus`. `1` sets all values of the right hand side to 1, "
+    "`random` assigns the values to a uniformly distributed random number "
+    "in [-1, 1), and `sinus` assigns b = A * (s / |s|) with A := system matrix,"
+    " s := vector with s(idx) = sin(idx) for non-complex types, and "
+    "s(idx) = sin(2*idx) + i * sin(2*idx+1).");
 
 DEFINE_string(
     initial_guess_generation, "rhs",
     "Method used to generate the initial guess. Supported values are: "
-    "random, rhs, 0. random uses a random vector, rhs uses the right "
-    "hand side, and 0 uses a zero vector as the initial guess.");
+    "`random`, `rhs`, `0`. `random` uses a random vector, `rhs` uses the right "
+    "hand side, and `0 uses a zero vector as the initial guess.");
 
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
@@ -110,6 +111,8 @@ DEFINE_string(
 DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
+
+// TODO: create string list parameter for CB-GMRES solver
 
 // input validation
 [[noreturn]] void print_config_error_and_exit()
@@ -259,7 +262,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_double",
+        {"cb_gmres_keep",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()
@@ -270,7 +273,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_float",
+        {"cb_gmres_reduced",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()
@@ -281,7 +284,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_half",
+        {"cb_gmres_reduced2",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()
@@ -292,7 +295,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_int64",
+        {"cb_gmres_int",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()
@@ -303,7 +306,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_int32",
+        {"cb_gmres_int_reduced",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()
@@ -314,7 +317,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
-        {"cb_gmres_int16",
+        {"cb_gmres_int_reduced2",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
              return gko::solver::CbGmres<etype>::build()

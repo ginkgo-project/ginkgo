@@ -89,7 +89,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride =
-        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
+            krylov_bases);
     // krylov indices
     const auto krylov_idx = global_id / krylov_stride[0];
     const auto reminder = global_id % krylov_stride[0];
@@ -123,7 +124,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride =
-        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
+            krylov_bases);
     const auto row_idx = global_id / krylov_stride[1];
     const auto col_idx = global_id % krylov_stride[1];
 
@@ -248,6 +250,7 @@ __global__
 }
 
 
+// ONLY computes the inf-norm (into norms2) when compute_inf is true
 template <bool compute_inf, typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
     size_type num_rows, size_type num_cols,
@@ -507,11 +510,11 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     const remove_complex<ValueType> eta = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat();
     constexpr bool has_scale =
-        kernels::detail::is_3d_scaled_accessor<Accessor3d>::value;
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
         const auto num0 = (eta * arnoldi_norm[col_idx]);
-        const auto num11 = (arnoldi_norm[col_idx + stride_norm]);
+        const auto num11 = arnoldi_norm[col_idx + stride_norm];
         const auto num12 = sqrt(num11);
         const auto num2 = has_scale ? (arnoldi_norm[col_idx + 2 * stride_norm])
                                     : remove_complex<ValueType>{};
@@ -524,16 +527,14 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
         arnoldi_norm[col_idx] = num11;
         arnoldi_norm[col_idx + stride_norm] = num12;
         hessenberg_iter[iter * stride_hessenberg + col_idx] = num12;
-        helper_functions_accessor<Accessor3d>::write_scalar(
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter, col_idx, num2 / num12);
     }
 }
 
 
-// Must be called with at least `num_cols` blocks, each with `block_size`
-// threads. `block_size` must be a power of 2.
 template <int block_size, typename RealValueType, typename Accessor3d>
-__global__ __launch_bounds__(block_size) void set_scale_kernel(
+__global__ __launch_bounds__(block_size) void set_scalar_kernel(
     size_type num_rhs, size_type num_blocks,
     const RealValueType *__restrict__ residual_norm, size_type stride_residual,
     const RealValueType *__restrict__ arnoldi_inf, size_type stride_inf,
@@ -543,7 +544,8 @@ __global__ __launch_bounds__(block_size) void set_scale_kernel(
                   "ValueType must not be complex!");
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride =
-        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
+            krylov_bases);
     const auto blk_idx = global_id / krylov_stride[1];
     const auto col_idx = global_id % krylov_stride[1];
 
@@ -551,11 +553,11 @@ __global__ __launch_bounds__(block_size) void set_scale_kernel(
         if (blk_idx == 0) {
             const auto num1 = residual_norm[col_idx];
             const auto num2 = arnoldi_inf[col_idx];
-            helper_functions_accessor<Accessor3d>::write_scalar(
+            gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, {0}, col_idx, num2 / num1);
         } else {
             const auto num = one<RealValueType>();
-            helper_functions_accessor<Accessor3d>::write_scalar(
+            gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, blk_idx, col_idx, num);
         }
     }

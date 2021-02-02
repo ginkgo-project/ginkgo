@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <array>
 #include <cinttypes>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -52,21 +51,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/accessors.hpp"
-#define GKO_DEBUG_OUTPUT false
 
 
 namespace gko {
-namespace kernels {  // TODO maybe put into another separate namespace
+namespace cb_gmres {
 
 
 namespace detail {
 
 
 template <typename Accessor>
-struct is_3d_scaled_accessor : public std::false_type {};
+struct has_3d_scaled_accessor : public std::false_type {};
 
 template <typename T1, typename T2, size_type mask>
-struct is_3d_scaled_accessor<
+struct has_3d_scaled_accessor<
     range<accessor::scaled_reduced_row_major<3, T1, T2, mask>>>
     : public std::true_type {};
 
@@ -85,25 +83,23 @@ struct helper_require_scale<StorageType, true> : public std::true_type {};
 
 template <typename ValueType, typename StorageType,
           bool = detail::helper_require_scale<StorageType>::value>
-class Accessor3dHelper {};
+class Range3dHelper {};
 
 
 template <typename ValueType, typename StorageType>
-class Accessor3dHelper<ValueType, StorageType, true> {
+class Range3dHelper<ValueType, StorageType, true> {
 public:
     using Accessor =
         accessor::scaled_reduced_row_major<3, ValueType, StorageType, 0b101>;
     using Range = range<Accessor>;
 
-    Accessor3dHelper() = default;
+    Range3dHelper() = default;
 
-    Accessor3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
+    Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
         : krylov_dim_{krylov_dim},
           bases_{exec, krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]},
           scale_{exec, krylov_dim_[0] * krylov_dim_[2]}
     {
-        // For testing, initialize scale to ones
-        // Array<ValueType> h_scale{exec->get_master(), krylov_dim[0]};
         Array<ValueType> h_scale{exec->get_master(),
                                  krylov_dim_[0] * krylov_dim_[2]};
         for (size_type i = 0; i < h_scale.get_num_elems(); ++i) {
@@ -127,14 +123,14 @@ private:
 
 
 template <typename ValueType, typename StorageType>
-class Accessor3dHelper<ValueType, StorageType, false> {
+class Range3dHelper<ValueType, StorageType, false> {
 public:
     using Accessor = accessor::reduced_row_major<3, ValueType, StorageType>;
     using Range = range<Accessor>;
 
-    Accessor3dHelper() = default;
+    Range3dHelper() = default;
 
-    Accessor3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
+    Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
         : krylov_dim_{krylov_dim},
           bases_{std::move(exec),
                  krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]}
@@ -149,10 +145,9 @@ private:
     Array<StorageType> bases_;
 };
 
-//----------------------------------------------
 
 template <typename Accessor3d,
-          bool = detail::is_3d_scaled_accessor<Accessor3d>::value>
+          bool = detail::has_3d_scaled_accessor<Accessor3d>::value>
 struct helper_functions_accessor {};
 
 // Accessors having a scale
@@ -160,7 +155,7 @@ template <typename Accessor3d>
 struct helper_functions_accessor<Accessor3d, true> {
     using arithmetic_type = typename Accessor3d::accessor::arithmetic_type;
     static constexpr size_type dimensionality = Accessor3d::dimensionality;
-    static_assert(detail::is_3d_scaled_accessor<Accessor3d>::value,
+    static_assert(detail::has_3d_scaled_accessor<Accessor3d>::value,
                   "Accessor must have a scalar here!");
     template <typename IndexType>
     static inline GKO_ATTRIBUTES void write_scalar(Accessor3d krylov_bases,
@@ -191,7 +186,7 @@ template <typename Accessor3d>
 struct helper_functions_accessor<Accessor3d, false> {
     using arithmetic_type = typename Accessor3d::accessor::arithmetic_type;
     static constexpr size_type dimensionality = Accessor3d::dimensionality;
-    static_assert(!detail::is_3d_scaled_accessor<Accessor3d>::value,
+    static_assert(!detail::has_3d_scaled_accessor<Accessor3d>::value,
                   "Accessor must not have a scale here!");
 
     template <typename IndexType>
@@ -208,14 +203,8 @@ struct helper_functions_accessor<Accessor3d, false> {
     }
 };
 
-// calling it with:
-// helper_functions_accessor<Accessor3d>::write_scalar(krylov_bases, col_idx,
-// value);
 
-//----------------------------------------------
-
-
-}  // namespace kernels
+}  // namespace cb_gmres
 }  // namespace gko
 
 

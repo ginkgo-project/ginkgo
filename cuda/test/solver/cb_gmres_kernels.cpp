@@ -62,7 +62,7 @@ protected:
     using index_type = int;
     using size_type = gko::size_type;
     using Range3dHelper =
-        gko::kernels::Accessor3dHelper<value_type, storage_type>;
+        gko::cb_gmres::Range3dHelper<value_type, storage_type>;
     using Range3d = typename Range3dHelper::Range;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
@@ -109,7 +109,7 @@ protected:
         auto dist = std::normal_distribution<value_type>(-1, 1);
         for (size_type k = 0; k < size[0]; ++k) {
             for (size_type i = 0; i < size[2]; ++i) {
-                gko::kernels::helper_functions_accessor<Range3d>::write_scalar(
+                gko::cb_gmres::helper_functions_accessor<Range3d>::write_scalar(
                     range, k, i, dist(rand_engine));
             }
         }
@@ -306,6 +306,7 @@ TEST_F(CbGmres, CudaCbGmresInitialize2IsEquivalentToRef)
         d_range_helper.get_range(), d_next_krylov_basis.get(),
         d_final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
 
+    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         1e-14);
@@ -336,6 +337,7 @@ TEST_F(CbGmres, CudaCbGmresStep1IsEquivalentToRef)
         d_final_iter_nums.get(), d_stop_status.get(), d_reorth_status.get(),
         d_num_reorth.get(), &num_reorth_steps, &num_reorth_vectors);
 
+    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);

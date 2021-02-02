@@ -41,18 +41,18 @@ if [ ! "${SOLVERS}" ]; then
 fi
 
 if [ ! "${SOLVERS_PRECISION}" ]; then
-    echo "SOLVERS_PRECISION    environment variable not set - assuming \"1e-6\"" 1>&2
+    echo "SOLVERS_PRECISION environment variable not set - assuming \"1e-6\"" 1>&2
     SOLVERS_PRECISION=1e-6
 fi
 
 if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
-    echo "SOLVERS_MAX_ITERATIONS    environment variable not set - assuming \"10000\"" 1>&2
+    echo "SOLVERS_MAX_ITERATIONS environment variable not set - assuming \"10000\"" 1>&2
     SOLVERS_MAX_ITERATIONS=10000
 fi
 
 if [ ! "${SOLVERS_GMRES_RESTART}" ]; then
     SOLVERS_GMRES_RESTART=100
-    echo "SOLVERS_GMRES_RESTART    environment variable not set - assuming \"${SOLVERS_GMRES_RESTART}\"" 1>&2
+    echo "SOLVERS_GMRES_RESTART environment variable not set - assuming \"${SOLVERS_GMRES_RESTART}\"" 1>&2
 fi
 
 if [ ! "${SYSTEM_NAME}" ]; then
@@ -68,12 +68,6 @@ fi
 if [ ! "${SOLVERS_JACOBI_MAX_BS}" ]; then
     SOLVERS_JACOBI_MAX_BS="32"
     "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
-fi
-
-
-if [ ! "${SOLVERS_RHS}" ]; then
-    SOLVERS_RHS="1"
-    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_RHS}\"" 1>&2
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
@@ -95,6 +89,11 @@ else
     exit 1
 fi
 
+if [ ! "${SOLVERS_RHS}" ]; then
+    SOLVERS_RHS="1"
+    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_RHS}\"" 1>&2
+fi
+
 if [ "${SOLVERS_RHS}" == "random" ]; then
     SOLVERS_RHS_FLAG="--rhs_generation=random"
 elif [ "${SOLVERS_RHS}" == "1" ]; then
@@ -112,11 +111,6 @@ if [ ! "${SOLVERS_INITIAL_GUESS}" ]; then
     echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
 fi
 
-if [ ! "${GPU_TIMER}" ]; then
-    echo "GPU_TIMER    environment variable not set - assuming \"false\"" 1>&2
-    GPU_TIMER="false"
-fi
-
 if [ "${SOLVERS_INITIAL_GUESS}" == "random" ]; then
     SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=random"
 elif [ "${SOLVERS_INITIAL_GUESS}" == "0" ]; then
@@ -125,8 +119,13 @@ elif [ "${SOLVERS_INITIAL_GUESS}" == "rhs" ]; then
     SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=rhs"
 else
     echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
-    echo "The following values are supported: \"1\", \"random\" and \"sinus\"" 1>&2
+    echo "The following values are supported: \"0\", \"random\" and \"rhs\"" 1>&2
     exit 1
+fi
+
+if [ ! "${GPU_TIMER}" ]; then
+    echo "GPU_TIMER    environment variable not set - assuming \"false\"" 1>&2
+    GPU_TIMER="false"
 fi
 
 # Control whether to run detailed benchmarks or not.

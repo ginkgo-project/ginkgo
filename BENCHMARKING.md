@@ -304,9 +304,10 @@ The supported environment variables are described in the following list:
 * `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
 * `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
-    random values or $b = A * (s / |s|)$ with $s(i) = sin(i)$
+    random values or $b = A * (s / |s|)$ with $s(idx) = sin(idx)$ (for complex
+    numbers, $s(idx) = sin(2*idx) + i * sin(2*idx+1)$)
     as the right-hand side in solver benchmarks. Default is `1`.
-* `SOLVERS_INITIAL_GUESS`={rhs,0,random} - the initial guess generation of the
+* `SOLVERS_INITIAL_GUESS={rhs,0,random}` - the initial guess generation of the
     solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`
     generates a random vector as the initial guess.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran for the
@@ -315,6 +316,6 @@ The supported environment variables are described in the following list:
     valid for cuda/hip executor, to measure the timing. Default is `false`.
 * `SOLVERS_JACOBI_MAX_BS` - sets the maximum block size for the Jacobi
     preconditioner (if used, otherwise, it does nothing) in the solvers
-    benchmark
+    benchmark. The default is '32'.
 * `SOLVERS_GMRES_RESTART` - the maximum dimension of the Krylov space to use in
     GMRES. The default is `100`.

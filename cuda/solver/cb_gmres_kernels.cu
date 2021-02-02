@@ -72,9 +72,6 @@ constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
-constexpr int default_update_dim = 32;
-
-
 #include "common/solver/cb_gmres_kernels.hpp.inc"
 
 
@@ -156,11 +153,13 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
     const auto krylov_stride =
-        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
+            krylov_bases);
     const dim3 grid_dim_1(
         ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
+    const auto stride_arnoldi = arnoldi_norm->get_stride();
 
     initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
@@ -169,28 +168,28 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         residual_norm_collection->get_stride());
     residual->compute_norm2(residual_norm);
 
-    components::fill_array(exec, arnoldi_norm->get_values() + 2 * num_rhs,
+    components::fill_array(exec,
+                           arnoldi_norm->get_values() + 2 * stride_arnoldi,
                            num_rhs, zero<remove_complex<ValueType>>());
     const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                              exec->get_num_multiprocessor() * 2);
     const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
     multinorminf_without_stop_kernel<<<grid_size_nrm, block_size_nrm>>>(
-        num_rows, num_rhs, as_cuda_type(residual->get_const_values()), num_rhs,
-        as_cuda_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
+        num_rows, num_rhs, as_cuda_type(residual->get_const_values()),
+        residual->get_stride(),
+        as_cuda_type(arnoldi_norm->get_values() + 2 * stride_arnoldi), 0);
 
-    // helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scalar(
-    //     krylov_bases, col_idx, arnoldi_norm->at(2, j) / residual_norm->at(0,
-    //     j));
-    /* */
-    // std::cout << "Before set_scale_kernel" << '\n';
-    const auto stride_arnoldi = arnoldi_norm->get_stride();
-    set_scale_kernel<default_block_size>
-        <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
-           default_block_size>>>(
-            num_rhs, krylov_dim + 1,
-            as_cuda_type(residual_norm->get_const_values()), num_rhs,
-            as_cuda_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
-            stride_arnoldi, as_cuda_accessor(krylov_bases));
+    if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
+        set_scalar_kernel<default_block_size>
+            <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
+               default_block_size>>>(
+                num_rhs, krylov_dim + 1,
+                as_cuda_type(residual_norm->get_const_values()),
+                residual_norm->get_stride(),
+                as_cuda_type(arnoldi_norm->get_const_values() +
+                             2 * stride_arnoldi),
+                stride_arnoldi, as_cuda_accessor(krylov_bases));
+    }
 
     const dim3 grid_dim_2(
         ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
@@ -225,7 +224,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
     constexpr bool use_scale =
-        kernels::detail::is_3d_scaled_accessor<Accessor3dim>::value;
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3dim>::value;
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
@@ -254,7 +253,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(arnoldi_norm->get_values()), as_cuda_type(stop_status));
-    // nrmP = norm(next_krylov_basis
     zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
     if (dim_size[1] > 1) {
@@ -288,15 +286,16 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
     // end
-    components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
+    components::fill_array(exec, arnoldi_norm->get_values() + stride_arnoldi,
                            dim_size[1], zero<non_complex>());
-    components::fill_array(exec, arnoldi_norm->get_values() + 2 * dim_size[1],
+    components::fill_array(exec,
+                           arnoldi_norm->get_values() + 2 * stride_arnoldi,
                            dim_size[1], zero<non_complex>());
     multinorm2_inf_kernel<use_scale><<<grid_size, block_size>>>(
         dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
-        as_cuda_type(arnoldi_norm->get_values() + dim_size[1]),
-        as_cuda_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+        as_cuda_type(arnoldi_norm->get_values() + stride_arnoldi),
+        as_cuda_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
         as_cuda_type(stop_status));
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
@@ -348,17 +347,18 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
+        components::fill_array(exec,
+                               arnoldi_norm->get_values() + stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         components::fill_array(exec,
-                               arnoldi_norm->get_values() + 2 * dim_size[1],
+                               arnoldi_norm->get_values() + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         multinorm2_inf_kernel<use_scale><<<grid_size, block_size>>>(
             dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_const_values()),
             stride_next_krylov,
-            as_cuda_type(arnoldi_norm->get_values() + dim_size[1]),
-            as_cuda_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+            as_cuda_type(arnoldi_norm->get_values() + stride_arnoldi),
+            as_cuda_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
             as_cuda_type(stop_status));
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth->get_data(), 1,
