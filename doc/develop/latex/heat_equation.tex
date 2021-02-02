@@ -1,0 +1,579 @@
+The heat equation example..
+
+This example depends on simple-\/solver, three-\/pt-\/stencil-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This example solves a 2D heat conduction equation
+
+$ u : [0, d]^2 \rightarrow R\\ \partial_t u = \delta u + f $
+
+with Dirichlet boundary conditions and given initial condition and constant-\/in-\/time source function f.
+
+The partial differential equation (P\+DE) is solved with a finite difference spatial discretization on an equidistant grid\+: For {\ttfamily n} grid points, and grid distance $h = 1/n$ we write
+
+$ u_{i,j}\text{'} = \alpha\frac{u_{i-1,j}+u_{i+1,j}+u_{i,j-1}+u_{i,j+1}-4u_{i,j}}{h^2}+f_{i,j} $
+
+We then build an implicit Euler integrator by discretizing with time step $\tau$
+
+$ \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} = \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1} -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2} +f_{i,j} $
+
+and solve the resulting linear system for $ u_{\cdot}^{k+1}$ using Ginkgo\textquotesingle{}s CG solver preconditioned with an incomplete Cholesky factorization for each time step, occasionally writing the resulting grid values into a video file using Open\+CV and a custom color mapping.
+
+The intention of this example is to provide a mini-\/app showing matrix assembly, vector initialization, solver setup and the use of Ginkgo in a more complex setting.
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{/ *****************************<DESCRIPTION>***********************************}
+\DoxyCodeLine{This example solves a 2D heat conduction equation}
+\DoxyCodeLine{}
+\DoxyCodeLine{    u : [0, d]\string^2 \(\backslash\)rightarrow R\(\backslash\)\(\backslash\)}
+\DoxyCodeLine{    \(\backslash\)partial\_t u = \(\backslash\)delta u + f}
+\DoxyCodeLine{}
+\DoxyCodeLine{with Dirichlet boundary conditions and given initial condition and}
+\DoxyCodeLine{constant-\/in-\/time source \textcolor{keyword}{function} f.}
+\DoxyCodeLine{}
+\DoxyCodeLine{The partial differential equation (PDE) is solved with a finite difference}
+\DoxyCodeLine{spatial discretization on an equidistant grid: For `n` grid points,}
+\DoxyCodeLine{and grid distance h = 1/n we \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    u\_\{i,j\}\textcolor{stringliteral}{' = \(\backslash\)alpha (u\_\{i-\/1,j\} + u\_\{i+1,j\} + u\_\{i,j-\/1\} + u\_\{i,j+1\}}}
+\DoxyCodeLine{\textcolor{stringliteral}{                   -\/ 4 u\_\{i,j\}) / h\string^2}}
+\DoxyCodeLine{\textcolor{stringliteral}{               + f\_\{i,j\}}}
+\DoxyCodeLine{\textcolor{stringliteral}{}}
+\DoxyCodeLine{\textcolor{stringliteral}{We then build an implicit Euler integrator by discretizing with time step \(\backslash\)tau}}
+\DoxyCodeLine{\textcolor{stringliteral}{}}
+\DoxyCodeLine{\textcolor{stringliteral}{    (u\_\{i,j\}\string^\{k+1\} -\/ u\_\{i,j\}\string^k) / \(\backslash\)tau =}}
+\DoxyCodeLine{\textcolor{stringliteral}{    \(\backslash\)alpha (u\_\{i-\/1,j\}\string^\{k+1\} -\/ u\_\{i+1,j\}\string^\{k+1\}}}
+\DoxyCodeLine{\textcolor{stringliteral}{          + u\_\{i,j-\/1\}\string^\{k+1\} -\/ u\_\{i,j+1\}\string^\{k+1\} -\/ 4 u\_\{i,j\}\string^\{k+1\}) / h\string^2}}
+\DoxyCodeLine{\textcolor{stringliteral}{    + f\_\{i,j\}}}
+\DoxyCodeLine{\textcolor{stringliteral}{}}
+\DoxyCodeLine{\textcolor{stringliteral}{and solve the resulting linear system for  u\_\{\(\backslash\)cdot\}\string^\{k+1\} using Ginkgo'}s CG}
+\DoxyCodeLine{solver preconditioned with an incomplete Cholesky factorization \textcolor{keywordflow}{for each} time}
+\DoxyCodeLine{step, occasionally writing the resulting grid values into a video file \textcolor{keyword}{using}}
+\DoxyCodeLine{OpenCV and a custom color mapping.}
+\DoxyCodeLine{}
+\DoxyCodeLine{The intention of \textcolor{keyword}{this} example is to provide a mini-\/app showing matrix assembly,}
+\DoxyCodeLine{vector initialization, solver setup and the use of Ginkgo in a more complex}
+\DoxyCodeLine{setting.}
+\DoxyCodeLine{*****************************<DESCRIPTION>********************************** /}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <opencv2/core.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <opencv2/videoio.hpp>}}
+\end{DoxyCode}
+
+
+This function implements a simple Ginkgo-\/themed clamped color mapping for values in the range \mbox{[}0,5\mbox{]}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{void} set\_val(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *data, \textcolor{keywordtype}{double} value)}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+R\+GB values for the 6 colors used for values 0, 1, ..., 5 We will interpolate linearly between these values.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{double} col\_r[] = \{255, 221, 129, 201, 249, 255\};}
+\DoxyCodeLine{\textcolor{keywordtype}{double} col\_g[] = \{255, 220, 130, 161, 158, 204\};}
+\DoxyCodeLine{\textcolor{keywordtype}{double} col\_b[] = \{255, 220, 133, 93, 24, 8\};}
+\DoxyCodeLine{value = std::max(0.0, value);}
+\DoxyCodeLine{\textcolor{keyword}{auto} i = std::max(0, std::min(4, \textcolor{keywordtype}{int}(value)));}
+\DoxyCodeLine{\textcolor{keyword}{auto} d = std::max(0.0, std::min(1.0, value -\/ i));}
+\end{DoxyCode}
+
+
+Open\+CV uses B\+GR instead of R\+GB by default, revert indices
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    data[2] = static\_cast<unsigned char>(col\_r[i + 1] * d + col\_r[i] * (1 -\/ d));}
+\DoxyCodeLine{    data[1] = static\_cast<unsigned char>(col\_g[i + 1] * d + col\_g[i] * (1 -\/ d));}
+\DoxyCodeLine{    data[0] = static\_cast<unsigned char>(col\_b[i + 1] * d + col\_b[i] * (1 -\/ d));}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Initialize video output with given dimension and F\+PS (frames per seconds)
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::pair<cv::VideoWriter, cv::Mat> build\_output(\textcolor{keywordtype}{int} n, \textcolor{keywordtype}{double} fps)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    cv::Size videosize\{n, n\};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} output =}
+\DoxyCodeLine{        std::make\_pair(cv::VideoWriter\{\}, cv::Mat\{videosize, CV\_8UC3\});}
+\DoxyCodeLine{    \textcolor{keyword}{auto} fourcc = cv::VideoWriter::fourcc(\textcolor{charliteral}{'a'}, \textcolor{charliteral}{'v'}, \textcolor{charliteral}{'c'}, \textcolor{charliteral}{'1'});}
+\DoxyCodeLine{    output.first.open(\textcolor{stringliteral}{"heat.mp4"}, fourcc, fps, videosize);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} output;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Write the current frame to video output using the above color mapping
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{void} output\_timestep(std::pair<cv::VideoWriter, cv::Mat> \&output, \textcolor{keywordtype}{int} n,}
+\DoxyCodeLine{                     \textcolor{keyword}{const} \textcolor{keywordtype}{double} *data)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; i++) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} row = output.second.ptr(i);}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < n; j++) \{}
+\DoxyCodeLine{            set\_val(\&row[3 * j], data[i * n + j]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    output.first.write(output.second);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\end{DoxyCode}
+
+
+Problem parameters\+: simulation length
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} t0 = 5.0;}
+\end{DoxyCode}
+
+
+diffusion factor
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} diffusion = 0.0005;}
+\end{DoxyCode}
+
+
+scaling factor for heat source
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} source\_scale = 2.5;}
+\end{DoxyCode}
+
+
+Simulation parameters\+: inner grid points per discretization direction
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} n = 256;}
+\end{DoxyCode}
+
+
+number of simulation steps per second
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} steps\_per\_sec = 500;}
+\end{DoxyCode}
+
+
+number of video frames per second
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} fps = 25;}
+\end{DoxyCode}
+
+
+number of grid points
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} n2 = n * n;}
+\end{DoxyCode}
+
+
+grid point distance (ignoring boundary points)
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} h = 1.0 / (n + 1);}
+\DoxyCodeLine{\textcolor{keyword}{auto} h2 = h * h;}
+\end{DoxyCode}
+
+
+time step size for the simulation
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} tau = 1.0 / steps\_per\_sec;}
+\end{DoxyCode}
+
+
+create an Open\+MP executor
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\end{DoxyCode}
+
+
+load heat source and initial state vectors
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::ifstream source\_stream(\textcolor{stringliteral}{"data/source.mtx"});}
+\DoxyCodeLine{std::ifstream initial\_stream(\textcolor{stringliteral}{"data/initial.mtx"});}
+\DoxyCodeLine{\textcolor{keyword}{auto} source = gko::read<vec>(source\_stream, exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} in\_vector = gko::read<vec>(initial\_stream, exec);}
+\end{DoxyCode}
+
+
+create output vector with initial guess for
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} out\_vector = in\_vector-\/>clone();}
+\end{DoxyCode}
+
+
+create scalar for source update
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} tau\_source\_scalar = gko::initialize<vec>(\{source\_scale * tau\}, exec);}
+\end{DoxyCode}
+
+
+create stencil matrix as shared\+\_\+ptr for solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} stencil\_matrix = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(mtx::create(exec));}
+\end{DoxyCode}
+
+
+assemble matrix
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<>}} mtx\_data\{\mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(n2, n2)\};}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; i++) \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < n; j++) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} c = i * n + j;}
+\DoxyCodeLine{        \textcolor{keyword}{auto} c\_val = diffusion * tau * 4.0 / h2 + 1.0;}
+\DoxyCodeLine{        \textcolor{keyword}{auto} off\_val = -\/diffusion * tau / h2;}
+\end{DoxyCode}
+
+
+for each grid point\+: insert 5 stencil points with Dirichlet boundary conditions, i.\+e. with zero boundary value
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (i > 0) \{}
+\DoxyCodeLine{            mtx\_data.nonzeros.emplace\_back(c, c -\/ n, off\_val);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (j > 0) \{}
+\DoxyCodeLine{            mtx\_data.nonzeros.emplace\_back(c, c -\/ 1, off\_val);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        mtx\_data.nonzeros.emplace\_back(c, c, c\_val);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (j < n -\/ 1) \{}
+\DoxyCodeLine{            mtx\_data.nonzeros.emplace\_back(c, c + 1, off\_val);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (i < n -\/ 1) \{}
+\DoxyCodeLine{            mtx\_data.nonzeros.emplace\_back(c, c + n, off\_val);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{stencil\_matrix-\/>read(mtx\_data);}
+\end{DoxyCode}
+
+
+prepare video output
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} output = build\_output(n, fps);}
+\end{DoxyCode}
+
+
+build CG solver on stencil with incomplete Cholesky preconditioner stopping at 1e-\/10 relative accuracy
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>::build}}()}
+\DoxyCodeLine{        .with\_preconditioner(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Ic}{gko::preconditioner::Ic<>::build}}().on(exec))}
+\DoxyCodeLine{        .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{gko::stop::RelativeResidualNorm<>::build}}()}
+\DoxyCodeLine{                           .with\_tolerance(1e-\/10)}
+\DoxyCodeLine{                           .on(exec))}
+\DoxyCodeLine{        .on(exec)}
+\DoxyCodeLine{        -\/>generate(stencil\_matrix);}
+\end{DoxyCode}
+
+
+time stamp of the last output frame (initialized to a sentinel value)
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{double} last\_t = -\/t0;}
+\end{DoxyCode}
+
+
+execute implicit Euler method\+: for each timestep, solve stencil system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{double} t = 0; t < t0; t += tau) \{}
+\end{DoxyCode}
+
+
+if enough time has passed, output the next video frame
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (t -\/ last\_t > 1.0 / fps) \{}
+\DoxyCodeLine{    last\_t = t;}
+\DoxyCodeLine{    std::cout << t << std::endl;}
+\DoxyCodeLine{    output\_timestep(output, n, in\_vector-\/>get\_const\_values());}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+add heat source contribution
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{in\_vector-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tau\_source\_scalar), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(source));}
+\end{DoxyCode}
+
+
+execute Euler step
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
+\end{DoxyCode}
+
+
+swap input and output
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{        std::swap(in\_vector, out\_vector);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+The program will generate a video file named heat.\+mp4 and output the timestamp of each generated frame.
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2021, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{/*****************************<DESCRIPTION>***********************************}}
+\DoxyCodeLine{\textcolor{comment}{This example solves a 2D heat conduction equation}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{    u : [0, d]\string^2 \(\backslash\)rightarrow R\(\backslash\)\(\backslash\)}}
+\DoxyCodeLine{\textcolor{comment}{    \(\backslash\)partial\_t u = \(\backslash\)delta u + f}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{with Dirichlet boundary conditions and given initial condition and}}
+\DoxyCodeLine{\textcolor{comment}{constant-\/in-\/time source function f.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{The partial differential equation (PDE) is solved with a finite difference}}
+\DoxyCodeLine{\textcolor{comment}{spatial discretization on an equidistant grid: For `n` grid points,}}
+\DoxyCodeLine{\textcolor{comment}{and grid distance @f\$h = 1/n@f\$ we write}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{    u\_\{i,j\}' = \(\backslash\)alpha (u\_\{i-\/1,j\} + u\_\{i+1,j\} + u\_\{i,j-\/1\} + u\_\{i,j+1\}}}
+\DoxyCodeLine{\textcolor{comment}{                   -\/ 4 u\_\{i,j\}) / h\string^2}}
+\DoxyCodeLine{\textcolor{comment}{               + f\_\{i,j\}}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{We then build an implicit Euler integrator by discretizing with time step @f\$\(\backslash\)tau@f\$}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{    (u\_\{i,j\}\string^\{k+1\} -\/ u\_\{i,j\}\string^k) / \(\backslash\)tau =}}
+\DoxyCodeLine{\textcolor{comment}{    \(\backslash\)alpha (u\_\{i-\/1,j\}\string^\{k+1\} -\/ u\_\{i+1,j\}\string^\{k+1\}}}
+\DoxyCodeLine{\textcolor{comment}{          + u\_\{i,j-\/1\}\string^\{k+1\} -\/ u\_\{i,j+1\}\string^\{k+1\} -\/ 4 u\_\{i,j\}\string^\{k+1\}) / h\string^2}}
+\DoxyCodeLine{\textcolor{comment}{    + f\_\{i,j\}}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{and solve the resulting linear system for @f\$ u\_\{\(\backslash\)cdot\}\string^\{k+1\}@f\$ using Ginkgo's CG}}
+\DoxyCodeLine{\textcolor{comment}{solver preconditioned with an incomplete Cholesky factorization for each time}}
+\DoxyCodeLine{\textcolor{comment}{step, occasionally writing the resulting grid values into a video file using}}
+\DoxyCodeLine{\textcolor{comment}{OpenCV and a custom color mapping.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{The intention of this example is to provide a mini-\/app showing matrix assembly,}}
+\DoxyCodeLine{\textcolor{comment}{vector initialization, solver setup and the use of Ginkgo in a more complex}}
+\DoxyCodeLine{\textcolor{comment}{setting.}}
+\DoxyCodeLine{\textcolor{comment}{*****************************<DESCRIPTION>**********************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <opencv2/core.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <opencv2/videoio.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} set\_val(\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} *data, \textcolor{keywordtype}{double} value)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} col\_r[] = \{255, 221, 129, 201, 249, 255\};}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} col\_g[] = \{255, 220, 130, 161, 158, 204\};}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} col\_b[] = \{255, 220, 133, 93, 24, 8\};}
+\DoxyCodeLine{    value = std::max(0.0, value);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} i = std::max(0, std::min(4, \textcolor{keywordtype}{int}(value)));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} d = std::max(0.0, std::min(1.0, value -\/ i));}
+\DoxyCodeLine{    data[2] = static\_cast<unsigned char>(col\_r[i + 1] * d + col\_r[i] * (1 -\/ d));}
+\DoxyCodeLine{    data[1] = static\_cast<unsigned char>(col\_g[i + 1] * d + col\_g[i] * (1 -\/ d));}
+\DoxyCodeLine{    data[0] = static\_cast<unsigned char>(col\_b[i + 1] * d + col\_b[i] * (1 -\/ d));}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{std::pair<cv::VideoWriter, cv::Mat> build\_output(\textcolor{keywordtype}{int} n, \textcolor{keywordtype}{double} fps)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    cv::Size videosize\{n, n\};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} output =}
+\DoxyCodeLine{        std::make\_pair(cv::VideoWriter\{\}, cv::Mat\{videosize, CV\_8UC3\});}
+\DoxyCodeLine{    \textcolor{keyword}{auto} fourcc = cv::VideoWriter::fourcc(\textcolor{charliteral}{'a'}, \textcolor{charliteral}{'v'}, \textcolor{charliteral}{'c'}, \textcolor{charliteral}{'1'});}
+\DoxyCodeLine{    output.first.open(\textcolor{stringliteral}{"heat.mp4"}, fourcc, fps, videosize);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} output;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} output\_timestep(std::pair<cv::VideoWriter, cv::Mat> \&output, \textcolor{keywordtype}{int} n,}
+\DoxyCodeLine{                     \textcolor{keyword}{const} \textcolor{keywordtype}{double} *data)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; i++) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} row = output.second.ptr(i);}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < n; j++) \{}
+\DoxyCodeLine{            set\_val(\&row[3 * j], data[i * n + j]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    output.first.write(output.second);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} t0 = 5.0;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} diffusion = 0.0005;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} source\_scale = 2.5;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} n = 256;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} steps\_per\_sec = 500;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} fps = 25;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} n2 = n * n;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} h = 1.0 / (n + 1);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} h2 = h * h;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tau = 1.0 / steps\_per\_sec;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    std::ifstream source\_stream(\textcolor{stringliteral}{"data/source.mtx"});}
+\DoxyCodeLine{    std::ifstream initial\_stream(\textcolor{stringliteral}{"data/initial.mtx"});}
+\DoxyCodeLine{    \textcolor{keyword}{auto} source = gko::read<vec>(source\_stream, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} in\_vector = gko::read<vec>(initial\_stream, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} out\_vector = in\_vector-\/>clone();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tau\_source\_scalar = gko::initialize<vec>(\{source\_scale * tau\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} stencil\_matrix = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(mtx::create(exec));}
+\DoxyCodeLine{    \mbox{\hyperlink{structgko_1_1matrix__data}{gko::matrix\_data<>}} mtx\_data\{\mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(n2, n2)\};}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; i++) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} j = 0; j < n; j++) \{}
+\DoxyCodeLine{            \textcolor{keyword}{auto} c = i * n + j;}
+\DoxyCodeLine{            \textcolor{keyword}{auto} c\_val = diffusion * tau * 4.0 / h2 + 1.0;}
+\DoxyCodeLine{            \textcolor{keyword}{auto} off\_val = -\/diffusion * tau / h2;}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (i > 0) \{}
+\DoxyCodeLine{                mtx\_data.nonzeros.emplace\_back(c, c -\/ n, off\_val);}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (j > 0) \{}
+\DoxyCodeLine{                mtx\_data.nonzeros.emplace\_back(c, c -\/ 1, off\_val);}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{            mtx\_data.nonzeros.emplace\_back(c, c, c\_val);}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (j < n -\/ 1) \{}
+\DoxyCodeLine{                mtx\_data.nonzeros.emplace\_back(c, c + 1, off\_val);}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (i < n -\/ 1) \{}
+\DoxyCodeLine{                mtx\_data.nonzeros.emplace\_back(c, c + n, off\_val);}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    stencil\_matrix-\/>read(mtx\_data);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} output = build\_output(n, fps);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>::build}}()}
+\DoxyCodeLine{            .with\_preconditioner(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Ic}{gko::preconditioner::Ic<>::build}}().on(exec))}
+\DoxyCodeLine{            .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{gko::stop::RelativeResidualNorm<>::build}}()}
+\DoxyCodeLine{                               .with\_tolerance(1e-\/10)}
+\DoxyCodeLine{                               .on(exec))}
+\DoxyCodeLine{            .on(exec)}
+\DoxyCodeLine{            -\/>generate(stencil\_matrix);}
+\DoxyCodeLine{    \textcolor{keywordtype}{double} last\_t = -\/t0;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{double} t = 0; t < t0; t += tau) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (t -\/ last\_t > 1.0 / fps) \{}
+\DoxyCodeLine{            last\_t = t;}
+\DoxyCodeLine{            std::cout << t << std::endl;}
+\DoxyCodeLine{            output\_timestep(output, n, in\_vector-\/>get\_const\_values());}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        in\_vector-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tau\_source\_scalar), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(source));}
+\DoxyCodeLine{        solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
+\DoxyCodeLine{        std::swap(in\_vector, out\_vector);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

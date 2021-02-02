@@ -47,3 +47,9 @@
 \form#46:$`f` $
 \form#47:$`f(x) = 6x`$
 \form#48:$`u(x) = x^3`$
+\form#49:$ u : [0, d]^2 \rightarrow R\\ \partial_t u = \delta u + f $
+\form#50:$h = 1/n$
+\form#51:$ u_{i,j}' = \alpha\frac{u_{i-1,j}+u_{i+1,j}+u_{i,j-1}+u_{i,j+1}-4u_{i,j}}{h^2}+f_{i,j} $
+\form#52:$\tau$
+\form#53:$ \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} = \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1} -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2} +f_{i,j} $
+\form#54:$ u_{\cdot}^{k+1}$
