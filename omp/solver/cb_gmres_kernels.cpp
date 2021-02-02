@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_kernels.hpp"
 
 
-#include <iostream>
-
-
 #include <omp.h>
 
 
@@ -44,14 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
-
-
-// #define TIMING 1
-
-
-#ifdef TIMING
-using double_seconds = std::chrono::duration<double, std::milli>;
-#endif
 
 
 namespace gko {
@@ -93,9 +82,6 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         }
         arnoldi_norm->at(0, i) = nrm * eta;
         // nrmP = norm(next_krylov_basis)
-#ifdef TIMING
-        auto start_1 = std::chrono::steady_clock::now();
-#endif
 #pragma omp parallel for
         for (size_type k = 0; k < iter + 1; ++k) {
             ValueType hessenberg_iter_entry = zero<ValueType>();
@@ -105,18 +91,9 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             }
             hessenberg_iter->at(k, i) = hessenberg_iter_entry;
         }
-#ifdef TIMING
-        auto time_1 = std::chrono::steady_clock::now() - start_1;
-        std::cout << "time_1(" << iter << ") = "
-                  << std::chrono::duration_cast<double_seconds>(time_1).count()
-                  << std::endl;
-#endif
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
-#ifdef TIMING
-        auto start_2 = std::chrono::steady_clock::now();
-#endif
         for (size_type k = 0; k < iter + 1; ++k) {
 #pragma omp parallel for
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
@@ -124,17 +101,6 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                     hessenberg_iter->at(k, i) * krylov_bases(k, j, i);
             }
         }
-#ifdef TIMING
-        auto time_2 = std::chrono::steady_clock::now() - start_2;
-        std::cout << "time_2(" << iter << ") = "
-                  << std::chrono::duration_cast<double_seconds>(time_2).count()
-                  << std::endl;
-        std::cout
-            << "time_1 / time_2(" << iter << ") = "
-            << std::chrono::duration_cast<double_seconds>(time_1).count() /
-                   std::chrono::duration_cast<double_seconds>(time_2).count()
-            << std::endl;
-#endif
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -150,8 +116,6 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         }
         arnoldi_norm->at(1, i) = sqrt(nrm);
         arnoldi_norm->at(2, i) = inf;
-        // nrmI = infnorm(next_krylov_basis)
-        // nrmN = norm(next_krylov_basis)
 
         for (size_type l = 1;
              (arnoldi_norm->at(1, i)) < (arnoldi_norm->at(0, i)) && l < 3;
@@ -196,7 +160,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
-        helper_functions_accessor<Accessor3d>::write_scalar(
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         // reorthogonalization
@@ -412,7 +376,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         }
         residual_norm->at(0, j) = sqrt(res_norm);
         arnoldi_norm->at(2, j) = res_inf;
-        helper_functions_accessor<Accessor3d>::write_scalar(
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -437,7 +401,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<Accessor3d>::write_scalar(
+            gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<remove_complex<ValueType>>());
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {

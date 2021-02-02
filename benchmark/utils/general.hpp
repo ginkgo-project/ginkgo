@@ -304,19 +304,19 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     return res;
 }
 
-// Note: complex values are assigned s[i, j] = {sin(2 * i, sin(2 * i + 1))}
+// Note: complex values are assigned s[i, j] = {sin(2 * i), sin(2 * i + 1)}
 template <typename ValueType>
 std::enable_if_t<gko::is_complex_s<ValueType>::value,
                  std::unique_ptr<vec<ValueType>>>
 create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
 {
+    using rc_vtype = gko::remove_complex<ValueType>;
     auto h_res = vec<ValueType>::create(exec->get_master(), size);
     for (gko::size_type i = 0; i < size[0]; ++i) {
         for (gko::size_type j = 0; j < size[1]; ++j) {
-            h_res->at(i, j) = ValueType{
-                std::sin(static_cast<gko::remove_complex<ValueType>>(2 * i)),
-                std::sin(
-                    static_cast<gko::remove_complex<ValueType>>(2 * i + 1))};
+            h_res->at(i, j) =
+                ValueType{std::sin(static_cast<rc_vtype>(2 * i)),
+                          std::sin(static_cast<rc_vtype>(2 * i + 1))};
         }
     }
     auto res = vec<ValueType>::create(exec);

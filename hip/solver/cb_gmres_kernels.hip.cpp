@@ -153,11 +153,13 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
     const auto krylov_stride =
-        helper_functions_accessor<Accessor3d>::get_stride(krylov_bases);
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
+            krylov_bases);
     const dim3 grid_dim_1(
         ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
+    const auto stride_arnoldi = arnoldi_norm->get_stride();
 
     hipLaunchKernelGGL(initialize_2_1_kernel<block_size>, grid_dim_1, block_dim,
                        0, 0, residual->get_size()[0], residual->get_size()[1],
@@ -166,24 +168,28 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                        residual_norm_collection->get_stride());
     residual->compute_norm2(residual_norm);
 
-    components::fill_array(exec, arnoldi_norm->get_values() + 2 * num_rhs,
+    components::fill_array(exec,
+                           arnoldi_norm->get_values() + 2 * stride_arnoldi,
                            num_rhs, zero<remove_complex<ValueType>>());
     const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                              exec->get_num_multiprocessor() * 2);
     const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
     hipLaunchKernelGGL(
         multinorminf_without_stop_kernel, grid_size_nrm, block_size_nrm, 0, 0,
-        num_rows, num_rhs, as_hip_type(residual->get_const_values()), num_rhs,
-        as_hip_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
+        num_rows, num_rhs, as_hip_type(residual->get_const_values()),
+        residual->get_stride(),
+        as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi), 0);
 
-    const auto stride_arnoldi = arnoldi_norm->get_stride();
-    hipLaunchKernelGGL(
-        set_scale_kernel<default_block_size>,
-        dim3(ceildiv(num_rhs * (krylov_dim + 1), default_block_size)),
-        dim3(default_block_size), 0, 0, num_rhs, krylov_dim + 1,
-        as_hip_type(residual_norm->get_const_values()), num_rhs,
-        as_hip_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
-        stride_arnoldi, as_hip_accessor(krylov_bases));
+    if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
+        hipLaunchKernelGGL(
+            set_scalar_kernel<default_block_size>,
+            dim3(ceildiv(num_rhs * (krylov_dim + 1), default_block_size)),
+            dim3(default_block_size), 0, 0, num_rhs, krylov_dim + 1,
+            as_hip_type(residual_norm->get_const_values()),
+            residual_norm->get_stride(),
+            as_hip_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
+            stride_arnoldi, as_hip_accessor(krylov_bases));
+    }
 
     const dim3 grid_dim_2(
         ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
@@ -219,7 +225,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
     constexpr bool use_scale =
-        kernels::detail::is_3d_scaled_accessor<Accessor3dim>::value;
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3dim>::value;
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
@@ -284,16 +290,17 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
     // end
-    components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
+    components::fill_array(exec, arnoldi_norm->get_values() + stride_arnoldi,
                            dim_size[1], zero<non_complex>());
-    components::fill_array(exec, arnoldi_norm->get_values() + 2 * dim_size[1],
+    components::fill_array(exec,
+                           arnoldi_norm->get_values() + 2 * stride_arnoldi,
                            dim_size[1], zero<non_complex>());
     hipLaunchKernelGGL(
         multinorm2_inf_kernel<use_scale>, grid_size, block_size, 0, 0,
         dim_size[0], dim_size[1],
         as_hip_type(next_krylov_basis->get_const_values()), stride_next_krylov,
-        as_hip_type(arnoldi_norm->get_values() + dim_size[1]),
-        as_hip_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+        as_hip_type(arnoldi_norm->get_values() + stride_arnoldi),
+        as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
         as_hip_type(stop_status));
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
@@ -347,18 +354,19 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
+        components::fill_array(exec,
+                               arnoldi_norm->get_values() + stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         components::fill_array(exec,
-                               arnoldi_norm->get_values() + 2 * dim_size[1],
+                               arnoldi_norm->get_values() + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         hipLaunchKernelGGL(
             multinorm2_inf_kernel<use_scale>, grid_size, block_size, 0, 0,
             dim_size[0], dim_size[1],
             as_hip_type(next_krylov_basis->get_const_values()),
             stride_next_krylov,
-            as_hip_type(arnoldi_norm->get_values() + dim_size[1]),
-            as_hip_type(arnoldi_norm->get_values() + 2 * dim_size[1]),
+            as_hip_type(arnoldi_norm->get_values() + stride_arnoldi),
+            as_hip_type(arnoldi_norm->get_values() + 2 * stride_arnoldi),
             as_hip_type(stop_status));
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth->get_data(), 1,

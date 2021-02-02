@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
+//#include <ginkgo/core/matrix/identity.hpp>
 
 
 #include "core/solver/cb_gmres_accessor.hpp"
@@ -103,7 +103,7 @@ namespace detail {
 template <typename T, typename Skip, int count>
 struct reduce_precision_skip_count_impl {
     static_assert(count > 0,
-                  "The count variable must be larger or equal zero.");
+                  "The count variable must be larger or equal to zero.");
     using type = typename reduce_precision_skip_count_impl<
         reduce_precision_skip<T, Skip>, Skip, count - 1>::type;
 };
@@ -197,10 +197,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
         using LowArray = Array<storage_type>;
-        // using KrylovAccessor = kernels::Accessor3d<storage_type,
-        // ValueType>;
-        using Accessor3dHelper =
-            kernels::Accessor3dHelper<ValueType, storage_type>;
+        using Range3dHelper =
+            gko::cb_gmres::Range3dHelper<ValueType, storage_type>;
 
 
         constexpr uint8 RelativeStoppingId{1};
@@ -222,15 +220,7 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         const dim<3> krylov_bases_dim{krylov_dim_ + 1,
                                       system_matrix_->get_size()[1],
                                       dense_b->get_size()[1]};
-        // const dim<2> krylov_bases_dim{
-        //     system_matrix_->get_size()[1],
-        //     (krylov_dim_ + 1) * dense_b->get_size()[1]};
-        // const size_type krylov_bases_stride = krylov_bases_dim[1];
-        // LowArray krylov_bases(exec, krylov_bases_dim[0] *
-        // krylov_bases_stride); KrylovAccessor
-        // krylov_bases_range(krylov_bases.get_data(),
-        //                                     krylov_bases_stride);
-        Accessor3dHelper helper(exec, krylov_bases_dim);
+        Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
@@ -251,9 +241,13 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
         auto b_norm =
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
-        // TODO: write description what the different rows represent
+        // 1st row of arnoldi_norm: TODO
+        // 2nd row of arnoldi_norm: The actual arnoldi norm
+        //                          == norm2(next_krylov_basis)
+        // 3rd row of arnoldi_norm: the infinity norm of next_krylov_basis
+        //                          (ONLY when using a scalar accessor)
         // The optional entry stores the infinity_norm of each
-        // next_krylov_vector, which is only used to compute the scale
+        // next_krylov_vector, which is only used to compute the scalar
         auto arnoldi_norm =
             VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
         Array<size_type> final_iter_nums(this->get_executor(),
@@ -473,7 +467,7 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // Calculate residual norm
 
             restart_iter++;
-        }
+        }  // closes while(true)
         // Solve x
 
         auto hessenberg_small = hessenberg->create_submatrix(

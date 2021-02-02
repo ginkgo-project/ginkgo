@@ -131,12 +131,15 @@ __device__ void reduce(const Group &__restrict__ group,
 /**
  * @internal
  *
- * Computes a reduction using the binary operation `reduce_op` on entire block.
- * The data for the reduction is taken from the `data` array which has to be of
- * size `block_size` and accessible from all threads. The `data` array is also
+ * Computes `num` reductions using the binary operation `reduce_op` on an
+ * entire block.
+ * The data range for the ith (i < num) reduction is:
+ * [data + i * stride, data + block_size) (block_size == group.size())
+ * The `data` array for each reduction must be of size `block_size` and
+ * accessible from all threads. The `data` array is also
  * used as work space (so its content will be destroyed in the process), as well
- * as to store the return value - which is stored in the 0-th position of the
- * array.
+ * as to store the return value - which is stored in the (i * stride)-th
+ * position of the array.
  */
 template <
     typename Group, typename ValueType, typename Operator,

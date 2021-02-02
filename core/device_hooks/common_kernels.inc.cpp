@@ -585,14 +585,6 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
     GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
-/*
-template <typename ValueType, typename ValueTypeKrylovBases, bool
-Reorthogonalization, bool MGS_CGS>
-GKO_DECLARE_CB_GMRES_BOOL_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases,
-                                           Reorthogonalization, MGS_CGS)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(GKO_DECLARE_CB_GMRES_BOOL_STEP_1_KERNEL);
-*/
 template <typename ValueType, typename ValueTypeKrylovBases>
 GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);

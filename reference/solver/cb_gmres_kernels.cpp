@@ -153,7 +153,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
             // nrmN = norm(next_krylov_basis)
         }
-        helper_functions_accessor<Accessor3d>::write_scalar(
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter + 1, i,
             arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         hessenberg_iter->at(iter + 1, i) = arnoldi_norm->at(1, i);
@@ -359,7 +359,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                     : abs(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
-        helper_functions_accessor<Accessor3d>::write_scalar(
+        gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
@@ -381,7 +381,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
-            helper_functions_accessor<Accessor3d>::write_scalar(
+            gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<remove_complex<ValueType>>());
             for (size_type i = 0; i < residual->get_size()[0]; ++i) {
                 krylov_bases(k, i, j) = zero<ValueType>();
