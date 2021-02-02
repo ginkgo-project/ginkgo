@@ -14,11 +14,6 @@ jobs:
     runs-on: [windows-latest]
     steps:
     - uses: actions/checkout@v2
-    - name: check PATH
-      run: |
-        echo $env:Path
-        $env:PATH="$env:PATH;C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC/14.28.29333/bin/Hostx64/x64"
-        (get-command cl.exe).Path
     - name: setup (versioned)
       if: matrix.config.version != 'latest'
       run: |
@@ -32,9 +27,8 @@ jobs:
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
         Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
         refreshenv
-        $env:PATH="$env:PATH;C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC/14.28.29333/bin/Hostx64/x64"
         $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
-        mkdir build
-        cd build
-        cmake -DCMAKE_CXX_FLAGS=/bigobj -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
-        cmake --build . -j4 --config Release
+        echo $env:PATH
+        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/bin/nvcc.exe --help"
+        "nvcc.exe --help"
+        (get-command cl.exe).Path
