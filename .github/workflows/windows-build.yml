@@ -30,5 +30,4 @@ jobs:
         $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
         echo $env:PATH
         "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/bin/nvcc.exe --help"
-        "nvcc.exe --help"
-        (get-command cl.exe).Path
+        nvcc.exe --help
