@@ -16,7 +16,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: check PATH
       run: |
-        echo $Env:Path
+        echo $env:Path
+        $env:PATH="$env:PATH;C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC/14.28.29333/bin/Hostx64/x64"
         (get-command cl.exe).Path
     - name: setup (versioned)
       if: matrix.config.version != 'latest'
@@ -31,36 +32,9 @@ jobs:
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
         Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
         refreshenv
+        $env:PATH="$env:PATH;C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC/14.28.29333/bin/Hostx64/x64"
         $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
         mkdir build
         cd build
         cmake -DCMAKE_CXX_FLAGS=/bigobj -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
         cmake --build . -j4 --config Release
-
-  windows_ref:
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
-        # Debug static needs too much storage
-        # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
-    name: msvc/${{ matrix.config.name }}
-    runs-on: [windows-latest]
-    steps:
-    - uses: actions/checkout@v2
-    - name: configure
-      run: |
-        $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
-        mkdir build
-        cd build
-        cmake  -DCMAKE_CXX_FLAGS=/bigobj -DCMAKE_CXX_FLAGS_DEBUG="/MDd /Zi /Ob1 /Od /RTC1" -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
-        cmake --build . -j4 --config ${{ matrix.config.build_type }}
-        ctest . -C ${{ matrix.config.build_type }} --output-on-failure
-    - name: install
-      run: |
-        $env:PATH="$env:PATH;C:\Program Files (x86)\Ginkgo\lib"
-        cd build
-        cmake --install . --config ${{ matrix.config.build_type }}
-        cmake --build . --target test_install --config ${{ matrix.config.build_type }}
