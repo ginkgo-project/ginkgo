@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/cvcsr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
@@ -132,7 +132,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto is_lower = IsaiType == isai_type::lower;
     auto is_general = IsaiType == isai_type::general;
     auto is_spd = IsaiType == isai_type::spd;
-    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
+    auto to_invert = as<Csr>(
+        input);  // convert_to_with_sorting<Csr>(exec, input, skip_sorting);
     auto num_rows = to_invert->get_size()[0];
     std::shared_ptr<Csr> inverted;
     if (!is_spd) {

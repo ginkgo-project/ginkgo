@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/cvcsr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -115,6 +116,8 @@ public:
                                                       : isai_type::lower,
              ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
+    using Cvcsr =
+        matrix::Cvcsr<ValueType, next_precision<ValueType>, IndexType>;
     using Dense = matrix::Dense<ValueType>;
     static constexpr isai_type type{IsaiType};
 
@@ -163,6 +166,8 @@ public:
          * Must be at least 0, default value 0.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(low_precision, false);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -189,13 +194,28 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
+        auto exec = this->get_executor();
+        low_precicion_ = parameters_.low_precision;
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+        if (std::is_same<double, ValueType>() && low_precicion_) {
+            auto tmp =
+                gko::matrix::Csr<next_precision<ValueType>, IndexType>::create(
+                    exec);
+            approximate_inverse_->convert_to(tmp.get());
+            approximate_reduced = Cvcsr::create(exec, share(tmp));
+        }
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
                 share(as<Csr>(approximate_inverse_->transpose()));
+            if (std::is_same<double, ValueType>() && low_precicion_) {
+                auto tmp = gko::matrix::Csr<next_precision<ValueType>,
+                                            IndexType>::create(exec);
+                approximate_inverse_transpose_->convert_to(tmp.get());
+                approximate_reduced_trans = Cvcsr::create(exec, share(tmp));
+            }
             x_ = Dense::create(factory->get_executor(),
                                gko::dim<2>{system_matrix->get_size()[0], 1});
         }
@@ -203,11 +223,20 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        if (IsaiType == isai_type::spd) {
-            approximate_inverse_->apply(b, x_.get());
-            approximate_inverse_transpose_->apply(x_.get(), x);
+        if (std::is_same<double, ValueType>() && low_precicion_) {
+            if (IsaiType == isai_type::spd) {
+                approximate_reduced->apply(b, x_.get());
+                approximate_reduced_trans->apply(x_.get(), x);
+            } else {
+                approximate_reduced->apply(b, x);
+            }
         } else {
-            approximate_inverse_->apply(b, x);
+            if (IsaiType == isai_type::spd) {
+                approximate_inverse_->apply(b, x_.get());
+                approximate_inverse_transpose_->apply(x_.get(), x);
+            } else {
+                approximate_inverse_->apply(b, x);
+            }
         }
     }
 
@@ -234,7 +263,10 @@ private:
 private:
     std::shared_ptr<Csr> approximate_inverse_;
     std::shared_ptr<Csr> approximate_inverse_transpose_;
+    std::shared_ptr<Cvcsr> approximate_reduced;
+    std::shared_ptr<Cvcsr> approximate_reduced_trans;
     std::shared_ptr<Dense> x_;
+    bool low_precicion_;
 };
 
 

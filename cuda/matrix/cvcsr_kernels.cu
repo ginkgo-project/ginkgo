@@ -47,8 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cvcsrperative_groups.cuh"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
+#include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
 
@@ -69,14 +70,14 @@ namespace cuda {
 namespace cvcsr {
 
 
-#include "common/matrix/cvcsr_kernels.hpp.inc"
-
-
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
 constexpr int classical_overweight = 32;
+
+
+#include "common/matrix/cvcsr_kernels.hpp.inc"
 
 
 // Specialization, so the Accessor can use the same function as regular pointers

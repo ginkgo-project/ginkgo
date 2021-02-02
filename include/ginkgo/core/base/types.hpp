@@ -485,15 +485,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(_macro)   \
     template _macro(float, float, int32);                               \
+    template _macro(float, double, int32);                              \
     template _macro(double, double, int32);                             \
     template _macro(double, float, int32);                              \
     template _macro(std::complex<float>, std::complex<float>, int32);   \
+    template _macro(std::complex<float>, std::complex<double>, int32);  \
     template _macro(std::complex<double>, std::complex<double>, int32); \
     template _macro(std::complex<double>, std::complex<float>, int32);  \
     template _macro(float, float, int64);                               \
+    template _macro(float, double, int64);                              \
     template _macro(double, double, int64);                             \
     template _macro(double, float, int64);                              \
     template _macro(std::complex<float>, std::complex<float>, int64);   \
+    template _macro(std::complex<float>, std::complex<double>, int64);  \
     template _macro(std::complex<double>, std::complex<double>, int64); \
     template _macro(std::complex<double>, std::complex<float>, int64)
 

@@ -68,16 +68,20 @@ template <typename ValueType, typename StorageType, typename IndexType>
 void Cvcsr<ValueType, StorageType, IndexType>::apply_impl(const LinOp *b,
                                                           LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(cvcsr::make_spmv(
-            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    if (std::is_same<ValueType, StorageType>::value) {
+        csr_->apply(b, x);
     } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        this->apply(dense_b->create_real_view().get(),
-                    dense_x->create_real_view().get());
+        using ComplexDense = Dense<to_complex<ValueType>>;
+
+        if (dynamic_cast<const Dense<ValueType> *>(b)) {
+            this->get_executor()->run(cvcsr::make_spmv(
+                this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+        } else {
+            auto dense_b = as<ComplexDense>(b);
+            auto dense_x = as<ComplexDense>(x);
+            this->apply(dense_b->create_real_view().get(),
+                        dense_x->create_real_view().get());
+        }
     }
 }
 
@@ -88,21 +92,47 @@ void Cvcsr<ValueType, StorageType, IndexType>::apply_impl(const LinOp *alpha,
                                                           const LinOp *beta,
                                                           LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(cvcsr::make_advanced_spmv(
-            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+    if (std::is_same<ValueType, StorageType>::value) {
+        csr_->apply(alpha, b, beta, x);
     } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        auto dense_alpha = as<RealDense>(alpha);
-        auto dense_beta = as<RealDense>(beta);
-        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
-                    dense_x->create_real_view().get());
+        using ComplexDense = Dense<to_complex<ValueType>>;
+        using RealDense = Dense<remove_complex<ValueType>>;
+
+        if (dynamic_cast<const Dense<ValueType> *>(b)) {
+            this->get_executor()->run(cvcsr::make_advanced_spmv(
+                as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
+                as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
+        } else {
+            auto dense_b = as<ComplexDense>(b);
+            auto dense_x = as<ComplexDense>(x);
+            auto dense_alpha = as<RealDense>(alpha);
+            auto dense_beta = as<RealDense>(beta);
+            this->apply(dense_alpha, dense_b->create_real_view().get(),
+                        dense_beta, dense_x->create_real_view().get());
+        }
     }
+}
+
+
+template <typename ValueType, typename StorageType, typename IndexType>
+std::unique_ptr<LinOp> Cvcsr<ValueType, StorageType, IndexType>::transpose()
+    const
+{
+    auto exec = this->get_executor();
+    auto transp = as<Csr<StorageType, IndexType>>(csr_->transpose());
+    return Cvcsr<ValueType, StorageType, IndexType>::create(exec,
+                                                            share(transp));
+}
+
+
+template <typename ValueType, typename StorageType, typename IndexType>
+std::unique_ptr<LinOp>
+Cvcsr<ValueType, StorageType, IndexType>::conj_transpose() const
+{
+    auto exec = this->get_executor();
+    auto transp = as<Csr<StorageType, IndexType>>(csr_->conj_transpose());
+    return Cvcsr<ValueType, StorageType, IndexType>::create(exec,
+                                                            share(transp));
 }
 
 

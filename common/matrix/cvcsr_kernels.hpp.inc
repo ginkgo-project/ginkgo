@@ -34,7 +34,7 @@ namespace kernel {
 
 
 template <size_type subwarp_size, typename ValueType, typename IndexType,
-          typename Closure>
+          typename Closure, typename const_accessor>
 __device__ void device_classical_spmv(const size_type num_rows,
                                       range<const_accessor> val,
                                       const IndexType *__restrict__ col_idxs,
@@ -68,7 +68,8 @@ __device__ void device_classical_spmv(const size_type num_rows,
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename const_accessor>
 __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     const size_type num_rows, range<const_accessor> val,
     const IndexType *__restrict__ col_idxs,
@@ -82,7 +83,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename const_accessor>
 __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     range<const_accessor> val, const IndexType *__restrict__ col_idxs,
