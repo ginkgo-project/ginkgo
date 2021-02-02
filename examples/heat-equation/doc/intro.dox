@@ -1,0 +1,40 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example solves a 2D heat conduction equation
+
+$
+    u : [0, d]^2 \rightarrow R\\
+    \partial_t u = \delta u + f
+$
+
+with Dirichlet boundary conditions and given initial condition and
+constant-in-time source function f.
+
+The partial differential equation (PDE) is solved with a finite difference
+spatial discretization on an equidistant grid: For `n` grid points,
+and grid distance $h = 1/n$ we write
+
+$
+    u_{i,j}' =
+    \alpha\frac{u_{i-1,j}+u_{i+1,j}+u_{i,j-1}+u_{i,j+1}-4u_{i,j}}{h^2}+f_{i,j}
+$
+
+We then build an implicit Euler integrator by discretizing with time step $\tau$
+
+$
+    \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} =
+    \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1}
+               -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2}
+    +f_{i,j}
+$
+
+and solve the resulting linear system for $ u_{\cdot}^{k+1}$ using Ginkgo's CG
+solver preconditioned with an incomplete Cholesky factorization for each time
+step, occasionally writing the resulting grid values into a video file using
+OpenCV and a custom color mapping.
+
+The intention of this example is to provide a mini-app showing matrix assembly,
+vector initialization, solver setup and the use of Ginkgo in a more complex
+setting.
+
+<h3> About the example </h3>
