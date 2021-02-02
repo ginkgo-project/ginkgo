@@ -127,27 +127,34 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
     auto cuda_new_values = as_cuda_type(new_values.get_data());
     auto cuda_new_col_idxs = as_cuda_type(new_col_idxs.get_data());
 
-    if (bs == 2)
-        kernel::add_missing_diagonal_blocks<subwarp_size, 2>
+    if (bs == 2) {
+        kernel::add_missing_diagonal_blocks<2, subwarp_size>
             <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
                                       cuda_old_col_idxs, cuda_old_row_ptrs,
                                       cuda_new_values, cuda_new_col_idxs,
                                       cuda_row_ptrs_add);
-    else if (bs == 3)
-        kernel::add_missing_diagonal_blocks<subwarp_size, 3>
+    } else if (bs == 3) {
+        kernel::add_missing_diagonal_blocks<3, subwarp_size>
             <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
                                       cuda_old_col_idxs, cuda_old_row_ptrs,
                                       cuda_new_values, cuda_new_col_idxs,
                                       cuda_row_ptrs_add);
-    else if (bs == 4)
-        kernel::add_missing_diagonal_blocks<subwarp_size, 4>
+    } else if (bs == 4) {
+        kernel::add_missing_diagonal_blocks<4, subwarp_size>
             <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
                                       cuda_old_col_idxs, cuda_old_row_ptrs,
                                       cuda_new_values, cuda_new_col_idxs,
                                       cuda_row_ptrs_add);
-    else
+    } else if (bs == 7) {
+        kernel::add_missing_diagonal_blocks<7, subwarp_size>
+            <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
+                                      cuda_old_col_idxs, cuda_old_row_ptrs,
+                                      cuda_new_values, cuda_new_col_idxs,
+                                      cuda_row_ptrs_add);
+    } else {
         throw ::gko::NotImplemented(__FILE__, __LINE__,
                                     "add_missing_diaginal_blocks bs>4");
+    }
 
     const dim3 grid_dim_row_ptrs_update{
         static_cast<uint32>(ceildiv(num_brows, block_dim.x)), 1, 1};
@@ -208,8 +215,8 @@ void initialize_BLU(
             num_b_rows, static_cast<IndexType>(block_size.x / subwarp_size))),
         1, 1};
 
-    if (bs == 2)
-        kernel::initialize_BLU<subwarp_size, 2><<<grid_dim, block_size>>>(
+    if (bs == 2) {
+        kernel::initialize_BLU<2, subwarp_size><<<grid_dim, block_size>>>(
             num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -219,8 +226,8 @@ void initialize_BLU(
             as_cuda_type(fb_u->get_const_row_ptrs()),
             as_cuda_type(fb_u->get_col_idxs()),
             as_cuda_type(fb_u->get_values()));
-    else if (bs == 3)
-        kernel::initialize_BLU<subwarp_size, 3><<<grid_dim, block_size>>>(
+    } else if (bs == 3) {
+        kernel::initialize_BLU<3, subwarp_size><<<grid_dim, block_size>>>(
             num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -230,8 +237,8 @@ void initialize_BLU(
             as_cuda_type(fb_u->get_const_row_ptrs()),
             as_cuda_type(fb_u->get_col_idxs()),
             as_cuda_type(fb_u->get_values()));
-    else if (bs == 4)
-        kernel::initialize_BLU<subwarp_size, 4><<<grid_dim, block_size>>>(
+    } else if (bs == 4) {
+        kernel::initialize_BLU<4, subwarp_size><<<grid_dim, block_size>>>(
             num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
             as_cuda_type(system_matrix->get_const_col_idxs()),
             as_cuda_type(system_matrix->get_const_values()),
@@ -241,9 +248,21 @@ void initialize_BLU(
             as_cuda_type(fb_u->get_const_row_ptrs()),
             as_cuda_type(fb_u->get_col_idxs()),
             as_cuda_type(fb_u->get_values()));
-    else
+    } else if (bs == 7) {
+        kernel::initialize_BLU<7, subwarp_size><<<grid_dim, block_size>>>(
+            num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(fb_l->get_const_row_ptrs()),
+            as_cuda_type(fb_l->get_col_idxs()),
+            as_cuda_type(fb_l->get_values()),
+            as_cuda_type(fb_u->get_const_row_ptrs()),
+            as_cuda_type(fb_u->get_col_idxs()),
+            as_cuda_type(fb_u->get_values()));
+    } else {
         throw ::gko::NotImplemented(__FILE__, __LINE__,
                                     "add_missing_diaginal_blocks bs>4");
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

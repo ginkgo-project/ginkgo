@@ -51,7 +51,7 @@ namespace reference {
 namespace par_bilu_factorization {
 
 
-template <typename ValueType, typename IndexType, int bs>
+template <int bs, typename ValueType, typename IndexType>
 static void compute_bilu_impl(
     const std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
@@ -115,8 +115,11 @@ static void compute_bilu_impl(
             }
 
             // undo the last operation
-            for (int i = 0; i < bs; i++)
-                for (int j = 0; i < bs; j++) sum(i, j) += last_op(i, j);
+            for (int i = 0; i < bs; i++) {
+                for (int j = 0; i < bs; j++) {
+                    sum(i, j) += last_op(i, j);
+                }
+            }
 
             if (ibrow > jbcol) {
                 // modify entry in L
@@ -133,12 +136,13 @@ static void compute_bilu_impl(
                 // auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
                 // if (is_finite(to_write))
                 // vals_l[lbz - 1] = to_write;
-                for (int i = 0; i < bs; i++)
+                for (int i = 0; i < bs; i++) {
                     for (int j = 0; j < bs; j++) {
                         vals_l[lbz - 1](i, j) = 0;
                         for (int k = 0; k < bs; k++)
                             vals_l[lbz - 1](i, j) += sum(i, j) * invU(i, j);
                     }
+                }
             } else {
                 // modify entry in U
                 auto to_write = sum;
@@ -152,10 +156,11 @@ static void compute_bilu_impl(
 
 
 template <typename ValueType, typename IndexType>
-void compute_bilu(const std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
-                  matrix::Fbcsr<ValueType, IndexType> *const lfactor,
-                  matrix::Fbcsr<ValueType, IndexType> *const ufactor)
+void compute_bilu_factors(
+    const std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+    matrix::Fbcsr<ValueType, IndexType> *const lfactor,
+    matrix::Fbcsr<ValueType, IndexType> *const ufactor)
 {
     const int bs = sysmat->get_block_size();
     GKO_ASSERT(bs == lfactor->get_block_size());
@@ -173,7 +178,7 @@ void compute_bilu(const std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL);
 
 
 }  // namespace par_bilu_factorization

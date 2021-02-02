@@ -84,26 +84,26 @@ Bilu<ValueType, IndexType>::generate_block_LU(
 
     // Separate L and U factors: nnz
     const auto matrix_size = c_system_matrix->get_size();
-    const auto num_rows = matrix_size[0];
-    Array<IndexType> l_row_ptrs{exec, num_rows + 1};
-    Array<IndexType> u_row_ptrs{exec, num_rows + 1};
+    const auto num_brows = c_system_matrix->get_num_block_rows();
+    Array<IndexType> l_row_ptrs{exec, num_brows + 1};
+    Array<IndexType> u_row_ptrs{exec, num_brows + 1};
     exec->run(par_bilu_factorization::make_initialize_row_ptrs_BLU(
         c_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(l_row_ptrs.get_data() + num_rows));
-    auto u_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(u_row_ptrs.get_data() + num_rows));
+    const auto l_nbnz = static_cast<size_type>(
+        exec->copy_val_to_host(l_row_ptrs.get_data() + num_brows));
+    const auto u_nbnz = static_cast<size_type>(
+        exec->copy_val_to_host(u_row_ptrs.get_data() + num_brows));
 
     // Init arrays
-    Array<IndexType> l_col_idxs{exec, l_nnz};
-    Array<ValueType> l_vals{exec, l_nnz};
+    Array<IndexType> l_col_idxs{exec, l_nbnz};
+    Array<ValueType> l_vals{exec, l_nbnz * blksz * blksz};
     std::shared_ptr<l_matrix_type> l_factor =
         matrix_type::create(exec, matrix_size, blksz, std::move(l_vals),
                             std::move(l_col_idxs), std::move(l_row_ptrs));
-    Array<IndexType> u_col_idxs{exec, u_nnz};
-    Array<ValueType> u_vals{exec, u_nnz};
+    Array<IndexType> u_col_idxs{exec, u_nbnz};
+    Array<ValueType> u_vals{exec, u_nbnz * bs * bs};
     std::shared_ptr<u_matrix_type> u_factor =
         matrix_type::create(exec, matrix_size, blksz, std::move(u_vals),
                             std::move(u_col_idxs), std::move(u_row_ptrs));

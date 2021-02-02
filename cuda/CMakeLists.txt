@@ -84,6 +84,7 @@ target_sources(ginkgo_cuda
     factorization/factorization_kernels.cu
     factorization/block_factorization_kernels.cu
     factorization/bilu_kernels.cu
+    factorization/par_bilu_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
     factorization/par_ic_kernels.cu

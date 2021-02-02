@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_
+#ifndef GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
+#define GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
 
 
 #include <memory>
@@ -49,9 +49,9 @@ namespace kernels {
 #define GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType) \
     void compute_bilu_factors(                                              \
         std::shared_ptr<const DefaultExecutor> exec, int iterations,        \
-        matrix::Fbcsr<ValueType, IndexType> *system_matrix,                 \
-        matrix::Fbcsr<ValueType, IndexType> *l_factor                       \
-            matrix::Fbcsr<ValueType, IndexType> *u_factor)
+        const gko::matrix::Fbcsr<ValueType, IndexType> *system_matrix,      \
+        gko::matrix::Fbcsr<ValueType, IndexType> *l_factor,                 \
+        gko::matrix::Fbcsr<ValueType, IndexType> *u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
