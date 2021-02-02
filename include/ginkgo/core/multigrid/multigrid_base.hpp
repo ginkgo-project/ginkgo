@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -362,6 +363,80 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> fine_op_;
+};
+
+
+// template <typename ConcreteObject>
+// class EnableNewDefault {
+// protected:
+
+//     std::unique_ptr<PolymorphicObject> create_default_impl(
+//         std::shared_ptr<const Executor> exec) const override
+//     {
+//         return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+//     }
+
+//     PolymorphicObject *copy_from_impl(const PolymorphicObject *other)
+//     override
+//     {
+//         as<ConvertibleTo<ConcreteObject>>(other)->convert_to(self());
+//         return this;
+//     }
+
+//     PolymorphicObject *copy_from_impl(
+//         std::unique_ptr<PolymorphicObject> other) override
+//     {
+//         as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
+//         return this;
+//     }
+
+//     PolymorphicObject *clear_impl() override
+//     {
+//         *self() = ConcreteObject{this->get_executor()};
+//         return this;
+//     }
+
+// private:
+//     GKO_ENABLE_SELF(ConcreteObject);
+// };
+
+
+template <typename ValueType>
+class MultigridLevelOp
+    : public Composition<ValueType>,
+      public EnableCreateMethod<MultigridLevelOp<ValueType>> {
+    // friend class EnablePolymorphicObject<MultigridLevelOp, LinOp>;
+    friend class EnableCreateMethod<MultigridLevelOp>;
+    // friend class EnableNewDefault<MultigridLevelOp>;
+
+public:
+    using value_type = ValueType;
+    using EnableCreateMethod<MultigridLevelOp>::create;
+    // using EnableAbstractPolymorphicObject<MultigridLevelOp,
+    //                                          LinOp>::EnableAbstractPolymorphicObject;
+    // EnablePolymorphicObject
+    // auto clone_ilu = par_ilu->clone();
+    // auto clone_l = clone_ilu->get_l_factor();
+    // using EnableLinOp<MultigridLevelOp>::PolymorphicObject;
+    // using EnableLinOp<MultigridLevelOp>::get_executor;
+    // using EnableLinOp<MultigridLevelOp>::EnablePolymorphicAssignment;
+
+    // using Composition<ValueType>::apply;
+protected:
+    /**
+     * Creates an empty operator composition (0x0 operator).
+     *
+     * @param exec  Executor associated to the composition
+     */
+    explicit MultigridLevelOp(std::shared_ptr<const Executor> exec)
+        : Composition<ValueType>(exec)
+    {}
+
+    explicit MultigridLevelOp(std::shared_ptr<const LinOp> prolong,
+                              std::shared_ptr<const LinOp> coarse,
+                              std::shared_ptr<const LinOp> restrict)
+        : Composition<ValueType>(prolong, coarse, restrict)
+    {}
 };
 
 
