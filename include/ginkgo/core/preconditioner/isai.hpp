@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/cvcsr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {
@@ -203,6 +204,9 @@ protected:
         if (std::is_same<double, ValueType>() && low_precicion_) {
             approximate_reduced =
                 Cvcsr::create(exec, share(approximate_inverse_));
+        } else {
+            appr_t = Ell::create(exec);
+            approximate_inverse_->convert_to(appr.get());
         }
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
@@ -210,6 +214,9 @@ protected:
             if (std::is_same<double, ValueType>() && low_precicion_) {
                 approximate_reduced_trans =
                     Cvcsr::create(exec, share(approximate_inverse_transpose_));
+            } else {
+                appr_t = Ell::create(exec);
+                approximate_inverse_transpose_->convert_to(appr_t.get());
             }
             x_ = Dense::create(factory->get_executor(),
                                gko::dim<2>{system_matrix->get_size()[0], 1});
@@ -227,10 +234,10 @@ protected:
             }
         } else {
             if (IsaiType == isai_type::spd) {
-                approximate_inverse_->apply(b, x_.get());
-                approximate_inverse_transpose_->apply(x_.get(), x);
+                appr->apply(b, x_.get());
+                appr_t->apply(x_.get(), x);
             } else {
-                approximate_inverse_->apply(b, x);
+                appr->apply(b, x);
             }
         }
     }
@@ -260,6 +267,8 @@ private:
     std::shared_ptr<Csr> approximate_inverse_transpose_;
     std::shared_ptr<Cvcsr> approximate_reduced;
     std::shared_ptr<Cvcsr> approximate_reduced_trans;
+    std::shared_ptr<Ell> appr;
+    std::shared_ptr<Ell> appr_t;
     std::shared_ptr<Dense> x_;
     bool low_precicion_;
 };

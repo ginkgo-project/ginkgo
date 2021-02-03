@@ -154,3 +154,4 @@ __global__ __launch_bounds__(default_block_size) void spmv(
 
 
 }  // namespace
+}  // namespace kernel

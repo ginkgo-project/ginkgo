@@ -211,8 +211,7 @@ protected:
      *       created, and the original array data will not be used in the
      *       matrix.
      */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowPtrsArray>
+    template <typename ValuesArray, typename ColIdxsArray>
     Cvcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           ValuesArray &&values, ColIdxsArray &&col_idxs,
           size_type num_stored_elements_per_row, size_type stride)
