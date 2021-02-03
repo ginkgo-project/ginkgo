@@ -47,47 +47,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/cb_gmres.cpp"
+#include "core/test/utils.hpp"
+
 
 namespace {
 
+
+template <typename ValueEnumType>
 class CbGmres : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::CbGmres<>;
-    //    using Solver = gko::solver::CbGmres<double,double>;
-    using Big_solver = gko::solver::CbGmres<double>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueEnumType())>::type;
+    using nc_value_type = gko::remove_complex<value_type>;
+    using storage_helper_type =
+        typename std::tuple_element<1, decltype(ValueEnumType())>::type;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::CbGmres<value_type>;
 
     CbGmres()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
+          storage_precision{storage_helper_type::value},
           cb_gmres_factory(
               Solver::build()
+                  .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-6)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
           solver(cb_gmres_factory->generate(mtx)),
           cb_gmres_big_factory(
-              Big_solver::build()
+              Solver::build()
+                  .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-6)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
           big_solver(cb_gmres_big_factory->generate(mtx))
     {}
 
+    gko::solver::cb_gmres_storage_precision storage_precision;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Solver::Factory> cb_gmres_factory;
-    std::unique_ptr<gko::LinOp> solver;
-    std::unique_ptr<Big_solver::Factory> cb_gmres_big_factory;
-    std::unique_ptr<gko::LinOp> big_solver;
+    std::unique_ptr<typename Solver::Factory> cb_gmres_factory;
+    std::unique_ptr<Solver> solver;
+    std::unique_ptr<typename Solver::Factory> cb_gmres_big_factory;
+    std::unique_ptr<Solver> big_solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
@@ -101,165 +112,246 @@ protected:
     }
 };
 
-TEST_F(CbGmres, CbGmresFactoryKnowsItsExecutor)
+
+/**
+ * This creates a helper structure which translates a type into an enum
+ * parameter.
+ */
+using st_enum = gko::solver::cb_gmres_storage_precision;
+
+template <st_enum P>
+struct st_helper_type {
+    static constexpr st_enum value{P};
+};
+
+using st_keep = st_helper_type<st_enum::keep>;
+using st_r1 = st_helper_type<st_enum::reduce1>;
+using st_r2 = st_helper_type<st_enum::reduce2>;
+using st_i = st_helper_type<st_enum::integer>;
+using st_ir1 = st_helper_type<st_enum::ireduce1>;
+using st_ir2 = st_helper_type<st_enum::ireduce2>;
+
+using TestTypes =
+    ::testing::Types<std::tuple<double, st_keep>, std::tuple<double, st_r1>,
+                     std::tuple<double, st_r2>, std::tuple<double, st_i>,
+                     std::tuple<double, st_ir1>, std::tuple<double, st_ir2>,
+                     std::tuple<float, st_keep>, std::tuple<float, st_r1>,
+                     std::tuple<float, st_r2>, std::tuple<float, st_i>,
+                     std::tuple<float, st_ir1>, std::tuple<float, st_ir2>,
+                     std::tuple<std::complex<double>, st_keep>,
+                     std::tuple<std::complex<double>, st_r1>,
+                     std::tuple<std::complex<double>, st_r2>,
+                     std::tuple<std::complex<float>, st_keep>>;
+
+TYPED_TEST_CASE(CbGmres, TestTypes);
+
+
+TYPED_TEST(CbGmres, CbGmresFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(cb_gmres_factory->get_executor(), exec);
+    ASSERT_EQ(this->cb_gmres_factory->get_executor(), this->exec);
 }
 
-TEST_F(CbGmres, CbGmresFactoryCreatesCorrectSolver)
+
+TYPED_TEST(CbGmres, CbGmresFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto cb_gmres_solver = static_cast<Solver *>(solver.get());
+    using Solver = typename TestFixture::Solver;
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
+    auto cb_gmres_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(cb_gmres_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(cb_gmres_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(cb_gmres_solver->get_system_matrix(), this->mtx);
+    ASSERT_EQ(cb_gmres_solver->get_krylov_dim(), 100u);
+    ASSERT_EQ(cb_gmres_solver->get_storage_precision(),
+              this->storage_precision);
 }
 
-TEST_F(CbGmres, CanBeCopied)
-{
-    auto copy = cb_gmres_factory->generate(Mtx::create(exec));
 
-    copy->copy_from(solver.get());
+TYPED_TEST(CbGmres, CanBeCopied)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
+    auto r_copy = static_cast<Solver *>(copy.get());
+
+    copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    auto copy_mtx = r_copy->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
+    ASSERT_EQ(r_copy->get_storage_precision(),
+              this->solver->get_storage_precision());
+    ASSERT_EQ(r_copy->get_krylov_dim(), this->solver->get_krylov_dim());
 }
 
-TEST_F(CbGmres, CanBeMoved)
-{
-    auto copy = cb_gmres_factory->generate(Mtx::create(exec));
 
-    copy->copy_from(std::move(solver));
+TYPED_TEST(CbGmres, CanBeMoved)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->cb_gmres_factory->generate(Mtx::create(this->exec));
+    auto r_copy = static_cast<Solver *>(copy.get());
+
+    copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    auto copy_mtx = r_copy->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
+    ASSERT_EQ(r_copy->get_storage_precision(), this->storage_precision);
+    ASSERT_EQ(r_copy->get_krylov_dim(), 100u);
 }
 
-TEST_F(CbGmres, CanBeCloned)
+
+TYPED_TEST(CbGmres, CanBeCloned)
 {
-    auto clone = solver->clone();
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto clone = this->solver->clone();
+    auto r_clone = static_cast<Solver *>(clone.get());
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+    auto clone_mtx = r_clone->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+                               this->mtx.get());
+    ASSERT_EQ(r_clone->get_storage_precision(),
+              this->solver->get_storage_precision());
+    ASSERT_EQ(r_clone->get_krylov_dim(), this->solver->get_krylov_dim());
 }
 
-TEST_F(CbGmres, CanBeCleared)
-{
-    solver->clear();
 
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+TYPED_TEST(CbGmres, CanBeCleared)
+{
+    using Solver = typename TestFixture::Solver;
+    this->solver->clear();
+
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx =
+        static_cast<Solver *>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
-TEST_F(CbGmres, CanSetPreconditionerGenerator)
+
+TYPED_TEST(CbGmres, CanSetPreconditionerGenerator)
 {
+    using value_type = typename TestFixture::value_type;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    using Solver = typename TestFixture::Solver;
     auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-6)
-                    .on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(nc_value_type{1e-6})
+                    .on(this->exec))
             .with_preconditioner(
                 Solver::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(3u).on(
-                            exec))
-                    .on(exec))
-            .on(exec);
-    auto solver = cb_gmres_factory->generate(mtx);
-    auto precond = dynamic_cast<const gko::solver::CbGmres<> *>(
-        static_cast<gko::solver::CbGmres<> *>(solver.get())
-            ->get_preconditioner()
-            .get());
+                            this->exec))
+                    .on(this->exec))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+    auto precond =
+        static_cast<const Solver *>(solver.get()->get_preconditioner().get());
 
     ASSERT_NE(precond, nullptr);
     ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(precond->get_system_matrix(), mtx);
+    ASSERT_EQ(precond->get_system_matrix(), this->mtx);
 }
 
-TEST_F(CbGmres, CanSetKrylovDim)
+
+TYPED_TEST(CbGmres, CanSetKrylovDim)
 {
+    using value_type = typename TestFixture::value_type;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    using Solver = typename TestFixture::Solver;
     auto cb_gmres_factory =
         Solver::build()
             .with_krylov_dim(4u)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-6)
-                    .on(exec))
-            .on(exec);
-    auto solver = cb_gmres_factory->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(nc_value_type{1e-6})
+                    .on(this->exec))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
     auto krylov_dim = solver->get_krylov_dim();
 
-    ASSERT_EQ(krylov_dim, 4);
+    ASSERT_EQ(solver->get_storage_precision(),
+              gko::solver::cb_gmres_storage_precision::keep);
 }
 
-TEST_F(CbGmres, CanSetPreconditionerInFactory)
+
+TYPED_TEST(CbGmres, CanSetPreconditionerInFactory)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_preconditioner(cb_gmres_precond)
-            .on(exec);
-    auto solver = cb_gmres_factory->generate(mtx);
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), cb_gmres_precond.get());
 }
 
-TEST_F(CbGmres, ThrowsOnWrongPreconditionerInFactory)
+
+TYPED_TEST(CbGmres, ThrowsOnWrongPreconditionerInFactory)
 {
-    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> wrong_sized_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_preconditioner(cb_gmres_precond)
-            .on(exec);
+            .on(this->exec);
 
-    ASSERT_THROW(cb_gmres_factory->generate(mtx), gko::DimensionMismatch);
+    ASSERT_THROW(cb_gmres_factory->generate(this->mtx), gko::DimensionMismatch);
 }
 
-TEST_F(CbGmres, CanSetPreconditioner)
+
+TYPED_TEST(CbGmres, CanSetPreconditioner)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> cb_gmres_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto cb_gmres_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto solver = cb_gmres_factory->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
     solver->set_preconditioner(cb_gmres_precond);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), cb_gmres_precond.get());
 }
+
 
 }  // namespace

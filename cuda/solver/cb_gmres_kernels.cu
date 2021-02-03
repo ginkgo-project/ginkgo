@@ -66,8 +66,6 @@ namespace cb_gmres {
 
 
 constexpr int default_block_size = 512;
-// default_dot_dim can not be 64 in hip because 64 * 64 exceeds their max block
-// size limit.
 constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 

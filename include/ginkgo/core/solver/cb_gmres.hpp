@@ -104,6 +104,16 @@ public:
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
 
+    /**
+     * Returns the storage precision used internally.
+     *
+     * @return the storage precision used internally
+     */
+    cb_gmres_storage_precision get_storage_precision() const
+    {
+        return storage_precision_;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
