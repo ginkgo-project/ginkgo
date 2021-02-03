@@ -393,9 +393,9 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
         const auto start = tmp->row_ptrs_.get_const_data()[brow];
         const auto end = tmp->row_ptrs_.get_const_data()[brow + 1];
 
-        for (auto inz = start; inz < end; ++inz) {
-            for (int ib = 0; ib < bs_; ib++) {
-                const auto row = brow * bs_ + ib;
+        for (int ib = 0; ib < bs_; ib++) {
+            const auto row = brow * bs_ + ib;
+            for (auto inz = start; inz < end; ++inz) {
                 for (int jb = 0; jb < bs_; jb++) {
                     const auto col =
                         tmp->col_idxs_.get_const_data()[inz] * bs_ + jb;
