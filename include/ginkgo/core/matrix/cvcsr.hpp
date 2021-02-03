@@ -172,6 +172,8 @@ public:
         return ell_->get_num_stored_elements_per_row();
     }
 
+    size_type get_stride() const noexcept { return ell_->get_stride(); }
+
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;

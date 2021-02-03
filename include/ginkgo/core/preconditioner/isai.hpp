@@ -120,6 +120,7 @@ public:
     using Cvcsr =
         matrix::Cvcsr<ValueType, next_precision<ValueType>, IndexType>;
     using Dense = matrix::Dense<ValueType>;
+    using Ell = matrix Ell<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
     /**
