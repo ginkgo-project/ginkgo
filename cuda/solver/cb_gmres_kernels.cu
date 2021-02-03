@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/accessors.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -125,7 +126,7 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    b->compute_norm2(b_norm);
+    kernels::cuda::dense::compute_norm2(exec, b, b_norm);
     initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
         b->get_size()[0], b->get_size()[1], krylov_dim,
         as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -164,7 +165,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_accessor(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
-    residual->compute_norm2(residual_norm);
+    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
 
     components::fill_array(exec,
                            arnoldi_norm->get_values() + 2 * stride_arnoldi,
