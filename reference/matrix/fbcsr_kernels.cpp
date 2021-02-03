@@ -395,7 +395,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
-template <int matBlkSz, typename ValueType, typename IndexType>
+template <int mat_blk_sz, typename ValueType, typename IndexType>
 static void sort_by_column_index_impl(
     matrix::Fbcsr<ValueType, IndexType> *const to_sort)
 {
@@ -403,7 +403,7 @@ static void sort_by_column_index_impl(
     auto col_idxs = to_sort->get_col_idxs();
     auto values = to_sort->get_values();
     const auto nbrows = to_sort->get_num_block_rows();
-    constexpr int bs2 = matBlkSz * matBlkSz;
+    constexpr int bs2 = mat_blk_sz * mat_blk_sz;
     for (IndexType i = 0; i < nbrows; ++i) {
         IndexType *const brow_col_idxs = col_idxs + row_ptrs[i];
         ValueType *const brow_vals = values + row_ptrs[i] * bs2;

@@ -60,23 +60,6 @@ namespace hip {
 namespace fbcsr {
 
 
-constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
-constexpr int classical_overweight = 32;
-
-
-/**
- * A compile-time list of the number items per threads for which spmv kernel
- * should be compiled.
- */
-using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
-
-using classical_kernels =
-    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
-
-
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType> *a,

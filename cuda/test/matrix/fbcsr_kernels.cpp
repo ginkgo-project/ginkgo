@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-//#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -82,7 +81,8 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     auto cudamat = Mtx::create(cuda);
     cudamat->copy_from(gko::lend(refmat));
 
-    MatData refdata, cudadata;
+    MatData refdata;
+    MatData cudadata;
     refmat->write(refdata);
     cudamat->write(cudadata);
 
