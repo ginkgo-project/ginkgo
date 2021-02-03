@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/accessors.hpp"
 
-
 namespace gko {
 /**
  * @brief The matrix namespace.
@@ -187,7 +186,10 @@ protected:
           size_type num_nonzeros = {})
         : EnableLinOp<Cvcsr>(exec, size)
     {
-        csr_ = Csr<storage_type, index_type>::create(exec, size, num_nonzeros);
+        csr_ = Csr<storage_type, index_type>::create(
+            exec, size, num_nonzeros,
+            std::make_shared<
+                typename Csr<storage_type, index_type>::classical>());
     }
 
     /**
@@ -217,16 +219,33 @@ protected:
           RowPtrsArray &&row_ptrs)
         : EnableLinOp<Cvcsr>(exec, size)
     {
-        csr_ = Csr<storage_type, index_type>::create(exec, size, values,
-                                                     col_idxs, row_ptrs);
+        csr_ = Csr<storage_type, index_type>::create(
+            exec, size, values, col_idxs, row_ptrs,
+            std::make_shared<
+                typename Csr<storage_type, index_type>::classical>());
     }
 
+    template <typename InputValueType>
     Cvcsr(std::shared_ptr<const Executor> exec,
-          std::shared_ptr<Csr<storage_type, index_type>> csr)
+          std::shared_ptr<Csr<InputValueType, index_type>> csr)
         : EnableLinOp<Cvcsr>(exec, csr->get_size())
     {
-        csr_ = Csr<storage_type, index_type>::create(exec);
-        csr_->copy_from(csr.get());
+        if (std::is_same<InputValueType, storage_type>::value) {
+            csr->move_to(csr_.get());
+            csr_->set_strategy(
+                std::make_shared<
+                    typename Csr<storage_type, index_type>::classical>());
+        } else {
+            GKO_ASSERT_EQ((std::is_same<value_type,
+                                        next_precision<storage_type>>::value ||
+                           std::is_same<value_type, storage_type>::value),
+                          true);
+            csr_ = Csr<storage_type, index_type>::create(exec);
+            csr->convert_to(csr_.get());
+            csr_->set_strategy(
+                std::make_shared<
+                    typename Csr<storage_type, index_type>::classical>());
+        }
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

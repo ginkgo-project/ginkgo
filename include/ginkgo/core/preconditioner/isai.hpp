@@ -201,20 +201,15 @@ protected:
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
         if (std::is_same<double, ValueType>() && low_precicion_) {
-            auto tmp =
-                gko::matrix::Csr<next_precision<ValueType>, IndexType>::create(
-                    exec);
-            approximate_inverse_->convert_to(tmp.get());
-            approximate_reduced = Cvcsr::create(exec, share(tmp));
+            approximate_reduced =
+                Cvcsr::create(exec, share(approximate_inverse_));
         }
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
                 share(as<Csr>(approximate_inverse_->transpose()));
             if (std::is_same<double, ValueType>() && low_precicion_) {
-                auto tmp = gko::matrix::Csr<next_precision<ValueType>,
-                                            IndexType>::create(exec);
-                approximate_inverse_transpose_->convert_to(tmp.get());
-                approximate_reduced_trans = Cvcsr::create(exec, share(tmp));
+                approximate_reduced_trans =
+                    Cvcsr::create(exec, share(approximate_inverse_transpose_));
             }
             x_ = Dense::create(factory->get_executor(),
                                gko::dim<2>{system_matrix->get_size()[0], 1});
