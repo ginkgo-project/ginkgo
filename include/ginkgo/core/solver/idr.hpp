@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_SOLVER_IDR_HPP_
 
 
-#include <iostream>
 #include <random>
 #include <typeinfo>
 #include <vector>
