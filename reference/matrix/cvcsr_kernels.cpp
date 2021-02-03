@@ -63,7 +63,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Cvcsr<ValueType, StorageType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
+    /*auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
 
@@ -79,7 +79,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
                 c->at(row, j) += val * b->at(col, j);
             }
         }
-    }
+    }*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(
@@ -94,7 +94,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
+    /*auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
@@ -112,7 +112,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                 c->at(row, j) += valpha * val * b->at(col, j);
             }
         }
-    }
+    }*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(

@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 #include "core/base/accessors.hpp"
@@ -51,7 +51,7 @@ namespace matrix {
 
 
 template <typename ValueType, typename IndexType>
-class Csr;
+class Ell;
 
 
 template <typename ValueType>
@@ -80,7 +80,7 @@ class Cvcsr
       public EnableCreateMethod<Cvcsr<ValueType, StorageType, IndexType>> {
     friend class EnableCreateMethod<Cvcsr>;
     friend class EnablePolymorphicObject<Cvcsr, LinOp>;
-    friend class Csr<ValueType, IndexType>;
+    friend class Ell<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Cvcsr<to_complex<ValueType>, to_complex<StorageType>,
                        IndexType>;
@@ -105,8 +105,9 @@ public:
      */
     range<accessor> get_values() noexcept
     {
-        return range<accessor>(csr_->get_num_stored_elements(),
-                               csr_->get_values());
+        return range<accessor>(
+            ell_->get_num_stored_elements_per_row() * ell_->get_size()[0],
+            ell_->get_values());
     }
 
     /**
@@ -118,8 +119,9 @@ public:
      */
     const range<const_accessor> get_const_values() const noexcept
     {
-        return range<const_accessor>(csr_->get_num_stored_elements(),
-                                     csr_->get_const_values());
+        return range<const_accessor>(
+            ell_->get_num_stored_elements_per_row() * ell_->get_size()[0],
+            ell_->get_const_values());
     }
 
     /**
@@ -127,7 +129,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return csr_->get_col_idxs(); }
+    index_type *get_col_idxs() noexcept { return ell_->get_col_idxs(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -138,7 +140,7 @@ public:
      */
     const index_type *get_const_col_idxs() const noexcept
     {
-        return csr_->get_const_col_idxs();
+        return ell_->get_const_col_idxs();
     }
 
     /**
@@ -146,7 +148,7 @@ public:
      *
      * @return the row indexes of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return csr_->get_row_ptrs(); }
+    // index_type *get_row_ptrs() noexcept { return csr_->get_row_ptrs(); }
 
     /**
      * @copydoc Csr::get_row_ptrs()
@@ -155,19 +157,19 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    /*const index_type *get_const_row_ptrs() const noexcept
     {
         return csr_->get_const_row_ptrs();
-    }
+    }*/
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
+    size_type get_num_stored_elements_per_row() const noexcept
     {
-        return csr_->get_num_stored_elements();
+        return ell_->get_num_stored_elements_per_row();
     }
 
     std::unique_ptr<LinOp> transpose() const override;
@@ -186,10 +188,7 @@ protected:
           size_type num_nonzeros = {})
         : EnableLinOp<Cvcsr>(exec, size)
     {
-        csr_ = Csr<storage_type, index_type>::create(
-            exec, size, num_nonzeros,
-            std::make_shared<
-                typename Csr<storage_type, index_type>::classical>());
+        ell_ = Ell<storage_type, index_type>::create(exec, size, num_nonzeros);
     }
 
     /**
@@ -216,13 +215,11 @@ protected:
               typename RowPtrsArray>
     Cvcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           ValuesArray &&values, ColIdxsArray &&col_idxs,
-          RowPtrsArray &&row_ptrs)
+          size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Cvcsr>(exec, size)
     {
-        csr_ = Csr<storage_type, index_type>::create(
-            exec, size, values, col_idxs, row_ptrs,
-            std::make_shared<
-                typename Csr<storage_type, index_type>::classical>());
+        ell_ = Ell<storage_type, index_type>::create(
+            exec, size, values, col_idxs, num_stored_elements_per_row, stride);
     }
 
     template <typename InputValueType>
@@ -230,22 +227,14 @@ protected:
           std::shared_ptr<Csr<InputValueType, index_type>> csr)
         : EnableLinOp<Cvcsr>(exec, csr->get_size())
     {
-        if (std::is_same<InputValueType, storage_type>::value) {
-            csr->move_to(csr_.get());
-            csr_->set_strategy(
-                std::make_shared<
-                    typename Csr<storage_type, index_type>::classical>());
-        } else {
-            GKO_ASSERT_EQ((std::is_same<value_type,
-                                        next_precision<storage_type>>::value ||
-                           std::is_same<value_type, storage_type>::value),
-                          true);
-            csr_ = Csr<storage_type, index_type>::create(exec);
-            csr->convert_to(csr_.get());
-            csr_->set_strategy(
-                std::make_shared<
-                    typename Csr<storage_type, index_type>::classical>());
-        }
+        GKO_ASSERT_EQ(
+            (std::is_same<value_type, next_precision<storage_type>>::value ||
+             std::is_same<value_type, storage_type>::value),
+            true);
+        ell_ = Ell<storage_type, index_type>::create(exec);
+        auto tmp = Csr<storage_type, index_type>::create(exec);
+        csr->convert_to(tmp.get());
+        tmp->convert_to(ell_.get());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -258,7 +247,7 @@ protected:
     void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
 
 private:
-    std::shared_ptr<Csr<storage_type, index_type>> csr_;
+    std::shared_ptr<Ell<storage_type, index_type>> ell_;
 };
 
 

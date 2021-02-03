@@ -66,7 +66,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Cvcsr<ValueType, StorageType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
+    /*auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
 
@@ -83,7 +83,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
                 c->at(row, j) += val * b->at(col, j);
             }
         }
-    }
+    }*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(
@@ -98,26 +98,26 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
+    /*    auto row_ptrs = a->get_const_row_ptrs();
+        auto col_idxs = a->get_const_col_idxs();
+        auto vals = a->get_const_values();
+        auto valpha = alpha->at(0, 0);
+        auto vbeta = beta->at(0, 0);
 
-#pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = vals(k);
-            auto col = col_idxs[k];
+    #pragma omp parallel for
+        for (size_type row = 0; row < a->get_size()[0]; ++row) {
             for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+                c->at(row, j) *= vbeta;
             }
-        }
-    }
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = vals(k);
+                auto col = col_idxs[k];
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += valpha * val * b->at(col, j);
+                }
+            }
+        }*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(

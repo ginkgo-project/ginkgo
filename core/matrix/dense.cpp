@@ -402,7 +402,7 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Cvcsr<ValueType, ValueType, int32> *result) const
 {
-    auto exec = this->get_executor();
+    /*auto exec = this->get_executor();
     auto tmp = Csr<ValueType, int32>::create(exec);
     conversion_helper(
         tmp.get(), this,
@@ -416,14 +416,14 @@ void Dense<ValueType>::convert_to(
         Array<ValueType>::view(exec, nnz, tmp->get_values()),
         Array<int32>::view(exec, nnz, tmp->get_col_idxs()),
         Array<int32>::view(exec, num_rows + 1, tmp->get_row_ptrs()));
-    tmp_result->move_to(result);
+    tmp_result->move_to(result);*/
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Cvcsr<ValueType, ValueType, int32> *result)
 {
-    this->convert_to(result);
+    // this->convert_to(result);
 }
 
 
@@ -431,7 +431,7 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Cvcsr<ValueType, ValueType, int64> *result) const
 {
-    auto exec = this->get_executor();
+    /*auto exec = this->get_executor();
     auto tmp = Csr<ValueType, int64>::create(exec);
     conversion_helper(
         tmp.get(), this,
@@ -445,14 +445,14 @@ void Dense<ValueType>::convert_to(
         Array<ValueType>::view(exec, nnz, tmp->get_values()),
         Array<int64>::view(exec, nnz, tmp->get_col_idxs()),
         Array<int64>::view(exec, num_rows + 1, tmp->get_row_ptrs()));
-    tmp_result->move_to(result);
+    tmp_result->move_to(result);*/
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Cvcsr<ValueType, ValueType, int64> *result)
 {
-    this->convert_to(result);
+    // this->convert_to(result);
 }
 
 

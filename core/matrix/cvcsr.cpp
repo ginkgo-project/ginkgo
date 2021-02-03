@@ -69,7 +69,7 @@ void Cvcsr<ValueType, StorageType, IndexType>::apply_impl(const LinOp *b,
                                                           LinOp *x) const
 {
     if (std::is_same<ValueType, StorageType>::value) {
-        csr_->apply(b, x);
+        ell_->apply(b, x);
     } else {
         using ComplexDense = Dense<to_complex<ValueType>>;
 
@@ -93,7 +93,7 @@ void Cvcsr<ValueType, StorageType, IndexType>::apply_impl(const LinOp *alpha,
                                                           LinOp *x) const
 {
     if (std::is_same<ValueType, StorageType>::value) {
-        csr_->apply(alpha, b, beta, x);
+        ell_->apply(alpha, b, beta, x);
     } else {
         using ComplexDense = Dense<to_complex<ValueType>>;
         using RealDense = Dense<remove_complex<ValueType>>;
@@ -118,10 +118,11 @@ template <typename ValueType, typename StorageType, typename IndexType>
 std::unique_ptr<LinOp> Cvcsr<ValueType, StorageType, IndexType>::transpose()
     const
 {
-    auto exec = this->get_executor();
-    auto transp = as<Csr<StorageType, IndexType>>(csr_->transpose());
+    /*auto exec = this->get_executor();
+    auto transp = as<Ell<StorageType, IndexType>>(ell_->transpose());
     return Cvcsr<ValueType, StorageType, IndexType>::create(exec,
-                                                            share(transp));
+                                                            share(transp));*/
+    return nullptr;
 }
 
 
@@ -129,10 +130,11 @@ template <typename ValueType, typename StorageType, typename IndexType>
 std::unique_ptr<LinOp>
 Cvcsr<ValueType, StorageType, IndexType>::conj_transpose() const
 {
-    auto exec = this->get_executor();
-    auto transp = as<Csr<StorageType, IndexType>>(csr_->conj_transpose());
+    /*auto exec = this->get_executor();
+    auto transp = as<Ell<StorageType, IndexType>>(ell_->conj_transpose());
     return Cvcsr<ValueType, StorageType, IndexType>::create(exec,
-                                                            share(transp));
+                                                            share(transp));*/
+    return nullptr;
 }
 
 

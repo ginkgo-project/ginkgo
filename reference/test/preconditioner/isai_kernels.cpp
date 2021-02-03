@@ -268,7 +268,7 @@ protected:
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(Isai, KernelGenerateA)
+/*TYPED_TEST(Isai, KernelGenerateA)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
@@ -1196,6 +1196,6 @@ TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseU)
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
 }
-
+*/
 
 }  // namespace

@@ -149,7 +149,7 @@ protected:
 };
 
 
-TEST_F(Isai, CudaIsaiGenerateLinverseShortIsEquivalentToRef)
+/*TEST_F(Isai, CudaIsaiGenerateLinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 536, 31);
     const auto num_rows = mtx->get_size()[0];
@@ -457,7 +457,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionAIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
-}
+}*/
 
 
 }  // namespace

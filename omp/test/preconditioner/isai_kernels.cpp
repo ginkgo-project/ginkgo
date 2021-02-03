@@ -127,7 +127,7 @@ protected:
     std::unique_ptr<Csr> d_inverse;
 };
 
-
+/*
 TEST_F(Isai, OmpIsaiGenerateLinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 536, 31);
@@ -436,7 +436,7 @@ TEST_F(Isai, OmpIsaiScatterExcessSolutionAIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
-}
+}*/
 
 
 }  // namespace
