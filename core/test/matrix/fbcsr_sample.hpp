@@ -46,14 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-#define FBCSR_TEST_OFFSET 0.000011118888
-#define FBCSR_TEST_C_MAG 0.1 + FBCSR_TEST_OFFSET
-#define FBCSR_TEST_IMAGINARY \
-    sct(std::complex<remove_complex<ValueType>>(0, FBCSR_TEST_C_MAG))
-
-
 namespace gko {
 namespace testing {
+
+
+constexpr auto fbcsr_test_offset = 0.000011118888;
 
 
 /** Generates the same sample block CSR matrix in different formats
@@ -136,8 +133,8 @@ public:
         vals(0, 2, 2) = gko::zero<value_type>();
         vals(3, 0, 0) = gko::zero<value_type>();
 
-        vals(3, 2, 1) += FBCSR_TEST_IMAGINARY;
-        vals(3, 2, 2) += FBCSR_TEST_IMAGINARY;
+        vals(3, 2, 1) += fbcsr_test_imaginary;
+        vals(3, 2, 2) += fbcsr_test_imaginary;
 
         return mtx;
     }
@@ -158,8 +155,8 @@ public:
             {2, 3, 4, 4, 5, 6, 5, 6, 7, 7, 8, 9, 0, 9, 0,
 	         10, 11, 12, 2, 3, 4, 0, 7, 8, 5, 6, 7,
 	         9, 10, 11, 8, 9, 10, 12,
-	         sct<value_type>(13.0) + FBCSR_TEST_IMAGINARY,
-	         sct<value_type>(14.0) + FBCSR_TEST_IMAGINARY});
+	         sct<value_type>(13.0) + fbcsr_test_imaginary,
+	         sct<value_type>(14.0) + fbcsr_test_imaginary});
         // clang-format on
         return Csr::create(exec, gko::dim<2>{nrows, ncols}, csrvals, csrcols,
                            csrrow);
@@ -223,8 +220,8 @@ public:
                          {4, 7, 10.0},
                          {4, 8, 11.0},
                          {5, 6, 12.0},
-                         {5, 7, sct(13.0) + FBCSR_TEST_IMAGINARY},
-                         {5, 8, sct(14.0) + FBCSR_TEST_IMAGINARY}}});
+                         {5, 7, sct(13.0) + fbcsr_test_imaginary},
+                         {5, 8, sct(14.0) + fbcsr_test_imaginary}}});
     }
 
     /**
@@ -261,6 +258,9 @@ private:
     {
         return static_cast<ValueType>(cu.real());
     }
+
+    const ValueType fbcsr_test_imaginary = sct(
+        std::complex<remove_complex<ValueType>>(0, 0.1 + fbcsr_test_offset));
 };
 
 /**
@@ -299,7 +299,7 @@ public:
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
         value_type *const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         v[0] = 1;
         v[1] = 3;
@@ -325,7 +325,7 @@ public:
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
         value_type *const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
         v[0] = 1;
         v[1] = 2;
         v[2] = 3;
@@ -363,9 +363,9 @@ public:
         dbv(0, 1, 0) = 3.0;
         dbv(0, 1, 1) = 0.0;
         for (int i = 0; i < 2; ++i)
-            for (int j = 0; j < 2; ++j) dbv(1, i, j) = 0.15 + FBCSR_TEST_OFFSET;
-        dbv(2, 0, 0) = 0.15 + FBCSR_TEST_OFFSET;
-        dbv(2, 0, 1) = 0.15 + FBCSR_TEST_OFFSET;
+            for (int j = 0; j < 2; ++j) dbv(1, i, j) = 0.15 + fbcsr_test_offset;
+        dbv(2, 0, 0) = 0.15 + fbcsr_test_offset;
+        dbv(2, 0, 1) = 0.15 + fbcsr_test_offset;
         dbv(2, 1, 0) = 0.0;
         dbv(2, 1, 1) = 0.0;
         dbv(3, 0, 0) = -12.0;
@@ -463,7 +463,7 @@ public:
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
         value_type *const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         using namespace std::complex_literals;
         v[0] = 1.0 + 1.15i;
@@ -490,7 +490,7 @@ public:
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
         value_type *const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + FBCSR_TEST_OFFSET;
+        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         using namespace std::complex_literals;
         v[0] = 1.0 + 1.15i;
@@ -547,7 +547,7 @@ public:
         gko::Array<value_type> vals(exec, nnz);
         value_type *const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
-            v[i] = static_cast<value_type>(i + 0.15 + FBCSR_TEST_OFFSET);
+            v[i] = static_cast<value_type>(i + 0.15 + fbcsr_test_offset);
         }
 
         return Fbcsr::create(exec,
