@@ -65,17 +65,20 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                          matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
                          size_type iter, const stopping_status *stop_status)
 {
-    const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
+    using rc_vtype = remove_complex<ValueType>;
+    const rc_vtype eta = 1.0 / sqrt(2.0);
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(addnc : remove_complex<ValueType> : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(infnc : remove_complex<ValueType> : omp_out = (omp_out >= omp_in? omp_out: omp_in))
+#pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(infnc:rc_vtype \
+                              : omp_out =    \
+                                    (omp_out >= omp_in ? omp_out : omp_in))
 
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
         }
 
-        remove_complex<ValueType> nrm = zero<remove_complex<ValueType>>();
+        auto nrm = zero<rc_vtype>();
 #pragma omp parallel for reduction(addnc : nrm)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             nrm += squared_norm(next_krylov_basis->at(j, i));
@@ -104,9 +107,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        // ValueType nrm = zero<ValueType>();
-        nrm = zero<remove_complex<ValueType>>();
-        remove_complex<ValueType> inf = zero<remove_complex<ValueType>>();
+        nrm = zero<rc_vtype>();
+        auto inf = zero<rc_vtype>();
 #pragma omp parallel for reduction(addnc : nrm) reduction(infnc : inf)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             nrm += squared_norm(next_krylov_basis->at(j, i));
@@ -146,8 +148,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             // for i in 1:iter
             //     next_krylov_basis  -= buffer(iter, i) * krylov_bases(:, i)
             // end
-            remove_complex<ValueType> nrm = zero<remove_complex<ValueType>>();
-            remove_complex<ValueType> inf = zero<remove_complex<ValueType>>();
+            auto nrm = zero<rc_vtype>();
+            auto inf = zero<rc_vtype>();
 #pragma omp parallel for reduction(addnc : nrm) reduction(infnc : inf)
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 nrm += squared_norm(next_krylov_basis->at(j, i));
@@ -319,11 +321,13 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *givens_cos,
                   Array<stopping_status> *stop_status, size_type krylov_dim)
 {
+    using rc_vtype = remove_complex<ValueType>;
+
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
-        remove_complex<ValueType> norm = zero<remove_complex<ValueType>>();
+        auto norm = zero<rc_vtype>();
 
-#pragma omp declare reduction(addnc:remove_complex<ValueType> : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(addnc : norm)
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
@@ -359,13 +363,17 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
+    using rc_vtype = remove_complex<ValueType>;
+
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
-        remove_complex<ValueType> res_norm = zero<remove_complex<ValueType>>();
-        remove_complex<ValueType> res_inf = zero<remove_complex<ValueType>>();
+        auto res_norm = zero<rc_vtype>();
+        auto res_inf = zero<rc_vtype>();
 
-#pragma omp declare reduction(addnc:remove_complex<ValueType> : omp_out = omp_out + omp_in)
-#pragma omp declare reduction(infnc : remove_complex<ValueType> : omp_out = (omp_out >= omp_in? omp_out: omp_in))
+#pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(infnc:rc_vtype \
+                              : omp_out =    \
+                                    (omp_out >= omp_in ? omp_out : omp_in))
 
 #pragma omp parallel for reduction(addnc : res_norm) reduction(infnc : res_inf)
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
@@ -402,7 +410,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-                krylov_bases, k, j, one<remove_complex<ValueType>>());
+                krylov_bases, k, j, one<rc_vtype>());
         }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             for (size_type j = 0; j < residual->get_size()[1]; ++j) {

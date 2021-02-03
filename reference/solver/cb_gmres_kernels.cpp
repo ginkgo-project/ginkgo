@@ -72,9 +72,11 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         std::is_same<ValueType,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
-    const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
+    using rc_vtype = remove_complex<ValueType>;
+    const rc_vtype eta = 1.0 / sqrt(2.0);
+
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
-        arnoldi_norm->at(0, i) = zero<remove_complex<ValueType>>();
+        arnoldi_norm->at(0, i) = zero<rc_vtype>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
         }
@@ -102,8 +104,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
-        arnoldi_norm->at(2, i) = zero<remove_complex<ValueType>>();
+        arnoldi_norm->at(1, i) = zero<rc_vtype>();
+        arnoldi_norm->at(2, i) = zero<rc_vtype>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(1, i) += squared_norm(next_krylov_basis->at(j, i));
             arnoldi_norm->at(2, i) =
@@ -140,8 +142,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             //     next_krylov_basis   -= buffer(iter, i) * krylov_bases(:, i)
             //     hessenberg(iter, i) += buffer(iter, i)
             // end
-            arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
-            arnoldi_norm->at(2, i) = zero<remove_complex<ValueType>>();
+            arnoldi_norm->at(1, i) = zero<rc_vtype>();
+            arnoldi_norm->at(2, i) = zero<rc_vtype>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 arnoldi_norm->at(1, i) +=
                     squared_norm(next_krylov_basis->at(j, i));
@@ -347,10 +349,12 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         std::is_same<ValueType,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
+    using rc_vtype = remove_complex<ValueType>;
+
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
-        residual_norm->at(0, j) = zero<remove_complex<ValueType>>();
-        arnoldi_norm->at(2, j) = zero<remove_complex<ValueType>>();
+        residual_norm->at(0, j) = zero<rc_vtype>();
+        arnoldi_norm->at(2, j) = zero<rc_vtype>();
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             residual_norm->at(0, j) += squared_norm(residual->at(i, j));
             arnoldi_norm->at(2, j) =
@@ -382,7 +386,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
         for (size_type j = 0; j < residual->get_size()[1]; ++j) {
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-                krylov_bases, k, j, one<remove_complex<ValueType>>());
+                krylov_bases, k, j, one<rc_vtype>());
             for (size_type i = 0; i < residual->get_size()[0]; ++i) {
                 krylov_bases(k, i, j) = zero<ValueType>();
             }
@@ -394,8 +398,6 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
     GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
-// template <typename ValueType, typename ValueTypeKrylovBases, bool
-// Reorthogonalization, bool MGS_CGS>
 template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,

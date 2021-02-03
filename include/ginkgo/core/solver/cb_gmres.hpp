@@ -52,9 +52,33 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_krylov_dim_mixed = 100u;
-
-
+/**
+ * Describes the storage precision that is used in CB-GMRES.
+ *
+ * The storage precision is described relative to the ValueType:
+ * - keep: The storage precision is the same as the ValueType.
+ * - reduce1: The storage type is the ValueType reduced in precision once,
+ *            for example, ValueType == double -> storage precision == float
+ * - reduce2: ValueType precision is reduced twice
+ * - integer: The storage precision is an integer of the same size of
+ *            ValueType. Note that complex values are not supported.
+ * - ireduce1: The storage precision is an integer of the same size as
+ *             a reduced ValueType.
+ * - ireduce2: The storage precision is an integer of the same size as
+ *             a twice reduced ValueType.
+ *
+ * Precision reduction works as follows:
+ * - double -> float -> half -> half -> ... (half is the lowest supported
+ *   precision)
+ * - std::complex<double> -> std::complex<float> -> std::complex<half>
+ *   -> std::complex<half> ... (std::complex<half> is the lowest supported
+ *   precision)
+ *
+ * To integer conversions:
+ * - double -> int64
+ * - float -> int32
+ * - half -> int16
+ */
 enum class cb_gmres_storage_precision {
     keep,
     reduce1,
@@ -66,14 +90,20 @@ enum class cb_gmres_storage_precision {
 
 
 /**
- * CB-GMRES or the generalized minimal residual method is an iterative type
- * Krylov subspace method which is suitable for nonsymmetric linear systems.
+ * CB-GMRES or the compressed basis generalized minimal residual method is an
+ * iterative type Krylov subspace method which is suitable for nonsymmetric
+ * linear systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CB-GMRES
- * are merged into 2 separate steps.
+ * are merged into 2 separate steps. Classical Gram-Schmidt is used.
  *
- * @tparam ValueType  precision of matrix elements
+ * The krylov basis can be stored in reduced precision (compressed) to reduce
+ * memory accesses, while all computations (including krylov basis operations)
+ * are performed in the same arithmetic precision ValueType.
+ *
+ * @tparam ValueType  the arithmetic precision and the precision of matrix
+ *                    elements
  *
  * @ingroup solvers
  * @ingroup LinOp
@@ -144,7 +174,7 @@ public:
         /**
          * krylov dimension factory.
          */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -177,11 +207,7 @@ protected:
             set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]));
         }
-        if (parameters_.krylov_dim) {
-            krylov_dim_ = parameters_.krylov_dim;
-        } else {
-            krylov_dim_ = default_krylov_dim_mixed;
-        }
+        krylov_dim_ = parameters_.krylov_dim;
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
         storage_precision_ = parameters_.storage_precision;

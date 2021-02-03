@@ -66,6 +66,7 @@ protected:
     using Range3d = typename Range3dHelper::Range;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
+    static constexpr unsigned int default_krylov_dim_mixed{100};
 
     CbGmres() : rand_engine(30) {}
 
@@ -121,26 +122,24 @@ protected:
         int m = 597;
         int n = 43;
         x = gen_mtx(m, n);
-        y = gen_mtx(gko::solver::default_krylov_dim_mixed, n);
+        y = gen_mtx(default_krylov_dim_mixed, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         arnoldi_norm = gen_mtx(3, n);
-        gko::dim<3> krylov_bases_dim(gko::solver::default_krylov_dim_mixed + 1,
-                                     m, n);
+        gko::dim<3> krylov_bases_dim(default_krylov_dim_mixed + 1, m, n);
         range_helper = generate_krylov_helper(krylov_bases_dim);
 
         next_krylov_basis = gen_mtx(m, n);
-        hessenberg = gen_mtx(gko::solver::default_krylov_dim_mixed + 1,
-                             gko::solver::default_krylov_dim_mixed * n);
-        hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim_mixed + 1, n);
-        buffer_iter = gen_mtx(gko::solver::default_krylov_dim_mixed + 1, n);
+        hessenberg =
+            gen_mtx(default_krylov_dim_mixed + 1, default_krylov_dim_mixed * n);
+        hessenberg_iter = gen_mtx(default_krylov_dim_mixed + 1, n);
+        buffer_iter = gen_mtx(default_krylov_dim_mixed + 1, n);
         residual = gen_mtx(m, n);
         residual_norm = gen_mtx(1, n);
-        residual_norm_collection =
-            gen_mtx(gko::solver::default_krylov_dim_mixed + 1, n);
-        givens_sin = gen_mtx(gko::solver::default_krylov_dim_mixed, n);
-        givens_cos = gen_mtx(gko::solver::default_krylov_dim_mixed, n);
+        residual_norm_collection = gen_mtx(default_krylov_dim_mixed + 1, n);
+        givens_sin = gen_mtx(default_krylov_dim_mixed, n);
+        givens_cos = gen_mtx(default_krylov_dim_mixed, n);
         stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
@@ -276,12 +275,10 @@ TEST_F(CbGmres, HipCbGmresInitialize1IsEquivalentToRef)
 
     gko::kernels::reference::cb_gmres::initialize_1(
         ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), stop_status.get(),
-        gko::solver::default_krylov_dim_mixed);
+        givens_cos.get(), stop_status.get(), default_krylov_dim_mixed);
     gko::kernels::hip::cb_gmres::initialize_1(
         hip, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
-        d_givens_cos.get(), d_stop_status.get(),
-        gko::solver::default_krylov_dim_mixed);
+        d_givens_cos.get(), d_stop_status.get(), default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_b_norm, b_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
@@ -299,12 +296,12 @@ TEST_F(CbGmres, HipCbGmresInitialize2IsEquivalentToRef)
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), arnoldi_norm.get(),
         range_helper.get_range(), next_krylov_basis.get(),
-        final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
+        final_iter_nums.get(), default_krylov_dim_mixed);
     gko::kernels::hip::cb_gmres::initialize_2(
         hip, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_arnoldi_norm.get(),
         d_range_helper.get_range(), d_next_krylov_basis.get(),
-        d_final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
+        d_final_iter_nums.get(), default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);

@@ -285,6 +285,16 @@ int main(int, char **)
                         .on(refExec);
     }
 
+    // core/solver/cb_gmres.hpp
+    {
+        using Solver = gko::solver::CbGmres<>;
+        auto test = Solver::build()
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(1u).on(
+                                refExec))
+                        .on(refExec);
+    }
+
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
