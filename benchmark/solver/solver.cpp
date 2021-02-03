@@ -72,7 +72,9 @@ DEFINE_bool(
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, idr, "
+              "Supported values are: bicgstab, bicg, cb_gmres_keep, "
+              "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
+              "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
               "lower_trs, upper_trs, overhead");
 
 DEFINE_uint32(
@@ -111,8 +113,6 @@ DEFINE_string(
 DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
-
-// TODO: create string list parameter for CB-GMRES solver
 
 // input validation
 [[noreturn]] void print_config_error_and_exit()
@@ -221,128 +221,99 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 }
 
 
-// solver mapping
-template <typename SolverType>
-std::unique_ptr<gko::LinOpFactory> create_solver(
-    std::shared_ptr<const gko::Executor> exec,
+template <typename SolverIntermediate>
+std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
+    SolverIntermediate &&inter,
+    const std::shared_ptr<const gko::Executor> &exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::build()
-        .with_criteria(create_criterion(exec))
+    return inter.with_criteria(create_criterion(exec))
         .with_preconditioner(give(precond))
         .on(exec);
 }
 
+template <typename Solver>
+std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
+    const std::shared_ptr<const gko::Executor> &exec,
+    std::shared_ptr<const gko::LinOpFactory> precond)
+{
+    return add_criteria_precond_finalize(Solver::build(), exec, precond);
+}
 
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor>,
-                                std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{
-        {"bicgstab", create_solver<gko::solver::Bicgstab<etype>>},
-        {"bicg", create_solver<gko::solver::Bicg<etype>>},
-        {"cg", create_solver<gko::solver::Cg<etype>>},
-        {"cgs", create_solver<gko::solver::Cgs<etype>>},
-        {"fcg", create_solver<gko::solver::Fcg<etype>>},
-        {"idr",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::Idr<etype>::build()
-                 .with_criteria(create_criterion(exec))
-                 .with_subspace_dim(FLAGS_idr_subspace_dim)
-                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"gmres",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::Gmres<etype>::build()
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_keep",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::keep)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_reduced",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::reduce1)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_reduced2",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::reduce2)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_int",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::integer)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_int_reduced",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::ireduce1)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"cb_gmres_int_reduced2",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory> precond) {
-             return gko::solver::CbGmres<etype>::build()
-                 .with_storage_precision(
-                     gko::solver::cb_gmres_storage_precision::ireduce2)
-                 .with_criteria(create_criterion(exec))
-                 .with_krylov_dim(FLAGS_gmres_restart)
-                 .with_preconditioner(give(precond))
-                 .on(exec);
-         }},
-        {"lower_trs",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory>) {
-             return gko::solver::LowerTrs<etype>::build()
-                 .with_num_rhs(FLAGS_nrhs)
-                 .on(exec);
-         }},
-        {"upper_trs",
-         [](std::shared_ptr<const gko::Executor> exec,
-            std::shared_ptr<const gko::LinOpFactory>) {
-             return gko::solver::UpperTrs<etype>::build()
-                 .with_num_rhs(FLAGS_nrhs)
-                 .on(exec);
-         }},
-        {"overhead", create_solver<gko::Overhead<etype>>}};
+
+std::unique_ptr<gko::LinOpFactory> generate_solver(
+    const std::shared_ptr<const gko::Executor> &exec,
+    std::shared_ptr<const gko::LinOpFactory> precond,
+    const std::string &description)
+{
+    std::string cb_gmres_prefix("cb_gmres_");
+    if (description.find(cb_gmres_prefix) == 0) {
+        auto s_prec = gko::solver::cb_gmres_storage_precision::keep;
+        const auto spec = description.substr(cb_gmres_prefix.length());
+        if (spec == "keep") {
+            s_prec = gko::solver::cb_gmres_storage_precision::keep;
+        } else if (spec == "reduce1") {
+            s_prec = gko::solver::cb_gmres_storage_precision::reduce1;
+        } else if (spec == "reduce2") {
+            s_prec = gko::solver::cb_gmres_storage_precision::reduce2;
+        } else if (spec == "integer") {
+            s_prec = gko::solver::cb_gmres_storage_precision::integer;
+        } else if (spec == "ireduce1") {
+            s_prec = gko::solver::cb_gmres_storage_precision::ireduce1;
+        } else if (spec == "ireduce2") {
+            s_prec = gko::solver::cb_gmres_storage_precision::ireduce2;
+        } else {
+            throw std::range_error(
+                std::string(
+                    "CB-GMRES does not have a corresponding solver to <") +
+                description + ">!");
+        }
+        return add_criteria_precond_finalize(
+            gko::solver::CbGmres<etype>::build()
+                .with_krylov_dim(FLAGS_gmres_restart)
+                .with_storage_precision(s_prec),
+            exec, precond);
+    } else if (description == "bicgstab") {
+        return add_criteria_precond_finalize<gko::solver::Bicgstab<etype>>(
+            exec, precond);
+    } else if (description == "bicg") {
+        return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(exec,
+                                                                       precond);
+    } else if (description == "cg") {
+        return add_criteria_precond_finalize<gko::solver::Cg<etype>>(exec,
+                                                                     precond);
+    } else if (description == "cgs") {
+        return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(exec,
+                                                                      precond);
+    } else if (description == "fcg") {
+        return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(exec,
+                                                                      precond);
+    } else if (description == "idr") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build()
+                .with_subspace_dim(FLAGS_idr_subspace_dim)
+                .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "gmres") {
+        return add_criteria_precond_finalize(
+            gko::solver::Gmres<etype>::build().with_krylov_dim(
+                FLAGS_gmres_restart),
+            exec, precond);
+    } else if (description == "lower_trs") {
+        return gko::solver::LowerTrs<etype>::build()
+            .with_num_rhs(FLAGS_nrhs)
+            .on(exec);
+    } else if (description == "upper_trs") {
+        return gko::solver::UpperTrs<etype>::build()
+            .with_num_rhs(FLAGS_nrhs)
+            .on(exec);
+    } else if (description == "overhead") {
+        return add_criteria_precond_finalize<gko::Overhead<etype>>(exec,
+                                                                   precond);
+    }
+    throw std::range_error(std::string("The provided string <") + description +
+                           "> does not match any solver!");
+}
 
 
 void write_precond_info(const gko::LinOp *precond,
@@ -433,7 +404,7 @@ void solve_system(const std::string &solver_name,
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
             solver->add_logger(it_logger);
             solver->apply(lend(b), lend(x_clone));
@@ -454,7 +425,7 @@ void solve_system(const std::string &solver_name,
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
 
             exec->remove_logger(gko::lend(gen_logger));
@@ -504,7 +475,7 @@ void solve_system(const std::string &solver_name,
             exec->synchronize();
             generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
             generate_timer->toc();
 
