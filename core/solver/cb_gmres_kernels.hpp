@@ -59,108 +59,66 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                1. the first will be used as the regular ValueType
  *                     (precisions supported by Ginkgo), and
  *                2. the second the value type of the reduced precision.
+ * @param _const  qualifier used for the storage type, indicating if it is a
+ *                const accessor, or not.
  */
-#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(_macro)                         \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, double, double>>));    \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, double, float>>));     \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, double, half>>));      \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int64,  \
-                                                            0b101>>));         \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int32,  \
-                                                            0b101>>));         \
-    template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(range<accessor::scaled_reduced_row_major<3, double, int16,  \
-                                                            0b101>>));         \
-    template _macro(                                                           \
-        float,                                                                 \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, float, float>>));      \
-    template _macro(                                                           \
-        float,                                                                 \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, float, half>>));       \
-    template _macro(                                                           \
-        float,                                                                 \
-        GKO_UNPACK(                                                            \
-            range<                                                             \
-                accessor::scaled_reduced_row_major<3, float, int32, 0b101>>)); \
-    template _macro(                                                           \
-        float,                                                                 \
-        GKO_UNPACK(                                                            \
-            range<                                                             \
-                accessor::scaled_reduced_row_major<3, float, int16, 0b101>>)); \
-    template _macro(                                                           \
-        std::complex<double>,                                                  \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<double>,  \
-                                                     std::complex<double>>>)); \
-    template _macro(                                                           \
-        std::complex<double>,                                                  \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<double>,  \
-                                                     std::complex<float>>>));  \
-    template _macro(                                                           \
-        std::complex<float>,                                                   \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, std::complex<float>,   \
-                                                     std::complex<float>>>))
-
-#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(_macro)                   \
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, _const)          \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            range<accessor::reduced_row_major<3, double, const double>>));     \
+            range<accessor::reduced_row_major<3, double, _const double>>));    \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            range<accessor::reduced_row_major<3, double, const float>>));      \
+            range<accessor::reduced_row_major<3, double, _const float>>));     \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            range<accessor::reduced_row_major<3, double, const half>>));       \
+            range<accessor::reduced_row_major<3, double, _const half>>));      \
     template _macro(double,                                                    \
                     GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
-                                   3, double, const int64, 0b101>>));          \
+                                   3, double, _const int64, 0b101>>));         \
     template _macro(double,                                                    \
                     GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
-                                   3, double, const int32, 0b101>>));          \
+                                   3, double, _const int32, 0b101>>));         \
     template _macro(double,                                                    \
                     GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
-                                   3, double, const int16, 0b101>>));          \
+                                   3, double, _const int16, 0b101>>));         \
     template _macro(                                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
-            range<accessor::reduced_row_major<3, float, const float>>));       \
+            range<accessor::reduced_row_major<3, float, _const float>>));      \
     template _macro(                                                           \
         float,                                                                 \
-        GKO_UNPACK(range<accessor::reduced_row_major<3, float, const half>>)); \
+        GKO_UNPACK(                                                            \
+            range<accessor::reduced_row_major<3, float, _const half>>));       \
     template _macro(float,                                                     \
                     GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
-                                   3, float, const int32, 0b101>>));           \
+                                   3, float, _const int32, 0b101>>));          \
     template _macro(float,                                                     \
                     GKO_UNPACK(range<accessor::scaled_reduced_row_major<       \
-                                   3, float, const int16, 0b101>>));           \
+                                   3, float, _const int16, 0b101>>));          \
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
             range<accessor::reduced_row_major<3, std::complex<double>,         \
-                                              const std::complex<double>>>));  \
+                                              _const std::complex<double>>>)); \
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
             range<accessor::reduced_row_major<3, std::complex<double>,         \
-                                              const std::complex<float>>>));   \
+                                              _const std::complex<float>>>));  \
     template _macro(                                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
             range<accessor::reduced_row_major<3, std::complex<float>,          \
-                                              const std::complex<float>>>))
+                                              _const std::complex<float>>>))
+
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, )
+
+#define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, const)
 
 
 namespace gko {
