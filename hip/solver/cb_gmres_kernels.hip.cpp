@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
@@ -126,7 +127,7 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    b->compute_norm2(b_norm);
+    kernels::hip::dense::compute_norm2(exec, b, b_norm);
     hipLaunchKernelGGL(
         initialize_1_kernel<block_size>, grid_dim, block_dim, 0, 0,
         b->get_size()[0], b->get_size()[1], krylov_dim,
@@ -166,7 +167,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                        krylov_dim, as_hip_accessor(krylov_bases),
                        as_hip_type(residual_norm_collection->get_values()),
                        residual_norm_collection->get_stride());
-    residual->compute_norm2(residual_norm);
+    kernels::hip::dense::compute_norm2(exec, residual, residual_norm);
 
     components::fill_array(exec,
                            arnoldi_norm->get_values() + 2 * stride_arnoldi,
