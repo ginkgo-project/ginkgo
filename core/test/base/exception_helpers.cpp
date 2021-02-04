@@ -132,6 +132,14 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+void throws_cufft_error() { throw GKO_CUFFT_ERROR(0); }
+
+TEST(CudaError, ReturnsCufftError)
+{
+    ASSERT_THROW(throws_cufft_error(), gko::CufftError);
+}
+
+
 void throws_hip_error() { throw GKO_HIP_ERROR(0); }
 
 TEST(HipError, ReturnsHipError)

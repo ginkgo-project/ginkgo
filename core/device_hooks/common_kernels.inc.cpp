@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/diagonal_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
+#include "core/matrix/fft_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
@@ -1029,6 +1030,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace ell
+
+
+namespace fft {
+
+
+template <typename ValueType>
+GKO_DECLARE_FFT_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_FFT2_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_FFT3_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
+
+
+}  // namespace fft
 
 
 namespace hybrid {
