@@ -239,13 +239,14 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
         auto b_norm =
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
-        // 1st row of arnoldi_norm: TODO
+        // 1st row of arnoldi_norm: == eta * norm2(old_next_krylov_basis)
+        //                          with eta == 1 / sqrt(2)
+        //                          (computed right before updating
+        //                          next_krylov_basis)
         // 2nd row of arnoldi_norm: The actual arnoldi norm
         //                          == norm2(next_krylov_basis)
         // 3rd row of arnoldi_norm: the infinity norm of next_krylov_basis
         //                          (ONLY when using a scalar accessor)
-        // The optional entry stores the infinity_norm of each
-        // next_krylov_vector, which is only used to compute the scalar
         auto arnoldi_norm =
             VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
         Array<size_type> final_iter_nums(this->get_executor(),

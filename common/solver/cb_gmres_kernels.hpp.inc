@@ -507,28 +507,27 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     stopping_status *__restrict__ reorth_status,
     size_type *__restrict__ num_reorth)
 {
-    const remove_complex<ValueType> eta = 1.0 / 2.0;
+    const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat();
-    constexpr bool has_scale =
+    constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
-        const auto num0 = (eta * arnoldi_norm[col_idx]);
-        const auto num11 = arnoldi_norm[col_idx + stride_norm];
-        const auto num12 = sqrt(num11);
-        const auto num2 = has_scale ? (arnoldi_norm[col_idx + 2 * stride_norm])
-                                    : remove_complex<ValueType>{};
+        const auto num0 = (sqrt(eta_squared * arnoldi_norm[col_idx]));
+        const auto num11 = sqrt(arnoldi_norm[col_idx + stride_norm]);
+        const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
+                                     : remove_complex<ValueType>{};
         if (num11 < num0) {
             reorth_status[col_idx].reset();
             atomic_add(num_reorth, (size_type)1);
         } else {
             reorth_status[col_idx].stop(1);
         }
-        arnoldi_norm[col_idx] = num11;
-        arnoldi_norm[col_idx + stride_norm] = num12;
-        hessenberg_iter[iter * stride_hessenberg + col_idx] = num12;
+        arnoldi_norm[col_idx] = num0;
+        arnoldi_norm[col_idx + stride_norm] = num11;
+        hessenberg_iter[iter * stride_hessenberg + col_idx] = num11;
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, iter, col_idx, num2 / num12);
+            krylov_bases, iter, col_idx, num2 / num11);
     }
 }
 
