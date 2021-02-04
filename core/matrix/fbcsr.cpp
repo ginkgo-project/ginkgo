@@ -338,7 +338,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     index_type cur_brow = 0;
     index_type cur_bnz = 0;
     index_type cur_bcol = blocks.begin()->first.block_column;
-    const index_type num_brows = data.size[0] / bs;
+    const index_type num_brows = detail::get_num_blocks(bs, data.size[0]);
 
     blockutils::DenseBlocksView<value_type, index_type> values(
         tmp->values_.get_data(), bs, bs);
