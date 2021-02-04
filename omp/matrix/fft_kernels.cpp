@@ -212,7 +212,7 @@ void fft2_impl(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         // square roots
-        for (int64 i = 0; i < d; i++) {
+        for (int64 i = 0; i < d / 2; i++) {
             roots1[i] = roots1[2 * i];
         }
     }
@@ -302,7 +302,7 @@ void fft3_impl(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         // square roots
-        for (int64 i = 0; i < d; i++) {
+        for (int64 i = 0; i < d / 2; i++) {
             roots2[i] = roots2[2 * i];
         }
     }
@@ -321,7 +321,7 @@ void fft3_impl(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         // square roots
-        for (int64 i = 0; i < d; i++) {
+        for (int64 i = 0; i < d / 2; i++) {
             roots1[i] = roots1[2 * i];
         }
     }
