@@ -25,6 +25,12 @@ else()
     add_subdirectory(dummy-hook)
 endif()
 
+if(GINKGO_BUILD_MICRO_BENCHMARKS)
+    if (NOT gbench_FOUND)
+        add_subdirectory(gbench)
+    endif()
+endif()
+
 if(GINKGO_BUILD_BENCHMARKS)
     if (NOT gflags_FOUND)
         add_subdirectory(gflags)

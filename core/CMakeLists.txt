@@ -91,3 +91,7 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+
+if(GINKGO_BUILD_MICRO_BENCHMARKS)
+    add_subdirectory(micro-benchmarks)
+endif()
