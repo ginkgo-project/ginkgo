@@ -120,7 +120,7 @@ public:
     using Cvcsr =
         matrix::Cvcsr<ValueType, next_precision<ValueType>, IndexType>;
     using Dense = matrix::Dense<ValueType>;
-    using Ell = matrix Ell<ValueType, IndexType>;
+    using Ell = matrix::Ell<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
     /**
@@ -204,9 +204,9 @@ protected:
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
         if (std::is_same<double, ValueType>() && low_precicion_) {
             approximate_reduced =
-                Cvcsr::create(exec, share(approximate_inverse_));
+                Cvcsr::create(exec, share(clone(approximate_inverse_)));
         } else {
-            appr_t = Ell::create(exec);
+            appr = Ell::create(exec);
             approximate_inverse_->convert_to(appr.get());
         }
         if (IsaiType == isai_type::spd) {

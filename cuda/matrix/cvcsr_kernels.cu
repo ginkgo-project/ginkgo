@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
+#include <iostream>
 #include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -221,7 +221,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const int num_thread_per_worker = std::get<0>(data);
     const int atomic = std::get<1>(data);
     const int num_worker_per_row = std::get<2>(data);
-
     /**
      * info is the parameter for selecting the cuda kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
