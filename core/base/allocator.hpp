@@ -77,16 +77,112 @@ public:
     {}
 
     /**
+     * Copy-constructs an allocator.
+     *
+     * @param other  the other allocator
+     */
+    ExecutorAllocator(const ExecutorAllocator& other)
+        : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-constructs an allocator.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     */
+    ExecutorAllocator(ExecutorAllocator&& other) : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-assigns an allocator.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    ExecutorAllocator& operator=(ExecutorAllocator&& other)
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Copy-assigns an allocator.
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    ExecutorAllocator& operator=(const ExecutorAllocator& other)
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Move-assigns an allocator.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    template <typename U>
+    ExecutorAllocator& operator=(ExecutorAllocator<U>&& other)
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Copy-assigns an allocator.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    template <typename U>
+    ExecutorAllocator& operator=(const ExecutorAllocator<U>& other)
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
      * Constructs an allocator for another element type from a given executor.
      *
      * This is related to `std::allocator_traits::template rebind<U>` and its
      * use in more advanced data structures.
      *
-     * @param other  the other executor
+     * @param other  the other allocator
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
     ExecutorAllocator(const ExecutorAllocator<U>& other)
+        : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-constructs an allocator for another element type from a given
+     * executor.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be constructed.
+     */
+    template <typename U>
+    ExecutorAllocator(ExecutorAllocator<U>&& other)
         : exec_{other.get_executor()}
     {}
 
