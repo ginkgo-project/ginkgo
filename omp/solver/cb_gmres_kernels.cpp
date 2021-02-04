@@ -66,6 +66,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                          size_type iter, const stopping_status *stop_status)
 {
     using rc_vtype = remove_complex<ValueType>;
+    constexpr bool has_scalar =
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
     const rc_vtype eta = 1.0 / sqrt(2.0);
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 #pragma omp declare reduction(addnc:rc_vtype : omp_out = omp_out + omp_in)
@@ -83,7 +85,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             nrm += squared_norm(next_krylov_basis->at(j, i));
         }
-        arnoldi_norm->at(0, i) = nrm * eta;
+        arnoldi_norm->at(0, i) = eta * sqrt(nrm);
         // nrmP = norm(next_krylov_basis)
 #pragma omp parallel for
         for (size_type k = 0; k < iter + 1; ++k) {
@@ -117,12 +119,14 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                       : abs(next_krylov_basis->at(j, i));
         }
         arnoldi_norm->at(1, i) = sqrt(nrm);
-        arnoldi_norm->at(2, i) = inf;
+        if (has_scalar) {
+            arnoldi_norm->at(2, i) = inf;
+        }
 
         for (size_type l = 1;
              (arnoldi_norm->at(1, i)) < (arnoldi_norm->at(0, i)) && l < 3;
              l++) {
-            arnoldi_norm->at(0, i) = arnoldi_norm->at(1, i) * eta;
+            arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
             // nrmP = nrmN
 #pragma omp parallel for
             for (size_type k = 0; k < iter + 1; ++k) {
@@ -158,7 +162,9 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                           : abs(next_krylov_basis->at(j, i));
             }
             arnoldi_norm->at(1, i) = sqrt(nrm);
-            arnoldi_norm->at(2, i) = inf;
+            if (has_scalar) {
+                arnoldi_norm->at(2, i) = inf;
+            }
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
@@ -364,6 +370,8 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     using rc_vtype = remove_complex<ValueType>;
+    constexpr bool has_scalar =
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -383,7 +391,9 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                           : abs(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(res_norm);
-        arnoldi_norm->at(2, j) = res_inf;
+        if (has_scalar) {
+            arnoldi_norm->at(2, j) = res_inf;
+        }
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, {0}, j,
             arnoldi_norm->at(2, j) / residual_norm->at(0, j));

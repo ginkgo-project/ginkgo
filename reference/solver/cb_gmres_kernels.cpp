@@ -69,6 +69,8 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         std::is_same<ValueType,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
+    constexpr bool has_scalar =
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
     using rc_vtype = remove_complex<ValueType>;
     const rc_vtype eta = 1.0 / sqrt(2.0);
 
@@ -77,7 +79,7 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
         }
-        arnoldi_norm->at(0, i) = sqrt(arnoldi_norm->at(0, i)) * eta;
+        arnoldi_norm->at(0, i) = eta * sqrt(arnoldi_norm->at(0, i));
         // arnoldi_norm->at(0, i) = norm(next_krylov_basis)
         if (stop_status[i].has_stopped()) {
             continue;
@@ -102,13 +104,17 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
         arnoldi_norm->at(1, i) = zero<rc_vtype>();
-        arnoldi_norm->at(2, i) = zero<rc_vtype>();
+        if (has_scalar) {
+            arnoldi_norm->at(2, i) = zero<rc_vtype>();
+        }
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(1, i) += squared_norm(next_krylov_basis->at(j, i));
-            arnoldi_norm->at(2, i) =
-                (arnoldi_norm->at(2, i) >= abs(next_krylov_basis->at(j, i)))
-                    ? arnoldi_norm->at(2, i)
-                    : abs(next_krylov_basis->at(j, i));
+            if (has_scalar) {
+                arnoldi_norm->at(2, i) =
+                    (arnoldi_norm->at(2, i) >= abs(next_krylov_basis->at(j, i)))
+                        ? arnoldi_norm->at(2, i)
+                        : abs(next_krylov_basis->at(j, i));
+            }
         }
         arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
 
@@ -347,17 +353,23 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
     using rc_vtype = remove_complex<ValueType>;
+    constexpr bool has_scalar =
+        gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
         residual_norm->at(0, j) = zero<rc_vtype>();
-        arnoldi_norm->at(2, j) = zero<rc_vtype>();
+        if (has_scalar) {
+            arnoldi_norm->at(2, j) = zero<rc_vtype>();
+        }
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             residual_norm->at(0, j) += squared_norm(residual->at(i, j));
-            arnoldi_norm->at(2, j) =
-                (arnoldi_norm->at(2, j) >= abs(residual->at(i, j)))
-                    ? arnoldi_norm->at(2, j)
-                    : abs(residual->at(i, j));
+            if (has_scalar) {
+                arnoldi_norm->at(2, j) =
+                    (arnoldi_norm->at(2, j) >= abs(residual->at(i, j)))
+                        ? arnoldi_norm->at(2, j)
+                        : abs(residual->at(i, j));
+            }
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
