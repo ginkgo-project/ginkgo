@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {
@@ -163,6 +164,8 @@ public:
          * Must be at least 0, default value 0.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(low_precision, false);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -189,13 +192,38 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
+        auto exec = this->get_executor();
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+        if (parameters_.low_precision) {
+            app =
+                matrix::Ell<next_precision<ValueType>, IndexType>::create(exec);
+            auto tmp =
+                matrix::Csr<next_precision<ValueType>, IndexType>::create(exec);
+            tmp->copy_from(approximate_inverse_.get());
+            app->copy_from(tmp.get());
+        } else {
+            app = matrix::Ell<ValueType, IndexType>::create(exec);
+            app->copy_from(approximate_inverse_.get());
+        }
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
                 share(as<Csr>(approximate_inverse_->transpose()));
+            if (parameters_.low_precision) {
+                app_t =
+                    matrix::Ell<next_precision<ValueType>, IndexType>::create(
+                        exec);
+                auto tmp =
+                    matrix::Csr<next_precision<ValueType>, IndexType>::create(
+                        exec);
+                tmp->copy_from(approximate_inverse_transpose_.get());
+                app_t->copy_from(tmp.get());
+            } else {
+                app_t = matrix::Ell<ValueType, IndexType>::create(exec);
+                app_t->copy_from(approximate_inverse_transpose_.get());
+            }
             x_ = Dense::create(factory->get_executor(),
                                gko::dim<2>{system_matrix->get_size()[0], 1});
         }
@@ -204,10 +232,10 @@ protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
         if (IsaiType == isai_type::spd) {
-            approximate_inverse_->apply(b, x_.get());
-            approximate_inverse_transpose_->apply(x_.get(), x);
+            app->apply(b, x_.get());
+            app_t->apply(x_.get(), x);
         } else {
-            approximate_inverse_->apply(b, x);
+            app->apply(b, x);
         }
     }
 
@@ -234,6 +262,8 @@ private:
 private:
     std::shared_ptr<Csr> approximate_inverse_;
     std::shared_ptr<Csr> approximate_inverse_transpose_;
+    std::shared_ptr<LinOp> app;
+    std::shared_ptr<LinOp> app_t;
     std::shared_ptr<Dense> x_;
 };
 
