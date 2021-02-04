@@ -3,6 +3,10 @@ configure_file("${Ginkgo_SOURCE_DIR}/matrices/config.hpp.in"
 
 configure_file("test/ani1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1.mtx")
 configure_file("test/ani4.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4.mtx")
+configure_file("test/fourier_in.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/fourier_in.mtx")
+configure_file("test/fourier_out1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/fourier_out1.mtx")
+configure_file("test/fourier_out2.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/fourier_out2.mtx")
+configure_file("test/fourier_out3.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/fourier_out3.mtx")
 configure_file("test/isai_l.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l.mtx")
 configure_file("test/isai_l_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess.mtx")
 configure_file("test/isai_l_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess_rhs.mtx")

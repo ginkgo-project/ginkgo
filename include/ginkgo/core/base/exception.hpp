@@ -266,6 +266,29 @@ private:
 
 
 /**
+ * CufftError is thrown when a cuFFT routine throws a non-zero error code.
+ */
+class CufftError : public Error {
+public:
+    /**
+     * Initializes a cuFFT error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the cuFFT routine that failed
+     * @param error_code  The resulting cuFFT error code
+     */
+    CufftError(const std::string& file, int line, const std::string& func,
+               int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
  * HipError is thrown when a HIP routine throws a non-zero error code.
  */
 class HipError : public Error {

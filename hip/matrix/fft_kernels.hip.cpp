@@ -30,31 +30,55 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#include "core/matrix/fft_kernels.hpp"
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
-namespace matrices {
+namespace kernels {
+namespace hip {
+/**
+ * @brief The FFT matrix format namespace.
+ * @ref Fft
+ * @ingroup fft
+ */
+namespace fft {
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_fourier_in_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_in.mtx";
-const char *location_fourier_out1_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out1.mtx";
-const char *location_fourier_out2_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out2.mtx";
-const char *location_fourier_out3_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out3.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+template <typename ValueType>
+void fft(std::shared_ptr<const DefaultExecutor> exec,
+         const matrix::Dense<std::complex<ValueType>>* b,
+         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
+         Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
 
 
-}  // namespace matrices
+template <typename ValueType>
+void fft2(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, bool inverse,
+          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
+
+
+template <typename ValueType>
+void fft3(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, size_type size3, bool inverse,
+          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
+
+
+}  // namespace fft
+}  // namespace hip
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_MATRICES_CONFIG_HPP_

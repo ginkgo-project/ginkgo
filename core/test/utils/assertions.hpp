@@ -276,8 +276,7 @@ template <typename MatrixData1, typename MatrixData2>
             auto firstfile = testname + "." + first_expression + ".mtx";
             auto secondfile = testname + "." + second_expression + ".mtx";
             auto to_remove = [](char c) {
-                return !std::isalnum(c) && c != '_' && c != '.' && c != '-' &&
-                       c != '<' && c != '>';
+                return !std::isalnum(c) && c != '_' && c != '.' && c != '-';
             };
             // remove all but alphanumerical and _.-<> characters from
             // expressions

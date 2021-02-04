@@ -63,6 +63,8 @@ find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CUFFT cufft
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES
@@ -105,6 +107,7 @@ target_sources(ginkgo_cuda
     matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
     matrix/fbcsr_kernels.cu
+    matrix/fft_kernels.cu
     matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu
@@ -207,7 +210,7 @@ target_include_directories(ginkgo_cuda
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT})
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
