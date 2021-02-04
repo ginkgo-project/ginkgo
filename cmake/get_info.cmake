@@ -87,9 +87,9 @@ function(ginkgo_print_env_variable log_type var_name)
 endfunction()
 
 
-macro(ginkgo_print_foreach_variable variables)
-    foreach(var ${variables})
-        ginkgo_print_variable(${${log_type}} ${var} )
+macro(ginkgo_print_foreach_variable log_type)
+    foreach(var ${ARGN})
+        ginkgo_print_variable(${log_type} ${var} )
     endforeach()
 endmacro()
 
@@ -109,7 +109,7 @@ ENDIF()
 set(log_types "detailed_log;minimal_log")
 foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "Ginkgo configuration:")
-    ginkgo_print_foreach_variable(
+    ginkgo_print_foreach_variable(${${log_type}}
         "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX"
         "PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR")
     string(SUBSTRING
@@ -126,15 +126,15 @@ foreach(log_type ${log_types})
     FILE(APPEND ${${log_type}} "${print_string}")
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
-    ginkgo_print_foreach_variable(
+    ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
-    ginkgo_print_foreach_variable(
+    ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING")
     ginkgo_print_module_footer(${${log_type}} "  Documentation:")
-    ginkgo_print_foreach_variable("GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
+    ginkgo_print_foreach_variable(${${log_type}} "GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
     ginkgo_print_module_footer(${${log_type}} "  Developer helpers:")
-    ginkgo_print_foreach_variable(
+    ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_DEVEL_TOOLS;GINKGO_WITH_CLANG_TIDY;GINKGO_WITH_IWYU"
         "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_CHECK_PATH")
     ginkgo_print_module_footer(${${log_type}} "")

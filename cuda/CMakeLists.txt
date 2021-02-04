@@ -35,6 +35,11 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
+# Detect the CUDA architecture flags and propagate to all the project
+cas_variable_cuda_architectures(GINKGO_CUDA_ARCH_FLAGS
+    ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
+    UNSUPPORTED "20" "21")
+set(GINKGO_CUDA_ARCH_FLAGS "${GINKGO_CUDA_ARCH_FLAGS}" PARENT_SCOPE)
 
 # MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
@@ -156,10 +161,8 @@ target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
 target_link_libraries(ginkgo_cuda PRIVATE ginkgo_core_device)
-
-cas_target_cuda_architectures(ginkgo_cuda
-    ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
-    UNSUPPORTED "20" "21")
+target_compile_options(ginkgo_cuda
+        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
 
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
