@@ -173,9 +173,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 
     /* Memory movement summary for iteration with subspace dimension s
      * Per iteration:
-     * (11/2s+10+7/(s+1))n * values + matrix/preconditioner storage
-     * For (s+1) iterations:
-     * (11/2s^2+31/2s+17)n * values + (s+1) * matrix/preconditioner storage
+     * (11/2s^2+31/2s+18)n * values + (s+1) * matrix/preconditioner storage
      * (s+1)x SpMV:                2(s+1)n * values + (s+1) * storage
      * (s+1)x Preconditioner:      2(s+1)n * values + (s+1) * storage
      * 1x multidot (gemv)           (s+1)n
@@ -189,6 +187,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
      * 2x norm2                         2n
      * 1x scale                         2n
      * 2x axpy                          6n
+     * 1x norm2 residual                 n
      */
     while (true) {
         ++total_iter;
@@ -208,10 +207,6 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         subspace_vectors->apply(residual.get(), f.get());
 
         for (size_type k = 0; k < subspace_dim_; k++) {
-            ++total_iter;
-            this->template log<log::Logger::iteration_complete>(
-                this, total_iter, residual.get(), dense_x);
-
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
