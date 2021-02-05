@@ -131,12 +131,13 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     /* Memory movement summary:
-     * 20n * values + matrix/preconditioner storage
+     * 21n * values + matrix/preconditioner storage
      * 1x SpMV:                2n * values + storage
      * 1x Preconditioner:      2n * values + storage
      * 3x dot                  6n
      * 1x step 1 (axpy)        3n
      * 1x step 2 (fused axpys) 7n
+     * 1x norm2 residual        n
      */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());

@@ -140,9 +140,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     /* Memory movement summary:
      * Per iteration:
-     * 14.5n * values + matrix/preconditioner storage
+     * 15.5n * values + matrix/preconditioner storage
      * Two iterations:
-     * 29n * values + 2 * matrix/preconditioner storage
+     * 31n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
      * 2x Preconditioner:      4n * values + 2 * storage
      * 3x dot                  6n
@@ -150,6 +150,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
      * 1x step 1 (fused axpys) 4n
      * 1x step 2 (axpy)        3n
      * 1x step 3 (fused axpys) 7n
+     * 2x norm2 residual       2n
      */
     while (true) {
         ++iter;
