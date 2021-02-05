@@ -117,8 +117,6 @@ public:
                                                       : isai_type::lower,
              ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
-    using Cvcsr =
-        matrix::Cvcsr<ValueType, next_precision<ValueType>, IndexType>;
     using Dense = matrix::Dense<ValueType>;
     using Ell = matrix::Ell<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
@@ -202,9 +200,11 @@ protected:
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
-        if (std::is_same<double, ValueType>() && low_precicion_) {
-            approximate_reduced =
-                Cvcsr::create(exec, share(clone(approximate_inverse_)));
+        if (std::is_same<double, ValueType>()) {
+            approximate_reduced = matrix::Cvcsr<
+                remove_complex<value_type>,
+                reduce_precision<next_precision<remove_complex<value_type>>>,
+                index_type>::create(exec, share(clone(approximate_inverse_)));
         } else {
             appr = Ell::create(exec);
             approximate_inverse_->convert_to(appr.get());
@@ -212,9 +212,13 @@ protected:
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
                 share(as<Csr>(approximate_inverse_->transpose()));
-            if (std::is_same<double, ValueType>() && low_precicion_) {
-                approximate_reduced_trans =
-                    Cvcsr::create(exec, share(approximate_inverse_transpose_));
+            if (std::is_same<double, ValueType>()) {
+                approximate_reduced_trans = matrix::Cvcsr<
+                    remove_complex<value_type>,
+                    reduce_precision<
+                        next_precision<remove_complex<value_type>>>,
+                    index_type>::create(exec,
+                                        share(approximate_inverse_transpose_));
             } else {
                 appr_t = Ell::create(exec);
                 approximate_inverse_transpose_->convert_to(appr_t.get());
@@ -226,7 +230,7 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        if (std::is_same<double, ValueType>() && low_precicion_) {
+        if (std::is_same<double, ValueType>()) {
             if (IsaiType == isai_type::spd) {
                 approximate_reduced->apply(b, x_.get());
                 approximate_reduced_trans->apply(x_.get(), x);
@@ -266,8 +270,8 @@ private:
 private:
     std::shared_ptr<Csr> approximate_inverse_;
     std::shared_ptr<Csr> approximate_inverse_transpose_;
-    std::shared_ptr<Cvcsr> approximate_reduced;
-    std::shared_ptr<Cvcsr> approximate_reduced_trans;
+    std::shared_ptr<LinOp> approximate_reduced;
+    std::shared_ptr<LinOp> approximate_reduced_trans;
     std::shared_ptr<Ell> appr;
     std::shared_ptr<Ell> appr_t;
     std::shared_ptr<Dense> x_;

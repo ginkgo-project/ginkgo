@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/accessors.hpp"
+#include "core/base/extended_float.hpp"
 
 namespace gko {
 /**
@@ -106,8 +107,8 @@ public:
     range<accessor> get_values() noexcept
     {
         return range<accessor>(
-            ell_->get_num_stored_elements_per_row() * ell_->get_size()[0],
-            ell_->get_values());
+            num_stored_elements_per_row_ * this->get_size()[0],
+            values_.get_data());
     }
 
     /**
@@ -120,8 +121,8 @@ public:
     const range<const_accessor> get_const_values() const noexcept
     {
         return range<const_accessor>(
-            ell_->get_num_stored_elements_per_row() * ell_->get_size()[0],
-            ell_->get_const_values());
+            num_stored_elements_per_row_ * this->get_size()[0],
+            values_.get_const_data());
     }
 
     /**
@@ -129,7 +130,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return ell_->get_col_idxs(); }
+    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -140,7 +141,7 @@ public:
      */
     const index_type *get_const_col_idxs() const noexcept
     {
-        return ell_->get_const_col_idxs();
+        return col_idxs_.get_const_data();
     }
 
     /**
@@ -169,10 +170,10 @@ public:
      */
     size_type get_num_stored_elements_per_row() const noexcept
     {
-        return ell_->get_num_stored_elements_per_row();
+        return num_stored_elements_per_row_;
     }
 
-    size_type get_stride() const noexcept { return ell_->get_stride(); }
+    size_type get_stride() const noexcept { return stride_; }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -189,9 +190,7 @@ protected:
     Cvcsr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
           size_type num_nonzeros = {})
         : EnableLinOp<Cvcsr>(exec, size)
-    {
-        ell_ = Ell<storage_type, index_type>::create(exec, size, num_nonzeros);
-    }
+    {}
 
     /**
      * Creates a CVCSR matrix from already allocated (and initialized) row
@@ -217,10 +216,16 @@ protected:
     Cvcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           ValuesArray &&values, ColIdxsArray &&col_idxs,
           size_type num_stored_elements_per_row, size_type stride)
-        : EnableLinOp<Cvcsr>(exec, size)
+        : EnableLinOp<Cvcsr>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          num_stored_elements_per_row_{num_stored_elements_per_row},
+          stride_{stride}
     {
-        ell_ = Ell<storage_type, index_type>::create(
-            exec, size, values, col_idxs, num_stored_elements_per_row, stride);
+        GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
+                      values_.get_num_elems());
+        GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
+                      col_idxs_.get_num_elems());
     }
 
     template <typename InputValueType>
@@ -228,14 +233,19 @@ protected:
           std::shared_ptr<Csr<InputValueType, index_type>> csr)
         : EnableLinOp<Cvcsr>(exec, csr->get_size())
     {
-        GKO_ASSERT_EQ(
-            (std::is_same<value_type, next_precision<storage_type>>::value ||
-             std::is_same<value_type, storage_type>::value),
-            true);
-        ell_ = Ell<storage_type, index_type>::create(exec);
-        auto tmp = Csr<storage_type, index_type>::create(exec);
-        csr->convert_to(tmp.get());
-        tmp->convert_to(ell_.get());
+        auto tmp_csr = as<Csr<remove_complex<InputValueType>, index_type>>(csr);
+        values_ = Array<storage_type>(exec);
+        auto tmp_ell =
+            Ell<remove_complex<InputValueType>, index_type>::create(exec);
+        tmp_csr->convert_to(tmp_ell.get());
+        stride_ = tmp_ell->get_stride();
+        auto num_rows = this->get_size()[0];
+        num_stored_elements_per_row_ =
+            tmp_ell->get_num_stored_elements_per_row();
+        auto tmp_vals = Array<remove_complex<InputValueType>>::view(
+            exec, num_stored_elements_per_row_ * num_rows,
+            tmp_ell->get_values());
+        values_ = tmp_vals;
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -248,7 +258,11 @@ protected:
     void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
 
 private:
-    std::shared_ptr<Ell<storage_type, index_type>> ell_;
+    std::shared_ptr<Ell<next_precision<value_type>, index_type>> ell_;
+    Array<storage_type> values_;
+    Array<index_type> col_idxs_;
+    size_type num_stored_elements_per_row_;
+    size_type stride_;
 };
 
 
