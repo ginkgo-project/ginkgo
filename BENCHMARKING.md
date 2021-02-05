@@ -297,7 +297,7 @@ The supported environment variables are described in the following list:
     `csr,coo,ell,hybrid,sellp`.
 * `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
     - the solvers which should be benchmarked. Multiple options can be passed.
-    The default is `bicgstab,cg,cgs.fcg.gmres,idr`. Note that `lower/upper_trs`
+    The default is `bicgstab,cg,cgs,fcg,gmres,idr`. Note that `lower/upper_trs`
     by default don't use a preconditioner, as they are by default exact direct
     solvers.
 * `SOLVERS_PRECISION=<precision>` - the minimal residual reduction before which
@@ -305,8 +305,8 @@ The supported environment variables are described in the following list:
 * `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
 * `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
-    random values or $b = A * (s / |s|)$ with $s(idx) = sin(idx)$ (for complex
-    numbers, $s(idx) = sin(2*idx) + i * sin(2*idx+1)$)
+    random values or b = A * (s / |s|)$ with s(idx) = sin(idx) (for complex
+    numbers, s(idx) = sin(2*idx) + i * sin(2*idx+1))
     as the right-hand side in solver benchmarks. Default is `1`.
 * `SOLVERS_INITIAL_GUESS={rhs,0,random}` - the initial guess generation of the
     solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`

@@ -109,7 +109,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
             } while (assumed != old);                                        \
             return reinterpret<ValueType>(old);                              \
         }                                                                    \
-    };  // namespace detail
+    };
 
 // Support 64-bit ATOMIC_ADD and ATOMIC_MAX
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
