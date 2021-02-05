@@ -194,7 +194,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                               &stop_status));
         }
         this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            r.get());
+                                                            s.get());
         if (all_converged) {
             break;
         }
