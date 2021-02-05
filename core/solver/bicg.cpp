@@ -186,14 +186,15 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     /* Memory movement summary:
      * Per iteration:
-     * 13.5n * values + matrix/preconditioner storage
+     * 14n * values + matrix/preconditioner storage
      * Two iterations:
-     * 27n * values + matrix/preconditioner storage + conj storage
+     * 28n * values + matrix/preconditioner storage + conj storage
      * 2x SpMV:                4n * values + storage + conj storage
      * 2x Preconditioner:      4n * values + storage + conj storage
      * 2x dot                  4n
      * 1x step 1 (axpys)       6n
      * 1x step 2 (axpys)       9n
+     * 1x norm2 residual        n
      */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());

@@ -140,15 +140,16 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = 0;
     /* Memory movement summary:
      * Per iteration:
-     * 13.5n * values + matrix/preconditioner storage
+     * 14n * values + matrix/preconditioner storage
      * Two iterations:
-     * 27n * values + 2 * matrix/preconditioner storage
+     * 28n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
      * 2x Preconditioner:      4n * values + 2 * storage
      * 2x dot                  4n
      * 1x step 1 (fused axpys) 5n
      * 1x step 2 (fused axpys) 4n
      * 1x step 3 (axpys)       6n
+     * 1x norm2 residual        n
      */
     while (true) {
         r->compute_dot(r_tld.get(), rho.get());
