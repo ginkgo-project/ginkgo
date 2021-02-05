@@ -481,8 +481,6 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         auto local_res = next_krylov_basis[next_krylov_idx];
         for (size_type k = 0; k < num_iters; ++k) {
-            // const auto krylov_idx =
-            //    row_idx * stride_krylov + k * num_cols + col_idx;
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             local_res -=

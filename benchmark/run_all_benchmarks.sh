@@ -37,7 +37,7 @@ fi
 
 if [ ! "${SOLVERS}" ]; then
     echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres,idr\"" 1>&2
-    SOLVERS="bicgstab,cg,cgs,fcg,gmres,idr"
+    SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
 fi
 
 if [ ! "${SOLVERS_PRECISION}" ]; then
