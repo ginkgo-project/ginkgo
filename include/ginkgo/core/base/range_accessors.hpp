@@ -35,8 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <type_traits>
 
 
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -50,6 +52,228 @@ namespace gko {
 namespace accessor {
 
 
+namespace detail {
+
+
+/**
+ * This helper runs from first to last dimension in order to compute the index.
+ * The index is computed like this:
+ * indices: x1, x2, x3, ...
+ * compute(stride, x1, x2, x3) -> x1 * stride[0] + x2 * stride[1] + x3
+ */
+template <typename ValueType, size_type total_dim, size_type current_iter = 1>
+struct row_major_helper_s {
+    static_assert(total_dim >= 1, "Dimensionality must be >= 1");
+    static_assert(current_iter < total_dim, "Iteration must be < total_dim!");
+
+    static constexpr size_type dim_idx{current_iter - 1};
+
+    template <typename FirstType, typename... Indices>
+    static constexpr GKO_ATTRIBUTES ValueType
+    compute(const std::array<ValueType, total_dim> &size,
+            const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>
+                &stride,
+            FirstType first, Indices &&...idxs)
+    {
+        return GKO_ASSERT(first < size[dim_idx]),
+               first * stride[dim_idx] +
+                   row_major_helper_s<ValueType, total_dim, current_iter + 1>::
+                       compute(size, stride, std::forward<Indices>(idxs)...);
+    }
+};
+
+template <typename ValueType, size_type total_dim>
+struct row_major_helper_s<ValueType, total_dim, total_dim> {
+    template <typename FirstType>
+    static constexpr GKO_ATTRIBUTES ValueType
+    compute(const std::array<ValueType, total_dim> &size,
+            const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>,
+            FirstType first)
+    {
+        return GKO_ASSERT(first < size[total_dim - 1]), first;
+    }
+};
+
+
+/**
+ * Computes the storage index for the given indices with respect to the given
+ * stride array
+ */
+template <typename ValueType, size_type total_dim, typename... Indices>
+constexpr GKO_ATTRIBUTES ValueType compute_storage_index(
+    const std::array<ValueType, total_dim> &size,
+    const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)> &stride,
+    Indices &&...idxs)
+{
+    return row_major_helper_s<ValueType, total_dim>::compute(
+        size, stride, std::forward<Indices>(idxs)...);
+}
+
+
+template <size_type iter, typename ValueType, size_type N>
+constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, int> spans_in_size(
+    const std::array<ValueType, N> &)
+{
+    return 0;
+}
+
+template <size_type iter, typename ValueType, size_type N, typename First,
+          typename... Remaining>
+constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), int> spans_in_size(
+    const std::array<ValueType, N> &size, First first, Remaining &&...remaining)
+{
+    static_assert(sizeof...(Remaining) + 1 == N - iter,
+                  "Number of remaining spans must be equal to N - iter");
+    return GKO_ASSERT(span{first}.is_valid()),
+           GKO_ASSERT(span{first} <= span{size[iter]}),
+           spans_in_size<iter + 1>(size, std::forward<Remaining>(remaining)...);
+}
+
+
+template <typename ValueType, size_type N, typename... Spans>
+constexpr GKO_ATTRIBUTES int validate_spans(
+    const std::array<ValueType, N> &size, Spans &&...spans)
+{
+    return detail::spans_in_size<0>(size, std::forward<Spans>(spans)...);
+}
+
+
+template <bool has_span, typename... Args>
+struct are_span_compatible_impl
+    : public std::integral_constant<bool, has_span> {};
+
+template <bool has_span, typename First, typename... Args>
+struct are_span_compatible_impl<has_span, First, Args...>
+    : public std::conditional<
+          std::is_integral<std::decay_t<First>>::value ||
+              std::is_same<std::decay_t<First>, span>::value,
+          are_span_compatible_impl<
+              has_span || std::is_same<std::decay_t<First>, span>::value,
+              Args...>,
+          std::false_type>::type {};
+
+
+/**
+ * Evaluates if at least one type of Args is a gko::span and the others either
+ * also gko::span or fulfill std::is_integral
+ */
+template <typename... Args>
+using are_span_compatible = are_span_compatible_impl<false, Args...>;
+
+
+template <typename ValueType, size_type N, size_type current, typename... Dims>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<(current == N), std::array<ValueType, N>>
+    to_array_impl(const dim<N> &size, Dims &&...dims)
+{
+    static_assert(sizeof...(Dims) == N,
+                  "Number of arguments must match dimensionality!");
+    return {{std::forward<Dims>(dims)...}};
+}
+
+
+template <typename ValueType, size_type N, size_type current, typename... Dims>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<(current < N), std::array<ValueType, N>>
+    to_array_impl(const dim<N> &size, Dims &&...dims)
+{
+    return to_array_impl<ValueType, N, current + 1>(
+        size, std::forward<Dims>(dims)..., size[current]);
+}
+
+
+template <typename ValueType, size_type N>
+constexpr GKO_ATTRIBUTES std::array<ValueType, N> to_array(const dim<N> &size)
+{
+    return to_array_impl<ValueType, N, 0>(size);
+}
+
+
+template <size_type iter, typename ValueType, size_type N>
+constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, ValueType>
+mult_dim_upwards_impl(const std::array<ValueType, N> &)
+{
+    return 1;
+}
+
+template <size_type iter, typename ValueType, size_type N>
+constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), ValueType>
+mult_dim_upwards_impl(const std::array<ValueType, N> &size)
+{
+    return size[iter] * mult_dim_upwards_impl<iter + 1>(size);
+}
+
+
+template <size_type iter = 1, typename ValueType, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<N == 0 || (iter == N && iter == sizeof...(Args) + 1),
+                     std::array<ValueType, N == 0 ? 0 : N - 1>>
+    compute_default_stride_array_impl(const std::array<ValueType, N> &,
+                                      Args &&...args)
+{
+    return {{std::forward<Args>(args)...}};
+}
+
+template <size_type iter = 1, typename ValueType, size_type N, typename... Args>
+constexpr GKO_ATTRIBUTES std::enable_if_t<
+    (iter < N) && (iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
+compute_default_stride_array_impl(const std::array<ValueType, N> &size,
+                                  Args &&...args)
+{
+    return compute_default_stride_array_impl<iter + 1>(
+        size, std::forward<Args>(args)..., mult_dim_upwards_impl<iter>(size));
+}
+
+
+template <typename ValueType, size_type dimensions>
+constexpr GKO_ATTRIBUTES
+    std::array<ValueType, (dimensions > 0 ? dimensions - 1 : 0)>
+    compute_default_stride_array(const std::array<ValueType, dimensions> &size)
+{
+    return compute_default_stride_array_impl(size);
+}
+
+
+template <size_type iter, typename ValueType, size_type N, typename Callable,
+          typename... Indices>
+GKO_ATTRIBUTES std::enable_if_t<iter == N> multidim_for_each_impl(
+    const std::array<ValueType, N> &, Callable callable, Indices &&...indices)
+{
+    static_assert(iter == sizeof...(Indices),
+                  "Number arguments must match current iteration!");
+    callable(std::forward<Indices>(indices)...);
+}
+
+template <size_type iter, typename ValueType, size_type N, typename Callable,
+          typename... Indices>
+GKO_ATTRIBUTES std::enable_if_t<(iter < N)> multidim_for_each_impl(
+    const std::array<ValueType, N> &size, Callable &&callable,
+    Indices &&...indices)
+{
+    static_assert(iter == sizeof...(Indices),
+                  "Number arguments must match current iteration!");
+    for (size_type i = 0; i < size[iter]; ++i) {
+        multidim_for_each_impl<iter + 1>(size, std::forward<Callable>(callable),
+                                         std::forward<Indices>(indices)..., i);
+    }
+}
+
+
+/**
+ * Creates a recursive for-loop for each dimension and calls dest(indices...) =
+ * source(indices...)
+ */
+template <typename ValueType, size_type N, typename Callable>
+GKO_ATTRIBUTES void multidim_for_each(const std::array<ValueType, N> &size,
+                                      Callable &&callable)
+{
+    multidim_for_each_impl<0>(size, std::forward<Callable>(callable));
+}
+
+
+}  // namespace detail
+
+
 /**
  * A row_major accessor is a bridge between a range and the row-major memory
  * layout.
@@ -59,19 +283,20 @@ namespace accessor {
  * constructor parameters for this class to the range (it will forward it to
  * this class).
  *
- * @warning The current implementation is incomplete, and only allows for
- *          2-dimensional ranges.
+ * @warning For backward compatability reasons, a specialization is provided
+ *          for dimensionality == 2.
  *
  * @tparam ValueType  type of values this accessor returns
- * @tparam Dimensionality  number of dimensions of this accessor (has to be 2)
+ * @tparam Dimensionality  number of dimensions of this accessor
  */
 template <typename ValueType, size_type Dimensionality>
 class row_major {
 public:
     friend class range<row_major>;
 
-    static_assert(Dimensionality == 2,
-                  "This accessor is only implemented for matrices");
+    static_assert(Dimensionality != 0,
+                  "This accessor does not support a dimensionality of 0!");
+    static constexpr size_type dimensionality = Dimensionality;
 
     /**
      * Type of values returned by the accessor.
@@ -86,9 +311,179 @@ public:
     /**
      * Number of dimensions of the accessor.
      */
-    static constexpr size_type dimensionality = 2;
 
     using const_accessor = row_major<const ValueType, Dimensionality>;
+    using stride_type = std::array<const size_type, dimensionality - 1>;
+    using length_type = std::array<const size_type, dimensionality>;
+
+protected:
+    /**
+     * Creates a row_major accessor.
+     *
+     * @param data  pointer to the block of memory containing the data
+     * @param lengths size / length of the accesses of each dimension
+     * @param stride  distance (in elements) between starting positions of
+     *                the dimensions (i.e.
+     *                `x_1 * stride_1 + x_2 * stride_2 * ... + x_n`
+     *                points to the element at (x_1, x_2, ..., x_n))
+     */
+    constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
+                                                dim<dimensionality> size,
+                                                stride_type stride)
+        : data{data},
+          lengths{detail::to_array<const size_type>(size)},
+          stride{stride}
+    {}
+
+    /**
+     * Creates a row_major accessor with a default stride (assumes no padding)
+     *
+     * @param data  pointer to the block of memory containing the data
+     * @param lengths size / length of the accesses of each dimension
+     */
+    constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
+                                                dim<dimensionality> size)
+        : data{data},
+          lengths{detail::to_array<const size_type>(size)},
+          stride{detail::compute_default_stride_array(lengths)}
+    {}
+
+public:
+    /**
+     * Creates a row_major range which contains a read-only version of the
+     * current accessor.
+     *
+     * @returns  a row major range which is read-only.
+     */
+    constexpr GKO_ATTRIBUTES range<const_accessor> to_const() const
+    {
+        // TODO Remove this functionality all together (if requested)
+        return range<const_accessor>(data, lengths, stride);
+    }
+
+    /**
+     * Returns the data element at the specified indices
+     *
+     * @param row  row index
+     * @param col  column index
+     *
+     * @return data element at (indices...)
+     */
+    template <typename... Indices>
+    constexpr GKO_ATTRIBUTES
+        std::enable_if_t<are_all_integral<Indices...>::value, value_type &>
+        operator()(Indices &&...indices) const
+    {
+        return data[detail::compute_storage_index(
+            lengths, stride, std::forward<Indices>(indices)...)];
+    }
+
+    /**
+     * Returns the sub-range spanning the range (x1_span, x2_span, ...)
+     *
+     * @param rows  row span
+     * @param cols  column span
+     *
+     * @return sub-range spanning the given spans
+     */
+    template <typename... SpanTypes>
+    constexpr GKO_ATTRIBUTES std::enable_if_t<
+        detail::are_span_compatible<SpanTypes...>::value, range<row_major>>
+    operator()(SpanTypes... spans) const
+    {
+        return detail::validate_spans(lengths, spans...),
+               range<row_major>{
+                   data + detail::compute_storage_index(lengths, stride,
+                                                        (span{spans}.begin)...),
+                   dim<dimensionality>{
+                       (span{spans}.end - span{spans}.begin)...},
+                   stride};
+    }
+
+    /**
+     * Returns the length in dimension `dimension`.
+     *
+     * @param dimension  a dimension index
+     *
+     * @return length in dimension `dimension`
+     */
+    constexpr GKO_ATTRIBUTES size_type length(size_type dimension) const
+    {
+        return lengths[dimension];
+    }
+
+    /**
+     * Copies data from another accessor
+     *
+     * @warning Do not use this function since it is not optimized for a
+     *          specific executor. It will always be performed sequentially.
+     *          Please write an optimized version (adjusted to the architecture)
+     *          by iterating through the values yourself.
+     *
+     * @tparam OtherAccessor  type of the other accessor
+     *
+     * @param other  other accessor
+     */
+    template <typename OtherAccessor>
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
+    {
+        detail::multidim_for_each(lengths, [this, &other](auto... indices) {
+            (*this)(indices...) = other(indices...);
+        });
+    }
+
+    /**
+     * Reference to the underlying data.
+     */
+    const data_type data;
+
+    /**
+     * An array of dimension sizes.
+     */
+    const length_type lengths;
+
+    /**
+     * Distance between consecutive rows for each dimension (except the first).
+     */
+    const stride_type stride;
+};
+
+
+/**
+ * A row_major accessor is a bridge between a range and the row-major memory
+ * layout.
+ *
+ * You should never try to explicitly create an instance of this accessor.
+ * Instead, supply it as a template parameter to a range, and pass the
+ * constructor parameters for this class to the range (it will forward it to
+ * this class).
+ *
+ * @note  This is the original implementation, which is now the specialization
+ *        for Dimensionality = 2.
+ *
+ * @tparam ValueType  type of values this accessor returns
+ */
+template <typename ValueType>
+class row_major<ValueType, 2> {
+public:
+    friend class range<row_major>;
+    static constexpr size_type dimensionality = 2;
+
+    /**
+     * Type of values returned by the accessor.
+     */
+    using value_type = ValueType;
+
+    /**
+     * Type of underlying data storage.
+     */
+    using data_type = value_type *;
+
+    /**
+     * Number of dimensions of the accessor.
+     */
+
+    using const_accessor = row_major<const ValueType, dimensionality>;
 
 protected:
     /**
@@ -106,6 +501,36 @@ protected:
                                                 size_type num_cols,
                                                 size_type stride)
         : data{data}, lengths{num_rows, num_cols}, stride{stride}
+    {}
+
+    /**
+     * Creates a row_major accessor.
+     *
+     * @param data  pointer to the block of memory containing the data
+     * @param lengths size / length of the accesses of each dimension
+     * @param stride  distance (in elements) between starting positions of
+     *                consecutive rows (i.e. `data + i * stride` points to
+     *                the `i`-th row)
+     */
+    constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
+                                                dim<dimensionality> size,
+                                                size_type stride)
+        : data{data},
+          lengths{detail::to_array<const size_type>(size)},
+          stride{stride}
+    {}
+
+    /**
+     * Creates a row_major accessor with a default stride (assumes no padding)
+     *
+     * @param data  pointer to the block of memory containing the data
+     * @param lengths size / length of the accesses of each dimension
+     */
+    constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
+                                                dim<dimensionality> size)
+        : data{data},
+          lengths{detail::to_array<const size_type>(size)},
+          stride{size[1]}
     {}
 
 public:
