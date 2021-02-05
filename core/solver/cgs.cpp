@@ -139,9 +139,6 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = 0;
     /* Memory movement summary:
-     * Per iteration:
-     * 14n * values + matrix/preconditioner storage
-     * Two iterations:
      * 28n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
      * 2x Preconditioner:      4n * values + 2 * storage
@@ -169,9 +166,6 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                    alpha.get(), rho.get(), gamma.get(),
                                    &stop_status));
 
-        ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
         get_preconditioner()->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         // r = r - alpha * t
