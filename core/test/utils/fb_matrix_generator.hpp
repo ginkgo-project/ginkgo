@@ -158,7 +158,7 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
 
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>>
-generate_random_square_fbcsr(std::shared_ptr<ReferenceExecutor> ref,
+generate_random_square_fbcsr(std::shared_ptr<const ReferenceExecutor> ref,
                              RandEngine engine, const IndexType nbrows,
                              const int mat_blk_sz, const bool diag_dominant,
                              const bool unsort)

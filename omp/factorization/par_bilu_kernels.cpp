@@ -30,85 +30,63 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
+#include "core/factorization/par_bilu_kernels.hpp"
 
 
 #include <memory>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
 namespace gko {
 namespace kernels {
-
-
-#define GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType) \
-    void compute_bilu_factors(                                              \
-        std::shared_ptr<const DefaultExecutor> exec, int iterations,        \
-        const gko::matrix::Fbcsr<ValueType, IndexType> *system_matrix,      \
-        gko::matrix::Fbcsr<ValueType, IndexType> *l_factor,                 \
-        gko::matrix::Fbcsr<ValueType, IndexType> *u_factor_t)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType)
-
-
 namespace omp {
+/**
+ * @brief The parallel iterative block ILU factorization namespace.
+ *
+ * @ingroup factor
+ */
 namespace par_bilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
 
+template <int bs, typename ValueType, typename IndexType>
+static void compute_bilu_impl(
+    const std::shared_ptr<const OmpExecutor> exec, const int iters,
+    const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+    matrix::Fbcsr<ValueType, IndexType> *const l_factor,
+    matrix::Fbcsr<ValueType, IndexType> *const u_factor_t) GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType, typename IndexType>
+void compute_bilu_factors(
+    const std::shared_ptr<const OmpExecutor> exec, const int iters,
+    const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+    matrix::Fbcsr<ValueType, IndexType> *const lfactor,
+    matrix::Fbcsr<ValueType, IndexType> *const ufactor)
+{
+    const int bs = sysmat->get_block_size();
+    GKO_ASSERT(bs == lfactor->get_block_size());
+    GKO_ASSERT(bs == ufactor->get_block_size());
+
+    if (bs == 2) {
+        compute_bilu_impl<2, ValueType, IndexType>(exec, iters, sysmat, lfactor,
+                                                   ufactor);
+    } else if (bs == 4) {
+        compute_bilu_impl<4, ValueType, IndexType>(exec, iters, sysmat, lfactor,
+                                                   ufactor);
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           " block size = " + std::to_string(bs));
+    }
 }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL);
+
+
+}  // namespace par_bilu_factorization
 }  // namespace omp
-
-
-namespace cuda {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace cuda
-
-
-namespace reference {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace reference
-
-
-namespace hip {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_

@@ -14,6 +14,7 @@ target_sources(ginkgo
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/bilu.cpp
+    factorization/par_bilu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp
     factorization/par_ilu.cpp

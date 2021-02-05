@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/par_bilu_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -1211,19 +1212,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace par_ic_factorization
 
 
-namespace bilu_factorization {
-
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
-
-
-}  // namespace bilu_factorization
-
-
 namespace par_ict_factorization {
 
 
@@ -1291,6 +1279,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
+
+
+namespace bilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BILU_COMPUTE_BLU_KERNEL);
+
+
+}  // namespace bilu_factorization
+
+
+namespace par_bilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL);
+
+
+}  // namespace par_bilu_factorization
+
+
 namespace rcm {
 
 

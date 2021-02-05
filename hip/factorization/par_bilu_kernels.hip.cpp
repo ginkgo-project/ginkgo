@@ -30,85 +30,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_PAR_BLOCK_ILU_KERNELS_HPP_
+#include "core/factorization/par_bilu_kernels.hpp"
 
 
 #include <memory>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
 namespace gko {
 namespace kernels {
-
-
-#define GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType) \
-    void compute_bilu_factors(                                              \
-        std::shared_ptr<const DefaultExecutor> exec, int iterations,        \
-        const gko::matrix::Fbcsr<ValueType, IndexType> *system_matrix,      \
-        gko::matrix::Fbcsr<ValueType, IndexType> *l_factor,                 \
-        gko::matrix::Fbcsr<ValueType, IndexType> *u_factor_t)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType)
-
-
-namespace omp {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace omp
-
-
-namespace cuda {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace cuda
-
-
-namespace reference {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace reference
-
-
 namespace hip {
+/**
+ * @brief The parallel iterative block ILU factorization namespace.
+ *
+ * @ingroup factor
+ */
 namespace par_bilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}
+template <typename ValueType, typename IndexType>
+void compute_bilu_factors(
+    const std::shared_ptr<const HipExecutor> exec, const int iters,
+    const matrix::Fbcsr<ValueType, IndexType> *const sysmat,
+    matrix::Fbcsr<ValueType, IndexType> *const lfactor,
+    matrix::Fbcsr<ValueType, IndexType> *const ufactor) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL);
+
+
+}  // namespace par_bilu_factorization
 }  // namespace hip
-
-
-namespace dpcpp {
-namespace par_bilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_FACTORIZATION_BLOCK_ILU_KERNELS_HPP_

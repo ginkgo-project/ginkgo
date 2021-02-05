@@ -175,6 +175,7 @@ set(GINKGO_HIP_SOURCES
     factorization/factorization_kernels.hip.cpp
     factorization/block_factorization_kernels.hip.cpp
     factorization/bilu_kernels.hip.cpp
+    factorization/par_bilu_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/par_ic_kernels.hip.cpp
