@@ -11,6 +11,7 @@ target_sources(ginkgo_omp
     factorization/factorization_kernels.cpp
     factorization/block_factorization_kernels.cpp
     factorization/bilu_kernels.cpp
+    factorization/par_bilu_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
     factorization/par_ic_kernels.cpp

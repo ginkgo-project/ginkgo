@@ -18,6 +18,7 @@ target_sources(ginkgo_dpcpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/bilu_kernels.dp.cpp
+    factorization/par_bilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
     factorization/block_factorization_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
