@@ -170,7 +170,7 @@ protected:
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<AmgxPgm>(factory->get_executor(),
                                system_matrix->get_size()),
-          MultigridLevel(factory->get_executor(), true),
+          MultigridLevel(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])

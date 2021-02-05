@@ -311,7 +311,7 @@ private:
  *
  * @ingroup Multigrid
  */
-class MultigridLevel : public RestrictOp, public ProlongOp, public CoarseOp {
+class MultigridLevel : public UseComposition {
 protected:
     /**
      * Sets the fine and coarse information.
@@ -319,64 +319,31 @@ protected:
      * @param fine  the matrix on fine level
      * @param coarse  the matrix on coarse level
      */
-    void set_multigrid_level(std::shared_ptr<const LinOp> fine,
-                             std::shared_ptr<const LinOp> coarse)
+    void set_multigrid_level(std::shared_ptr<const LinOp> prolong_op,
+                             std::shared_ptr<const LinOp> coarse_op,
+			     std::shared_ptr<const LinOp> restrict_op)
     {
-        this->set_fine_coarse(fine, coarse);
-        auto fine_dim = fine->get_size()[0];
-        auto coarse_dim = coarse->get_size()[0];
-        this->set_restrict_size(dim<2>{coarse_dim, fine_dim});
-        this->set_prolong_size(dim<2>{fine_dim, coarse_dim});
+	gko::dim<2> mg_size{prolong_op->get_size()[0], restrict_op->get_size()[1]};
+	// check mg_size is the same as fine_size
+	this->set_composition(prolong_op, coarse_op, restrict_op);
     }
 
-    /**
-     * A default apply of multigrid_level
-     *
-     * Performs the operation x = op(b) = prolong(coarse(restrict(b)))
-     *
-     * @tparam ValueType  precision of input and result vectors
-     *
-     * @param b  the input vector(s) on which the operator is applied
-     * @param x  the output vector(s) where the result is stored
-     */
-    template <typename ValueType>
-    void multigrid_level_default_apply(const LinOp *b, LinOp *x) const
-    {
-        auto num_cols = b->get_size()[1];
-        auto coarse = this->get_coarse_matrix();
-        auto coarse_b = matrix::Dense<ValueType>::create(
-            exec_, dim<2>{coarse->get_size()[1], num_cols});
-        auto coarse_x = matrix::Dense<ValueType>::create(
-            exec_, dim<2>{coarse->get_size()[0], num_cols});
-        this->restrict_apply(b, lend(coarse_b));
-        coarse->apply(lend(coarse_b), lend(coarse_x));
-        this->prolong_apply(lend(coarse_x), x);
+    std::shared_ptr<const LinOp> get_fine_op() const {
+        return fine_op_;
     }
 
-    /**
-     * A default advanced_apply of multigrid_level
-     *
-     * Performs the operation x = alpha * op(b) + beta * x
-     * = alpha * prolong(coarse(restrict(b))) + beta * x
-     *
-     * @tparam ValueType  precision of input and result vectors
-     *
-     * @param b  the input vector(s) on which the operator is applied
-     * @param x  the output vector(s) where the result is stored
-     */
-    template <typename ValueType>
-    void multigrid_level_default_apply(const LinOp *alpha, const LinOp *b,
-                                       const LinOp *beta, LinOp *x) const
-    {
-        auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-        auto x_clone = dense_x->clone();
-        this->template multigrid_level_default_apply<ValueType>(b,
-                                                                x_clone.get());
-        dense_x->scale(beta);
-        dense_x->add_scaled(alpha, x_clone.get());
+    std::shared_ptr<const LinOp> get_restrict_op() const {
+        return this->get_composition()[2];
     }
 
+    std::shared_ptr<const LinOp> get_coarse_op() const {
+        return this->get_composition()[1];
+    }
+
+    std::shared_ptr<const LinOp> get_prolong_op() const {
+        return this->get_composition()[0];
+    }
+   
     /**
      * Creates a MultigridLevel with settings
      *
@@ -389,13 +356,12 @@ protected:
      *       so needs to call `set_multigrid_level` to set corresponding
      *       information after generation.
      */
-    explicit MultigridLevel(std::shared_ptr<const Executor> exec,
-                            bool native_applyadd = false)
-        : exec_(exec), RestrictOp(exec), ProlongOp(exec, native_applyadd)
+    explicit MultigridLevel(std::shared_ptr<const LinOp> fine_op)
+        : fine_op_(fine_op)
     {}
 
 private:
-    std::shared_ptr<const Executor> exec_;
+    std::shared_ptr<const LinOp> fine_op_;
 };
 
 
