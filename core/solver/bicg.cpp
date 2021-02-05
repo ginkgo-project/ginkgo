@@ -185,9 +185,6 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = -1;
 
     /* Memory movement summary:
-     * Per iteration:
-     * 14n * values + matrix/preconditioner storage
-     * Two iterations:
      * 28n * values + matrix/preconditioner storage + conj storage
      * 2x SpMV:                4n * values + storage + conj storage
      * 2x Preconditioner:      4n * values + storage + conj storage
