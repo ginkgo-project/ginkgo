@@ -123,17 +123,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace cb_gmres {
 
 
-#define GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(_type)                        \
-    void initialize_1(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<_type> *b,                                         \
-        matrix::Dense<remove_complex<_type>> *b_norm,                          \
-        matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
-        matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
-        size_type krylov_dim)
+#define GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(_type)                     \
+    void initialize_1(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::Dense<_type> *b, matrix::Dense<_type> *residual,      \
+        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos, \
+        Array<stopping_status> *stop_status, size_type krylov_dim)
 
 
 #define GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(_type1, _range)            \
@@ -156,13 +153,10 @@ namespace cb_gmres {
         matrix::Dense<_type1> *residual_norm_collection, _range krylov_bases, \
         matrix::Dense<_type1> *hessenberg_iter,                               \
         matrix::Dense<_type1> *buffer_iter,                                   \
-        const matrix::Dense<remove_complex<_type1>> *b_norm,                  \
         matrix::Dense<remove_complex<_type1>> *arnoldi_norm, size_type iter,  \
         Array<size_type> *final_iter_nums,                                    \
         const Array<stopping_status> *stop_status,                            \
-        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,  \
-        int *num_reorth_steps, int *num_reorth_vectors)
-
+        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
 
 #define GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(_type1, _range)                    \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
@@ -182,9 +176,6 @@ namespace cb_gmres {
     GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, Accessor3d);       \
     template <typename ValueType, typename Accessor3d>               \
     GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, Accessor3d)
-
-
-}  // namespace cb_gmres
 
 
 namespace omp {

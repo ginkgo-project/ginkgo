@@ -115,7 +115,6 @@ void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -127,7 +126,6 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    kernels::hip::dense::compute_norm2(exec, b, b_norm);
     hipLaunchKernelGGL(
         initialize_1_kernel<block_size>, grid_dim, block_dim, 0, 0,
         b->get_size()[0], b->get_size()[1], krylov_dim,
@@ -223,8 +221,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
                          matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
                          size_type iter, const stopping_status *stop_status,
                          stopping_status *reorth_status,
-                         Array<size_type> *num_reorth, int *num_reorth_steps,
-                         int *num_reorth_vectors)
+                         Array<size_type> *num_reorth)
 {
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
@@ -324,8 +321,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
                                   &numReorth);
     // numReorth <= number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
-        (*num_reorth_steps)++;
-        (*num_reorth_vectors) += iter;
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
@@ -414,7 +409,6 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
                      matrix::Dense<ValueType> *hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>> *residual_norm,
                      matrix::Dense<ValueType> *residual_norm_collection,
-                     const matrix::Dense<remove_complex<ValueType>> *b_norm,
                      size_type iter, const Array<stopping_status> *stop_status)
 {
     // TODO: tune block_size for optimal performance
@@ -433,7 +427,6 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
         givens_cos->get_stride(), as_hip_type(residual_norm->get_values()),
         as_hip_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride(),
-        as_hip_type(b_norm->get_const_values()),
         as_hip_type(stop_status->get_const_data()));
 }
 
@@ -447,12 +440,10 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
             matrix::Dense<ValueType> *residual_norm_collection,
             Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
-            const matrix::Dense<remove_complex<ValueType>> *b_norm,
             matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
             size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
-            int *num_reorth_steps, int *num_reorth_vectors)
+            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
 {
     hipLaunchKernelGGL(
         increase_final_iteration_numbers_kernel,
@@ -465,11 +456,9 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
     finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                         buffer_iter, arnoldi_norm, iter,
                         stop_status->get_const_data(),
-                        reorth_status->get_data(), num_reorth, num_reorth_steps,
-                        num_reorth_vectors);
+                        reorth_status->get_data(), num_reorth);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
-                    residual_norm, residual_norm_collection, b_norm, iter,
-                    stop_status);
+                    residual_norm, residual_norm_collection, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);

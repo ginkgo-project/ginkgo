@@ -625,8 +625,7 @@ __device__ void calculate_residual_norm_kernel(
     const ValueType *givens_cos, size_type stride_cos,
     remove_complex<ValueType> *residual_norm,
     ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection,
-    const remove_complex<ValueType> *b_norm)
+    size_type stride_residual_norm_collection)
 {
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] =
@@ -653,7 +652,6 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const remove_complex<ValueType> *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
     const auto col_idx = thread::get_thread_id_flat();
@@ -706,7 +704,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     calculate_residual_norm_kernel(col_idx, num_cols, iter, givens_sin,
                                    stride_sin, givens_cos, stride_cos,
                                    residual_norm, residual_norm_collection,
-                                   stride_residual_norm_collection, b_norm);
+                                   stride_residual_norm_collection);
     // Calculate residual norm
 }
 
@@ -727,7 +725,7 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
         return;
     }
 
-    for (int i = final_iter_nums[col_idx] - 1; i >= 0; --i) {
+    for (int64 i = final_iter_nums[col_idx] - 1; i >= 0; --i) {
         auto temp =
             residual_norm_collection[i * stride_residual_norm_collection +
                                      col_idx];

@@ -194,7 +194,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
-        using LowArray = Array<storage_type>;
         using Range3dHelper =
             gko::cb_gmres::Range3dHelper<ValueType, storage_type>;
 
@@ -237,8 +236,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
         auto residual_norm =
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
-        auto b_norm =
-            VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
         // 1st row of arnoldi_norm: == eta * norm2(old_next_krylov_basis)
         //                          with eta == 1 / sqrt(2)
         //                          (computed right before updating
@@ -261,13 +258,11 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                              dense_b->get_size()[1]);
         Array<size_type> num_reorth(this->get_executor(),
                                     dense_b->get_size()[1]);
-        int num_restarts = 0, num_reorth_steps = 0, num_reorth_vectors = 0;
 
         // Initialization
         exec->run(cb_gmres::make_initialize_1(
-            dense_b, b_norm.get(), residual.get(), givens_sin.get(),
-            givens_cos.get(), &stop_status, krylov_dim_));
-        // b_norm = norm(b)
+            dense_b, residual.get(), givens_sin.get(), givens_cos.get(),
+            &stop_status, krylov_dim_));
         // residual = dense_b
         // givens_sin = givens_cos = 0
         system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
@@ -380,7 +375,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
             if (perform_reset || restart_iter == krylov_dim_) {
                 perform_reset = false;
-                num_restarts++;
                 // Restart
                 // use a view in case this is called earlier
                 auto hessenberg_view = hessenberg->create_submatrix(
@@ -439,9 +433,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                 residual_norm.get(), residual_norm_collection.get(),
                 krylov_bases_range, hessenberg_iter.get(), buffer_iter.get(),
-                b_norm.get(), arnoldi_norm.get(), restart_iter,
-                &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
-                &num_reorth_steps, &num_reorth_vectors));
+                arnoldi_norm.get(), restart_iter, &final_iter_nums,
+                &stop_status, &reorth_status, &num_reorth));
             // for i in 0:restart_iter
             //     hessenberg(restart_iter, i) = next_krylov_basis' *
             //     krylov_bases(:, i) next_krylov_basis  -=

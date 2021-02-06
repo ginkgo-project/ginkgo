@@ -57,7 +57,6 @@ namespace cb_gmres {
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -91,12 +90,11 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *residual_norm_collection,
             Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
-            const matrix::Dense<remove_complex<ValueType>> *b_norm,
             matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
             size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
-            int *num_reorth_steps, int *num_reorth_vectors) GKO_NOT_IMPLEMENTED;
+            Array<stopping_status> *reorth_status,
+            Array<size_type> *num_reorth) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 

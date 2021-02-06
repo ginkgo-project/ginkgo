@@ -190,11 +190,11 @@ struct helper_functions_accessor<Accessor3d, false> {
                   "Accessor must not have a scale here!");
 
     template <typename IndexType>
-    static inline GKO_ATTRIBUTES void write_scalar(Accessor3d krylov_bases,
-                                                   IndexType vector_idx,
-                                                   IndexType col_idx,
-                                                   arithmetic_type value)
-    {}
+    static inline GKO_ATTRIBUTES void write_scalar(Accessor3d, IndexType,
+                                                   IndexType, arithmetic_type)
+    {
+        // Since there is no scalar, there is nothing to write.
+    }
 
     static constexpr GKO_ATTRIBUTES std::array<size_type, dimensionality - 1>
     get_stride(Accessor3d krylov_bases)
