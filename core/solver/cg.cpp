@@ -138,6 +138,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho->compute_absolute().get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;

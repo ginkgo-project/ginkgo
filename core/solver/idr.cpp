@@ -155,6 +155,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     residual->copy_from(dense_b);
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
+    residual->compute_norm2(residual_norm.get());
 
     // g = u = 0
     exec->run(idr::make_fill_array(
@@ -178,6 +179,7 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual.get())
+                .residual_norm(residual_norm.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
