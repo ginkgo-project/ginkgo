@@ -91,6 +91,16 @@ protected:
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
+          gmres_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNormReduction<
+                          value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
           mtx_medium(
               gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
                                     {7.70, -77.00, 3.30, -149.20, 74.80},
@@ -106,6 +116,7 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename Solver::Factory> gmres_factory;
     std::unique_ptr<typename Solver::Factory> gmres_factory_big;
+    std::unique_ptr<typename Solver::Factory> gmres_factory_big2;
 };
 
 TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes);
@@ -210,6 +221,20 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Gmres, SolveWithImplicitResNormCritIsDisabled)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->gmres_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    ASSERT_THROW(solver->apply(b.get(), x.get()), gko::NotSupported);
 }
 
 

@@ -89,6 +89,16 @@ protected:
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
+          bicg_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNormReduction<
+                          value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
           mtx_non_symmetric(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec))
 
@@ -101,6 +111,7 @@ protected:
     std::shared_ptr<Mtx> mtx_non_symmetric;
     std::unique_ptr<typename Solver::Factory> bicg_factory;
     std::unique_ptr<typename Solver::Factory> bicg_factory_big;
+    std::unique_ptr<typename Solver::Factory> bicg_factory_big2;
     std::unique_ptr<typename Solver::Factory> bicg_factory_non_symmetric;
 };
 
@@ -197,6 +208,23 @@ TYPED_TEST(Bicg, SolvesBigDenseSystem2)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto solver = this->bicg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 1e2);
+}
+
+
+TYPED_TEST(Bicg, SolvesBigDenseSystemImplicitResNormCrit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->bicg_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
         this->exec);

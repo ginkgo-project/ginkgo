@@ -89,6 +89,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
+    using AbsVector = matrix::Dense<remove_complex<ValueType>>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -113,6 +114,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto gamma = Vector::create_with_config_of(alpha.get());
     auto prev_rho = Vector::create_with_config_of(alpha.get());
     auto rho = Vector::create_with_config_of(alpha.get());
+    auto rho_abs = AbsVector::create(exec, alpha->get_size());
     auto omega = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
@@ -140,15 +142,17 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
+        rr->compute_dot(r.get(), rho.get());
+        rho_abs = rho->compute_absolute();
+
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho_abs.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-
-        rr->compute_dot(r.get(), rho.get());
 
         exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
@@ -169,6 +173,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             stop_criterion->update()
                 .num_iterations(iter)
                 .residual(s.get())
+                .implicit_sq_residual_norm(rho_abs.get())
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {

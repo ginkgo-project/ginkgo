@@ -73,6 +73,18 @@ protected:
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
+          bicgstab_factory2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(8u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ImplicitResidualNormReduction<
+                          value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
           bicgstab_factory_precision(
               Solver::build()
                   .with_criteria(
@@ -90,6 +102,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> bicgstab_factory;
+    std::unique_ptr<typename Solver::Factory> bicgstab_factory2;
     std::unique_ptr<typename Solver::Factory> bicgstab_factory_precision;
 };
 
@@ -118,6 +131,25 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystems)
     using T = value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({{-4.0, 1.0}, {-1.0, 2.0}, {4.0, -1.0}}),
+                        half_tol);
+}
+
+
+TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsWithImplicitResNormCrit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver = this->bicgstab_factory2->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
     auto x = gko::initialize<Mtx>(
