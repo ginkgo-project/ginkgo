@@ -259,6 +259,114 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 }
 
 
+class ImplicitResidualNormReduction : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::Dense<>;
+
+    ImplicitResidualNormReduction()
+    {
+        ref_ = gko::ReferenceExecutor::create();
+        cuda_ = gko::CudaExecutor::create(0, ref_);
+        factory_ = gko::stop::ImplicitResidualNormReduction<>::build()
+                       .with_reduction_factor(tol)
+                       .on(cuda_);
+    }
+
+    std::unique_ptr<gko::stop::ImplicitResidualNormReduction<>::Factory>
+        factory_;
+    std::shared_ptr<const gko::CudaExecutor> cuda_;
+    std::shared_ptr<gko::ReferenceExecutor> ref_;
+};
+
+
+TEST_F(ImplicitResidualNormReduction, WaitsTillResidualGoal)
+{
+    auto res = gko::initialize<Mtx>({100.0}, ref_);
+    auto d_res = Mtx::create(cuda_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
+    bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
+    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    stop_status.get_data()[0].reset();
+    stop_status.set_executor(cuda_);
+
+    ASSERT_FALSE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+
+    res->at(0) = std::pow(tol * 1.1e+1, 2);
+    d_res->copy_from(res.get());
+    ASSERT_FALSE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_FALSE(stop_status.get_data()[0].has_converged());
+    stop_status.set_executor(cuda_);
+    ASSERT_FALSE(one_changed);
+
+    res->at(0) = std::pow(tol * 0.9e+1, 2);
+    d_res->copy_from(res.get());
+    ASSERT_TRUE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_TRUE(stop_status.get_data()[0].has_converged());
+    ASSERT_TRUE(one_changed);
+}
+
+
+TEST_F(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+{
+    auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
+    auto d_res = Mtx::create(cuda_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
+    bool one_changed{};
+    constexpr gko::uint8 RelativeStoppingId{1};
+    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[1].reset();
+    stop_status.set_executor(cuda_);
+
+    ASSERT_FALSE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+
+    res->at(0, 0) = std::pow(tol * 0.9e+1, 2);
+    d_res->copy_from(res.get());
+    ASSERT_FALSE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_TRUE(stop_status.get_data()[0].has_converged());
+    stop_status.set_executor(cuda_);
+    ASSERT_TRUE(one_changed);
+
+    res->at(0, 1) = std::pow(tol * 0.9e+1, 2);
+    d_res->copy_from(res.get());
+    ASSERT_TRUE(
+        criterion->update()
+            .implicit_sq_residual_norm(d_res.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(ref_);
+    ASSERT_TRUE(stop_status.get_data()[1].has_converged());
+    ASSERT_TRUE(one_changed);
+}
+
+
 class AbsoluteResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
