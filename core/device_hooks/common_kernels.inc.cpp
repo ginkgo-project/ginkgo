@@ -1189,6 +1189,19 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+
+template <typename ValueType>
+GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
+
+
+}  // namespace implicit_residual_norm
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

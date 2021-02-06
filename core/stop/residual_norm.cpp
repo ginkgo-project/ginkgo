@@ -49,6 +49,16 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 }  // namespace residual_norm
 
 
+namespace implicit_residual_norm {
+
+
+GKO_REGISTER_OPERATION(implicit_residual_norm,
+                       implicit_residual_norm::implicit_residual_norm);
+
+
+}  // namespace implicit_residual_norm
+
+
 template <typename ValueType>
 bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
                                          Array<stopping_status> *stop_status,
@@ -79,6 +89,30 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
     return all_converged;
 }
 
+
+template <typename ValueType>
+bool ImplicitResidualNormReduction<ValueType>::check_impl(
+    uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
+    bool *one_changed, const Criterion::Updater &updater)
+{
+    const NormVector *dense_tau;
+    if (updater.implicit_sq_residual_norm_ != nullptr) {
+        dense_tau = as<NormVector>(updater.implicit_sq_residual_norm_);
+    } else {
+        GKO_NOT_SUPPORTED(nullptr);
+    }
+    bool all_converged = true;
+
+    this->get_executor()->run(
+        implicit_residual_norm::make_implicit_residual_norm(
+            dense_tau, this->starting_tau_.get(), this->reduction_factor_,
+            stoppingId, setFinalized, stop_status, &device_storage_,
+            &all_converged, one_changed));
+
+    return all_converged;
+}
+
+
 template <typename ValueType>
 void AbsoluteResidualNorm<ValueType>::initialize_starting_tau()
 {
@@ -90,6 +124,11 @@ void AbsoluteResidualNorm<ValueType>::initialize_starting_tau()
 
 #define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
+
+
+#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
+    class ImplicitResidualNormReduction<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
 
 
 #define GKO_DECLARE_ABSOLUTE_RESIDUAL_NORM(_type) \
