@@ -69,6 +69,34 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 
 
 }  // namespace residual_norm
+
+
+/**
+ * @brief The Residual norm stopping criterion namespace.
+ * @ref resnorm
+ * @ingroup resnorm
+ */
+namespace implicit_residual_norm {
+
+
+constexpr int default_group_size = 512;
+
+
+template <typename ValueType>
+void implicit_residual_norm(std::shared_ptr<const DpcppExecutor> exec,
+                            const matrix::Dense<ValueType> *tau,
+                            const matrix::Dense<ValueType> *orig_tau,
+                            ValueType rel_residual_goal, uint8 stoppingId,
+                            bool setFinalized,
+                            Array<stopping_status> *stop_status,
+                            Array<bool> *device_storage, bool *all_converged,
+                            bool *one_changed) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
+
+
+}  // namespace implicit_residual_norm
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

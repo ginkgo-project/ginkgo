@@ -70,6 +70,7 @@ public:
      * does not build an object. This allows calling a Criterion's check in the
      * form of: stop_criterion->update() .num_iterations(num_iterations)
      *   .residual_norm(residual_norm)
+     *   .implicit_sq_residual_norm(implicit_sq_residual_norm)
      *   .residual(residual)
      *   .solution(solution)
      *   .check(converged);
@@ -117,6 +118,8 @@ public:
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
         GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, residual);
         GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, residual_norm);
+        GKO_UPDATER_REGISTER_PARAMETER(const LinOp *,
+                                       implicit_sq_residual_norm);
         GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, solution);
 
 #undef GKO_UPDATER_REGISTER_PARAMETER

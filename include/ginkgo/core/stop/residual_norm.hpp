@@ -227,6 +227,84 @@ protected:
 
 
 /**
+ * The ImplicitResidualNormReduction class is a stopping criterion which
+ * stops the iteration process when the residual norm is below a certain
+ * threshold recurrent to the norm of the right-hand side, i.e. when
+ * norm(residual) / norm(right_hand_side) < threshold.
+ * For better performance, the checks are run thanks to kernels on
+ * the executor where the algorithm is executed.
+ *
+ * @note To use this stopping criterion there are some dependencies. The
+ * constructor depends on `b` in order to compute the norm of the
+ * right-hand side. If this is not correctly provided, an exception
+ * ::gko::NotSupported() is thrown.
+ *
+ * @ingroup stop
+ */
+template <typename ValueType = default_precision>
+class ImplicitResidualNormReduction : public ResidualNorm<ValueType> {
+public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Vector = matrix::Dense<ValueType>;
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Recurrent residual norm goal
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+    };
+    GKO_ENABLE_CRITERION_FACTORY(ImplicitResidualNormReduction<ValueType>,
+                                 parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+protected:
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    Array<stopping_status> *stop_status, bool *one_changed,
+                    const Criterion::Updater &) override;
+
+    explicit ImplicitResidualNormReduction(
+        std::shared_ptr<const gko::Executor> exec)
+        : ResidualNorm<ValueType>(exec), device_storage_{exec, 2}
+    {}
+
+    explicit ImplicitResidualNormReduction(const Factory *factory,
+                                           const CriterionArgs &args)
+        : ResidualNorm<ValueType>(factory->get_executor(),
+                                  factory->get_parameters().reduction_factor),
+          parameters_{factory->get_parameters()},
+          device_storage_{factory->get_executor(), 2}
+    {
+        if (args.b == nullptr) {
+            GKO_NOT_SUPPORTED(nullptr);
+        }
+
+        auto exec = factory->get_executor();
+
+        this->reduction_factor_ = factory->get_parameters().reduction_factor;
+        this->starting_tau_ =
+            NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
+        this->u_dense_tau_ =
+            NormVector::create_with_config_of(this->starting_tau_.get());
+        if (dynamic_cast<const ComplexVector *>(args.b.get())) {
+            auto dense_rhs = as<ComplexVector>(args.b);
+            dense_rhs->compute_norm2(this->starting_tau_.get());
+        } else {
+            auto dense_rhs = as<Vector>(args.b);
+            dense_rhs->compute_norm2(this->starting_tau_.get());
+        }
+    }
+
+private:
+    remove_complex<ValueType> reduction_factor_{};
+    /* Contains device side: all_converged and one_changed booleans */
+    Array<bool> device_storage_;
+};
+
+
+/**
  * The AbsoluteResidualNorm class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
  * threshold, i.e. when norm(residual) / threshold.

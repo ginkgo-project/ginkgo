@@ -63,12 +63,39 @@ namespace residual_norm {
 }  // namespace residual_norm
 
 
+namespace implicit_residual_norm {
+
+
+#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(_type)                       \
+    void implicit_residual_norm(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
+        _type rel_residual_goal, uint8 stoppingId, bool setFinalized,          \
+        Array<stopping_status> *stop_status, Array<bool> *device_storage,      \
+        bool *all_converged, bool *one_changed)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES2 \
+    template <typename ValueType>     \
+    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
+
+
+}  // namespace implicit_residual_norm
+
+
 namespace omp {
 namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES2;
+
+}  // namespace implicit_residual_norm
 }  // namespace omp
 
 
@@ -78,6 +105,13 @@ namespace residual_norm {
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES2;
+
+}  // namespace implicit_residual_norm
 }  // namespace cuda
 
 
@@ -87,6 +121,13 @@ namespace residual_norm {
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES2;
+
+}  // namespace implicit_residual_norm
 }  // namespace reference
 
 
@@ -96,6 +137,13 @@ namespace residual_norm {
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES2;
+
+}  // namespace implicit_residual_norm
 }  // namespace hip
 
 
@@ -105,10 +153,18 @@ namespace residual_norm {
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace residual_norm
+
+
+namespace implicit_residual_norm {
+
+GKO_DECLARE_ALL_AS_TEMPLATES2;
+
+}  // namespace implicit_residual_norm
 }  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
+#undef GKO_DECLARE_ALL_AS_TEMPLATES2
 
 }  // namespace kernels
 }  // namespace gko
