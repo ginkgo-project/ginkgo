@@ -134,7 +134,6 @@ std::unique_ptr<vec<etype>> generate_rhs(
     std::shared_ptr<const gko::Executor> exec,
     std::shared_ptr<const gko::LinOp> system_matrix, Engine engine)
 {
-    using rc_etype = gko::remove_complex<etype>;
     gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
     if (FLAGS_rhs_generation == "1") {
         return create_matrix<etype>(exec, vec_size, gko::one<etype>());
@@ -170,7 +169,6 @@ std::unique_ptr<vec<etype>> generate_initial_guess(
     std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype> *rhs,
     Engine engine)
 {
-    using rc_etype = gko::remove_complex<etype>;
     gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
     if (FLAGS_initial_guess_generation == "0") {
         return create_matrix<etype>(exec, vec_size, gko::zero<etype>());
@@ -223,8 +221,7 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 
 template <typename SolverIntermediate>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
-    SolverIntermediate &&inter,
-    const std::shared_ptr<const gko::Executor> &exec,
+    SolverIntermediate inter, const std::shared_ptr<const gko::Executor> &exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
     return inter.with_criteria(create_criterion(exec))

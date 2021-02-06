@@ -125,7 +125,6 @@ protected:
         y = gen_mtx(default_krylov_dim_mixed, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
-        b_norm = gen_mtx(1, n);
         arnoldi_norm = gen_mtx(3, n);
         gko::dim<3> krylov_bases_dim(default_krylov_dim_mixed + 1, m, n);
         range_helper = generate_krylov_helper(krylov_bases_dim);
@@ -168,8 +167,6 @@ protected:
         d_y->copy_from(y.get());
         d_b = Mtx::create(cuda);
         d_b->copy_from(b.get());
-        d_b_norm = Mtx::create(cuda);
-        d_b_norm->copy_from(b_norm.get());
         d_arnoldi_norm = Mtx::create(cuda);
         d_arnoldi_norm->copy_from(arnoldi_norm.get());
         d_range_helper = Range3dHelper{cuda, {}};
@@ -229,7 +226,6 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> arnoldi_norm;
     Range3dHelper range_helper;
     std::unique_ptr<Mtx> next_krylov_basis;
@@ -250,7 +246,6 @@ protected:
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_arnoldi_norm;
     Range3dHelper d_range_helper;
     std::unique_ptr<Mtx> d_next_krylov_basis;
@@ -274,13 +269,12 @@ TEST_F(CbGmres, CudaCbGmresInitialize1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cb_gmres::initialize_1(
-        ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), stop_status.get(), default_krylov_dim_mixed);
+        ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
+        stop_status.get(), default_krylov_dim_mixed);
     gko::kernels::cuda::cb_gmres::initialize_1(
-        cuda, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
+        cuda, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(), default_krylov_dim_mixed);
 
-    GKO_ASSERT_MTX_NEAR(d_b_norm, b_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
@@ -316,23 +310,20 @@ TEST_F(CbGmres, CudaCbGmresStep1IsEquivalentToRef)
 {
     initialize_data();
     int iter = 5;
-    int num_reorth_steps = 0, num_reorth_vectors = 0;
-    int d_num_reorth_steps = 0, d_num_reorth_vectors = 0;
 
     gko::kernels::reference::cb_gmres::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(),
         range_helper.get_range(), hessenberg_iter.get(), buffer_iter.get(),
-        b_norm.get(), arnoldi_norm.get(), iter, final_iter_nums.get(),
-        stop_status.get(), reorth_status.get(), num_reorth.get(),
-        &num_reorth_steps, &num_reorth_vectors);
+        arnoldi_norm.get(), iter, final_iter_nums.get(), stop_status.get(),
+        reorth_status.get(), num_reorth.get());
     gko::kernels::cuda::cb_gmres::step_1(
         cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_range_helper.get_range(), d_hessenberg_iter.get(),
-        d_buffer_iter.get(), d_b_norm.get(), d_arnoldi_norm.get(), iter,
+        d_buffer_iter.get(), d_arnoldi_norm.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get(), d_reorth_status.get(),
-        d_num_reorth.get(), &num_reorth_steps, &num_reorth_vectors);
+        d_num_reorth.get());
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
