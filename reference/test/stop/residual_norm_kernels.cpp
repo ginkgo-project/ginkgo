@@ -314,11 +314,25 @@ protected:
         factory_ = gko::stop::ImplicitResidualNormReduction<T>::build()
                        .with_reduction_factor(r<T>::value)
                        .on(exec_);
+        factory_2_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+                         .with_reduction_factor(r<T>::value)
+                         .with_relative_to("initial_residual")
+                         .on(exec_);
+        factory_3_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+                         .with_reduction_factor(r<T>::value)
+                         .with_relative_to("rhs")
+                         .on(exec_);
     }
 
     std::unique_ptr<
         typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
         factory_;
+    std::unique_ptr<
+        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+        factory_2_;
+    std::unique_ptr<
+        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+        factory_3_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
@@ -330,11 +344,16 @@ TYPED_TEST(ImplicitResidualNormReduction, CanCreateFactory)
     ASSERT_NE(this->factory_, nullptr);
     ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
               r<TypeParam>::value);
+    ASSERT_EQ(this->factory_->get_parameters().relative_to, "rhs");
+    ASSERT_EQ(this->factory_2_->get_parameters().relative_to,
+              "initial_residual");
+    ASSERT_EQ(this->factory_3_->get_parameters().relative_to, "rhs");
     ASSERT_EQ(this->factory_->get_executor(), this->exec_);
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, CannotCreateCriterionWithoutB)
+TYPED_TEST(ImplicitResidualNormReduction,
+           CannotCreateCriterionWithoutBAndInitRes)
 {
     ASSERT_THROW(this->factory_->generate(nullptr, nullptr, nullptr, nullptr),
                  gko::NotSupported);
@@ -348,6 +367,16 @@ TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithB)
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, scalar, nullptr, nullptr);
+    ASSERT_NE(criterion, nullptr);
+}
+
+
+TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithInitialRes)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    auto criterion = this->factory_2_->generate(nullptr, nullptr, nullptr,
+                                                initial_res.get());
     ASSERT_NE(criterion, nullptr);
 }
 

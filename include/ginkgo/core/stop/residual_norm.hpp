@@ -228,15 +228,16 @@ protected:
 
 /**
  * The ImplicitResidualNormReduction class is a stopping criterion which
- * stops the iteration process when the residual norm is below a certain
- * threshold recurrent to the norm of the right-hand side, i.e. when
- * norm(residual) / norm(right_hand_side) < threshold.
- * For better performance, the checks are run thanks to kernels on
- * the executor where the algorithm is executed.
+ * stops the iteration process when the implicit residual norm is below a
+ * certain threshold relative to either the norm of the right-hand side, i.e.
+ * when norm(residual) / norm(right_hand_side) < threshold or the initial
+ * residual, i.e. when norm(residual) / norm(initial_residual) < threshold. For
+ * better performance, the checks are run on the executor
+ * where the algorithm is executed.
  *
  * @note To use this stopping criterion there are some dependencies. The
- * constructor depends on `b` in order to compute the norm of the
- * right-hand side. If this is not correctly provided, an exception
+ * constructor depends on either `b` or the `initial_residual` in order to
+ * compute their norms. If this is not correctly provided, an exception
  * ::gko::NotSupported() is thrown.
  *
  * @ingroup stop
@@ -251,10 +252,16 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Recurrent residual norm goal
+         * Implicit residual norm reduction factor
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
             reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+
+        /**
+         * The quantity the reduction is relative to. Choices include "rhs" and
+         * "initial_residual"
+         */
+        std::string GKO_FACTORY_PARAMETER_SCALAR(relative_to, "rhs");
     };
     GKO_ENABLE_CRITERION_FACTORY(ImplicitResidualNormReduction<ValueType>,
                                  parameters, Factory);
@@ -277,28 +284,59 @@ protected:
           parameters_{factory->get_parameters()},
           device_storage_{factory->get_executor(), 2}
     {
-        if (args.b == nullptr) {
+        this->reduction_factor_ = factory->get_parameters().reduction_factor;
+        this->relative_to_rhs_ =
+            factory->get_parameters().relative_to.compare("rhs") == 0;
+        this->relative_to_initial_residual_ =
+            factory->get_parameters().relative_to.compare("initial_residual") ==
+            0;
+        if (this->relative_to_rhs_ && args.b == nullptr) {
+            GKO_NOT_SUPPORTED(nullptr);
+        }
+        if (this->relative_to_initial_residual_ &&
+            args.initial_residual == nullptr) {
+            GKO_NOT_SUPPORTED(nullptr);
+        }
+
+        size_type tau_size = 0;
+        if (this->relative_to_rhs_) {
+            tau_size = args.b->get_size()[1];
+        } else if (this->relative_to_initial_residual_) {
+            tau_size = args.initial_residual->get_size()[1];
+        } else {
             GKO_NOT_SUPPORTED(nullptr);
         }
 
         auto exec = factory->get_executor();
 
-        this->reduction_factor_ = factory->get_parameters().reduction_factor;
-        this->starting_tau_ =
-            NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
+        this->starting_tau_ = NormVector::create(exec, dim<2>{1, tau_size});
         this->u_dense_tau_ =
             NormVector::create_with_config_of(this->starting_tau_.get());
-        if (dynamic_cast<const ComplexVector *>(args.b.get())) {
-            auto dense_rhs = as<ComplexVector>(args.b);
-            dense_rhs->compute_norm2(this->starting_tau_.get());
+        if (this->relative_to_rhs_) {
+            if (dynamic_cast<const ComplexVector *>(args.b.get())) {
+                auto dense_rhs = as<ComplexVector>(args.b);
+                dense_rhs->compute_norm2(this->starting_tau_.get());
+            } else {
+                auto dense_rhs = as<Vector>(args.b);
+                dense_rhs->compute_norm2(this->starting_tau_.get());
+            }
+        } else if (this->relative_to_initial_residual_) {
+            if (dynamic_cast<const ComplexVector *>(args.initial_residual)) {
+                auto dense_r = as<ComplexVector>(args.initial_residual);
+                dense_r->compute_norm2(this->starting_tau_.get());
+            } else {
+                auto dense_r = as<Vector>(args.initial_residual);
+                dense_r->compute_norm2(this->starting_tau_.get());
+            }
         } else {
-            auto dense_rhs = as<Vector>(args.b);
-            dense_rhs->compute_norm2(this->starting_tau_.get());
+            GKO_NOT_SUPPORTED(nullptr);
         }
     }
 
 private:
     remove_complex<ValueType> reduction_factor_{};
+    bool relative_to_rhs_{};
+    bool relative_to_initial_residual_{};
     /* Contains device side: all_converged and one_changed booleans */
     Array<bool> device_storage_;
 };

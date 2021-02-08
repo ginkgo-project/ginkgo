@@ -88,8 +88,8 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 
 
 /**
- * @brief The Recurrent Residual norm stopping criterion.
- * @ref resnorm
+ * @brief The Implicit Residual norm stopping criterion.
+ * @ref implicit_resnorm
  * @ingroup resnorm
  */
 namespace implicit_residual_norm {
