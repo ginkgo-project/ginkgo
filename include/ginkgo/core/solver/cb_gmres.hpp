@@ -100,7 +100,8 @@ enum class cb_gmres_storage_precision {
  *
  * The krylov basis can be stored in reduced precision (compressed) to reduce
  * memory accesses, while all computations (including krylov basis operations)
- * are performed in the same arithmetic precision ValueType.
+ * are performed in the same arithmetic precision ValueType. By default, the
+ * krylov basis are stored in one precision lower than ValueType.
  *
  * @tparam ValueType  the arithmetic precision and the precision of matrix
  *                    elements
@@ -150,7 +151,7 @@ public:
          * Determines which storage type is used.
          */
         cb_gmres_storage_precision GKO_FACTORY_PARAMETER_SCALAR(
-            storage_precision, cb_gmres_storage_precision::keep);
+            storage_precision, cb_gmres_storage_precision::reduce1);
 
         /**
          * Criterion factories.
