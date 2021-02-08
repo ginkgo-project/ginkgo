@@ -235,6 +235,7 @@ protected:
     {
         auto tmp_csr = as<Csr<remove_complex<InputValueType>, index_type>>(csr);
         values_ = Array<storage_type>(exec);
+        col_idxs_ = Array<index_type>(exec);
         auto tmp_ell =
             Ell<remove_complex<InputValueType>, index_type>::create(exec);
         tmp_csr->convert_to(tmp_ell.get());
@@ -243,9 +244,13 @@ protected:
         num_stored_elements_per_row_ =
             tmp_ell->get_num_stored_elements_per_row();
         auto tmp_vals = Array<remove_complex<InputValueType>>::view(
-            exec, num_stored_elements_per_row_ * num_rows,
+            exec, stride_ * num_stored_elements_per_row_,
             tmp_ell->get_values());
         values_ = tmp_vals;
+        auto tmp_cols = Array<index_type>::view(
+            exec, stride_ * num_stored_elements_per_row_,
+            tmp_ell->get_col_idxs());
+        col_idxs_ = tmp_cols;
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

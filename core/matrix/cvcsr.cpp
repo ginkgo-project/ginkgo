@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 
 
@@ -69,7 +70,6 @@ void Cvcsr<ValueType, StorageType, IndexType>::apply_impl(const LinOp *b,
                                                           LinOp *x) const
 {
     using ComplexDense = Dense<to_complex<ValueType>>;
-
     if (dynamic_cast<const Dense<ValueType> *>(b)) {
         this->get_executor()->run(cvcsr::make_spmv(
             this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));

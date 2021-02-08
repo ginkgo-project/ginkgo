@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_PRECONDITIONER_ISAI_HPP_
 
 
+#include <iostream>
 #include <memory>
-
 
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -195,12 +195,12 @@ protected:
           parameters_{factory->get_parameters()}
     {
         auto exec = this->get_executor();
-        low_precicion_ = parameters_.low_precision;
+        low_precision_ = parameters_.low_precision;
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
-        if (std::is_same<double, ValueType>()) {
+        if (std::is_same<double, ValueType>() && low_precision_) {
             approximate_reduced = matrix::Cvcsr<
                 remove_complex<value_type>,
                 reduce_precision<next_precision<remove_complex<value_type>>>,
@@ -212,7 +212,7 @@ protected:
         if (IsaiType == isai_type::spd) {
             approximate_inverse_transpose_ =
                 share(as<Csr>(approximate_inverse_->transpose()));
-            if (std::is_same<double, ValueType>()) {
+            if (std::is_same<double, ValueType>() && low_precision_) {
                 approximate_reduced_trans = matrix::Cvcsr<
                     remove_complex<value_type>,
                     reduce_precision<
@@ -230,7 +230,7 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        if (std::is_same<double, ValueType>()) {
+        if (std::is_same<double, ValueType>() && low_precision_) {
             if (IsaiType == isai_type::spd) {
                 approximate_reduced->apply(b, x_.get());
                 approximate_reduced_trans->apply(x_.get(), x);
@@ -275,7 +275,7 @@ private:
     std::shared_ptr<Ell> appr;
     std::shared_ptr<Ell> appr_t;
     std::shared_ptr<Dense> x_;
-    bool low_precicion_;
+    bool low_precision_;
 };
 
 
