@@ -34,7 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_EXECUTOR_HPP_
 
 
+#include <algorithm>
 #include <array>
+#include <cstdlib>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -86,6 +89,10 @@ namespace detail {
 
 template <typename>
 class ExecutorBase;
+
+
+template <typename>
+class FakeExecutorBase;
 
 
 }  // namespace detail
@@ -469,9 +476,12 @@ private:                                                                     \
 class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
+    template <typename T>
+    friend class detail::FakeExecutorBase;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
     friend class ReferenceExecutor;
+    friend class GenericExecutor;
 
 public:
     virtual ~Executor() = default;
@@ -648,6 +658,23 @@ public:
     {
         return this->verify_memory_from(other.get());
     }
+
+    /**
+     * Returns the real executor if this executor is only a representative. This
+     * can be either the current executor or an underlying one.
+     *
+     * @returns the real underlying executor or self.
+     */
+    virtual std::shared_ptr<const Executor> get_concrete_executor()
+        const noexcept = 0;
+
+    /**
+     * Returns the real executor if this executor is only a representative. This
+     * can be either the current executor or an underlying one.
+     *
+     * @returns the real underlying executor or self.
+     */
+    virtual std::shared_ptr<Executor> get_concrete_executor() noexcept = 0;
 
 protected:
     /**
@@ -1000,12 +1027,26 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
+    using executor_type = ConcreteExecutor;
+
     void run(const Operation &op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
+
+    virtual std::shared_ptr<const Executor> get_concrete_executor()
+        const noexcept
+    {
+        return self()->shared_from_this();
+    }
+
+    virtual std::shared_ptr<Executor> get_concrete_executor() noexcept
+    {
+        return self()->shared_from_this();
+    }
+
 
 protected:
     void raw_copy_from(const Executor *src_exec, size_type n_bytes,
@@ -1030,6 +1071,106 @@ private:
         return static_cast<const ConcreteExecutor *>(this);
     }
 };
+
+
+template <typename ConcreteExecutor>
+class FakeExecutorBase : public Executor {
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
+
+public:
+    void synchronize() const override { concrete_executor_->synchronize(); }
+
+    void run(const Operation &op) const override
+    {
+        concrete_executor_->run(op);
+    }
+
+    std::shared_ptr<Executor> get_master() noexcept override
+    {
+        return concrete_executor_->get_master();
+    }
+
+    std::shared_ptr<const Executor> get_master() const noexcept override
+    {
+        return concrete_executor_->get_master();
+    }
+
+    std::shared_ptr<const Executor> get_concrete_executor() const noexcept
+    {
+        return concrete_executor_;
+    }
+
+    std::shared_ptr<Executor> get_concrete_executor() noexcept
+    {
+        return concrete_executor_;
+    }
+
+    void set_concrete_executor(std::shared_ptr<Executor> executor) noexcept
+    {
+        concrete_executor_ = executor;
+    }
+
+protected:
+    /**
+     * @note: Since this isn't an actual executor, this is unused.
+     */
+    void raw_copy_from(const Executor *src_exec, size_type n_bytes,
+                       const void *src_ptr, void *dest_ptr) const override
+    {}
+
+    /**
+     * @note: Since this isn't an actual executor, this is unused.
+     */
+    bool verify_memory_from(const Executor *src_exec) const override
+    {
+        return false;
+    }
+
+    void populate_exec_info(const MachineTopology *mach_topo) override
+    {
+        concrete_executor_->populate_exec_info(mach_topo);
+    }
+
+    void *raw_alloc(size_type size) const override
+    {
+        return concrete_executor_->raw_alloc(size);
+    }
+
+    void raw_free(void *ptr) const noexcept override
+    {
+        concrete_executor_->raw_free(ptr);
+    }
+
+#define GKO_OVERRIDE_CONCRETE_RAW_COPY_TO(_executor_type, ...)               \
+    void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes,     \
+                     const void *src_ptr, void *dest_ptr) const override     \
+    {                                                                        \
+        concrete_executor_->raw_copy_to(dest_exec, n_bytes, src_ptr,         \
+                                        dest_ptr);                           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_CONCRETE_RAW_COPY_TO);
+#undef GKO_OVERRIDE_CONCRETE_RAW_COPY_TO
+
+#define GKO_OVERRIDE_CONCRETE_VERIFY_MEMORY(dest_, ...)                      \
+    virtual bool verify_memory_to(const dest_ *other) const override         \
+    {                                                                        \
+        return concrete_executor_->verify_memory_to(other);                  \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_CONCRETE_VERIFY_MEMORY);
+    GKO_OVERRIDE_CONCRETE_VERIFY_MEMORY(ReferenceExecutor);
+#undef GKO_OVERRIDE_CONCRETE_VERIFY_MEMORY
+
+private:
+    std::shared_ptr<Executor> concrete_executor_;
+};
+
 
 #undef GKO_DECLARE_EXECUTOR_FRIEND
 
@@ -1796,6 +1937,146 @@ using DefaultExecutor = DpcppExecutor;
 
 
 #undef GKO_OVERRIDE_RAW_COPY_TO
+
+
+/**
+ * This is the Executor subclass which represents a GenericExecutor.
+ *
+ * This executor impersonates another executor and dynamically selects one of
+ * the concrete executors at runtime. Its behavior can be controlled either
+ * through construct flags or environment variables. Except when specified
+ * otherwise by the user, this executor will always preferably find a GPU
+ * enhanced device first before falling back to CPU (either OmpExecutor or
+ * ReferenceExecutor). The environment variables to control its behavior are:
+ *
+ * + GINKGO_GENERIC_EXEC_TYPE : a specific executor type to target. One of
+ *   "cuda", "hip", "dpcpp", "omp", "reference", or the default "all".
+ * + GINKGO_GENERIC_EXEC_ID : a specific device ID to target. The default -1
+ *   allows to consider any ID.
+ * + GINKGO_GENERIC_EXEC_AUTO : can be set to 0 or 1, controls whether
+ *   subsequent calls should provide the next executor in the list or the
+ *   default behavior of providing the same one.
+ *
+ * @ingroup exec_dpcpp
+ * @ingroup Executor
+ */
+class GenericExecutor : public detail::FakeExecutorBase<GenericExecutor>,
+                        public std::enable_shared_from_this<GenericExecutor> {
+    friend class detail::FakeExecutorBase<GenericExecutor>;
+
+public:
+    /**
+     * Creates a new GenericExecutor.
+     *
+     * @param device_id  A device id to target. -1 allows to consider any ID.
+     * @param device_type  The type of the concrete executors to target. All is
+     *        the default policy with a set ordering.
+     * @param auto_different_exec  True means subsequent calls to create provide
+     *        different executors. The default is false.
+     * @param device_reset  Whether to allow a device reset or not. Used only
+     *        with CudaExecutor or HipExecutor.
+     */
+    static std::shared_ptr<GenericExecutor> create(
+        int device_id = -1, std::string device_type = "all",
+        bool auto_different_exec = false, bool device_reset = false)
+    {
+        // Check for environment variable settings and pass them to the
+        // constructor
+        if (const char *val = std::getenv("GINKGO_GENERIC_EXEC_TYPE")) {
+            device_type = val;
+        }
+        std::for_each(device_type.begin(), device_type.end(),
+                      [](char &c) { c = std::tolower(c); });
+        if (const char *val = std::getenv("GINKGO_GENERIC_EXEC_ID")) {
+            device_id = std::stoi(val);
+        }
+        if (const char *val = std::getenv("GINKGO_GENERIC_EXEC_AUTO")) {
+            auto_different_exec = static_cast<bool>(std::stoi(val));
+        }
+        return std::shared_ptr<GenericExecutor>(new GenericExecutor(
+            device_id, device_type, auto_different_exec, device_reset));
+    }
+
+    /**
+     * Get the device id of the device associated to this executor, if any.
+     *
+     * @return the device id of the device associated to this executor, if any
+     */
+    int get_device_id() const noexcept
+    {
+        return get_concrete_executor()->get_exec_info().device_id;
+    }
+
+    /**
+     * Get a string which represent the device type of the concrete underlying
+     * executor
+     *
+     * @return a string representing the concrete underlying executor
+     */
+    std::string get_device_type() const noexcept { return this->device_type_; }
+
+protected:
+    GenericExecutor(int device_id, std::string device_type,
+                    bool auto_different_exec, bool device_reset)
+    {
+        std::lock_guard<std::mutex> guard(mutex);
+        device_id = device_id < 0 ? executor_count[device_type] : device_id;
+        std::shared_ptr<Executor> concrete_exec{};
+
+        if (!device_type.compare("all")) {
+            // In the case we asked for any device, check if any GPU is
+            // available.
+            for (const auto &dev : detected_gpu) {
+                auto curr_exec_num = executor_count[dev.first];
+                if (curr_exec_num < dev.second) {
+                    device_type = dev.first;
+                    device_id = curr_exec_num;
+                    break;
+                }
+            }
+        }
+
+        if (!device_type.compare("cuda")) {
+            concrete_exec = CudaExecutor::create(
+                device_id, ReferenceExecutor::create(), device_reset);
+        } else if (!device_type.compare("hip")) {
+            concrete_exec = HipExecutor::create(
+                device_id, ReferenceExecutor::create(), device_reset);
+        } else if (!device_type.compare("dpcpp")) {
+            concrete_exec = DpcppExecutor::create(
+                device_id, ReferenceExecutor::create(), "gpu");
+        } else if (!device_type.compare("omp")) {
+            concrete_exec = OmpExecutor::create();
+        } else if (!device_type.compare("reference")) {
+            concrete_exec = ReferenceExecutor::create();
+        } else if (device_type.compare("all") != 0) {
+            // Could not recognize what the user asked for
+            GKO_NOT_SUPPORTED(device_type);
+        } else {
+            // As a last ditch effort, just return any available CPU
+            // executor
+#ifdef GKO_BUILD_OMP
+            concrete_exec = OmpExecutor::create();
+#else
+            concrete_exec = ReferenceExecutor::create();
+#endif
+        }
+
+        // If automatic different executors is enabled, we notify the current
+        // allocation
+        if (auto_different_exec) {
+            executor_count[device_type]++;
+        }
+        this->device_type_ = device_type;
+        this->set_concrete_executor(concrete_exec);
+    }
+
+private:
+    std::string device_type_;
+    static std::map<std::string, int> executor_count;
+    static std::map<std::string, int> detected_gpu;
+    static std::mutex mutex;
+};
 
 
 }  // namespace gko

@@ -70,4 +70,17 @@ const char *Operation::get_name() const noexcept
 }
 
 
+std::map<std::string, int> GenericExecutor::executor_count{
+    {"cuda", 0}, {"dpcpp", 0}, {"hip", 0}, {"omp", 0}, {"reference", 0}};
+
+
+std::map<std::string, int> GenericExecutor::detected_gpu{
+    {"cuda", CudaExecutor::get_num_devices()},
+    {"hip", HipExecutor::get_num_devices()},
+    {"dpcpp", DpcppExecutor::get_num_devices("gpu")}};
+
+
+std::mutex GenericExecutor::mutex{};
+
+
 }  // namespace gko

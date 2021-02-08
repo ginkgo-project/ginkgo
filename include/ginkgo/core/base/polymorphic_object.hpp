@@ -204,7 +204,7 @@ public:
      */
     std::shared_ptr<const Executor> get_executor() const noexcept
     {
-        return exec_;
+        return exec_->get_concrete_executor();
     }
 
 protected:
