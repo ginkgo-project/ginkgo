@@ -278,7 +278,7 @@ TYPED_TEST(CbGmres, CanSetKrylovDim)
     auto krylov_dim = solver->get_krylov_dim();
 
     ASSERT_EQ(solver->get_storage_precision(),
-              gko::solver::cb_gmres_storage_precision::keep);
+              gko::solver::cb_gmres_storage_precision::reduce1);
 }
 
 

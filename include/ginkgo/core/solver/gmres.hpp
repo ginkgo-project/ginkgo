@@ -61,7 +61,7 @@ constexpr size_type default_krylov_dim = 100u;
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of GMRES are
- * merged into 2 separate steps.
+ * merged into 2 separate steps. Modified Gram-Schmidt is used.
  *
  * @tparam ValueType  precision of matrix elements
  *
