@@ -92,8 +92,8 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
 
     counts[0] = 0;
 
-    const int levels = static_cast<IndexType>(std::ceil(std::log(nthreads)));
-    for (IndexType ilvl = 0; ilvl < levels; ilvl++) {
+    const auto levels = static_cast<int>(std::ceil(std::log(nthreads)));
+    for (int ilvl = 0; ilvl < levels; ilvl++) {
         const IndexType factor = power(2, (ilvl + 1));
         const IndexType lvl_num_witems = factor * def_num_witems;
         const int ntasks = (nthreads - 1) / factor + 1;
