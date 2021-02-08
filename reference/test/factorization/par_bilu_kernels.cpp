@@ -76,8 +76,8 @@ TYPED_TEST(ParBilu, FactorizationSortedBS4)
     using par_bilu_t = typename TestFixture::par_bilu_t;
     const int nbrows = 50, bs = 4;
     std::shared_ptr<const Fbcsr> mtx =
-        gko::test::generate_random_square_fbcsr<value_type, index_type>(
-            this->refexec, std::ranlux48(42), nbrows, bs, true, false);
+        gko::test::generate_random_fbcsr<value_type, index_type>(
+            this->refexec, std::ranlux48(42), nbrows, nbrows, bs, true, false);
     auto parbilu_factory_skip =
         par_bilu_t::build().with_iterations(1).with_skip_sorting(true).on(
             this->refexec);
@@ -108,8 +108,8 @@ TYPED_TEST(ParBilu, FactorizationUnsortedBS3)
     using par_bilu_t = typename TestFixture::par_bilu_t;
     const int nbrows = 100, bs = 3;
     std::shared_ptr<const Fbcsr> mtx =
-        gko::test::generate_random_square_fbcsr<value_type, index_type>(
-            this->refexec, std::ranlux48(42), nbrows, bs, true, true);
+        gko::test::generate_random_fbcsr<value_type, index_type>(
+            this->refexec, std::ranlux48(42), nbrows, nbrows, bs, true, true);
     EXPECT_FALSE(mtx->is_sorted_by_column_index());
     auto parbilu_factory_skip =
         par_bilu_t::build().with_iterations(1).with_skip_sorting(false).on(

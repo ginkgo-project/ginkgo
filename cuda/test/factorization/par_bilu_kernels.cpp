@@ -100,9 +100,8 @@ protected:
             ref, gko::lend(ref_temp), false);
         cyl2d_ref = gko::give(ref_temp);
 
-        rand_ref =
-            gko::test::generate_random_square_fbcsr<value_type, index_type>(
-                ref, std::ranlux48(43), 150, 3, true, false);
+        rand_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
+            ref, std::ranlux48(43), 150, 150, 3, true, false);
     }
 
     /*
