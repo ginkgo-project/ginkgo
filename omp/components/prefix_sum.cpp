@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
-#include <omp.h>
 #include <algorithm>
 #include <vector>
+
+
+#include <omp.h>
 
 
 namespace gko {
