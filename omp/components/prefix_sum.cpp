@@ -33,21 +33,82 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
+#include <omp.h>
+#include <algorithm>
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
 namespace components {
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+template <typename T>
+static inline T power(const T x, const int exponent)
 {
-    IndexType partial_sum{};
-    for (size_type i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
-        counts[i] = partial_sum;
-        partial_sum += nnz;
+    T ans = static_cast<T>(1);
+    for (int i = 0; i < exponent; i++) {
+        ans *= x;
+    }
+    return ans;
+}
+
+
+/*
+ * The last entry of the input array is never used, but is replaced.
+ */
+template <typename IndexType>
+void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
+                IndexType *const counts, const size_type num_entries)
+{
+    const auto nentries = static_cast<IndexType>(num_entries);
+    if (num_entries <= 1) {
+        return;
+    }
+
+    const int nthreads = omp_get_max_threads();
+    const IndexType def_num_witems = (num_entries - 1) / nthreads + 1;
+
+#pragma omp parallel
+    {
+        const int thread_id = omp_get_thread_num();
+        const IndexType startidx = thread_id * def_num_witems;
+        const IndexType endidx =
+            std::min(nentries, (thread_id + 1) * def_num_witems);
+        const IndexType startval = counts[startidx];
+
+#pragma omp barrier
+
+        IndexType partial_sum = startval;
+        for (IndexType i = startidx + 1; i < endidx; ++i) {
+            auto nnz = counts[i];
+            counts[i] = partial_sum;
+            partial_sum += nnz;
+        }
+        if (thread_id != nthreads - 1) {
+            counts[endidx] = partial_sum;
+        }
+    }
+
+    counts[0] = 0;
+
+    const int levels = static_cast<IndexType>(std::ceil(std::log(nthreads)));
+    for (IndexType ilvl = 0; ilvl < levels; ilvl++) {
+        const IndexType factor = power(2, (ilvl + 1));
+        const IndexType lvl_num_witems = factor * def_num_witems;
+        const int ntasks = (nthreads - 1) / factor + 1;
+
+#pragma omp parallel for
+        for (int itask = 0; itask < ntasks; itask++) {
+            const IndexType startidx = std::min(
+                nentries, lvl_num_witems / 2 + itask * lvl_num_witems + 1);
+            const IndexType endidx =
+                std::min(nentries, (itask + 1) * lvl_num_witems + 1);
+            const IndexType baseval = counts[startidx - 1];
+            for (int i = startidx; i < endidx; i++) {
+                counts[i] += baseval;
+            }
+        }
     }
 }
 
