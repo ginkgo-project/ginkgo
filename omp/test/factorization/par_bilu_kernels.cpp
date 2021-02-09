@@ -93,10 +93,10 @@ TYPED_TEST(ParBilu, FactorizationSortedBS4)
     auto bfacts = bilu_factory_skip->generate(rmtx);
     auto parbfacts = parbilu_factory_skip->generate(mtx);
 
-    auto bfL = gko::as<const Fbcsr>(bfacts->get_operators()[0]);
-    auto pbfL = gko::as<const Fbcsr>(parbfacts->get_operators()[0]);
-    auto bfU = gko::as<const Fbcsr>(bfacts->get_operators()[1]);
-    auto pbfU = gko::as<const Fbcsr>(parbfacts->get_operators()[1]);
+    auto bfL = bfacts->get_l_factor();
+    auto pbfL = parbfacts->get_l_factor();
+    auto bfU = bfacts->get_u_factor();
+    auto pbfU = parbfacts->get_u_factor();
     constexpr auto eps = 1e-5;
     GKO_ASSERT_MTX_EQ_SPARSITY(bfL, pbfL);
     GKO_ASSERT_MTX_EQ_SPARSITY(bfU, pbfU);
@@ -127,10 +127,10 @@ TYPED_TEST(ParBilu, FactorizationUnsortedBS3)
     auto bfacts = bilu_factory_skip->generate(rmtx);
     auto parbfacts = parbilu_factory_skip->generate(mtx);
 
-    auto bfL = gko::as<const Fbcsr>(bfacts->get_operators()[0]);
-    auto pbfL = gko::as<const Fbcsr>(parbfacts->get_operators()[0]);
-    auto bfU = gko::as<const Fbcsr>(bfacts->get_operators()[1]);
-    auto pbfU = gko::as<const Fbcsr>(parbfacts->get_operators()[1]);
+    auto bfL = bfacts->get_l_factor();
+    auto pbfL = parbfacts->get_l_factor();
+    auto bfU = bfacts->get_u_factor();
+    auto pbfU = parbfacts->get_u_factor();
     constexpr auto eps = 1e-5;
     GKO_ASSERT_MTX_EQ_SPARSITY(bfL, pbfL);
     GKO_ASSERT_MTX_EQ_SPARSITY(bfU, pbfU);
