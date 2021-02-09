@@ -141,15 +141,16 @@ constexpr int default_block_size = 512;
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
-        size_type num_cols, ValueType rel_residual_goal,
+        size_type num_cols, remove_complex<ValueType> rel_residual_goal,
         const ValueType *__restrict__ tau,
-        const ValueType *__restrict__ orig_tau, uint8 stoppingId,
-        bool setFinalized, stopping_status *__restrict__ stop_status,
+        const remove_complex<ValueType> *__restrict__ orig_tau,
+        uint8 stoppingId, bool setFinalized,
+        stopping_status *__restrict__ stop_status,
         bool *__restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
-        if (sqrt(tau[tidx]) < rel_residual_goal * orig_tau[tidx]) {
+        if (sqrt(abs(tau[tidx])) < rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
             device_storage[1] = true;
         }
@@ -171,17 +172,14 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 
 template <typename ValueType>
-void implicit_residual_norm(std::shared_ptr<const HipExecutor> exec,
-                            const matrix::Dense<ValueType> *tau,
-                            const matrix::Dense<ValueType> *orig_tau,
-                            ValueType rel_residual_goal, uint8 stoppingId,
-                            bool setFinalized,
-                            Array<stopping_status> *stop_status,
-                            Array<bool> *device_storage, bool *all_converged,
-                            bool *one_changed)
+void implicit_residual_norm(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::Dense<ValueType> *tau,
+    const matrix::Dense<remove_complex<ValueType>> *orig_tau,
+    remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
+    bool setFinalized, Array<stopping_status> *stop_status,
+    Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 {
-    static_assert(is_complex_s<ValueType>::value == false,
-                  "ValueType must not be complex in this function!");
     hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
                        as_hip_type(device_storage->get_data()));
 
@@ -200,8 +198,7 @@ void implicit_residual_norm(std::shared_ptr<const HipExecutor> exec,
     *one_changed = exec->copy_val_to_host(device_storage->get_const_data() + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm

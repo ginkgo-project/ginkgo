@@ -95,9 +95,9 @@ bool ImplicitResidualNormReduction<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
-    const NormVector *dense_tau;
+    const Vector *dense_tau;
     if (updater.implicit_sq_residual_norm_ != nullptr) {
-        dense_tau = as<NormVector>(updater.implicit_sq_residual_norm_);
+        dense_tau = as<Vector>(updater.implicit_sq_residual_norm_);
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }
