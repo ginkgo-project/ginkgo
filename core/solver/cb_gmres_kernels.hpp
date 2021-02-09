@@ -35,16 +35,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 #include "core/base/accessors.hpp"
 #include "core/base/extended_float.hpp"
-#include "core/solver/cb_gmres_accessor.hpp"
 
 
 // TODO Find way around using it!

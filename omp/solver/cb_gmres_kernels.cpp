@@ -36,11 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
+
+
+#include "core/solver/cb_gmres_accessor.hpp"
 
 
 namespace gko {
