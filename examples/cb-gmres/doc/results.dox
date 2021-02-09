@@ -1,0 +1,21 @@
+<h1>Results</h1>
+The following is the expected result:
+
+@code{.cpp}
+
+Solve time without compression: 1.842690e-04 s
+Solve time with compression:    1.589936e-04 s
+
+Residual norm without compression:
+%%MatrixMarket matrix array real general
+1 1
+2.430544e-07
+
+Residual norm with compression:
+%%MatrixMarket matrix array real general
+1 1
+3.437257e-07
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
