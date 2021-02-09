@@ -74,40 +74,20 @@ int main(int argc, char *argv[])
 
     // @sect3{Where do you want to run your solver ?}
     //
-    // The gko::Executor class is one of the cornerstones of Ginkgo. We have
-    // support for an gko::OmpExecutor, which uses OpenMP multi-threading in
-    // most of its kernels, a gko::ReferenceExecutor, a single threaded
-    // specialization of the OpenMP executor, a gko::CudaExecutor which runs the
-    // code on a NVIDIA GPU if available, a gko::HipExecutor which runs the code
-    // on an NVIDIA or AMD GPU if available and a gko::DpcppExecutor which
-    // allows to target Intel GPUs if available.
-    //
-    // @note With the help of C++, you see that you only ever need to change the
-    // executor and all the other functions/ routines within Ginkgo should
-    // automatically work and run on the executor with any other changes.
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-        exec_map{
-            {"omp", [] { return gko::OmpExecutor::create(); }},
-            {"cuda",
-             [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
-             }},
-            {"hip",
-             [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
-             }},
-            {"dpcpp",
-             [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
-             }},
-            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
-
-    // executor where Ginkgo will perform the computation
-    const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    // The gko::Executor class is one of the cornerstones of Ginkgo. Unlike in
+    // the simple-solver example where we directly select an executor, we here
+    // use a special type of executor, the gko::GenericExecutor. This executor
+    // dynamically selects a concrete executor based on a series of policies
+    // which can be configured either through constructor flags or environment
+    // variables. The environment variables are:
+    // + GINKGO_GENERIC_EXEC_TYPE : a specific executor type to target. One of
+    //   "cuda", "hip", "dpcpp", "omp", "reference", or the default "all".
+    // + GINKGO_GENERIC_EXEC_ID : a specific device ID to target. The default -1
+    //   allows to consider any ID.
+    // + GINKGO_GENERIC_EXEC_AUTO : can be set to 0 or 1, controls whether
+    //   subsequent calls should provide the next executor in the list or the
+    //   default behavior of providing the same one.
+    const auto exec = gko::GenericExecutor::create();
 
     // @sect3{Reading your data and transfer to the proper device.}
     // Read the matrix, right hand side and the initial solution using the @ref

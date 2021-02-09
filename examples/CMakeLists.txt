@@ -20,6 +20,7 @@ set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-matrix-format
     custom-stopping-criterion
+    generic-executor
     ginkgo-overhead
     heat-equation
     minimal-cuda-solver

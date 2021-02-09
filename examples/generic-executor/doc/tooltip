@@ -1,0 +1,1 @@
+Showcases the usage of the generic executor. Solve a simple linear system with CG. Read a matrix and right hand side from a file.
