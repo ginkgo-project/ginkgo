@@ -486,6 +486,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_STORAGE_AND_INDEX_TYPE(_macro)   \
     template _macro(float, float, int32);                               \
     template _macro(float, double, int32);                              \
+    template _macro(float, half, int32);                                \
     template _macro(double, double, int32);                             \
     template _macro(double, float, int32);                              \
     template _macro(double, half, int32);                               \
@@ -496,6 +497,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>, std::complex<half>, int32);   \
     template _macro(float, float, int64);                               \
     template _macro(float, double, int64);                              \
+    template _macro(float, half, int64);                                \
     template _macro(double, double, int64);                             \
     template _macro(double, float, int64);                              \
     template _macro(double, half, int64);                               \
@@ -517,6 +519,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
     template _macro(float, double);                             \
+    template _macro(float, half);                               \
     template _macro(double, float);                             \
     template _macro(double, half);                              \
     template _macro(std::complex<float>, std::complex<double>); \

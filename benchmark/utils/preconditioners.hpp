@@ -311,11 +311,18 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_sparsity_power(FLAGS_isai_power)
                  .on(exec);
          }},
-        {"general-mp-isai",
+        {"general-single-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::GeneralIsai<>::build()
                  .with_sparsity_power(FLAGS_isai_power)
-                 .with_low_precision(true)
+                 .with_low_precision(1)
+                 .on(exec);
+         }},
+        {"general-half-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::GeneralIsai<>::build()
+                 .with_sparsity_power(FLAGS_isai_power)
+                 .with_low_precision(2)
                  .on(exec);
          }},
         {"spd-isai",
@@ -324,11 +331,18 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_sparsity_power(FLAGS_isai_power)
                  .on(exec);
          }},
-        {"spd-mp-isai",
+        {"spd-single-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::SpdIsai<>::build()
                  .with_sparsity_power(FLAGS_isai_power)
-                 .with_low_precision(true)
+                 .with_low_precision(1)
+                 .on(exec);
+         }},
+        {"spd-half-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::SpdIsai<>::build()
+                 .with_sparsity_power(FLAGS_isai_power)
+                 .with_low_precision(2)
                  .on(exec);
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
