@@ -665,8 +665,8 @@ public:
      *
      * @returns the real underlying executor or self.
      */
-    virtual std::shared_ptr<const Executor> get_concrete_executor()
-        const noexcept = 0;
+    virtual std::shared_ptr<const Executor> get_concrete_executor() const
+        noexcept = 0;
 
     /**
      * Returns the real executor if this executor is only a representative. This
@@ -1036,8 +1036,8 @@ public:
         this->template log<log::Logger::operation_completed>(this, &op);
     }
 
-    virtual std::shared_ptr<const Executor> get_concrete_executor()
-        const noexcept
+    virtual std::shared_ptr<const Executor> get_concrete_executor() const
+        noexcept
     {
         return self()->shared_from_this();
     }
