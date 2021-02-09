@@ -52,6 +52,9 @@ namespace gko {
 namespace solver {
 
 
+namespace cb_gmres {
+
+
 /**
  * Describes the storage precision that is used in CB-GMRES.
  *
@@ -79,7 +82,7 @@ namespace solver {
  * - float -> int32
  * - half -> int16
  */
-enum class cb_gmres_storage_precision {
+enum class storage_precision {
     keep,
     reduce1,
     reduce2,
@@ -87,6 +90,9 @@ enum class cb_gmres_storage_precision {
     ireduce1,
     ireduce2
 };
+
+
+}  // namespace cb_gmres
 
 
 /**
@@ -140,7 +146,7 @@ public:
      *
      * @return the storage precision used internally
      */
-    cb_gmres_storage_precision get_storage_precision() const
+    cb_gmres::storage_precision get_storage_precision() const
     {
         return storage_precision_;
     }
@@ -150,8 +156,8 @@ public:
         /**
          * Determines which storage type is used.
          */
-        cb_gmres_storage_precision GKO_FACTORY_PARAMETER_SCALAR(
-            storage_precision, cb_gmres_storage_precision::reduce1);
+        cb_gmres::storage_precision GKO_FACTORY_PARAMETER_SCALAR(
+            storage_precision, cb_gmres::storage_precision::reduce1);
 
         /**
          * Criterion factories.
@@ -218,7 +224,7 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
-    cb_gmres_storage_precision storage_precision_;
+    cb_gmres::storage_precision storage_precision_;
 };
 
 

@@ -92,7 +92,7 @@ protected:
           big_solver(cb_gmres_big_factory->generate(mtx))
     {}
 
-    gko::solver::cb_gmres_storage_precision storage_precision;
+    gko::solver::cb_gmres::storage_precision storage_precision;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> cb_gmres_factory;
@@ -117,7 +117,7 @@ protected:
  * This creates a helper structure which translates a type into an enum
  * parameter.
  */
-using st_enum = gko::solver::cb_gmres_storage_precision;
+using st_enum = gko::solver::cb_gmres::storage_precision;
 
 template <st_enum P>
 struct st_helper_type {
@@ -278,7 +278,7 @@ TYPED_TEST(CbGmres, CanSetKrylovDim)
     auto krylov_dim = solver->get_krylov_dim();
 
     ASSERT_EQ(solver->get_storage_precision(),
-              gko::solver::cb_gmres_storage_precision::reduce1);
+              gko::solver::cb_gmres::storage_precision::reduce1);
 }
 
 

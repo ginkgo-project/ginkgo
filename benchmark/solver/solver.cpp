@@ -245,20 +245,20 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
 {
     std::string cb_gmres_prefix("cb_gmres_");
     if (description.find(cb_gmres_prefix) == 0) {
-        auto s_prec = gko::solver::cb_gmres_storage_precision::keep;
+        auto s_prec = gko::solver::cb_gmres::storage_precision::keep;
         const auto spec = description.substr(cb_gmres_prefix.length());
         if (spec == "keep") {
-            s_prec = gko::solver::cb_gmres_storage_precision::keep;
+            s_prec = gko::solver::cb_gmres::storage_precision::keep;
         } else if (spec == "reduce1") {
-            s_prec = gko::solver::cb_gmres_storage_precision::reduce1;
+            s_prec = gko::solver::cb_gmres::storage_precision::reduce1;
         } else if (spec == "reduce2") {
-            s_prec = gko::solver::cb_gmres_storage_precision::reduce2;
+            s_prec = gko::solver::cb_gmres::storage_precision::reduce2;
         } else if (spec == "integer") {
-            s_prec = gko::solver::cb_gmres_storage_precision::integer;
+            s_prec = gko::solver::cb_gmres::storage_precision::integer;
         } else if (spec == "ireduce1") {
-            s_prec = gko::solver::cb_gmres_storage_precision::ireduce1;
+            s_prec = gko::solver::cb_gmres::storage_precision::ireduce1;
         } else if (spec == "ireduce2") {
-            s_prec = gko::solver::cb_gmres_storage_precision::ireduce2;
+            s_prec = gko::solver::cb_gmres::storage_precision::ireduce2;
         } else {
             throw std::range_error(
                 std::string(

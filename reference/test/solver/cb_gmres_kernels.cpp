@@ -72,10 +72,10 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
-          storage_precision{storage_helper_type::value},
+          storage_prec{storage_helper_type::value},
           cb_gmres_factory(
               gmres_type::build()
-                  .with_storage_precision(storage_precision)
+                  .with_storage_precision(storage_prec)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
@@ -96,7 +96,7 @@ protected:
               exec)),
           cb_gmres_factory_big(
               gmres_type::build()
-                  .with_storage_precision(storage_precision)
+                  .with_storage_precision(storage_prec)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
@@ -123,19 +123,19 @@ protected:
     nc_value_type assert_precision() const noexcept
     {
         using gko::reduce_precision;
-        using gko::solver::cb_gmres_storage_precision;
+        using gko::solver::cb_gmres::storage_precision;
 
         // Note: integer and floating point are assumed to have similar
         //       target precision.
-        switch (storage_precision) {
-        case cb_gmres_storage_precision::reduce1:
-        case cb_gmres_storage_precision::ireduce1:
+        switch (storage_prec) {
+        case storage_precision::reduce1:
+        case storage_precision::ireduce1:
             return r<reduce_precision<value_type>, nc_value_type>::value;
-        case cb_gmres_storage_precision::reduce2:
-        case cb_gmres_storage_precision::ireduce2:
+        case storage_precision::reduce2:
+        case storage_precision::ireduce2:
             return r<reduce_precision<reduce_precision<value_type>>,
                      nc_value_type>::value;
-        case cb_gmres_storage_precision::integer:
+        case storage_precision::integer:
         default:
             return r<nc_value_type>::value;
         }
@@ -146,7 +146,7 @@ protected:
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
-    gko::solver::cb_gmres_storage_precision storage_precision;
+    gko::solver::cb_gmres::storage_precision storage_prec;
     std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory;
     std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory_big;
 };
@@ -156,7 +156,7 @@ protected:
  * This creates a helper structure which translates a type into an enum
  * parameter.
  */
-using st_enum = gko::solver::cb_gmres_storage_precision;
+using st_enum = gko::solver::cb_gmres::storage_precision;
 
 template <st_enum P>
 struct st_helper_type {
@@ -206,7 +206,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
     using gmres_type = typename TestFixture::gmres_type;
     auto factory =
         gmres_type::build()
-            .with_storage_precision(this->storage_precision)
+            .with_storage_precision(this->storage_prec)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
@@ -405,7 +405,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
     auto cb_gmres_factory_restart =
         gmres_type::build()
             .with_krylov_dim(4u)
-            .with_storage_precision(this->storage_precision)
+            .with_storage_precision(this->storage_prec)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
@@ -432,7 +432,7 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
     using gmres_type = typename TestFixture::gmres_type;
     auto cb_gmres_factory_preconditioner =
         gmres_type::build()
-            .with_storage_precision(this->storage_precision)
+            .with_storage_precision(this->storage_prec)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
