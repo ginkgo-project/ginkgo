@@ -53,15 +53,15 @@ protected:
 
     ResidualNormReduction()
     {
-        omp_ = gko::OmpExecutor::create();
+        exec_ = gko::OmpExecutor::create();
         factory_ = gko::stop::ResidualNormReduction<T>::build()
                        .with_reduction_factor(r<T>::value)
-                       .on(omp_);
+                       .on(exec_);
     }
 
     std::unique_ptr<typename gko::stop::ResidualNormReduction<T>::Factory>
         factory_;
-    std::shared_ptr<const gko::OmpExecutor> omp_;
+    std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
 TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes);
@@ -71,14 +71,14 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto initial_res = gko::initialize<Mtx>({100.0}, this->omp_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->omp_);
-    auto res_norm = gko::initialize<NormVector>({100.0}, this->omp_);
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 1);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -86,7 +86,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1e+2;
+    res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -94,7 +94,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9e+2;
+    res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -110,15 +110,15 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     using NormVector = typename TestFixture::NormVector;
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
-    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->omp_);
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
-        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->omp_);
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs =
-        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->omp_);
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 2);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
@@ -127,7 +127,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = r<TypeParam>::value * 0.9e+2;
+    res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * res_norm->at(0, 0);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -135,7 +135,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 
-    res_norm->at(0, 1) = r<TypeParam>::value * 0.9e+2;
+    res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * res_norm->at(0, 1);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -153,15 +153,15 @@ protected:
 
     RelativeResidualNorm()
     {
-        omp_ = gko::OmpExecutor::create();
+        exec_ = gko::OmpExecutor::create();
         factory_ = gko::stop::RelativeResidualNorm<T>::build()
                        .with_tolerance(r<T>::value)
-                       .on(omp_);
+                       .on(exec_);
     }
 
     std::unique_ptr<typename gko::stop::RelativeResidualNorm<T>::Factory>
         factory_;
-    std::shared_ptr<const gko::OmpExecutor> omp_;
+    std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
 TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes);
@@ -169,16 +169,20 @@ TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes);
 
 TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
 {
+    using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto initial_res = gko::initialize<Mtx>({100.0}, this->omp_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->omp_);
-    auto res_norm = gko::initialize<NormVector>({100.0}, this->omp_);
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    auto rhs_norm = gko::initialize<NormVector>({I<T_nc>{0.0}}, this->exec_);
+    gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
+    auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 1);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -186,7 +190,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1e+1;
+    res_norm->at(0) = r<TypeParam>::value * 1.1 * rhs_norm->at(0);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -194,7 +198,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9e+1;
+    res_norm->at(0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -210,15 +214,18 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     using NormVector = typename TestFixture::NormVector;
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
-    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->omp_);
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
-        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->omp_);
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs =
-        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->omp_);
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
+    auto rhs_norm =
+        gko::initialize<NormVector>({I<T_nc>{0.0, 0.0}}, this->exec_);
+    gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 2);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
@@ -227,7 +234,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = r<TypeParam>::value * 0.9e+1;
+    res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 0);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -235,7 +242,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 
-    res_norm->at(0, 1) = r<TypeParam>::value * 0.9e+1;
+    res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 1);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -268,40 +275,17 @@ protected:
 TYPED_TEST_SUITE(ImplicitResidualNormReduction, gko::test::ValueTypes);
 
 
-TYPED_TEST(ImplicitResidualNormReduction, CanCreateFactory)
-{
-    ASSERT_NE(this->factory_, nullptr);
-    ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
-              r<TypeParam>::value);
-    ASSERT_EQ(this->factory_->get_executor(), this->exec_);
-}
-
-
-TYPED_TEST(ImplicitResidualNormReduction, CannotCreateCriterionWithoutB)
-{
-    ASSERT_THROW(this->factory_->generate(nullptr, nullptr, nullptr, nullptr),
-                 gko::NotSupported);
-}
-
-
-TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithB)
-{
-    using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
-        gko::initialize<Mtx>({1.0}, this->exec_);
-    auto criterion =
-        this->factory_->generate(nullptr, scalar, nullptr, nullptr);
-    ASSERT_NE(criterion, nullptr);
-}
-
-
 TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
 {
+    using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
-    auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
+    auto res_norm = gko::initialize<Mtx>({100.0}, this->exec_);
+    auto rhs_norm = gko::initialize<NormVector>({I<T_nc>{0.0}}, this->exec_);
+    gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
@@ -314,7 +298,7 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = std::pow(r<TypeParam>::value * 1.1e+1, 2);
+    res_norm->at(0) = std::pow(r<TypeParam>::value * 1.1 * rhs_norm->at(0), 2);
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
@@ -322,7 +306,7 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = std::pow(r<TypeParam>::value * 0.9e+1, 2);
+    res_norm->at(0) = std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0), 2);
     ASSERT_TRUE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
@@ -339,10 +323,12 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
-    auto res_norm =
-        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
+    auto res_norm = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
+    auto rhs_norm =
+        gko::initialize<NormVector>({I<T_nc>{0.0, 0.0}}, this->exec_);
+    gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -355,7 +341,8 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = std::pow(r<TypeParam>::value * 0.9e+1, 2);
+    res_norm->at(0, 0) =
+        std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0, 0), 2);
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
@@ -363,7 +350,8 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 
-    res_norm->at(0, 1) = std::pow(r<TypeParam>::value * 0.9e+1, 2);
+    res_norm->at(0, 1) =
+        std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0, 1), 2);
     ASSERT_TRUE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
@@ -381,15 +369,15 @@ protected:
 
     AbsoluteResidualNorm()
     {
-        omp_ = gko::OmpExecutor::create();
+        exec_ = gko::OmpExecutor::create();
         factory_ = gko::stop::AbsoluteResidualNorm<T>::build()
                        .with_tolerance(r<T>::value)
-                       .on(omp_);
+                       .on(exec_);
     }
 
     std::unique_ptr<typename gko::stop::AbsoluteResidualNorm<T>::Factory>
         factory_;
-    std::shared_ptr<const gko::OmpExecutor> omp_;
+    std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
 TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes);
@@ -399,14 +387,14 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto initial_res = gko::initialize<Mtx>({100.0}, this->omp_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->omp_);
-    auto res_norm = gko::initialize<NormVector>({100.0}, this->omp_);
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 1);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -438,15 +426,15 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     using NormVector = typename TestFixture::NormVector;
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
-    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->omp_);
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
-        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->omp_);
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs =
-        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->omp_);
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->omp_, 2);
+    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 

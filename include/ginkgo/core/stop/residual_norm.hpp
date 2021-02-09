@@ -227,6 +227,11 @@ protected:
 
 
 /**
+ * The enum that holds the quantity relative to the implicit residual.
+ */
+enum class norm_of { rhs, initial_residual };
+
+/**
  * The ImplicitResidualNormReduction class is a stopping criterion which
  * stops the iteration process when the implicit residual norm is below a
  * certain threshold relative to either the norm of the right-hand side, i.e.
@@ -258,10 +263,10 @@ public:
             reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
 
         /**
-         * The quantity the reduction is relative to. Choices include "rhs" and
-         * "initial_residual"
+         * The quantity the reduction is relative to. Choices include
+         * "norm_of::rhs" and "norm_of::initial_residual"
          */
-        std::string GKO_FACTORY_PARAMETER_SCALAR(relative_to, "rhs");
+        norm_of GKO_FACTORY_PARAMETER_SCALAR(relative_to, norm_of::rhs);
     };
     GKO_ENABLE_CRITERION_FACTORY(ImplicitResidualNormReduction<ValueType>,
                                  parameters, Factory);
@@ -286,10 +291,9 @@ protected:
     {
         this->reduction_factor_ = factory->get_parameters().reduction_factor;
         this->relative_to_rhs_ =
-            factory->get_parameters().relative_to.compare("rhs") == 0;
+            factory->get_parameters().relative_to == norm_of::rhs;
         this->relative_to_initial_residual_ =
-            factory->get_parameters().relative_to.compare("initial_residual") ==
-            0;
+            factory->get_parameters().relative_to == norm_of::initial_residual;
         if (this->relative_to_rhs_ && args.b == nullptr) {
             GKO_NOT_SUPPORTED(nullptr);
         }

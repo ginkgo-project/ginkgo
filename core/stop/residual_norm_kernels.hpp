@@ -66,13 +66,14 @@ namespace residual_norm {
 namespace implicit_residual_norm {
 
 
-#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(_type)                       \
-    void implicit_residual_norm(                                               \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
-        _type rel_residual_goal, uint8 stoppingId, bool setFinalized,          \
-        Array<stopping_status> *stop_status, Array<bool> *device_storage,      \
-        bool *all_converged, bool *one_changed)
+#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(_type)           \
+    void implicit_residual_norm(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const matrix::Dense<_type> *tau,                           \
+        const matrix::Dense<remove_complex<_type>> *orig_tau,      \
+        remove_complex<_type> rel_residual_goal, uint8 stoppingId, \
+        bool setFinalized, Array<stopping_status> *stop_status,    \
+        Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES2 \
