@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
-#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
@@ -69,7 +68,10 @@ namespace factorization {
  */
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class Bilu : public Composition<ValueType> {
+class Bilu : public EnableLinOp<Bilu<ValueType, IndexType>>,
+             public Transposable {
+    friend class EnablePolymorphicObject<Bilu, LinOp>;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -79,23 +81,17 @@ public:
 
     std::shared_ptr<const matrix_type> get_l_factor() const
     {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[0]);
+        return factors_.l_factor;
     }
 
     std::shared_ptr<const matrix_type> get_u_factor() const
     {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[1]);
+        return factors_.u_factor;
     }
 
-    // Remove the possibility of calling `create`, which was enabled by
-    // `Composition`
-    template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
-        delete;
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -122,30 +118,42 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    Bilu(const Factory *factory,
+    struct factors {
+        std::shared_ptr<matrix_type> l_factor;
+        std::shared_ptr<matrix_type> u_factor;
+    };
+
+    explicit Bilu(const std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Bilu>(exec)
+    {}
+
+    Bilu(const Factory *const factory,
          const std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{system_matrix->get_executor()}
+        : EnableLinOp<Bilu>(factory->get_executor()),
+          parameters_{factory->get_parameters()}
     {
-        generate_block_LU(system_matrix, parameters_.skip_sorting)
-            ->move_to(this);
+        factors_ = generate_block_LU(system_matrix, parameters_.skip_sorting);
     }
 
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
+
     /**
-     * Generates the incomplete block LU factors, which will be returned as a
-     * composition of the unit block lower (first element of the composition)
-     * and the block upper factor (second element).
-     * The dynamic type of L is l_matrix_type, while
-     * the dynamic type of U is u_matrix_type.
+     * @brief Generates the incomplete block LU factors
      *
      * @param system_matrix  the source matrix used to generate the factors.
      *                       @note: system_matrix must be convertible to
      *                              a Fbcsr matrix, otherwise,
      *                              an exception is thrown.
-     * @return A Composition, containing the incomplete block LU factors for the
+     * @return The incomplete block LU factors for the
      *         given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_block_LU(
-        std::shared_ptr<const LinOp> system_matrix, bool skip_sorting) const;
+    factors generate_block_LU(std::shared_ptr<const LinOp> system_matrix,
+                              bool skip_sorting) const;
+
+    factors factors_;
 };
 
 

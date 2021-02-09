@@ -64,7 +64,7 @@ GKO_REGISTER_OPERATION(fbcsr_transpose, fbcsr::transpose);
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>>
+typename ParBilu<ValueType, IndexType>::factors
 ParBilu<ValueType, IndexType>::generate_block_lu(
     const std::shared_ptr<const LinOp> system_matrix, bool skip_sorting) const
 {
@@ -159,9 +159,27 @@ ParBilu<ValueType, IndexType>::generate_block_lu(
     exec->run(par_bilu_factorization::make_fbcsr_transpose(u_factor_t,
                                                            u_factor.get()));
 
-    return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor));
+    // return Composition<ValueType>::create(std::move(l_factor),
+    //                                       std::move(u_factor));
+    return {std::move(l_factor), std::move(u_factor)};
 }
+
+template <typename ValueType, typename IndexType>
+void ParBilu<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+    GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+void ParBilu<ValueType, IndexType>::apply_impl(
+    const LinOp *alpha, const LinOp *b, const LinOp *beta,
+    LinOp *x) const GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> ParBilu<ValueType, IndexType>::transpose() const
+    GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> ParBilu<ValueType, IndexType>::conj_transpose() const
+    GKO_NOT_IMPLEMENTED;
 
 
 #define GKO_DECLARE_PARBILU(ValueType, IndexType) \

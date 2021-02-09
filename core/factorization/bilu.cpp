@@ -57,7 +57,7 @@ GKO_REGISTER_OPERATION(initialize_BLU, factorization::initialize_BLU);
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>>
+typename Bilu<ValueType, IndexType>::factors
 Bilu<ValueType, IndexType>::generate_block_LU(
     const std::shared_ptr<const LinOp> system_matrix,
     const bool skip_sorting) const
@@ -116,9 +116,25 @@ Bilu<ValueType, IndexType>::generate_block_LU(
     exec->run(bilu_factorization::make_initialize_BLU(
         c_system_matrix.get(), l_factor.get(), u_factor.get()));
 
-    return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor));
+    return {std::move(l_factor), std::move(u_factor)};
 }
+
+template <typename ValueType, typename IndexType>
+void Bilu<ValueType, IndexType>::apply_impl(const LinOp *b,
+                                            LinOp *x) const GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+void Bilu<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                            const LinOp *beta,
+                                            LinOp *x) const GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Bilu<ValueType, IndexType>::transpose() const
+    GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Bilu<ValueType, IndexType>::conj_transpose() const
+    GKO_NOT_IMPLEMENTED;
 
 
 #define GKO_DECLARE_BILU(ValueType, IndexType) class Bilu<ValueType, IndexType>
