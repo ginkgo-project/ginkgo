@@ -69,7 +69,9 @@ protected:
     {
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        generic = gko::GenericExecutor::create(0, "cuda");
+        cuda =
+            gko::as<const gko::CudaExecutor>(generic->get_concrete_executor());
 
         std::string file_name(gko::matrices::location_ani1_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
@@ -180,6 +182,7 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::GenericExecutor> generic;
     std::shared_ptr<const gko::CudaExecutor> cuda;
 
     std::ranlux48 rand_engine;
@@ -308,8 +311,8 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
                 gko::stop::Iteration::build().with_max_iters(50u).on(cuda),
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(cuda))
-            .on(cuda);
+                    .on(generic))
+            .on(generic);
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
 
@@ -342,8 +345,8 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
                 gko::stop::Iteration::build().with_max_iters(50u).on(cuda),
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(cuda))
-            .on(cuda);
+                    .on(generic))
+            .on(generic);
     auto solver = bicg_factory->generate(std::move(csr_ref));
     auto d_solver = d_bicg_factory->generate(std::move(csr_cuda));
 

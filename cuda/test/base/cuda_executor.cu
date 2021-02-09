@@ -285,4 +285,26 @@ TEST_F(CudaExecutor, ExecInfoSetsCorrectProperties)
 }
 
 
+TEST(GenericDevice, allAutoModeDependsOnAvailableGpus)
+{
+    auto num_cuda = gko::CudaExecutor::get_num_devices();
+    std::shared_ptr<gko::GenericExecutor> execs[3];
+
+    for (int i = 0; i < 3; i++) {
+        execs[i] = gko::GenericExecutor::create(-1, "all", true);
+    }
+
+    auto cuda_count = 0;
+    for (int i = 0; i < 3; i++) {
+        if (i < num_cuda) {
+            ASSERT_EQ(execs[i]->get_device_type(), "cuda");
+            ASSERT_EQ(execs[i]->get_device_id(), cuda_count);
+            cuda_count++;
+        } else {
+            ASSERT_NE(execs[i]->get_device_type(), "cuda");
+        }
+    }
+}
+
+
 }  // namespace

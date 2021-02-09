@@ -600,6 +600,164 @@ TEST(Executor, CanVerifyMemory)
 }
 
 
+TEST(GenericExecutor, canDefaultConstruct)
+{
+    auto exec = gko::GenericExecutor::create();
+
+    ASSERT_NE(exec->get_concrete_executor(), nullptr);
+    ASSERT_EQ(exec->get_concrete_executor()->get_master(), exec->get_master());
+}
+
+
+TEST(GenericExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr generic = gko::GenericExecutor::create(-1, "omp");
+
+    generic->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(1, value);
+}
+
+
+TEST(GenericExecutor, AllocatesAndFreesMemory)
+{
+    const int num_elems = 10;
+    exec_ptr generic = gko::GenericExecutor::create(-1, "omp");
+    int *ptr = nullptr;
+
+    ASSERT_NO_THROW(ptr = generic->alloc<int>(num_elems));
+    ASSERT_NO_THROW(generic->free(ptr));
+}
+
+
+TEST(GenericExecutor, FreeAcceptsNullptr)
+{
+    exec_ptr generic = gko::GenericExecutor::create(-1, "omp");
+
+    ASSERT_NO_THROW(generic->free(nullptr));
+}
+
+
+TEST(GenericExecutor, FailsWhenOverallocating)
+{
+    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
+    exec_ptr generic = gko::GenericExecutor::create(-1, "omp");
+    int *ptr = nullptr;
+
+    ASSERT_THROW(ptr = generic->alloc<int>(num_elems), gko::AllocationError);
+    generic->free(ptr);
+}
+
+
+TEST(GenericExecutor, CopiesData)
+{
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
+    exec_ptr generic = gko::GenericExecutor::create(-1, "omp");
+    int *copy = generic->alloc<int>(num_elems);
+
+    // user code is run on the OMP, so local variables are in OMP memory
+    generic->copy(num_elems, orig, copy);
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
+    generic->free(copy);
+}
+
+
+TEST(GenericExecutor, canSelectDeviceType)
+{
+    auto cuda = gko::GenericExecutor::create(-1, "cuda");
+    auto dpcpp = gko::GenericExecutor::create(-1, "dpcpp");
+    auto hip = gko::GenericExecutor::create(-1, "hip");
+    auto omp = gko::GenericExecutor::create(-1, "omp");
+    auto ref = gko::GenericExecutor::create(-1, "reference");
+
+
+    ASSERT_NE(cuda->get_concrete_executor(), nullptr);
+    ASSERT_EQ(gko::as<gko::CudaExecutor>(cuda->get_concrete_executor())
+                  ->get_device_id(),
+              0);
+    ASSERT_EQ(gko::as<gko::CudaExecutor>(cuda->get_concrete_executor())
+                  ->get_device_id(),
+              cuda->get_device_id());
+    ASSERT_EQ(cuda->get_device_type(), "cuda");
+    ASSERT_NE(dpcpp->get_concrete_executor(), nullptr);
+    ASSERT_EQ(dpcpp->get_device_id(), 0);
+    ASSERT_EQ(dpcpp->get_device_type(), "dpcpp");
+    ASSERT_NE(hip->get_concrete_executor(), nullptr);
+    ASSERT_EQ(hip->get_device_id(), 0);
+    ASSERT_EQ(hip->get_device_type(), "hip");
+    ASSERT_NE(omp->get_concrete_executor(), nullptr);
+    ASSERT_EQ(omp->get_device_type(), "omp");
+    ASSERT_NE(ref->get_concrete_executor(), nullptr);
+    ASSERT_EQ(ref->get_device_type(), "reference");
+}
+
+
+TEST(GenericExecutor, canSelectDeviceId)
+{
+    auto cuda0 = gko::GenericExecutor::create(0, "cuda");
+    auto cuda1 = gko::GenericExecutor::create(1, "cuda");
+    auto dpcpp0 = gko::GenericExecutor::create(0, "dpcpp");
+    auto dpcpp1 = gko::GenericExecutor::create(1, "dpcpp");
+    auto hip0 = gko::GenericExecutor::create(0, "hip");
+    auto hip1 = gko::GenericExecutor::create(1, "hip");
+
+
+    ASSERT_EQ(cuda0->get_device_id(), 0);
+    ASSERT_EQ(cuda1->get_device_id(), 1);
+    ASSERT_EQ(dpcpp0->get_device_id(), 0);
+    ASSERT_EQ(dpcpp1->get_device_id(), 1);
+    ASSERT_EQ(hip0->get_device_id(), 0);
+    ASSERT_EQ(hip1->get_device_id(), 1);
+}
+
+
+TEST(GenericExecutor, getSameExecutorConsecutivelyByDefault)
+{
+    auto cudaA = gko::GenericExecutor::create(-1, "cuda");
+    auto cudaB = gko::GenericExecutor::create(-1, "cuda");
+
+    ASSERT_EQ(cudaA->get_device_id(), cudaB->get_device_id());
+    ASSERT_EQ(cudaA->get_device_id(), 0);
+}
+
+
+TEST(GenericExecutor, canGetDifferentExecutorsWithSetting)
+{
+    auto cudaA = gko::GenericExecutor::create(-1, "cuda", true);
+    auto cudaB = gko::GenericExecutor::create(-1, "cuda", true);
+
+    ASSERT_NE(cudaA->get_device_id(), cudaB->get_device_id());
+    ASSERT_EQ(cudaA->get_device_id(), 0);
+    ASSERT_EQ(cudaB->get_device_id(), 1);
+}
+
+
+// Any way to improve this test?
+TEST(GenericExecutor, fallsBackToCPUExec)
+{
+    // let's spam executor creation of all types
+    std::shared_ptr<gko::GenericExecutor> execs[75];
+    for (int i = 0; i < 25; i++) {
+        execs[i] = gko::GenericExecutor::create(-1, "cuda", true);
+        execs[25 + i] = gko::GenericExecutor::create(-1, "dpcpp", true);
+        execs[50 + i] = gko::GenericExecutor::create(-1, "hip", true);
+    }
+
+    // We should only have OpenMP/Reference left
+    auto exec = gko::GenericExecutor::create(-1, "all", true);
+
+    ASSERT_TRUE(exec->get_device_type() == "omp" ||
+                exec->get_device_type() == "reference");
+}
+
+
 template <typename T>
 struct mock_free : T {
     /**
