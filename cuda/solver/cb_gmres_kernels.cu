@@ -36,15 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 #include "core/base/accessors.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/solver/cb_gmres_accessor.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
