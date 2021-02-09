@@ -129,22 +129,22 @@ template <typename ValueType>
 struct helper {
     template <typename Callable>
     static void call(Callable callable,
-                     gko::solver::cb_gmres_storage_precision st)
+                     gko::solver::cb_gmres::storage_precision st)
     {
         switch (st) {
-        case cb_gmres_storage_precision::reduce1:
+        case cb_gmres::storage_precision::reduce1:
             callable(reduce_precision_count<ValueType, 1>{});
             break;
-        case cb_gmres_storage_precision::reduce2:
+        case cb_gmres::storage_precision::reduce2:
             callable(reduce_precision_count<ValueType, 2>{});
             break;
-        case cb_gmres_storage_precision::integer:
+        case cb_gmres::storage_precision::integer:
             callable(to_integer<ValueType>{});
             break;
-        case cb_gmres_storage_precision::ireduce1:
+        case cb_gmres::storage_precision::ireduce1:
             callable(to_integer<reduce_precision_count<ValueType, 1>>{});
             break;
-        case cb_gmres_storage_precision::ireduce2:
+        case cb_gmres::storage_precision::ireduce2:
             callable(to_integer<reduce_precision_count<ValueType, 2>>{});
             break;
         default:
@@ -162,18 +162,18 @@ struct helper<std::complex<T>> {
 
     template <typename Callable>
     static void call(Callable callable,
-                     gko::solver::cb_gmres_storage_precision st)
+                     gko::solver::cb_gmres::storage_precision st)
     {
         switch (st) {
-        case cb_gmres_storage_precision::reduce1:
+        case cb_gmres::storage_precision::reduce1:
             callable(reduce_precision_skip_count<ValueType, skip_type, 1>{});
             break;
-        case cb_gmres_storage_precision::reduce2:
+        case cb_gmres::storage_precision::reduce2:
             callable(reduce_precision_skip_count<ValueType, skip_type, 2>{});
             break;
-        case cb_gmres_storage_precision::integer:
-        case cb_gmres_storage_precision::ireduce1:
-        case cb_gmres_storage_precision::ireduce2:
+        case cb_gmres::storage_precision::integer:
+        case cb_gmres::storage_precision::ireduce1:
+        case cb_gmres::storage_precision::ireduce2:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
