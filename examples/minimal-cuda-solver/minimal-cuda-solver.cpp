@@ -47,7 +47,7 @@ int main()
             .with_preconditioner(gko::preconditioner::Jacobi<>::build().on(gpu))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(gpu),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-15)
                     .on(gpu))
             .on(gpu);

@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
             .with_criteria(gko::stop::Iteration::build()
                                .with_max_iters(system_max_iterations)
                                .on(exec),
-                           gko::stop::ResidualNormReduction<precision>::build()
+                           gko::stop::ResidualNorm<precision>::build()
                                .with_reduction_factor(system_residual_goal)
                                .on(exec))
             .on(exec)

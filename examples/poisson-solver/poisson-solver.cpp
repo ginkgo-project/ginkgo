@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
         .with_criteria(gko::stop::Iteration::build()
                            .with_max_iters(discretization_points)
                            .on(exec),
-                       gko::stop::ResidualNormReduction<ValueType>::build()
+                       gko::stop::ResidualNorm<ValueType>::build()
                            .with_reduction_factor(reduction_factor)
                            .on(exec))
         .with_preconditioner(bj::build().on(exec))
