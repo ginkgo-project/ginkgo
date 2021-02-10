@@ -67,7 +67,7 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(40u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -84,7 +84,7 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),

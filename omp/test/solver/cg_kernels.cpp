@@ -246,7 +246,7 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
         gko::solver::Cg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(ref))
             .on(ref);
@@ -254,7 +254,7 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
         gko::solver::Cg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(omp),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(omp))
             .on(omp);

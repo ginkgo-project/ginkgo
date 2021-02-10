@@ -123,12 +123,12 @@ int main(int argc, char *argv[])
     // Add stream_logger to the executor
     exec->add_logger(stream_logger);
 
-    // Add stream_logger only to the ResidualNormReduction criterion Factory
+    // Add stream_logger only to the ResidualNorm criterion Factory
     // Note that the logger will get automatically propagated to every criterion
     // generated from this factory.
     const RealValueType reduction_factor{1e-7};
     using ResidualCriterionFactory =
-        gko::stop::ResidualNormReduction<ValueType>::Factory;
+        gko::stop::ResidualNorm<ValueType>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =
         ResidualCriterionFactory::create()
             .with_reduction_factor(reduction_factor)

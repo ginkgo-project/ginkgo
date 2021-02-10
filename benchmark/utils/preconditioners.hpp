@@ -307,7 +307,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
-                 .with_criteria(gko::stop::ResidualNormReduction<etype>::build()
+                 .with_criteria(gko::stop::ResidualNorm<etype>::build()
                                     .with_reduction_factor(rc_etype{})
                                     .on(exec))
                  .on(exec);

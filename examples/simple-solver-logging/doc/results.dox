@@ -43,12 +43,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 0 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 0 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 0 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 0 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 0 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149550] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149550] with Bytes[152]
@@ -70,12 +70,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 1 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 1 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 1 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 1 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 1 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149980] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149980] with Bytes[152]
@@ -101,12 +101,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 2 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 2 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 2 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 2 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 2 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149290] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149290] with Bytes[152]
@@ -132,12 +132,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 3 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 3 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 3 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 3 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 3 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149890] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149890] with Bytes[152]
@@ -163,12 +163,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 4 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 4 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 4 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 4 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 4 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149200] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149200] with Bytes[152]
@@ -194,12 +194,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 5 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 5 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 5 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 5 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 5 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149890] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149890] with Bytes[152]
@@ -225,12 +225,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 6 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 6 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 6 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 6 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 6 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149450] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149450] with Bytes[152]
@@ -256,12 +256,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 7 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 7 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 7 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 7 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 7 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149730] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149730] with Bytes[152]
@@ -287,12 +287,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 8 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 8 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 8 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 8 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 8 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149200] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149200] with Bytes[152]
@@ -318,12 +318,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 9 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 9 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 9 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 9 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 9 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149620] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149620] with Bytes[152]
@@ -349,12 +349,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 10 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 10 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 10 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 10 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 10 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149450] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149450] with Bytes[152]
@@ -380,12 +380,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 11 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 11 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 11 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 11 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 11 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149860] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149860] with Bytes[152]
@@ -411,12 +411,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 12 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 12 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 12 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 12 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 12 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x21499a0] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x21499a0] with Bytes[152]
@@ -442,12 +442,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 13 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 13 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 13 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 13 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 13 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149490] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149490] with Bytes[152]
@@ -473,12 +473,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 14 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 14 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 14 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 14 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 14 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149b50] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149b50] with Bytes[152]
@@ -504,12 +504,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 15 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 15 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 15 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 15 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 15 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149a70] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149a70] with Bytes[152]
@@ -535,12 +535,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 16 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 16 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 16 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 16 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 16 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149970] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149970] with Bytes[152]
@@ -566,12 +566,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 17 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 17 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 17 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 17 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 17 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149780] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149780] with Bytes[152]
@@ -597,12 +597,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 18 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 18 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 18 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 18 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 18 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149620] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149620] with Bytes[152]
@@ -628,12 +628,12 @@ This is the expected output:
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_dot_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14c50] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> iteration 19 completed with solver LinOp[gko::solver::Cg<double>,0x2142d60] with residual LinOp[gko::matrix::Dense<double>,0x2147b30], solution LinOp[gko::matrix::Dense<double>,0x2143450] and residual_norm LinOp[gko::LinOp const*,0]
-[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 19 with ID 1 and finalized set to 1
+[LOG] >>> check started for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 19 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffd93d14ad0] completed on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] started on Executor[gko::ReferenceExecutor,0x21400d0]
 [LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffd93d14b90] completed on Executor[gko::ReferenceExecutor,0x21400d0]
-[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x2148db0] at iteration 19 with ID 1 and finalized set to 1. It changed one RHS 1, stopped the iteration process 1
+[LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNorm<double>,0x2148db0] at iteration 19 with ID 1 and finalized set to 1. It changed one RHS 1, stopped the iteration process 1
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x21400d0] with Bytes[152]
 [LOG] >>> allocation completed on Executor[gko::ReferenceExecutor,0x21400d0] at Location[0x2149890] with Bytes[152]
 [LOG] >>> copy started from Executor[gko::ReferenceExecutor,0x21400d0] to Executor[gko::ReferenceExecutor,0x21400d0] from Location[0x21480a0] to Location[0x2149890] with Bytes[152]

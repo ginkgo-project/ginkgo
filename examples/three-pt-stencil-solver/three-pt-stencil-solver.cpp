@@ -220,7 +220,7 @@ void solve_system(const std::string &executor_string,
             .with_criteria(gko::stop::Iteration::build()
                                .with_max_iters(gko::size_type(dp))
                                .on(exec),
-                           gko::stop::ResidualNormReduction<ValueType>::build()
+                           gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor)
                                .on(exec))
             .with_preconditioner(bj::build().on(exec))

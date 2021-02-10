@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     RealValueType outer_reduction_factor{1e-12};
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
-    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
+    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
                         .with_reduction_factor(outer_reduction_factor)
                         .on(exec);
 
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
             .with_solver(
                 cg::build()
                     .with_criteria(
-                        gko::stop::ResidualNormReduction<ValueType>::build()
+                        gko::stop::ResidualNorm<ValueType>::build()
                             .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
                     .on(exec))
