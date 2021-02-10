@@ -353,6 +353,16 @@ int main(int, char **)
                         .on(refExec);
 
         // residual_norm.hpp
+        auto main_res = gko::stop::ResidualNorm<>::build()
+                            .with_reduction_factor(1e-10)
+                            .with_baseline(gko::stop::mode_absolute)
+                            .on(refExec);
+
+        auto implicit_res = gko::stop::ImplicitResidualNorm<>::build()
+                                .with_reduction_factor(1e-10)
+                                .with_baseline(gko::stop::mode_absolute)
+                                .on(refExec);
+
         auto res_red = gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(1e-10)
                            .on(refExec);

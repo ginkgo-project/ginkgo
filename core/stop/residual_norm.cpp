@@ -83,8 +83,9 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
     bool all_converged = true;
 
     this->get_executor()->run(residual_norm::make_residual_norm(
-        dense_tau, starting_tau_.get(), tolerance_, stoppingId, setFinalized,
-        stop_status, &device_storage_, &all_converged, one_changed));
+        dense_tau, starting_tau_.get(), reduction_factor_, stoppingId,
+        setFinalized, stop_status, &device_storage_, &all_converged,
+        one_changed));
 
     return all_converged;
 }
