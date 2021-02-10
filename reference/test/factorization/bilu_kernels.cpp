@@ -113,7 +113,7 @@ protected:
 TYPED_TEST_SUITE(Bilu, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(Bilu, FixedDenseBlockInverseNoPivoting)
+TYPED_TEST(Bilu, FixedDenseBlock3InverseNoPivoting)
 {
     using value_type = typename TestFixture::value_type;
     using Blk_t = gko::blockutils::FixedBlock<value_type, 3, 3>;
@@ -146,6 +146,156 @@ TYPED_TEST(Bilu, FixedDenseBlockInverseNoPivoting)
     ASSERT_LE(std::abs(A(2, 0) - static_cast<value_type>(2.0 / 33)), eps);
     ASSERT_LE(std::abs(A(2, 1) - static_cast<value_type>(-4.0 / 33)), eps);
     ASSERT_LE(std::abs(A(2, 2) - static_cast<value_type>(7.0 / 33)), eps);
+}
+
+TEST(BlockInverse, FixedDenseBlock4InversePivoted)
+{
+    using value_type = float;
+    constexpr int bs = 4;
+    using Blk_t = gko::blockutils::FixedBlock<value_type, bs, bs>;
+    Blk_t A;
+    A(0, 0) = 1;
+    A(0, 1) = 12;
+    A(0, 2) = 3;
+    A(0, 3) = 4;
+    A(1, 0) = 5;
+    A(1, 1) = 5;
+    A(1, 2) = -2;
+    A(1, 3) = 3;
+    A(2, 0) = 2;
+    A(2, 1) = -1;
+    A(2, 2) = -11;
+    A(2, 3) = 3;
+    A(3, 0) = 4;
+    A(3, 1) = 7;
+    A(3, 2) = -6;
+    A(3, 3) = 5;
+    Blk_t B;
+    B(0, 0) = 0.222222;
+    B(0, 1) = 0.62963;
+    B(0, 2) = 0.37037;
+    B(0, 3) = -0.777778;
+    B(1, 0) = 1.72222;
+    B(1, 1) = 1.7963;
+    B(1, 2) = 2.2037;
+    B(1, 3) = -3.77778;
+    B(2, 0) = -1.22222;
+    B(2, 1) = -1.2963;
+    B(2, 2) = -1.7037;
+    B(2, 3) = 2.77778;
+    B(3, 0) = -4.05556;
+    B(3, 1) = -4.57407;
+    B(3, 2) = -5.42593;
+    B(3, 3) = 9.44444;
+    int perm[bs];
+    for (int i = 0; i < bs; i++) {
+        perm[i] = i;
+    }
+
+    const bool invflag = gko::kernels::invert_block<value_type, 4>(perm, A);
+    gko::kernels::permute_block(A, perm);
+
+    ASSERT_TRUE(invflag);
+    const value_type tol = 1e-4;
+    for (int i = 0; i < bs; i++) {
+        for (int j = 0; j < bs; j++) {
+            const value_type err = std::abs((A(i, j) - B(i, j)) / B(i, j));
+            ASSERT_LE(err, tol);
+        }
+    }
+}
+
+TEST(BlockInverse, FixedDenseBlock7InversePivoted)
+{
+    using value_type = double;
+    constexpr int bs = 7;
+    using Blk_t = gko::blockutils::FixedBlock<value_type, bs, bs>;
+    Blk_t A;
+    A(0, 0) = -11.6651;
+    A(0, 1) = -0.603807;
+    A(0, 2) = 0.3396;
+    A(1, 0) = -9.08963;
+    A(1, 1) = -0.789592;
+    A(1, 2) = 2.21999;
+    A(2, 0) = -3.03475;
+    A(2, 1) = 0.438925;
+    A(2, 2) = -2.15868;
+    A(3, 0) = 5.36474;
+    A(3, 1) = 1.84708;
+    A(3, 2) = 1.19565;
+    A(4, 0) = 26.8763;
+    A(4, 1) = 0.474329;
+    A(4, 2) = 3.84057;
+    A(5, 0) = 9.25151;
+    A(5, 1) = 1.16839;
+    A(5, 2) = -0.688332;
+    A(6, 0) = -12.086;
+    A(6, 1) = -1.81079;
+    A(6, 2) = -2.95177;
+
+    A(0, 3) = -5.71315;
+    A(0, 4) = 0.833828;
+    A(0, 5) = 14.6753;
+    A(0, 6) = 0.792967;
+    A(1, 3) = -2.5276;
+    A(1, 4) = 0.85484;
+    A(1, 5) = 7.95202;
+    A(1, 6) = 1.08117;
+    A(2, 3) = 0.339518;
+    A(2, 4) = -2.14638;
+    A(2, 5) = 4.54195;
+    A(2, 6) = -0.103434;
+    A(3, 3) = 2.12117;
+    A(3, 4) = 0.875747;
+    A(3, 5) = -8.16298;
+    A(3, 6) = -0.767853;
+    A(4, 3) = 9.32757;
+    A(4, 4) = 1.33803;
+    A(4, 5) = -32.779;
+    A(4, 6) = -1.77482;
+    A(5, 3) = 3.13859;
+    A(5, 4) = 1.01449;
+    A(5, 5) = -10.1447;
+    A(5, 6) = -1.69143;
+    A(6, 3) = -4.71304;
+    A(6, 4) = -1.57097;
+    A(6, 5) = 17.0216;
+    A(6, 6) = 2.35194;
+
+    Blk_t B;
+    int perm[bs];
+    for (int i = 0; i < bs; i++) {
+        perm[i] = i;
+        for (int j = 0; j < bs; j++) {
+            B(i, j) = A(i, j);
+        }
+    }
+
+    const bool invflag = gko::kernels::invert_block(perm, B);
+    gko::kernels::permute_block(B, perm);
+
+    ASSERT_TRUE(invflag);
+    constexpr typename gko::remove_complex<value_type> tol =
+        100 * std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
+    Blk_t prod;
+    for (int i = 0; i < bs; i++) {
+        for (int j = 0; j < bs; j++) {
+            prod(i, j) = 0;
+            for (int k = 0; k < bs; k++) {
+                prod(i, j) += A(i, k) * B(k, j);
+            }
+        }
+    }
+    for (int i = 0; i < bs; i++) {
+        for (int j = 0; j < bs; j++) {
+            const value_type err = std::abs((A(i, j) - B(i, j)) / B(i, j));
+            if (i == j) {
+                ASSERT_LE(std::abs(prod(i, j) - 1), tol);
+            } else {
+                ASSERT_LE(std::abs(prod(i, j)), tol);
+            }
+        }
+    }
 }
 
 TYPED_TEST(Bilu, KernelFactorizationSorted)
