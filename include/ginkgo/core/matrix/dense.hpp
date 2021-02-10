@@ -245,6 +245,13 @@ public:
         const Array<int64> *permutation_indices) const override;
 
     /**
+     * Fill the dense matrix with a given value.
+     *
+     * @param value  the value to be filled
+     */
+    void fill(const ValueType value) { this->values_.fill(value); }
+
+    /**
      * Create a Dense matrix consisting of the given rows from this matrix.
      *
      * @param gather_indices  pointer to an array containing row indices
@@ -693,7 +700,7 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
-};  // namespace matrix
+};
 
 
 }  // namespace matrix

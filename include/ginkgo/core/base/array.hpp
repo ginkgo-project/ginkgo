@@ -480,6 +480,13 @@ public:
     }
 
     /**
+     * Fill the array with the given value.
+     *
+     * @param value the value to be filled
+     */
+    void fill(const ValueType value);
+
+    /**
      * Returns the number of elements in the Array.
      *
      * @return the number of elements in the Array
