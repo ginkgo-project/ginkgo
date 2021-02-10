@@ -46,9 +46,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
     std::fill_n(array, n, val);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
 }  // namespace components

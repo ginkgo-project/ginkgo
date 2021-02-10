@@ -51,8 +51,8 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename IndexType>    \
-    GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
+    template <typename ValueType>    \
+    GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType)
 
 
 namespace omp {
