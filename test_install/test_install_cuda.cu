@@ -350,14 +350,14 @@ int main(int, char **)
             .on(cudaExec);
 
         gko::stop::ResidualNorm<>::build()
-                            .with_reduction_factor(1e-10)
-                            .with_baseline(gko::stop::mode_absolute)
-                            .on(cudaExec);
+            .with_reduction_factor(1e-10)
+            .with_baseline(gko::stop::mode::absolute)
+            .on(cudaExec);
 
         gko::stop::ImplicitResidualNorm<>::build()
-                                .with_reduction_factor(1e-10)
-                                .with_baseline(gko::stop::mode_absolute)
-                                .on(cudaExec);
+            .with_reduction_factor(1e-10)
+            .with_baseline(gko::stop::mode::absolute)
+            .on(cudaExec);
 
         gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
             cudaExec);

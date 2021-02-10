@@ -203,21 +203,6 @@ TYPED_TEST(Dense, CanBeDoubleListConstructedWithstride)
 }
 
 
-TYPED_TEST(Dense, CanBeFilledWithValue)
-{
-    using value_type = typename TestFixture::value_type;
-    auto m =
-        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
-    EXPECT_EQ(m->at(0), value_type{1});
-    EXPECT_EQ(m->at(1), value_type{2});
-
-    m->fill(value_type{42});
-
-    EXPECT_EQ(m->at(0), value_type{42});
-    EXPECT_EQ(m->at(1), value_type{42});
-}
-
-
 TYPED_TEST(Dense, CanBeCopied)
 {
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);

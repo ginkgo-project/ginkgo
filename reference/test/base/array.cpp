@@ -33,65 +33,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include <ginkgo/core/base/math.hpp>
+#include <algorithm>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/precision_conversion.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace conversion {
+#include <ginkgo/core/base/executor.hpp>
 
 
-GKO_REGISTER_OPERATION(convert, components::convert_precision);
+#include "core/test/utils.hpp"
 
 
-}  // namespace conversion
+namespace {
 
 
-namespace array {
+template <typename T>
+class Array : public ::testing::Test {
+protected:
+    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
+    {
+        x.get_data()[0] = 5;
+        x.get_data()[1] = 2;
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    gko::Array<T> x;
+};
+
+TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
 
 
-GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-
-
-}  // namespace array
-
-
-namespace detail {
-
-
-template <typename SourceType, typename TargetType>
-void convert_data(std::shared_ptr<const Executor> exec, size_type size,
-                  const SourceType *src, TargetType *dst)
+TYPED_TEST(Array, CanBeFilledWithValue)
 {
-    exec->run(conversion::make_convert(size, src, dst));
+    this->x.fill(TypeParam{42});
+
+    ASSERT_EQ(this->x.get_num_elems(), 2);
+    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
+    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
+    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
+    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
 }
 
 
-#define GKO_DECLARE_ARRAY_CONVERSION(From, To)                              \
-    void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
-                                const From *, To *)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
-
-
-}  // namespace detail
-
-
-template <typename ValueType>
-void Array<ValueType>::fill(const ValueType value)
-{
-    GKO_ASSERT(this->get_num_elems() > 0);
-    this->get_executor()->run(
-        array::make_fill_array(this->get_data(), this->get_num_elems(), value));
-}
-
-
-#define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
-
-GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ARRAY_FILL);
-
-
-}  // namespace gko
+}  // namespace
