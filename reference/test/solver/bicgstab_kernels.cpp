@@ -80,8 +80,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ImplicitResidualNormReduction<
-                          value_type>::build()
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),

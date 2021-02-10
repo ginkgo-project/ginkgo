@@ -93,8 +93,7 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ImplicitResidualNormReduction<
-                          value_type>::build()
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))

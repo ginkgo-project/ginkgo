@@ -312,43 +312,40 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
 
 template <typename T>
-class ImplicitResidualNormReduction : public ::testing::Test {
+class ImplicitResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
-    ImplicitResidualNormReduction()
+    ImplicitResidualNorm()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+        factory_ = gko::stop::ImplicitResidualNorm<T>::build()
                        .with_reduction_factor(r<T>::value)
                        .on(exec_);
-        factory_2_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+        factory_2_ = gko::stop::ImplicitResidualNorm<T>::build()
                          .with_reduction_factor(r<T>::value)
                          .with_relative_to(gko::stop::norm_of::initial_residual)
                          .on(exec_);
-        factory_3_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+        factory_3_ = gko::stop::ImplicitResidualNorm<T>::build()
                          .with_reduction_factor(r<T>::value)
                          .with_relative_to(gko::stop::norm_of::rhs)
                          .on(exec_);
     }
 
-    std::unique_ptr<
-        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+    std::unique_ptr<typename gko::stop::ImplicitResidualNorm<T>::Factory>
         factory_;
-    std::unique_ptr<
-        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+    std::unique_ptr<typename gko::stop::ImplicitResidualNorm<T>::Factory>
         factory_2_;
-    std::unique_ptr<
-        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+    std::unique_ptr<typename gko::stop::ImplicitResidualNorm<T>::Factory>
         factory_3_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ImplicitResidualNormReduction, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes);
 
 
-TYPED_TEST(ImplicitResidualNormReduction, CanCreateFactory)
+TYPED_TEST(ImplicitResidualNorm, CanCreateFactory)
 {
     ASSERT_NE(this->factory_, nullptr);
     ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
@@ -363,15 +360,14 @@ TYPED_TEST(ImplicitResidualNormReduction, CanCreateFactory)
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction,
-           CannotCreateCriterionWithoutBAndInitRes)
+TYPED_TEST(ImplicitResidualNorm, CannotCreateCriterionWithoutBAndInitRes)
 {
     ASSERT_THROW(this->factory_->generate(nullptr, nullptr, nullptr, nullptr),
                  gko::NotSupported);
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithB)
+TYPED_TEST(ImplicitResidualNorm, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
     std::shared_ptr<gko::LinOp> scalar =
@@ -383,7 +379,7 @@ TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithB)
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithInitialRes)
+TYPED_TEST(ImplicitResidualNorm, CanCreateCriterionWithInitialRes)
 {
     using Mtx = typename TestFixture::Mtx;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
@@ -393,7 +389,7 @@ TYPED_TEST(ImplicitResidualNormReduction, CanCreateCriterionWithInitialRes)
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
+TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
 {
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
@@ -434,7 +430,7 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;

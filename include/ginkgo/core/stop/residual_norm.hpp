@@ -229,10 +229,10 @@ protected:
 /**
  * The enum that holds the quantity relative to the implicit residual.
  */
-enum class norm_of { rhs, initial_residual };
+enum class norm_of { initial_residual, rhs };
 
 /**
- * The ImplicitResidualNormReduction class is a stopping criterion which
+ * The ImplicitResidualNorm class is a stopping criterion which
  * stops the iteration process when the implicit residual norm is below a
  * certain threshold relative to either the norm of the right-hand side, i.e.
  * when norm(residual) / norm(right_hand_side) < threshold or the initial
@@ -248,7 +248,7 @@ enum class norm_of { rhs, initial_residual };
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ImplicitResidualNormReduction : public ResidualNorm<ValueType> {
+class ImplicitResidualNorm : public ResidualNorm<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -268,8 +268,8 @@ public:
          */
         norm_of GKO_FACTORY_PARAMETER_SCALAR(relative_to, norm_of::rhs);
     };
-    GKO_ENABLE_CRITERION_FACTORY(ImplicitResidualNormReduction<ValueType>,
-                                 parameters, Factory);
+    GKO_ENABLE_CRITERION_FACTORY(ImplicitResidualNorm<ValueType>, parameters,
+                                 Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -277,13 +277,12 @@ protected:
                     Array<stopping_status> *stop_status, bool *one_changed,
                     const Criterion::Updater &) override;
 
-    explicit ImplicitResidualNormReduction(
-        std::shared_ptr<const gko::Executor> exec)
+    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNorm<ValueType>(exec), device_storage_{exec, 2}
     {}
 
-    explicit ImplicitResidualNormReduction(const Factory *factory,
-                                           const CriterionArgs &args)
+    explicit ImplicitResidualNorm(const Factory *factory,
+                                  const CriterionArgs &args)
         : ResidualNorm<ValueType>(factory->get_executor(),
                                   factory->get_parameters().reduction_factor),
           parameters_{factory->get_parameters()},
