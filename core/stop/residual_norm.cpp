@@ -91,7 +91,7 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
 
 
 template <typename ValueType>
-bool ImplicitResidualNormReduction<ValueType>::check_impl(
+bool ImplicitResidualNorm<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
@@ -127,7 +127,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
-    class ImplicitResidualNormReduction<_type>
+    class ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
 
 

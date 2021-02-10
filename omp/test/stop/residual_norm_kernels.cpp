@@ -253,29 +253,28 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
 
 template <typename T>
-class ImplicitResidualNormReduction : public ::testing::Test {
+class ImplicitResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
-    ImplicitResidualNormReduction()
+    ImplicitResidualNorm()
     {
         exec_ = gko::OmpExecutor::create();
-        factory_ = gko::stop::ImplicitResidualNormReduction<T>::build()
+        factory_ = gko::stop::ImplicitResidualNorm<T>::build()
                        .with_reduction_factor(r<T>::value)
                        .on(exec_);
     }
 
-    std::unique_ptr<
-        typename gko::stop::ImplicitResidualNormReduction<T>::Factory>
+    std::unique_ptr<typename gko::stop::ImplicitResidualNorm<T>::Factory>
         factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ImplicitResidualNormReduction, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes);
 
 
-TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
+TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
 {
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
@@ -316,7 +315,7 @@ TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;

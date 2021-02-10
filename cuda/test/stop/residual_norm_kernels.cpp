@@ -269,28 +269,27 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 }
 
 
-class ImplicitResidualNormReduction : public ::testing::Test {
+class ImplicitResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<double>>;
 
-    ImplicitResidualNormReduction()
+    ImplicitResidualNorm()
     {
         ref_ = gko::ReferenceExecutor::create();
         cuda_ = gko::CudaExecutor::create(0, ref_);
-        factory_ = gko::stop::ImplicitResidualNormReduction<>::build()
+        factory_ = gko::stop::ImplicitResidualNorm<>::build()
                        .with_reduction_factor(tol)
                        .on(cuda_);
     }
 
-    std::unique_ptr<gko::stop::ImplicitResidualNormReduction<>::Factory>
-        factory_;
+    std::unique_ptr<gko::stop::ImplicitResidualNorm<>::Factory> factory_;
     std::shared_ptr<const gko::CudaExecutor> cuda_;
     std::shared_ptr<gko::ReferenceExecutor> ref_;
 };
 
 
-TEST_F(ImplicitResidualNormReduction, WaitsTillResidualGoal)
+TEST_F(ImplicitResidualNorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto d_res = Mtx::create(cuda_);
@@ -335,7 +334,7 @@ TEST_F(ImplicitResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TEST_F(ImplicitResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = Mtx::create(cuda_);
