@@ -96,8 +96,11 @@ inline bool invert_block(int *const perm, Blkv_t<ValueType, block_size> &block)
     for (int k = 0; k < block_size; ++k) {
         // choose pivot
         int cp = k;
-        for (int i = k + 1; i < block_size; i++)
-            if (abs(block(k, k)) < abs(block(i, k))) cp = i;
+        for (int i = k + 1; i < block_size; i++) {
+            if (std::abs(block(k, k)) < std::abs(block(i, k))) {
+                cp = i;
+            }
+        }
 
         swap_rows(k, cp, block);
         swap(perm[k], perm[cp]);
@@ -110,9 +113,8 @@ inline bool invert_block(int *const perm, Blkv_t<ValueType, block_size> &block)
 }
 
 /**
- * @brief Permutes the given matrix so that new_mat[p[i]] = mat[i]
+ * @brief Column-permutes the given matrix so that new_mat[p[j]] = mat[j]
  *
- * The given matrix is modified.
  * @param[in,out] mat  The matrix to permute
  * @param[in] perm  The permutation vector
  */
@@ -128,7 +130,7 @@ inline void permute_block(Blkv_t<ValueType, block_size> &mat,
     }
     for (int i = 0; i < block_size; i++) {
         for (int j = 0; j < block_size; j++) {
-            mat(perm[i], j) = temp(i, j);
+            mat(i, perm[j]) = temp(i, j);
         }
     }
 }

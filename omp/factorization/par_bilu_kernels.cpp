@@ -150,6 +150,11 @@ static void compute_bilu_impl(
 
                     const bool invflag =
                         invert_block<ValueType, bs>(perm, invU);
+                    if (!invflag) {
+                        printf(" Could not invert diag block at blk row %ld!",
+                               static_cast<long int>(ibrow));
+                    }
+                    permute_block(invU, perm);
 
                     // auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
                     // if (is_finite(to_write))
