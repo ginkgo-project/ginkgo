@@ -1,3 +1,4 @@
+ginkgo_create_test(array)
 ginkgo_create_test(combination)
 ginkgo_create_test(composition)
 ginkgo_create_test(perturbation)

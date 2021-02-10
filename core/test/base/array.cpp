@@ -299,18 +299,6 @@ TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
 }
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
-
-
 TYPED_TEST(Array, CanBeCleared)
 {
     this->x.clear();
