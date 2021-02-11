@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
+#include "bilu_sample.hpp"
+#include "core/factorization/par_bilu_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
 
@@ -66,6 +68,62 @@ protected:
 
 TYPED_TEST_SUITE(ParBilu, gko::test::ValueIndexTypes);
 
+TYPED_TEST(ParBilu, KernelFactorizationSortedBS3)
+{
+    using Fbcsr = typename TestFixture::Fbcsr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const gko::testing::Bilu0Sample<value_type, index_type> bilusample(
+        this->refexec);
+    auto mtx = bilusample.generate_fbcsr();
+    auto reffacts = bilusample.generate_factors();
+    auto mtxcopy = mtx->clone();
+    const int bs = mtx->get_block_size();
+    const value_type *const testvals = mtxcopy->get_values();
+    const index_type *const testrowptrs = mtxcopy->get_row_ptrs();
+    const index_type *const testcolidxs = mtxcopy->get_col_idxs();
+    const index_type nbrows = mtxcopy->get_num_block_rows();
+    const auto refL =
+        std::dynamic_pointer_cast<const Fbcsr>(reffacts->get_operators()[0]);
+    const auto refU =
+        std::dynamic_pointer_cast<const Fbcsr>(reffacts->get_operators()[1]);
+    auto testL = refL->clone();
+    auto testUi = refU->clone();
+    const index_type *const tLrowptrs = testL->get_const_row_ptrs();
+    const index_type *const tUrowptrs = testUi->get_const_row_ptrs();
+    value_type *const testLvals = testL->get_values();
+    value_type *const testUvals = testUi->get_values();
+    for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {
+        for (index_type ibz = tLrowptrs[ibrow]; ibz < tLrowptrs[ibrow + 1];
+             ibz++) {
+            for (int i = 0; i < bs * bs; i++) {
+                testLvals[ibz * bs * bs + i] = 0;
+            }
+        }
+        const index_type diag = tLrowptrs[ibrow + 1] - 1;
+        for (int i = 0; i < bs; i++) {
+            testLvals[diag * bs * bs + i * bs + i] = 1.0;
+        }
+        for (index_type ibz = tUrowptrs[ibrow]; ibz < tUrowptrs[ibrow + 1];
+             ibz++) {
+            for (int i = 0; i < bs * bs; i++) {
+                testUvals[ibz * bs * bs + i] = 0;
+            }
+        }
+    }
+    auto testU_t = gko::as<Fbcsr>(testUi->transpose());
+
+    gko::kernels::reference::par_bilu_factorization::compute_bilu_factors(
+        this->refexec, 1, mtx.get(), testL.get(), testU_t.get());
+    auto testU = gko::as<const Fbcsr>(testU_t->transpose());
+
+    constexpr auto eps =
+        std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
+    GKO_ASSERT_MTX_EQ_SPARSITY(refL, testL);
+    GKO_ASSERT_MTX_EQ_SPARSITY(refU, testU);
+    GKO_ASSERT_MTX_NEAR(refL, testL, eps);
+    GKO_ASSERT_MTX_NEAR(refU, testU, eps);
+}
 
 TYPED_TEST(ParBilu, FactorizationSortedBS4)
 {

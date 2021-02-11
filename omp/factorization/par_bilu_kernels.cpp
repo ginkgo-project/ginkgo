@@ -143,18 +143,11 @@ static void compute_bilu_impl(
                         }
                     }
 
-                    int perm[bs];
-                    for (int i = 0; i < bs; i++) {
-                        perm[i] = i;
-                    }
-
-                    const bool invflag =
-                        invert_block<ValueType, bs>(perm, invU);
+                    const bool invflag = invert_block_complete(invU);
                     if (!invflag) {
                         printf(" Could not invert diag block at blk row %ld!",
                                static_cast<long int>(ibrow));
                     }
-                    permute_block(invU, perm);
 
                     // auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
                     // if (is_finite(to_write))

@@ -139,18 +139,11 @@ static void compute_bilu_impl(
                         }
                     }
 
-                    int perm[bs];
-                    for (int i = 0; i < bs; i++) {
-                        perm[i] = i;
-                    }
-
-                    const bool invflag =
-                        invert_block<ValueType, bs>(perm, invU);
+                    const bool invflag = invert_block_complete(invU);
                     if (!invflag) {
                         printf(" Could not invert diag block at blk row %ld!",
                                static_cast<long int>(ibrow));
                     }
-                    permute_block(invU, perm);
 
                     for (int j = 0; j < bs; j++) {
                         for (int i = 0; i < bs; i++) {
@@ -187,8 +180,7 @@ void compute_bilu_factors(
     if (bs == 2) {
         compute_bilu_impl<2, ValueType, IndexType>(exec, iters, sysmat, lfactor,
                                                    ufactor_t);
-    }
-    if (bs == 3) {
+    } else if (bs == 3) {
         compute_bilu_impl<3, ValueType, IndexType>(exec, iters, sysmat, lfactor,
                                                    ufactor_t);
     } else if (bs == 4) {

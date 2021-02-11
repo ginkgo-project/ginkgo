@@ -58,6 +58,7 @@ __global__
         const IndexType *__restrict__ u_row_idxs,
         ValueType *__restrict__ u_values)
 {
+    static_assert(mat_blk_sz <= subwarp_size, "Block is too large!");
     constexpr int warps_in_block{default_block_size / subwarp_size};
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<subwarp_size, IndexType>();
@@ -127,27 +128,30 @@ __global__
                 }
             }
 
-            // Inverse matrix of U^T diag block in shared memory
-            // See if it's faster to do this in registers with shuffles
-            __shared__ Blk_t uinv_t[warps_in_block];
             if (lower) {
-                // Load a row of the U diag block
-                ValueType urow[mat_blk_sz];
+                // Load a row of the U^T diag block
+                ValueType utrow[mat_blk_sz];
                 if (sw_threadidx < mat_blk_sz) {
                     const IndexType u_diag_ibz = u_col_ptrs[bcol + 1] - 1;
-                    for (int i = 0; i < mat_blk_sz; i++) {
-                        urow[i] = Utvals[u_diag_ibz](sw_threadidx, i);
+                    for (int j = 0; j < mat_blk_sz; j++) {
+                        utrow[j] = Utvals[u_diag_ibz](sw_threadidx, j);
                     }
                 }
-                subwarp_grp.sync();
                 uint32 perm = subwarp_grp.thread_rank();
                 uint32 trans_perm = subwarp_grp.thread_rank();
                 invert_block<mat_blk_sz>(subwarp_grp,
-                                         static_cast<uint32>(mat_blk_sz), urow,
+                                         static_cast<uint32>(mat_blk_sz), utrow,
                                          perm, trans_perm);
+                // Inverse matrix of U^T diag block in shared memory
+                // See if it's faster to do this in registers with shuffles,
+                //  but that will need a different copy_matrix (after
+                //  inversion).
+                __shared__ Blk_t utinv[warps_in_block];
                 copy_matrix<mat_blk_sz, and_return>(
-                    subwarp_grp, mat_blk_sz, urow, 1, perm, trans_perm,
-                    &uinv_t[sw_id_in_threadblock](0, 0), mat_blk_sz);
+                    subwarp_grp, mat_blk_sz, utrow, 1, perm, trans_perm,
+                    &utinv[sw_id_in_threadblock](0, 0), mat_blk_sz);
+
+                subwarp_grp.sync();
 
                 for (int it = 0; it < entries_per_thread; it++) {
                     const int flat_pos = it * subwarp_size + sw_threadidx;
@@ -156,7 +160,7 @@ __global__
                         const int j = flat_pos / mat_blk_sz;
                         const int i = flat_pos % mat_blk_sz;
                         for (int k = 0; k < mat_blk_sz; k++) {
-                            // Fetch sum_block(i,k)
+                            // Fetch sum(i,k)
                             const int other_pos = i + k * mat_blk_sz;
                             const int other_it = other_pos / subwarp_size;
                             const int other_rank = other_pos % subwarp_size;
@@ -164,7 +168,7 @@ __global__
                                 subwarp_grp.shfl(sum[other_it], other_rank);
                             // sum_block(i,k) U^inv(k,j)
                             l_out +=
-                                sum_val * uinv_t[sw_id_in_threadblock](j, k);
+                                sum_val * utinv[sw_id_in_threadblock](j, k);
                         }
 
                         l_values[l_out_ibz * mat_blk_sz_2 + flat_pos] = l_out;
@@ -178,8 +182,12 @@ __global__
                         // store transpose of sum
                         const int col = flat_pos / mat_blk_sz;
                         const int row = flat_pos % mat_blk_sz;
-                        const int out_pos = row * mat_blk_sz + col;
-                        u_values[u_out_start_iz + out_pos] = sum[it];
+                        const int sum_trans_pos = col + row * mat_blk_sz;
+                        const int sum_it = sum_trans_pos / subwarp_size;
+                        const int sum_rank = sum_trans_pos % subwarp_size;
+                        const ValueType sum_val =
+                            subwarp_grp.shfl(sum[sum_it], sum_rank);
+                        u_values[u_out_start_iz + flat_pos] = sum_val;
                     }
                 }
             }

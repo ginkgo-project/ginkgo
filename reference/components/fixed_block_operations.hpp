@@ -112,6 +112,7 @@ inline bool invert_block(int *const perm, Blkv_t<ValueType, block_size> &block)
     return true;
 }
 
+
 /**
  * @brief Column-permutes the given matrix so that new_mat[p[j]] = mat[j]
  *
@@ -133,6 +134,23 @@ inline void permute_block(Blkv_t<ValueType, block_size> &mat,
             mat(i, perm[j]) = temp(i, j);
         }
     }
+}
+
+/**
+ * Inverts the given block.
+ *
+ * @return  Whether the inversion was successful.
+ */
+template <typename ValueType, int block_size>
+inline bool invert_block_complete(Blkv_t<ValueType, block_size> &block)
+{
+    int perm[block_size];
+    for (int i = 0; i < block_size; i++) {
+        perm[i] = i;
+    }
+    const bool invflag = invert_block(perm, block);
+    permute_block(block, perm);
+    return invflag;
 }
 
 
