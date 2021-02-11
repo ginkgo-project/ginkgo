@@ -414,15 +414,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
-template <int mat_blk_sz, typename ValueType, typename IndexType>
-static void sort_by_column_index_impl(
-    matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
+                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
 {
+    const int mat_blk_sz = to_sort->get_block_size();
     auto row_ptrs = to_sort->get_const_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
     auto values = to_sort->get_values();
     const auto nbrows = to_sort->get_num_block_rows();
-    constexpr int bs2 = mat_blk_sz * mat_blk_sz;
+    const int bs2 = mat_blk_sz * mat_blk_sz;
     for (IndexType i = 0; i < nbrows; ++i) {
         IndexType *const brow_col_idxs = col_idxs + row_ptrs[i];
         ValueType *const brow_vals = values + row_ptrs[i] * bs2;
@@ -442,24 +443,6 @@ static void sort_by_column_index_impl(
                     oldvalues[col_permute[ibz] * bs2 + i];
             }
         }
-    }
-}
-
-template <typename ValueType, typename IndexType>
-void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
-{
-    const int bs = to_sort->get_block_size();
-    if (bs == 2) {
-        sort_by_column_index_impl<2>(to_sort);
-    } else if (bs == 3) {
-        sort_by_column_index_impl<3>(to_sort);
-    } else if (bs == 4) {
-        sort_by_column_index_impl<4>(to_sort);
-    } else if (bs == 7) {
-        sort_by_column_index_impl<7>(to_sort);
-    } else {
-        GKO_NOT_IMPLEMENTED;
     }
 }
 

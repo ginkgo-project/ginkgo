@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/factorization/bilu_kernels.hpp"
 #include "core/factorization/block_factorization_kernels.hpp"
+#include "core/factorization/par_bilu_kernels.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -64,11 +65,11 @@ namespace {
 
 class ParBilu : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+    // using value_type = gko::default_precision;
+    using value_type = float;
     using real_type = gko::remove_complex<value_type>;
     using index_type = gko::int32;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
     using BILUSample = gko::testing::Bilu0Sample<value_type, index_type>;
 
     std::ranlux48 rand_engine;
@@ -100,8 +101,9 @@ protected:
             ref, gko::lend(ref_temp), false);
         cyl2d_ref = gko::give(ref_temp);
 
+        const int num_brows = 90;
         rand_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
-            ref, std::ranlux48(43), 150, 150, 3, true, false);
+            ref, std::ranlux48(43), num_brows, num_brows, 4, true, false);
     }
 
     /*
@@ -170,6 +172,34 @@ protected:
         auto u_lin_op_cuda = u_transpose_cuda->transpose();
         *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
     }
+
+    void compute_bilu_2(const Fbcsr *const mat_ref, const int iterations,
+                        std::shared_ptr<Fbcsr> *const l_ref,
+                        std::shared_ptr<Fbcsr> *const u_ref,
+                        std::shared_ptr<Fbcsr> *const l_cuda,
+                        std::shared_ptr<Fbcsr> *const u_cuda)
+    {
+        auto mat_cuda = Fbcsr::create(cuda);
+        mat_cuda->copy_from(gko::lend(mat_ref));
+        initialize_bilu(mat_ref, l_ref, u_ref);
+        *l_cuda = Fbcsr::create(cuda);
+        (*l_ref)->convert_to(l_cuda->get());
+        auto u_transpose_ref = gko::as<Fbcsr>((*u_ref)->transpose());
+        auto u_transpose_cuda = Fbcsr::create(cuda);
+        u_transpose_cuda->copy_from(gko::lend(u_transpose_ref));
+
+        // exact factorization with 1 iteration
+        gko::kernels::reference::par_bilu_factorization::compute_bilu_factors(
+            ref, 1, mat_ref, l_ref->get(), u_transpose_ref.get());
+        auto u_lin_op_ref = u_transpose_ref->transpose();
+        *u_ref = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_ref));
+
+        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors(
+            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
+            gko::lend(u_transpose_cuda));
+        auto u_lin_op_cuda = u_transpose_cuda->transpose();
+        *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
+    }
 };
 
 
@@ -180,7 +210,7 @@ TEST_F(ParBilu, CudaKernelBLUSortedSampleBS3)
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 1;
 
-    compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
@@ -188,19 +218,23 @@ TEST_F(ParBilu, CudaKernelBLUSortedSampleBS3)
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, tol);
 }
 
-TEST_F(ParBilu, CudaKernelBLUSortedRandomBS3)
+TEST_F(ParBilu, CudaKernelBLUSortedRandomBS4)
 {
     auto refmat = Fbcsr::create(ref);
     refmat->copy_from(rand_ref.get());
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
-    const int iterations = 10;
+    // const int iterations = rand_ref->get_num_stored_blocks()/10;
+    const int iterations = 8;
+    printf(" Num its set to %d.\n", iterations);
 
-    compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
 
+    // For BS 7, initial error in L (reported by the macro) is ~1.0
+    const double ttol = 10 * tol;
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-6);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-6);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
 }
 
 

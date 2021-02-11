@@ -263,16 +263,13 @@ TEST(BlockInverse, FixedDenseBlock7InversePivoted)
     A(6, 6) = 2.35194;
 
     Blk_t B;
-    int perm[bs];
     for (int i = 0; i < bs; i++) {
-        perm[i] = i;
         for (int j = 0; j < bs; j++) {
             B(i, j) = A(i, j);
         }
     }
 
-    const bool invflag = gko::kernels::invert_block(perm, B);
-    gko::kernels::permute_block(B, perm);
+    const bool invflag = gko::kernels::invert_block_complete(B);
 
     ASSERT_TRUE(invflag);
     constexpr typename gko::remove_complex<value_type> tol =

@@ -84,9 +84,7 @@ static void compute_bilu_impl(
     using Blk_t = blockutils::FixedBlock<ValueType, bs, bs>;
     const auto vals = reinterpret_cast<Blk_t *>(sysmat->get_values());
 
-    for (IndexType ibrow = 0;
-         ibrow < static_cast<IndexType>(sysmat->get_num_block_rows());
-         ++ibrow) {
+    for (IndexType ibrow = 0; ibrow < sysmat->get_num_block_rows(); ++ibrow) {
         for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
              ibz++) {
             const auto jbcol = col_idxs[ibz];
@@ -135,14 +133,10 @@ static void compute_bilu_impl(
                 Blk_t invU =
                     extract_diag_block(jbcol, row_ptrs, col_idxs, vals);
 
-                int perm[bs];
-                for (int i = 0; i < bs; i++) perm[i] = i;
-
-                const bool invflag = invert_block<ValueType, bs>(perm, invU);
+                const bool invflag = invert_block_complete(invU);
                 if (!invflag)
                     printf(" Could not invert diag block at blk row %ld!",
                            static_cast<long int>(ibrow));
-                permute_block(invU, perm);
 
                 for (int i = 0; i < bs; i++)
                     for (int j = 0; j < bs; j++) {
