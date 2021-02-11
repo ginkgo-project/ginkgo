@@ -200,7 +200,7 @@ constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 template <typename T>
@@ -223,7 +223,7 @@ constexpr cusparseIndexType_t cusparse_index_type_impl<int64>()
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 }  // namespace detail
@@ -246,7 +246,7 @@ constexpr cudaDataType_t cuda_data_type()
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
@@ -265,7 +265,7 @@ constexpr cusparseIndexType_t cusparse_index_type()
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
