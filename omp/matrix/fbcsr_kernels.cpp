@@ -327,15 +327,17 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
     const auto values = orig->get_const_values();
     const int bs = orig->get_block_size();
     const IndexType nbrows = orig->get_num_block_rows();
+    const IndexType nbdim_min =
+        std::min(orig->get_num_block_rows(), orig->get_num_block_cols());
     auto diag_values = diag->get_values();
 
-    assert(diag->get_size()[0] == orig->get_size()[0]);
+    assert(diag->get_size()[0] == nbdim_min * bs);
 
     const gko::blockutils::DenseBlocksView<const ValueType, IndexType> vblocks(
         values, bs, bs);
 
 #pragma omp parallel for
-    for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+    for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {
         for (IndexType idx = row_ptrs[ibrow]; idx < row_ptrs[ibrow + 1];
              ++idx) {
             if (col_idxs[idx] == ibrow) {
