@@ -37,6 +37,7 @@ target_sources(ginkgo
     log/record.cpp
     log/stream.cpp
     matrix/batch_dense.cpp
+    matrix/batch_csr.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
