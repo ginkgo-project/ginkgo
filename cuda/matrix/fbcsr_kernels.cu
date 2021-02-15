@@ -108,19 +108,21 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             const IndexType nb = a->get_num_block_cols();
             const auto nnzb =
                 static_cast<IndexType>(a->get_num_stored_blocks());
-            const auto n_b_cols = static_cast<IndexType>(b->get_size()[1]);
-            assert(b->get_size() == c->get_size());
-            if (n_b_cols == 1) {
+            const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
+            assert(nrhs == c->get_size()[1]);
+            if (nrhs == 1) {
                 cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb,
                                 nb, nnzb, &alpha, descr, values, row_ptrs,
                                 col_idxs, bs, b->get_const_values(), &beta,
                                 c->get_values());
             } else {
-                cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                CUSPARSE_OPERATION_TRANSPOSE, mb, n_b_cols, nb,
-                                nnzb, &alpha, descr, values, row_ptrs, col_idxs,
-                                bs, b->get_const_values(), b->get_stride(),
-                                &beta, c->get_values(), c->get_stride());
+                GKO_NOT_IMPLEMENTED;
+                // cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                //                 CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb,
+                //                 nnzb, &alpha, descr, values, row_ptrs,
+                //                 col_idxs, bs, b->get_const_values(),
+                //                 b->get_stride(), &beta, c->get_values(),
+                //                 c->get_stride());
             }
 
             cusparse::destroy(descr);
