@@ -103,7 +103,8 @@ enum class storage_precision {
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CB-GMRES
- * are merged into 2 separate steps. Classical Gram-Schmidt is used.
+ * are merged into 2 separate steps. Classical Gram-Schmidt with
+ * reorthogonalization is used.
  *
  * The krylov basis can be stored in reduced precision (compressed) to reduce
  * memory accesses, while all computations (including krylov basis operations)

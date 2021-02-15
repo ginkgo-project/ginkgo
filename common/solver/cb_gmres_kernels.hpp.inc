@@ -324,7 +324,7 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
-    size_type num_iters, size_type num_rows, size_type num_cols,
+    size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
@@ -383,8 +383,7 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void singledot_kernel(
-    size_type num_iters, size_type num_rows,
-    const ValueType *__restrict__ next_krylov_basis,
+    size_type num_rows, const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
@@ -494,13 +493,12 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
 }
 
 
-// Must be called with at least `num_cols` blocks, each with `block_size`
-// threads. `block_size` must be a power of 2.
+// Must be called with at least `num_rhs` threads
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
-    remove_complex<ValueType> *__restrict__ arnoldi_norm, size_type stride_norm,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    size_type iter, Accessor3d krylov_bases,
+    size_type num_rhs, remove_complex<ValueType> *__restrict__ arnoldi_norm,
+    size_type stride_norm, ValueType *__restrict__ hessenberg_iter,
+    size_type stride_hessenberg, size_type iter, Accessor3d krylov_bases,
     const stopping_status *__restrict__ stop_status,
     stopping_status *__restrict__ reorth_status,
     size_type *__restrict__ num_reorth)
@@ -510,14 +508,14 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
-    if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
+    if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
         const auto num0 = (sqrt(eta_squared * arnoldi_norm[col_idx]));
         const auto num11 = sqrt(arnoldi_norm[col_idx + stride_norm]);
         const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
                                      : remove_complex<ValueType>{};
         if (num11 < num0) {
             reorth_status[col_idx].reset();
-            atomic_add(num_reorth, (size_type)1);
+            atomic_add(num_reorth, one<size_type>());
         } else {
             reorth_status[col_idx].stop(1);
         }

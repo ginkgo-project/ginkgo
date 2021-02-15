@@ -314,15 +314,15 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> inf_norm(gko::matrix::Dense<T> *mat, size_t col = 0)
 {
     using std::abs;
     auto host_data = clone(mat->get_executor()->get_master(), mat);
     using no_cpx_t = gko::remove_complex<T>;
     no_cpx_t norm = 0.0;
     for (size_t i = 0; i < host_data->get_size()[0]; ++i) {
-        no_cpx_t absEntry = abs(host_data->at(i, col));
-        if (norm < absEntry) norm = absEntry;
+        no_cpx_t abs_entry = abs(host_data->at(i, col));
+        if (norm < abs_entry) norm = abs_entry;
     }
     return norm;
 }
@@ -378,12 +378,12 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
     this->mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
     this->mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
 
-    auto normS1 = infNorm(residual1.get());
-    auto normS2 = infNorm(residual2.get());
-    auto normC1 = infNorm(residualC.get(), 0);
-    auto normC2 = infNorm(residualC.get(), 1);
-    auto normB1 = infNorm(b1.get());
-    auto normB2 = infNorm(b2.get());
+    auto normS1 = inf_norm(residual1.get());
+    auto normS2 = inf_norm(residual2.get());
+    auto normC1 = inf_norm(residualC.get(), 0);
+    auto normC2 = inf_norm(residualC.get(), 1);
+    auto normB1 = inf_norm(b1.get());
+    auto normB2 = inf_norm(b2.get());
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
