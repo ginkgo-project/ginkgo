@@ -175,6 +175,28 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
 }
 
 
+/**
+ * Returns a constant one of the requested real type.
+ */
+template <typename T>
+inline constexpr typename std::enable_if_t<!gko::is_complex_s<T>::value, T>
+get_some_number()
+{
+    return static_cast<T>(1.0);
+}
+
+/**
+ * Returns a constant -0.7071 + 0.7071i of the requested complex type.
+ */
+template <typename T>
+inline constexpr typename std::enable_if_t<gko::is_complex_s<T>::value, T>
+get_some_number()
+{
+    using RT = gko::remove_complex<T>;
+    return {static_cast<RT>(-0.7071), static_cast<RT>(0.7071)};
+}
+
+
 }  // namespace test
 }  // namespace gko
 
