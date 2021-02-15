@@ -64,10 +64,11 @@ protected:
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         cuda = gko::CudaExecutor::create(0, ref);
-        const index_type rand_dim = 100;
+        const index_type rand_brows = 100;
+        const index_type rand_bcols = 70;
         const int block_size = 3;
         rsorted_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
-            ref, std::ranlux48(43), rand_dim, rand_dim, block_size, false,
+            ref, std::ranlux48(43), rand_brows, rand_bcols, block_size, false,
             false);
     }
 
@@ -88,7 +89,7 @@ protected:
         value_type *const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
             xarr[i] = static_cast<value_type>(
-                4 *
+                2 *
                 std::sin(i / 2.0 + gko::test::get_some_number<value_type>()));
         }
     }
@@ -135,20 +136,19 @@ TEST_F(Fbcsr, ApplySpmvIsEquivalentToRefSorted)
 {
     auto rand_cuda = Mtx::create(cuda);
     rand_cuda->copy_from(gko::lend(rsorted_ref));
-    auto rhs_ref =
+    auto x_ref = Dense::create(ref, gko::dim<2>(rsorted_ref->get_size()[1], 1));
+    generate_sin(x_ref.get());
+    auto x_cuda = Dense::create(cuda);
+    x_cuda->copy_from(x_ref.get());
+    auto prod_ref =
         Dense::create(ref, gko::dim<2>(rsorted_ref->get_size()[0], 1));
-    generate_sin(rhs_ref.get());
-    auto rhs_cuda = Dense::create(cuda);
-    rhs_cuda->copy_from(rhs_ref.get());
-    auto prod_ref = Dense::create(ref, rhs_ref->get_size());
-    auto prod_cuda = Dense::create(cuda, rhs_ref->get_size());
+    auto prod_cuda = Dense::create(cuda, prod_ref->get_size());
 
-    rand_cuda->apply(rhs_cuda.get(), prod_cuda.get());
-    rsorted_ref->apply(rhs_ref.get(), prod_ref.get());
+    rand_cuda->apply(x_cuda.get(), prod_cuda.get());
+    rsorted_ref->apply(x_ref.get(), prod_ref.get());
 
     const double tol =
         std::numeric_limits<gko::remove_complex<value_type>>::epsilon();
-    GKO_ASSERT_MTX_EQ_SPARSITY(prod_ref, prod_cuda);
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
 }
 
