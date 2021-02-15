@@ -256,10 +256,14 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         bool one_changed{};
         Array<stopping_status> stop_status(this->get_executor(),
                                            dense_b->get_size()[1]);
+        // reorth_status and num_reorth are both helper variables for GPU
+        // implementations at the moment.
+        // num_reorth := Number of vectors which require a re-orthogonalization
+        // reorth_status := stopping status for the re-orthogonalization,
+        //                  marking which RHS requires one, and which does not
         Array<stopping_status> reorth_status(this->get_executor(),
                                              dense_b->get_size()[1]);
-        Array<size_type> num_reorth(this->get_executor(),
-                                    dense_b->get_size()[1]);
+        Array<size_type> num_reorth(this->get_executor(), 1);
 
         // Initialization
         exec->run(cb_gmres::make_initialize_1(

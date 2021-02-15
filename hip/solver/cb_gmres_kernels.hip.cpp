@@ -214,15 +214,15 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
 
 
 template <typename ValueType, typename Accessor3dim>
-void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
-                         matrix::Dense<ValueType> *next_krylov_basis,
-                         Accessor3dim krylov_bases,
-                         matrix::Dense<ValueType> *hessenberg_iter,
-                         matrix::Dense<ValueType> *buffer_iter,
-                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                         size_type iter, const stopping_status *stop_status,
-                         stopping_status *reorth_status,
-                         Array<size_type> *num_reorth)
+void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
+                        matrix::Dense<ValueType> *next_krylov_basis,
+                        Accessor3dim krylov_bases,
+                        matrix::Dense<ValueType> *hessenberg_iter,
+                        matrix::Dense<ValueType> *buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                        size_type iter, const stopping_status *stop_status,
+                        stopping_status *reorth_status,
+                        Array<size_type> *num_reorth)
 {
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
@@ -236,12 +236,9 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
-    const dim3 grid_size_num_iters(
-        ceildiv(dim_size[1] * (iter + 1), default_dot_dim),
-        exec->get_num_multiprocessor() * 2);
-    const dim3 grid_size_num_iters_2(ceildiv(dim_size[1], default_dot_dim),
-                                     exec->get_num_multiprocessor() * 2,
-                                     iter + 1);
+    const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
+                                   exec->get_num_multiprocessor() * 2,
+                                   iter + 1);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     // Note: having iter first (instead of row_idx information) is likely
     //       beneficial for avoiding atomic_add conflicts, but that needs
@@ -249,7 +246,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
                                       iter + 1);
     const dim3 block_size_iters_single(singledot_block_size);
-    size_type numReorth;
+    size_type num_reorth_host;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<non_complex>());
@@ -263,8 +260,8 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
                 hessenberg_iter->get_values());
     if (dim_size[1] > 1) {
         hipLaunchKernelGGL(multidot_kernel<default_dot_dim>,
-                           grid_size_num_iters_2, block_size, 0, 0, iter + 1,
-                           dim_size[0], dim_size[1],
+                           grid_size_num_iters, block_size, 0, 0, dim_size[0],
+                           dim_size[1],
                            as_hip_type(next_krylov_basis->get_const_values()),
                            stride_next_krylov, as_hip_accessor(krylov_bases),
                            as_hip_type(hessenberg_iter->get_values()),
@@ -272,7 +269,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     } else {
         hipLaunchKernelGGL(singledot_kernel<singledot_block_size>,
                            grid_size_iters_single, block_size_iters_single, 0,
-                           0, iter + 1, dim_size[0],
+                           0, dim_size[0],
                            as_hip_type(next_krylov_basis->get_const_values()),
                            stride_next_krylov, as_hip_accessor(krylov_bases),
                            as_hip_type(hessenberg_iter->get_values()),
@@ -312,22 +309,20 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
     hipLaunchKernelGGL(
         check_arnoldi_norms<default_block_size>,
         dim3(ceildiv(dim_size[1], default_block_size)),
-        dim3(default_block_size), 0, 0, as_hip_type(arnoldi_norm->get_values()),
-        stride_arnoldi, as_hip_type(hessenberg_iter->get_values()),
-        stride_hessenberg, iter + 1, as_hip_accessor(krylov_bases),
-        as_hip_type(stop_status), as_hip_type(reorth_status),
-        as_hip_type(num_reorth->get_data()));
-    numReorth = 0;
-    exec->get_master()->copy_from(exec.get(), 1, num_reorth->get_const_data(),
-                                  &numReorth);
-    // numReorth <= number of next_krylov vector to be reorthogonalization
-    for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
+        dim3(default_block_size), 0, 0, dim_size[1],
+        as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
+        as_hip_type(hessenberg_iter->get_values()), stride_hessenberg, iter + 1,
+        as_hip_accessor(krylov_bases), as_hip_type(stop_status),
+        as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
+    num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+    // num_reorth_host := number of next_krylov vector to be reorthogonalization
+    for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
             hipLaunchKernelGGL(
-                multidot_kernel<default_dot_dim>, grid_size_num_iters_2,
-                block_size, 0, 0, iter + 1, dim_size[0], dim_size[1],
+                multidot_kernel<default_dot_dim>, grid_size_num_iters,
+                block_size, 0, 0, dim_size[0], dim_size[1],
                 as_hip_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov, as_hip_accessor(krylov_bases),
                 as_hip_type(buffer_iter->get_values()), stride_buffer,
@@ -335,7 +330,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         } else {
             hipLaunchKernelGGL(
                 singledot_kernel<singledot_block_size>, grid_size_iters_single,
-                block_size_iters_single, 0, 0, iter + 1, dim_size[0],
+                block_size_iters_single, 0, 0, dim_size[0],
                 as_hip_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov, as_hip_accessor(krylov_bases),
                 as_hip_type(buffer_iter->get_values()), stride_buffer,
@@ -344,7 +339,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
-        //*
         hipLaunchKernelGGL(
             update_next_krylov_and_add_kernel<default_block_size>,
             dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
@@ -379,15 +373,14 @@ void finish_arnoldi_CGS2(std::shared_ptr<const HipExecutor> exec,
         hipLaunchKernelGGL(
             check_arnoldi_norms<default_block_size>,
             dim3(ceildiv(dim_size[1], default_block_size)),
-            dim3(default_block_size), 0, 0,
+            dim3(default_block_size), 0, 0, dim_size[1],
             as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
             as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
             iter + 1, as_hip_accessor(krylov_bases), as_hip_type(stop_status),
             as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
-        numReorth = 0;
-        exec->get_master()->copy_from(exec.get(), 1,
-                                      num_reorth->get_const_data(), &numReorth);
-        // numReorth <= number of next_krylov vector to be reorthogonalization
+        num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+        // num_reorth_host := number of next_krylov vector to be
+        // reorthogonalization
     }
 
     hipLaunchKernelGGL(
@@ -454,10 +447,10 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(final_iter_nums->get_data()),
         as_hip_type(stop_status->get_const_data()),
         final_iter_nums->get_num_elems());
-    finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
-                        buffer_iter, arnoldi_norm, iter,
-                        stop_status->get_const_data(),
-                        reorth_status->get_data(), num_reorth);
+    finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
+                       buffer_iter, arnoldi_norm, iter,
+                       stop_status->get_const_data(), reorth_status->get_data(),
+                       num_reorth);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }

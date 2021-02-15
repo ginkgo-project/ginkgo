@@ -229,6 +229,7 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
         .on(exec);
 }
 
+
 template <typename Solver>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     const std::shared_ptr<const gko::Executor> &exec,

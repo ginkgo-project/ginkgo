@@ -60,12 +60,12 @@ namespace {
 
 
 template <typename ValueType, typename Accessor3d>
-void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
-                         Accessor3d krylov_bases,
-                         matrix::Dense<ValueType> *hessenberg_iter,
-                         matrix::Dense<ValueType> *buffer_iter,
-                         matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                         size_type iter, const stopping_status *stop_status)
+void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
+                        Accessor3d krylov_bases,
+                        matrix::Dense<ValueType> *hessenberg_iter,
+                        matrix::Dense<ValueType> *buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                        size_type iter, const stopping_status *stop_status)
 {
     using rc_vtype = remove_complex<ValueType>;
     constexpr bool has_scalar =
@@ -442,9 +442,9 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             (1 - static_cast<size_type>(
                      stop_status->get_const_data()[i].has_stopped()));
     }
-    finish_arnoldi_CGS2(next_krylov_basis, krylov_bases, hessenberg_iter,
-                        buffer_iter, arnoldi_norm, iter,
-                        stop_status->get_const_data());
+    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
+                       buffer_iter, arnoldi_norm, iter,
+                       stop_status->get_const_data());
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,

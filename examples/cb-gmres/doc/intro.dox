@@ -9,7 +9,7 @@ solvers:
      both the matrix and the krylov basis, and
   2. with a compression of the krylov basis; it uses double precision for the
      matrix and all arithmetic operations, while using single precision for the
-     krylov basis
+     storage of the krylov basis
 
 Both solves are timed and the residual norm of each solution is computed to
 show that both solutions are correct.
