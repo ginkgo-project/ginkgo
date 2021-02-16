@@ -91,7 +91,7 @@ void bit_rev_swap(matrix::Dense<ValueType>* x, int64 i, int64 rev_i)
 int64 bit_rev(int64 i, int64 size)
 {
     int64 rev{};
-    for (int fwd = 1, bwd = size / 2; fwd < size; fwd *= 2, bwd /= 2) {
+    for (int64 fwd = 1, bwd = size / 2; fwd < size; fwd *= 2, bwd /= 2) {
         rev |= ((i / fwd) & 1) * bwd;
     }
     return rev;
@@ -110,18 +110,20 @@ vector<ValueType> build_unit_roots(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename InValueType, typename OutValueType>
-void fft_impl(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Dense<InValueType>* b,
-              matrix::Dense<OutValueType>* x, bool inverse)
+template <typename ValueType>
+void fft(std::shared_ptr<const DefaultExecutor> exec,
+         const matrix::Dense<std::complex<ValueType>>* b,
+         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
+         Array<char>& buffer)
 {
-    using complex_type = OutValueType;
-    using real_type = remove_complex<complex_type>;
-    int64 sign = inverse ? 1 : -1;
-    auto nrhs = b->get_size()[1];
-    auto size = static_cast<int64>(b->get_size()[0]);
+    using complex_type = std::complex<ValueType>;
+    using real_type = ValueType;
+    const int64 sign = inverse ? 1 : -1;
+    const auto nrhs = b->get_size()[1];
+    const auto size = static_cast<int64>(b->get_size()[0]);
+    GKO_ASSERT_IS_POWER_OF_TWO(size);
     auto roots = build_unit_roots<complex_type>(exec, size, sign);
-    // first butterfly step + scaling
+    // first butterfly step
     auto d = size / 2;
 #pragma omp parallel for
     for (int64 k = 0; k < size / 2; k++) {
@@ -147,36 +149,28 @@ void fft_impl(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-
-template <typename ValueType>
-void fft(std::shared_ptr<const DefaultExecutor> exec,
-         const matrix::Dense<std::complex<ValueType>>* b,
-         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
-         Array<char>& buffer)
-{
-    fft_impl(exec, b, x, inverse);
-}
-
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
 
 
-template <typename InValueType, typename OutValueType>
-void fft2_impl(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<InValueType>* b,
-               matrix::Dense<OutValueType>* x, size_type size1, size_type size2,
-               bool inverse)
+template <typename ValueType>
+void fft2(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, bool inverse, Array<char>& buffer)
 {
-    using complex_type = OutValueType;
-    using real_type = remove_complex<complex_type>;
-    int64 sign = inverse ? 1 : -1;
-    auto nrhs = b->get_size()[1];
-    auto ssize1 = static_cast<int64>(size1);
-    auto ssize2 = static_cast<int64>(size2);
-    auto idx = [&](int64 x, int64 y) { return x * ssize2 + y; };
+    using complex_type = std::complex<ValueType>;
+    using real_type = ValueType;
+    const int64 sign = inverse ? 1 : -1;
+    const auto nrhs = b->get_size()[1];
+    const auto ssize1 = static_cast<int64>(size1);
+    const auto ssize2 = static_cast<int64>(size2);
+    GKO_ASSERT_IS_POWER_OF_TWO(ssize1);
+    GKO_ASSERT_IS_POWER_OF_TWO(ssize2);
+    const auto idx = [&](int64 x, int64 y) { return x * ssize2 + y; };
     auto roots1 = build_unit_roots<complex_type>(exec, ssize1, sign);
     auto roots2 = build_unit_roots<complex_type>(exec, ssize2, sign);
     // minor dimension first: size1 FFTs
-    // first butterfly step + scaling
+    // first butterfly step
     auto d = ssize2 / 2;
 #pragma omp parallel for
     for (int64 k1 = 0; k1 < ssize1; k1++) {
@@ -226,40 +220,33 @@ void fft2_impl(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-
-template <typename ValueType>
-void fft2(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, bool inverse, Array<char>& buffer)
-{
-    fft2_impl(exec, b, x, size1, size2, inverse);
-}
-
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
 
 
-template <typename InValueType, typename OutValueType>
-void fft3_impl(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<InValueType>* b,
-               matrix::Dense<OutValueType>* x, size_type size1, size_type size2,
-               size_type size3, bool inverse)
+template <typename ValueType>
+void fft3(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, size_type size3, bool inverse, Array<char>& buffer)
 {
-    using complex_type = OutValueType;
-    using real_type = remove_complex<complex_type>;
-    int64 sign = inverse ? 1 : -1;
-    auto nrhs = b->get_size()[1];
-    auto ssize1 = static_cast<int64>(size1);
-    auto ssize2 = static_cast<int64>(size2);
-    auto ssize3 = static_cast<int64>(size3);
-    auto idx = [&](int64 x, int64 y, int64 z) {
+    using complex_type = std::complex<ValueType>;
+    using real_type = ValueType;
+    const int64 sign = inverse ? 1 : -1;
+    const auto nrhs = b->get_size()[1];
+    const auto ssize1 = static_cast<int64>(size1);
+    const auto ssize2 = static_cast<int64>(size2);
+    const auto ssize3 = static_cast<int64>(size3);
+    GKO_ASSERT_IS_POWER_OF_TWO(ssize1);
+    GKO_ASSERT_IS_POWER_OF_TWO(ssize2);
+    GKO_ASSERT_IS_POWER_OF_TWO(ssize3);
+    const auto idx = [&](int64 x, int64 y, int64 z) {
         return x * ssize2 * ssize3 + y * ssize3 + z;
     };
     auto roots1 = build_unit_roots<complex_type>(exec, ssize1, sign);
     auto roots2 = build_unit_roots<complex_type>(exec, ssize2, sign);
     auto roots3 = build_unit_roots<complex_type>(exec, ssize3, sign);
     // minor dimension first: size1*size2 FFTs
-    // first butterfly step + scaling
+    // first butterfly step
     auto d = ssize3 / 2;
 #pragma omp parallel for
     for (int64 k1 = 0; k1 < ssize1; k1++) {
@@ -336,16 +323,6 @@ void fft3_impl(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
-}
-
-
-template <typename ValueType>
-void fft3(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, size_type size3, bool inverse, Array<char>& buffer)
-{
-    fft3_impl(exec, b, x, size1, size2, size3, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);

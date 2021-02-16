@@ -97,9 +97,7 @@ protected:
     Fft(std::shared_ptr<const Executor> exec, size_type size,
         bool inverse = false)
         : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
-    {
-        GKO_ASSERT_IS_POWER_OF_TWO(size);
-    }
+    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -183,10 +181,7 @@ protected:
           size1_{size1},
           size2_{size2},
           inverse_{inverse}
-    {
-        GKO_ASSERT_IS_POWER_OF_TWO(size1);
-        GKO_ASSERT_IS_POWER_OF_TWO(size2);
-    }
+    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -281,11 +276,7 @@ protected:
           size2_{size2},
           size3_{size3},
           inverse_{inverse}
-    {
-        GKO_ASSERT_IS_POWER_OF_TWO(size1);
-        GKO_ASSERT_IS_POWER_OF_TWO(size2);
-        GKO_ASSERT_IS_POWER_OF_TWO(size3);
-    }
+    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
