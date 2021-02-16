@@ -185,27 +185,25 @@ void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
         givens_cos->at(iter, rhs) = zero<ValueType>();
         givens_sin->at(iter, rhs) = one<ValueType>();
     } else {
-        auto hypotenuse = sqrt(hessenberg_iter->at(iter, rhs) *
-                                   hessenberg_iter->at(iter, rhs) +
-                               hessenberg_iter->at(iter + 1, rhs) *
-                                   hessenberg_iter->at(iter + 1, rhs));
-        givens_cos->at(iter, rhs) =
-            abs(hessenberg_iter->at(iter, rhs)) / hypotenuse;
-        givens_sin->at(iter, rhs) = givens_cos->at(iter, rhs) *
-                                    hessenberg_iter->at(iter + 1, rhs) /
-                                    hessenberg_iter->at(iter, rhs);
+        auto this_hess = hessenberg_iter->at(iter, rhs);
+        auto next_hess = hessenberg_iter->at(iter + 1, rhs);
+        const auto scale = abs(this_hess) + abs(next_hess);
+        const auto hypotenuse =
+            scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
+                         abs(next_hess / scale) * abs(next_hess / scale));
+        givens_cos->at(iter, rhs) = conj(this_hess) / hypotenuse;
+        givens_sin->at(iter, rhs) = conj(next_hess) / hypotenuse;
     }
 }
 
 
 template <typename ValueType>
-void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
-                     matrix::Dense<ValueType> *givens_sin,
+void givens_rotation(matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                      const stopping_status *stop_status)
 {
-    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+    for (size_type i = 0; i < hessenberg_iter->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
         }
@@ -213,13 +211,13 @@ void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
             auto temp = givens_cos->at(j, i) * hessenberg_iter->at(j, i) +
                         givens_sin->at(j, i) * hessenberg_iter->at(j + 1, i);
             hessenberg_iter->at(j + 1, i) =
-                -givens_sin->at(j, i) * hessenberg_iter->at(j, i) +
-                givens_cos->at(j, i) * hessenberg_iter->at(j + 1, i);
+                -conj(givens_sin->at(j, i)) * hessenberg_iter->at(j, i) +
+                conj(givens_cos->at(j, i)) * hessenberg_iter->at(j + 1, i);
             hessenberg_iter->at(j, i) = temp;
             // temp             =  cos(j)*hessenberg(j) +
             //                     sin(j)*hessenberg(j+1)
-            // hessenberg(j+1)  = -sin(j)*hessenberg(j) +
-            //                     cos(j)*hessenberg(j+1)
+            // hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
+            //                     conj(cos(j))*hessenberg(j+1)
             // hessenberg(j)    =  temp;
         }
 
@@ -230,7 +228,7 @@ void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
             givens_sin->at(iter, i) * hessenberg_iter->at(iter + 1, i);
         hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
-        //                      sin(iter)*hessenberg(iter)
+        //                      sin(iter)*hessenberg(iter + 1)
         // hessenberg(iter+1) = 0
     }
 }
@@ -425,8 +423,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data());
-    givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
-                    iter, stop_status->get_const_data());
+    givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
+                    stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
                                  residual_norm_collection, iter,
                                  stop_status->get_const_data());
