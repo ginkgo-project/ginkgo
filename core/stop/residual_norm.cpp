@@ -60,10 +60,9 @@ GKO_REGISTER_OPERATION(implicit_residual_norm,
 
 
 template <typename ValueType>
-bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
-                                         Array<stopping_status> *stop_status,
-                                         bool *one_changed,
-                                         const Criterion::Updater &updater)
+bool ResidualNormBase<ValueType>::check_impl(
+    uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
+    bool *one_changed, const Criterion::Updater &updater)
 {
     const NormVector *dense_tau;
     if (updater.residual_norm_ != nullptr) {
@@ -107,19 +106,10 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
     this->get_executor()->run(
         implicit_residual_norm::make_implicit_residual_norm(
             dense_tau, this->starting_tau_.get(), this->reduction_factor_,
-            stoppingId, setFinalized, stop_status, &device_storage_,
+            stoppingId, setFinalized, stop_status, &this->device_storage_,
             &all_converged, one_changed));
 
     return all_converged;
-}
-
-
-template <typename ValueType>
-void AbsoluteResidualNorm<ValueType>::initialize_starting_tau()
-{
-    this->get_executor()->run(residual_norm::make_fill_array(
-        this->starting_tau_->get_values(), this->starting_tau_->get_size()[1],
-        gko::one<remove_complex<ValueType>>()));
 }
 
 
