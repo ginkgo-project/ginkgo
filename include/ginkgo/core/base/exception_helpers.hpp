@@ -199,11 +199,14 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
  *
  *@throw BadDimension  if _val is not a power of two.
  */
-#define GKO_ASSERT_IS_POWER_OF_TWO(_val)                                     \
-    if (_val == 0 || (_val & (_val - 1)) != 0) {                             \
-        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_val, _val, \
-                                  _val, "expected power-of-two dimension");  \
-    }
+#define GKO_ASSERT_IS_POWER_OF_TWO(_val)                                   \
+    do {                                                                   \
+        if (_val == 0 || (_val & (_val - 1)) != 0) {                       \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_val, \
+                                      _val, _val,                          \
+                                      "expected power-of-two dimension");  \
+        }                                                                  \
+    } while (false)
 
 
 /**

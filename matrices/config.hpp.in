@@ -40,14 +40,6 @@ namespace matrices {
 
 const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
 const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_fourier_in_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_in.mtx";
-const char *location_fourier_out1_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out1.mtx";
-const char *location_fourier_out2_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out2.mtx";
-const char *location_fourier_out3_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/fourier_out3.mtx";
 const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
 const char *location_1138_bus_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";

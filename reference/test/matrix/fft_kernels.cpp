@@ -62,49 +62,100 @@ protected:
     using Mtx2 = gko::matrix::Fft2;
     using Mtx3 = gko::matrix::Fft3;
 
+    value_type root(gko::size_type n, gko::size_type i, gko::size_type j)
+    {
+        return gko::unit_root<value_type>(static_cast<int>(n),
+                                          -static_cast<int>((i * j) % n));
+    }
+
     Fft()
         : exec(gko::ReferenceExecutor::create()),
+          rng{7381},
           n1{4},
           n2{8},
           n3{16},
           n{n1 * n2 * n3},
+          nrhs{6},
           subcols{3},
           stride{8},
+          size{n, nrhs},
           inv_n_scalar(gko::initialize<Vec>({T{1.f / n}}, exec)),
+          frequency1{Vec::create(exec, size)},
+          frequency2{Vec::create(exec, size)},
+          frequency3{Vec::create(exec, size)},
           fft(Mtx::create(exec, n)),
           fft2(Mtx2::create(exec, n1 * n2, n3)),
           fft3(Mtx3::create(exec, n1, n2, n3)),
           ifft(Mtx::create(exec, n, true)),
           ifft2(Mtx2::create(exec, n1 * n2, n3, true)),
           ifft3(Mtx3::create(exec, n1, n2, n3, true))
-    {}
-
-    std::unique_ptr<Vec> load(std::string filename)
     {
-        auto input_file = std::ifstream(filename);
-        if (!input_file) {
-            throw gko::Error(__FILE__, __LINE__,
-                             "Could not find the file \"" + filename +
-                                 "\", which is required for this test.");
+        std::uniform_int_distribution<gko::size_type> nz_dist(nrhs - 2, nrhs);
+        std::uniform_real_distribution<gko::remove_complex<value_type>>
+            val_dist(-1, 1);
+        amplitude = gko::test::generate_random_matrix<Vec>(n, nrhs, nz_dist,
+                                                           val_dist, rng, exec);
+        for (gko::size_type i = 0; i < n; i++) {
+            for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
+                frequency1->at(i, rhs) = gko::zero<value_type>();
+                for (gko::size_type j = 0; j < n; j++) {
+                    frequency1->at(i, rhs) +=
+                        amplitude->at(j, rhs) * root(n, i, j);
+                }
+            }
         }
-        return gko::read<Vec>(input_file, exec);
-    }
-
-    void SetUp() override
-    {
-        amplitude = load(gko::matrices::location_fourier_in_mtx);
-        frequency1 = load(gko::matrices::location_fourier_out1_mtx);
-        frequency2 = load(gko::matrices::location_fourier_out2_mtx);
-        frequency3 = load(gko::matrices::location_fourier_out3_mtx);
+        auto idx2 = [&](gko::size_type x, gko::size_type y) {
+            return x * n3 + y;
+        };
+        for (gko::size_type i1 = 0; i1 < n1 * n2; i1++) {
+            for (gko::size_type i2 = 0; i2 < n3; i2++) {
+                for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
+                    frequency2->at(idx2(i1, i2), rhs) = gko::zero<value_type>();
+                    for (gko::size_type j1 = 0; j1 < n1 * n2; j1++) {
+                        for (gko::size_type j2 = 0; j2 < n3; j2++) {
+                            frequency2->at(idx2(i1, i2), rhs) +=
+                                amplitude->at(idx2(j1, j2), rhs) *
+                                root(n1 * n2, i1, j1) * root(n3, i2, j2);
+                        }
+                    }
+                }
+            }
+        }
+        auto idx3 = [&](gko::size_type x, gko::size_type y, gko::size_type z) {
+            return x * n2 * n3 + y * n3 + z;
+        };
+        for (gko::size_type i1 = 0; i1 < n1; i1++) {
+            for (gko::size_type i2 = 0; i2 < n2; i2++) {
+                for (gko::size_type i3 = 0; i3 < n3; i3++) {
+                    for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
+                        frequency3->at(idx3(i1, i2, i3), rhs) =
+                            gko::zero<value_type>();
+                        for (gko::size_type j1 = 0; j1 < n1; j1++) {
+                            for (gko::size_type j2 = 0; j2 < n2; j2++) {
+                                for (gko::size_type j3 = 0; j3 < n3; j3++) {
+                                    frequency3->at(idx3(i1, i2, i3), rhs) +=
+                                        amplitude->at(idx3(j1, j2, j3), rhs) *
+                                        root(n1, i1, j1) * root(n2, i2, j2) *
+                                        root(n3, i3, j3);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    size_t n1;
-    size_t n2;
-    size_t n3;
-    size_t n;
-    size_t subcols;
-    size_t stride;
+    std::default_random_engine rng;
+    gko::size_type n1;
+    gko::size_type n2;
+    gko::size_type n3;
+    gko::size_type n;
+    gko::size_type nrhs;
+    gko::size_type subcols;
+    gko::size_type stride;
+    gko::dim<2> size;
     std::unique_ptr<Vec> inv_n_scalar;
     std::unique_ptr<Vec> amplitude;
     std::unique_ptr<Vec> frequency1;
@@ -124,20 +175,41 @@ TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes);
 
 TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo1D)
 {
-    ASSERT_THROW(TestFixture::Mtx::create(this->exec, 3), gko::BadDimension);
+    auto wrong_fft = TestFixture::Mtx::create(this->exec, 3);
+    auto wrong_vec = TestFixture::Vec::create(this->exec, gko::dim<2>(3, 1));
+
+    ASSERT_THROW(wrong_fft->apply(wrong_vec.get(), wrong_vec.get()),
+                 gko::BadDimension);
 }
 
 
 TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo2D)
 {
-    ASSERT_THROW(TestFixture::Mtx2::create(this->exec, 3, 5),
+    auto wrong_vec =
+        TestFixture::Vec::create(this->exec, gko::dim<2>(3 * 2, 1));
+
+    ASSERT_THROW(TestFixture::Mtx2::create(this->exec, 3, 2)
+                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                 gko::BadDimension);
+    ASSERT_THROW(TestFixture::Mtx2::create(this->exec, 2, 3)
+                     ->apply(wrong_vec.get(), wrong_vec.get()),
                  gko::BadDimension);
 }
 
 
 TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo3D)
 {
-    ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 3, 5, 7),
+    auto wrong_vec =
+        TestFixture::Vec::create(this->exec, gko::dim<2>(3 * 2 * 4, 1));
+
+    ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 3, 2, 4)
+                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                 gko::BadDimension);
+    ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 2, 3, 4)
+                     ->apply(wrong_vec.get(), wrong_vec.get()),
+                 gko::BadDimension);
+    ASSERT_THROW(TestFixture::Mtx3::create(this->exec, 4, 2, 3)
+                     ->apply(wrong_vec.get(), wrong_vec.get()),
                  gko::BadDimension);
 }
 

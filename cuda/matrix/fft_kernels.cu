@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/fft_kernels.hpp"
 
 
+#include <array>
+
+
 #include <cufft.h>
 
 
@@ -50,16 +53,6 @@ namespace cuda {
  * @ingroup fft
  */
 namespace fft {
-
-
-struct cufft_deleter {
-    void operator()(cufftHandle* ptr)
-    {
-        auto data = *ptr;
-        delete ptr;
-        cufftDestroy(data);
-    }
-};
 
 
 template <typename InValueType, typename OutValueType>
@@ -97,6 +90,15 @@ struct cufft_type_impl<std::complex<double>, std::complex<double>> {
 
 
 class cufft_handle {
+    struct cufft_deleter {
+        void operator()(cufftHandle* ptr)
+        {
+            auto data = *ptr;
+            delete ptr;
+            cufftDestroy(data);
+        }
+    };
+
 public:
     operator cufftHandle() const { return *handle_; }
 
@@ -112,13 +114,16 @@ public:
     {
         static_assert(d == 1 || d == 2 || d == 3,
                       "Only 1D, 2D or 3D FFT supported");
-        long long cast_n[d];
-        std::copy_n(&n[0], d, &cast_n[0]);
+        std::array<long long, d> cast_n;
+        for (int i = 0; i < d; i++) {
+            cast_n[i] = static_cast<long long>(n[i]);
+        }
         size_type work_size{};
         GKO_ASSERT_NO_CUFFT_ERRORS(cufftSetAutoAllocation(*handle_, false));
         GKO_ASSERT_NO_CUFFT_ERRORS(cufftMakePlanMany64(
-            *handle_, d, cast_n, cast_n, static_cast<int64>(in_batch_stride), 1,
-            cast_n, static_cast<int64>(out_batch_stride), 1,
+            *handle_, d, cast_n.data(), cast_n.data(),
+            static_cast<int64>(in_batch_stride), 1, cast_n.data(),
+            static_cast<int64>(out_batch_stride), 1,
             cufft_type_impl<InValueType, OutValueType>::value,
             static_cast<int64>(batch_count), &work_size));
         work_area.resize_and_reset(work_size);

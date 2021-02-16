@@ -278,7 +278,7 @@ template <typename MatrixData1, typename MatrixData2>
             auto to_remove = [](char c) {
                 return !std::isalnum(c) && c != '_' && c != '.' && c != '-';
             };
-            // remove all but alphanumerical and _.-<> characters from
+            // remove all but alphanumerical and _.- characters from
             // expressions
             firstfile.erase(
                 std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
