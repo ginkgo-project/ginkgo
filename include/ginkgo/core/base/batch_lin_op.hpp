@@ -209,16 +209,14 @@ public:
      *
      * @return size of the operator
      */
-    const dim<2> &get_size() const noexcept { return size_; }
+    const std::vector<dim<2>> &get_sizes() const noexcept { return sizes_; }
 
     /**
-     * Returns true if the linear operator uses the data given in x as
-     * an initial guess. Returns false otherwise.
+     * Returns the number of batches stored in the operator.
      *
-     * @return true if the linear operator uses the data given in x as
-     *         an initial guess. Returns false otherwise.
+     * @return  number of batches of the operator
      */
-    virtual bool apply_uses_initial_guess() const { return false; }
+    const size_type get_num_batches() const noexcept { return num_batches_; }
 
 protected:
     /**
@@ -227,9 +225,12 @@ protected:
      * @param exec  the executor where all the operations are performed
      * @param size  the size of the operator
      */
-    explicit BatchLinOp(std::shared_ptr<const Executor> exec,
-                        const dim<2> &size = dim<2>{})
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{size}
+    explicit BatchLinOp(
+        std::shared_ptr<const Executor> exec,
+        const std::vector<dim<2>> &sizes = std::vector<dim<2>>{})
+        : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
+          sizes_{sizes},
+          num_batches_{sizes_.size()}
     {}
 
     /**
@@ -237,7 +238,10 @@ protected:
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2> &value) noexcept { size_ = value; }
+    void set_sizes(const std::vector<dim<2>> &value) noexcept
+    {
+        sizes_ = value;
+    }
 
     /**
      * Implementers of BatchLinOp should override this function instead
@@ -273,9 +277,9 @@ protected:
     void validate_application_parameters(const BatchLinOp *b,
                                          const BatchLinOp *x) const
     {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
+        GKO_ASSERT_BATCH_CONFORMANT(this, b);
+        GKO_ASSERT_BATCH_EQUAL_ROWS(this, x);
+        GKO_ASSERT_BATCH_EQUAL_COLS(b, x);
     }
 
     /**
@@ -293,12 +297,15 @@ protected:
                                          const BatchLinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            alpha, std::vector<dim<2>>(num_batches_, dim<2>(1, 1)));
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            beta, std::vector<dim<2>>(num_batches_, dim<2>(1, 1)));
     }
 
 private:
-    dim<2> size_{};
+    std::vector<dim<2>> sizes_{};
+    size_type num_batches_{};
 };
 
 
