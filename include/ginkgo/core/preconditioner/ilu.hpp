@@ -329,7 +329,7 @@ protected:
             .with_criteria(gko::stop::Iteration::build()
                                .with_max_iters(default_max_iters)
                                .on(exec),
-                           gko::stop::ResidualNormReduction<value_type>::build()
+                           gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(default_reduce_residual)
                                .on(exec))
             .on(exec)
