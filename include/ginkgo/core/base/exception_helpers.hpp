@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
 
 
+#include <tuple>
 #include <typeinfo>
+#include <vector>
 
 
 #include <ginkgo/core/base/dim.hpp>
@@ -145,6 +147,78 @@ inline dim<2> get_size(const T& op)
 }
 
 inline dim<2> get_size(const dim<2>& size) { return size; }
+
+
+template <typename T>
+inline std::vector<dim<2>> get_batch_size(const T &op)
+{
+    return op->get_sizes();
+}
+
+inline std::vector<dim<2>> get_batch_size(const std::vector<dim<2>> &size)
+{
+    return size;
+}
+
+
+inline std::tuple<bool, int> compare_batch_inner(
+    const std::vector<dim<2>> &size1, const std::vector<dim<2>> &size2)
+{
+    if (size1.size() != size2.size()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+    for (auto i = 0; i < size1.size(); ++i) {
+        if (size1[i][1] != size2[i][0]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_outer(
+    const std::vector<dim<2>> &size1, const std::vector<dim<2>> &size2)
+{
+    if (size1.size() != size2.size()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+    for (auto i = 0; i < size1.size(); ++i) {
+        if (size1[i][0] != size2[i][1]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_rows(
+    const std::vector<dim<2>> &size1, const std::vector<dim<2>> &size2)
+{
+    if (size1.size() != size2.size()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+    for (auto i = 0; i < size1.size(); ++i) {
+        if (size1[i][0] != size2[i][0]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
+inline std::tuple<bool, int> compare_batch_cols(
+    const std::vector<dim<2>> &size1, const std::vector<dim<2>> &size2)
+{
+    if (size1.size() != size2.size()) {
+        return std::tuple<bool, int>{false, -1};
+    }
+    for (auto i = 0; i < size1.size(); ++i) {
+        if (size1[i][1] != size2[i][1]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
 
 
 }  // namespace detail
@@ -295,6 +369,126 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op1)[1], #_op2,                        \
             ::gko::detail::get_size(_op2)[0],                               \
             ::gko::detail::get_size(_op2)[1], "expected equal dimensions"); \
+    }
+
+
+/**
+ * Asserts that _op1 can be applied to _op2.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
+ */
+#define GKO_ASSERT_BATCH_CONFORMANT(_op1, _op2)                            \
+    {                                                                      \
+        auto comp = ::gko::detail::compare_batch_inner(                    \
+            ::gko::detail::get_batch_size(_op1),                           \
+            ::gko::detail::get_batch_size(_op2));                          \
+        if (!std::get<0>(comp)) {                                          \
+            throw ::gko::DimensionMismatch(                                \
+                __FILE__, __LINE__, __func__, #_op1,                       \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][1], \
+                #_op2,                                                     \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][1], \
+                "expected matching inner dimensions among all batches");   \
+        }                                                                  \
+    }
+
+
+/**
+ * Asserts that _op1 can be applied to _op2 from the right.
+ *
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2 from the right.
+ */
+#define GKO_ASSERT_BATCH_REVERSE_CONFORMANT(_op1, _op2)                    \
+    {                                                                      \
+        auto comp = ::gko::detail::compare_batch_outer(                    \
+            ::gko::detail::get_batch_size(_op1),                           \
+            ::gko::detail::get_batch_size(_op2));                          \
+        if (!std::get<0>(comp)) {                                          \
+            throw ::gko::DimensionMismatch(                                \
+                __FILE__, __LINE__, __func__, #_op1,                       \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][1], \
+                #_op2,                                                     \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][1], \
+                "expected matching outer dimensions among all batches");   \
+        }                                                                  \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of rows.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of rows
+ */
+#define GKO_ASSERT_BATCH_EQUAL_ROWS(_op1, _op2)                            \
+    {                                                                      \
+        auto comp = ::gko::detail::compare_batch_rows(                     \
+            ::gko::detail::get_batch_size(_op1),                           \
+            ::gko::detail::get_batch_size(_op2));                          \
+        if (!std::get<0>(comp)) {                                          \
+            throw ::gko::DimensionMismatch(                                \
+                __FILE__, __LINE__, __func__, #_op1,                       \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][1], \
+                #_op2,                                                     \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][1], \
+                "expected equal rows");                                    \
+        }                                                                  \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of columns.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
+ *                           columns
+ */
+#define GKO_ASSERT_BATCH_EQUAL_COLS(_op1, _op2)                            \
+    {                                                                      \
+        auto comp = ::gko::detail::compare_batch_cols(                     \
+            ::gko::detail::get_batch_size(_op1),                           \
+            ::gko::detail::get_batch_size(_op2));                          \
+        if (!std::get<0>(comp)) {                                          \
+            throw ::gko::DimensionMismatch(                                \
+                __FILE__, __LINE__, __func__, #_op1,                       \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp)][1], \
+                #_op2,                                                     \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][0], \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp)][1], \
+                "expected equal cols");                                    \
+        }                                                                  \
+    }
+
+
+/**
+ * Asserts that `_op1` and `_op2` have the same number of rows and columns.
+ *
+ * @throw DimensionMismatch  if `_op1` and `_op2` differ in the number of
+ *                           rows or columns
+ */
+#define GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(_op1, _op2)                       \
+    {                                                                       \
+        auto comp1 = ::gko::detail::compare_batch_rows(                     \
+            ::gko::detail::get_batch_size(_op1),                            \
+            ::gko::detail::get_batch_size(_op2));                           \
+        auto comp2 = ::gko::detail::compare_batch_cols(                     \
+            ::gko::detail::get_batch_size(_op1),                            \
+            ::gko::detail::get_batch_size(_op2));                           \
+        if (!std::get<0>(comp1) || !std::get<0>(comp2)) {                   \
+            throw ::gko::DimensionMismatch(                                 \
+                __FILE__, __LINE__, __func__, #_op1,                        \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp1)][0], \
+                ::gko::detail::get_batch_size(_op1)[std::get<1>(comp1)][1], \
+                #_op2,                                                      \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp1)][0], \
+                ::gko::detail::get_batch_size(_op2)[std::get<1>(comp1)][1], \
+                "expected equal dimensions");                               \
+        }                                                                   \
     }
 
 
