@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 
 #include <gtest/gtest.h>
@@ -51,7 +52,7 @@ class DummyBatchLinOp : public gko::EnableBatchLinOp<DummyBatchLinOp>,
                         public gko::EnableCreateMethod<DummyBatchLinOp> {
 public:
     DummyBatchLinOp(std::shared_ptr<const gko::Executor> exec,
-                    gko::dim<2> size = gko::dim<2>{})
+                    std::vector<gko::dim<2>> size = std::vector<gko::dim<2>>{})
         : EnableBatchLinOp<DummyBatchLinOp>(exec, size)
     {}
 
@@ -95,21 +96,61 @@ protected:
     EnableBatchLinOp()
         : ref{gko::ReferenceExecutor::create()},
           ref2{gko::ReferenceExecutor::create()},
-          op{DummyBatchLinOp::create(ref2, gko::dim<2>{3, 5})},
-          alpha{DummyBatchLinOp::create(ref, gko::dim<2>{1})},
-          beta{DummyBatchLinOp::create(ref, gko::dim<2>{1})},
-          b{DummyBatchLinOp::create(ref, gko::dim<2>{5, 4})},
-          x{DummyBatchLinOp::create(ref, gko::dim<2>{3, 4})}
+          op{DummyBatchLinOp::create(
+              ref2, std::vector<gko::dim<2>>{gko::dim<2>{3, 5}})},
+          op2{DummyBatchLinOp::create(
+              ref2,
+              std::vector<gko::dim<2>>{gko::dim<2>{3, 5}, gko::dim<2>{3, 5}})},
+          alpha{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{1}})},
+          alpha2{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{1}, gko::dim<2>{1}})},
+          beta{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{1}})},
+          beta2{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{1}, gko::dim<2>{1}})},
+          b{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{5, 4}})},
+          b2{DummyBatchLinOp::create(
+              ref,
+              std::vector<gko::dim<2>>{gko::dim<2>{5, 4}, gko::dim<2>{5, 4}})},
+          x{DummyBatchLinOp::create(
+              ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 4}})},
+          x2{DummyBatchLinOp::create(
+              ref,
+              std::vector<gko::dim<2>>{gko::dim<2>{3, 4}, gko::dim<2>{3, 4}})}
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::ReferenceExecutor> ref2;
     std::unique_ptr<DummyBatchLinOp> op;
+    std::unique_ptr<DummyBatchLinOp> op2;
     std::unique_ptr<DummyBatchLinOp> alpha;
+    std::unique_ptr<DummyBatchLinOp> alpha2;
     std::unique_ptr<DummyBatchLinOp> beta;
+    std::unique_ptr<DummyBatchLinOp> beta2;
     std::unique_ptr<DummyBatchLinOp> b;
+    std::unique_ptr<DummyBatchLinOp> b2;
     std::unique_ptr<DummyBatchLinOp> x;
+    std::unique_ptr<DummyBatchLinOp> x2;
 };
+
+
+TEST_F(EnableBatchLinOp, KnowsNumBatches)
+{
+    ASSERT_EQ(op->get_num_batches(), 1);
+    ASSERT_EQ(op2->get_num_batches(), 2);
+}
+
+
+TEST_F(EnableBatchLinOp, KnowsItsSizes)
+{
+    auto op1_sizes = std::vector<gko::dim<2>>{gko::dim<2>{3, 5}};
+    auto op2_sizes =
+        std::vector<gko::dim<2>>{gko::dim<2>{3, 5}, gko::dim<2>{3, 5}};
+    ASSERT_EQ(op->get_sizes(), op1_sizes);
+    ASSERT_EQ(op2->get_sizes(), op2_sizes);
+}
 
 
 TEST_F(EnableBatchLinOp, CallsApplyImpl)
@@ -117,6 +158,14 @@ TEST_F(EnableBatchLinOp, CallsApplyImpl)
     op->apply(gko::lend(b), gko::lend(x));
 
     ASSERT_EQ(op->last_access, ref2);
+}
+
+
+TEST_F(EnableBatchLinOp, CallsApplyImplForBatch)
+{
+    op2->apply(gko::lend(b2), gko::lend(x2));
+
+    ASSERT_EQ(op2->last_access, ref2);
 }
 
 
@@ -128,27 +177,59 @@ TEST_F(EnableBatchLinOp, CallsExtendedApplyImpl)
 }
 
 
+TEST_F(EnableBatchLinOp, CallsExtendedApplyImplBatch)
+{
+    op2->apply(gko::lend(alpha2), gko::lend(b2), gko::lend(beta2),
+               gko::lend(x2));
+
+    ASSERT_EQ(op2->last_access, ref2);
+}
+
+
 TEST_F(EnableBatchLinOp, ApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{3, 4});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 4}});
 
     ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(x)),
                  gko::DimensionMismatch);
 }
 
 
+TEST_F(EnableBatchLinOp, ApplyFailsOnWrongBatchSize)
+{
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 4}});
+
+    ASSERT_THROW(op2->apply(gko::lend(wrong), gko::lend(x2)),
+                 gko::DimensionMismatch);
+}
+
+
 TEST_F(EnableBatchLinOp, ApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{5, 4});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{5, 4}});
 
     ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
                  gko::DimensionMismatch);
 }
 
 
+TEST_F(EnableBatchLinOp, ApplyFailsOnOneBatchWrongSolutionRows)
+{
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{5, 4}, gko::dim<2>{5, 4}});
+
+    ASSERT_THROW(op2->apply(gko::lend(b2), gko::lend(wrong)),
+                 gko::DimensionMismatch);
+}
+
+
 TEST_F(EnableBatchLinOp, ApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{3, 5});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
 
     ASSERT_THROW(op->apply(gko::lend(b), gko::lend(wrong)),
                  gko::DimensionMismatch);
@@ -157,7 +238,8 @@ TEST_F(EnableBatchLinOp, ApplyFailsOnWrongSolutionColumns)
 
 TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{3, 4});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 4}});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(wrong), gko::lend(beta),
                            gko::lend(x)),
@@ -167,7 +249,8 @@ TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongBSize)
 
 TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{5, 4});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{5, 4}});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
                            gko::lend(wrong)),
@@ -177,7 +260,8 @@ TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 
 TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{3, 5});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta),
                            gko::lend(wrong)),
@@ -187,7 +271,8 @@ TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 
 TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{2, 5});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{2, 5}});
 
     ASSERT_THROW(op->apply(gko::lend(wrong), gko::lend(b), gko::lend(beta),
                            gko::lend(x)),
@@ -197,7 +282,8 @@ TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 
 TEST_F(EnableBatchLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
-    auto wrong = DummyBatchLinOp::create(ref, gko::dim<2>{2, 5});
+    auto wrong = DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{2, 5}});
 
     ASSERT_THROW(op->apply(gko::lend(alpha), gko::lend(b), gko::lend(wrong),
                            gko::lend(x)),
@@ -243,12 +329,6 @@ TEST_F(EnableBatchLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
     ASSERT_EQ(b->last_access, ref);
     ASSERT_EQ(beta->last_access, ref);
     ASSERT_EQ(x->last_access, ref);
-}
-
-
-TEST_F(EnableBatchLinOp, ApplyUsesInitialGuessReturnsFalse)
-{
-    ASSERT_FALSE(op->apply_uses_initial_guess());
 }
 
 
@@ -317,7 +397,8 @@ TEST_F(EnableBatchLinOpFactory, CreatesFactoryWithParameters)
 
 TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
 {
-    auto dummy = gko::share(DummyBatchLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto dummy = gko::share(DummyBatchLinOp::create(
+        ref, std::vector<gko::dim<2>>{gko::dim<2>{3, 5}}));
     auto factory = DummyBatchLinOpWithFactory<>::build().with_value(6).on(ref);
 
     auto op = factory->generate(dummy);
