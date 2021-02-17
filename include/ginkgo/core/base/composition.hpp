@@ -169,19 +169,33 @@ private:
 
 template <typename ValueType = default_precision>
 class UseComposition {
-    public:
-	using value_type = ValueType;
-	std::shared_ptr<Composition<ValueType>> get_composition() const {
-            return composition_;
-	}
-    protected:
-	template <typename... LinOp>
-	void set_composition(LinOp &&... linop) {
-	    composition_ = Composition<ValueType>::create(std::forward<LinOp>(linop)...);
-	}
-    private:
-	std::shared_ptr<Composition<ValueType>> composition_;
-}
+public:
+    using value_type = ValueType;
+    std::shared_ptr<Composition<ValueType>> get_composition() const
+    {
+        return composition_;
+    }
+
+    std::shared_ptr<const LinOp> get_composition_ithop(int index) const
+    {
+        if (composition_ == nullptr) {
+            return nullptr;
+        } else {
+            return composition_->get_operators().at(index);
+        }
+    }
+
+protected:
+    template <typename... LinOp>
+    void set_composition(LinOp &&... linop)
+    {
+        composition_ =
+            Composition<ValueType>::create(std::forward<LinOp>(linop)...);
+    }
+
+private:
+    std::shared_ptr<Composition<ValueType>> composition_;
+};
 
 
 }  // namespace gko

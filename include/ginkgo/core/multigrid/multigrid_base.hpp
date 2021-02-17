@@ -312,7 +312,28 @@ private:
  *
  * @ingroup Multigrid
  */
-class MultigridLevel : public UseComposition {
+template <typename ValueType>
+class MultigridLevel : public UseComposition<ValueType> {
+public:
+    using value_type = ValueType;
+
+    std::shared_ptr<const LinOp> get_fine_op() const { return fine_op_; }
+
+    std::shared_ptr<const LinOp> get_restrict_op() const
+    {
+        return this->get_composition_ithop(2);
+    }
+
+    std::shared_ptr<const LinOp> get_coarse_op() const
+    {
+        return this->get_composition_ithop(1);
+    }
+
+    std::shared_ptr<const LinOp> get_prolong_op() const
+    {
+        return this->get_composition_ithop(0);
+    }
+
 protected:
     /**
      * Sets the fine and coarse information.
@@ -322,29 +343,16 @@ protected:
      */
     void set_multigrid_level(std::shared_ptr<const LinOp> prolong_op,
                              std::shared_ptr<const LinOp> coarse_op,
-			     std::shared_ptr<const LinOp> restrict_op)
+                             std::shared_ptr<const LinOp> restrict_op)
     {
-	gko::dim<2> mg_size{prolong_op->get_size()[0], restrict_op->get_size()[1]};
-	// check mg_size is the same as fine_size
-	this->set_composition(prolong_op, coarse_op, restrict_op);
+        gko::dim<2> mg_size{prolong_op->get_size()[0],
+                            restrict_op->get_size()[1]};
+        GKO_ASSERT_EQUAL_DIMENSIONS(fine_op_->get_size(), mg_size);
+        // check mg_size is the same as fine_size
+        this->set_composition(prolong_op, coarse_op, restrict_op);
     }
 
-    std::shared_ptr<const LinOp> get_fine_op() const {
-        return fine_op_;
-    }
-
-    std::shared_ptr<const LinOp> get_restrict_op() const {
-        return this->get_composition()[2];
-    }
-
-    std::shared_ptr<const LinOp> get_coarse_op() const {
-        return this->get_composition()[1];
-    }
-
-    std::shared_ptr<const LinOp> get_prolong_op() const {
-        return this->get_composition()[0];
-    }
-   
+    explicit MultigridLevel() {}
     /**
      * Creates a MultigridLevel with settings
      *
@@ -363,80 +371,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> fine_op_;
-};
-
-
-// template <typename ConcreteObject>
-// class EnableNewDefault {
-// protected:
-
-//     std::unique_ptr<PolymorphicObject> create_default_impl(
-//         std::shared_ptr<const Executor> exec) const override
-//     {
-//         return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
-//     }
-
-//     PolymorphicObject *copy_from_impl(const PolymorphicObject *other)
-//     override
-//     {
-//         as<ConvertibleTo<ConcreteObject>>(other)->convert_to(self());
-//         return this;
-//     }
-
-//     PolymorphicObject *copy_from_impl(
-//         std::unique_ptr<PolymorphicObject> other) override
-//     {
-//         as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
-//         return this;
-//     }
-
-//     PolymorphicObject *clear_impl() override
-//     {
-//         *self() = ConcreteObject{this->get_executor()};
-//         return this;
-//     }
-
-// private:
-//     GKO_ENABLE_SELF(ConcreteObject);
-// };
-
-
-template <typename ValueType>
-class MultigridLevelOp
-    : public Composition<ValueType>,
-      public EnableCreateMethod<MultigridLevelOp<ValueType>> {
-    // friend class EnablePolymorphicObject<MultigridLevelOp, LinOp>;
-    friend class EnableCreateMethod<MultigridLevelOp>;
-    // friend class EnableNewDefault<MultigridLevelOp>;
-
-public:
-    using value_type = ValueType;
-    using EnableCreateMethod<MultigridLevelOp>::create;
-    // using EnableAbstractPolymorphicObject<MultigridLevelOp,
-    //                                          LinOp>::EnableAbstractPolymorphicObject;
-    // EnablePolymorphicObject
-    // auto clone_ilu = par_ilu->clone();
-    // auto clone_l = clone_ilu->get_l_factor();
-    // using EnableLinOp<MultigridLevelOp>::PolymorphicObject;
-    // using EnableLinOp<MultigridLevelOp>::get_executor;
-    // using EnableLinOp<MultigridLevelOp>::EnablePolymorphicAssignment;
-
-    // using Composition<ValueType>::apply;
-protected:
-    /**
-     * Creates an empty operator composition (0x0 operator).
-     *
-     * @param exec  Executor associated to the composition
-     */
-    explicit MultigridLevelOp(std::shared_ptr<const Executor> exec)
-        : Composition<ValueType>(exec)
-    {}
-
-    explicit MultigridLevelOp(std::shared_ptr<const LinOp> prolong,
-                              std::shared_ptr<const LinOp> coarse,
-                              std::shared_ptr<const LinOp> restrict)
-        : Composition<ValueType>(prolong, coarse, restrict)
-    {}
 };
 
 
