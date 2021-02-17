@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -72,7 +73,11 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public MultigridLevelOp<ValueType>, public MultigridLevel {
+class AmgxPgm : public EnableLinOp<AmgxPgm<ValueType, IndexType>>,
+                public MultigridLevel<ValueType> {
+    friend class EnableLinOp<AmgxPgm>;
+    friend class EnablePolymorphicObject<AmgxPgm, LinOp>;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -110,10 +115,6 @@ public:
         return agg_.get_const_data();
     }
 
-    template <typename... Args>
-    static std::unique_ptr<MultigridLevelOp<ValueType>> create(
-        Args &&... args) = delete;
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -144,45 +145,45 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void restrict_apply_impl(const LinOp *b, LinOp *x) const override;
+    void restrict_apply_impl(const LinOp *b, LinOp *x) const;
 
-    void prolong_applyadd_impl(const LinOp *b, LinOp *x) const override;
+    void prolong_applyadd_impl(const LinOp *b, LinOp *x) const;
 
-    void prolong_apply_impl(const LinOp *b, LinOp *x) const override;
+    void prolong_apply_impl(const LinOp *b, LinOp *x) const;
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        this->template multigrid_level_default_apply<ValueType>(b, x);
+        this->get_composition()->apply(b, x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        this->template multigrid_level_default_apply<ValueType>(alpha, b, beta,
-                                                                x);
+        this->get_composition()->apply(alpha, b, beta, x);
     }
 
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : MultigridLevelOp<ValueType>(exec), MultigridLevel(exec, true)
+        : EnableLinOp<AmgxPgm>(std::move(exec)), MultigridLevel<ValueType>()
     {}
 
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : MultigridLevelOp<ValueType>(factory->get_executor()),
-          MultigridLevel(factory->get_executor(), true),
+        : EnableLinOp<AmgxPgm>(factory->get_executor(),
+                               system_matrix->get_size()),
+          MultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)},
+          system_matrix_{system_matrix},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
     {
         GKO_ASSERT(parameters_.max_unassigned_percentage <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_percentage >= 0.0);
-        // if (system_matrix_->get_size()[0] != 0) {
-        // generate on the existed matrix
-        this->generate()->move_to(this);
-        // }
+        if (system_matrix_->get_size()[0] != 0) {
+            // generate on the existed matrix
+            this->generate();
+        }
     }
 
-    std::unique_ptr<MultigridLevelOp<ValueType>> generate();
+    void generate();
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

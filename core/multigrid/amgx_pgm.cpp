@@ -89,8 +89,7 @@ std::unique_ptr<LinOp> amgx_pgm_generate(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<MultigridLevelOp<ValueType>>
-AmgxPgm<ValueType, IndexType>::generate()
+void AmgxPgm<ValueType, IndexType>::generate()
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
@@ -160,15 +159,14 @@ AmgxPgm<ValueType, IndexType>::generate()
     // Construct the coarse matrix
     auto coarse_matrix =
         share(amgx_pgm_generate(exec, amgxpgm_op, num_agg, agg_));
-    this->set_multigrid_level(system_matrix_, coarse_matrix);
+    // this->set_multigrid_level(system_matrix_, coarse_matrix);
     auto coarse_dim = coarse_matrix->get_size()[0];
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = Mapping<ValueType, IndexType>::create(
         exec, gko::dim<2>{coarse_dim, fine_dim}, agg_);
     auto prolong_op = Mapping<ValueType, IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}, agg_, false);
-    return MultigridLevelOp<ValueType>::create(share(prolong_op), coarse_matrix,
-                                               share(restrict_op));
+    this->set_composition(share(prolong_op), coarse_matrix, share(restrict_op));
 }
 
 

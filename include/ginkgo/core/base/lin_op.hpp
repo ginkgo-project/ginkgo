@@ -654,16 +654,26 @@ private:
 };
 
 
-class ApplyAddable() {
-    public:
-        void apply2(const LinOp* b, LinOp* x) const {
-	    // check the comformat size
-	    this->apply2_impl(b, x);
-	}
+class ApplyAddable {
+public:
+    void apply2(const LinOp *b, LinOp *x) const
+    {
+        // check the comformat size
+        this->apply2_impl(b, x);
+    }
 
-    protected:
-	virtual void apply2_impl(const LinOp* b, LinOp* x) const = 0;
-}
+    void apply2(const LinOp *alpha, const LinOp *b, LinOp *x) const
+    {
+        // check the comformat size
+        this->apply2_impl(alpha, b, x);
+    }
+
+protected:
+    virtual void apply2_impl(const LinOp *b, LinOp *x) const = 0;
+
+    virtual void apply2_impl(const LinOp *alpha, const LinOp *b,
+                             LinOp *x) const = 0;
+};
 
 
 /**

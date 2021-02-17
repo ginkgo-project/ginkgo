@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/multigrid/mapping_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
@@ -1288,6 +1289,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
+
+
+namespace mapping {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_MAPPING_APPLYADD_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MAPPING_APPLYADD_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_MAPPING_ADVANCED_APPLYADD_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MAPPING_ADVANCED_APPLYADD_KERNEL);
+
+
+}  // namespace mapping
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

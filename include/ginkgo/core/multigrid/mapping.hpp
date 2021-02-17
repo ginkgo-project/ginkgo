@@ -51,12 +51,50 @@ namespace multigrid {
 
 template <typename ValueType, typename IndexType>
 class Mapping : public EnableLinOp<Mapping<ValueType, IndexType>>,
-                public EnableCreateMethod<Mapping<ValueType, IndexType>> {
+                public EnableCreateMethod<Mapping<ValueType, IndexType>>,
+                public ApplyAddable {
     friend class EnableCreateMethod<Mapping>;
     friend class EnablePolymorphicObject<Mapping, LinOp>;
 
 public:
+    using value_type = ValueType;
     using index_type = IndexType;
+
+    /**
+     * Returns the mapping indexes.
+     *
+     * @return the mapping indexes.
+     */
+    index_type *get_mapping_index() noexcept { return mapping_.get_data(); }
+
+    /**
+     * @copydoc Mapping::get_mapping_index()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const index_type *get_const_mapping_index() const noexcept
+    {
+        return mapping_.get_const_data();
+    }
+
+    /**
+     * Returns true as it is restrict operation.
+     *
+     * @return true as it is restrict operation.
+     */
+    bool is_restrict() const noexcept { return is_restrict_; }
+
+    /**
+     * Returns the number of elements explicitly stored in the mapping index.
+     *
+     * @return the number of elements explicitly stored in the mapping index
+     */
+    size_type get_num_stored_elements() const noexcept
+    {
+        return mapping_.get_num_elems();
+    }
 
 protected:
     /**
@@ -85,14 +123,28 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        GKO_NOT_IMPLEMENTED;
+        auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+        // TODO: write dense fill kernel
+        auto zero = gko::initialize<matrix::Dense<ValueType>>(
+            {gko::zero<ValueType>()}, this->get_executor());
+        dense_x->scale(lend(zero));
+        this->apply2(b, dense_x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        GKO_NOT_IMPLEMENTED;
+        auto dense_x = as<matrix::Dense<ValueType>>(x);
+        dense_x->scale(beta);
+        this->apply2(alpha, b, dense_x);
     }
+
+    void apply2_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply2_impl(const LinOp *alpha, const LinOp *b,
+                     LinOp *x) const override;
+
 
 private:
     Array<index_type> mapping_;
