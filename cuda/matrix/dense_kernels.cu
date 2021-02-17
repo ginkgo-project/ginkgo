@@ -118,6 +118,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
+void fill(std::shared_ptr<const DefaultExecutor> exec,
+          matrix::Dense<ValueType> *mat, ValueType value)
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(mat->get_size()[0] * mat->get_size()[1], block_size);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    kernel::strided_fill<block_size><<<grid_dim, block_dim>>>(
+        mat->get_size()[0], mat->get_size()[1], mat->get_stride(),
+        as_cuda_type(mat->get_values()), as_cuda_type(value));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
+
+
+template <typename ValueType>
 void scale(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
