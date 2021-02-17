@@ -86,7 +86,7 @@ protected:
     using Vector = matrix::Dense<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &) override;
+                    const Criterion::Updater &updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
@@ -212,7 +212,8 @@ protected:
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline)
+              factory->get_parameters().baseline),
+          parameters_{factory->get_parameters()}
     {}
 };
 
@@ -264,7 +265,7 @@ protected:
     // residual here
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &) override;
+                    const Criterion::Updater &updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNormBase<ValueType>(exec)

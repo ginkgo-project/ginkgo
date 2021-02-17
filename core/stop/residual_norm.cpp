@@ -43,7 +43,6 @@ namespace residual_norm {
 
 
 GKO_REGISTER_OPERATION(residual_norm, residual_norm::residual_norm);
-GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace residual_norm
@@ -113,18 +112,13 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
-#define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNorm<_type>
+#define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNormBase<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
     class ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
-
-
-#define GKO_DECLARE_ABSOLUTE_RESIDUAL_NORM(_type) \
-    class AbsoluteResidualNorm<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ABSOLUTE_RESIDUAL_NORM);
 
 
 }  // namespace stop
