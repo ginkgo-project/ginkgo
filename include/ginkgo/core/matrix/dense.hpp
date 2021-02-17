@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
@@ -249,7 +250,7 @@ public:
      *
      * @param value  the value to be filled
      */
-    void fill(const ValueType value) { this->values_.fill(value); }
+    void fill(const ValueType value);
 
     /**
      * Create a Dense matrix consisting of the given rows from this matrix.

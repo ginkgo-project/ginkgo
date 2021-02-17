@@ -51,4 +51,8 @@ auto no_reset_exec =
 }  // namespace
 
 
+template <typename T>
+using I = std::initializer_list<T>;
+
+
 #endif  // GKO_CUDA_TEST_UTILS_HPP_

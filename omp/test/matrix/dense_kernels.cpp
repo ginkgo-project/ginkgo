@@ -191,6 +191,36 @@ protected:
 };
 
 
+TEST_F(Dense, OmpFillIsEquivalentToRef)
+{
+    set_up_vector_data(3);
+    auto result = Mtx::create(ref);
+
+    x->fill(42);
+    dx->fill(42);
+    result->copy_from(dx.get());
+
+    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
+}
+
+
+TEST_F(Dense, OmpStridedFillIsEquivalentToRef)
+{
+    using T = double;
+    auto x = gko::initialize<gko::matrix::Dense<T>>(
+        4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, ref);
+    auto dx = gko::initialize<gko::matrix::Dense<T>>(
+        4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, omp);
+    auto result = Mtx::create(ref);
+
+    x->fill(42);
+    dx->fill(42);
+    result->copy_from(dx.get());
+
+    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
+}
+
+
 TEST_F(Dense, SingleVectorOmpScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
