@@ -96,8 +96,8 @@ GKO_REGISTER_OPERATION(get_imag, batch_dense::get_imag);
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const LinOp *b,
-                                       LinOp *x) const GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::apply_impl(const BatchLinOp *b,
+                                       BatchLinOp *x) const GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -115,9 +115,10 @@ void BatchDense<ValueType>::apply_impl(const LinOp *b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                       const LinOp *beta,
-                                       LinOp *x) const GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                       const BatchLinOp *b,
+                                       const BatchLinOp *beta,
+                                       BatchLinOp *x) const GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -140,7 +141,8 @@ void BatchDense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::scale_impl(const LinOp *alpha) GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -156,8 +158,8 @@ void BatchDense<ValueType>::scale_impl(const LinOp *alpha) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::add_scaled_impl(const LinOp *alpha,
-                                            const LinOp *b) GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::add_scaled_impl(
+    const BatchLinOp *alpha, const BatchLinOp *b) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -183,7 +185,7 @@ void BatchDense<ValueType>::add_scaled_impl(const LinOp *alpha,
 
 template <typename ValueType>
 void BatchDense<ValueType>::compute_dot_impl(
-    const LinOp *b, LinOp *result) const GKO_NOT_IMPLEMENTED;
+    const BatchLinOp *b, BatchLinOp *result) const GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -197,7 +199,7 @@ void BatchDense<ValueType>::compute_dot_impl(
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::compute_norm2_impl(LinOp *result) const
+void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
     GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
@@ -262,7 +264,8 @@ inline void read_impl(MatrixType *mtx,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(const mat_data &data) GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::read(std::vector<const mat_data> &data)
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -271,7 +274,8 @@ void BatchDense<ValueType>::read(const mat_data &data) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(const mat_data32 &data) GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::read(std::vector<const mat_data32> &data)
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -284,7 +288,7 @@ namespace {
 
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType *mtx,
-                       MatrixData &data) GKO_NOT_IMPLEMENTED;
+                       std::vector<MatrixData> &data) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -314,7 +318,8 @@ inline void write_impl(const MatrixType *mtx,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::write(mat_data &data) const GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::write(std::vector<mat_data> &data) const
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -323,7 +328,8 @@ void BatchDense<ValueType>::write(mat_data &data) const GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::write(mat_data32 &data) const GKO_NOT_IMPLEMENTED;
+void BatchDense<ValueType>::write(std::vector<mat_data32> &data) const
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
@@ -332,7 +338,7 @@ void BatchDense<ValueType>::write(mat_data32 &data) const GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchDense<ValueType>::transpose() const
     GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
@@ -348,7 +354,7 @@ std::unique_ptr<LinOp> BatchDense<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchDense<ValueType>::conj_transpose() const
     GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
@@ -359,437 +365,6 @@ std::unique_ptr<LinOp> BatchDense<ValueType>::conj_transpose() const
 //
 //    exec->run(batch_dense::make_conj_transpose(this, trans_cpy.get()));
 //    return std::move(trans_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_symm_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_symm_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inv_symm_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inv_symm_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::row_permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_row_gather(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::row_permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_row_gather(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<BatchDense<ValueType>> BatchDense<ValueType>::row_gather(
-    const Array<int32> *row_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
-//    auto row_gathered = BatchDense::create(exec, out_dim);
-//
-//    exec->run(
-//        batch_dense::make_row_gather(make_temporary_clone(exec,
-//        row_indices).get(),
-//                               this, row_gathered.get()));
-//    return row_gathered;
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<BatchDense<ValueType>> BatchDense<ValueType>::row_gather(
-    const Array<int64> *row_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
-//    auto row_gathered = BatchDense::create(exec, out_dim);
-//
-//    exec->run(
-//        batch_dense::make_row_gather(make_temporary_clone(exec,
-//        row_indices).get(),
-//                               this, row_gathered.get()));
-//    return row_gathered;
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::row_gather(
-    const Array<int32> *row_indices,
-    BatchDense<ValueType> *row_gathered) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
-//    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
-//
-//    exec->run(batch_dense::make_row_gather(
-//        make_temporary_clone(exec, row_indices).get(), this,
-//        make_temporary_clone(exec, row_gathered).get()));
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::row_gather(
-    const Array<int64> *row_indices,
-    BatchDense<ValueType> *row_gathered) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
-//    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
-//
-//    auto exec = this->get_executor();
-//
-//    this->get_executor()->run(batch_dense::make_row_gather(
-//        make_temporary_clone(exec, row_indices).get(), this,
-//        make_temporary_clone(exec, row_gathered).get()));
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::column_permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_column_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::column_permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_column_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        permute_cpy.get()));
-//
-//    return std::move(permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_row_permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inverse_row_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        inverse_permute_cpy.get()));
-//
-//    return std::move(inverse_permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_row_permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inverse_row_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        inverse_permute_cpy.get()));
-//
-//    return std::move(inverse_permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_column_permute(
-    const Array<int32> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inverse_column_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        inverse_permute_cpy.get()));
-//
-//    return std::move(inverse_permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::inverse_column_permute(
-    const Array<int64> *permutation_indices) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-//    auto exec = this->get_executor();
-//    auto inverse_permute_cpy = BatchDense::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_inverse_column_permute(
-//        make_temporary_clone(exec, permutation_indices).get(), this,
-//        inverse_permute_cpy.get()));
-//
-//    return std::move(inverse_permute_cpy);
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<Diagonal<ValueType>> BatchDense<ValueType>::extract_diagonal()
-    const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-//    auto diag = Diagonal<ValueType>::create(exec, diag_size);
-//    exec->run(batch_dense::make_extract_diagonal(this, lend(diag)));
-//    return diag;
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::compute_absolute_inplace() GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    exec->run(batch_dense::make_inplace_absolute_batch_dense(this));
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<typename BatchDense<ValueType>::absolute_type>
-BatchDense<ValueType>::compute_absolute() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    // do not inherit the stride
-//    auto abs_batch_dense = absolute_type::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_outplace_absolute_batch_dense(this,
-//    abs_batch_dense.get()));
-//
-//    return abs_batch_dense;
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<typename BatchDense<ValueType>::complex_type>
-BatchDense<ValueType>::make_complex() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    auto complex_batch_dense = complex_type::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_make_complex(this,
-//    complex_batch_dense.get()));
-//
-//    return complex_batch_dense;
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::make_complex(
-    BatchDense<to_complex<ValueType>> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-//
-//    exec->run(batch_dense::make_make_complex(
-//        this, make_temporary_clone(exec, result).get()));
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<typename BatchDense<ValueType>::absolute_type>
-BatchDense<ValueType>::get_real() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    auto real_batch_dense = absolute_type::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_get_real(this, real_batch_dense.get()));
-//
-//    return real_batch_dense;
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::get_real(
-    BatchDense<remove_complex<ValueType>> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-//
-//    exec->run(
-//        batch_dense::make_get_real(this, make_temporary_clone(exec,
-//        result).get()));
-//}
-
-
-template <typename ValueType>
-std::unique_ptr<typename BatchDense<ValueType>::absolute_type>
-BatchDense<ValueType>::get_imag() const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    auto imag_batch_dense = absolute_type::create(exec, this->get_size());
-//
-//    exec->run(batch_dense::make_get_imag(this, imag_batch_dense.get()));
-//
-//    return imag_batch_dense;
-//}
-
-
-template <typename ValueType>
-void BatchDense<ValueType>::get_imag(
-    BatchDense<remove_complex<ValueType>> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto exec = this->get_executor();
-//
-//    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-//
-//    exec->run(
-//        batch_dense::make_get_imag(this, make_temporary_clone(exec,
-//        result).get()));
 //}
 
 
