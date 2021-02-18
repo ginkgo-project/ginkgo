@@ -35,11 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <initializer_list>
+#include <vector>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -48,28 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-
-
-template <typename ValueType, typename IndexType>
-class Coo;
-
-template <typename ValueType, typename IndexType>
-class Csr;
-
-template <typename ValueType>
-class Diagonal;
-
-template <typename ValueType, typename IndexType>
-class Ell;
-
-template <typename ValueType, typename IndexType>
-class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class Sellp;
-
-template <typename ValueType, typename IndexType>
-class SparsityCsr;
 
 
 /**
@@ -89,28 +68,23 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class BatchDense
-    : public EnableLinOp<BatchDense<ValueType>>,
-      public EnableCreateMethod<BatchDense<ValueType>>,
-      public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, int32>,
-      public ReadableFromMatrixData<ValueType, int64>,
-      public WritableToMatrixData<ValueType, int32>,
-      public WritableToMatrixData<ValueType, int64>,
-      public Transposable,
-      public Permutable<int32>,
-      public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<BatchDense<ValueType>>> {
+class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
+                   public EnableCreateMethod<BatchDense<ValueType>>,
+                   public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
+                   public BatchReadableFromMatrixData<ValueType, int32>,
+                   public BatchReadableFromMatrixData<ValueType, int64>,
+                   public BatchWritableToMatrixData<ValueType, int32>,
+                   public BatchWritableToMatrixData<ValueType, int64>,
+                   public BatchTransposable {
     friend class EnableCreateMethod<BatchDense>;
-    friend class EnablePolymorphicObject<BatchDense, LinOp>;
+    friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
 
 public:
-    using EnableLinOp<BatchDense>::convert_to;
-    using EnableLinOp<BatchDense>::move_to;
-    using ReadableFromMatrixData<ValueType, int32>::read;
-    using ReadableFromMatrixData<ValueType, int64>::read;
+    using EnableBatchLinOp<BatchDense>::convert_to;
+    using EnableBatchLinOp<BatchDense>::move_to;
+    using BatchReadableFromMatrixData<ValueType, int32>::read;
+    using BatchReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -145,134 +119,17 @@ public:
 
     void move_to(BatchDense<next_precision<ValueType>> *result) override;
 
-    void read(const mat_data &data) override;
+    void read(std::vector<const mat_data> &data) override;
 
-    void read(const mat_data32 &data) override;
+    void read(std::vector<const mat_data32> &data) override;
 
-    void write(mat_data &data) const override;
+    void write(std::vector<mat_data> &data) const override;
 
-    void write(mat_data32 &data) const override;
+    void write(std::vector<mat_data32> &data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
-    std::unique_ptr<LinOp> permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> permute(
-        const Array<int64> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_permute(
-        const Array<int64> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> row_permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> row_permute(
-        const Array<int64> *permutation_indices) const override;
-
-    /**
-     * Create a BatchDense matrix consisting of the given rows from this matrix.
-     *
-     * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
-     * @return  BatchDense matrix on the same executor with the same number of
-     *          columns and `gather_indices->get_num_elems()` rows containing
-     *          the gathered rows from this matrix:
-     *          `output(i,j) = input(gather_indices(i), j)`
-     */
-    std::unique_ptr<BatchDense> row_gather(
-        const Array<int32> *gather_indices) const;
-
-    /**
-     * @copydoc row_gather(const Array<int32>*) const
-     */
-    std::unique_ptr<BatchDense> row_gather(
-        const Array<int64> *gather_indices) const;
-
-    /**
-     * Copies the given rows from this matrix into `row_gathered`
-     *
-     * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
-     * @param row_gathered  pointer to a BatchDense matrix that will store the
-     *                      gathered rows:
-     *                      `output(i,j) = input(gather_indices(i), j)`
-     *                      It must have the same number of columns as this
-     *                      matrix and `gather_indices->get_num_elems()` rows.
-     */
-    void row_gather(const Array<int32> *gather_indices,
-                    BatchDense *row_gathered) const;
-
-    /**
-     * @copydoc row_gather(const Array<int32>*, BatchDense*) const
-     */
-    void row_gather(const Array<int64> *gather_indices,
-                    BatchDense *row_gathered) const;
-
-    std::unique_ptr<LinOp> column_permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> column_permute(
-        const Array<int64> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int64> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int32> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int64> *permutation_indices) const override;
-
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original matrix. If the original matrix
-     * was real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original matrix to a given complex matrix.
-     * If the original matrix was real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(BatchDense<to_complex<ValueType>> *result) const;
-
-    /**
-     * Creates a new real matrix and extracts the real part of the original
-     * matrix into that.
-     */
-    std::unique_ptr<absolute_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original matrix into a given real matrix.
-     */
-    void get_real(BatchDense<remove_complex<ValueType>> *result) const;
-
-    /**
-     * Creates a new real matrix and extracts the imaginary part of the
-     * original matrix into that.
-     */
-    std::unique_ptr<absolute_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original matrix into a given real
-     * matrix.
-     */
-    void get_imag(BatchDense<remove_complex<ValueType>> *result) const;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -298,7 +155,10 @@ public:
      *
      * @return the stride of the matrix.
      */
-    size_type get_stride() const noexcept { return stride_; }
+    const std::vector<size_type> &get_strides() const noexcept
+    {
+        return strides_;
+    }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -320,7 +180,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    value_type &at(size_type row, size_type col) noexcept
+    value_type &at(size_type batch, size_type row, size_type col) noexcept
     {
         return values_.get_data()[linearize_index(row, col)];
     }
@@ -328,36 +188,9 @@ public:
     /**
      * @copydoc BatchDense::at(size_type, size_type)
      */
-    value_type at(size_type row, size_type col) const noexcept
+    value_type at(size_type batch, size_type row, size_type col) const noexcept
     {
         return values_.get_const_data()[linearize_index(row, col)];
-    }
-
-    /**
-     * Returns a single element of the matrix.
-     *
-     * Useful for iterating across all elements of the matrix.
-     * However, it is less efficient than the two-parameter variant of this
-     * method.
-     *
-     * @param idx  a linear index of the requested element
-     *             (ignoring the stride)
-     *
-     * @note  the method has to be called on the same Executor the matrix is
-     *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the OMP results in a runtime error)
-     */
-    ValueType &at(size_type idx) noexcept
-    {
-        return values_.get_data()[linearize_index(idx)];
-    }
-
-    /**
-     * @copydoc BatchDense::at(size_type)
-     */
-    ValueType at(size_type idx) const noexcept
-    {
-        return values_.get_const_data()[linearize_index(idx)];
     }
 
     /**
@@ -368,7 +201,7 @@ public:
      * column of the matrix is scaled with the i-th element of alpha (the number
      * of columns of alpha has to match the number of columns of the matrix).
      */
-    void scale(const LinOp *alpha)
+    void scale(const BatchLinOp *alpha)
     {
         auto exec = this->get_executor();
         this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -383,7 +216,7 @@ public:
      * of columns of alpha has to match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const LinOp *alpha, const LinOp *b)
+    void add_scaled(const BatchLinOp *alpha, const BatchLinOp *b)
     {
         auto exec = this->get_executor();
         this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -399,7 +232,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp *b, LinOp *result) const
+    void compute_dot(const BatchLinOp *b, BatchLinOp *result) const
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -413,99 +246,45 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp *result) const
+    void compute_norm2(BatchLinOp *result) const
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
     }
 
-    /**
-     * Create a submatrix from the original matrix.
-     * Warning: defining stride for this create_submatrix method might cause
-     * wrong memory access. Better use the create_submatrix(rows, columns)
-     * method instead.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     * @param stride   stride of the new submatrix.
-     */
-    std::unique_ptr<BatchDense> create_submatrix(const span &rows,
-                                                 const span &columns,
-                                                 const size_type stride)
+private:
+    const size_type compute_batch_mem(const std::vector<dim<2>> sizes,
+                                      const std::vector<size_type> strides)
     {
-        row_major_range range_this{this->get_values(), this->get_size()[0],
-                                   this->get_size()[1], this->get_stride()};
-        auto range_result = range_this(rows, columns);
-        // TODO: can result in HUGE padding - which will be copied with the
-        // vector
-        return BatchDense::create(
-            this->get_executor(),
-            dim<2>{range_result.length(0), range_result.length(1)},
-            Array<ValueType>::view(
-                this->get_executor(),
-                range_result.length(0) * range_this.length(1) - columns.begin,
-                range_result->data),
-            stride);
+        GKO_ASSERT(sizes.size() == strides.size());
+        size_type mem_req = 0;
+        for (auto i = 0; i < sizes.size(); ++i) {
+            mem_req += (sizes[i])[0] * strides[i];
+        }
+        return mem_req;
     }
 
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     */
-    std::unique_ptr<BatchDense> create_submatrix(const span &rows,
-                                                 const span &columns)
+    const std::vector<size_type> extract_nth_dim(
+        const int dim, const std::vector<gko::dim<2>> sizes)
     {
-        return create_submatrix(rows, columns, this->get_stride());
+        // auto ndim_vec = std::vector<size_type>{};
+        auto ndim_vec = std::vector<size_type>(sizes.size(), 0);
+        for (auto i = 0; i < sizes.size(); ++i) {
+            ndim_vec[i] = (sizes[i])[dim];
+        }
+        return ndim_vec;
     }
 
-    /**
-     * Create a real view of the (potentially) complex original matrix.
-     * If the original matrix is real, nothing changes. If the original matrix
-     * is complex, the result is created by viewing the complex matrix with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<BatchDense<remove_complex<ValueType>>> create_real_view()
+    const std::vector<size_type> compute_num_elems_per_batch(
+        const std::vector<gko::dim<2>> sizes,
+        const std::vector<size_type> strides)
     {
-        const auto num_rows = this->get_size()[0];
-        const bool complex = is_complex<ValueType>();
-        const auto num_cols =
-            complex ? 2 * this->get_size()[1] : this->get_size()[1];
-        const auto stride =
-            complex ? 2 * this->get_stride() : this->get_stride();
-
-        return BatchDense<remove_complex<ValueType>>::create(
-            this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
-                this->get_executor(), num_rows * stride,
-                reinterpret_cast<remove_complex<ValueType> *>(
-                    this->get_values())),
-            stride);
-    }
-
-    /**
-     * @copydoc create_real_view()
-     */
-    std::unique_ptr<const BatchDense<remove_complex<ValueType>>>
-    create_real_view() const
-    {
-        const auto num_rows = this->get_size()[0];
-        const bool complex = is_complex<ValueType>();
-        const auto num_cols =
-            complex ? 2 * this->get_size()[1] : this->get_size()[1];
-        const auto stride =
-            complex ? 2 * this->get_stride() : this->get_stride();
-
-        return BatchDense<remove_complex<ValueType>>::create(
-            this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
-                this->get_executor(), num_rows * stride,
-                const_cast<remove_complex<ValueType> *>(
-                    reinterpret_cast<const remove_complex<ValueType> *>(
-                        this->get_const_values()))),
-            stride);
+        // auto num_elems = std::vector<size_type>{};
+        auto num_elems = std::vector<size_type>(sizes.size(), 0);
+        for (auto i = 0; i < sizes.size(); ++i) {
+            num_elems[i] = (sizes[i])[0] * strides[i];
+        }
+        return num_elems;
     }
 
 protected:
@@ -516,25 +295,28 @@ protected:
      * @param size  size of the matrix
      */
     BatchDense(std::shared_ptr<const Executor> exec,
-               const dim<2> &size = dim<2>{})
-        : BatchDense(std::move(exec), size, size[1])
+               const std::vector<dim<2>> sizes = std::vector<dim<2>>{})
+        : BatchDense(std::move(exec), sizes, extract_nth_dim(1, sizes))
     {}
 
     /**
      * Creates an uninitialized BatchDense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param stride  stride of the rows (i.e. offset between the first
+     * @param sizes  sizes of the batch matrices in a std::vector
+     * @param strides  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    BatchDense(std::shared_ptr<const Executor> exec, const dim<2> &size,
-               size_type stride)
-        : EnableLinOp<BatchDense>(exec, size),
-          values_(exec, size[0] * stride),
-          stride_(stride)
-    {}
+    BatchDense(std::shared_ptr<const Executor> exec,
+               const std::vector<dim<2>> sizes,
+               const std::vector<size_type> strides)
+        : EnableBatchLinOp<BatchDense>(exec, sizes),
+          values_(exec, compute_batch_mem(sizes, strides)),
+          strides_(strides)
+    {
+        num_elems_per_batch_ = compute_num_elems_per_batch(sizes, strides);
+    }
 
     /**
      * Creates a BatchDense matrix from an already allocated (and initialized)
@@ -543,9 +325,9 @@ protected:
      * @tparam ValuesArray  type of array of values
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
+     * @param sizes  sizes of the batch matrices in a std::vector
      * @param values  array of matrix values
-     * @param stride  stride of the rows (i.e. offset between the first
+     * @param strides  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      *
@@ -554,14 +336,20 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    BatchDense(std::shared_ptr<const Executor> exec, const dim<2> &size,
-               ValuesArray &&values, size_type stride)
-        : EnableLinOp<BatchDense>(exec, size),
+    BatchDense(std::shared_ptr<const Executor> exec,
+               const std::vector<dim<2>> sizes, ValuesArray &&values,
+               const std::vector<size_type> strides)
+        : EnableBatchLinOp<BatchDense>(exec, sizes),
           values_{exec, std::forward<ValuesArray>(values)},
-          stride_{stride}
+          strides_{strides},
+          num_elems_per_batch_(compute_num_elems_per_batch(sizes, strides))
     {
-        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                             values_.get_num_elems());
+        GKO_ENSURE_IN_BOUNDS(
+            std::accumulate(num_elems_per_batch_.begin(),
+                            num_elems_per_batch_.begin() + this->num_batches_,
+                            0) -
+                1,
+            values_.get_num_elems());
     }
 
     /**
@@ -572,8 +360,8 @@ protected:
      */
     virtual std::unique_ptr<BatchDense> create_with_same_config() const
     {
-        return BatchDense::create(this->get_executor(), this->get_size(),
-                                  this->get_stride());
+        return BatchDense::create(this->get_executor(), this->get_sizes(),
+                                  this->get_strides());
     }
 
     /**
@@ -582,7 +370,7 @@ protected:
      * @note  Other implementations of batch_dense should override this function
      *        instead of scale(const LinOp *alpha).
      */
-    virtual void scale_impl(const LinOp *alpha);
+    virtual void scale_impl(const BatchLinOp *alpha);
 
     /**
      * @copydoc add_scaled(const LinOp *, const LinOp *)
@@ -590,7 +378,7 @@ protected:
      * @note  Other implementations of batch_dense should override this function
      *        instead of add_scale(const LinOp *alpha, const LinOp *b).
      */
-    virtual void add_scaled_impl(const LinOp *alpha, const LinOp *b);
+    virtual void add_scaled_impl(const BatchLinOp *alpha, const BatchLinOp *b);
 
     /**
      * @copydoc compute_dot(const LinOp *, LinOp *) const
@@ -598,7 +386,8 @@ protected:
      * @note  Other implementations of batch_dense should override this function
      *        instead of compute_dot(const LinOp *b, LinOp *result).
      */
-    virtual void compute_dot_impl(const LinOp *b, LinOp *result) const;
+    virtual void compute_dot_impl(const BatchLinOp *b,
+                                  BatchLinOp *result) const;
 
     /**
      * @copydoc compute_norm2(LinOp *) const
@@ -606,27 +395,22 @@ protected:
      * @note  Other implementations of batch_dense should override this function
      *        instead of compute_norm2(LinOp *result).
      */
-    virtual void compute_norm2_impl(LinOp *result) const;
+    virtual void compute_norm2_impl(BatchLinOp *result) const;
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
-        return row * stride_ + col;
-    }
-
-    size_type linearize_index(size_type idx) const noexcept
-    {
-        return linearize_index(idx / this->get_size()[1],
-                               idx % this->get_size()[1]);
+        return row * strides_[0] + col;
     }
 
 private:
     Array<value_type> values_;
-    size_type stride_;
+    std::vector<size_type> strides_;
+    std::vector<size_type> num_elems_per_batch_;
 };
 
 
