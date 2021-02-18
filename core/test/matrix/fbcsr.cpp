@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include "core/components/fixed_block.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 
@@ -72,8 +71,9 @@ void assert_matrices_are_same(
 
     const IndexType nbrows = bm->get_num_block_rows();
     const int bs = bm->get_block_size();
-    gko::blockutils::DenseBlocksView<const ValueType, IndexType> fbvals(
-        bm->get_const_values(), bs, bs);
+    const auto nbnz = bm->get_num_stored_blocks();
+    gko::range<gko::accessor::col_major<const ValueType, 3>> fbvals(
+        bm->get_const_values(), gko::dim<3>(nbnz, bs, bs));
 
     for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
         const IndexType *const browptr = bm->get_const_row_ptrs();
@@ -469,30 +469,6 @@ TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
     ASSERT_EQ(data.nonzeros.size(), refdata.nonzeros.size());
     for (size_t i = 0; i < data.nonzeros.size(); i++) {
         ASSERT_EQ(data.nonzeros[i], refdata.nonzeros[i]);
-    }
-}
-
-
-TYPED_TEST(Fbcsr, DenseBlocksViewWorksCorrectly)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Dbv = gko::blockutils::DenseBlocksView<value_type, index_type>;
-    const gko::testing::FbcsrSample2<value_type, index_type> fbsample(
-        this->exec);
-    std::vector<value_type> ref_dbv_array(fbsample.nnz);
-    Dbv refdbv(ref_dbv_array.data(), fbsample.bs, fbsample.bs);
-    fbsample.fill_value_blocks_view(refdbv);
-
-    auto refmtx = fbsample.generate_fbcsr();
-    const Dbv testdbv(refmtx->get_values(), fbsample.bs, fbsample.bs);
-
-    for (index_type ibz = 0; ibz < fbsample.nbnz; ibz++) {
-        for (int i = 0; i < fbsample.bs; ++i) {
-            for (int j = 0; j < fbsample.bs; ++j) {
-                ASSERT_EQ(testdbv(ibz, i, j), refdbv(ibz, i, j));
-            }
-        }
     }
 }
 
