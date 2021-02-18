@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "core/components/fixed_block.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -106,8 +105,8 @@ public:
         c[2] = 0;
         c[3] = 2;
 
-        gko::blockutils::DenseBlocksView<value_type, index_type> vals(v, bs,
-                                                                      bs);
+        gko::range<gko::accessor::col_major<value_type, 3>> vals(
+            v, gko::dim<3>(nbnz, bs, bs));
 
         if (mtx->get_size()[0] % bs != 0)
             throw gko::BadDimension(__FILE__, __LINE__, __func__, "test fbcsr",
@@ -275,8 +274,6 @@ public:
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
-    using DenseBlocksView =
-        gko::blockutils::DenseBlocksView<ValueType, IndexType>;
 
 
     const size_type nrows = 6;
@@ -353,25 +350,6 @@ public:
     gko::Array<index_type> getNonzerosPerRow() const
     {
         return gko::Array<index_type>(exec, {2, 2, 4, 4, 2, 2});
-    }
-
-    /// Fills a view into a FBCSR values array using the sample matrix's data
-    void fill_value_blocks_view(DenseBlocksView &dbv) const
-    {
-        dbv(0, 0, 0) = 1.0;
-        dbv(0, 0, 1) = 2.0;
-        dbv(0, 1, 0) = 3.0;
-        dbv(0, 1, 1) = 0.0;
-        for (int i = 0; i < 2; ++i)
-            for (int j = 0; j < 2; ++j) dbv(1, i, j) = 0.15 + fbcsr_test_offset;
-        dbv(2, 0, 0) = 0.15 + fbcsr_test_offset;
-        dbv(2, 0, 1) = 0.15 + fbcsr_test_offset;
-        dbv(2, 1, 0) = 0.0;
-        dbv(2, 1, 1) = 0.0;
-        dbv(3, 0, 0) = -12.0;
-        dbv(3, 0, 1) = -1.0;
-        dbv(3, 1, 0) = -2.0;
-        dbv(3, 1, 1) = -11.0;
     }
 
 
