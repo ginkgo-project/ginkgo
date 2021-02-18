@@ -34,10 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <vector>
 
 
 #include <omp.h>
+
+
+#include "core/base/allocator.hpp"
 
 
 namespace gko {
@@ -53,23 +55,29 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
                 IndexType *const counts, const size_type num_entries)
 {
-    const auto nentries = static_cast<IndexType>(num_entries);
     // the operation only makes sense for arrays of size at least 2
-    GKO_ENSURE_COMPATIBLE_BOUNDS(2, nentries);
+    if (num_entries < 2) {
+        if (num_entries == 0) {
+            return;
+        } else {
+            counts[0] = 0;
+            return;
+        }
+    }
 
     const int nthreads = omp_get_max_threads();
-    std::vector<IndexType> proc_sums(nthreads, 0);
-    const IndexType def_num_witems = (num_entries - 1) / nthreads + 1;
+    vector<IndexType> proc_sums(nthreads, 0, {exec});
+    const size_type def_num_witems = (num_entries - 1) / nthreads + 1;
 
 #pragma omp parallel
     {
         const int thread_id = omp_get_thread_num();
-        const IndexType startidx = thread_id * def_num_witems;
-        const IndexType endidx =
-            std::min(nentries, (thread_id + 1) * def_num_witems);
+        const size_type startidx = thread_id * def_num_witems;
+        const size_type endidx =
+            std::min(num_entries, (thread_id + 1) * def_num_witems);
 
         IndexType partial_sum{0};
-        for (IndexType i = startidx; i < endidx; ++i) {
+        for (size_type i = startidx; i < endidx; ++i) {
             auto nnz = counts[i];
             counts[i] = partial_sum;
             partial_sum += nnz;
@@ -87,13 +95,11 @@ void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
         }
 
         if (thread_id > 0) {
-            for (IndexType i = startidx; i < endidx; i++) {
+            for (size_type i = startidx; i < endidx; i++) {
                 counts[i] += proc_sums[thread_id - 1];
             }
         }
     }
-
-    counts[0] = 0;
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
