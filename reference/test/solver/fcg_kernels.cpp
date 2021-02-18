@@ -69,7 +69,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -86,7 +86,16 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          fcg_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
@@ -97,6 +106,7 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename Solver::Factory> fcg_factory;
     std::unique_ptr<typename Solver::Factory> fcg_factory_big;
+    std::unique_ptr<typename Solver::Factory> fcg_factory_big2;
 };
 
 TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
@@ -183,6 +193,23 @@ TYPED_TEST(Fcg, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Fcg, SolvesBigDenseSystemWithImplicitResNormCrit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
 }
 

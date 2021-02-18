@@ -57,6 +57,10 @@ namespace kernels {
                const matrix::Dense<_type> *a, const matrix::Dense<_type> *b, \
                const matrix::Dense<_type> *beta, matrix::Dense<_type> *c)
 
+#define GKO_DECLARE_DENSE_FILL_KERNEL(_type)               \
+    void fill(std::shared_ptr<const DefaultExecutor> exec, \
+              matrix::Dense<_type> *mat, _type value)
+
 #define GKO_DECLARE_DENSE_SCALE_KERNEL(_type)               \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
                const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
@@ -215,6 +219,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                       \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                              \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_FILL_KERNEL(ValueType);                               \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                              \
     template <typename ValueType>                                           \

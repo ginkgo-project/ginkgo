@@ -69,7 +69,7 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(30u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
@@ -105,7 +105,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
     auto inner_solver_factory =
         gko::solver::Gmres<value_type>::build()
-            .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
+            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(inner_reduction_factor)
                                .on(this->exec))
             .on(this->exec);
@@ -114,7 +114,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
         gko::solver::Ir<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
                                this->exec),
-                           gko::stop::ResidualNormReduction<value_type>::build()
+                           gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
             .with_solver(gko::share(inner_solver_factory))
@@ -158,7 +158,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
 }
 
 
@@ -218,7 +218,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystem)
                       .with_criteria(
                           gko::stop::Iteration::build().with_max_iters(100u).on(
                               this->exec),
-                          gko::stop::ResidualNormReduction<value_type>::build()
+                          gko::stop::ResidualNorm<value_type>::build()
                               .with_reduction_factor(r<value_type>::value)
                               .on(this->exec))
                       .with_relaxation_factor(value_type{0.9})
@@ -240,7 +240,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
     auto inner_solver_factory =
         gko::solver::Gmres<value_type>::build()
-            .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
+            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(inner_reduction_factor)
                                .on(this->exec))
             .on(this->exec);
@@ -249,7 +249,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .with_relaxation_factor(value_type{0.9})
@@ -272,7 +272,7 @@ TYPED_TEST(Ir, RichardsonTransposedSolvesTriangularSystem)
         gko::solver::Ir<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
                                this->exec),
-                           gko::stop::ResidualNormReduction<value_type>::build()
+                           gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
             .with_relaxation_factor(value_type{0.9})
@@ -295,7 +295,7 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
         gko::solver::Ir<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
                                this->exec),
-                           gko::stop::ResidualNormReduction<value_type>::build()
+                           gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
             .with_relaxation_factor(value_type{0.9})

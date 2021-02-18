@@ -278,7 +278,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
         gko::solver::Bicg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(ref))
             .on(ref);
@@ -286,7 +286,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
         gko::solver::Bicg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(omp),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(omp))
             .on(omp);
@@ -315,7 +315,7 @@ TEST_F(Bicg, ApplyWithRandomMatrixIsEquivalentToRef)
         gko::solver::Bicg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(ref))
             .on(ref);
@@ -323,7 +323,7 @@ TEST_F(Bicg, ApplyWithRandomMatrixIsEquivalentToRef)
         gko::solver::Bicg<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(omp),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
                     .on(omp))
             .on(omp);

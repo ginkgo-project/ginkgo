@@ -121,6 +121,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
+void fill(std::shared_ptr<const DefaultExecutor> exec,
+          matrix::Dense<ValueType> *mat, ValueType value)
+{
+    constexpr auto block_size = default_block_size;
+    const auto num_blocks =
+        ceildiv(mat->get_size()[0] * mat->get_size()[1], block_size);
+    hipLaunchKernelGGL(kernel::strided_fill, num_blocks, block_size, 0, 0,
+                       mat->get_size()[0], mat->get_size()[1],
+                       mat->get_stride(), as_hip_type(mat->get_values()),
+                       as_hip_type(value));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
+
+
+template <typename ValueType>
 void scale(std::shared_ptr<const HipExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {

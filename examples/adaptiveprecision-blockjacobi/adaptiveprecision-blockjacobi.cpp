@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     const RealValueType reduction_factor = 1e-7;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
+    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
                         .with_reduction_factor(reduction_factor)
                         .on(exec);
 

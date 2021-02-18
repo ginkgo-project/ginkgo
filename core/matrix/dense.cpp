@@ -62,6 +62,7 @@ namespace dense {
 
 GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
+GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
@@ -249,6 +250,13 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
         this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
                     dense_x->create_real_view().get());
     }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::fill(const ValueType value)
+{
+    this->get_executor()->run(dense::make_fill(this, value));
 }
 
 
@@ -1014,6 +1022,4 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
 
 }  // namespace matrix
-
-
 }  // namespace gko

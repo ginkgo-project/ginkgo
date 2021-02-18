@@ -117,6 +117,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
+void fill(std::shared_ptr<const DefaultExecutor> exec,
+          matrix::Dense<ValueType> *mat, ValueType value)
+{
+    for (size_type row = 0; row < mat->get_size()[0]; ++row) {
+        for (size_type col = 0; col < mat->get_size()[1]; ++col) {
+            mat->at(row, col) = value;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
+
+
+template <typename ValueType>
 void scale(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {

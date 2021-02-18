@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<ValueType>::build()
+                gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec))
             // Add preconditioner, these 2 lines are the only

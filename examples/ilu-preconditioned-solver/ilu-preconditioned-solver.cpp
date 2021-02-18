@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
         gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNormReduction<ValueType>::build()
+                gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_generated_preconditioner(gko::share(ilu_preconditioner))

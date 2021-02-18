@@ -33,6 +33,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void strided_fill(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ mat, ValueType value)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        mat[row_id * stride + col_id] = value;
+    }
+}
+
+
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void scale(
     size_type num_rows, size_type num_cols, size_type num_alpha_cols,

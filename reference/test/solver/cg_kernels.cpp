@@ -64,11 +64,12 @@ protected:
           cg_factory(
               Solver::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(400u).on(
+                          exec),
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -85,7 +86,16 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          cg_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
@@ -96,6 +106,7 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename Solver::Factory> cg_factory;
     std::unique_ptr<typename Solver::Factory> cg_factory_big;
+    std::unique_ptr<typename Solver::Factory> cg_factory_big2;
 };
 
 TYPED_TEST_SUITE(Cg, gko::test::ValueTypes);
@@ -191,6 +202,23 @@ TYPED_TEST(Cg, SolvesBigDenseSystem2)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto solver = this->cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 1e2);
+}
+
+
+TYPED_TEST(Cg, SolvesBigDenseSystem3)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cg_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
         this->exec);

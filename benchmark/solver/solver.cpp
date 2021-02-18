@@ -141,7 +141,7 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
                 .on(exec));
     } else {
         residual_stop =
-            gko::share(gko::stop::ResidualNormReduction<rc_etype>::build()
+            gko::share(gko::stop::ResidualNorm<rc_etype>::build()
                            .with_reduction_factor(
                                static_cast<rc_etype>(FLAGS_rel_res_goal))
                            .on(exec));

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
@@ -243,6 +244,13 @@ public:
 
     std::unique_ptr<LinOp> row_permute(
         const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Fill the dense matrix with a given value.
+     *
+     * @param value  the value to be filled
+     */
+    void fill(const ValueType value);
 
     /**
      * Create a Dense matrix consisting of the given rows from this matrix.
@@ -693,7 +701,7 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
-};  // namespace matrix
+};
 
 
 }  // namespace matrix

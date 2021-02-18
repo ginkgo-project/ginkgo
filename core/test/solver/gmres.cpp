@@ -71,7 +71,7 @@ protected:
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(reduction_factor)
                           .on(exec))
                   .on(exec)),
@@ -81,7 +81,7 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(reduction_factor)
                           .on(exec))
                   .on(exec)),
@@ -198,7 +198,7 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
                     .on(this->exec))
             .with_preconditioner(
@@ -254,7 +254,7 @@ TYPED_TEST(Gmres, CanSetKrylovDim)
             .with_krylov_dim(4u)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
                     .on(this->exec))
             .on(this->exec);

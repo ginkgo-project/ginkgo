@@ -67,7 +67,7 @@ protected:
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(gko::remove_complex<T>{1e-6})
                           .on(exec))
                   .on(exec)),
@@ -180,7 +180,7 @@ TYPED_TEST(Cgs, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(
                         gko::remove_complex<value_type>(1e-6))
                     .on(this->exec))

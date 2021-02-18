@@ -402,8 +402,16 @@ public:                                                              \
                               const size_type &it, const LinOp *r,
                               const LinOp *x = nullptr,
                               const LinOp *tau = nullptr)
+protected:
+    virtual void on_iteration_complete(const LinOp *solver, const size_type &it,
+                                       const LinOp *r, const LinOp *x,
+                                       const LinOp *tau,
+                                       const LinOp *implicit_tau_sq) const
+    {
+        this->on_iteration_complete(solver, it, r, x, tau);
+    }
 
-
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**

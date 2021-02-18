@@ -70,7 +70,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -87,7 +87,16 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          gmres_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -106,6 +115,7 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename Solver::Factory> gmres_factory;
     std::unique_ptr<typename Solver::Factory> gmres_factory_big;
+    std::unique_ptr<typename Solver::Factory> gmres_factory_big2;
 };
 
 TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes);
@@ -213,6 +223,20 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 }
 
 
+TYPED_TEST(Gmres, SolveWithImplicitResNormCritIsDisabled)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->gmres_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    ASSERT_THROW(solver->apply(b.get(), x.get()), gko::NotSupported);
+}
+
+
 template <typename T>
 gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
 {
@@ -307,7 +331,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .on(this->exec);
@@ -333,7 +357,7 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .with_preconditioner(

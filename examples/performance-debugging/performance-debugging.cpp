@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
     auto solver_factory =
         solver::build()
             .with_criteria(
-                gko::stop::ResidualNormReduction<ValueType>::build()
+                gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec),
                 gko::stop::Iteration::build().with_max_iters(max_iters).on(

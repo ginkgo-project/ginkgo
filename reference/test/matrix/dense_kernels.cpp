@@ -109,6 +109,51 @@ protected:
 TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
+TYPED_TEST(Dense, CanBeFilledWithValue)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m =
+        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
+    EXPECT_EQ(m->at(0), value_type{1});
+    EXPECT_EQ(m->at(1), value_type{2});
+
+    m->fill(value_type{42});
+
+    EXPECT_EQ(m->at(0), value_type{42});
+    EXPECT_EQ(m->at(1), value_type{42});
+}
+
+
+TYPED_TEST(Dense, CanBeFilledWithValueForStridedMatrices)
+{
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
+        4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
+    auto in_stride = m->get_values()[3];
+    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
+    ASSERT_EQ(m->get_num_stored_elements(), 12);
+    EXPECT_EQ(m->at(0), value_type{1.0});
+    EXPECT_EQ(m->at(1), value_type{2.0});
+    EXPECT_EQ(m->at(2), value_type{3.0});
+    ASSERT_EQ(m->at(3), value_type{4.0});
+    EXPECT_EQ(m->at(4), value_type{5.0});
+    EXPECT_EQ(m->at(5), value_type{6.0});
+
+    m->fill(value_type{42});
+
+    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
+    EXPECT_EQ(m->get_num_stored_elements(), 12);
+    EXPECT_EQ(m->at(0), value_type{42.0});
+    EXPECT_EQ(m->at(1), value_type{42.0});
+    EXPECT_EQ(m->at(2), value_type{42.0});
+    ASSERT_EQ(m->at(3), value_type{42.0});
+    EXPECT_EQ(m->at(4), value_type{42.0});
+    EXPECT_EQ(m->at(5), value_type{42.0});
+    EXPECT_EQ(m->get_values()[3], in_stride);
+}
+
+
 TYPED_TEST(Dense, AppliesToDense)
 {
     using T = typename TestFixture::value_type;

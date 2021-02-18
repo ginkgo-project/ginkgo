@@ -491,6 +491,20 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>, std::complex<float>)
 
 
+/**
+ * Instantiates a template for each normal type
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
+    template _macro(size_type)
+
+
 }  // namespace gko
 
 
