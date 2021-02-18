@@ -148,8 +148,8 @@ int main(int argc, char *argv[])
     // time step size for the simulation
     auto tau = 1.0 / steps_per_sec;
 
-    // create an OpenMP executor
-    auto exec = gko::OmpExecutor::create();
+    // create a CUDA executor with an associated OpenMP host executor
+    auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // load heat source and initial state vectors
     std::ifstream source_stream("data/source.mtx");
     std::ifstream initial_stream("data/initial.mtx");
@@ -206,7 +206,10 @@ int main(int argc, char *argv[])
         if (t - last_t > 1.0 / fps) {
             last_t = t;
             std::cout << t << std::endl;
-            output_timestep(output, n, in_vector->get_const_values());
+            output_timestep(
+                output, n,
+                gko::make_temporary_clone(exec->get_master(), in_vector.get())
+                    ->get_const_values());
         }
         // add heat source contribution
         in_vector->add_scaled(gko::lend(tau_source_scalar), gko::lend(source));
