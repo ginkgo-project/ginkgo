@@ -51,6 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace matrix {
+
+
+template <typename ValueType>
+class BatchDiagonal;
+
+
+}
 
 
 /**
@@ -375,6 +383,350 @@ public:
         auto generated = AbstractFactory::generate(input);
         return generated;
     }
+};
+
+
+/**
+ * Linear operators which support transposition should implement the
+ * Transposable interface.
+ *
+ * It provides two functionalities, the normal transpose and the
+ * conjugate transpose.
+ *
+ * The normal transpose returns the transpose of the linear operator without
+ * changing any of its elements representing the operation, $B = A^{T}$.
+ *
+ * The conjugate transpose returns the conjugate of each of the elements and
+ * additionally transposes the linear operator representing the operation, $B
+ * = A^{H}$.
+ *
+ * Example: Transposing a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Transposing an object of LinOp type.
+ * //The object you want to transpose.
+ * auto op = matrix::Csr::create(exec);
+ * //Transpose the object by first converting it to a transposable type.
+ * auto trans = op->transpose();
+ * ```
+ */
+class BatchTransposable {
+public:
+    virtual ~BatchTransposable() = default;
+
+    /**
+     * Returns a LinOp representing the transpose of the Transposable object.
+     *
+     * @return a pointer to the new transposed object
+     */
+    virtual std::unique_ptr<BatchLinOp> transpose() const = 0;
+
+    /**
+     * Returns a LinOp representing the conjugate transpose of the Transposable
+     * object.
+     *
+     * @return a pointer to the new conjugate transposed object
+     */
+    virtual std::unique_ptr<BatchLinOp> conj_transpose() const = 0;
+};
+
+
+/**
+ * Linear operators which support permutation should implement the
+ * Permutable interface.
+ *
+ * It provides functions to permute the rows and columns of a LinOp,
+ * independently or symmetrically, and with a regular or inverted permutation.
+ *
+ * After a regular row permutation with permutation array `perm` the row `i` in
+ * the output LinOp contains the row `perm[i]` from the input LinOp.
+ * After an inverse row permutation, the row `perm[i]` in the output LinOp
+ * contains the row `i` from the input LinOp.
+ * Equivalently, after a column permutation, the output stores in column `i`
+ * the column `perm[i]` from the input, and an inverse column permutation
+ * stores in column `perm[i]` the column `i` from the input.
+ * A symmetric permutation is functionally equivalent to calling
+ * `as<Permutable>(A->row_permute(perm))->column_permute(perm)`, but the
+ * implementation can provide better performance due to kernel fusion.
+ *
+ * Example: Permuting a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Permuting an object of LinOp type.
+ * //The object you want to permute.
+ * auto op = matrix::Csr::create(exec);
+ * //Permute the object by first converting it to a Permutable type.
+ * auto perm = op->row_permute(permutation_indices);
+ * ```
+ */
+template <typename IndexType>
+class BatchPermutable {
+public:
+    virtual ~BatchPermutable() = default;
+
+    /**
+     * Returns a BatchLinOp representing the symmetric row and column
+     * permutation of the Permutable object. In the resulting LinOp, the entry
+     * at location `(i,j)` contains the input value `(perm[i],perm[j])`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<BatchLinOp> permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const
+    {
+        return as<BatchPermutable>(this->row_permute(permutation_indices))
+            ->column_permute(permutation_indices);
+    };
+
+    /**
+     * Returns a BatchLinOp representing the symmetric inverse row and column
+     * permutation of the Permutable object.
+     * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
+     * contains the input value `(i,j)`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<BatchLinOp> inverse_permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const
+    {
+        return as<BatchPermutable>(
+                   this->inverse_row_permute(permutation_indices))
+            ->inverse_column_permute(permutation_indices);
+    };
+
+    /**
+     * Returns a BatchLinOp representing the row permutation of the Permutable
+     * object.
+     * In the resulting BatchLinOp, the row `i` contains the input row
+     * `perm[i]`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<BatchLinOp> row_permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const = 0;
+
+    /**
+     * Returns a BatchLinOp representing the column permutation of the
+     * Permutable object. In the resulting BatchLinOp, the column `i` contains
+     * the input column `perm[i]`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
+     *
+     * @return a pointer to the new column permuted object
+     */
+    virtual std::unique_ptr<LinOp> column_permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const = 0;
+
+    /**
+     * Returns a BatchLinOp representing the row permutation of the inverse
+     * permuted object. In the resulting BatchLinOp, the row `perm[i]` contains
+     * the input row `i`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<BatchLinOp> inverse_row_permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const = 0;
+
+    /**
+     * Returns a BatchLinOp representing the row permutation of the inverse
+     * permuted object. In the resulting BatchLinOp, the column `perm[i]`
+     * contains the input column `i`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<BatchLinOp> inverse_column_permute(
+        std::vector<const Array<IndexType> *> permutation_indices) const = 0;
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can read its data from a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchReadableFromMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchReadableFromMatrixData() = default;
+
+    /**
+     * Reads a matrix from a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void read(
+        std::vector<const matrix_data<ValueType, IndexType>> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(
+        std::vector<const matrix_assembly_data<ValueType, IndexType>> &data)
+    {
+        this->read(data.get_ordered_data());
+    }
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can write its data to a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchWritableToMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchWritableToMatrixData() = default;
+
+    /**
+     * Writes a matrix to a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void write(
+        std::vector<matrix_data<ValueType, IndexType>> &data) const = 0;
+};
+
+
+/**
+ * A LinOp implementing this interface can be preconditioned.
+ *
+ * @ingroup precond
+ * @ingroup BatchLinOp
+ */
+class BatchPreconditionable {
+public:
+    virtual ~BatchPreconditionable() = default;
+
+    /**
+     * Returns the preconditioner operator used by the Preconditionable.
+     *
+     * @return the preconditioner operator used by the Preconditionable
+     */
+    virtual std::shared_ptr<const BatchLinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    /**
+     * Sets the preconditioner operator used by the Preconditionable.
+     *
+     * @param new_precond  the new preconditioner operator used by the
+     *                     Preconditionable
+     */
+    virtual void set_preconditioner(
+        std::shared_ptr<const BatchLinOp> new_precond)
+    {
+        preconditioner_ = new_precond;
+    }
+
+private:
+    std::shared_ptr<const BatchLinOp> preconditioner_{};
+};
+
+
+/**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ * extract_diagonal extracts the elements whose col and row index are the
+ * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType>
+class BatchDiagonalExtractable {
+public:
+    using value_type = ValueType;
+
+    virtual ~BatchDiagonalExtractable() = default;
+
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @param diag  the vector into which the diagonal will be written
+     */
+    virtual std::unique_ptr<matrix::BatchDiagonal<ValueType>> extract_diagonal()
+        const = 0;
+};
+
+
+/**
+ * The AbsoluteComputable is an interface that allows to get the component wise
+ * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
+ * implement this interface.
+ */
+class BatchAbsoluteComputable {
+public:
+    /**
+     * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute LinOp
+     */
+    virtual std::unique_ptr<BatchLinOp> compute_absolute_linop() const = 0;
+
+    /**
+     * Compute absolute inplace on each element.
+     */
+    virtual void compute_absolute_inplace() = 0;
+};
+
+
+/**
+ * The EnableAbsoluteComputation mixin provides the default implementations of
+ * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
+ * a new AbsoluteLinOp. `compute_absolute_inplace` applies absolute
+ * inplace, so it still keeps the value_type of the class.
+ *
+ * @tparam AbsoluteLinOp  the absolute LinOp which is being returned
+ *                        [CRTP parameter]
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename AbsoluteBatchLinOp>
+class EnableBatchAbsoluteComputation : public BatchAbsoluteComputable {
+public:
+    using absolute_type = AbsoluteBatchLinOp;
+
+    virtual ~EnableBatchAbsoluteComputation() = default;
+
+    std::unique_ptr<BatchLinOp> compute_absolute_linop() const override
+    {
+        return this->compute_absolute();
+    }
+
+    /**
+     * Gets the AbsoluteLinOp
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
 };
 
 
