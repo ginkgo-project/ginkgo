@@ -83,7 +83,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 template <typename ValueType>
 void Array<ValueType>::fill(const ValueType value)
 {
-    GKO_ASSERT(this->get_num_elems() > 0);
     this->get_executor()->run(
         array::make_fill_array(this->get_data(), this->get_num_elems(), value));
 }
@@ -91,7 +90,7 @@ void Array<ValueType>::fill(const ValueType value)
 
 #define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
 
-GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ARRAY_FILL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 
 
 }  // namespace gko

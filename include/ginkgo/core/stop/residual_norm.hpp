@@ -52,13 +52,13 @@ namespace stop {
  * The mode for the residual norm criterion.
  *
  * - absolute:        Check for tolerance against residual norm.
- *                    || r || < tau
+ *                    $ || r || < \tau $
  *
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
- *                    || r ||/|| r_0|| < tau
+ *                    $ \frac{|| r ||}{|| r_0||} < \tau $
  *
  * - rhs_resnorm:     Check for tolerance relative to the rhs norm.
- *                    || r ||/|| b || < tau
+ *                    $ \frac{|| r ||}{|| b ||} < \tau $
  *
  * @ingroup stop
  */

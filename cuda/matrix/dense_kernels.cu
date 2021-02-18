@@ -121,11 +121,9 @@ template <typename ValueType>
 void fill(std::shared_ptr<const DefaultExecutor> exec,
           matrix::Dense<ValueType> *mat, ValueType value)
 {
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(mat->get_size()[0] * mat->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    kernel::strided_fill<block_size><<<grid_dim, block_dim>>>(
+    const auto num_blocks =
+        ceildiv(mat->get_size()[0] * mat->get_size()[1], default_block_size);
+    kernel::strided_fill<<<num_blocks, default_block_size>>>(
         mat->get_size()[0], mat->get_size()[1], mat->get_stride(),
         as_cuda_type(mat->get_values()), as_cuda_type(value));
 }

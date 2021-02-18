@@ -492,21 +492,17 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
- * Instantiates a template for each POD type
+ * Instantiates a template for each normal type
  *
  * @param _macro  A macro which expands the template instantiation
  *                (not including the leading `template` specifier).
- *                Should take two arguments `src` and `dst`, which
- *                are replaced by the source and destination value type.
+ *                Should take one argument, which is replaced by the
+ *                value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE(_macro) \
-    template _macro(float);                       \
-    template _macro(double);                      \
-    template _macro(std::complex<float>);         \
-    template _macro(std::complex<double>);        \
-    template _macro(size_type);                   \
-    template _macro(int32);                       \
-    template _macro(int64)
+#define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
+    template _macro(size_type)
 
 
 }  // namespace gko
