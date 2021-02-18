@@ -45,7 +45,7 @@ namespace matrix {
 /**
  * This LinOp implements a 1D Fourier matrix using the FFT algorithm.
  *
- * It implements real-to-complex and complex-to-complex forward and inverse DFT.
+ * It implements forward and inverse DFT.
  *
  * For a power-of-two size n with corresponding root of unity
  * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
@@ -91,7 +91,7 @@ protected:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
-     * @param size  size of the matrix (must be a power of two)
+     * @param size  size of the matrix
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft(std::shared_ptr<const Executor> exec, size_type size,
@@ -114,7 +114,7 @@ private:
  * This LinOp implements a 2D Fourier matrix using the FFT algorithm.
  * For indexing purposes, the first dimension is the major axis.
  *
- * It implements real-to-complex and complex-to-complex FFT.
+ * It implements complex-to-complex forward and inverse FFT.
  *
  * For a power-of-two sizes $n_1, n_2$ with corresponding root of unity
  * $\omega = e^{-2\pi i / (n_1 n_2)}$ for forward DFT and
@@ -161,7 +161,7 @@ protected:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
-     * @param size  size of both FFT dimensions (must be a power of two)
+     * @param size  size of both FFT dimensions
      */
     Fft2(std::shared_ptr<const Executor> exec, size_type size)
         : Fft2{exec, size, size}
@@ -170,8 +170,8 @@ protected:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
-     * @param size1  size of the first FFT dimension (must be a power of two)
-     * @param size2  size of the second FFT dimension (must be a power of two)
+     * @param size1  size of the first FFT dimension
+     * @param size2  size of the second FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft2(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
@@ -200,7 +200,7 @@ private:
  * This LinOp implements a 3D Fourier matrix using the FFT algorithm.
  * For indexing purposes, the first dimension is the major axis.
  *
- * It implements real-to-complex and complex-to-complex FFT.
+ * It implements complex-to-complex forward and inverse FFT.
  *
  * For a power-of-two sizes $n_1, n_2, n_3$ with corresponding root of unity
  * $\omega = e^{-2\pi i / (n_1 n_2 n_3)}$ for forward DFT and
@@ -254,7 +254,7 @@ protected:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
-     * @param size  size of all FFT dimensions (must be a power of two)
+     * @param size  size of all FFT dimensions
      */
     Fft3(std::shared_ptr<const Executor> exec, size_type size)
         : Fft3{exec, size, size, size}
@@ -263,9 +263,9 @@ protected:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
-     * @param size1  size of the first FFT dimension (must be a power of two)
-     * @param size2  size of the second FFT dimension (must be a power of two)
-     * @param size3  size of the third FFT dimension (must be a power of two)
+     * @param size1  size of the first FFT dimension
+     * @param size2  size of the second FFT dimension
+     * @param size3  size of the third FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft3(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
