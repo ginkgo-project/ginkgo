@@ -96,10 +96,10 @@ public:
          * Calls the parent Criterion object's check method
          * @copydoc Criterion::check(uint8, bool, Array<stopping_status>, bool)
          */
-        bool check(uint8 stoppingId, bool setFinalized,
+        bool check(uint8 stopping_id, bool set_finalized,
                    Array<stopping_status> *stop_status, bool *one_changed) const
         {
-            auto converged = parent_->check(stoppingId, setFinalized,
+            auto converged = parent_->check(stopping_id, set_finalized,
                                             stop_status, one_changed, *this);
             return converged;
         }
@@ -141,8 +141,8 @@ public:
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
      *
-     * @param stoppingId  id of the stopping criterion
-     * @param setFinalized  Controls if the current version should count as
+     * @param stopping_id  id of the stopping criterion
+     * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
      * @param one_changed  indicates if one vector's status changed
@@ -150,20 +150,20 @@ public:
      *
      * @returns whether convergence was completely reached
      */
-    bool check(uint8 stoppingId, bool setFinalized,
+    bool check(uint8 stopping_id, bool set_finalized,
                Array<stopping_status> *stop_status, bool *one_changed,
                const Updater &updater)
     {
         this->template log<log::Logger::criterion_check_started>(
             this, updater.num_iterations_, updater.residual_,
-            updater.residual_norm_, updater.solution_, stoppingId,
-            setFinalized);
+            updater.residual_norm_, updater.solution_, stopping_id,
+            set_finalized);
         auto all_converged = this->check_impl(
-            stoppingId, setFinalized, stop_status, one_changed, updater);
+            stopping_id, set_finalized, stop_status, one_changed, updater);
         this->template log<log::Logger::criterion_check_completed>(
             this, updater.num_iterations_, updater.residual_,
-            updater.residual_norm_, updater.solution_, stoppingId, setFinalized,
-            stop_status, *one_changed, all_converged);
+            updater.residual_norm_, updater.solution_, stopping_id,
+            set_finalized, stop_status, *one_changed, all_converged);
         return all_converged;
     }
 
@@ -175,8 +175,8 @@ protected:
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
      *
-     * @param stoppingId  id of the stopping criterion
-     * @param setFinalized  Controls if the current version should count as
+     * @param stopping_id  id of the stopping criterion
+     * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
      * @param one_changed  indicates if one vector's status changed
@@ -184,7 +184,7 @@ protected:
      *
      * @returns whether convergence was completely reached
      */
-    virtual bool check_impl(uint8 stoppingId, bool setFinalized,
+    virtual bool check_impl(uint8 stopping_id, bool set_finalized,
                             Array<stopping_status> *stop_status,
                             bool *one_changed, const Updater &updater) = 0;
 
@@ -193,12 +193,12 @@ protected:
      * stopping_status to converged. This is used in stopping criteria such as
      * Time or Iteration.
      *
-     * @param stoppingId  id of the stopping criterion
-     * @param setFinalized  Controls if the current version should count as
+     * @param stopping_id  id of the stopping criterion
+     * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
      */
-    void set_all_statuses(uint8 stoppingId, bool setFinalized,
+    void set_all_statuses(uint8 stopping_id, bool set_finalized,
                           Array<stopping_status> *stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)

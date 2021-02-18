@@ -59,7 +59,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
                                                         as_cuda_type(val));
 }
 
-GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
 }  // namespace components

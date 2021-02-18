@@ -256,11 +256,7 @@ void Dense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 template <typename ValueType>
 void Dense<ValueType>::fill(const ValueType value)
 {
-    if (this->get_stride() == this->get_size()[1]) {
-        this->values_.fill(value);
-    } else {
-        this->get_executor()->run(dense::make_fill(this, value));
-    }
+    this->get_executor()->run(dense::make_fill(this, value));
 }
 
 
