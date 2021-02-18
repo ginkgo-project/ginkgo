@@ -275,4 +275,137 @@ TEST_F(RowMajorAccessor3d, CanAssignSubranges)
 }
 
 
+class ColMajorAccessor3d : public ::testing::Test {
+protected:
+    using span = gko::span;
+    static constexpr gko::size_type dimensionality{3};
+
+    using col_major_range =
+        gko::range<gko::accessor::col_major<int, dimensionality>>;
+
+    // clang-format off
+    int data[2 * 3 * 4]{
+         1, 3, 5,
+         2, 4, 6,
+		-1,-2,-3,
+		11,12,13,
+
+		21,25,29,
+		22,26,30,
+		23,27,31,
+		24,28,32
+
+		/* This matrix actually looks like
+        1, 2, -1, 11,
+        3, 4, -2, 12,
+        5, 6, -3, 13,
+
+        21, 22, 23, 24,
+        25, 26, 27, 28,
+        29, 30, 31, 32
+	    */
+    };
+    // clang-format on
+    const gko::dim<dimensionality> dim1{2, 3, 4};
+    const gko::dim<dimensionality> dim2{2, 2, 3};
+    col_major_range default_r{data, dim1};
+    col_major_range custom_r{
+        data, dim2,
+        std::array<const gko::size_type, dimensionality - 1>{12, 3}};
+};
+
+
+TEST_F(ColMajorAccessor3d, ComputesCorrectStride)
+{
+    auto range_stride = default_r.get_accessor().stride;
+    auto check_stride = std::array<const gko::size_type, 2>{12, 3};
+
+    ASSERT_EQ(range_stride, check_stride);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanAccessData)
+{
+    EXPECT_EQ(default_r(0, 0, 0), 1);
+    EXPECT_EQ(custom_r(0, 0, 0), 1);
+    EXPECT_EQ(default_r(0, 1, 0), 3);
+    EXPECT_EQ(custom_r(0, 1, 0), 3);
+    EXPECT_EQ(default_r(0, 1, 1), 4);
+    EXPECT_EQ(default_r(0, 1, 3), 12);
+    EXPECT_EQ(default_r(0, 2, 2), -3);
+    EXPECT_EQ(default_r(1, 2, 1), 30);
+    EXPECT_EQ(default_r(1, 2, 2), 31);
+    EXPECT_EQ(default_r(1, 2, 3), 32);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanWriteData)
+{
+    default_r(0, 0, 0) = 4;
+    custom_r(1, 1, 1) = 100;
+
+    EXPECT_EQ(default_r(0, 0, 0), 4);
+    EXPECT_EQ(custom_r(0, 0, 0), 4);
+    EXPECT_EQ(default_r(1, 1, 1), 100);
+    EXPECT_EQ(custom_r(1, 1, 1), 100);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanCreateSubrange)
+{
+    auto subr = custom_r(span{0, 2}, span{1, 2}, span{1, 3});
+
+    EXPECT_EQ(subr(0, 0, 0), 4);
+    EXPECT_EQ(subr(0, 0, 1), -2);
+    EXPECT_EQ(subr(1, 0, 0), 26);
+    EXPECT_EQ(subr(1, 0, 1), 27);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanCreateRowVector)
+{
+    auto subr = default_r(1u, 2u, span{0, 2});
+
+    EXPECT_EQ(subr(0, 0, 0), 29);
+    EXPECT_EQ(subr(0, 0, 1), 30);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanCreateColumnVector)
+{
+    auto subr = default_r(span{0u, 2u}, 1u, 3u);
+
+    EXPECT_EQ(subr(0, 0, 0), 12);
+    EXPECT_EQ(subr(1, 0, 0), 28);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanAssignValues)
+{
+    default_r(1, 1, 1) = default_r(0, 0, 0);
+
+    EXPECT_EQ(data[16], 1);
+}
+
+
+TEST_F(ColMajorAccessor3d, CanAssignSubranges)
+{
+    default_r(1u, span{0, 2}, span{0, 3}) =
+        custom_r(0u, span{0, 2}, span{0, 3});
+
+    EXPECT_EQ(data[12], 1);
+    EXPECT_EQ(data[15], 2);
+    EXPECT_EQ(data[18], -1);
+    EXPECT_EQ(data[21], 24);
+    EXPECT_EQ(data[13], 3);
+    EXPECT_EQ(data[16], 4);
+    EXPECT_EQ(data[19], -2);
+    EXPECT_EQ(data[22], 28);
+    EXPECT_EQ(data[14], 29);
+    EXPECT_EQ(data[17], 30);
+    EXPECT_EQ(data[20], 31);
+    EXPECT_EQ(data[23], 32);
+}
+
+
 }  // namespace
