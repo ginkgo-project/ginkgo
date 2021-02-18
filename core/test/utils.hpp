@@ -69,6 +69,8 @@ using ValueTypes =
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
 #endif
 
+using RealValueTypes = ::testing::Types<float, double>;
+
 using ComplexValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<std::complex<float>>;
