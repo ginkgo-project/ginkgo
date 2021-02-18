@@ -91,7 +91,6 @@ protected:
     static void assert_empty(gko::matrix::BatchDense<value_type> *m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
-        ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
