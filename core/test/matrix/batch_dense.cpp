@@ -50,30 +50,46 @@ template <typename T>
 class BatchDense : public ::testing::Test {
 protected:
     using value_type = T;
+    using size_type = gko::size_type;
     BatchDense()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::batch_initialize<gko::matrix::BatchDense<value_type>>(
-              4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec))
+              std::vector<size_type>{4, 3},
+              {{{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+              exec))
     {}
 
 
     static void assert_equal_to_original_mtx(
         gko::matrix::BatchDense<value_type> *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_stride(), 4);
-        ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
-        EXPECT_EQ(m->at(0, 0), value_type{1.0});
-        EXPECT_EQ(m->at(0, 1), value_type{2.0});
-        EXPECT_EQ(m->at(0, 2), value_type{3.0});
-        EXPECT_EQ(m->at(1, 0), value_type{1.5});
-        EXPECT_EQ(m->at(1, 1), value_type{2.5});
-        ASSERT_EQ(m->at(1, 2), value_type{3.5});
+        ASSERT_EQ(m->get_num_batches(), 2);
+        ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_stride(0), 4);
+        ASSERT_EQ(m->get_stride(1), 3);
+        ASSERT_EQ(m->get_num_stored_elements(), (2 * 4) + (2 * 3));
+        ASSERT_EQ(m->get_num_stored_elements(0), 2 * 4);
+        ASSERT_EQ(m->get_num_stored_elements(1), 2 * 3);
+        EXPECT_EQ(m->at(0, 0, 0), value_type{-1.0});
+        EXPECT_EQ(m->at(0, 0, 1), value_type{2.0});
+        EXPECT_EQ(m->at(0, 0, 2), value_type{3.0});
+        EXPECT_EQ(m->at(0, 1, 0), value_type{-1.5});
+        EXPECT_EQ(m->at(0, 1, 1), value_type{2.5});
+        ASSERT_EQ(m->at(0, 1, 2), value_type{3.5});
+        EXPECT_EQ(m->at(1, 0, 0), value_type{1.0});
+        EXPECT_EQ(m->at(1, 0, 1), value_type{2.5});
+        EXPECT_EQ(m->at(1, 0, 2), value_type{3.0});
+        EXPECT_EQ(m->at(1, 1, 0), value_type{1.0});
+        EXPECT_EQ(m->at(1, 1, 1), value_type{2.0});
+        ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
     }
 
     static void assert_empty(gko::matrix::BatchDense<value_type> *m)
     {
-        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
+        ASSERT_EQ(m->get_sizes().size(), 0);
+        ASSERT_EQ(m->get_num_batches(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
@@ -85,209 +101,202 @@ TYPED_TEST_SUITE(BatchDense, gko::test::ValueTypes);
 
 
 TYPED_TEST(BatchDense, CanBeEmpty)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    this->assert_empty(empty.get());
-//}
+{
+    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    this->assert_empty(empty.get());
+}
 
 
 TYPED_TEST(BatchDense, ReturnsNullValuesArrayWhenEmpty)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    ASSERT_EQ(empty->get_const_values(), nullptr);
-//}
+{
+    auto empty = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    ASSERT_EQ(empty->get_const_values(), nullptr);
+}
 
 
 TYPED_TEST(BatchDense, CanBeConstructedWithSize)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto m =
-//        gko::matrix::BatchDense<TypeParam>::create(this->exec, gko::dim<2>{2,
-//        3});
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-//    EXPECT_EQ(m->get_stride(), 3);
-//    ASSERT_EQ(m->get_num_stored_elements(), 6);
-//}
+{
+    using size_type = gko::size_type;
+    auto m = gko::matrix::BatchDense<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
+
+    ASSERT_EQ(m->get_num_batches(), 2);
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 4));
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 3));
+    EXPECT_EQ(m->get_strides()[0], 4);
+    EXPECT_EQ(m->get_strides()[1], 3);
+    ASSERT_EQ(m->get_num_stored_elements(), 14);
+    ASSERT_EQ(m->get_num_stored_elements(0), 8);
+    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+}
 
 
 TYPED_TEST(BatchDense, CanBeConstructedWithSizeAndStride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto m =
-//        gko::matrix::BatchDense<TypeParam>::create(this->exec, gko::dim<2>{2,
-//        3}, 4);
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-//    EXPECT_EQ(m->get_stride(), 4);
-//    ASSERT_EQ(m->get_num_stored_elements(), 8);
-//}
+{
+    using size_type = gko::size_type;
+    auto m = gko::matrix::BatchDense<TypeParam>::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2, 3}},
+        std::vector<size_type>{4});
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+    EXPECT_EQ(m->get_stride(0), 4);
+    ASSERT_EQ(m->get_num_stored_elements(), 8);
+}
 
 
 TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    // clang-format off
-//    value_type data[] = {
-//        1.0, 2.0, -1.0,
-//        3.0, 4.0, -1.0,
-//        5.0, 6.0, -1.0};
-//    // clang-format on
-//
-//    auto m = gko::matrix::BatchDense<TypeParam>::create(
-//        this->exec, gko::dim<2>{3, 2},
-//        gko::Array<value_type>::view(this->exec, 9, data), 3);
-//
-//    ASSERT_EQ(m->get_const_values(), data);
-//    ASSERT_EQ(m->at(2, 1), value_type{6.0});
-//}
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+    // clang-format off
+    value_type data[] = {
+       1.0, 2.0, -1.0,
+       3.0, 4.0, -1.0,
+       3.0, 5.0, 1.0,
+       5.0, 6.0, -3.0};
+    // clang-format on
+
+    auto m = gko::matrix::BatchDense<TypeParam>::create(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
+        gko::Array<value_type>::view(this->exec, 12, data),
+        std::vector<size_type>{3, 3});
+
+    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
+    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
+    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+}
 
 
 TYPED_TEST(BatchDense, KnowsItsSizeAndValues)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    this->assert_equal_to_original_mtx(this->mtx.get());
-//}
+{
+    this->assert_equal_to_original_mtx(this->mtx.get());
+}
 
 
 TYPED_TEST(BatchDense, CanBeListConstructed)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    auto m =
-//        gko::initialize<gko::matrix::BatchDense<TypeParam>>({1.0, 2.0},
-//        this->exec);
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
-//    ASSERT_EQ(m->get_num_stored_elements(), 2);
-//    EXPECT_EQ(m->at(0), value_type{1});
-//    EXPECT_EQ(m->at(1), value_type{2});
-//}
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
+        {{1.0, 2.0}}, this->exec);
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_num_stored_elements(), 2);
+    EXPECT_EQ(m->at(0, 0), value_type{1});
+    EXPECT_EQ(m->at(0, 1), value_type{2});
+}
 
 
 TYPED_TEST(BatchDense, CanBeListConstructedWithstride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    auto m = gko::initialize<gko::matrix::BatchDense<TypeParam>>(2,
-//    {1.0, 2.0},
-//                                                            this->exec);
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
-//    ASSERT_EQ(m->get_num_stored_elements(), 4);
-//    EXPECT_EQ(m->at(0), value_type{1.0});
-//    EXPECT_EQ(m->at(1), value_type{2.0});
-//}
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
+        {2}, {{1.0, 2.0}}, this->exec);
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_num_stored_elements(), 4);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 1), value_type{2.0});
+}
 
 
 TYPED_TEST(BatchDense, CanBeDoubleListConstructed)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    using T = value_type;
-//    auto m = gko::initialize<gko::matrix::BatchDense<TypeParam>>(
-//        {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
-//    ASSERT_EQ(m->get_num_stored_elements(), 6);
-//    EXPECT_EQ(m->at(0), value_type{1.0});
-//    EXPECT_EQ(m->at(1), value_type{2.0});
-//    EXPECT_EQ(m->at(2), value_type{3.0});
-//    ASSERT_EQ(m->at(3), value_type{4.0});
-//    EXPECT_EQ(m->at(4), value_type{5.0});
-//}
+{
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
+        {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
+         {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
+        this->exec);
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(3, 2));
+    ASSERT_EQ(m->get_stride(0), 3);
+    ASSERT_EQ(m->get_stride(1), 2);
+    EXPECT_EQ(m->get_num_stored_elements(), 15);
+    ASSERT_EQ(m->get_num_stored_elements(0), 9);
+    ASSERT_EQ(m->get_num_stored_elements(1), 6);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 1), value_type{1.0});
+    EXPECT_EQ(m->at(0, 2), value_type{0.0});
+    ASSERT_EQ(m->at(0, 3), value_type{2.0});
+    EXPECT_EQ(m->at(0, 4), value_type{4.0});
+    EXPECT_EQ(m->at(1, 0), value_type{1.0});
+    EXPECT_EQ(m->at(1, 1), value_type{2.0});
+    EXPECT_EQ(m->at(1, 2), value_type{3.0});
+    ASSERT_EQ(m->at(1, 3), value_type{4.0});
+    EXPECT_EQ(m->at(1, 4), value_type{5.0});
+}
 
 
 TYPED_TEST(BatchDense, CanBeDoubleListConstructedWithstride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    using T = value_type;
-//    auto m = gko::initialize<gko::matrix::BatchDense<TypeParam>>(
-//        4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
-//    ASSERT_EQ(m->get_num_stored_elements(), 12);
-//    EXPECT_EQ(m->at(0), value_type{1.0});
-//    EXPECT_EQ(m->at(1), value_type{2.0});
-//    EXPECT_EQ(m->at(2), value_type{3.0});
-//    ASSERT_EQ(m->at(3), value_type{4.0});
-//    EXPECT_EQ(m->at(4), value_type{5.0});
-//}
+{
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
+        {4, 3},
+        {{I<T>{1.0, 1.0, 0.0}, I<T>{2.0, 4.0, 3.0}, I<T>{3.0, 6.0, 1.0}},
+         {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
+        this->exec);
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(3, 2));
+    ASSERT_EQ(m->get_stride(0), 4);
+    ASSERT_EQ(m->get_stride(1), 3);
+    EXPECT_EQ(m->get_num_stored_elements(), 21);
+    ASSERT_EQ(m->get_num_stored_elements(0), 12);
+    ASSERT_EQ(m->get_num_stored_elements(1), 9);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 1), value_type{1.0});
+    EXPECT_EQ(m->at(0, 2), value_type{0.0});
+    ASSERT_EQ(m->at(0, 3), value_type{2.0});
+    EXPECT_EQ(m->at(0, 4), value_type{4.0});
+    EXPECT_EQ(m->at(1, 0), value_type{1.0});
+    EXPECT_EQ(m->at(1, 1), value_type{2.0});
+    EXPECT_EQ(m->at(1, 2), value_type{3.0});
+    ASSERT_EQ(m->at(1, 3), value_type{4.0});
+    EXPECT_EQ(m->at(1, 4), value_type{5.0});
+}
 
 
 TYPED_TEST(BatchDense, CanBeCopied)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    mtx_copy->copy_from(this->mtx.get());
-//    this->assert_equal_to_original_mtx(this->mtx.get());
-//    this->mtx->at(0) = 7;
-//    this->assert_equal_to_original_mtx(mtx_copy.get());
-//}
+{
+    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->at(0, 0, 0) = 7;
+    this->mtx->at(0, 1) = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
 TYPED_TEST(BatchDense, CanBeMoved)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    mtx_copy->copy_from(std::move(this->mtx));
-//    this->assert_equal_to_original_mtx(mtx_copy.get());
-//}
+{
+    auto mtx_copy = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(std::move(this->mtx));
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
 TYPED_TEST(BatchDense, CanBeCloned)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto mtx_clone = this->mtx->clone();
-//    this->assert_equal_to_original_mtx(
-//        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-//}
+{
+    auto mtx_clone = this->mtx->clone();
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
 TYPED_TEST(BatchDense, CanBeCleared)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    this->mtx->clear();
-//    this->assert_empty(this->mtx.get());
-//}
+{
+    this->mtx->clear();
+    this->assert_empty(this->mtx.get());
+}
 
 
-TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
 //{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 //    using value_type = typename TestFixture::value_type;
 //    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
 //    m->read(gko::matrix_data<TypeParam>{{2, 3},
@@ -309,11 +318,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(BatchDense, GeneratesCorrectMatrixData)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(BatchDense, GeneratesCorrectMatrixData)
 //{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 //    using value_type = typename TestFixture::value_type;
 //    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
 //    gko::matrix_data<TypeParam> data;
@@ -331,11 +337,8 @@ GKO_NOT_IMPLEMENTED;
 //}
 
 
-TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
-GKO_NOT_IMPLEMENTED;
+// TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
 //{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 //    using value_type = typename TestFixture::value_type;
 //    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
 //    gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
@@ -356,77 +359,6 @@ GKO_NOT_IMPLEMENTED;
 //    EXPECT_EQ(m->at(1, 1), value_type{5.0});
 //    EXPECT_EQ(m->at(0, 2), value_type{2.0});
 //    ASSERT_EQ(m->at(1, 2), value_type{0.0});
-//}
-
-
-TYPED_TEST(BatchDense, CanCreateSubmatrix)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1,
-//    2});
-//
-//    EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
-//    EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
-//    EXPECT_EQ(submtx->at(1, 0), value_type{2.5});
-//    EXPECT_EQ(submtx->at(1, 1), value_type{3.5});
-//}
-
-
-TYPED_TEST(BatchDense, CanCreateSubmatrixWithStride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    auto submtx =
-//        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
-//
-//    EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
-//    EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
-//    EXPECT_EQ(submtx->at(1, 0), value_type{1.5});
-//    EXPECT_EQ(submtx->at(1, 1), value_type{2.5});
-//}
-
-
-TYPED_TEST(BatchDense, CanCreateRealView)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    using value_type = typename TestFixture::value_type;
-//    using real_type = gko::remove_complex<value_type>;
-//    auto real_view = this->mtx->create_real_view();
-//
-//    if (gko::is_complex<value_type>()) {
-//        EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
-//        EXPECT_EQ(real_view->get_size()[1], 2 * this->mtx->get_size()[1]);
-//        EXPECT_EQ(real_view->get_stride(), 2 * this->mtx->get_stride());
-//        EXPECT_EQ(real_view->at(0, 0), real_type{1.0});
-//        EXPECT_EQ(real_view->at(0, 1), real_type{0.0});
-//        EXPECT_EQ(real_view->at(0, 2), real_type{2.0});
-//        EXPECT_EQ(real_view->at(0, 3), real_type{0.0});
-//        EXPECT_EQ(real_view->at(0, 4), real_type{3.0});
-//        EXPECT_EQ(real_view->at(0, 5), real_type{0.0});
-//        EXPECT_EQ(real_view->at(1, 0), real_type{1.5});
-//        EXPECT_EQ(real_view->at(1, 1), real_type{0.0});
-//        EXPECT_EQ(real_view->at(1, 2), real_type{2.5});
-//        EXPECT_EQ(real_view->at(1, 3), real_type{0.0});
-//        EXPECT_EQ(real_view->at(1, 4), real_type{3.5});
-//        EXPECT_EQ(real_view->at(1, 5), real_type{0.0});
-//    } else {
-//        EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
-//        EXPECT_EQ(real_view->get_size()[1], this->mtx->get_size()[1]);
-//        EXPECT_EQ(real_view->get_stride(), this->mtx->get_stride());
-//        EXPECT_EQ(real_view->at(0, 0), real_type{1.0});
-//        EXPECT_EQ(real_view->at(0, 1), real_type{2.0});
-//        EXPECT_EQ(real_view->at(0, 2), real_type{3.0});
-//        EXPECT_EQ(real_view->at(1, 0), real_type{1.5});
-//        EXPECT_EQ(real_view->at(1, 1), real_type{2.5});
-//        EXPECT_EQ(real_view->at(1, 2), real_type{3.5});
-//    }
 //}
 
 
