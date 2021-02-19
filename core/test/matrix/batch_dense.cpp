@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -50,6 +51,7 @@ template <typename T>
 class BatchDense : public ::testing::Test {
 protected:
     using value_type = T;
+    using DenseMtx = gko::matrix::Dense<value_type>;
     using size_type = gko::size_type;
     BatchDense()
         : exec(gko::ReferenceExecutor::create()),
@@ -168,6 +170,41 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
     ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
     ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
     ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+}
+
+
+TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatrices)
+{
+    using value_type = typename TestFixture::value_type;
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using size_type = gko::size_type;
+    auto mat1 = gko::initialize<DenseMtx>(
+        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
+
+    auto m = gko::matrix::BatchDense<TypeParam>::create(
+        this->exec, std::vector<DenseMtx *>{mat1.get(), mat2.get()});
+
+    this->assert_equal_to_original_mtx(m.get());
+}
+
+
+TYPED_TEST(BatchDense, CanBeUnbatchedIntoDenseMatrices)
+{
+    using value_type = typename TestFixture::value_type;
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using size_type = gko::size_type;
+    auto mat1 = gko::initialize<DenseMtx>(
+        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
+
+    auto dense_mats = this->mtx->unbatch();
+
+
+    GKO_ASSERT_MTX_NEAR(dense_mats[0].get(), mat1.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(dense_mats[1].get(), mat2.get(), 0.);
 }
 
 
