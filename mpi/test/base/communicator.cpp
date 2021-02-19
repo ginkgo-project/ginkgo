@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -53,29 +53,15 @@ namespace {
 
 class Communicator : public ::testing::Test {
 protected:
-    Communicator() : mpi_exec(nullptr), mpi_exec2(nullptr) {}
+    Communicator() : comm(MPI_COMM_WORLD) {}
 
     void SetUp()
     {
-        char **argv;
-        int argc = 0;
-        mpi_exec = gko::MpiExecutor::create(gko::ReferenceExecutor::create());
-        sub_exec = mpi_exec->get_sub_executor();
-        rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
-        ASSERT_EQ(mpi_exec->get_num_ranks(mpi_exec->get_communicator()), 8);
+        rank = gko::mpi::get_my_rank(comm);
+        ASSERT_EQ(gko::mpi::get_num_ranks(comm), 8);
     }
 
-    void TearDown()
-    {
-        if (mpi_exec != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            ASSERT_NO_THROW(mpi_exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::MpiExecutor> mpi_exec;
-    std::shared_ptr<gko::MpiExecutor> mpi_exec2;
-    std::shared_ptr<const gko::Executor> sub_exec;
+    gko::mpi::communicator comm;
     int rank;
 };
 
@@ -83,28 +69,25 @@ protected:
 TEST_F(Communicator, KnowsItsDefaultCommunicator)
 {
     auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-    EXPECT_EQ(comm_world.compare(this->mpi_exec->get_communicator()), true);
+    ASSERT_TRUE(comm_world == comm);
 }
 
 
 TEST_F(Communicator, KnowsNumRanks)
 {
-    EXPECT_EQ(this->mpi_exec->get_num_ranks(mpi_exec->get_communicator()), 8);
+    EXPECT_EQ(gko::mpi::get_num_ranks(comm), 8);
 }
 
 
 TEST_F(Communicator, CanSetCustomCommunicator)
 {
-    auto world_rank = mpi_exec->get_my_rank(mpi_exec->get_communicator());
-    auto world_size = mpi_exec->get_num_ranks(mpi_exec->get_communicator());
+    auto world_rank = gko::mpi::get_my_rank(comm);
+    auto world_size = gko::mpi::get_num_ranks(comm);
     auto color = world_rank / 4;
 
-    auto main_comm = mpi_exec->get_communicator();
-    auto row_comm = gko::mpi::communicator(main_comm, color, world_rank);
-    mpi_exec2 = gko::MpiExecutor::create(gko::ReferenceExecutor::create(),
-                                         row_comm.get());
+    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
     for (auto i = 0; i < world_size; ++i) {
-        EXPECT_LT(mpi_exec2->get_my_rank(mpi_exec2->get_communicator()), 4);
+        EXPECT_LT(gko::mpi::get_my_rank(row_comm.get()), 4);
     }
 }
 

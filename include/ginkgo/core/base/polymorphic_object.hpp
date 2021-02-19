@@ -656,6 +656,26 @@ public:
 };
 
 
+/**
+ * This mixin implements a static `create()` method on `ConcreteType` that
+ * dynamically allocates the memory, uses the passed-in arguments to construct
+ * the object, and returns an std::unique_ptr to such an object.
+ *
+ * @tparam ConcreteObject  the concrete type for which `create()` is being
+ *                         implemented [CRTP parameter]
+ */
+template <typename ConcreteType>
+class EnableSharedCreateMethod {
+public:
+    template <typename... Args>
+    static std::shared_ptr<ConcreteType> create(Args &&... args)
+    {
+        return std::shared_ptr<ConcreteType>(
+            new ConcreteType(std::forward<Args>(args)...));
+    }
+};
+
+
 }  // namespace gko
 
 

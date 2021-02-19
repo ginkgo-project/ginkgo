@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_BASE_MPI_HEADERS_HPP_
-#define GKO_PUBLIC_CORE_BASE_MPI_HEADERS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_MPI_HPP_
+#define GKO_PUBLIC_CORE_BASE_MPI_HPP_
 
 
 #include <map>
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -83,6 +84,10 @@ using MPI_Info = int *;
 #endif
 
 
+template <typename T>
+using array_manager = std::unique_ptr<T, std::function<void(T *)>>;
+
+
 namespace gko {
 namespace mpi {
 
@@ -105,8 +110,8 @@ enum class op_type {
 
 /*
  * Class that allows an RAII of initialization and calls MPI_Finalize at the
- * end of its scope. Therefore, this must be called before an MpiExecutor is
- * created.
+ * end of its scope. Therefore this must be called before any of the MPI
+ * functions.
  */
 class init_finalize {
 public:
@@ -126,7 +131,7 @@ public:
 
     static bool is_initialized();
 
-    ~init_finalize() noexcept(false);
+    ~init_finalize();
 
 private:
     int num_args_;
@@ -142,7 +147,10 @@ private:
  * strings.
  */
 class info {
+public:
     info();
+
+    info(MPI_Info input) { this->info_ = input; }
 
     void remove(std::string key);
 
@@ -161,11 +169,51 @@ private:
 
 
 /**
+ * A request class that takes in the given request and duplicates it
+ * for our purposes. As the class or object goes out of scope, the request
+ * is freed.
+ */
+class request : public EnableSharedCreateMethod<request> {
+public:
+    request(const int size) : req_(new MPI_Request[size]) {}
+
+    request() : req_{} {}
+
+    ~request() { delete req_; }
+
+    MPI_Request *get_requests() const { return req_; }
+
+private:
+    MPI_Request *req_;
+};
+
+
+/**
+ * A status class that takes in the given status and duplicates it
+ * for our purposes. As the class or object goes out of scope, the status
+ * is freed.
+ */
+class status : public EnableSharedCreateMethod<status> {
+public:
+    status(const int size) : status_(new MPI_Status[size]) {}
+
+    status() : status_{} {}
+
+    ~status() { delete status_; }
+
+    MPI_Status *get_statuses() const { return status_; }
+
+private:
+    MPI_Status *status_;
+};
+
+
+/**
  * A communicator class that takes in the given communicator and duplicates it
  * for our purposes. As the class or object goes out of scope, the communicator
  * is freed.
  */
-class communicator {
+class communicator : public EnableSharedCreateMethod<communicator> {
 public:
     communicator(const MPI_Comm &comm);
 
@@ -181,9 +229,13 @@ public:
 
     communicator &operator=(communicator &&other) = default;
 
+    static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
+
     MPI_Comm get() const { return comm_; }
 
     bool compare(const MPI_Comm &other) const;
+
+    bool operator==(const communicator &rhs) { return compare(rhs.get()); }
 
     ~communicator();
 
@@ -206,7 +258,9 @@ public:
 
     window(ValueType *base, unsigned int size,
            const int disp_unit = sizeof(ValueType),
-           MPI_Info info = MPI_INFO_NULL, const MPI_Comm &comm = MPI_COMM_WORLD,
+           info input_info = info(MPI_INFO_NULL),
+           std::shared_ptr<const communicator> comm =
+               std::make_shared<communicator>(MPI_COMM_WORLD),
            win_type create_type = win_type::create);
 
     MPI_Win get() { return this->window_; }
@@ -236,8 +290,95 @@ private:
 };
 
 
+void synchronize(const communicator &comm = communicator::get_comm_world());
+
+
+void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {});
+
+
+double get_walltime();
+
+
+int get_my_rank(const communicator &comm = communicator::get_comm_world());
+
+
+int get_local_rank(const communicator &comm = communicator::get_comm_world());
+
+
+int get_num_ranks(const communicator &comm = communicator::get_comm_world());
+
+
+template <typename SendType>
+void send(const SendType *send_buffer, const int send_count,
+          const int destination_rank, const int send_tag,
+          std::shared_ptr<request> req = {},
+          std::shared_ptr<const communicator> comm = {});
+
+
+template <typename RecvType>
+void recv(RecvType *recv_buffer, const int recv_count, const int source_rank,
+          const int recv_tag, std::shared_ptr<request> req = {},
+          std::shared_ptr<status> status = {},
+          std::shared_ptr<const communicator> comm = {});
+
+
+template <typename PutType>
+void put(const PutType *origin_buffer, const int origin_count,
+         const int target_rank, const unsigned int target_disp,
+         const int target_count, window<PutType> &window,
+         std::shared_ptr<request> req = {});
+
+
+template <typename GetType>
+void get(GetType *origin_buffer, const int origin_count, const int target_rank,
+         const unsigned int target_disp, const int target_count,
+         window<GetType> &window, std::shared_ptr<request> req = {});
+
+
+template <typename BroadcastType>
+void broadcast(BroadcastType *buffer, int count, int root_rank,
+               std::shared_ptr<const communicator> comm = {});
+
+template <typename ReduceType>
+void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
+            op_type op_enum, int root_rank, std::shared_ptr<request> req = {},
+            std::shared_ptr<const communicator> comm = {});
+
+
+template <typename ReduceType>
+void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
+                int count, op_type op_enum, std::shared_ptr<request> req = {},
+                std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
+void gather(const SendType *send_buffer, const int send_count,
+            RecvType *recv_buffer, const int recv_count, int root_rank,
+            std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
+void gather(const SendType *send_buffer, const int send_count,
+            RecvType *recv_buffer, const int *recv_counts,
+            const int *displacements, int root_rank,
+            std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
+void scatter(const SendType *send_buffer, const int send_count,
+             RecvType *recv_buffer, const int recv_count, int root_rank,
+             std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
+void scatter(const SendType *send_buffer, const int *send_counts,
+             const int *displacements, RecvType *recv_buffer,
+             const int recv_count, int root_rank,
+             std::shared_ptr<const communicator> comm = {});
+
+
 }  // namespace mpi
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_BASE_MPI_HEADERS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_MPI_HPP_

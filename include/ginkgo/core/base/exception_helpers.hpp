@@ -129,22 +129,6 @@ namespace gko {
                   "semi-colon warnings")
 
 
-/**
- * Helper assert that assert the function is being called on MPI executor.
- *
- * @param _exec  the passed in executor.
- * @param _func  the passed in function to be executed.
- */
-#define GKO_ASSERT_MPI_EXEC(_exec)                                           \
-    if (auto chk = dynamic_cast<const gko::MpiExecutor *>(_exec)) {          \
-    } else {                                                                 \
-        GKO_NOT_SUPPORTED(_exec);                                            \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-
 namespace detail {
 
 

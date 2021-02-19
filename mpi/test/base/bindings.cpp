@@ -49,106 +49,83 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 
-class MpiExecutor : public ::testing::Test {
+class MpiBindings : public ::testing::Test {
 protected:
-    MpiExecutor() : mpi(nullptr) {}
+    MpiBindings() : ref(gko::ReferenceExecutor::create()) {}
 
-    void SetUp()
-    {
-        char **argv;
-        int argc = 0;
-        mpi = gko::MpiExecutor::create(gko::ReferenceExecutor::create());
-    }
-
-    void TearDown()
-    {
-        if (mpi != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            ASSERT_NO_THROW(mpi->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::MpiExecutor> mpi;
+    std::shared_ptr<gko::Executor> ref;
 };
 
 
-TEST_F(MpiExecutor, KnowsItsSubExecutors)
-{
-    auto sub_exec = mpi->get_sub_executor();
-    auto omp = gko::OmpExecutor::create();
-    auto ref = gko::ReferenceExecutor::create();
-
-    EXPECT_NE(typeid(*(omp.get())).name(), typeid(*(sub_exec.get())).name());
-    EXPECT_EQ(typeid(*(ref.get())).name(), typeid(*(sub_exec.get())).name());
-}
-
-
-TEST_F(MpiExecutor, KnowsItsCommunicator)
+TEST_F(MpiBindings, KnowsItsCommunicator)
 {
     auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-    EXPECT_EQ(comm_world.compare(mpi->get_communicator()), true);
+    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
 }
 
 
-TEST_F(MpiExecutor, KnowsItsSize)
+TEST_F(MpiBindings, KnowsItsSize)
 {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    EXPECT_EQ(mpi->get_num_ranks(MPI_COMM_WORLD), size);
+    EXPECT_EQ(gko::mpi::get_num_ranks(MPI_COMM_WORLD), size);
 }
 
 
-TEST_F(MpiExecutor, KnowsItsRanks)
+TEST_F(MpiBindings, KnowsItsRanks)
 {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    EXPECT_EQ(rank, mpi->get_my_rank(MPI_COMM_WORLD));
+    EXPECT_EQ(rank, gko::mpi::get_my_rank(MPI_COMM_WORLD));
 }
 
 
-TEST_F(MpiExecutor, CanSetADefaultWindow)
+TEST_F(MpiBindings, CanSetADefaultWindow)
 {
     gko::mpi::window<int> win;
     ASSERT_EQ(win.get(), nullptr);
 }
 
 
-TEST_F(MpiExecutor, CanCreateWindow)
+TEST_F(MpiBindings, CanCreateWindow)
 {
     using ValueType = int;
     ValueType *data;
     data = new ValueType[4]{1, 2, 3, 4};
     gko::mpi::window<ValueType> win(data, 4 * sizeof(ValueType));
     ASSERT_NE(win.get(), nullptr);
+    win.lock_all();
+    win.unlock_all();
     delete data;
 }
 
 
-TEST_F(MpiExecutor, CanSendAndRecvValues)
+TEST_F(MpiBindings, CanSendAndRecvValues)
 {
     using ValueType = int;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
-    int *data;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm);
+    auto num_ranks = gko::mpi::get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
+    ValueType *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
-        send_array = gko::Array<ValueType>{
-            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
+        send_array =
+            gko::Array<ValueType>{ref, gko::Array<ValueType>(ref, 4, data)};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank);
+                gko::mpi::send<ValueType>(send_array.get_const_data(), 4, rank,
+                                          40 + rank);
             }
         }
     } else {
-        recv_array = gko::Array<ValueType>{sub_exec, 4};
-        mpi->recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank);
+        recv_array = gko::Array<ValueType>{ref, 4};
+        gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank);
     }
     if (my_rank != 0) {
         ASSERT_EQ(recv_array.get_data()[0], 1);
@@ -156,123 +133,69 @@ TEST_F(MpiExecutor, CanSendAndRecvValues)
         ASSERT_EQ(recv_array.get_data()[2], 3);
         ASSERT_EQ(recv_array.get_data()[3], 4);
     }
-    if (my_rank == 0) {
-        delete data;
-    }
 }
 
 
-TEST_F(MpiExecutor, CanNonBlockingSendAndNonBlockingRecvValues)
+TEST_F(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
 {
     using ValueType = int;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
-    int *data;
-    auto req = mpi->create_requests_array(num_ranks);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm);
+    auto num_ranks = gko::mpi::get_num_ranks(comm);
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
+    ValueType *data;
+    auto req = gko::mpi::request::create(num_ranks);
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
-        send_array = gko::Array<ValueType>{
-            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
+        send_array =
+            gko::Array<ValueType>{ref, gko::Array<ValueType>(ref, 4, data)};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                mpi->send<ValueType>(send_array.get_data(), 4, rank, 40 + rank,
-                                     req.get());
+                gko::mpi::send<ValueType>(send_array.get_data(), 4, rank,
+                                          40 + rank, req);
             }
         }
     } else {
-        recv_array = gko::Array<ValueType>{sub_exec, 4};
-        mpi->recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
-                             req.get());
+        recv_array = gko::Array<ValueType>{ref, 4};
+        gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
+                                  req);
     }
-    mpi->wait(req.get());
+    gko::mpi::wait(req);
     if (my_rank != 0) {
         ASSERT_EQ(recv_array.get_data()[0], 1);
         ASSERT_EQ(recv_array.get_data()[1], 2);
         ASSERT_EQ(recv_array.get_data()[2], 3);
         ASSERT_EQ(recv_array.get_data()[3], 4);
     }
-    if (my_rank == 0) {
-        delete data;
-    }
 }
 
 
-TEST_F(MpiExecutor, CanPutValuesWithLockAll)
+TEST_F(MpiBindings, CanPutValuesWithLockAll)
 {
     using ValueType = int;
-    using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
-    int *data;
-    if (my_rank == 0) {
-        data = new ValueType[4]{1, 2, 3, 4};
-        send_array = gko::Array<ValueType>{
-            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
-    } else {
-        recv_array = gko::Array<ValueType>{sub_exec, 4};
-    }
-    auto win = Window(recv_array.get_data(), 4 * sizeof(ValueType));
-    win.lock_all();
-    if (my_rank == 0) {
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                mpi->put<ValueType>(send_array.get_const_data(), 4, rank, 0, 4,
-                                    win.get());
-                win.flush(rank);
-            }
-        }
-    }
-    win.unlock_all();
-    mpi->synchronize();
-    if (my_rank != 0) {
-        ASSERT_EQ(recv_array.get_data()[0], 1);
-        ASSERT_EQ(recv_array.get_data()[1], 2);
-        ASSERT_EQ(recv_array.get_data()[2], 3);
-        ASSERT_EQ(recv_array.get_data()[3], 4);
-    }
-    if (my_rank == 0) {
-        delete data;
-    }
-}
-
-
-TEST_F(MpiExecutor, CanPutValuesWithExclusiveLock)
-{
-    using ValueType = int;
-    using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
+    using window = gko::mpi::window<ValueType>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm);
+    auto num_ranks = gko::mpi::get_num_ranks(comm);
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
-                      MPI_INFO_NULL, comm, Window::win_type::create);
+    auto win = window(data, 4 * sizeof(ValueType));
+    win.lock_all();
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                win.lock(rank, 0, Window::lock_type::exclusive);
-                mpi->put<ValueType>(data, 4, rank, 0, 4, win.get());
+                gko::mpi::put<ValueType>(data, 4, rank, 0, 4, win);
                 win.flush(rank);
-                win.unlock(rank);
             }
         }
     }
-    mpi->synchronize();
+    win.unlock_all();
+    gko::mpi::synchronize();
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -281,58 +204,83 @@ TEST_F(MpiExecutor, CanPutValuesWithExclusiveLock)
 }
 
 
-TEST_F(MpiExecutor, CanPutValuesWithFence)
+TEST_F(MpiBindings, CanPutValuesWithExclusiveLock)
 {
     using ValueType = int;
-    using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
+    using window = gko::mpi::window<ValueType>;
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
-        send_array = gko::Array<ValueType>{
-            sub_exec, gko::Array<ValueType>::view(sub_exec, 4, data)};
     } else {
-        recv_array = gko::Array<ValueType>{sub_exec, 4};
+        data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = Window(recv_array.get_data(), 4 * sizeof(ValueType));
+    auto win = window(data, 4 * sizeof(ValueType), sizeof(ValueType),
+                      MPI_INFO_NULL, comm, window::win_type::create);
+    if (my_rank == 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                win.lock(rank, 0, window::lock_type::exclusive);
+                gko::mpi::put<ValueType>(data, 4, rank, 0, 4, win);
+                win.flush(rank);
+                win.unlock(rank);
+            }
+        }
+    }
+    gko::mpi::synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
+}
+
+
+TEST_F(MpiBindings, CanPutValuesWithFence)
+{
+    using ValueType = int;
+    using window = gko::mpi::window<ValueType>;
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
+    int *data;
+    if (my_rank == 0) {
+        data = new ValueType[4]{1, 2, 3, 4};
+    } else {
+        data = new ValueType[4]{0, 0, 0, 0};
+    }
+    auto win = window(data, 4 * sizeof(ValueType));
     win.fence();
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                mpi->put<ValueType>(send_array.get_const_data(), 4, rank, 0, 4,
-                                    win.get());
+                gko::mpi::put<ValueType>(data, 4, rank, 0, 4, win);
             }
         }
     }
     win.fence();
-    mpi->synchronize();
-    if (my_rank != 0) {
-        ASSERT_EQ(recv_array.get_data()[0], 1);
-        ASSERT_EQ(recv_array.get_data()[1], 2);
-        ASSERT_EQ(recv_array.get_data()[2], 3);
-        ASSERT_EQ(recv_array.get_data()[3], 4);
-    }
-    if (my_rank == 0) {
-        delete data;
-    }
+    gko::mpi::synchronize();
+    ASSERT_EQ(data[0], 1);
+    ASSERT_EQ(data[1], 2);
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data[3], 4);
+    delete data;
 }
 
 
-TEST_F(MpiExecutor, CanGetValuesWithLockAll)
+TEST_F(MpiBindings, CanGetValuesWithLockAll)
 {
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
@@ -345,13 +293,13 @@ TEST_F(MpiExecutor, CanGetValuesWithLockAll)
         win.lock_all();
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+                gko::mpi::get<ValueType>(data, 4, 0, 0, 4, win);
                 win.flush(0);
             }
         }
         win.unlock_all();
     }
-    mpi->synchronize();
+    gko::mpi::synchronize();
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -360,16 +308,15 @@ TEST_F(MpiExecutor, CanGetValuesWithLockAll)
 }
 
 
-TEST_F(MpiExecutor, CanGetValuesWithExclusiveLock)
+TEST_F(MpiBindings, CanGetValuesWithExclusiveLock)
 {
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
@@ -382,13 +329,13 @@ TEST_F(MpiExecutor, CanGetValuesWithExclusiveLock)
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 win.lock(0, 0, Window::lock_type::exclusive);
-                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+                gko::mpi::get<ValueType>(data, 4, 0, 0, 4, win);
                 win.flush(0);
                 win.unlock(0);
             }
         }
     }
-    mpi->synchronize();
+    gko::mpi::synchronize();
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -397,16 +344,15 @@ TEST_F(MpiExecutor, CanGetValuesWithExclusiveLock)
 }
 
 
-TEST_F(MpiExecutor, CanGetValuesWithFence)
+TEST_F(MpiBindings, CanGetValuesWithFence)
 {
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
-    auto send_array = gko::Array<ValueType>{sub_exec};
-    auto recv_array = gko::Array<ValueType>{sub_exec};
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<ValueType>{ref};
+    auto recv_array = gko::Array<ValueType>{ref};
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
@@ -419,12 +365,12 @@ TEST_F(MpiExecutor, CanGetValuesWithFence)
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                mpi->get<ValueType>(data, 4, 0, 0, 4, win.get());
+                gko::mpi::get<ValueType>(data, 4, 0, 0, 4, win);
             }
         }
     }
     win.fence();
-    mpi->synchronize();
+    gko::mpi::synchronize();
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -433,22 +379,21 @@ TEST_F(MpiExecutor, CanGetValuesWithFence)
 }
 
 
-TEST_F(MpiExecutor, CanBroadcastValues)
+TEST_F(MpiBindings, CanBroadcastValues)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     double *data;
-    auto array = gko::Array<double>{sub_exec, 8};
+    auto array = gko::Array<double>{ref, 8};
     if (my_rank == 0) {
         // clang-format off
         data = new double[8]{ 2.0, 3.0, 1.0,
                 3.0,-1.0, 0.0 , 3.5, 1.5};
         // clang-format on
-        array = gko::Array<double>{gko::Array<double>::view(sub_exec, 8, data)};
+        array = gko::Array<double>{gko::Array<double>::view(ref, 8, data)};
     }
-    mpi->broadcast<double>(array.get_data(), 8, 0);
+    gko::mpi::broadcast<double>(array.get_data(), 8, 0);
     auto comp_data = array.get_data();
     ASSERT_EQ(comp_data[0], 2.0);
     ASSERT_EQ(comp_data[1], 3.0);
@@ -464,13 +409,12 @@ TEST_F(MpiExecutor, CanBroadcastValues)
 }
 
 
-TEST_F(MpiExecutor, CanReduceValues)
+TEST_F(MpiBindings, CanReduceValues)
 {
     using ValueType = double;
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     ValueType data, sum, max, min;
     if (my_rank == 0) {
         data = 3;
@@ -481,9 +425,9 @@ TEST_F(MpiExecutor, CanReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    mpi->reduce<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0);
-    mpi->reduce<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0);
-    mpi->reduce<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0);
+    gko::mpi::reduce<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0);
+    gko::mpi::reduce<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0);
+    gko::mpi::reduce<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 16.0);
         EXPECT_EQ(max, 6.0);
@@ -492,12 +436,11 @@ TEST_F(MpiExecutor, CanReduceValues)
 }
 
 
-TEST_F(MpiExecutor, CanAllReduceValues)
+TEST_F(MpiBindings, CanAllReduceValues)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     int data, sum;
     if (my_rank == 0) {
         data = 3;
@@ -508,31 +451,29 @@ TEST_F(MpiExecutor, CanAllReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    mpi->all_reduce<int>(&data, &sum, 1, gko::mpi::op_type::sum);
+    gko::mpi::all_reduce<int>(&data, &sum, 1, gko::mpi::op_type::sum);
     ASSERT_EQ(sum, 16);
 }
 
 
-TEST_F(MpiExecutor, CanScatterValues)
+TEST_F(MpiBindings, CanScatterValues)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     double *data;
-    auto scatter_from_array = gko::Array<double>{sub_exec->get_master()};
+    auto scatter_from_array = gko::Array<double>{ref->get_master()};
     if (my_rank == 0) {
         // clang-format off
         data = new double[8]{ 2.0, 3.0, 1.0,
                 3.0,-1.0, 0.0 , 3.5, 1.5};
         // clang-format on
-        scatter_from_array =
-            gko::Array<double>{sub_exec->get_master(),
-                               gko::Array<double>::view(sub_exec, 8, data)};
+        scatter_from_array = gko::Array<double>{
+            ref->get_master(), gko::Array<double>::view(ref, 8, data)};
     }
-    auto scatter_into_array = gko::Array<double>{sub_exec, 2};
-    mpi->scatter<double, double>(scatter_from_array.get_data(), 2,
-                                 scatter_into_array.get_data(), 2, 0);
+    auto scatter_into_array = gko::Array<double>{ref, 2};
+    gko::mpi::scatter<double, double>(scatter_from_array.get_data(), 2,
+                                      scatter_into_array.get_data(), 2, 0);
     auto comp_data = scatter_into_array.get_data();
     if (my_rank == 0) {
         ASSERT_EQ(comp_data[0], 2.0);
@@ -551,12 +492,11 @@ TEST_F(MpiExecutor, CanScatterValues)
 }
 
 
-TEST_F(MpiExecutor, CanGatherValues)
+TEST_F(MpiBindings, CanGatherValues)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     int data;
     if (my_rank == 0) {
         data = 3;
@@ -568,8 +508,8 @@ TEST_F(MpiExecutor, CanGatherValues)
         data = 6;
     }
     auto gather_array =
-        gko::Array<int>{sub_exec, static_cast<gko::size_type>(num_ranks)};
-    mpi->gather<int, int>(&data, 1, gather_array.get_data(), 1, 0);
+        gko::Array<int>{ref, static_cast<gko::size_type>(num_ranks)};
+    gko::mpi::gather<int, int>(&data, 1, gather_array.get_data(), 1, 0);
     if (my_rank == 0) {
         ASSERT_EQ(gather_array.get_data()[0], 3);
         ASSERT_EQ(gather_array.get_data()[1], 5);
@@ -579,18 +519,17 @@ TEST_F(MpiExecutor, CanGatherValues)
 }
 
 
-TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
+TEST_F(MpiBindings, CanScatterValuesWithDisplacements)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     double *data;
-    auto scatter_from_array = gko::Array<double>{sub_exec};
-    auto scatter_into_array = gko::Array<double>{sub_exec};
-    auto s_counts = gko::Array<int>{sub_exec->get_master(),
+    auto scatter_from_array = gko::Array<double>{ref};
+    auto scatter_into_array = gko::Array<double>{ref};
+    auto s_counts = gko::Array<int>{ref->get_master(),
                                     static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{sub_exec->get_master()};
+    auto displacements = gko::Array<int>{ref->get_master()};
     int nelems;
     if (my_rank == 0) {
         // clang-format off
@@ -598,10 +537,10 @@ TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
                 3.0,-1.0, 0.0,
                 2.5,-1.5, 0.5, 3.5};
         // clang-format on
-        scatter_from_array = gko::Array<double>{
-            sub_exec, gko::Array<double>::view(sub_exec, 10, data)};
+        scatter_from_array =
+            gko::Array<double>{ref, gko::Array<double>::view(ref, 10, data)};
         nelems = 2;
-        displacements = gko::Array<int>{sub_exec, {0, 2, 6, 9}};
+        displacements = gko::Array<int>{ref, {0, 2, 6, 9}};
     } else if (my_rank == 1) {
         nelems = 4;
     } else if (my_rank == 2) {
@@ -610,11 +549,11 @@ TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
         nelems = 1;
     }
     scatter_into_array =
-        gko::Array<double>{sub_exec, static_cast<gko::size_type>(nelems)};
-    mpi->gather<int, int>(&nelems, 1, s_counts.get_data(), 1, 0);
-    mpi->scatter<double, double>(scatter_from_array.get_data(),
-                                 s_counts.get_data(), displacements.get_data(),
-                                 scatter_into_array.get_data(), nelems, 0);
+        gko::Array<double>{ref, static_cast<gko::size_type>(nelems)};
+    gko::mpi::gather<int, int>(&nelems, 1, s_counts.get_data(), 1, 0);
+    gko::mpi::scatter<double, double>(
+        scatter_from_array.get_data(), s_counts.get_data(),
+        displacements.get_data(), scatter_into_array.get_data(), nelems, 0);
     auto comp_data = scatter_into_array.get_data();
     if (my_rank == 0) {
         ASSERT_EQ(comp_data[0], 2.0);
@@ -635,49 +574,48 @@ TEST_F(MpiExecutor, CanScatterValuesWithDisplacements)
 }
 
 
-TEST_F(MpiExecutor, CanGatherValuesWithDisplacements)
+TEST_F(MpiBindings, CanGatherValuesWithDisplacements)
 {
-    auto sub_exec = mpi->get_sub_executor();
-    auto comm = mpi->get_communicator();
-    auto my_rank = mpi->get_my_rank(comm);
-    auto num_ranks = mpi->get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
     double *data;
-    auto gather_from_array = gko::Array<double>{sub_exec};
-    auto gather_into_array = gko::Array<double>{sub_exec};
-    auto r_counts = gko::Array<int>{sub_exec->get_master(),
+    auto gather_from_array = gko::Array<double>{ref};
+    auto gather_into_array = gko::Array<double>{ref};
+    auto r_counts = gko::Array<int>{ref->get_master(),
                                     static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{sub_exec->get_master()};
+    auto displacements = gko::Array<int>{ref->get_master()};
     int nelems;
     if (my_rank == 0) {
         data = new double[2]{2.0, 3.0};
         gather_from_array = gko::Array<double>{
-            sub_exec->get_master(),
-            gko::Array<double>::view(sub_exec->get_master(), 2, data)};
+            ref->get_master(),
+            gko::Array<double>::view(ref->get_master(), 2, data)};
         nelems = 2;
-        displacements = gko::Array<int>{sub_exec->get_master(), {0, 2, 6, 7}};
-        gather_into_array = gko::Array<double>{sub_exec, 10};
+        displacements = gko::Array<int>{ref->get_master(), {0, 2, 6, 7}};
+        gather_into_array = gko::Array<double>{ref, 10};
     } else if (my_rank == 1) {
         data = new double[4]{1.5, 2.0, 1.0, 0.5};
         nelems = 4;
         gather_from_array = gko::Array<double>{
-            sub_exec->get_master(),
-            gko::Array<double>::view(sub_exec->get_master(), 4, data)};
+            ref->get_master(),
+            gko::Array<double>::view(ref->get_master(), 4, data)};
     } else if (my_rank == 2) {
         data = new double[1]{1.0};
         nelems = 1;
         gather_from_array = gko::Array<double>{
-            sub_exec->get_master(),
-            gko::Array<double>::view(sub_exec->get_master(), 1, data)};
+            ref->get_master(),
+            gko::Array<double>::view(ref->get_master(), 1, data)};
     } else if (my_rank == 3) {
         data = new double[3]{1.9, -4.0, 5.0};
         nelems = 3;
         gather_from_array = gko::Array<double>{
-            sub_exec->get_master(),
-            gko::Array<double>::view(sub_exec->get_master(), 3, data)};
+            ref->get_master(),
+            gko::Array<double>::view(ref->get_master(), 3, data)};
     }
 
-    mpi->gather<int, int>(&nelems, 1, r_counts.get_data(), 1, 0);
-    mpi->gather<double, double>(
+    gko::mpi::gather<int, int>(&nelems, 1, r_counts.get_data(), 1, 0);
+    gko::mpi::gather<double, double>(
         gather_from_array.get_data(), nelems, gather_into_array.get_data(),
         r_counts.get_data(), displacements.get_data(), 0);
     auto comp_data = gather_into_array.get_data();

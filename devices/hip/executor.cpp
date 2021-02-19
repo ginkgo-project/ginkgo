@@ -45,23 +45,6 @@ std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
 }
 
 
-std::shared_ptr<const Executor> HipExecutor::get_sub_executor() const noexcept
-{
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<Executor> HipExecutor::get_sub_executor() noexcept
-{
-    return this->shared_from_this();
-}
-
-
-void HipExecutor::raw_copy_to(const MpiExecutor *, size_type num_bytes,
-                              const void *src_ptr,
-                              void *dest_ptr) const GKO_NOT_IMPLEMENTED;
-
-
 bool HipExecutor::verify_memory_to(const HipExecutor *dest_exec) const
 {
     return this->get_device_id() == dest_exec->get_device_id();

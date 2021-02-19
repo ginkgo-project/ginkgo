@@ -4,7 +4,7 @@ add_library(ginkgo_mpi $<TARGET_OBJECTS:ginkgo_mpi_device> "")
 target_sources(ginkgo_mpi
     PRIVATE
         base/exception.cpp
-        base/executor.cpp
+        base/bindings.cpp
         base/version.cpp
         )
 

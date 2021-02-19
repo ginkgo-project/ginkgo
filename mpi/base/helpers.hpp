@@ -45,17 +45,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 /**
- * @brief The helpers namespace.
- *
- * @ingroup helper
- */
-namespace helpers {
-/**
  * @brief The MPI namespace.
  *
  * @ingroup mpi
  */
 namespace mpi {
+/**
+ * @brief The helpers namespace.
+ *
+ * @ingroup helper
+ */
+namespace helpers {
 
 #define GKO_MPI_DATATYPE(BaseType, MPIType)                                  \
     inline MPI_Datatype get_mpi_type(const BaseType &) { return MPIType; }   \
@@ -117,9 +117,8 @@ MPI_Op get_operation(gko::mpi::op_type op)
     case gko::mpi::op_type::custom: {
         // TEMPLATE to create custom operations
         MPI_Op op;
-        // auto op = std::unique_ptr<MPI_Op, std::function<void(T
-        // *)>>([](MPI_Op){}); GKO_ASSERT_NO_MPI_ERRORS(
-        //     MPI_Op_create(detail::operations::custom<ValueType>, true, &op));
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Op_create(detail::operations::custom<ValueType>, true, &op));
         return op;
         break;
     }
@@ -154,8 +153,8 @@ MPI_Op get_operation(gko::mpi::op_type op)
 }
 
 
-}  // namespace mpi
 }  // namespace helpers
+}  // namespace mpi
 }  // namespace gko
 
 
