@@ -577,17 +577,24 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(
-        std::vector<const matrix_data<ValueType, IndexType>> &data) = 0;
+        const std::vector<matrix_data<ValueType, IndexType>> &data) = 0;
 
     /**
      * Reads a matrix from a matrix_assembly_data structure.
      *
      * @param data  the matrix_assembly_data structure
      */
-    void read(
-        std::vector<const matrix_assembly_data<ValueType, IndexType>> &data)
+    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>
+                  &assembly_data)
     {
-        this->read(data.get_ordered_data());
+        auto mat_data = std::vector<matrix_data<ValueType, IndexType>>(
+            assembly_data.size());
+        size_type ind = 0;
+        for (const auto &i : assembly_data) {
+            mat_data[ind] = i.get_ordered_data();
+            ++ind;
+        }
+        this->read(mat_data);
     }
 };
 
