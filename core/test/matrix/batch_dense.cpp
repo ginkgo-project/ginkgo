@@ -295,71 +295,102 @@ TYPED_TEST(BatchDense, CanBeCleared)
 }
 
 
-// TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
-//{
-//    using value_type = typename TestFixture::value_type;
-//    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    m->read(gko::matrix_data<TypeParam>{{2, 3},
-//                                        {{0, 0, 1.0},
-//                                         {0, 1, 3.0},
-//                                         {0, 2, 2.0},
-//                                         {1, 0, 0.0},
-//                                         {1, 1, 5.0},
-//                                         {1, 2, 0.0}}});
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-//    ASSERT_EQ(m->get_num_stored_elements(), 6);
-//    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-//    EXPECT_EQ(m->at(1, 0), value_type{0.0});
-//    EXPECT_EQ(m->at(0, 1), value_type{3.0});
-//    EXPECT_EQ(m->at(1, 1), value_type{5.0});
-//    EXPECT_EQ(m->at(0, 2), value_type{2.0});
-//    ASSERT_EQ(m->at(1, 2), value_type{0.0});
-//}
+TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    // clang-format off
+    m->read({gko::matrix_data<TypeParam>{{2, 3},
+                                         {{0, 0, 1.0},
+                                          {0, 1, 3.0},
+                                          {0, 2, 2.0},
+                                          {1, 0, 0.0},
+                                          {1, 1, 5.0},
+                                          {1, 2, 0.0}}},
+             gko::matrix_data<TypeParam>{{2, 2},
+                                         {{0, 0, -1.0},
+                                          {0, 1, 0.5},
+                                          {1, 0, 0.0},
+                                          {1, 1, 9.0}}}});
+    // clang-format on
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 2));
+    ASSERT_EQ(m->get_num_stored_elements(), 10);
+    ASSERT_EQ(m->get_num_stored_elements(0), 6);
+    ASSERT_EQ(m->get_num_stored_elements(1), 4);
+    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(0, 0, 2), value_type{2.0});
+    EXPECT_EQ(m->at(0, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at(1, 0, 0), value_type{-1.0});
+    EXPECT_EQ(m->at(1, 0, 1), value_type{0.5});
+    EXPECT_EQ(m->at(1, 1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(1, 1, 1), value_type{9.0});
+}
 
 
-// TYPED_TEST(BatchDense, GeneratesCorrectMatrixData)
-//{
-//    using value_type = typename TestFixture::value_type;
-//    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
-//    gko::matrix_data<TypeParam> data;
-//
-//    this->mtx->write(data);
-//
-//    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-//    ASSERT_EQ(data.nonzeros.size(), 6);
-//    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
-//    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{2.0}));
-//    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{3.0}));
-//    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, value_type{1.5}));
-//    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, value_type{2.5}));
-//    EXPECT_EQ(data.nonzeros[5], tpl(1, 2, value_type{3.5}));
-//}
+TYPED_TEST(BatchDense, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
+    std::vector<gko::matrix_data<TypeParam>> data;
+
+    this->mtx->write(data);
+
+    ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
+    ASSERT_EQ(data[0].nonzeros.size(), 6);
+    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{-1.0}));
+    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{2.0}));
+    EXPECT_EQ(data[0].nonzeros[2], tpl(0, 2, value_type{3.0}));
+    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 0, value_type{-1.5}));
+    EXPECT_EQ(data[0].nonzeros[4], tpl(1, 1, value_type{2.5}));
+    EXPECT_EQ(data[0].nonzeros[5], tpl(1, 2, value_type{3.5}));
+    ASSERT_EQ(data[1].size, gko::dim<2>(2, 3));
+    ASSERT_EQ(data[1].nonzeros.size(), 6);
+    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{2.5}));
+    EXPECT_EQ(data[1].nonzeros[2], tpl(0, 2, value_type{3.0}));
+    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 0, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[4], tpl(1, 1, value_type{2.0}));
+    EXPECT_EQ(data[1].nonzeros[5], tpl(1, 2, value_type{3.0}));
+}
 
 
-// TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
-//{
-//    using value_type = typename TestFixture::value_type;
-//    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
-//    gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
-//    data.set_value(0, 0, 1.0);
-//    data.set_value(0, 1, 3.0);
-//    data.set_value(0, 2, 2.0);
-//    data.set_value(1, 0, 0.0);
-//    data.set_value(1, 1, 5.0);
-//    data.set_value(1, 2, 0.0);
-//
-//    m->read(data);
-//
-//    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-//    ASSERT_EQ(m->get_num_stored_elements(), 6);
-//    EXPECT_EQ(m->at(0, 0), value_type{1.0});
-//    EXPECT_EQ(m->at(1, 0), value_type{0.0});
-//    EXPECT_EQ(m->at(0, 1), value_type{3.0});
-//    EXPECT_EQ(m->at(1, 1), value_type{5.0});
-//    EXPECT_EQ(m->at(0, 2), value_type{2.0});
-//    ASSERT_EQ(m->at(1, 2), value_type{0.0});
-//}
+TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::BatchDense<TypeParam>::create(this->exec);
+    gko::matrix_assembly_data<TypeParam> data1(gko::dim<2>{2, 3});
+    data1.set_value(0, 0, 1.0);
+    data1.set_value(0, 1, 3.0);
+    data1.set_value(0, 2, 2.0);
+    data1.set_value(1, 0, 0.0);
+    data1.set_value(1, 1, 5.0);
+    data1.set_value(1, 2, 0.0);
+    gko::matrix_assembly_data<TypeParam> data2(gko::dim<2>{2, 1});
+    data2.set_value(0, 0, 2.0);
+    data2.set_value(1, 0, 5.0);
+    auto data = std::vector<gko::matrix_assembly_data<TypeParam>>{data1, data2};
+
+    m->read(data);
+
+    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_num_stored_elements(), 8);
+    ASSERT_EQ(m->get_num_stored_elements(0), 6);
+    ASSERT_EQ(m->get_num_stored_elements(1), 2);
+    EXPECT_EQ(m->at(0, 0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(0, 1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(0, 1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(0, 0, 2), value_type{2.0});
+    ASSERT_EQ(m->at(0, 1, 2), value_type{0.0});
+    EXPECT_EQ(m->at(1, 0, 0), value_type{2.0});
+    EXPECT_EQ(m->at(1, 1, 0), value_type{5.0});
+}
 
 
 }  // namespace
