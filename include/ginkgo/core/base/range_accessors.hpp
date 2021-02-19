@@ -332,8 +332,8 @@ protected:
                                                 dim<dimensionality> size,
                                                 stride_type stride)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
-          stride{stride}
+          lengths(detail::to_array<const size_type>(size)),
+          stride(stride)
     {}
 
     /**
@@ -345,8 +345,8 @@ protected:
     constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
                                                 dim<dimensionality> size)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
-          stride{detail::compute_default_stride_array(lengths)}
+          lengths(detail::to_array<const size_type>(size)),
+          stride(detail::compute_default_stride_array(lengths))
     {}
 
 public:
@@ -517,8 +517,8 @@ protected:
                                                 dim<dimensionality> size,
                                                 size_type stride)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
-          stride{stride}
+          lengths(detail::to_array<const size_type>(size)),
+          stride(stride)
     {}
 
     /**
@@ -530,7 +530,7 @@ protected:
     constexpr GKO_ATTRIBUTES explicit row_major(data_type data,
                                                 dim<dimensionality> size)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
+          lengths(detail::to_array<const size_type>(size)),
           stride{size[1]}
     {}
 
@@ -809,8 +809,8 @@ protected:
                                                 dim<dimensionality> size,
                                                 stride_type stride)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
-          stride{stride}
+          lengths(detail::to_array<const size_type>(size)),
+          stride(stride)
     {}
 
     /**
@@ -822,8 +822,8 @@ protected:
     constexpr GKO_ATTRIBUTES explicit col_major(data_type data,
                                                 dim<dimensionality> size)
         : data{data},
-          lengths{detail::to_array<const size_type>(size)},
-          stride{detail_colmajor::default_stride_array(lengths)}
+          lengths(detail::to_array<const size_type>(size)),
+          stride(detail_colmajor::default_stride_array(lengths))
     {}
 
 public:
