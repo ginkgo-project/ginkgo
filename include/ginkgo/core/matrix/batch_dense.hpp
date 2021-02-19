@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -130,6 +131,27 @@ public:
     std::unique_ptr<BatchLinOp> transpose() const override;
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
+
+    /**
+     * Unbatches the batched dense and creates a std::vector of Dense matrices
+     *
+     * @return  a std::vector containing the Dense matrices.
+     */
+    std::vector<std::unique_ptr<Dense<ValueType>>> unbatch()
+    {
+        auto exec = this->get_executor();
+        auto dense_mats = std::vector<std::unique_ptr<Dense<ValueType>>>{};
+        for (size_type b = 0; b < this->get_num_batches(); ++b) {
+            auto mat = Dense<ValueType>::create(exec, this->get_sizes()[b],
+                                                this->get_strides()[b]);
+            exec->copy_from(
+                exec.get(), mat->get_num_stored_elements(),
+                this->get_const_values() + num_elems_per_batch_cumul_[b],
+                mat->get_values());
+            dense_mats.emplace_back(std::move(mat));
+        }
+        return dense_mats;
+    }
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -350,6 +372,26 @@ private:
         return ndim_vec;
     }
 
+    inline const std::vector<size_type> get_strides_from_mtxs(
+        const std::vector<Dense<ValueType> *> mtxs)
+    {
+        auto strides = std::vector<size_type>(mtxs.size());
+        for (auto i = 0; i < mtxs.size(); ++i) {
+            strides[i] = mtxs[i]->get_stride();
+        }
+        return strides;
+    }
+
+    inline const std::vector<dim<2>> get_sizes_from_mtxs(
+        const std::vector<Dense<ValueType> *> mtxs)
+    {
+        auto sizes = std::vector<dim<2>>(mtxs.size());
+        for (auto i = 0; i < mtxs.size(); ++i) {
+            sizes[i] = mtxs[i]->get_size();
+        }
+        return sizes;
+    }
+
     inline const std::vector<size_type> compute_num_elems_per_batch_cumul(
         const std::vector<gko::dim<2>> sizes,
         const std::vector<size_type> strides)
@@ -425,6 +467,29 @@ protected:
     }
 
     /**
+     * Creates a BatchDense matrix from a vector of matrices
+     *
+     * @param exec  Executor associated to the matrix
+     * @param matrices  The matrices that need to be batched.
+     */
+    BatchDense(std::shared_ptr<const Executor> exec,
+               const std::vector<Dense<ValueType> *> &matrices)
+        : EnableBatchLinOp<BatchDense>(exec, get_sizes_from_mtxs(matrices)),
+          strides_{get_strides_from_mtxs(matrices)},
+          values_(exec, compute_batch_mem(this->get_sizes(), strides_))
+    {
+        num_elems_per_batch_cumul_ =
+            compute_num_elems_per_batch_cumul(this->get_sizes(), strides_);
+        for (size_type i = 0; i < this->get_num_batches(); ++i) {
+            auto local_exec = matrices[i]->get_executor();
+            exec->copy_from(local_exec.get(),
+                            matrices[i]->get_num_stored_elements(),
+                            matrices[i]->get_const_values(),
+                            this->get_values() + num_elems_per_batch_cumul_[i]);
+        }
+    }
+
+    /**
      * Creates a BatchDense matrix with the same configuration as the callers
      * matrix.
      *
@@ -487,9 +552,9 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
     std::vector<size_type> strides_;
     std::vector<size_type> num_elems_per_batch_cumul_;
+    Array<value_type> values_;
 };
 
 
