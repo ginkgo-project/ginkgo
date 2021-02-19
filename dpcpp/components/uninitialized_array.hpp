@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "dpcpp/base/dpct.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
@@ -61,7 +64,7 @@ public:
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
+    constexpr __dpct_inline__ operator ValueType *() const noexcept
     {
         return &(*this)[0];
     }
@@ -72,7 +75,7 @@ public:
      *
      * @return the non-const pointer to the first entry of the array.
      */
-    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
+    __dpct_inline__ operator ValueType *() noexcept { return &(*this)[0]; }
 
     /**
      * constexpr array access operator.
@@ -82,7 +85,8 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
+    constexpr __dpct_inline__ ValueType &operator[](size_type pos) const
+        noexcept
     {
         return reinterpret_cast<const ValueType *>(data_)[pos];
     }
