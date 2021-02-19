@@ -57,7 +57,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 
 
 // #include "common/components/reduction.hpp.inc"
@@ -105,9 +105,8 @@ __dpct_inline__ int choose_pivot(const Group &group, ValueType local_data,
 {
     using real = remove_complex<ValueType>;
     real lmag = is_pivoted ? -one<real>() : abs(local_data);
-    const auto pivot = std::reduce(
-        oneapi::dpl::execution::make_device_policy(dpct::get_default_queue()),
-        group, group.thread_rank(), [&](int lidx, int ridx) {
+    const auto pivot =
+        reduce(group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);
             if (rmag > lmag) {
                 lmag = rmag;
@@ -150,9 +149,8 @@ void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
     if (warp_id > 0) {
         return;
     }
-    auto result = std::reduce(
-        oneapi::dpl::execution::make_device_policy(dpct::get_default_queue()),
-        warp, data[warp.thread_rank()], reduce_op);
+    auto result = ::gko::kernels::dpcpp::reduce(warp, data[warp.thread_rank()],
+                                                reduce_op);
     if (warp.thread_rank() == 0) {
         data[0] = result;
     }

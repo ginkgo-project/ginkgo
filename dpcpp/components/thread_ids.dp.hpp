@@ -308,6 +308,7 @@ __dpct_inline__ IndexType get_subwarp_num_flat(sycl::nd_item<3> item_ct1)
            static_cast<IndexType>(item_ct1.get_group_range(2));
 }
 
+
 }  // namespace thread
 }  // namespace dpcpp
 }  // namespace kernels
