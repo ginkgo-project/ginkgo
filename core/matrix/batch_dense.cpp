@@ -75,21 +75,6 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(calculate_total_cols, batch_dense::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, batch_dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
-GKO_REGISTER_OPERATION(symm_permute, batch_dense::symm_permute);
-GKO_REGISTER_OPERATION(inv_symm_permute, batch_dense::inv_symm_permute);
-GKO_REGISTER_OPERATION(row_gather, batch_dense::row_gather);
-GKO_REGISTER_OPERATION(column_permute, batch_dense::column_permute);
-GKO_REGISTER_OPERATION(inverse_row_permute, batch_dense::inverse_row_permute);
-GKO_REGISTER_OPERATION(inverse_column_permute,
-                       batch_dense::inverse_column_permute);
-GKO_REGISTER_OPERATION(extract_diagonal, batch_dense::extract_diagonal);
-GKO_REGISTER_OPERATION(inplace_absolute_batch_dense,
-                       batch_dense::inplace_absolute_batch_dense);
-GKO_REGISTER_OPERATION(outplace_absolute_batch_dense,
-                       batch_dense::outplace_absolute_batch_dense);
-GKO_REGISTER_OPERATION(make_complex, batch_dense::make_complex);
-GKO_REGISTER_OPERATION(get_real, batch_dense::get_real);
-GKO_REGISTER_OPERATION(get_imag, batch_dense::get_imag);
 
 
 }  // namespace batch_dense
