@@ -119,9 +119,9 @@ public:
 
     void move_to(BatchDense<next_precision<ValueType>> *result) override;
 
-    void read(std::vector<const mat_data> &data) override;
+    void read(const std::vector<mat_data> &data) override;
 
-    void read(std::vector<const mat_data32> &data) override;
+    void read(const std::vector<mat_data32> &data) override;
 
     void write(std::vector<mat_data> &data) const override;
 
