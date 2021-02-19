@@ -2,7 +2,7 @@
 \label{classgko_1_1stop_1_1ResidualNorm}\index{gko::stop::ResidualNorm$<$ ValueType $>$@{gko::stop::ResidualNorm$<$ ValueType $>$}}
 
 
-The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm.  
+The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class is a stopping criterion which stops the iteration process when the actual residual norm is below a certain threshold relative to.  
 
 
 
@@ -19,6 +19,13 @@ Collaboration diagram for gko\+::stop\+::Residual\+Norm$<$ Value\+Type $>$\+:
 \includegraphics[width=350pt]{classgko_1_1stop_1_1ResidualNorm__coll__graph}
 \end{center}
 \end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -31,22 +38,39 @@ using {\bfseries Norm\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{m
 \mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_aac0bd59ac7da605a9005b3a905d6abd7}\label{classgko_1_1stop_1_1ResidualNorm_aac0bd59ac7da605a9005b3a905d6abd7}} 
 using {\bfseries Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ Value\+Type $>$
 \end{DoxyCompactItemize}
-\doxysubsection*{Friends}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_a3a14be71ea26b1c14cbfd04587731237}\label{classgko_1_1stop_1_1ResidualNorm_a3a14be71ea26b1c14cbfd04587731237}} 
-class {\bfseries Enable\+Polymorphic\+Object$<$ Residual\+Norm$<$ Value\+Type $>$, Criterion $>$}
+\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_a8977fe8fe722ebf907d19fd5c05fef50}\label{classgko_1_1stop_1_1ResidualNorm_a8977fe8fe722ebf907d19fd5c05fef50}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
-\doxysubsection*{Additional Inherited Members}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_ac08e73277feaa6eff88bd1b4f94fd61d}\label{classgko_1_1stop_1_1ResidualNorm_ac08e73277feaa6eff88bd1b4f94fd61d}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
 class gko\+::stop\+::\+Residual\+Norm$<$ Value\+Type $>$}
 
-The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm. 
+The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class is a stopping criterion which stops the iteration process when the actual residual norm is below a certain threshold relative to. 
 
-These criteria differ in the way they initialize starting\+\_\+tau\+\_\+, so in the value they compare the residual norm against. 
+
+\begin{DoxyEnumerate}
+\item the norm of the right-\/hand side, norm(residual) / norm(right\+\_\+hand\+\_\+side) $<$ threshold
+\item the initial residual, norm(residual) / norm(initial\+\_\+residual) $<$ threshold.
+\item one, norm(residual) $<$ threshold.
+\end{DoxyEnumerate}
+
+For better performance, the checks are run on the executor where the algorithm is executed.
+
+\begin{DoxyNote}{Note}
+To use this stopping criterion there are some dependencies. The constructor depends on either {\ttfamily b} or the {\ttfamily initial\+\_\+residual} in order to compute their norms. If this is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown. 
+\end{DoxyNote}
+
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 

@@ -61,7 +61,7 @@ The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+
 when norm(residual) / norm(initial\+\_\+residual) $<$ threshold. For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.
 
 \begin{DoxyNote}{Note}
-To use this stopping criterion there are some dependencies. The constructor depends on {\ttfamily initial\+\_\+residual} in order to compute the first relative residual norm. The check method depends on either the {\ttfamily residual\+\_\+norm} or the {\ttfamily residual} being set. When any of those is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown. 
+To use this stopping criterion there are some dependencies. The constructor depends on {\ttfamily initial\+\_\+residual} in order to compute the first relative residual norm. The check method depends on either the {\ttfamily residual\+\_\+norm} or the {\ttfamily residual} being set. When any of those is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown.
 \end{DoxyNote}
 
 

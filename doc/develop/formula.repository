@@ -39,17 +39,20 @@
 \form#38:$aiU * x$
 \form#39:$aiL * x$
 \form#40:$|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa$
-\form#41:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
-\form#42:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
-\form#43:$x1, ..., xk, $
-\form#44:$ h = 1 / (K + 1)$
-\form#45:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
-\form#46:$`f` $
-\form#47:$`f(x) = 6x`$
-\form#48:$`u(x) = x^3`$
-\form#49:$ u : [0, d]^2 \rightarrow R\\ \partial_t u = \delta u + f $
-\form#50:$h = 1/n$
-\form#51:$ u_{i,j}' = \alpha\frac{u_{i-1,j}+u_{i+1,j}+u_{i,j-1}+u_{i,j+1}-4u_{i,j}}{h^2}+f_{i,j} $
-\form#52:$\tau$
-\form#53:$ \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} = \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1} -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2} +f_{i,j} $
-\form#54:$ u_{\cdot}^{k+1}$
+\form#41:$ || r || < \tau $
+\form#42:$ \frac{|| r ||}{|| r_0||} < \tau $
+\form#43:$ \frac{|| r ||}{|| b ||} < \tau $
+\form#44:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
+\form#45:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+\form#46:$x1, ..., xk, $
+\form#47:$ h = 1 / (K + 1)$
+\form#48:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+\form#49:$`f` $
+\form#50:$`f(x) = 6x`$
+\form#51:$`u(x) = x^3`$
+\form#52:$ u : [0, d]^2 \rightarrow R\\ \partial_t u = \delta u + f $
+\form#53:$h = 1/n$
+\form#54:$ u_{i,j}' = \alpha\frac{u_{i-1,j}+u_{i+1,j}+u_{i,j-1}+u_{i,j+1}-4u_{i,j}}{h^2}+f_{i,j} $
+\form#55:$\tau$
+\form#56:$ \frac{u_{i,j}^{k+1} - u_{i,j}^k}{\tau} = \alpha\frac{u_{i-1,j}^{k+1}+u_{i+1,j}^{k+1} -u_{i,j-1}^{k+1}-u_{i,j+1}^{k+1}+4u_{i,j}^{k+1}}{h^2} +f_{i,j} $
+\form#57:$ u_{\cdot}^{k+1}$

@@ -573,7 +573,7 @@ Declare the solver factory. The preconditioner\textquotesingle{}s arguments shou
 \DoxyCodeLine{\textcolor{keyword}{auto} solver\_factory =}
 \DoxyCodeLine{    solver::build()}
 \DoxyCodeLine{        .with\_criteria(}
-\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                .on(exec),}
 \DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(}
@@ -1299,7 +1299,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} solver\_factory =}
 \DoxyCodeLine{        solver::build()}
 \DoxyCodeLine{            .with\_criteria(}
-\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                    .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                    .on(exec),}
 \DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(}

@@ -137,7 +137,7 @@ copy b again
 \DoxyCodeLine{RealValueType outer\_reduction\_factor\{1e-\/12\};}
 \DoxyCodeLine{\textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{    gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(exec);}
-\DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                    .with\_reduction\_factor(outer\_reduction\_factor)}
 \DoxyCodeLine{                    .on(exec);}
 \DoxyCodeLine{}
@@ -158,7 +158,7 @@ Create solver factory
 \DoxyCodeLine{        .with\_solver(}
 \DoxyCodeLine{            cg::build()}
 \DoxyCodeLine{                .with\_criteria(}
-\DoxyCodeLine{                    \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{                    \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                        .with\_reduction\_factor(inner\_reduction\_factor)}
 \DoxyCodeLine{                        .on(exec))}
 \DoxyCodeLine{                .on(exec))}
@@ -348,7 +348,7 @@ This is the expected output\+:
 \DoxyCodeLine{    RealValueType outer\_reduction\_factor\{1e-\/12\};}
 \DoxyCodeLine{    \textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{        gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(exec);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                        .with\_reduction\_factor(outer\_reduction\_factor)}
 \DoxyCodeLine{                        .on(exec);}
 \DoxyCodeLine{}
@@ -363,7 +363,7 @@ This is the expected output\+:
 \DoxyCodeLine{            .with\_solver(}
 \DoxyCodeLine{                cg::build()}
 \DoxyCodeLine{                    .with\_criteria(}
-\DoxyCodeLine{                        \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{                        \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                            .with\_reduction\_factor(inner\_reduction\_factor)}
 \DoxyCodeLine{                            .on(exec))}
 \DoxyCodeLine{                    .on(exec))}

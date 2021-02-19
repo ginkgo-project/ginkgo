@@ -1,5 +1,5 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgko_1_1enable__parameters__type.html" title=" " alt="" coords="5,1025,193,1081"/>
+<area shape="rect" id="node1" href="$classgko_1_1enable__parameters__type.html" title=" " alt="" coords="5,1091,193,1147"/>
 <area shape="rect" id="node2" href="$structgko_1_1factorization_1_1Ic_1_1parameters__type.html" title=" " alt="" coords="280,5,476,61"/>
 <area shape="rect" id="node3" href="$structgko_1_1factorization_1_1Ilu_1_1parameters__type.html" title=" " alt="" coords="277,85,479,141"/>
 <area shape="rect" id="node4" href="$structgko_1_1factorization_1_1ParIc_1_1parameters__type.html" title=" " alt="" coords="265,165,491,221"/>
@@ -23,8 +23,10 @@
 <area shape="rect" id="node22" href="$structgko_1_1solver_1_1UpperTrs_1_1parameters__type.html" title=" " alt="" coords="289,1505,467,1561"/>
 <area shape="rect" id="node23" href="$structgko_1_1stop_1_1AbsoluteResidualNorm_1_1parameters__type.html" title=" " alt="" coords="241,1586,515,1627"/>
 <area shape="rect" id="node24" href="$structgko_1_1stop_1_1Combined_1_1parameters__type.html" title=" " alt="" coords="300,1651,456,1693"/>
-<area shape="rect" id="node25" href="$structgko_1_1stop_1_1Iteration_1_1parameters__type.html" title=" " alt="" coords="305,1717,451,1758"/>
-<area shape="rect" id="node26" href="$structgko_1_1stop_1_1RelativeResidualNorm_1_1parameters__type.html" title=" " alt="" coords="241,1782,515,1823"/>
-<area shape="rect" id="node27" href="$structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type.html" title=" " alt="" coords="255,1847,501,1889"/>
-<area shape="rect" id="node28" href="$structgko_1_1stop_1_1Time_1_1parameters__type.html" title=" " alt="" coords="257,1913,499,1940"/>
+<area shape="rect" id="node25" href="$structgko_1_1stop_1_1ImplicitResidualNorm_1_1parameters__type.html" title=" " alt="" coords="241,1717,515,1758"/>
+<area shape="rect" id="node26" href="$structgko_1_1stop_1_1Iteration_1_1parameters__type.html" title=" " alt="" coords="305,1782,451,1823"/>
+<area shape="rect" id="node27" href="$structgko_1_1stop_1_1RelativeResidualNorm_1_1parameters__type.html" title=" " alt="" coords="241,1847,515,1889"/>
+<area shape="rect" id="node28" href="$structgko_1_1stop_1_1ResidualNorm_1_1parameters__type.html" title=" " alt="" coords="259,1913,497,1954"/>
+<area shape="rect" id="node29" href="$structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type.html" title=" " alt="" coords="255,1978,501,2019"/>
+<area shape="rect" id="node30" href="$structgko_1_1stop_1_1Time_1_1parameters__type.html" title=" " alt="" coords="257,2044,499,2071"/>
 </map>

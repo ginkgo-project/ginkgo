@@ -813,7 +813,7 @@ Ginkgo solve The stopping criteria is set at maximum iterations of 1000 and a re
 \DoxyCodeLine{    bicgstab::build()}
 \DoxyCodeLine{        .with\_criteria(}
 \DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(1000).on(exec),}
-\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<>::build}}()}
 \DoxyCodeLine{                .with\_reduction\_factor(1e-\/12)}
 \DoxyCodeLine{                .on(exec))}
 \DoxyCodeLine{        .with\_preconditioner(bj::build().on(exec))}
@@ -1835,7 +1835,7 @@ The {\ttfamily main} function is similar to the previous examples. The main diff
 \DoxyCodeLine{        bicgstab::build()}
 \DoxyCodeLine{            .with\_criteria(}
 \DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(1000).on(exec),}
-\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<>::build}}()}
 \DoxyCodeLine{                    .with\_reduction\_factor(1e-\/12)}
 \DoxyCodeLine{                    .on(exec))}
 \DoxyCodeLine{            .with\_preconditioner(bj::build().on(exec))}

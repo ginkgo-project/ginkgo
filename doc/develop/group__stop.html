@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/255031547 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -68,6 +68,7 @@ $(function() {
   <div class="summary">
 <a href="#namespaces">Namespaces</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">Stopping criteria</div>  </div>
@@ -91,8 +92,14 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Iteration.html">gko::stop::Iteration</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1Iteration.html" title="The Iteration class is a stopping criterion which stops the iteration process after a preset number o...">Iteration</a> class is a stopping criterion which stops the iteration process after a preset number of iterations.  <a href="classgko_1_1stop_1_1Iteration.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ResidualNormBase.html">gko::stop::ResidualNormBase&lt; ValueType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNormBase.html" title="The ResidualNormBase class provides a framework for stopping criteria related to the residual norm.">ResidualNormBase</a> class provides a framework for stopping criteria related to the residual norm.  <a href="classgko_1_1stop_1_1ResidualNormBase.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ResidualNorm.html">gko::stop::ResidualNorm&lt; ValueType &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNorm.html" title="The ResidualNorm class provides a framework for stopping criteria related to the residual norm.">ResidualNorm</a> class provides a framework for stopping criteria related to the residual norm.  <a href="classgko_1_1stop_1_1ResidualNorm.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNorm.html" title="The ResidualNorm class is a stopping criterion which stops the iteration process when the actual resi...">ResidualNorm</a> class is a stopping criterion which stops the iteration process when the actual residual norm is below a certain threshold relative to.  <a href="classgko_1_1stop_1_1ResidualNorm.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ImplicitResidualNorm.html">gko::stop::ImplicitResidualNorm&lt; ValueType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ImplicitResidualNorm.html" title="The ImplicitResidualNorm class is a stopping criterion which stops the iteration process when the imp...">ImplicitResidualNorm</a> class is a stopping criterion which stops the iteration process when the implicit residual norm is below a certain threshold relative to.  <a href="classgko_1_1stop_1_1ImplicitResidualNorm.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt; ValueType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.e.  <a href="classgko_1_1stop_1_1ResidualNormReduction.html#details">More...</a><br /></td></tr>
@@ -110,6 +117,15 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1Time.html" title="The Time class is a stopping criterion which stops the iteration process after a certain amout of tim...">Time</a> class is a stopping criterion which stops the iteration process after a certain amout of time has passed.  <a href="classgko_1_1stop_1_1Time.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:ga5fe97c4263e876f68b5d4a21f0e615b9"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__stop.html#ga5fe97c4263e876f68b5d4a21f0e615b9">gko::stop::mode</a> { <b>absolute</b>, 
+<b>initial_resnorm</b>, 
+<b>rhs_norm</b>
+ }</td></tr>
+<tr class="memdesc:ga5fe97c4263e876f68b5d4a21f0e615b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">The mode for the residual norm criterion.  <a href="group__stop.html#ga5fe97c4263e876f68b5d4a21f0e615b9">More...</a><br /></td></tr>
+<tr class="separator:ga5fe97c4263e876f68b5d4a21f0e615b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ga3a3325b3a7660501f3bb72d08b09f2d2"><td class="memTemplParams" colspan="2">template&lt;typename FactoryContainer &gt; </td></tr>
@@ -119,6 +135,36 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. </p>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="ga5fe97c4263e876f68b5d4a21f0e615b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5fe97c4263e876f68b5d4a21f0e615b9">&#9670;&nbsp;</a></span>mode</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="group__stop.html#ga5fe97c4263e876f68b5d4a21f0e615b9">gko::stop::mode</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>The mode for the residual norm criterion. </p>
+<ul>
+<li>absolute: Check for tolerance against residual norm. <img class="formulaInl" alt="$ || r || &lt; \tau $" src="form_41.png"/></li>
+<li>initial_resnorm: Check for tolerance relative to the initial residual norm. <img class="formulaInl" alt="$ \frac{|| r ||}{|| r_0||} &lt; \tau $" src="form_42.png"/></li>
+<li>rhs_resnorm: Check for tolerance relative to the rhs norm. <img class="formulaInl" alt="$ \frac{|| r ||}{|| b ||} &lt; \tau $" src="form_43.png"/> </li>
+</ul>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ga3a3325b3a7660501f3bb72d08b09f2d2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga3a3325b3a7660501f3bb72d08b09f2d2">&#9670;&nbsp;</a></span>combine()</h2>

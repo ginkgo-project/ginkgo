@@ -135,7 +135,7 @@ copy b again
 \DoxyCodeLine{\textcolor{keyword}{const} RealValueType reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{\textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{    gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
-\DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                    .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                    .on(exec);}
 \DoxyCodeLine{}
@@ -348,7 +348,7 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{const} RealValueType reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{    \textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{        gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<ValueType>::build}}()}
 \DoxyCodeLine{                        .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                        .on(exec);}
 \DoxyCodeLine{}

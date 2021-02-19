@@ -17,8 +17,12 @@ class \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{gko\+::stop\+::\+Combined}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{gko\+::stop\+::\+Iteration}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormBase}{gko\+::stop\+::\+Residual\+Norm\+Base$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormBase}{Residual\+Norm\+Base}} class provides a framework for stopping criteria related to the residual norm. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko\+::stop\+::\+Residual\+Norm$<$ Value\+Type $>$}}
-\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class is a stopping criterion which stops the iteration process when the actual residual norm is below a certain threshold relative to. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm}{gko\+::stop\+::\+Implicit\+Residual\+Norm$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm}{Implicit\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the implicit residual norm is below a certain threshold relative to. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko\+::stop\+::\+Residual\+Norm\+Reduction$<$ Value\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.\+e. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{gko\+::stop\+::\+Relative\+Residual\+Norm$<$ Value\+Type $>$}}
@@ -29,6 +33,14 @@ class \mbox{\hyperlink{classgko_1_1stopping__status}{gko\+::stopping\+\_\+status
 \begin{DoxyCompactList}\small\item\em This class is used to keep track of the stopping status of one vector. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Time}{Time}} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}{gko\+::stop\+::mode}} \{ {\bfseries absolute}, 
+{\bfseries initial\+\_\+resnorm}, 
+{\bfseries rhs\+\_\+norm}
+ \}
+\begin{DoxyCompactList}\small\item\em The mode for the residual norm criterion. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -40,6 +52,24 @@ class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}}
 A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. 
 
 
+
+\doxysubsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}\label{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}} 
+\index{Stopping criteria@{Stopping criteria}!mode@{mode}}
+\index{mode@{mode}!Stopping criteria@{Stopping criteria}}
+\doxysubsubsection{\texorpdfstring{mode}{mode}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}{gko\+::stop\+::mode}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+The mode for the residual norm criterion. 
+
+
+\begin{DoxyItemize}
+\item absolute\+: Check for tolerance against residual norm. $ || r || < \tau $
+\item initial\+\_\+resnorm\+: Check for tolerance relative to the initial residual norm. $ \frac{|| r ||}{|| r_0||} < \tau $
+\item rhs\+\_\+resnorm\+: Check for tolerance relative to the rhs norm. $ \frac{|| r ||}{|| b ||} < \tau $ 
+\end{DoxyItemize}
 
 \doxysubsection{Function Documentation}
 \mbox{\Hypertarget{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}\label{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}} 

@@ -155,6 +155,8 @@ std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbo
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} object. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_aeee1695589ffafcdff32950dde5eab52}{row\+\_\+permute}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$permutation\+\_\+indices) const override
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the row permutation of the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} object. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_af8eb9f6120517fbc19cee8e9ddfceb05}{fill}} (const Value\+Type value)
+\begin{DoxyCompactList}\small\item\em Fill the dense matrix with a given value. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a5eb042462d750c84908fb5a3fac62dd5}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$gather\+\_\+indices) const
 \begin{DoxyCompactList}\small\item\em Create a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix consisting of the given rows from this matrix. \end{DoxyCompactList}\item 
 std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a075300eaaaffbc2c8f548417d2fe9baa}{row\+\_\+gather}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$gather\+\_\+indices) const
@@ -684,6 +686,22 @@ Extracts the diagonal entries of the matrix into a vector.
 
 Implements \mbox{\hyperlink{classgko_1_1DiagonalExtractable_a3a748eb3a1ced4e679b67a0e20f46336}{gko\+::\+Diagonal\+Extractable$<$ Value\+Type $>$}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af8eb9f6120517fbc19cee8e9ddfceb05}\label{classgko_1_1matrix_1_1Dense_af8eb9f6120517fbc19cee8e9ddfceb05}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!fill@{fill}}
+\index{fill@{fill}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{fill()}{fill()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::fill (\begin{DoxyParamCaption}\item[{const Value\+Type}]{value }\end{DoxyParamCaption})}
+
+
+
+Fill the dense matrix with a given value. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em value} & the value to be filled \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}\label{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!get\_const\_values@{get\_const\_values}}
 \index{get\_const\_values@{get\_const\_values}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}

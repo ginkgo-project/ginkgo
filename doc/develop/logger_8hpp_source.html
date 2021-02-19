@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/255031547 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -273,126 +273,134 @@ $(function() {
 <div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;                              <span class="keyword">const</span> <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &amp;it, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *r,</div>
 <div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;                              <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x = <span class="keyword">nullptr</span>,</div>
 <div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;                              <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *tau = <span class="keyword">nullptr</span>)</div>
-<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160; </div>
-<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160; </div>
-<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;<span class="preprocessor">#undef GKO_LOGGER_REGISTER_EVENT</span></div>
-<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
-<div class="line"><a name="l00412"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">  412</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">executor_events_mask</a> =</div>
-<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;        allocation_started_mask | allocation_completed_mask |</div>
-<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;        free_started_mask | free_completed_mask | copy_started_mask |</div>
-<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;        copy_completed_mask;</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;protected:</div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    virtual <span class="keywordtype">void</span> on_iteration_complete(const <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *solver, const <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> &amp;it,</div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;                                       const <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *r, const <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x,</div>
+<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160;                                       const <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *tau,</div>
+<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160;                                       const <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *implicit_tau_sq)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;        this-&gt;on_iteration_complete(solver, it, r, x, tau);</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;    }</div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160; </div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;<span class="preprocessor">#undef GKO_LOGGER_REGISTER_EVENT</span></div>
 <div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160; </div>
-<div class="line"><a name="l00420"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">  420</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">operation_events_mask</a> =</div>
-<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;        operation_launched_mask | operation_completed_mask;</div>
-<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160; </div>
-<div class="line"><a name="l00426"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">  426</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">polymorphic_object_events_mask</a> =</div>
-<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;        polymorphic_object_create_started_mask |</div>
-<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;        polymorphic_object_create_completed_mask |</div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;        polymorphic_object_copy_started_mask |</div>
-<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;        polymorphic_object_copy_completed_mask |</div>
-<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;        polymorphic_object_deleted_mask;</div>
-<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160; </div>
-<div class="line"><a name="l00436"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">  436</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">linop_events_mask</a> =</div>
-<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;        linop_apply_started_mask | linop_apply_completed_mask |</div>
-<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;        linop_advanced_apply_started_mask | linop_advanced_apply_completed_mask;</div>
-<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160; </div>
-<div class="line"><a name="l00443"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">  443</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">linop_factory_events_mask</a> =</div>
-<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;        linop_factory_generate_started_mask |</div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;        linop_factory_generate_completed_mask;</div>
-<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160; </div>
-<div class="line"><a name="l00450"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">  450</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">criterion_events_mask</a> =</div>
-<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;        criterion_check_started_mask | criterion_check_completed_mask;</div>
-<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160; </div>
-<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a>(std::shared_ptr&lt;const gko::Executor&gt; exec,</div>
-<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;                    <span class="keyword">const</span> mask_type &amp;enabled_events = <a class="code" href="classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532">all_events_mask</a>)</div>
-<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;        : exec_{exec}, enabled_events_{enabled_events}</div>
-<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;    {}</div>
-<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160; </div>
-<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160;    std::shared_ptr&lt;const Executor&gt; exec_;</div>
-<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160;    mask_type enabled_events_;</div>
-<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;};</div>
-<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160; </div>
-<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160; </div>
-<div class="line"><a name="l00484"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Loggable.html">  484</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a> {</div>
-<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160; </div>
-<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1Loggable.html#aa2bb887b5ef7e75fa1a30ee1896ed932">add_logger</a>(std::shared_ptr&lt;const Logger&gt; logger) = 0;</div>
-<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160; </div>
-<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1Loggable.html#a5de4092a74cf04f30f13636d49aaec8b">remove_logger</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger) = 0;</div>
-<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;};</div>
-<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160; </div>
-<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160; </div>
-<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteLoggable, <span class="keyword">typename</span> PolymorphicBase = Loggable&gt;</div>
-<div class="line"><a name="l00521"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html">  521</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1log_1_1EnableLogging.html">EnableLogging</a> : <span class="keyword">public</span> <a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a> {</div>
-<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00523"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">  523</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">add_logger</a>(std::shared_ptr&lt;const Logger&gt; logger)<span class="keyword"> override</span></div>
-<div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;        loggers_.push_back(logger);</div>
-<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160;    }</div>
-<div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160; </div>
-<div class="line"><a name="l00528"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">  528</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">remove_logger</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger)<span class="keyword"> override</span></div>
-<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;        <span class="keyword">auto</span> idx = find_if(begin(loggers_), end(loggers_),</div>
-<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;                           [&amp;logger](std::shared_ptr&lt;const Logger&gt; l) {</div>
-<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;                               <span class="keywordflow">return</span> <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(l) == logger;</div>
-<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;                           });</div>
-<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;        <span class="keywordflow">if</span> (idx != end(loggers_)) {</div>
-<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;            loggers_.erase(idx);</div>
-<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;            <span class="keywordflow">throw</span> <a class="code" href="classgko_1_1OutOfBoundsError.html">OutOfBoundsError</a>(__FILE__, __LINE__, loggers_.size(),</div>
-<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;                                   loggers_.size());</div>
-<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;        }</div>
-<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;    }</div>
-<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160; </div>
-<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;    <span class="keyword">template</span> &lt;<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> Event, <span class="keyword">typename</span>... Params&gt;</div>
-<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;    <span class="keywordtype">void</span> log(Params &amp;&amp;... params)<span class="keyword"> const</span></div>
-<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;        <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;logger : loggers_) {</div>
-<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;            logger-&gt;template on&lt;Event&gt;(std::forward&lt;Params&gt;(params)...);</div>
-<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;        }</div>
-<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;    }</div>
-<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160; </div>
-<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;    std::vector&lt;std::shared_ptr&lt;const Logger&gt;&gt; loggers_;</div>
-<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;};</div>
-<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160; </div>
-<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160; </div>
-<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;}  <span class="comment">// namespace log</span></div>
-<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160; </div>
+<div class="line"><a name="l00420"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">  420</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">executor_events_mask</a> =</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;        allocation_started_mask | allocation_completed_mask |</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;        free_started_mask | free_completed_mask | copy_started_mask |</div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;        copy_completed_mask;</div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160; </div>
+<div class="line"><a name="l00428"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">  428</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">operation_events_mask</a> =</div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;        operation_launched_mask | operation_completed_mask;</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160; </div>
+<div class="line"><a name="l00434"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">  434</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">polymorphic_object_events_mask</a> =</div>
+<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;        polymorphic_object_create_started_mask |</div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;        polymorphic_object_create_completed_mask |</div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;        polymorphic_object_copy_started_mask |</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;        polymorphic_object_copy_completed_mask |</div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;        polymorphic_object_deleted_mask;</div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160; </div>
+<div class="line"><a name="l00444"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">  444</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">linop_events_mask</a> =</div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;        linop_apply_started_mask | linop_apply_completed_mask |</div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;        linop_advanced_apply_started_mask | linop_advanced_apply_completed_mask;</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160; </div>
+<div class="line"><a name="l00451"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">  451</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">linop_factory_events_mask</a> =</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;        linop_factory_generate_started_mask |</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160;        linop_factory_generate_completed_mask;</div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160; </div>
+<div class="line"><a name="l00458"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">  458</a></span>&#160;    <span class="keyword">static</span> constexpr mask_type <a class="code" href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">criterion_events_mask</a> =</div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160;        criterion_check_started_mask | criterion_check_completed_mask;</div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160; </div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a>(std::shared_ptr&lt;const gko::Executor&gt; exec,</div>
+<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;                    <span class="keyword">const</span> mask_type &amp;enabled_events = <a class="code" href="classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532">all_events_mask</a>)</div>
+<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;        : exec_{exec}, enabled_events_{enabled_events}</div>
+<div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;    {}</div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160; </div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;    std::shared_ptr&lt;const Executor&gt; exec_;</div>
+<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160;    mask_type enabled_events_;</div>
+<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;};</div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160; </div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160; </div>
+<div class="line"><a name="l00492"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1Loggable.html">  492</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a> {</div>
+<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00495"></a><span class="lineno">  495</span>&#160; </div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1Loggable.html#aa2bb887b5ef7e75fa1a30ee1896ed932">add_logger</a>(std::shared_ptr&lt;const Logger&gt; logger) = 0;</div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160; </div>
+<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1Loggable.html#a5de4092a74cf04f30f13636d49aaec8b">remove_logger</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger) = 0;</div>
+<div class="line"><a name="l00513"></a><span class="lineno">  513</span>&#160;};</div>
+<div class="line"><a name="l00514"></a><span class="lineno">  514</span>&#160; </div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160; </div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteLoggable, <span class="keyword">typename</span> PolymorphicBase = Loggable&gt;</div>
+<div class="line"><a name="l00529"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html">  529</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1log_1_1EnableLogging.html">EnableLogging</a> : <span class="keyword">public</span> <a class="code" href="classgko_1_1log_1_1Loggable.html">Loggable</a> {</div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00531"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">  531</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">add_logger</a>(std::shared_ptr&lt;const Logger&gt; logger)<span class="keyword"> override</span></div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;        loggers_.push_back(logger);</div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;    }</div>
+<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160; </div>
+<div class="line"><a name="l00536"></a><span class="lineno"><a class="line" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">  536</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">remove_logger</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1log_1_1Logger.html">Logger</a> *logger)<span class="keyword"> override</span></div>
+<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;        <span class="keyword">auto</span> idx = find_if(begin(loggers_), end(loggers_),</div>
+<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;                           [&amp;logger](std::shared_ptr&lt;const Logger&gt; l) {</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;                               <span class="keywordflow">return</span> <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(l) == logger;</div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;                           });</div>
+<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;        <span class="keywordflow">if</span> (idx != end(loggers_)) {</div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;            loggers_.erase(idx);</div>
+<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;        } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;            <span class="keywordflow">throw</span> <a class="code" href="classgko_1_1OutOfBoundsError.html">OutOfBoundsError</a>(__FILE__, __LINE__, loggers_.size(),</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;                                   loggers_.size());</div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;        }</div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;    }</div>
+<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160; </div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;    <span class="keyword">template</span> &lt;<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> Event, <span class="keyword">typename</span>... Params&gt;</div>
+<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;    <span class="keywordtype">void</span> log(Params &amp;&amp;... params)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;        <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;logger : loggers_) {</div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;            logger-&gt;template on&lt;Event&gt;(std::forward&lt;Params&gt;(params)...);</div>
+<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;        }</div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;    }</div>
 <div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160; </div>
-<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;<span class="preprocessor">#endif  // GKO_PUBLIC_CORE_LOG_LOGGER_HPP_</span></div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;    std::vector&lt;std::shared_ptr&lt;const Logger&gt;&gt; loggers_;</div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;};</div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160; </div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160; </div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;}  <span class="comment">// namespace log</span></div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160; </div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160; </div>
+<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;<span class="preprocessor">#endif  // GKO_PUBLIC_CORE_LOG_LOGGER_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a3950fc3732811a8563484e5098c31531"><div class="ttname"><a href="namespacegko.html#a3950fc3732811a8563484e5098c31531">gko::uint8</a></div><div class="ttdeci">std::uint8_t uint8</div><div class="ttdoc">8-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:131</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Loggable_html_a5de4092a74cf04f30f13636d49aaec8b"><div class="ttname"><a href="classgko_1_1log_1_1Loggable.html#a5de4092a74cf04f30f13636d49aaec8b">gko::log::Loggable::remove_logger</a></div><div class="ttdeci">virtual void remove_logger(const Logger *logger)=0</div><div class="ttdoc">Removes a logger from the list of subscribed loggers.</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:145</div></div>
 <div class="ttc" id="aclassgko_1_1OutOfBoundsError_html"><div class="ttname"><a href="classgko_1_1OutOfBoundsError.html">gko::OutOfBoundsError</a></div><div class="ttdoc">OutOfBoundsError is thrown if a memory access is detected to be out-of-bounds.</div><div class="ttdef"><b>Definition:</b> exception.hpp:475</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_af263708ebb15007bc0086e7c438c190c"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">gko::log::Logger::executor_events_mask</a></div><div class="ttdeci">static constexpr mask_type executor_events_mask</div><div class="ttdoc">Bitset Mask which activates all executor events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:412</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_af263708ebb15007bc0086e7c438c190c"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#af263708ebb15007bc0086e7c438c190c">gko::log::Logger::executor_events_mask</a></div><div class="ttdeci">static constexpr mask_type executor_events_mask</div><div class="ttdoc">Bitset Mask which activates all executor events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:420</div></div>
 <div class="ttc" id="aclassgko_1_1PolymorphicObject_html"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html">gko::PolymorphicObject</a></div><div class="ttdoc">A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:71</div></div>
 <div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:102</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a3e75086ec35aea9d9c0ade7774bfc1ba"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">gko::log::Logger::linop_events_mask</a></div><div class="ttdeci">static constexpr mask_type linop_events_mask</div><div class="ttdoc">Bitset Mask which activates all linop events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:436</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a3e75086ec35aea9d9c0ade7774bfc1ba"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a3e75086ec35aea9d9c0ade7774bfc1ba">gko::log::Logger::linop_events_mask</a></div><div class="ttdeci">static constexpr mask_type linop_events_mask</div><div class="ttdoc">Bitset Mask which activates all linop events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:444</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Loggable_html_aa2bb887b5ef7e75fa1a30ee1896ed932"><div class="ttname"><a href="classgko_1_1log_1_1Loggable.html#aa2bb887b5ef7e75fa1a30ee1896ed932">gko::log::Loggable::add_logger</a></div><div class="ttdeci">virtual void add_logger(std::shared_ptr&lt; const Logger &gt; logger)=0</div><div class="ttdoc">Adds a new logger to the list of subscribed loggers.</div></div>
 <div class="ttc" id="anamespacegko_html_acae2e648052ec788bd8ba9e0192652a6"><div class="ttname"><a href="namespacegko.html#acae2e648052ec788bd8ba9e0192652a6">gko::byte_size</a></div><div class="ttdeci">constexpr size_type byte_size</div><div class="ttdoc">Number of bits in a byte.</div><div class="ttdef"><b>Definition:</b> types.hpp:193</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Loggable_html"><div class="ttname"><a href="classgko_1_1log_1_1Loggable.html">gko::log::Loggable</a></div><div class="ttdoc">Loggable class is an interface which should be implemented by classes wanting to support logging.</div><div class="ttdef"><b>Definition:</b> logger.hpp:484</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Loggable_html"><div class="ttname"><a href="classgko_1_1log_1_1Loggable.html">gko::log::Loggable</a></div><div class="ttdoc">Loggable class is an interface which should be implemented by classes wanting to support logging.</div><div class="ttdef"><b>Definition:</b> logger.hpp:492</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a8794cd4bf2fd4d24ba9879bdca884dab"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a8794cd4bf2fd4d24ba9879bdca884dab">gko::log::Logger::event_count_max</a></div><div class="ttdeci">static constexpr size_type event_count_max</div><div class="ttdoc">Maximum amount of events (bits) with the current implementation.</div><div class="ttdef"><b>Definition:</b> logger.hpp:98</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a02534863a2d2f92dfeb2c39038365532"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532">gko::log::Logger::all_events_mask</a></div><div class="ttdeci">static constexpr mask_type all_events_mask</div><div class="ttdoc">Bitset Mask which activates all events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:103</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a7f4ac79625bd3f0287230236013f6048"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">gko::log::Logger::criterion_events_mask</a></div><div class="ttdeci">static constexpr mask_type criterion_events_mask</div><div class="ttdoc">Bitset Mask which activates all criterion events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:450</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a7f4ac79625bd3f0287230236013f6048"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a7f4ac79625bd3f0287230236013f6048">gko::log::Logger::criterion_events_mask</a></div><div class="ttdeci">static constexpr mask_type criterion_events_mask</div><div class="ttdoc">Bitset Mask which activates all criterion events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:458</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils_helper.hpp:253</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html">gko::log::EnableLogging</a></div><div class="ttdoc">EnableLogging is a mixin which should be inherited by any class which wants to enable logging.</div><div class="ttdef"><b>Definition:</b> logger.hpp:521</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html">gko::log::EnableLogging</a></div><div class="ttdoc">EnableLogging is a mixin which should be inherited by any class which wants to enable logging.</div><div class="ttdef"><b>Definition:</b> logger.hpp:529</div></div>
 <div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:84</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Logger_html"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html">gko::log::Logger</a></div><div class="ttdef"><b>Definition:</b> logger.hpp:90</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1Criterion_html"><div class="ttname"><a href="classgko_1_1stop_1_1Criterion.html">gko::stop::Criterion</a></div><div class="ttdoc">The Criterion class is a base class for all stopping criteria.</div><div class="ttdef"><b>Definition:</b> criterion.hpp:64</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html_aba5317f8a03956a61d770e9b07fc65cc"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">gko::log::EnableLogging::remove_logger</a></div><div class="ttdeci">void remove_logger(const Logger *logger) override</div><div class="ttdoc">Removes a logger from the list of subscribed loggers.</div><div class="ttdef"><b>Definition:</b> logger.hpp:528</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a179f3d3ac86782922cbc63e33272840a"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">gko::log::Logger::operation_events_mask</a></div><div class="ttdeci">static constexpr mask_type operation_events_mask</div><div class="ttdoc">Bitset Mask which activates all operation events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:420</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html_aba5317f8a03956a61d770e9b07fc65cc"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">gko::log::EnableLogging::remove_logger</a></div><div class="ttdeci">void remove_logger(const Logger *logger) override</div><div class="ttdoc">Removes a logger from the list of subscribed loggers.</div><div class="ttdef"><b>Definition:</b> logger.hpp:536</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a179f3d3ac86782922cbc63e33272840a"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a">gko::log::Logger::operation_events_mask</a></div><div class="ttdeci">static constexpr mask_type operation_events_mask</div><div class="ttdoc">Bitset Mask which activates all operation events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:428</div></div>
 <div class="ttc" id="aclassgko_1_1Executor_html"><div class="ttname"><a href="classgko_1_1Executor.html">gko::Executor</a></div><div class="ttdoc">The first step in using the Ginkgo library consists of creating an executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:469</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_ad6fb77d4d5610bc7299087f7149a7f16"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">gko::log::Logger::linop_factory_events_mask</a></div><div class="ttdeci">static constexpr mask_type linop_factory_events_mask</div><div class="ttdoc">Bitset Mask which activates all linop factory events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:443</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_ad6fb77d4d5610bc7299087f7149a7f16"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">gko::log::Logger::linop_factory_events_mask</a></div><div class="ttdeci">static constexpr mask_type linop_factory_events_mask</div><div class="ttdoc">Bitset Mask which activates all linop factory events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:451</div></div>
 <div class="ttc" id="aclassgko_1_1LinOpFactory_html"><div class="ttname"><a href="classgko_1_1LinOpFactory.html">gko::LinOpFactory</a></div><div class="ttdoc">A LinOpFactory represents a higher order mapping which transforms one linear operator into another.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:376</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a5fb997f1c06c0602103d8dab616a96bc"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">gko::log::Logger::polymorphic_object_events_mask</a></div><div class="ttdeci">static constexpr mask_type polymorphic_object_events_mask</div><div class="ttdoc">Bitset Mask which activates all polymorphic object events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:426</div></div>
-<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html_a7b3493c14a37b4d46487d9c636d784f2"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">gko::log::EnableLogging::add_logger</a></div><div class="ttdeci">void add_logger(std::shared_ptr&lt; const Logger &gt; logger) override</div><div class="ttdoc">Adds a new logger to the list of subscribed loggers.</div><div class="ttdef"><b>Definition:</b> logger.hpp:523</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1Logger_html_a5fb997f1c06c0602103d8dab616a96bc"><div class="ttname"><a href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">gko::log::Logger::polymorphic_object_events_mask</a></div><div class="ttdeci">static constexpr mask_type polymorphic_object_events_mask</div><div class="ttdoc">Bitset Mask which activates all polymorphic object events.</div><div class="ttdef"><b>Definition:</b> logger.hpp:434</div></div>
+<div class="ttc" id="aclassgko_1_1log_1_1EnableLogging_html_a7b3493c14a37b4d46487d9c636d784f2"><div class="ttname"><a href="classgko_1_1log_1_1EnableLogging.html#a7b3493c14a37b4d46487d9c636d784f2">gko::log::EnableLogging::add_logger</a></div><div class="ttdeci">void add_logger(std::shared_ptr&lt; const Logger &gt; logger) override</div><div class="ttdoc">Adds a new logger to the list of subscribed loggers.</div><div class="ttdef"><b>Definition:</b> logger.hpp:531</div></div>
 <div class="ttc" id="anamespacegko_html_ad54a79afecd57aabbb04b1dc611ae55e"><div class="ttname"><a href="namespacegko.html#ad54a79afecd57aabbb04b1dc611ae55e">gko::uint64</a></div><div class="ttdeci">std::uint64_t uint64</div><div class="ttdoc">64-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:148</div></div>
 <div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:208</div></div>
 <!-- start footer part -->

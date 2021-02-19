@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/255031547 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -330,6 +330,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>write</b> (<a class="
 <tr class="memitem:aeee1695589ffafcdff32950dde5eab52"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#aeee1695589ffafcdff32950dde5eab52">row_permute</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a6c57dbf3168b1ecad3ea133aaf2efbc1">int64</a> &gt; *permutation_indices) const override</td></tr>
 <tr class="memdesc:aeee1695589ffafcdff32950dde5eab52"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the row permutation of the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> object.  <a href="classgko_1_1matrix_1_1Dense.html#aeee1695589ffafcdff32950dde5eab52">More...</a><br /></td></tr>
 <tr class="separator:aeee1695589ffafcdff32950dde5eab52"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8eb9f6120517fbc19cee8e9ddfceb05"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#af8eb9f6120517fbc19cee8e9ddfceb05">fill</a> (const ValueType value)</td></tr>
+<tr class="memdesc:af8eb9f6120517fbc19cee8e9ddfceb05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fill the dense matrix with a given value.  <a href="classgko_1_1matrix_1_1Dense.html#af8eb9f6120517fbc19cee8e9ddfceb05">More...</a><br /></td></tr>
+<tr class="separator:af8eb9f6120517fbc19cee8e9ddfceb05"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5eb042462d750c84908fb5a3fac62dd5"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a5eb042462d750c84908fb5a3fac62dd5">row_gather</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; <a class="el" href="namespacegko.html#a1ec26caa2379a21a8d0cde611559fff6">int32</a> &gt; *gather_indices) const</td></tr>
 <tr class="memdesc:a5eb042462d750c84908fb5a3fac62dd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix consisting of the given rows from this matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a5eb042462d750c84908fb5a3fac62dd5">More...</a><br /></td></tr>
 <tr class="separator:a5eb042462d750c84908fb5a3fac62dd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1459,6 +1462,34 @@ template&lt;typename ValueType = default_precision&gt; </div>
 </dl>
 
 <p>Implements <a class="el" href="classgko_1_1DiagonalExtractable.html#a3a748eb3a1ced4e679b67a0e20f46336">gko::DiagonalExtractable&lt; ValueType &gt;</a>.</p>
+
+</div>
+</div>
+<a id="af8eb9f6120517fbc19cee8e9ddfceb05"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8eb9f6120517fbc19cee8e9ddfceb05">&#9670;&nbsp;</a></span>fill()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::fill </td>
+          <td>(</td>
+          <td class="paramtype">const ValueType&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Fill the dense matrix with a given value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">value</td><td>the value to be filled </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

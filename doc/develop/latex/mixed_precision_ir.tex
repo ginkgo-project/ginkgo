@@ -161,7 +161,7 @@ Create inner solver
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{auto} inner\_solver =}
 \DoxyCodeLine{    cg::build()}
-\DoxyCodeLine{        .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<SolverType>::build}}()}
+\DoxyCodeLine{        .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<SolverType>::build}}()}
 \DoxyCodeLine{                           .with\_reduction\_factor(inner\_reduction\_factor)}
 \DoxyCodeLine{                           .on(exec),}
 \DoxyCodeLine{                       gko::stop::Iteration::build()}
@@ -417,7 +417,7 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} inner\_solver =}
 \DoxyCodeLine{        cg::build()}
-\DoxyCodeLine{            .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<SolverType>::build}}()}
+\DoxyCodeLine{            .with\_criteria(\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko::stop::ResidualNorm<SolverType>::build}}()}
 \DoxyCodeLine{                               .with\_reduction\_factor(inner\_reduction\_factor)}
 \DoxyCodeLine{                               .on(exec),}
 \DoxyCodeLine{                           gko::stop::Iteration::build()}

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/255031547 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -154,6 +154,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ab42114c635a05ecff66e1ab5e5074d14"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#ab42114c635a05ecff66e1ab5e5074d14">resize_and_reset</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_elems)</td></tr>
 <tr class="memdesc:ab42114c635a05ecff66e1ab5e5074d14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Resizes the array so it is able to hold the specified number of elements.  <a href="classgko_1_1Array.html#ab42114c635a05ecff66e1ab5e5074d14">More...</a><br /></td></tr>
 <tr class="separator:ab42114c635a05ecff66e1ab5e5074d14"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15ba96206bd9f05ce6cb76a1e0fd07dd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#a15ba96206bd9f05ce6cb76a1e0fd07dd">fill</a> (const ValueType value)</td></tr>
+<tr class="memdesc:a15ba96206bd9f05ce6cb76a1e0fd07dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fill the array with the given value.  <a href="classgko_1_1Array.html#a15ba96206bd9f05ce6cb76a1e0fd07dd">More...</a><br /></td></tr>
+<tr class="separator:a15ba96206bd9f05ce6cb76a1e0fd07dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad4a2aa179d350634e6579f144b6b2cf0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a> () const noexcept</td></tr>
 <tr class="memdesc:ad4a2aa179d350634e6579f144b6b2cf0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements in the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>.  <a href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">More...</a><br /></td></tr>
 <tr class="separator:ad4a2aa179d350634e6579f144b6b2cf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -758,6 +761,34 @@ template&lt;typename ValueType&gt; </div>
 <p>The array is left in a valid, but empty state, so the same array can be used to allocate new memory. Calls to <a class="el" href="classgko_1_1Array.html#a9acf29878703bb8767e3cea2ba499dae" title="Returns a pointer to the block of memory used to store the elements of the Array.">Array::get_data()</a> will return a <code>nullptr</code>. </p>
 
 <p class="reference">Referenced by <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>, and <a class="el" href="classgko_1_1Array.html#ab42114c635a05ecff66e1ab5e5074d14">gko::Array&lt; index_type &gt;::resize_and_reset()</a>.</p>
+
+</div>
+</div>
+<a id="a15ba96206bd9f05ce6cb76a1e0fd07dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a15ba96206bd9f05ce6cb76a1e0fd07dd">&#9670;&nbsp;</a></span>fill()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1Array.html">gko::Array</a>&lt; ValueType &gt;::fill </td>
+          <td>(</td>
+          <td class="paramtype">const ValueType&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Fill the array with the given value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">value</td><td>the value to be filled </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

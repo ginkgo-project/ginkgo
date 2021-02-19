@@ -56,6 +56,8 @@ void \mbox{\hyperlink{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}{clear
 \begin{DoxyCompactList}\small\item\em Deallocates all data used by the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1Array_ab42114c635a05ecff66e1ab5e5074d14}{resize\+\_\+and\+\_\+reset}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems)
 \begin{DoxyCompactList}\small\item\em Resizes the array so it is able to hold the specified number of elements. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1Array_a15ba96206bd9f05ce6cb76a1e0fd07dd}{fill}} (const Value\+Type value)
+\begin{DoxyCompactList}\small\item\em Fill the array with the given value. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1Array_ad4a2aa179d350634e6579f144b6b2cf0}{get\+\_\+num\+\_\+elems}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the number of elements in the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}{get\+\_\+data}} () noexcept
@@ -345,6 +347,22 @@ The array is left in a valid, but empty state, so the same array can be used to 
 
 Referenced by gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), and gko\+::\+Array$<$ index\+\_\+type $>$\+::resize\+\_\+and\+\_\+reset().
 
+\mbox{\Hypertarget{classgko_1_1Array_a15ba96206bd9f05ce6cb76a1e0fd07dd}\label{classgko_1_1Array_a15ba96206bd9f05ce6cb76a1e0fd07dd}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!fill@{fill}}
+\index{fill@{fill}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{fill()}{fill()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::fill (\begin{DoxyParamCaption}\item[{const Value\+Type}]{value }\end{DoxyParamCaption})}
+
+
+
+Fill the array with the given value. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em value} & the value to be filled \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{classgko_1_1Array_a5a46e0920b649cdb062f5e415922d1aa}\label{classgko_1_1Array_a5a46e0920b649cdb062f5e415922d1aa}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_const\_data@{get\_const\_data}}
 \index{get\_const\_data@{get\_const\_data}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}

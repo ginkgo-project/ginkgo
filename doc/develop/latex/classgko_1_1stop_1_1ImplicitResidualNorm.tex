@@ -1,0 +1,75 @@
+\hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm}{}\doxysection{gko\+::stop\+::Implicit\+Residual\+Norm$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1stop_1_1ImplicitResidualNorm}\index{gko::stop::ImplicitResidualNorm$<$ ValueType $>$@{gko::stop::ImplicitResidualNorm$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm}{Implicit\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the implicit residual norm is below a certain threshold relative to.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/residual\+\_\+norm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Implicit\+Residual\+Norm$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1ImplicitResidualNorm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1ImplicitResidualNorm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm_a4cacea5030fa32846a86861a762f6649}\label{classgko_1_1stop_1_1ImplicitResidualNorm_a4cacea5030fa32846a86861a762f6649}} 
+using {\bfseries Complex\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ \mbox{\hyperlink{namespacegko_acc281c8ff5bfa4fd6f25afcce466b1af}{to\+\_\+complex}}$<$ Value\+Type $>$ $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm_a0905c03573175318843e23248b7fc214}\label{classgko_1_1stop_1_1ImplicitResidualNorm_a0905c03573175318843e23248b7fc214}} 
+using {\bfseries Norm\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm_a441730ef9ffa2fe11263141022ea6f22}\label{classgko_1_1stop_1_1ImplicitResidualNorm_a441730ef9ffa2fe11263141022ea6f22}} 
+using {\bfseries Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm_ae66d1ee1924e782043a5ab1c55a6fd65}\label{classgko_1_1stop_1_1ImplicitResidualNorm_ae66d1ee1924e782043a5ab1c55a6fd65}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1ImplicitResidualNorm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ImplicitResidualNorm_a7a6cb1beb8dbe87345c577d207b1ed11}\label{classgko_1_1stop_1_1ImplicitResidualNorm_a7a6cb1beb8dbe87345c577d207b1ed11}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::stop\+::\+Implicit\+Residual\+Norm$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1ImplicitResidualNorm}{Implicit\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the implicit residual norm is below a certain threshold relative to. 
+
+
+\begin{DoxyEnumerate}
+\item the norm of the right-\/hand side, implicit\+\_\+resnorm / norm(right\+\_\+hand\+\_\+side) $<$ threshold
+\item the initial residual, implicit\+\_\+resnorm / norm(initial\+\_\+residual) $<$ $<$ threshold.
+\item one, implicit\+\_\+resnorm $<$ threshold.
+\end{DoxyEnumerate}
+
+\begin{DoxyNote}{Note}
+To use this stopping criterion there are some dependencies. The constructor depends on either {\ttfamily b} or the {\ttfamily initial\+\_\+residual} in order to compute their norms. If this is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown. 
+\end{DoxyNote}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/residual\+\_\+norm.\+hpp\end{DoxyCompactItemize}

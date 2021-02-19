@@ -1,7 +1,7 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="243,995,401,1037"/>
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="515,998,771,1039"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory." alt="" coords="831,1025,1097,1081"/>
+<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="243,1061,401,1102"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="515,1063,771,1105"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory." alt="" coords="831,1091,1097,1147"/>
 <area shape="rect" id="node4" href="$classgko_1_1factorization_1_1Ic_1_1Factory.html" title=" " alt="" coords="1170,5,1366,61"/>
 <area shape="rect" id="node5" href="$classgko_1_1factorization_1_1Ilu_1_1Factory.html" title=" " alt="" coords="1167,85,1369,141"/>
 <area shape="rect" id="node6" href="$classgko_1_1factorization_1_1ParIc_1_1Factory.html" title=" " alt="" coords="1187,165,1349,221"/>
@@ -25,19 +25,21 @@
 <area shape="rect" id="node24" href="$classgko_1_1solver_1_1UpperTrs_1_1Factory.html" title=" " alt="" coords="1179,1505,1357,1561"/>
 <area shape="rect" id="node25" href="$classgko_1_1stop_1_1AbsoluteResidualNorm_1_1Factory.html" title=" " alt="" coords="1163,1586,1373,1627"/>
 <area shape="rect" id="node26" href="$classgko_1_1stop_1_1Combined_1_1Factory.html" title=" " alt="" coords="1190,1651,1346,1693"/>
-<area shape="rect" id="node27" href="$classgko_1_1stop_1_1Iteration_1_1Factory.html" title=" " alt="" coords="1195,1717,1341,1758"/>
-<area shape="rect" id="node28" href="$classgko_1_1stop_1_1RelativeResidualNorm_1_1Factory.html" title=" " alt="" coords="1163,1782,1373,1823"/>
-<area shape="rect" id="node29" href="$classgko_1_1stop_1_1ResidualNormReduction_1_1Factory.html" title=" " alt="" coords="1145,1847,1391,1889"/>
-<area shape="rect" id="node30" href="$classgko_1_1stop_1_1Time_1_1Factory.html" title=" " alt="" coords="1179,1913,1357,1940"/>
-<area shape="rect" id="node31" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="249,1382,395,1423"/>
-<area shape="rect" id="node32" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="515,1338,771,1379"/>
-<area shape="rect" id="node33" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="860,1246,1068,1287"/>
-<area shape="rect" id="node34" title=" " alt="" coords="5,1196,140,1223"/>
-<area shape="rect" id="node35" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="205,1061,439,1117"/>
-<area shape="rect" id="node37" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="191,1141,453,1197"/>
-<area shape="rect" id="node39" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="188,1221,456,1277"/>
-<area shape="rect" id="node41" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="190,1301,454,1357"/>
-<area shape="rect" id="node36" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="504,1067,783,1109"/>
-<area shape="rect" id="node38" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="509,1155,777,1197"/>
-<area shape="rect" id="node40" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="507,1229,780,1270"/>
+<area shape="rect" id="node27" href="$classgko_1_1stop_1_1ImplicitResidualNorm_1_1Factory.html" title=" " alt="" coords="1163,1717,1373,1758"/>
+<area shape="rect" id="node28" href="$classgko_1_1stop_1_1Iteration_1_1Factory.html" title=" " alt="" coords="1195,1782,1341,1823"/>
+<area shape="rect" id="node29" href="$classgko_1_1stop_1_1RelativeResidualNorm_1_1Factory.html" title=" " alt="" coords="1163,1847,1373,1889"/>
+<area shape="rect" id="node30" href="$classgko_1_1stop_1_1ResidualNorm_1_1Factory.html" title=" " alt="" coords="1177,1913,1359,1954"/>
+<area shape="rect" id="node31" href="$classgko_1_1stop_1_1ResidualNormReduction_1_1Factory.html" title=" " alt="" coords="1145,1978,1391,2019"/>
+<area shape="rect" id="node32" href="$classgko_1_1stop_1_1Time_1_1Factory.html" title=" " alt="" coords="1179,2044,1357,2071"/>
+<area shape="rect" id="node33" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="249,1447,395,1489"/>
+<area shape="rect" id="node34" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="515,1403,771,1445"/>
+<area shape="rect" id="node35" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="860,1311,1068,1353"/>
+<area shape="rect" id="node36" title=" " alt="" coords="5,1261,140,1288"/>
+<area shape="rect" id="node37" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="205,1127,439,1183"/>
+<area shape="rect" id="node39" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="191,1207,453,1263"/>
+<area shape="rect" id="node41" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="188,1287,456,1343"/>
+<area shape="rect" id="node43" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="190,1367,454,1423"/>
+<area shape="rect" id="node38" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="504,1133,783,1174"/>
+<area shape="rect" id="node40" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="509,1221,777,1262"/>
+<area shape="rect" id="node42" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="507,1294,780,1335"/>
 </map>

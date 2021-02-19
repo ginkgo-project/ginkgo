@@ -1,0 +1,49 @@
+\hypertarget{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type}{}\doxysection{gko\+::stop\+::Residual\+Norm$<$ Value\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type}\index{gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type@{gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::stop\+::Residual\+Norm$<$ Value\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=271pt]{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a7ae8d352d684a585c7c5427385367e89}\label{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a7ae8d352d684a585c7c5427385367e89}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+reduction\+\_\+factor} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_ab1356cf716593a0f5766a9698394f863}\label{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_ab1356cf716593a0f5766a9698394f863}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+baseline} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a4b21f43cb4c33dd4b41e0e687bab5089}\label{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a4b21f43cb4c33dd4b41e0e687bab5089}} 
+\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$ Value\+Type $>$ \mbox{\hyperlink{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a4b21f43cb4c33dd4b41e0e687bab5089}{reduction\+\_\+factor}} \{ static\+\_\+cast$<$\mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{remove\+\_\+complex}}$<$Value\+Type$>$$>$(1e-\/15) \}
+\begin{DoxyCompactList}\small\item\em Residual norm reduction factor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}{mode}} \mbox{\hyperlink{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a845b588b794200edea462bccb10bf2e4}{baseline}} \{ mode\+::rhs\+\_\+norm \}
+\begin{DoxyCompactList}\small\item\em The quantity the reduction is relative to. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a845b588b794200edea462bccb10bf2e4}\label{structgko_1_1stop_1_1ResidualNorm_1_1parameters__type_a845b588b794200edea462bccb10bf2e4}} 
+\index{gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type@{gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type}!baseline@{baseline}}
+\index{baseline@{baseline}!gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type@{gko::stop::ResidualNorm$<$ ValueType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{baseline}{baseline}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+\mbox{\hyperlink{group__stop_ga5fe97c4263e876f68b5d4a21f0e615b9}{mode}} \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko\+::stop\+::\+Residual\+Norm}}$<$ Value\+Type $>$\+::parameters\+\_\+type\+::baseline \{ mode\+::rhs\+\_\+norm \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The quantity the reduction is relative to. 
+
+Choices include \char`\"{}mode\+::rhs\+\_\+norm\char`\"{}, \char`\"{}mode\+::initial\+\_\+resnorm\char`\"{} and \char`\"{}mode\+::absolute\char`\"{} 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/residual\+\_\+norm.\+hpp\end{DoxyCompactItemize}
