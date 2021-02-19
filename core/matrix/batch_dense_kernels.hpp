@@ -119,125 +119,34 @@ namespace kernels {
                         const matrix::BatchDense<_type> *orig,       \
                         matrix::BatchDense<_type> *trans)
 
-#define GKO_DECLARE_BATCH_DENSE_SYMM_PERMUTE_KERNEL(_vtype, _itype) \
-    void symm_permute(std::shared_ptr<const DefaultExecutor> exec,  \
-                      const Array<_itype> *permutation_indices,     \
-                      const matrix::BatchDense<_vtype> *orig,       \
-                      matrix::BatchDense<_vtype> *permuted)
 
-#define GKO_DECLARE_BATCH_DENSE_INV_SYMM_PERMUTE_KERNEL(_vtype, _itype) \
-    void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,  \
-                          const Array<_itype> *permutation_indices,     \
-                          const matrix::BatchDense<_vtype> *orig,       \
-                          matrix::BatchDense<_vtype> *permuted)
-
-#define GKO_DECLARE_BATCH_DENSE_ROW_GATHER_KERNEL(_vtype, _itype) \
-    void row_gather(std::shared_ptr<const DefaultExecutor> exec,  \
-                    const Array<_itype> *gather_indices,          \
-                    const matrix::BatchDense<_vtype> *orig,       \
-                    matrix::BatchDense<_vtype> *row_gathered)
-
-#define GKO_DECLARE_BATCH_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype) \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec,  \
-                        const Array<_itype> *permutation_indices,     \
-                        const matrix::BatchDense<_vtype> *orig,       \
-                        matrix::BatchDense<_vtype> *column_permuted)
-
-#define GKO_DECLARE_BATCH_DENSE_INV_ROW_PERMUTE_KERNEL(_vtype, _itype)    \
-    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<_itype> *permutation_indices,    \
-                             const matrix::BatchDense<_vtype> *orig,      \
-                             matrix::BatchDense<_vtype> *row_permuted)
-
-#define GKO_DECLARE_BATCH_DENSE_INV_COLUMN_PERMUTE_KERNEL(_vtype, _itype)    \
-    void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                                const Array<_itype> *permutation_indices,    \
-                                const matrix::BatchDense<_vtype> *orig,      \
-                                matrix::BatchDense<_vtype> *column_permuted)
-
-#define GKO_DECLARE_BATCH_DENSE_EXTRACT_DIAGONAL_KERNEL(_vtype)        \
-    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::BatchDense<_vtype> *orig,      \
-                          matrix::Diagonal<_vtype> *diag)
-
-#define GKO_DECLARE_INPLACE_ABSOLUTE_BATCH_DENSE_KERNEL(_vtype) \
-    void inplace_absolute_batch_dense(                          \
-        std::shared_ptr<const DefaultExecutor> exec,            \
-        matrix::BatchDense<_vtype> *source)
-
-#define GKO_DECLARE_OUTPLACE_ABSOLUTE_BATCH_DENSE_KERNEL(_vtype) \
-    void outplace_absolute_batch_dense(                          \
-        std::shared_ptr<const DefaultExecutor> exec,             \
-        const matrix::BatchDense<_vtype> *source,                \
-        matrix::BatchDense<remove_complex<_vtype>> *result)
-
-#define GKO_DECLARE_MAKE_COMPLEX_BATCH_DENSE_KERNEL(_vtype)        \
-    void make_complex(std::shared_ptr<const DefaultExecutor> exec, \
-                      const matrix::BatchDense<_vtype> *source,    \
-                      matrix::BatchDense<to_complex<_vtype>> *result)
-
-#define GKO_DECLARE_GET_REAL_BATCH_DENSE_KERNEL(_vtype)        \
-    void get_real(std::shared_ptr<const DefaultExecutor> exec, \
-                  const matrix::BatchDense<_vtype> *source,    \
-                  matrix::BatchDense<remove_complex<_vtype>> *result)
-
-#define GKO_DECLARE_GET_IMAG_BATCH_DENSE_KERNEL(_vtype)        \
-    void get_imag(std::shared_ptr<const DefaultExecutor> exec, \
-                  const matrix::BatchDense<_vtype> *source,    \
-                  matrix::BatchDense<remove_complex<_vtype>> *result)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                  \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(ValueType);                         \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                         \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                    \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);               \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                   \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                 \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(ValueType);                \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);     \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);    \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);          \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(ValueType);                     \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_SYMM_PERMUTE_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_ROW_GATHER_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_INV_ROW_PERMUTE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_DENSE_INV_COLUMN_PERMUTE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_BATCH_DENSE_EXTRACT_DIAGONAL_KERNEL(ValueType);              \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_INPLACE_ABSOLUTE_BATCH_DENSE_KERNEL(ValueType);              \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_OUTPLACE_ABSOLUTE_BATCH_DENSE_KERNEL(ValueType);             \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_MAKE_COMPLEX_BATCH_DENSE_KERNEL(ValueType);                  \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_GET_REAL_BATCH_DENSE_KERNEL(ValueType);                      \
-    template <typename ValueType>                                            \
-    GKO_DECLARE_GET_IMAG_BATCH_DENSE_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);               \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(ValueType);                      \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                      \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                 \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);            \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);              \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(ValueType);             \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);  \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType); \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);       \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(ValueType);                  \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
 namespace omp {
