@@ -41,6 +41,8 @@ Ginkgo adds the following additional switches to control what is being built:
     `OFF` otherwise.
 *   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
     passed to hipcc for the `hcc` HIP backend. The default is none (auto).
+*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
+    is not found, Ginkgo will try to build it. Default is `ON`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -246,13 +248,17 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_DEVEL_TOOLS=ON:
   [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
   helper for code formatting.
++ GINKGO_BUILD_HWLOC=ON:
+  [hwloc](https://www.open-mpi.org/projects/hwloc) to help us to control cores
+  and devices.
 
-By default, Ginkgo uses the internal version of each package. For each of the
+Usually, Ginkgo uses the internal version of each package. For each of the
 packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, Ginkgo provides
 two ways to find packages. To rely on the CMake `find_package` command, use the
-CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. Note that, if the external
-packages were not installed to the default location, the CMake option
+CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` always looks for
+system `HWLOC` first currently. Note that, if the external packages were not
+installed to the default location, the CMake option
 `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon (`;`)
 separated list of install paths of these external packages. For more
 Information, see the [CMake documentation for
