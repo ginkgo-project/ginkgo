@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -46,199 +47,293 @@ version version_info::get_mpi_version() noexcept
 }
 
 
-int MpiExecutor::get_num_ranks(const MPI_Comm &comm) const { return 0; }
-
-
-int MpiExecutor::get_my_rank(const MPI_Comm &comm) const GKO_NOT_COMPILED(mpi);
-
-
-std::shared_ptr<MpiExecutor> MpiExecutor::create(
-    std::shared_ptr<Executor> sub_executor)
-{
-    return std::shared_ptr<MpiExecutor>(new MpiExecutor(sub_executor));
-}
-
-
 std::string MpiError::get_error(int64)
 {
     return "ginkgo MPI module is not compiled";
 }
 
 
-bool mpi::init_finalize::is_finalized() GKO_NOT_COMPILED(mpi);
+namespace mpi {
 
 
-bool mpi::init_finalize::is_initialized() GKO_NOT_COMPILED(mpi);
+bool init_finalize::is_finalized() GKO_NOT_COMPILED(mpi);
 
 
-mpi::init_finalize::init_finalize(int &argc, char **&argv,
-                                  const size_type num_threads)
+bool init_finalize::is_initialized() GKO_NOT_COMPILED(mpi);
+
+
+init_finalize::init_finalize(int &argc, char **&argv,
+                             const size_type num_threads) GKO_NOT_COMPILED(mpi);
+
+
+init_finalize::~init_finalize() GKO_NOT_COMPILED(mpi);
+
+
+communicator::communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
+
+
+communicator::communicator(const MPI_Comm &comm_in, int color, int key)
     GKO_NOT_COMPILED(mpi);
 
 
-mpi::init_finalize::~init_finalize() noexcept(false) GKO_NOT_COMPILED(mpi);
+communicator::~communicator() {}
 
 
-mpi::communicator::communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
+info::info() GKO_NOT_COMPILED(mpi);
+
+void info::add(std::string key, std::string value) GKO_NOT_COMPILED(mpi);
 
 
-mpi::communicator::communicator(const MPI_Comm &comm_in, int color, int key)
+void info::remove(std::string key) GKO_NOT_COMPILED(mpi);
+
+
+info::~info() GKO_NOT_COMPILED(mpi);
+
+
+bool communicator::compare(const MPI_Comm &comm) const GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+window<ValueType>::window(ValueType *base, unsigned int size,
+                          const int disp_unit, info input_info,
+                          std::shared_ptr<const communicator> comm,
+                          win_type create_type) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::fence(int assert) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::lock(int rank, int assert, lock_type lock_t)
     GKO_NOT_COMPILED(mpi);
 
 
-mpi::communicator::~communicator() {}
+template <typename ValueType>
+void window<ValueType>::unlock(int rank) GKO_NOT_COMPILED(mpi);
 
 
-void MpiExecutor::synchronize_communicator(const MPI_Comm &comm) const
+template <typename ValueType>
+void window<ValueType>::lock_all(int assert) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::unlock_all() GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::flush(int rank) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::flush_local(int rank) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::flush_all() GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+void window<ValueType>::flush_all_local() GKO_NOT_COMPILED(mpi);
+
+
+template <typename ValueType>
+window<ValueType>::~window() GKO_NOT_COMPILED(mpi);
+
+
+MPI_Op create_operation(
+    const std::function<void(void *, void *, int *, MPI_Datatype *)> func,
+    void *arg1, void *arg2, int *len, MPI_Datatype *type) GKO_NOT_COMPILED(mpi);
+
+
+double get_walltime() GKO_NOT_COMPILED(mpi);
+
+
+int get_my_rank(const communicator &comm) GKO_NOT_COMPILED(mpi);
+
+
+int get_local_rank(const communicator &comm) GKO_NOT_COMPILED(mpi);
+
+
+int get_num_ranks(const communicator &comm) GKO_NOT_COMPILED(mpi);
+
+
+void synchronize(const communicator &comm) GKO_NOT_COMPILED(mpi);
+
+
+void wait(std::shared_ptr<request> req, std::shared_ptr<status> status)
     GKO_NOT_COMPILED(mpi);
-
-
-void MpiExecutor::synchronize() const GKO_NOT_COMPILED(mpi);
-
-
-void MpiExecutor::set_communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
-
-
-void MpiExecutor::wait(MPI_Request *req, MPI_Status *status)
-    GKO_NOT_COMPILED(mpi);
-
-
-MpiExecutor::request_manager<MPI_Request> MpiExecutor::create_requests_array(
-    int size) GKO_NOT_COMPILED(mpi);
-
-
-MPI_Op MpiExecutor::create_operation(
-    std::function<void(void *, void *, int *, MPI_Datatype *)> func, void *arg1,
-    void *arg2, int *len, MPI_Datatype *type) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType>
-void MpiExecutor::send(const SendType *send_buffer, const int send_count,
-                       const int destination_rank, const int send_tag,
-                       MPI_Request *req) const GKO_NOT_COMPILED(mpi);
+void send(const SendType *send_buffer, const int send_count,
+          const int destination_rank, const int send_tag,
+          std::shared_ptr<request> req,
+          std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename RecvType>
-void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count,
-                       const int source_rank, const int recv_tag,
-                       MPI_Request *req) const GKO_NOT_COMPILED(mpi);
+void recv(RecvType *recv_buffer, const int recv_count, const int source_rank,
+          const int recv_tag, std::shared_ptr<request> req,
+          std::shared_ptr<status> status,
+          std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
+
+
+template <typename PutType>
+void put(const PutType *origin_buffer, const int origin_count,
+         const int target_rank, const unsigned int target_disp,
+         const int target_count, window<PutType> &window,
+         std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
+
+
+template <typename GetType>
+void get(GetType *origin_buffer, const int origin_count, const int target_rank,
+         const unsigned int target_disp, const int target_count,
+         window<GetType> &window, std::shared_ptr<request> req)
+    GKO_NOT_COMPILED(mpi);
 
 
 template <typename BroadcastType>
-void MpiExecutor::broadcast(BroadcastType *buffer, int count,
-                            int root_rank) const GKO_NOT_COMPILED(mpi);
+void broadcast(BroadcastType *buffer, int count, int root_rank,
+               std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename ReduceType>
-void MpiExecutor::reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                         int count, mpi::op_type op_enum, int root_rank,
-                         MPI_Request *req) const GKO_NOT_COMPILED(mpi);
+void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
+            op_type op_enum, int root_rank, std::shared_ptr<request> req,
+            std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename ReduceType>
-void MpiExecutor::all_reduce(const ReduceType *send_buffer,
-                             ReduceType *recv_buffer, int count,
-                             mpi::op_type op_enum, MPI_Request *req) const
-    GKO_NOT_COMPILED(mpi);
+void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
+                int count, op_type op_enum, std::shared_ptr<request> req,
+                std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
-void MpiExecutor::gather(const SendType *send_buffer, const int send_count,
-                         RecvType *recv_buffer, const int recv_count,
-                         int root_rank) const GKO_NOT_COMPILED(mpi);
+void gather(const SendType *send_buffer, const int send_count,
+            RecvType *recv_buffer, const int recv_count, int root_rank,
+            std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
-void MpiExecutor::gather(const SendType *send_buffer, const int send_count,
-                         RecvType *recv_buffer, const int *recv_counts,
-                         const int *displacements, int root_rank) const
-    GKO_NOT_COMPILED(mpi);
+void gather(const SendType *send_buffer, const int send_count,
+            RecvType *recv_buffer, const int *recv_counts,
+            const int *displacements, int root_rank,
+            std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
-void MpiExecutor::scatter(const SendType *send_buffer, const int send_count,
-                          RecvType *recv_buffer, const int recv_count,
-                          int root_rank) const GKO_NOT_COMPILED(mpi);
+void scatter(const SendType *send_buffer, const int send_count,
+             RecvType *recv_buffer, const int recv_count, int root_rank,
+             std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
-void MpiExecutor::scatter(const SendType *send_buffer, const int *send_counts,
-                          const int *displacements, RecvType *recv_buffer,
-                          const int recv_count, int root_rank) const
-    GKO_NOT_COMPILED(mpi);
+void scatter(const SendType *send_buffer, const int *send_counts,
+             const int *displacements, RecvType *recv_buffer,
+             const int recv_count, int root_rank,
+             std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
-#define GKO_DECLARE_SEND(SendType)                                            \
-    void MpiExecutor::send(const SendType *send_buffer, const int send_count, \
-                           const int destination_rank, const int send_tag,    \
-                           MPI_Request *req) const
+#define GKO_DECLARE_WINDOW(ValueType) class window<ValueType>
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
+
+
+#define GKO_DECLARE_SEND(SendType)                               \
+    void send(const SendType *send_buffer, const int send_count, \
+              const int destination_rank, const int send_tag,    \
+              std::shared_ptr<request> req,                      \
+              std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SEND);
 
 
-#define GKO_DECLARE_RECV(RecvType)                                      \
-    void MpiExecutor::recv(RecvType *recv_buffer, const int recv_count, \
-                           const int source_rank, const int recv_tag,   \
-                           MPI_Request *req) const
+#define GKO_DECLARE_RECV(RecvType)                                          \
+    void recv(RecvType *recv_buffer, const int recv_count,                  \
+              const int source_rank, const int recv_tag,                    \
+              std::shared_ptr<request> req, std::shared_ptr<status> status, \
+              std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_RECV);
 
 
-#define GKO_DECLARE_BCAST(BroadcastType)                          \
-    void MpiExecutor::broadcast(BroadcastType *buffer, int count, \
-                                int root_rank) const
+#define GKO_DECLARE_PUT(PutType)                                    \
+    void put(const PutType *origin_buffer, const int origin_count,  \
+             const int target_rank, const unsigned int target_disp, \
+             const int target_count, window<PutType> &window,       \
+             std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_PUT);
+
+
+#define GKO_DECLARE_GET(GetType)                                    \
+    void get(GetType *origin_buffer, const int origin_count,        \
+             const int target_rank, const unsigned int target_disp, \
+             const int target_count, window<GetType> &window,       \
+             std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_GET);
+
+
+#define GKO_DECLARE_BCAST(BroadcastType)                            \
+    void broadcast(BroadcastType *buffer, int count, int root_rank, \
+                   std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_BCAST);
 
 
-#define GKO_DECLARE_REDUCE(ReduceType)                                     \
-    void MpiExecutor::reduce(                                              \
-        const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
-        mpi::op_type operation, int root_rank, MPI_Request *req) const
+#define GKO_DECLARE_REDUCE(ReduceType)                                  \
+    void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, \
+                int count, op_type operation, int root_rank,            \
+                std::shared_ptr<request> req,                           \
+                std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 
 
-#define GKO_DECLARE_ALLREDUCE(ReduceType)                                  \
-    void MpiExecutor::all_reduce(                                          \
-        const ReduceType *send_buffer, ReduceType *recv_buffer, int count, \
-        mpi::op_type operation, MPI_Request *req) const
+#define GKO_DECLARE_ALLREDUCE(ReduceType)                                   \
+    void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, \
+                    int count, op_type operation,                           \
+                    std::shared_ptr<request> req,                           \
+                    std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE);
 
 
-#define GKO_DECLARE_GATHER1(SendType, RecvType)                           \
-    void MpiExecutor::gather(const SendType *send_buffer,                 \
-                             const int send_count, RecvType *recv_buffer, \
-                             const int recv_count, int root_rank) const
+#define GKO_DECLARE_GATHER1(SendType, RecvType)                             \
+    void gather(const SendType *send_buffer, const int send_count,          \
+                RecvType *recv_buffer, const int recv_count, int root_rank, \
+                std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER1);
 
 
-#define GKO_DECLARE_GATHER2(SendType, RecvType)                                \
-    void MpiExecutor::gather(const SendType *send_buffer,                      \
-                             const int send_count, RecvType *recv_buffer,      \
-                             const int *recv_counts, const int *displacements, \
-                             int root_rank) const
+#define GKO_DECLARE_GATHER2(SendType, RecvType)                    \
+    void gather(const SendType *send_buffer, const int send_count, \
+                RecvType *recv_buffer, const int *recv_counts,     \
+                const int *displacements, int root_rank,           \
+                std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER2);
 
 
-#define GKO_DECLARE_SCATTER1(SendType, RecvType)                           \
-    void MpiExecutor::scatter(const SendType *send_buffer,                 \
-                              const int send_count, RecvType *recv_buffer, \
-                              const int recv_count, int root_rank) const
+#define GKO_DECLARE_SCATTER1(SendType, RecvType)                             \
+    void scatter(const SendType *send_buffer, const int send_count,          \
+                 RecvType *recv_buffer, const int recv_count, int root_rank, \
+                 std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER1);
 
 
-#define GKO_DECLARE_SCATTER2(SendType, RecvType)                               \
-    void MpiExecutor::scatter(const SendType *send_buffer,                     \
-                              const int *send_counts,                          \
-                              const int *displacements, RecvType *recv_buffer, \
-                              const int recv_count, int root_rank) const
+#define GKO_DECLARE_SCATTER2(SendType, RecvType)                      \
+    void scatter(const SendType *send_buffer, const int *send_counts, \
+                 const int *displacements, RecvType *recv_buffer,     \
+                 const int recv_count, int root_rank,                 \
+                 std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
 
-
+}  // namespace mpi
 }  // namespace gko

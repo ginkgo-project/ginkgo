@@ -77,12 +77,7 @@ public:
     {
         value = 5;
     }
-    void run(std::shared_ptr<const gko::MpiExecutor>) const override
-    {
-        value = 6;
-    }
-
-    int& value;
+    int &value;
 };
 
 
@@ -104,10 +99,9 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
     auto dpcpp_lambda = [&value]() { value = 4; };
-    auto mpi_lambda = [&value]() { value = 5; };
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, mpi_lambda);
+    omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(1, value);
 }
@@ -232,10 +226,9 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
     auto dpcpp_lambda = [&value]() { value = 4; };
-    auto mpi_lambda = [&value]() { value = 5; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, mpi_lambda);
+    ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(1, value);
 }
@@ -360,11 +353,10 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
     auto dpcpp_lambda = [&value]() { value = 4; };
-    auto mpi_lambda = [&value]() { value = 5; };
     exec_ptr cuda =
         gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
-    cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, mpi_lambda);
+    cuda->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(2, value);
 }
@@ -435,10 +427,9 @@ TEST(HipExecutor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
     auto dpcpp_lambda = [&value]() { value = 4; };
-    auto mpi_lambda = [&value]() { value = 5; };
     exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
 
-    hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, mpi_lambda);
+    hip->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(3, value);
 }
@@ -509,10 +500,9 @@ TEST(DpcppExecutor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
     auto dpcpp_lambda = [&value]() { value = 4; };
-    auto mpi_lambda = [&value]() { value = 5; };
     exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
 
-    dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, mpi_lambda);
+    dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(4, value);
 }

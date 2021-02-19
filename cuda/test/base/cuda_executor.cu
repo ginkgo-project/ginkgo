@@ -74,11 +74,6 @@ public:
         value = -4;
     }
 
-    void run(std::shared_ptr<const gko::MpiExecutor>) const override
-    {
-        value = -5;
-    }
-
     void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         cudaGetDevice(&value);

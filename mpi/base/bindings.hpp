@@ -45,17 +45,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 /**
- * @brief The bindings namespace.
- *
- * @ingroup bindings
- */
-namespace bindings {
-/**
  * @brief The MPI namespace.
  *
  * @ingroup mpi
  */
 namespace mpi {
+/**
+ * @brief The bindings namespace.
+ *
+ * @ingroup bindings
+ */
+namespace bindings {
+
+
+inline double get_walltime() { return MPI_Wtime(); }
+
+
+inline int get_comm_rank(const MPI_Comm &comm)
+{
+    int my_rank = 0;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(comm, &my_rank));
+    return my_rank;
+}
+
+
+inline int get_local_rank(const MPI_Comm &comm)
+{
+    MPI_Comm local_comm;
+    int rank;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0,
+                                                 MPI_INFO_NULL, &local_comm));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
+    MPI_Comm_free(&local_comm);
+    return rank;
+}
+
+
+inline int get_num_ranks(const MPI_Comm &comm)
+{
+    int size = 1;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(comm, &size));
+    return size;
+}
+
+
+inline void barrier(const MPI_Comm &comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm));
+}
 
 
 inline MPI_Comm create_comm(const MPI_Comm &comm_in, int color, int key)
@@ -74,7 +111,7 @@ inline MPI_Comm duplicate_comm(const MPI_Comm &comm)
 }
 
 
-inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm &comm2)
+inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm comm2)
 {
     int flag;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(comm1, comm2, &flag));
@@ -82,21 +119,21 @@ inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm &comm2)
 }
 
 
-inline void free_comm(MPI_Comm &comm)
+inline void free_comm(MPI_Comm comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(&comm));
 }
 
 
 inline void create_window(void *base, unsigned int size, const int disp_unit,
-                          MPI_Info &info, const MPI_Comm &comm, MPI_Win *win)
+                          MPI_Info info, const MPI_Comm comm, MPI_Win *win)
 {
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Win_create(base, size, disp_unit, info, comm, win));
 }
 
 
-inline void create_dynamic_window(MPI_Info &info, const MPI_Comm &comm,
+inline void create_dynamic_window(MPI_Info info, const MPI_Comm comm,
                                   MPI_Win *win)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create_dynamic(info, comm, win));
@@ -104,7 +141,7 @@ inline void create_dynamic_window(MPI_Info &info, const MPI_Comm &comm,
 
 
 inline void allocate_window(unsigned int size, const int disp_unit,
-                            MPI_Info &info, const MPI_Comm &comm, void *base,
+                            MPI_Info info, const MPI_Comm comm, void *base,
                             MPI_Win *win)
 {
     GKO_ASSERT_NO_MPI_ERRORS(
@@ -211,7 +248,7 @@ inline void wait(MPI_Request *request, MPI_Status *status)
 
 inline void send(const void *send_buffer, const int send_count,
                  MPI_Datatype &send_type, const int destination_rank,
-                 const int send_tag, const MPI_Comm &comm)
+                 const int send_tag, const MPI_Comm comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(send_buffer, send_count, send_type,
                                       destination_rank, send_tag, comm));
@@ -220,7 +257,7 @@ inline void send(const void *send_buffer, const int send_count,
 
 inline void recv(void *recv_buffer, const int recv_count,
                  MPI_Datatype &recv_type, const int source_rank,
-                 const int recv_tag, const MPI_Comm &comm, MPI_Status *status)
+                 const int recv_tag, const MPI_Comm comm, MPI_Status *status)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Recv(recv_buffer, recv_count, recv_type,
                                       source_rank, recv_tag, comm, status));
@@ -229,7 +266,7 @@ inline void recv(void *recv_buffer, const int recv_count,
 
 inline void i_send(const void *send_buffer, const int send_count,
                    MPI_Datatype &send_type, const int destination_rank,
-                   const int send_tag, const MPI_Comm &comm,
+                   const int send_tag, const MPI_Comm comm,
                    MPI_Request *request)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Isend(send_buffer, send_count, send_type,
@@ -240,7 +277,7 @@ inline void i_send(const void *send_buffer, const int send_count,
 
 inline void i_recv(void *recv_buffer, const int recv_count,
                    MPI_Datatype &recv_type, const int source_rank,
-                   const int recv_tag, const MPI_Comm &comm,
+                   const int recv_tag, const MPI_Comm comm,
                    MPI_Request *request)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count, recv_type,
@@ -274,7 +311,7 @@ inline void req_put(const void *origin_buffer, const int origin_count,
 inline void get(void *origin_buffer, const int origin_count,
                 const MPI_Datatype &origin_type, const int target_rank,
                 const unsigned int target_disp, const int target_count,
-                const MPI_Datatype &target_type, MPI_Win &window)
+                const MPI_Datatype &target_type, MPI_Win window)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Get(origin_buffer, origin_count, origin_type,
                                      target_rank, target_disp, target_count,
@@ -285,7 +322,7 @@ inline void get(void *origin_buffer, const int origin_count,
 inline void req_get(void *origin_buffer, const int origin_count,
                     const MPI_Datatype &origin_type, const int target_rank,
                     const unsigned int target_disp, const int target_count,
-                    const MPI_Datatype &target_type, MPI_Win &window,
+                    const MPI_Datatype &target_type, MPI_Win window,
                     MPI_Request *request)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(origin_buffer, origin_count, origin_type,
@@ -387,8 +424,8 @@ inline void scatterv(const void *send_buffer, const int *send_counts,
 }
 
 
-}  // namespace mpi
 }  // namespace bindings
+}  // namespace mpi
 }  // namespace gko
 
 
