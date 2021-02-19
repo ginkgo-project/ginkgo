@@ -187,8 +187,6 @@ template <typename ValueType>
 void BatchDense<ValueType>::compute_dot_impl(
     const BatchLinOp *b, BatchLinOp *result) const GKO_NOT_IMPLEMENTED;
 //{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 //    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
 //    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
 //    auto exec = this->get_executor();
@@ -202,8 +200,6 @@ template <typename ValueType>
 void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
     GKO_NOT_IMPLEMENTED;
 //{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 //    using NormVector = BatchDense<remove_complex<ValueType>>;
 //    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
 //    auto exec = this->get_executor();
@@ -214,104 +210,103 @@ void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
 
 template <typename ValueType>
 void BatchDense<ValueType>::convert_to(
-    BatchDense<next_precision<ValueType>> *result) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    result->values_ = this->values_;
-//    result->stride_ = this->stride_;
-//    result->set_size(this->get_size());
-//}
+    BatchDense<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->strides_ = this->strides_;
+    result->num_elems_per_batch_cumul_ = this->num_elems_per_batch_cumul_;
+    result->set_sizes(this->get_sizes());
+}
 
 
 template <typename ValueType>
 void BatchDense<ValueType>::move_to(
-    BatchDense<next_precision<ValueType>> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    this->convert_to(result);
-//}
+    BatchDense<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
+}
 
 
 namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType *mtx,
-                      const MatrixData &data) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
-//    data.size); size_type ind = 0; for (size_type row = 0; row < data.size[0];
-//    ++row) {
-//        for (size_type col = 0; col < data.size[1]; ++col) {
-//            if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
-//                data.nonzeros[ind].column == col) {
-//                tmp->at(row, col) = data.nonzeros[ind].value;
-//                ++ind;
-//            } else {
-//                tmp->at(row, col) = zero<typename MatrixType::value_type>();
-//            }
-//        }
-//    }
-//    tmp->move_to(mtx);
-//}
+inline void read_impl(MatrixType *mtx, const std::vector<MatrixData> &data)
+{
+    auto batch_sizes = std::vector<dim<2>>(data.size());
+    size_type ind = 0;
+    for (const auto &b : data) {
+        batch_sizes[ind] = b.size;
+        ++ind;
+    }
+    auto tmp =
+        MatrixType::create(mtx->get_executor()->get_master(), batch_sizes);
+    for (size_type b = 0; b < data.size(); ++b) {
+        size_type ind = 0;
+        for (size_type row = 0; row < data[b].size[0]; ++row) {
+            for (size_type col = 0; col < data[b].size[1]; ++col) {
+                if (ind < data[b].nonzeros.size() &&
+                    data[b].nonzeros[ind].row == row &&
+                    data[b].nonzeros[ind].column == col) {
+                    tmp->at(b, row, col) = data[b].nonzeros[ind].value;
+                    ++ind;
+                } else {
+                    tmp->at(b, row, col) =
+                        zero<typename MatrixType::value_type>();
+                }
+            }
+        }
+    }
+    tmp->move_to(mtx);
+}
 
 
 }  // namespace
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(std::vector<const mat_data> &data)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    read_impl(this, data);
-//}
+void BatchDense<ValueType>::read(const std::vector<mat_data> &data)
+{
+    read_impl(this, data);
+}
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(std::vector<const mat_data32> &data)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    read_impl(this, data);
-//}
+void BatchDense<ValueType>::read(const std::vector<mat_data32> &data)
+{
+    read_impl(this, data);
+}
 
 
 namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void write_impl(const MatrixType *mtx,
-                       std::vector<MatrixData> &data) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    std::unique_ptr<const LinOp> op{};
-//    const MatrixType *tmp{};
-//    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-//        op = mtx->clone(mtx->get_executor()->get_master());
-//        tmp = static_cast<const MatrixType *>(op.get());
-//    } else {
-//        tmp = mtx;
-//    }
-//
-//    data = {mtx->get_size(), {}};
-//
-//    for (size_type row = 0; row < data.size[0]; ++row) {
-//        for (size_type col = 0; col < data.size[1]; ++col) {
-//            if (tmp->at(row, col) != zero<typename MatrixType::value_type>())
-//            {
-//                data.nonzeros.emplace_back(row, col, tmp->at(row, col));
-//            }
-//        }
-//    }
-//}
+inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
+{
+    std::unique_ptr<const BatchLinOp> op{};
+    const MatrixType *tmp{};
+    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
+        op = mtx->clone(mtx->get_executor()->get_master());
+        tmp = static_cast<const MatrixType *>(op.get());
+    } else {
+        tmp = mtx;
+    }
+
+    data = std::vector<MatrixData>(mtx->get_num_batches());
+    for (size_type b = 0; b < mtx->get_num_batches(); ++b) {
+        data[b] = {mtx->get_sizes()[b], {}};
+        for (size_type row = 0; row < data[b].size[0]; ++row) {
+            for (size_type col = 0; col < data[b].size[1]; ++col) {
+                if (tmp->at(b, row, col) !=
+                    zero<typename MatrixType::value_type>()) {
+                    data[b].nonzeros.emplace_back(row, col,
+                                                  tmp->at(b, row, col));
+                }
+            }
+        }
+    }
+}
 
 
 }  // namespace
@@ -319,22 +314,16 @@ inline void write_impl(const MatrixType *mtx,
 
 template <typename ValueType>
 void BatchDense<ValueType>::write(std::vector<mat_data> &data) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    write_impl(this, data);
-//}
+{
+    write_impl(this, data);
+}
 
 
 template <typename ValueType>
 void BatchDense<ValueType>::write(std::vector<mat_data32> &data) const
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    write_impl(this, data);
-//}
+{
+    write_impl(this, data);
+}
 
 
 template <typename ValueType>
