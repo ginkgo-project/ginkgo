@@ -81,48 +81,23 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const BatchLinOp *b,
-                                       BatchLinOp *x) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (dynamic_cast<const BatchDense<ValueType> *>(b)) {
-//        this->get_executor()->run(batch_dense::make_simple_apply(
-//            this, as<BatchDense<ValueType>>(b),
-//            as<BatchDense<ValueType>>(x)));
-//    } else {
-//        auto batch_dense_b = as<BatchDense<to_complex<ValueType>>>(b);
-//        auto batch_dense_x = as<BatchDense<to_complex<ValueType>>>(x);
-//        this->apply(batch_dense_b->create_real_view().get(),
-//                    batch_dense_x->create_real_view().get());
-//    }
-//}
+void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+{
+    this->get_executor()->run(batch_dense::make_simple_apply(
+        this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
+}
 
 
 template <typename ValueType>
 void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
                                        const BatchLinOp *b,
                                        const BatchLinOp *beta,
-                                       BatchLinOp *x) const GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (dynamic_cast<const BatchDense<ValueType> *>(b)) {
-//        this->get_executor()->run(batch_dense::make_apply(
-//            as<BatchDense<ValueType>>(alpha), this,
-//            as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(beta),
-//            as<BatchDense<ValueType>>(x)));
-//    } else {
-//        auto batch_dense_b = as<BatchDense<to_complex<ValueType>>>(b);
-//        auto batch_dense_x = as<BatchDense<to_complex<ValueType>>>(x);
-//        auto batch_dense_alpha =
-//        as<BatchDense<remove_complex<ValueType>>>(alpha); auto
-//        batch_dense_beta = as<BatchDense<remove_complex<ValueType>>>(beta);
-//        this->apply(batch_dense_alpha,
-//        batch_dense_b->create_real_view().get(), batch_dense_beta,
-//                    batch_dense_x->create_real_view().get());
-//    }
-//}
+                                       BatchLinOp *x) const
+{
+    this->get_executor()->run(batch_dense::make_apply(
+        as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
+        as<BatchDense<ValueType>>(beta), as<BatchDense<ValueType>>(x)));
+}
 
 
 template <typename ValueType>
