@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <iostream>
+#include <vector>
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -128,6 +129,16 @@ struct dim {
     explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_) && static_cast<bool>(rest_);
+    }
+
+    /**
+     * Overload ostream operator to print the dimension to the output stream.
+     */
+    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
+                                                   const dim &out_dim)
+    {
+        os << " ( " << out_dim.first_ << " , " << out_dim.rest_ << " ) ";
+        return os;
     }
 
     /**
@@ -277,6 +288,27 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
     const dim<2, DimensionType>& dimensions) noexcept
 {
     return {dimensions[1], dimensions[0]};
+}
+
+
+/**
+ * Returns a dim<2> object with its dimensions swapped for batched operators
+ *
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
+ * @param dimensions original object
+ *
+ * @return a std::vector<dim<2>> object with its dimensions swapped
+ */
+template <typename DimensionType>
+GKO_ATTRIBUTES GKO_INLINE std::vector<dim<2, DimensionType>> batch_transpose(
+    const std::vector<dim<2, DimensionType>> &dimensions)
+{
+    auto trans = std::vector<dim<2, DimensionType>>(dimensions.size());
+    for (size_type i = 0; i < trans.size(); ++i) {
+        trans[i] = transpose(dimensions[i]);
+    }
+    return trans;
 }
 
 
