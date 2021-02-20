@@ -9,19 +9,20 @@ set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
-    base/version.dp.cpp
     base/executor.dp.cpp
+    base/version.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
     components/precision_conversion.dp.cpp
     components/prefix_sum.dp.cpp
+    factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
     factorization/par_ilu_kernels.dp.cpp
     factorization/par_ilut_kernels.dp.cpp
+    matrix/batch_dense_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
     matrix/fbcsr_kernels.dp.cpp
