@@ -224,7 +224,7 @@ public:
      *
      * @return  number of batches of the operator
      */
-    const size_type get_num_batches() const noexcept { return num_batches_; }
+    size_type get_num_batches() const noexcept { return num_batches_; }
 
 protected:
     /**
@@ -240,6 +240,16 @@ protected:
           sizes_{sizes},
           num_batches_{sizes_.size()}
     {}
+
+    /**
+     * Sets the number of batches of the operator.
+     *
+     * @param value  the new number of batches of the operator
+     */
+    void set_num_batches(const size_type value) noexcept
+    {
+        num_batches_ = value;
+    }
 
     /**
      * Sets the size of the operator.
