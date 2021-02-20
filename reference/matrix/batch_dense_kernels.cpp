@@ -130,24 +130,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 template <typename ValueType>
 void scale(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::BatchDense<ValueType> *alpha,
-           matrix::BatchDense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (alpha->get_size()[1] == 1) {
-//        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//                x->at(i, j) *= alpha->at(0, 0);
-//            }
-//        }
-//    } else {
-//        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//                x->at(i, j) *= alpha->at(0, j);
-//            }
-//        }
-//    }
-//}
+           matrix::BatchDense<ValueType> *x)
+{
+    for (size_type batch = 0; batch < x->get_num_batches(); ++batch) {
+        if (alpha->get_sizes()[batch][1] == 1) {
+            for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+                for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                    x->at(batch, i, j) *= alpha->at(batch, 0, 0);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+                for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                    x->at(batch, i, j) *= alpha->at(batch, 0, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
@@ -156,24 +156,26 @@ template <typename ValueType>
 void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::BatchDense<ValueType> *alpha,
                 const matrix::BatchDense<ValueType> *x,
-                matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (alpha->get_size()[1] == 1) {
-//        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//                y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
-//            }
-//        }
-//    } else {
-//        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//                y->at(i, j) += alpha->at(0, j) * x->at(i, j);
-//            }
-//        }
-//    }
-//}
+                matrix::BatchDense<ValueType> *y)
+{
+    for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
+        if (alpha->get_sizes()[batch][1] == 1) {
+            for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+                for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                    y->at(batch, i, j) +=
+                        alpha->at(batch, 0, 0) * x->at(batch, i, j);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+                for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                    y->at(batch, i, j) +=
+                        alpha->at(batch, 0, j) * x->at(batch, i, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
@@ -183,14 +185,14 @@ void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
                      const matrix::BatchDense<ValueType> *alpha,
                      const matrix::Diagonal<ValueType> *x,
                      matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const auto diag_values = x->get_const_values();
-//    for (size_type i = 0; i < x->get_size()[0]; i++) {
-//        y->at(i, i) += alpha->at(0, 0) * diag_values[i];
-//    }
-//}
+// {
+// for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
+//     const auto diag_values = x->get_const_values();
+//     for (size_type i = 0; i < x->get_sizes()[batch][0]; i++) {
+//         y->at(batch,i, i) += alpha->at(batch,0, 0) * diag_values[i];
+//     }
+// }
+// }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL);
@@ -200,19 +202,20 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::BatchDense<ValueType> *x,
                  const matrix::BatchDense<ValueType> *y,
-                 matrix::BatchDense<ValueType> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//        result->at(0, j) = zero<ValueType>();
-//    }
-//    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
-//        }
-//    }
-//}
+                 matrix::BatchDense<ValueType> *result)
+{
+    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+        for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+            result->at(batch, 0, j) = zero<ValueType>();
+        }
+        for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+            for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                result->at(batch, 0, j) +=
+                    conj(x->at(batch, i, j)) * y->at(batch, i, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
@@ -221,22 +224,21 @@ template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::BatchDense<ValueType> *x,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//        result->at(0, j) = zero<remove_complex<ValueType>>();
-//    }
-//    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-//        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//            result->at(0, j) += squared_norm(x->at(i, j));
-//        }
-//    }
-//    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-//        result->at(0, j) = sqrt(result->at(0, j));
-//    }
-//}
+{
+    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+        for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+            result->at(batch, 0, j) = zero<remove_complex<ValueType>>();
+        }
+        for (size_type i = 0; i < x->get_sizes()[batch][0]; ++i) {
+            for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+                result->at(batch, 0, j) += squared_norm(x->at(batch, i, j));
+            }
+        }
+        for (size_type j = 0; j < x->get_sizes()[batch][1]; ++j) {
+            result->at(batch, 0, j) = sqrt(result->at(batch, 0, j));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
@@ -245,22 +247,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::BatchDense<ValueType> *source,
-                    size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto num_rows = source->get_size()[0];
-//    auto num_cols = source->get_size()[1];
-//    auto num_nonzeros = 0;
-//
-//    for (size_type row = 0; row < num_rows; ++row) {
-//        for (size_type col = 0; col < num_cols; ++col) {
-//            num_nonzeros += (source->at(row, col) != zero<ValueType>());
-//        }
-//    }
-//
-//    *result = num_nonzeros;
-//}
+                    size_type *result)
+{
+    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+        auto num_rows = source->get_sizes()[batch][0];
+        auto num_cols = source->get_sizes()[batch][1];
+        auto num_nonzeros = 0;
+
+        for (size_type row = 0; row < num_rows; ++row) {
+            for (size_type col = 0; col < num_cols; ++col) {
+                num_nonzeros +=
+                    (source->at(batch, row, col) != zero<ValueType>());
+            }
+        }
+        result[batch] = num_nonzeros;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL);
@@ -269,25 +271,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::BatchDense<ValueType> *source,
-                               size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto num_rows = source->get_size()[0];
-//    auto num_cols = source->get_size()[1];
-//    size_type num_stored_elements_per_row = 0;
-//    size_type num_nonzeros = 0;
-//    for (size_type row = 0; row < num_rows; ++row) {
-//        num_nonzeros = 0;
-//        for (size_type col = 0; col < num_cols; ++col) {
-//            num_nonzeros += (source->at(row, col) != zero<ValueType>());
-//        }
-//        num_stored_elements_per_row =
-//            std::max(num_nonzeros, num_stored_elements_per_row);
-//    }
-//
-//    *result = num_stored_elements_per_row;
-//}
+                               size_type *result)
+{
+    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+        auto num_rows = source->get_sizes()[batch][0];
+        auto num_cols = source->get_sizes()[batch][1];
+        size_type num_stored_elements_per_row = 0;
+        size_type num_nonzeros = 0;
+        for (size_type row = 0; row < num_rows; ++row) {
+            num_nonzeros = 0;
+            for (size_type col = 0; col < num_cols; ++col) {
+                num_nonzeros +=
+                    (source->at(batch, row, col) != zero<ValueType>());
+            }
+            num_stored_elements_per_row =
+                std::max(num_nonzeros, num_stored_elements_per_row);
+        }
+        result[batch] = num_stored_elements_per_row;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
@@ -296,21 +298,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                 const matrix::BatchDense<ValueType> *source,
-                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto num_rows = source->get_size()[0];
-//    auto num_cols = source->get_size()[1];
-//    auto row_nnz_val = result->get_data();
-//    for (size_type row = 0; row < num_rows; ++row) {
-//        size_type num_nonzeros = 0;
-//        for (size_type col = 0; col < num_cols; ++col) {
-//            num_nonzeros += (source->at(row, col) != zero<ValueType>());
-//        }
-//        row_nnz_val[row] = num_nonzeros;
-//    }
-//}
+                                Array<size_type> *result)
+{
+    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+        auto num_rows = source->get_sizes()[batch][0];
+        auto num_cols = source->get_sizes()[batch][1];
+        auto row_nnz_val = result->get_data();
+        size_type offset = 0;
+        for (size_type row = 0; row < num_rows; ++row) {
+            size_type num_nonzeros = 0;
+            for (size_type col = 0; col < num_cols; ++col) {
+                num_nonzeros +=
+                    (source->at(batch, row, col) != zero<ValueType>());
+            }
+            row_nnz_val[offset + row] = num_nonzeros;
+            ++offset;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -319,33 +324,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto num_rows = source->get_size()[0];
-//    auto num_cols = source->get_size()[1];
-//    auto slice_num = ceildiv(num_rows, slice_size);
-//    auto total_cols = 0;
-//    auto temp = 0, slice_temp = 0;
-//    for (size_type slice = 0; slice < slice_num; slice++) {
-//        slice_temp = 0;
-//        for (size_type row = 0;
-//             row < slice_size && row + slice * slice_size < num_rows; row++) {
-//            temp = 0;
-//            for (size_type col = 0; col < num_cols; col++) {
-//                temp += (source->at(row + slice * slice_size, col) !=
-//                         zero<ValueType>());
-//            }
-//            slice_temp = (slice_temp < temp) ? temp : slice_temp;
-//        }
-//        slice_temp = ceildiv(slice_temp, stride_factor) * stride_factor;
-//        total_cols += slice_temp;
-//    }
-//
-//    *result = total_cols;
-//}
+                          size_type *result, size_type *stride_factor,
+                          size_type *slice_size)
+{
+    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+        auto num_rows = source->get_sizes()[batch][0];
+        auto num_cols = source->get_sizes()[batch][1];
+        auto slice_num = ceildiv(num_rows, slice_size[batch]);
+        auto total_cols = 0;
+        auto temp = 0, slice_temp = 0;
+        for (size_type slice = 0; slice < slice_num; slice++) {
+            slice_temp = 0;
+            for (size_type row = 0; row < slice_size[batch] &&
+                                    row + slice * slice_size[batch] < num_rows;
+                 row++) {
+                temp = 0;
+                for (size_type col = 0; col < num_cols; col++) {
+                    temp += (source->at(batch, row + slice * slice_size[batch],
+                                        col) != zero<ValueType>());
+                }
+                slice_temp = (slice_temp < temp) ? temp : slice_temp;
+            }
+            slice_temp = ceildiv(slice_temp, stride_factor[batch]) *
+                         stride_factor[batch];
+            total_cols += slice_temp;
+        }
+        result[batch] = total_cols;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
@@ -354,16 +360,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                const matrix::BatchDense<ValueType> *orig,
-               matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-//        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-//            trans->at(j, i) = orig->at(i, j);
-//        }
-//    }
-//}
+               matrix::BatchDense<ValueType> *trans)
+{
+    for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
+        for (size_type i = 0; i < orig->get_sizes()[batch][0]; ++i) {
+            for (size_type j = 0; j < orig->get_sizes()[batch][1]; ++j) {
+                trans->at(batch, j, i) = orig->at(batch, i, j);
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 
@@ -371,16 +377,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::BatchDense<ValueType> *orig,
-                    matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
-//        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-//            trans->at(j, i) = conj(orig->at(i, j));
-//        }
-//    }
-//}
+                    matrix::BatchDense<ValueType> *trans)
+{
+    for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
+        for (size_type i = 0; i < orig->get_sizes()[batch][0]; ++i) {
+            for (size_type j = 0; j < orig->get_sizes()[batch][1]; ++j) {
+                trans->at(batch, j, i) = conj(orig->at(batch, i, j));
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
