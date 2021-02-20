@@ -831,7 +831,7 @@ void make_complex(std::shared_ptr<const HipExecutor> exec,
                        result->get_stride());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_DENSE_KERNEL);
 
 
 template <typename ValueType>
@@ -849,7 +849,7 @@ void get_real(std::shared_ptr<const HipExecutor> exec,
                        result->get_stride());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_DENSE_KERNEL);
 
 
 template <typename ValueType>
@@ -867,7 +867,7 @@ void get_imag(std::shared_ptr<const HipExecutor> exec,
                        result->get_stride());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_DENSE_KERNEL);
 
 
 }  // namespace dense

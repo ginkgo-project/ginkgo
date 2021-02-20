@@ -198,17 +198,17 @@ namespace kernels {
         const matrix::Dense<_vtype> *source,               \
         matrix::Dense<remove_complex<_vtype>> *result)
 
-#define GKO_DECLARE_MAKE_COMPLEX_KERNEL(_vtype)                    \
+#define GKO_DECLARE_MAKE_COMPLEX_DENSE_KERNEL(_vtype)              \
     void make_complex(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_vtype> *source,         \
                       matrix::Dense<to_complex<_vtype>> *result)
 
-#define GKO_DECLARE_GET_REAL_KERNEL(_vtype)                    \
+#define GKO_DECLARE_GET_REAL_DENSE_KERNEL(_vtype)              \
     void get_real(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Dense<_vtype> *source,         \
                   matrix::Dense<remove_complex<_vtype>> *result)
 
-#define GKO_DECLARE_GET_IMAG_KERNEL(_vtype)                    \
+#define GKO_DECLARE_GET_IMAG_DENSE_KERNEL(_vtype)              \
     void get_imag(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Dense<_vtype> *source,         \
                   matrix::Dense<remove_complex<_vtype>> *result)
@@ -274,11 +274,11 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL(ValueType);                  \
     template <typename ValueType>                                           \
-    GKO_DECLARE_MAKE_COMPLEX_KERNEL(ValueType);                             \
+    GKO_DECLARE_MAKE_COMPLEX_DENSE_KERNEL(ValueType);                       \
     template <typename ValueType>                                           \
-    GKO_DECLARE_GET_REAL_KERNEL(ValueType);                                 \
+    GKO_DECLARE_GET_REAL_DENSE_KERNEL(ValueType);                           \
     template <typename ValueType>                                           \
-    GKO_DECLARE_GET_IMAG_KERNEL(ValueType)
+    GKO_DECLARE_GET_IMAG_DENSE_KERNEL(ValueType)
 
 
 namespace omp {
