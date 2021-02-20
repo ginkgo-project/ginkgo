@@ -351,8 +351,8 @@ public:
     }
 
 private:
-    inline const size_type compute_batch_mem(
-        const std::vector<dim<2>> sizes, const std::vector<size_type> strides)
+    inline size_type compute_batch_mem(const std::vector<dim<2>> sizes,
+                                       const std::vector<size_type> strides)
     {
         GKO_ASSERT(sizes.size() == strides.size());
         size_type mem_req = 0;
@@ -362,7 +362,7 @@ private:
         return mem_req;
     }
 
-    inline const std::vector<size_type> extract_nth_dim(
+    inline std::vector<size_type> extract_nth_dim(
         const int dim, const std::vector<gko::dim<2>> sizes)
     {
         auto ndim_vec = std::vector<size_type>(sizes.size());
@@ -372,7 +372,7 @@ private:
         return ndim_vec;
     }
 
-    inline const std::vector<size_type> get_strides_from_mtxs(
+    inline std::vector<size_type> get_strides_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
         auto strides = std::vector<size_type>(mtxs.size());
@@ -382,7 +382,7 @@ private:
         return strides;
     }
 
-    inline const std::vector<dim<2>> get_sizes_from_mtxs(
+    inline std::vector<dim<2>> get_sizes_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
@@ -392,7 +392,7 @@ private:
         return sizes;
     }
 
-    inline const std::vector<size_type> compute_num_elems_per_batch_cumul(
+    inline std::vector<size_type> compute_num_elems_per_batch_cumul(
         const std::vector<gko::dim<2>> sizes,
         const std::vector<size_type> strides)
     {
