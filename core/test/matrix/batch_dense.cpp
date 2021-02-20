@@ -218,12 +218,15 @@ TYPED_TEST(BatchDense, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
-        {{1.0, 2.0}}, this->exec);
+        {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
     ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_num_stored_elements(), 2);
+    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0, 0), value_type{1});
     EXPECT_EQ(m->at(0, 1), value_type{2});
+    EXPECT_EQ(m->at(1, 0), value_type{1});
+    EXPECT_EQ(m->at(1, 1), value_type{3});
 }
 
 
