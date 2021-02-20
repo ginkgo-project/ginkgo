@@ -162,8 +162,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
+                          size_type *result, size_type *stride_factor,
+                          size_type *slice_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
