@@ -39,6 +39,7 @@ target_sources(ginkgo_dpcpp
     solver/cgs_kernels.dp.cpp
     solver/fcg_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
+    solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/ir_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp

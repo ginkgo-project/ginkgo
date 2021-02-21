@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -122,7 +123,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    residual->compute_norm2(residual_norm);
+    kernels::hip::dense::compute_norm2(exec, residual, residual_norm);
 
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
                           1);

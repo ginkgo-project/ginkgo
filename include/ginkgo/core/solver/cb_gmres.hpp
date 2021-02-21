@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_
 
 
+#include <memory>
 #include <vector>
 
 
@@ -52,32 +53,78 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_krylov_dim = 100u;
+namespace cb_gmres {
 
 
 /**
- * GMRES or the generalized minimal residual method is an iterative type Krylov
- * subspace method which is suitable for nonsymmetric linear systems.
+ * Describes the storage precision that is used in CB-GMRES.
+ *
+ * The storage precision is described relative to the ValueType:
+ * - keep: The storage precision is the same as the ValueType.
+ * - reduce1: The storage type is the ValueType reduced in precision once,
+ *            for example, ValueType == double -> storage precision == float
+ * - reduce2: ValueType precision is reduced twice
+ * - integer: The storage precision is an integer of the same size of
+ *            ValueType. Note that complex values are not supported.
+ * - ireduce1: The storage precision is an integer of the same size as
+ *             a reduced ValueType.
+ * - ireduce2: The storage precision is an integer of the same size as
+ *             a twice reduced ValueType.
+ *
+ * Precision reduction works as follows:
+ * - double -> float -> half -> half -> ... (half is the lowest supported
+ *   precision)
+ * - std::complex<double> -> std::complex<float> -> std::complex<half>
+ *   -> std::complex<half> ... (std::complex<half> is the lowest supported
+ *   precision)
+ *
+ * To integer conversions:
+ * - double -> int64
+ * - float -> int32
+ * - half -> int16
+ */
+enum class storage_precision {
+    keep,
+    reduce1,
+    reduce2,
+    integer,
+    ireduce1,
+    ireduce2
+};
+
+
+}  // namespace cb_gmres
+
+
+/**
+ * CB-GMRES or the compressed basis generalized minimal residual method is an
+ * iterative type Krylov subspace method which is suitable for nonsymmetric
+ * linear systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of GMRES are
- * merged into 2 separate steps. Modified Gram-Schmidt is used.
+ * use of data locality. The inner operations in one iteration of CB-GMRES
+ * are merged into 2 separate steps. Classical Gram-Schmidt with
+ * reorthogonalization is used.
  *
- * @tparam ValueType  precision of matrix elements
+ * The krylov basis can be stored in reduced precision (compressed) to reduce
+ * memory accesses, while all computations (including krylov basis operations)
+ * are performed in the same arithmetic precision ValueType. By default, the
+ * krylov basis are stored in one precision lower than ValueType.
+ *
+ * @tparam ValueType  the arithmetic precision and the precision of matrix
+ *                    elements
  *
  * @ingroup solvers
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>,
-              public Preconditionable,
-              public Transposable {
-    friend class EnableLinOp<Gmres>;
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
+class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+                public Preconditionable {
+    friend class EnableLinOp<CbGmres>;
+    friend class EnablePolymorphicObject<CbGmres, LinOp>;
 
 public:
     using value_type = ValueType;
-    using transposed_type = Gmres<ValueType>;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -89,55 +136,31 @@ public:
         return system_matrix_;
     }
 
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
     /**
-     * Return true as iterative solvers use the data in x as an initial guess.
-     *
-     * @return true as iterative solvers use the data in x as an initial guess.
-     */
-    bool apply_uses_initial_guess() const override { return true; }
-
-    /**
-     * Gets the krylov dimension of the solver
+     * Returns the krylov dimension.
      *
      * @return the krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
 
     /**
-     * Sets the krylov dimension
+     * Returns the storage precision used internally.
      *
-     * @param other  the new krylov dimension
+     * @return the storage precision used internally
      */
-    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
+    cb_gmres::storage_precision get_storage_precision() const
     {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
+        return storage_precision_;
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * Determines which storage type is used.
+         */
+        cb_gmres::storage_precision GKO_FACTORY_PARAMETER_SCALAR(
+            storage_precision, cb_gmres::storage_precision::reduce1);
+
         /**
          * Criterion factories.
          */
@@ -160,9 +183,9 @@ public:
         /**
          * krylov dimension factory.
          */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -171,18 +194,17 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    explicit Gmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gmres>(std::move(exec))
+    explicit CbGmres(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<CbGmres>(std::move(exec))
     {}
 
-    explicit Gmres(const Factory *factory,
-                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gmres>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
+    explicit CbGmres(const Factory *factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<CbGmres>(factory->get_executor(),
+                               transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_preconditioner) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
                                         this);
@@ -192,21 +214,19 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
+                this->get_executor(), this->get_size()[0]));
         }
-        if (parameters_.krylov_dim) {
-            krylov_dim_ = parameters_.krylov_dim;
-        } else {
-            krylov_dim_ = default_krylov_dim;
-        }
+        krylov_dim_ = parameters_.krylov_dim;
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
+        storage_precision_ = parameters_.storage_precision;
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
+    cb_gmres::storage_precision storage_precision_;
 };
 
 
@@ -214,4 +234,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_

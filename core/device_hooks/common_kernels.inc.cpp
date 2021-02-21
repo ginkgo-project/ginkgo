@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/solver/cb_gmres_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
@@ -568,6 +569,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace gmres
+
+
+namespace cb_gmres {
+
+
+template <typename ValueType>
+GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
+
+template <typename ValueType, typename ValueTypeKrylovBases>
+GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+
+template <typename ValueType, typename ValueTypeKrylovBases>
+GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+
+template <typename ValueType, typename ValueTypeKrylovBases>
+GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, ValueTypeKrylovBases)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+
+
+}  // namespace cb_gmres
 
 
 namespace ir {

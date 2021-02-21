@@ -113,6 +113,7 @@ target_sources(ginkgo_cuda
     solver/cgs_kernels.cu
     solver/fcg_kernels.cu
     solver/gmres_kernels.cu
+    solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
     solver/ir_kernels.cu
     solver/lower_trs_kernels.cu
@@ -120,11 +121,9 @@ target_sources(ginkgo_cuda
     stop/criterion_kernels.cu
     stop/residual_norm_kernels.cu)
 
-# This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-# merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
-if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
-   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    # and allows the usage of std::array for nvidia GPUs
     target_compile_options(ginkgo_cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)

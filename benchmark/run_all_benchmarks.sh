@@ -2,18 +2,18 @@
 # Environment variable detection
 
 if [ ! "${BENCHMARK}" ]; then
-    echo "BENCHMARK   environment variable not set - assuming \"spmv\"" 1>&2
     BENCHMARK="spmv"
+    echo "BENCHMARK   environment variable not set - assuming \"${BENCHMARK}\"" 1>&2
 fi
 
 if [ ! "${DRY_RUN}" ]; then
-    echo "DRY_RUN     environment variable not set - assuming \"false\"" 1>&2
     DRY_RUN="false"
+    echo "DRY_RUN     environment variable not set - assuming \"${DRY_RUN}\"" 1>&2
 fi
 
 if [ ! "${EXECUTOR}" ]; then
-    echo "EXECUTOR    environment variable not set - assuming \"cuda\"" 1>&2
     EXECUTOR="cuda"
+    echo "EXECUTOR    environment variable not set - assuming \"${EXECUTOR}\"" 1>&2
 fi
 
 if [ ! "${SEGMENTS}" ]; then
@@ -26,8 +26,8 @@ elif [ ! "${SEGMENT_ID}" ]; then
 fi
 
 if [ ! "${PRECONDS}" ]; then
-    echo "PRECONDS    environment variable not set - assuming \"none\"" 1>&2
     PRECONDS="none"
+    echo "PRECONDS    environment variable not set - assuming \"${PRECONDS}\"" 1>&2
 fi
 
 if [ ! "${FORMATS}" ]; then
@@ -36,33 +36,38 @@ if [ ! "${FORMATS}" ]; then
 fi
 
 if [ ! "${SOLVERS}" ]; then
-    echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres,idr\"" 1>&2
-    SOLVERS="bicgstab,cg,cgs,fcg,gmres,idr"
+    SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
+    echo "SOLVERS    environment variable not set - assuming \"${SOLVERS}\"" 1>&2
 fi
 
 if [ ! "${SOLVERS_PRECISION}" ]; then
-    echo "SOLVERS_PRECISION    environment variable not set - assuming \"1e-6\"" 1>&2
     SOLVERS_PRECISION=1e-6
+    echo "SOLVERS_PRECISION environment variable not set - assuming \"${SOLVERS_PRECISION}\"" 1>&2
 fi
 
 if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
-    echo "SOLVERS_MAX_ITERATIONS    environment variable not set - assuming \"10000\"" 1>&2
     SOLVERS_MAX_ITERATIONS=10000
+    echo "SOLVERS_MAX_ITERATIONS environment variable not set - assuming \"${SOLVERS_MAX_ITERATIONS}\"" 1>&2
+fi
+
+if [ ! "${SOLVERS_GMRES_RESTART}" ]; then
+    SOLVERS_GMRES_RESTART=100
+    echo "SOLVERS_GMRES_RESTART environment variable not set - assuming \"${SOLVERS_GMRES_RESTART}\"" 1>&2
 fi
 
 if [ ! "${SYSTEM_NAME}" ]; then
-    echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
+    echo "SYSTEM_MANE environment variable not set - assuming \"${SYSTEM_NAME}\"" 1>&2
 fi
 
 if [ ! "${DEVICE_ID}" ]; then
-    echo "DEVICE_ID environment variable not set - assuming \"0\"" 1>&2
     DEVICE_ID="0"
+    echo "DEVICE_ID environment variable not set - assuming \"${DEVICE_ID}\"" 1>&2
 fi
 
-if [ ! "${SOLVERS_RHS}" ]; then
-    echo "SOLVERS_RHS environment variable not set - assuming \"unit\"" 1>&2
-    SOLVERS_RHS="unit"
+if [ ! "${SOLVERS_JACOBI_MAX_BS}" ]; then
+    SOLVERS_JACOBI_MAX_BS="32"
+    "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
@@ -84,15 +89,43 @@ else
     exit 1
 fi
 
+if [ ! "${SOLVERS_RHS}" ]; then
+    SOLVERS_RHS="1"
+    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_RHS}\"" 1>&2
+fi
+
 if [ "${SOLVERS_RHS}" == "random" ]; then
-    SOLVERS_RHS_FLAG="--random_rhs=true"
+    SOLVERS_RHS_FLAG="--rhs_generation=random"
+elif [ "${SOLVERS_RHS}" == "1" ]; then
+    SOLVERS_RHS_FLAG="--rhs_generation=1"
+elif [ "${SOLVERS_RHS}" == "sinus" ]; then
+    SOLVERS_RHS_FLAG="--rhs_generation=sinus"
 else
-    SOLVERS_RHS_FLAG="--random_rhs=false"
+    echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
+    echo "The following values are supported: \"1\", \"random\" and \"sinus\"" 1>&2
+    exit 1
+fi
+
+if [ ! "${SOLVERS_INITIAL_GUESS}" ]; then
+    SOLVERS_INITIAL_GUESS="rhs"
+    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
+fi
+
+if [ "${SOLVERS_INITIAL_GUESS}" == "random" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=random"
+elif [ "${SOLVERS_INITIAL_GUESS}" == "0" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=0"
+elif [ "${SOLVERS_INITIAL_GUESS}" == "rhs" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=rhs"
+else
+    echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
+    echo "The following values are supported: \"0\", \"random\" and \"rhs\"" 1>&2
+    exit 1
 fi
 
 if [ ! "${GPU_TIMER}" ]; then
-    echo "GPU_TIMER    environment variable not set - assuming \"false\"" 1>&2
     GPU_TIMER="false"
+    echo "GPU_TIMER    environment variable not set - assuming \"${GPU_TIMER}\"" 1>&2
 fi
 
 # Control whether to run detailed benchmarks or not.
@@ -202,7 +235,10 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
+                    --gpu_timer=${GPU_TIMER} \
+                    --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
+                    --gmres_restart="${SOLVERS_GMRES_RESTART}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

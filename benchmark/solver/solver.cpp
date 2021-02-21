@@ -72,7 +72,9 @@ DEFINE_bool(
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, idr, "
+              "Supported values are: bicgstab, bicg, cb_gmres_keep, "
+              "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
+              "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
               "lower_trs, upper_trs, overhead");
 
 DEFINE_uint32(
@@ -89,11 +91,20 @@ DEFINE_double(
     idr_kappa, 0.7,
     "the number to check whether Av_n and v_n are too close or not in IDR");
 
-DEFINE_bool(random_rhs, false,
-            "Use a random vector for the rhs (otherwise use all ones)");
+DEFINE_string(
+    rhs_generation, "1",
+    "Method used to generate the right hand side. Supported values are:"
+    "`1`, `random`, `sinus`. `1` sets all values of the right hand side to 1, "
+    "`random` assigns the values to a uniformly distributed random number "
+    "in [-1, 1), and `sinus` assigns b = A * (s / |s|) with A := system matrix,"
+    " s := vector with s(idx) = sin(idx) for non-complex types, and "
+    "s(idx) = sin(2*idx) + i * sin(2*idx+1).");
 
-DEFINE_bool(random_initial_guess, false,
-            "Use a random vector for the initial guess (otherwise use rhs)");
+DEFINE_string(
+    initial_guess_generation, "rhs",
+    "Method used to generate the initial guess. Supported values are: "
+    "`random`, `rhs`, `0`. `random` uses a random vector, `rhs` uses the right "
+    "hand side, and `0 uses a zero vector as the initial guess.");
 
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
@@ -115,6 +126,60 @@ DEFINE_bool(overhead, false,
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
     std::exit(1);
+}
+
+
+template <typename Engine>
+std::unique_ptr<vec<etype>> generate_rhs(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOp> system_matrix, Engine engine)
+{
+    gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
+    if (FLAGS_rhs_generation == "1") {
+        return create_matrix<etype>(exec, vec_size, gko::one<etype>());
+    } else if (FLAGS_rhs_generation == "random") {
+        return create_matrix<etype>(exec, vec_size, engine);
+    } else if (FLAGS_rhs_generation == "sinus") {
+        auto rhs = vec<etype>::create(exec, vec_size);
+
+        auto tmp = create_matrix_sin<etype>(exec, vec_size);
+        auto scalar = gko::matrix::Dense<rc_etype>::create(
+            exec->get_master(), gko::dim<2>{1, vec_size[1]});
+        tmp->compute_norm2(scalar.get());
+        for (gko::size_type i = 0; i < vec_size[1]; ++i) {
+            scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
+        }
+        // normalize sin-vector
+        if (gko::is_complex_s<etype>::value) {
+            tmp->scale(scalar->make_complex().get());
+        } else {
+            tmp->scale(scalar.get());
+        }
+        system_matrix->apply(tmp.get(), rhs.get());
+        return rhs;
+    }
+    throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
+                                FLAGS_rhs_generation + " is not supported!");
+}
+
+
+template <typename Engine>
+std::unique_ptr<vec<etype>> generate_initial_guess(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype> *rhs,
+    Engine engine)
+{
+    gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
+    if (FLAGS_initial_guess_generation == "0") {
+        return create_matrix<etype>(exec, vec_size, gko::zero<etype>());
+    } else if (FLAGS_initial_guess_generation == "random") {
+        return create_matrix<etype>(exec, vec_size, engine);
+    } else if (FLAGS_initial_guess_generation == "rhs") {
+        return rhs->clone();
+    }
+    throw std::invalid_argument(std::string("\"initial_guess_generation\" = ") +
+                                FLAGS_initial_guess_generation +
+                                " is not supported!");
 }
 
 
@@ -154,61 +219,99 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 }
 
 
-// solver mapping
-template <typename SolverType>
-std::unique_ptr<gko::LinOpFactory> create_solver(
-    std::shared_ptr<const gko::Executor> exec,
+template <typename SolverIntermediate>
+std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
+    SolverIntermediate inter, const std::shared_ptr<const gko::Executor> &exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::build()
-        .with_criteria(create_criterion(exec))
+    return inter.with_criteria(create_criterion(exec))
         .with_preconditioner(give(precond))
         .on(exec);
 }
 
 
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor>,
-                                std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<etype>>},
-                   {"bicg", create_solver<gko::solver::Bicg<etype>>},
-                   {"cg", create_solver<gko::solver::Cg<etype>>},
-                   {"cgs", create_solver<gko::solver::Cgs<etype>>},
-                   {"fcg", create_solver<gko::solver::Fcg<etype>>},
-                   {"idr",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Idr<etype>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_subspace_dim(FLAGS_idr_subspace_dim)
-                            .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"gmres",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Gmres<etype>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_krylov_dim(FLAGS_gmres_restart)
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"lower_trs",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::LowerTrs<etype>::build()
-                            .with_num_rhs(FLAGS_nrhs)
-                            .on(exec);
-                    }},
-                   {"upper_trs",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::UpperTrs<etype>::build()
-                            .with_num_rhs(FLAGS_nrhs)
-                            .on(exec);
-                    }},
-                   {"overhead", create_solver<gko::Overhead<etype>>}};
+template <typename Solver>
+std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
+    const std::shared_ptr<const gko::Executor> &exec,
+    std::shared_ptr<const gko::LinOpFactory> precond)
+{
+    return add_criteria_precond_finalize(Solver::build(), exec, precond);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> generate_solver(
+    const std::shared_ptr<const gko::Executor> &exec,
+    std::shared_ptr<const gko::LinOpFactory> precond,
+    const std::string &description)
+{
+    std::string cb_gmres_prefix("cb_gmres_");
+    if (description.find(cb_gmres_prefix) == 0) {
+        auto s_prec = gko::solver::cb_gmres::storage_precision::keep;
+        const auto spec = description.substr(cb_gmres_prefix.length());
+        if (spec == "keep") {
+            s_prec = gko::solver::cb_gmres::storage_precision::keep;
+        } else if (spec == "reduce1") {
+            s_prec = gko::solver::cb_gmres::storage_precision::reduce1;
+        } else if (spec == "reduce2") {
+            s_prec = gko::solver::cb_gmres::storage_precision::reduce2;
+        } else if (spec == "integer") {
+            s_prec = gko::solver::cb_gmres::storage_precision::integer;
+        } else if (spec == "ireduce1") {
+            s_prec = gko::solver::cb_gmres::storage_precision::ireduce1;
+        } else if (spec == "ireduce2") {
+            s_prec = gko::solver::cb_gmres::storage_precision::ireduce2;
+        } else {
+            throw std::range_error(
+                std::string(
+                    "CB-GMRES does not have a corresponding solver to <") +
+                description + ">!");
+        }
+        return add_criteria_precond_finalize(
+            gko::solver::CbGmres<etype>::build()
+                .with_krylov_dim(FLAGS_gmres_restart)
+                .with_storage_precision(s_prec),
+            exec, precond);
+    } else if (description == "bicgstab") {
+        return add_criteria_precond_finalize<gko::solver::Bicgstab<etype>>(
+            exec, precond);
+    } else if (description == "bicg") {
+        return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(exec,
+                                                                       precond);
+    } else if (description == "cg") {
+        return add_criteria_precond_finalize<gko::solver::Cg<etype>>(exec,
+                                                                     precond);
+    } else if (description == "cgs") {
+        return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(exec,
+                                                                      precond);
+    } else if (description == "fcg") {
+        return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(exec,
+                                                                      precond);
+    } else if (description == "idr") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build()
+                .with_subspace_dim(FLAGS_idr_subspace_dim)
+                .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "gmres") {
+        return add_criteria_precond_finalize(
+            gko::solver::Gmres<etype>::build().with_krylov_dim(
+                FLAGS_gmres_restart),
+            exec, precond);
+    } else if (description == "lower_trs") {
+        return gko::solver::LowerTrs<etype>::build()
+            .with_num_rhs(FLAGS_nrhs)
+            .on(exec);
+    } else if (description == "upper_trs") {
+        return gko::solver::UpperTrs<etype>::build()
+            .with_num_rhs(FLAGS_nrhs)
+            .on(exec);
+    } else if (description == "overhead") {
+        return add_criteria_precond_finalize<gko::Overhead<etype>>(exec,
+                                                                   precond);
+    }
+    throw std::range_error(std::string("The provided string <") + description +
+                           "> does not match any solver!");
+}
 
 
 void write_precond_info(const gko::LinOp *precond,
@@ -299,7 +402,7 @@ void solve_system(const std::string &solver_name,
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
             solver->add_logger(it_logger);
             solver->apply(lend(b), lend(x_clone));
@@ -320,7 +423,7 @@ void solve_system(const std::string &solver_name,
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
 
             exec->remove_logger(gko::lend(gen_logger));
@@ -370,7 +473,7 @@ void solve_system(const std::string &solver_name,
             exec->synchronize();
             generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+            auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
             generate_timer->toc();
 
@@ -497,19 +600,10 @@ int main(int argc, char *argv[])
                     std::ifstream rhs_fd{test_case["rhs"].GetString()};
                     b = gko::read<Vec>(rhs_fd, exec);
                 } else {
-                    b = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine, FLAGS_random_rhs);
+                    b = generate_rhs(exec, system_matrix, engine);
                 }
-                if (FLAGS_random_initial_guess) {
-                    x = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine);
-                } else {
-                    x = b->clone();
-                }
+                x = generate_initial_guess(exec, system_matrix, b.get(),
+                                           engine);
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]

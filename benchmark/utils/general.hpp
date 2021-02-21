@@ -287,22 +287,51 @@ template <typename ValueType>
 using vec = gko::matrix::Dense<ValueType>;
 
 
-// creates a zero vector
+// Create a matrix with value indices s[i, j] = sin(i)
 template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+std::enable_if_t<!gko::is_complex_s<ValueType>::value,
+                 std::unique_ptr<vec<ValueType>>>
+create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
 {
+    auto h_res = vec<ValueType>::create(exec->get_master(), size);
+    for (gko::size_type i = 0; i < size[0]; ++i) {
+        for (gko::size_type j = 0; j < size[1]; ++j) {
+            h_res->at(i, j) = std::sin(static_cast<ValueType>(i));
+        }
+    }
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(gko::dim<2>{size, 1}));
+    h_res->move_to(res.get());
     return res;
 }
 
+// Note: complex values are assigned s[i, j] = {sin(2 * i), sin(2 * i + 1)}
+template <typename ValueType>
+std::enable_if_t<gko::is_complex_s<ValueType>::value,
+                 std::unique_ptr<vec<ValueType>>>
+create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+{
+    using rc_vtype = gko::remove_complex<ValueType>;
+    auto h_res = vec<ValueType>::create(exec->get_master(), size);
+    for (gko::size_type i = 0; i < size[0]; ++i) {
+        for (gko::size_type j = 0; j < size[1]; ++j) {
+            h_res->at(i, j) =
+                ValueType{std::sin(static_cast<rc_vtype>(2 * i)),
+                          std::sin(static_cast<rc_vtype>(2 * i + 1))};
+        }
+    }
+    auto res = vec<ValueType>::create(exec);
+    h_res->move_to(res.get());
+    return res;
+}
+
+
 template <typename ValueType>
 std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    ValueType value)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(size));
+    res->read(gko::matrix_data<ValueType>(size, value));
     return res;
 }
 
@@ -311,18 +340,25 @@ std::unique_ptr<vec<ValueType>> create_matrix(
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
-    RandomEngine &engine, bool random = true)
+    RandomEngine &engine)
 {
     auto res = vec<ValueType>::create(exec);
-    if (random) {
-        res->read(gko::matrix_data<ValueType>(
-            size,
-            std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
-                                                                           1.0),
-            engine));
-    } else {
-        res->read(gko::matrix_data<ValueType>(size, gko::one<ValueType>()));
-    }
+    res->read(gko::matrix_data<ValueType>(
+        size,
+        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                       1.0),
+        engine));
+    return res;
+}
+
+
+// creates a zero vector
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(gko::dim<2>{size, 1}));
     return res;
 }
 

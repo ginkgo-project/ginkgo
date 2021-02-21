@@ -40,6 +40,7 @@ target_sources(ginkgo
     solver/cgs.cpp
     solver/fcg.cpp
     solver/gmres.cpp
+    solver/cb_gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
     solver/lower_trs.cpp

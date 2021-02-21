@@ -44,6 +44,14 @@ struct atomic_helper {
                       "specializations are.");
         // TODO: add proper implementation of generic atomic add
     }
+    __forceinline__ __device__ static ValueType atomic_max(ValueType *,
+                                                           ValueType)
+    {
+        static_assert(sizeof(ValueType) == 0,
+                      "This default function is not implemented, only the "
+                      "specializations are.");
+        // TODO: add proper implementation of generic atomic max
+    }
 };
 
 
@@ -65,23 +73,47 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         __forceinline__ __device__ static ValueType atomic_add(              \
             ValueType *__restrict__ addr, ValueType val)                     \
         {                                                                    \
+            using c_type = CONVERTER_TYPE;                                   \
+            return atomic_wrapper(addr, [&val](c_type &old, c_type assumed,  \
+                                               c_type *c_addr) {             \
+                old = atomicCAS(c_addr, assumed,                             \
+                                reinterpret<c_type>(                         \
+                                    val + reinterpret<ValueType>(assumed))); \
+            });                                                              \
+        }                                                                    \
+        __forceinline__ __device__ static ValueType atomic_max(              \
+            ValueType *__restrict__ addr, ValueType val)                     \
+        {                                                                    \
+            using c_type = CONVERTER_TYPE;                                   \
+            return atomic_wrapper(                                           \
+                addr, [&val](c_type &old, c_type assumed, c_type *c_addr) {  \
+                    if (reinterpret<ValueType>(assumed) < val) {             \
+                        old = atomicCAS(c_addr, assumed,                     \
+                                        reinterpret<c_type>(val));           \
+                    }                                                        \
+                });                                                          \
+        }                                                                    \
+                                                                             \
+    private:                                                                 \
+        template <typename Callable>                                         \
+        __forceinline__ __device__ static ValueType atomic_wrapper(          \
+            ValueType *__restrict__ addr, Callable set_old)                  \
+        {                                                                    \
             CONVERTER_TYPE *address_as_converter =                           \
                 reinterpret_cast<CONVERTER_TYPE *>(addr);                    \
             CONVERTER_TYPE old = *address_as_converter;                      \
             CONVERTER_TYPE assumed;                                          \
             do {                                                             \
                 assumed = old;                                               \
-                old = atomicCAS(address_as_converter, assumed,               \
-                                reinterpret<CONVERTER_TYPE>(                 \
-                                    val + reinterpret<ValueType>(assumed))); \
+                set_old(old, assumed, address_as_converter);                 \
             } while (assumed != old);                                        \
             return reinterpret<ValueType>(old);                              \
         }                                                                    \
     };
 
-// Support 64-bit ATOMIC_ADD
+// Support 64-bit ATOMIC_ADD and ATOMIC_MAX
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
-// Support 32-bit ATOMIC_ADD
+// Support 32-bit ATOMIC_ADD and ATOMIC_MAX
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
@@ -114,7 +146,6 @@ GKO_BIND_ATOMIC_ADD(int);
 GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
-
 
 #if !defined(__HIPCC__) || \
     (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
@@ -153,3 +184,37 @@ GKO_BIND_ATOMIC_ADD(__half2);
 
 
 #undef GKO_BIND_ATOMIC_ADD
+
+template <typename T>
+__forceinline__ __device__ T atomic_max(T *__restrict__ addr, T val)
+{
+    return detail::atomic_helper<T>::atomic_max(addr, val);
+}
+
+
+#define GKO_BIND_ATOMIC_MAX(ValueType)               \
+    __forceinline__ __device__ ValueType atomic_max( \
+        ValueType *__restrict__ addr, ValueType val) \
+    {                                                \
+        return atomicMax(addr, val);                 \
+    }
+
+GKO_BIND_ATOMIC_MAX(int);
+GKO_BIND_ATOMIC_MAX(unsigned int);
+
+#if !defined(__HIPCC__) || \
+    (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
+
+
+#if defined(__CUDA_ARCH__) && (350 <= __CUDA_ARCH__)
+// Only Compute Capability 3.5 and higher supports 64-bit atomicMax
+GKO_BIND_ATOMIC_MAX(unsigned long long int);
+#endif
+
+#else   // Is HIP platform & on AMD hardware
+GKO_BIND_ATOMIC_MAX(unsigned long long int);
+#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&
+        // GINKGO_HIP_PLATFORM_HCC)
+
+
+#undef GKO_BIND_ATOMIC_MAX
