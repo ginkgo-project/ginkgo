@@ -1,0 +1,128 @@
+\hypertarget{classgko_1_1solver_1_1CbGmres}{}\doxysection{gko\+::solver\+::Cb\+Gmres$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1CbGmres}\index{gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}}
+
+
+C\+B-\/\+G\+M\+R\+ES or the compressed basis generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/cb\+\_\+gmres.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Cb\+Gmres$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1CbGmres__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_ae4652629dedc018a4891697c7708dcd8}\label{classgko_1_1solver_1_1CbGmres_ae4652629dedc018a4891697c7708dcd8}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres_a147d0f4d9c38a53fb2617d632c48f1f8}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres_a2252efc61d8eebee57d835a9bb7fa602}{get\+\_\+krylov\+\_\+dim}} () const
+\begin{DoxyCompactList}\small\item\em Returns the krylov dimension. \end{DoxyCompactList}\item 
+cb\+\_\+gmres\+::storage\+\_\+precision \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres_a41e1ad42633172166c72ca6a0ba8cd67}{get\+\_\+storage\+\_\+precision}} () const
+\begin{DoxyCompactList}\small\item\em Returns the storage precision used internally. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_ae47a69f661ae781b1a4ca7ce7c5c3d0b}\label{classgko_1_1solver_1_1CbGmres_ae47a69f661ae781b1a4ca7ce7c5c3d0b}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a64eca09ab3ee905e255ce44927a85c47}\label{classgko_1_1solver_1_1CbGmres_a64eca09ab3ee905e255ce44927a85c47}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1CbGmres_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a6a29bc623c633f88629a497e8d56cc7e}\label{classgko_1_1solver_1_1CbGmres_a6a29bc623c633f88629a497e8d56cc7e}} 
+class {\bfseries Enable\+Lin\+Op$<$ Cb\+Gmres $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a877980b2211909a6411df4c699540fcc}\label{classgko_1_1solver_1_1CbGmres_a877980b2211909a6411df4c699540fcc}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Cb\+Gmres, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Cb\+Gmres$<$ Value\+Type $>$}
+
+C\+B-\/\+G\+M\+R\+ES or the compressed basis generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. 
+
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of C\+B-\/\+G\+M\+R\+ES are merged into 2 separate steps. Classical Gram-\/\+Schmidt with reorthogonalization is used.
+
+The krylov basis can be stored in reduced precision (compressed) to reduce memory accesses, while all computations (including krylov basis operations) are performed in the same arithmetic precision Value\+Type. By default, the krylov basis are stored in one precision lower than Value\+Type.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & the arithmetic precision and the precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a2252efc61d8eebee57d835a9bb7fa602}\label{classgko_1_1solver_1_1CbGmres_a2252efc61d8eebee57d835a9bb7fa602}} 
+\index{gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}!get\_krylov\_dim@{get\_krylov\_dim}}
+\index{get\_krylov\_dim@{get\_krylov\_dim}!gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_krylov\_dim()}{get\_krylov\_dim()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres}{gko\+::solver\+::\+Cb\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+krylov\+\_\+dim (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the krylov dimension. 
+
+\begin{DoxyReturn}{Returns}
+the krylov dimension 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a41e1ad42633172166c72ca6a0ba8cd67}\label{classgko_1_1solver_1_1CbGmres_a41e1ad42633172166c72ca6a0ba8cd67}} 
+\index{gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}!get\_storage\_precision@{get\_storage\_precision}}
+\index{get\_storage\_precision@{get\_storage\_precision}!gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_storage\_precision()}{get\_storage\_precision()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+cb\+\_\+gmres\+::storage\+\_\+precision \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres}{gko\+::solver\+::\+Cb\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+storage\+\_\+precision (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the storage precision used internally. 
+
+\begin{DoxyReturn}{Returns}
+the storage precision used internally 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1CbGmres_a147d0f4d9c38a53fb2617d632c48f1f8}\label{classgko_1_1solver_1_1CbGmres_a147d0f4d9c38a53fb2617d632c48f1f8}} 
+\index{gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::CbGmres$<$ ValueType $>$@{gko::solver::CbGmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres}{gko\+::solver\+::\+Cb\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/cb\+\_\+gmres.\+hpp\end{DoxyCompactItemize}

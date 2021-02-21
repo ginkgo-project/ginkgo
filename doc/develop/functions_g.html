@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/259347815 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,6 +74,7 @@ $(function() {
 <li>generated_preconditioner
 : <a class="el" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">gko::solver::Bicg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a2a2385e1f78185e17a6ebd9bff969088">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1solver_1_1CbGmres_1_1parameters__type.html#a4ac5c6d9d0b4dabbc4e5c18950dcce8e">gko::solver::CbGmres&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html#ad05c6600eca51def94fb1279901f9b5c">gko::solver::Cg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a50e4ec6b2c0b41747bd77244147ca1f3">gko::solver::Cgs&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a4e8a74f4d9b83efe071e7b5252fdc1b9">gko::solver::Fcg&lt; ValueType &gt;::parameters_type</a>
@@ -276,7 +277,8 @@ $(function() {
 : <a class="el" href="classgko_1_1solver_1_1Idr.html#a3972be1e389b17843fbbe065feccc2ea">gko::solver::Idr&lt; ValueType &gt;</a>
 </li>
 <li>get_krylov_dim()
-: <a class="el" href="classgko_1_1solver_1_1Gmres.html#a3a808fe82cdd1e988667a89d6982e740">gko::solver::Gmres&lt; ValueType &gt;</a>
+: <a class="el" href="classgko_1_1solver_1_1CbGmres.html#a2252efc61d8eebee57d835a9bb7fa602">gko::solver::CbGmres&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Gmres.html#a3a808fe82cdd1e988667a89d6982e740">gko::solver::Gmres&lt; ValueType &gt;</a>
 </li>
 <li>get_l_solver()
 : <a class="el" href="classgko_1_1preconditioner_1_1Ic.html#aa4d593fa751aa5cc418fd3cb9155b3bb">gko::preconditioner::Ic&lt; LSolverType, IndexType &gt;</a>
@@ -470,6 +472,9 @@ $(function() {
 , <a class="el" href="classgko_1_1solver_1_1Idr.html#a51f32d52eda0a94c24b7d83c1e8f3b3f">gko::solver::Idr&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Ir.html#a3ceb918891b6dbcbae4d52bc8a831b19">gko::solver::Ir&lt; ValueType &gt;</a>
 </li>
+<li>get_storage_precision()
+: <a class="el" href="classgko_1_1solver_1_1CbGmres.html#a41e1ad42633172166c72ca6a0ba8cd67">gko::solver::CbGmres&lt; ValueType &gt;</a>
+</li>
 <li>get_storage_scheme()
 : <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a5e4e792eebc837d555c2df4c74a3d5dc">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
 </li>
@@ -494,6 +499,7 @@ $(function() {
 <li>get_system_matrix()
 : <a class="el" href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#ada73e8ca3e8924011c8780cab92f651e">gko::solver::Bicgstab&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1CbGmres.html#a147d0f4d9c38a53fb2617d632c48f1f8">gko::solver::CbGmres&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">gko::solver::Cg&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Cgs.html#aa537b2e6b7ccf95e96b4100866da1770">gko::solver::Cgs&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Fcg.html#aae8c67d27df239c18750845275605c87">gko::solver::Fcg&lt; ValueType &gt;</a>

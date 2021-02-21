@@ -64,7 +64,7 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{    \textcolor{keyword}{auto} tic = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} solver = cg\_factory-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}}(A));}
-\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    solver-\/>\mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply}}(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{    exec-\/>synchronize();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} tac = std::chrono::steady\_clock::now();}
@@ -185,7 +185,7 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} tic = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} solver = cg\_factory-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}}(A));}
-\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    solver-\/>\mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply}}(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
 \DoxyCodeLine{    exec-\/>synchronize();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} tac = std::chrono::steady\_clock::now();}

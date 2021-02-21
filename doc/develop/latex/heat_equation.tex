@@ -367,7 +367,7 @@ execute Euler step
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
+\DoxyCodeLine{solver-\/>\mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply}}(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
 \end{DoxyCode}
 
 
@@ -571,7 +571,7 @@ The program will generate a video file named heat.\+mp4 and output the timestamp
 \DoxyCodeLine{            output\_timestep(output, n, in\_vector-\/>get\_const\_values());}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        in\_vector-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tau\_source\_scalar), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(source));}
-\DoxyCodeLine{        solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
+\DoxyCodeLine{        solver-\/>\mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply}}(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
 \DoxyCodeLine{        std::swap(in\_vector, out\_vector);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{\}}

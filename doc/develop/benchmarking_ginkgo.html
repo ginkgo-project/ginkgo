@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/258413682 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/259347815 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -120,7 +120,7 @@ $(function() {
 </div><!-- fragment --><p>Since <code>make</code> sets any variables passed to it as temporary environment variables, the following shorthand can also be used:</p>
 <div class="fragment"><div class="line">make benchmark VARIABLE=&quot;value&quot; ...</div>
 </div><!-- fragment --><p>A combination of the above approaches is also possible (e.g. it may be useful to <code>export</code> the <code>SYSTEM_NAME</code> variable, and specify the others at every benchmark run).</p>
-<p>The benchmark suite can take a number of configuration parameters. Benchmarks can be run only for <code>sparse matrix vector products (spmv)</code>, for full solvers (with or without preconditioners), or for preconditioners only when supported. The benchmark suite also allows to target a sub-part of the SuiteSparse matrix collection. For details, see the <a href="### 5: Available
+<p>The benchmark suite can take a number of configuration parameters. Benchmarks can be run only for <code>sparse matrix vector products (spmv)</code>, for full solvers (with or without preconditioners), or for preconditioners only when supported. The benchmark suite also allows to target a sub-part of the SuiteSparse matrix collection. For details, see the <a href="### 6: Available
 benchmark options">available benchmark options</a>. Here are the most important options:</p><ul>
 <li><code>BENCHMARK={spmv, solver, preconditioner}</code> - allows to select the type of benchmark to be ran.</li>
 <li><code>EXECUTOR={reference,cuda,hip,omp,dpcpp}</code> - select the executor and platform the benchmarks should be ran on.</li>
@@ -180,12 +180,18 @@ benchmark options">available benchmark options</a>. Here are the most important 
 <li><code>MATRIX_LIST_FILE=/path/to/matrix_list.file</code> - allows to list SuiteSparse matrix id or name to benchmark. As an example, a matrix list file containing the following will ensure that benchmarks are ran for only those three matrices: ``` 1903 Freescale/circuit5M thermal2 ``<code> *</code>DEVICE_ID<code>- the accelerator device ID to target for the benchmark. The default is</code>0<code>. *</code>DRY_RUN={true, false}<code>- If set to</code>true`, prepares the system for the benchmark runs (downloads the collections, creates the result structure, etc.) and outputs the list of commands that would normally be run, but does not run the benchmarks themselves. Default is <code>false</code>.</li>
 <li><code>PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,none}</code> the preconditioners to use for either <code>solver</code> or <code>preconditioner</code> benchmarks. Multiple options can be passed to this variable. Default is <code>none</code>.</li>
 <li><code>FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusp_xx,hipsp_xx}</code> the matrix formats to benchmark for the <code>spmv</code> phase of the benchmark. Run <code>${ginkgo_build_dir}/benchmark/spmv/spmv --help</code> for a full list. If needed, multiple options for hybrid with different optimization parameters are available. Depending on the libraries available at build time, vendor library formats (cuSPARSE with <code>cusp_</code> prefix or hipSPARSE with <code>hipsp_</code> prefix) can be used as well. Multiple options can be passed. The default is <code>csr,coo,ell,hybrid,sellp</code>.</li>
-<li><code>SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,lower_trs,upper_trs}</code> - the solvers which should be benchmarked. Multiple options can be passed. The default is <code>cg</code>. Note that <code>lower/upper_trs</code> by default don't use a preconditioner, as they are by default exact direct solvers.</li>
+<li><code>SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}</code><ul>
+<li>the solvers which should be benchmarked. Multiple options can be passed. The default is <code>bicgstab,cg,cgs,fcg,gmres,idr</code>. Note that <code>lower/upper_trs</code> by default don't use a preconditioner, as they are by default exact direct solvers.</li>
+</ul>
+</li>
 <li><code>SOLVERS_PRECISION=&lt;precision&gt;</code> - the minimal residual reduction before which the solver should stop. The default is <code>1e-6</code>.</li>
 <li><code>SOLVERS_MAX_ITERATION=&lt;number&gt;</code> - the maximum number of iterations with which a solver should be ran. The default is <code>10000</code>.</li>
-<li><code>SOLVERS_RHS={unit, random}</code> - whether to use a vector of all ones or random values as the right-hand side in solver benchmarks. Default is <code>unit</code>.</li>
+<li><code>SOLVERS_RHS={1, random, sinus}</code> - whether to use a vector of all ones, random values or b = A * (s / |s|)$ with s(idx) = sin(idx) (for complex numbers, s(idx) = sin(2*idx) + i * sin(2*idx+1)) as the right-hand side in solver benchmarks. Default is <code>1</code>.</li>
+<li><code>SOLVERS_INITIAL_GUESS={rhs,0,random}</code> - the initial guess generation of the solvers. <code>rhs</code> uses the right-hand side, <code>0</code> uses a zero vector and <code>random</code> generates a random vector as the initial guess.</li>
 <li><code>DETAILED={0,1}</code> - selects whether detailed benchmarks should be ran for the solver benchmarks, can be either <code>0</code> (off) or <code>1</code> (on). The default is <code>0</code>.</li>
-<li><code>GPU_TIMER={true, false}</code> - If set to <code>true</code>, use the gpu timer, which is valid for cuda/hip executor, to measure the timing. Default is <code>false</code>. </li>
+<li><code>GPU_TIMER={true, false}</code> - If set to <code>true</code>, use the gpu timer, which is valid for cuda/hip executor, to measure the timing. Default is <code>false</code>.</li>
+<li><code>SOLVERS_JACOBI_MAX_BS</code> - sets the maximum block size for the Jacobi preconditioner (if used, otherwise, it does nothing) in the solvers benchmark. The default is '32'.</li>
+<li><code>SOLVERS_GMRES_RESTART</code> - the maximum dimension of the Krylov space to use in GMRES. The default is <code>100</code>. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

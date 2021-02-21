@@ -1,0 +1,67 @@
+\hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type}{}\doxysection{gko\+::solver\+::Cb\+Gmres$<$ Value\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type}\index{gko::solver::CbGmres$<$ ValueType $>$::parameters\_type@{gko::solver::CbGmres$<$ ValueType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::solver\+::Cb\+Gmres$<$ Value\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1solver_1_1CbGmres_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ab523b41d8e22f456d0ab0f5da63efc13}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ab523b41d8e22f456d0ab0f5da63efc13}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+storage\+\_\+precision} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a08d214fb6f941bdbdac5e8d69c4f784b}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a08d214fb6f941bdbdac5e8d69c4f784b}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+criteria} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a62521632f1f1bfd557018d169950384e}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a62521632f1f1bfd557018d169950384e}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_aa0714031717b3eeecea3528d44623562}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_aa0714031717b3eeecea3528d44623562}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+generated\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_aa4cdc45d272eadb966a7cbdd5c29f9cd}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_aa4cdc45d272eadb966a7cbdd5c29f9cd}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+krylov\+\_\+dim} (Args \&\&... \+\_\+value) const -\/$>$ const std\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ae28cef8c0fe5f51e914fb2486eb4f125}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ae28cef8c0fe5f51e914fb2486eb4f125}} 
+cb\+\_\+gmres\+::storage\+\_\+precision \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ae28cef8c0fe5f51e914fb2486eb4f125}{storage\+\_\+precision}} \{ cb\+\_\+gmres\+::storage\+\_\+precision\+::reduce1 \}
+\begin{DoxyCompactList}\small\item\em Determines which storage type is used. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a9344ffe7352972e8bab89ddbc4256707}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a9344ffe7352972e8bab89ddbc4256707}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ $>$ \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a9344ffe7352972e8bab89ddbc4256707}{criteria}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Criterion factories. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_acbdd77ce58af94f1cdbfd2f24a06f624}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_acbdd77ce58af94f1cdbfd2f24a06f624}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}} $>$ \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type_acbdd77ce58af94f1cdbfd2f24a06f624}{preconditioner}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Preconditioner factory. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a4ac5c6d9d0b4dabbc4e5c18950dcce8e}{generated\+\_\+preconditioner}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Already generated preconditioner. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ac93e0c491af465cc7af9816d94734815}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ac93e0c491af465cc7af9816d94734815}} 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1solver_1_1CbGmres_1_1parameters__type_ac93e0c491af465cc7af9816d94734815}{krylov\+\_\+dim}} \{ 100u \}
+\begin{DoxyCompactList}\small\item\em krylov dimension factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a4ac5c6d9d0b4dabbc4e5c18950dcce8e}\label{structgko_1_1solver_1_1CbGmres_1_1parameters__type_a4ac5c6d9d0b4dabbc4e5c18950dcce8e}} 
+\index{gko::solver::CbGmres$<$ ValueType $>$::parameters\_type@{gko::solver::CbGmres$<$ ValueType $>$::parameters\_type}!generated\_preconditioner@{generated\_preconditioner}}
+\index{generated\_preconditioner@{generated\_preconditioner}!gko::solver::CbGmres$<$ ValueType $>$::parameters\_type@{gko::solver::CbGmres$<$ ValueType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{generated\_preconditioner}{generated\_preconditioner}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1CbGmres}{gko\+::solver\+::\+Cb\+Gmres}}$<$ Value\+Type $>$\+::parameters\+\_\+type\+::generated\+\_\+preconditioner \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Already generated preconditioner. 
+
+If one is provided, the factory {\ttfamily preconditioner} will be ignored. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/cb\+\_\+gmres.\+hpp\end{DoxyCompactItemize}

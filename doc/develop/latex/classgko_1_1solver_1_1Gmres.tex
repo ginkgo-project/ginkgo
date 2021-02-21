@@ -80,7 +80,7 @@ class gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}
 
 G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. 
 
-The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of G\+M\+R\+ES are merged into 2 separate steps.
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of G\+M\+R\+ES are merged into 2 separate steps. Modified Gram-\/\+Schmidt is used.
 
 
 \begin{DoxyTemplParams}{Template Parameters}

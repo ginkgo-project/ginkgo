@@ -190,14 +190,14 @@ var sectionId = 'dynsection-0';
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M49.2531,-365.7326C50.8282,-313.5032 61.1082,-67.9575 116,-22.5043 162.5554,16.046 194.7855,-3.0099 252,-22.5043 286.9142,-34.4004 318.8161,-66.0362 333.3006,-82.0034"/>
 <text text-anchor="middle" x="184" y="-135.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Bicg</text>
 <text text-anchor="middle" x="184" y="-124.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Bicgstab</text>
-<text text-anchor="middle" x="184" y="-113.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cg</text>
-<text text-anchor="middle" x="184" y="-102.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cgs</text>
-<text text-anchor="middle" x="184" y="-91.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Fcg</text>
-<text text-anchor="middle" x="184" y="-80.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Gmres</text>
-<text text-anchor="middle" x="184" y="-69.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Idr</text>
-<text text-anchor="middle" x="184" y="-58.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Ir</text>
-<text text-anchor="middle" x="184" y="-47.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::LowerTrs</text>
-<text text-anchor="middle" x="184" y="-36.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::UpperTrs</text>
+<text text-anchor="middle" x="184" y="-113.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::CbGmres</text>
+<text text-anchor="middle" x="184" y="-102.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cg</text>
+<text text-anchor="middle" x="184" y="-91.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cgs</text>
+<text text-anchor="middle" x="184" y="-80.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Fcg</text>
+<text text-anchor="middle" x="184" y="-69.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Gmres</text>
+<text text-anchor="middle" x="184" y="-58.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Idr</text>
+<text text-anchor="middle" x="184" y="-47.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Ir</text>
+<text text-anchor="middle" x="184" y="-36.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::LowerTrs</text>
 <text text-anchor="middle" x="184" y="-25.5043" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">...</text>
 </g>
 </g>
