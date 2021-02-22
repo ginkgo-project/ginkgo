@@ -39,13 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 
 
 namespace gko {
@@ -249,6 +243,50 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::BatchDense<ValueType> *source,
+                          matrix::BatchCsr<ValueType, IndexType> *result)
+{
+    auto num_rows = result->get_sizes().data() ? result->get_sizes()[0][0] : 0;
+    auto num_cols = result->get_sizes().data() ? result->get_sizes()[1][1] : 0;
+    auto num_batches = result->get_num_batches();
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    size_type cur_ptr = 0;
+    row_ptrs[0] = cur_ptr;
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(0, row, col);
+            if (val != zero<ValueType>()) {
+                col_idxs[cur_ptr] = col;
+                ++cur_ptr;
+            }
+        }
+        row_ptrs[row + 1] = cur_ptr;
+    }
+
+    cur_ptr = 0;
+    for (size_type batch = 0; batch < num_batches; ++batch) {
+        for (size_type row = 0; row < num_rows; ++row) {
+            for (size_type col = 0; col < num_cols; ++col) {
+                auto val = source->at(batch, row, col);
+                if (val != zero<ValueType>()) {
+                    values[cur_ptr] = val;
+                    ++cur_ptr;
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL);
 
 
 template <typename ValueType>

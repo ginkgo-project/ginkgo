@@ -44,9 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/base/allocator.hpp"
@@ -69,8 +67,8 @@ namespace batch_csr {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          const matrix::BatchDense<ValueType> *b,
+          matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
@@ -78,76 +76,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
+                   const matrix::BatchDense<ValueType> *alpha,
                    const matrix::BatchCsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   const matrix::BatchDense<ValueType> *b,
+                   const matrix::BatchDense<ValueType> *beta,
+                   matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row(unordered_set<IndexType> &cols,
-                       const matrix::BatchCsr<ValueType, IndexType> *c,
-                       size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_insert_row2(unordered_set<IndexType> &cols,
-                        const matrix::BatchCsr<ValueType, IndexType> *a,
-                        const matrix::BatchCsr<ValueType, IndexType> *b,
-                        size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
-                           const matrix::BatchCsr<ValueType, IndexType> *c,
-                           ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
-                            const matrix::BatchCsr<ValueType, IndexType> *a,
-                            const matrix::BatchCsr<ValueType, IndexType> *b,
-                            ValueType scale, size_type row) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::BatchCsr<ValueType, IndexType> *a,
-            const matrix::BatchCsr<ValueType, IndexType> *b,
-            matrix::BatchCsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::BatchCsr<ValueType, IndexType> *a,
-                     const matrix::BatchCsr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::BatchCsr<ValueType, IndexType> *d,
-                     matrix::BatchCsr<ValueType, IndexType> *c)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_ADVANCED_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::BatchCsr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::BatchCsr<ValueType, IndexType> *b,
-            matrix::BatchCsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>
@@ -169,30 +105,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::BatchCsr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                      matrix::BatchDense<ValueType> *result)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::BatchCsr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::BatchCsr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
@@ -250,65 +167,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::BatchCsr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DpcppExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inv_symm_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::BatchCsr<ValueType, IndexType> *orig,
-    matrix::BatchCsr<ValueType, IndexType> *permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INV_SYMM_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::BatchCsr<ValueType, IndexType> *orig,
-    matrix::BatchCsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(
-    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
-    const matrix::BatchCsr<ValueType, IndexType> *orig,
-    matrix::BatchCsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const DpcppExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::BatchCsr<ValueType, IndexType> *orig,
-                            matrix::BatchCsr<ValueType, IndexType>
-                                *column_permuted) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType> *source,
@@ -335,15 +193,6 @@ void is_sorted_by_column_index(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::BatchCsr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace batch_csr
