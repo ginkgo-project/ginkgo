@@ -88,6 +88,11 @@ namespace kernels {
                        const matrix::BatchDense<_type> *x,          \
                        matrix::BatchDense<remove_complex<_type>> *result)
 
+#define GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(_type, _prec)  \
+    void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::BatchDense<_type> *source,     \
+                              matrix::BatchCsr<_type, _prec> *other)
+
 #define GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(_type)         \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::BatchDense<_type> *source,     \
@@ -120,32 +125,34 @@ namespace kernels {
                         matrix::BatchDense<_type> *trans)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);               \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(ValueType);                      \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                      \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                 \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);            \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);              \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(ValueType);             \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);  \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType); \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);       \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(ValueType);                  \
-    template <typename ValueType>                                         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                    \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL(ValueType);                           \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                           \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                      \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                 \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                     \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                   \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(ValueType, IndexType); \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL(ValueType);                  \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);       \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);      \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);            \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(ValueType);                       \
+    template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 

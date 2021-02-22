@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -61,6 +61,7 @@ GKO_REGISTER_OPERATION(add_scaled, batch_dense::add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, batch_dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, batch_dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_norm2, batch_dense::compute_norm2);
+GKO_REGISTER_OPERATION(convert_to_batch_csr, batch_dense::convert_to_batch_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, batch_dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        batch_dense::calculate_max_nnz_per_row);
@@ -72,6 +73,39 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 
 
 }  // namespace batch_dense
+
+
+namespace {
+
+
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+
+    Array<size_type> num_stored_nonzeros{exec, source->get_num_batches()};
+
+    exec->run(batch_dense::make_count_nonzeros(source,
+                                               num_stored_nonzeros.get_data()));
+    num_stored_nonzeros.set_executor(exec->get_master());
+    size_type num_nnz =
+        num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
+    gko::dim<2> main_size =
+        source->get_sizes().data() ? source->get_sizes()[0] : gko::dim<2>{};
+    for (size_type i = 1; i < source->get_num_batches(); ++i) {
+        GKO_ASSERT(num_nnz == num_stored_nonzeros.get_data()[i]);
+        GKO_ASSERT(main_size == source->get_sizes()[i]);
+    }
+    auto tmp = BatchCsr<ValueType, IndexType>::create(
+        exec, source->get_num_batches(), main_size, num_nnz);
+    exec->run(op(source, tmp.get()));
+    tmp->move_to(result);
+}
+
+
+}  // namespace
 
 
 template <typename ValueType>
@@ -182,6 +216,38 @@ void BatchDense<ValueType>::convert_to(
 template <typename ValueType>
 void BatchDense<ValueType>::move_to(
     BatchDense<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32> *result) const
+{
+    conversion_helper(result, this,
+                      batch_dense::template make_convert_to_batch_csr<
+                          const BatchDense<ValueType> *&, decltype(result)>);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int64> *result) const
+{
+    conversion_helper(result, this,
+                      batch_dense::template make_convert_to_batch_csr<
+                          const BatchDense<ValueType> *&, decltype(result)>);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int64> *result)
 {
     this->convert_to(result);
 }
