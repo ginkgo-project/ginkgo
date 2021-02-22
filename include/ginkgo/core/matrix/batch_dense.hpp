@@ -52,6 +52,10 @@ namespace gko {
 namespace matrix {
 
 
+template <typename ValueType, typename IndexType>
+class BatchCsr;
+
+
 /**
  * BatchDense is a matrix format which explicitly stores all values of the
  * matrix.
@@ -72,6 +76,8 @@ template <typename ValueType = default_precision>
 class BatchDense : public EnableLinOp<BatchDense<ValueType>>,
                    public EnableCreateMethod<BatchDense<ValueType>>,
                    public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
+                   public ConvertibleTo<BatchCsr<ValueType, int32>>,
+                   public ConvertibleTo<BatchCsr<ValueType, int64>>,
                    public BatchReadableFromMatrixData<ValueType, int32>,
                    public BatchReadableFromMatrixData<ValueType, int64>,
                    public BatchWritableToMatrixData<ValueType, int32>,
@@ -80,6 +86,8 @@ class BatchDense : public EnableLinOp<BatchDense<ValueType>>,
     friend class EnableCreateMethod<BatchDense>;
     friend class EnablePolymorphicObject<BatchDense, LinOp>;
     friend class BatchDense<to_complex<ValueType>>;
+    friend class BatchCsr<ValueType, int32>;
+    friend class BatchCsr<ValueType, int64>;
 
 public:
     using EnableLinOp<BatchDense>::convert_to;
@@ -119,6 +127,14 @@ public:
         BatchDense<next_precision<ValueType>> *result) const override;
 
     void move_to(BatchDense<next_precision<ValueType>> *result) override;
+
+    void convert_to(BatchCsr<ValueType, int32> *result) const override;
+
+    void move_to(BatchCsr<ValueType, int32> *result) override;
+
+    void convert_to(BatchCsr<ValueType, int64> *result) const override;
+
+    void move_to(BatchCsr<ValueType, int64> *result) override;
 
     void read(const std::vector<mat_data> &data) override;
 
