@@ -225,11 +225,11 @@ time step size for the simulation
 \end{DoxyCode}
 
 
-create an Open\+MP executor
+create a C\+U\+DA executor with an associated Open\+MP host executor
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
 \end{DoxyCode}
 
 
@@ -350,7 +350,10 @@ if enough time has passed, output the next video frame
 \DoxyCodeLine{\textcolor{keywordflow}{if} (t -\/ last\_t > 1.0 / fps) \{}
 \DoxyCodeLine{    last\_t = t;}
 \DoxyCodeLine{    std::cout << t << std::endl;}
-\DoxyCodeLine{    output\_timestep(output, n, in\_vector-\/>get\_const\_values());}
+\DoxyCodeLine{    output\_timestep(}
+\DoxyCodeLine{        output, n,}
+\DoxyCodeLine{        \mbox{\hyperlink{namespacegko_a2166ec09e3e8a0ef437aee9c2b97f422}{gko::make\_temporary\_clone}}(exec-\/>get\_master(), in\_vector.get())}
+\DoxyCodeLine{            -\/>get\_const\_values());}
 \DoxyCodeLine{\}}
 \end{DoxyCode}
 
@@ -524,7 +527,7 @@ The program will generate a video file named heat.\+mp4 and output the timestamp
 \DoxyCodeLine{    \textcolor{keyword}{auto} h2 = h * h;}
 \DoxyCodeLine{    \textcolor{keyword}{auto} tau = 1.0 / steps\_per\_sec;}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
 \DoxyCodeLine{    std::ifstream source\_stream(\textcolor{stringliteral}{"data/source.mtx"});}
 \DoxyCodeLine{    std::ifstream initial\_stream(\textcolor{stringliteral}{"data/initial.mtx"});}
 \DoxyCodeLine{    \textcolor{keyword}{auto} source = gko::read<vec>(source\_stream, exec);}
@@ -568,7 +571,10 @@ The program will generate a video file named heat.\+mp4 and output the timestamp
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (t -\/ last\_t > 1.0 / fps) \{}
 \DoxyCodeLine{            last\_t = t;}
 \DoxyCodeLine{            std::cout << t << std::endl;}
-\DoxyCodeLine{            output\_timestep(output, n, in\_vector-\/>get\_const\_values());}
+\DoxyCodeLine{            output\_timestep(}
+\DoxyCodeLine{                output, n,}
+\DoxyCodeLine{                \mbox{\hyperlink{namespacegko_a2166ec09e3e8a0ef437aee9c2b97f422}{gko::make\_temporary\_clone}}(exec-\/>get\_master(), in\_vector.get())}
+\DoxyCodeLine{                    -\/>get\_const\_values());}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        in\_vector-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tau\_source\_scalar), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(source));}
 \DoxyCodeLine{        solver-\/>\mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{apply}}(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(in\_vector), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(out\_vector));}
