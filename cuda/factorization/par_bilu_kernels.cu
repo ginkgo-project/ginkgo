@@ -33,7 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_bilu_kernels.hpp"
 
 
-#include "core/components/fixed_block.hpp"
+#include <ginkgo/core/base/range_accessors.hpp>
+
+
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"

@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
-#include "core/components/fixed_block.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -114,10 +113,10 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType *const col_ptrs,
                             ValueType *const csc_vals, UnaryOperator op)
 {
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> rvalues(
-        fbcsr_vals, blksz, blksz);
-    gko::blockutils::DenseBlocksView<ValueType, IndexType> cvalues(
-        csc_vals, blksz, blksz);
+    const range<accessor::col_major<const ValueType, 3>> rvalues(
+        fbcsr_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz));
+    range<accessor::col_major<ValueType, 3>> cvalues(
+        csc_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz));
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
             const auto dest_idx = col_ptrs[col_idxs[i]];
@@ -333,8 +332,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    const gko::blockutils::DenseBlocksView<const ValueType, IndexType> vblocks(
-        values, bs, bs);
+    const range<accessor::col_major<const ValueType, 3>> vblocks(
+        values, dim<3>(row_ptrs[nbrows], bs, bs));
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {

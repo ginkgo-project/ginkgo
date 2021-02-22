@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include "core/components/fixed_block.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 
 
@@ -133,8 +132,10 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
 
 TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
 {
-    using Dbv_t = gko::blockutils::DenseBlocksView<const real_type, int>;
-    const Dbv_t vals(rbmtx_dd->get_const_values(), blk_sz, blk_sz);
+    using Dbv_t = gko::range<gko::accessor::col_major<const real_type, 3>>;
+    const auto nbnz = rbmtx_dd->get_num_stored_blocks();
+    const Dbv_t vals(rbmtx_dd->get_const_values(),
+                     gko::dim<3>(nbnz, blk_sz, blk_sz));
     const int *const row_ptrs = rbmtx_dd->get_const_row_ptrs();
     const int *const col_idxs = rbmtx_dd->get_const_col_idxs();
 
