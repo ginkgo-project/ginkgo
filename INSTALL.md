@@ -249,19 +249,21 @@ packages can be turned off by disabling the relevant options.
   [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
   helper for code formatting.
 + GINKGO_BUILD_HWLOC=ON:
-  [hwloc](https://www.open-mpi.org/projects/hwloc) to help us to control cores
+  [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
 
 Usually, Ginkgo uses the internal version of each package. For each of the
 packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, Ginkgo provides
 two ways to find packages. To rely on the CMake `find_package` command, use the
-CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` always looks for
-system `HWLOC` first currently. Note that, if the external packages were not
-installed to the default location, the CMake option
-`-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon (`;`)
-separated list of install paths of these external packages. For more
-Information, see the [CMake documentation for
+CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` works the opposite
+way, Ginkgo always looks for the system's `hwloc` first. Set
+`-DGINKGO_USE_EXTERNAL_HWLOC=OFF` to not use the system provided one.
+
+Note that, if the external packages were not installed to the default location,
+the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the
+semicolon (`;`) separated list of install paths of these external packages. For
+more Information, see the [CMake documentation for
 CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
 
