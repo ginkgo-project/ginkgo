@@ -205,60 +205,81 @@ TYPED_TEST(BatchCsr, CanBeCleared)
 }
 
 
-// TYPED_TEST(BatchCsr, CanBeReadFromMatrixData)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     auto m = Mtx::create(this->exec,
-//                          std::make_shared<typename Mtx::load_balance>(2));
+TYPED_TEST(BatchCsr, CanBeReadFromMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec);
 
-//     m->read({{2, 3},
-//              {{0, 0, 1.0},
-//               {0, 1, 3.0},
-//               {0, 2, 2.0},
-//               {1, 0, 0.0},
-//               {1, 1, 5.0},
-//               {1, 2, 0.0}}});
+    m->read({{{2, 3},
+              {{0, 0, 1.0},
+               {0, 1, 3.0},
+               {0, 2, 2.0},
+               {1, 0, 0.0},
+               {1, 1, 5.0},
+               {1, 2, 0.0}}},
+             {{2, 3},
+              {{0, 0, 3.0},
+               {0, 1, 5.0},
+               {0, 2, 1.0},
+               {1, 0, 0.0},
+               {1, 1, 1.0},
+               {1, 2, 0.0}}}});
 
-//     this->assert_equal_to_original_mtx(m.get());
-// }
-
-
-// TYPED_TEST(BatchCsr, CanBeReadFromMatrixAssemblyData)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     auto m = Mtx::create(this->exec,
-//                          std::make_shared<typename Mtx::load_balance>(2));
-//     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2,
-//     3}); data.set_value(0, 0, 1.0); data.set_value(0, 1, 3.0);
-//     data.set_value(0, 2, 2.0);
-//     data.set_value(1, 0, 0.0);
-//     data.set_value(1, 1, 5.0);
-//     data.set_value(1, 2, 0.0);
-
-//     m->read(data);
-
-//     this->assert_equal_to_original_mtx(m.get());
-// }
+    this->assert_equal_to_original_mtx(m.get());
+}
 
 
-// TYPED_TEST(BatchCsr, GeneratesCorrectMatrixData)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     using tpl = typename gko::matrix_data<value_type,
-//     index_type>::nonzero_type; gko::matrix_data<value_type, index_type> data;
+TYPED_TEST(BatchCsr, CanBeReadFromMatrixAssemblyData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec);
+    gko::matrix_assembly_data<value_type, index_type> data1(gko::dim<2>{2, 3});
+    gko::matrix_assembly_data<value_type, index_type> data2(gko::dim<2>{2, 3});
+    data1.set_value(0, 0, 1.0);
+    data1.set_value(0, 1, 3.0);
+    data1.set_value(0, 2, 2.0);
+    data1.set_value(1, 0, 0.0);
+    data1.set_value(1, 1, 5.0);
+    data1.set_value(1, 2, 0.0);
+    data2.set_value(0, 0, 3.0);
+    data2.set_value(0, 1, 5.0);
+    data2.set_value(0, 2, 1.0);
+    data2.set_value(1, 0, 0.0);
+    data2.set_value(1, 1, 1.0);
+    data2.set_value(1, 2, 0.0);
+    auto data = std::vector<gko::matrix_assembly_data<value_type, index_type>>{
+        data1, data2};
 
-//     this->mtx->write(data);
+    m->read(data);
 
-//     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-//     ASSERT_EQ(data.nonzeros.size(), 4);
-//     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
-//     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
-//     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
-//     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
-// }
+    this->assert_equal_to_original_mtx(m.get());
+}
+
+
+TYPED_TEST(BatchCsr, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    std::vector<gko::matrix_data<value_type, index_type>> data;
+
+    this->mtx->write(data);
+
+    ASSERT_EQ(data[0].size, gko::dim<2>(2, 3));
+    ASSERT_EQ(data[0].nonzeros.size(), 4);
+    EXPECT_EQ(data[0].nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data[0].nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data[0].nonzeros[2], tpl(0, 2, value_type{2.0}));
+    EXPECT_EQ(data[0].nonzeros[3], tpl(1, 1, value_type{5.0}));
+    ASSERT_EQ(data[1].size, gko::dim<2>(2, 3));
+    ASSERT_EQ(data[1].nonzeros.size(), 4);
+    EXPECT_EQ(data[1].nonzeros[0], tpl(0, 0, value_type{3.0}));
+    EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{5.0}));
+    EXPECT_EQ(data[1].nonzeros[2], tpl(0, 2, value_type{1.0}));
+    EXPECT_EQ(data[1].nonzeros[3], tpl(1, 1, value_type{1.0}));
+}
 
 
 }  // namespace
