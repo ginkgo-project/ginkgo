@@ -450,6 +450,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ * Instantiates a HipfftError.
+ *
+ * @param errcode  The error code returned from the hipFFT routine.
+ */
+#define GKO_HIPFFT_ERROR(_errcode) \
+    ::gko::HipfftError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Asserts that a HIP library call completed without errors.
  *
  * @param _hip_call  a library call expression
@@ -502,6 +511,20 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
         if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
             throw GKO_HIPSPARSE_ERROR(_errcode);        \
         }                                               \
+    } while (false)
+
+
+/**
+ * Asserts that a hipFFT library call completed without errors.
+ *
+ * @param _hipfft_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPFFT_ERRORS(_hipfft_call) \
+    do {                                          \
+        auto _errcode = _hipfft_call;             \
+        if (_errcode != HIPFFT_SUCCESS) {         \
+            throw GKO_HIPFFT_ERROR(_errcode);     \
+        }                                         \
     } while (false)
 
 

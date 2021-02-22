@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
+#include <hipfft.h>
 #include <hiprand.h>
 #include <hipsparse.h>
 
@@ -90,6 +91,18 @@ TEST(AssertNoHipsparseErrors, ThrowsOnError)
 TEST(AssertNoHipsparseErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSPARSE_ERRORS(HIPSPARSE_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoHipfftErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_HIPFFT_ERRORS(1), gko::HipfftError);
+}
+
+
+TEST(AssertNoHipfftErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPFFT_ERRORS(HIPFFT_SUCCESS));
 }
 
 
