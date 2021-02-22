@@ -177,57 +177,13 @@ of HIP either at `/opt/rocm/hip` or at the path specified by `HIP_PATH` as a
 CMake parameter (`-DHIP_PATH=`) or environment variable (`export HIP_PATH=`),
 unless `-DGINKGO_BUILD_HIP=ON/OFF` is set explicitly.
 
-#### Correctly installing HIP toolkits and dependencies for Ginkgo
-In general, Ginkgo's HIP backend requires the following packages:
+#### HIP dependencies for Ginkgo
+Ginkgo's HIP backend adds a dependency to the following packages:
 + HIP,
 + hipBLAS,
 + hipSPARSE,
-+ Thrust.
-
-It is necessary to provide some details about the different ways to
-procure and install these packages, in particular for NVIDIA systems since
-getting a correct, non bloated setup is not straightforward.
-
-For AMD systems, the simplest way is to follow the [instructions provided
-here](https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md) which
-provide package installers for most Linux distributions. Ginkgo also needs the
-installation of the [hipBLAS](https://github.com/ROCmSoftwarePlatform/hipBLAS)
-and [hipSPARSE](https://github.com/ROCmSoftwarePlatform/hipSPARSE) interfaces.
-Optionally if you do not already have a thrust installation, [the ROCm provided
-rocThrust package can be
-used](https://github.com/ROCmSoftwarePlatform/rocThrust).
-
-For NVIDIA systems, the traditional installation (package `hip_nvcc`), albeit
-working properly is currently odd: it depends on all the `hcc` related packages,
-although the `nvcc` backend seems to entirely rely on the CUDA suite. [See this
-issue for more
-details](https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53). It is
-advised in this case to compile everything manually, including using forks of
-`hipBLAS` and `hipSPARSE` specifically made to not depend on the `hcc` specific
-packages. `Thrust` is often provided by CUDA and this Thrust version should work
-with `HIP`. Here is a sample procedure for installing `HIP`, `hipBLAS` and
-`hipSPARSE`.
-
-
-```bash
-# HIP
-git clone https://github.com/ROCm-Developer-Tools/HIP.git
-pushd HIP && mkdir build && pushd build
-cmake .. && make install
-popd && popd
-
-# hipBLAS
-git clone https://github.com/tcojean/hipBLAS.git
-pushd hipBLAS && mkdir build && pushd build
-cmake .. && make install
-popd && popd
-
-# hipSPARSE
-git clone https://github.com/tcojean/hipSPARSE.git
-pushd hipSPARSE && mkdir build && pushd build
-cmake -DBUILD_CUDA=ON .. && make install
-popd && popd
-```
++ rocRAND,
++ rocThrust.
 
 
 #### Changing the paths to search for HIP and other packages
@@ -257,12 +213,21 @@ like so:
 export HIP_PLATFORM=nvcc
 ```
 
+When using `HIP_PLATFORM=hcc`, note that two `HIP` compilers can be set, the old
+`hcc` or since ROCm 3.5, `clang`. On newer installations, `clang` should be set
+by default, but if encountering any problem try to manually set the `HIP`
+compiler to `clang`:
+```
+export HIP_COMPILER=clang
+```
+
 #### Setting platform specific compilation flags
 Platform specific compilation flags can be given through the following
 CMake variables:
 + `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
 + `-DGINKGO_HIP_HCC_COMPILER_FLAGS=`: compilation flags given to AMD platforms.
 + `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
++ `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
 
 
 ### Third party libraries and packages
