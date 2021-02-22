@@ -114,62 +114,79 @@ void BatchCsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
-    GKO_NOT_IMPLEMENTED;
-//{
-//    size_type nnz = 0;
-//    for (const auto &elem : data.nonzeros) {
-//        nnz += (elem.value != zero<ValueType>());
-//    }
-//    auto tmp = BatchCsr::create(this->get_executor()->get_master(), data.size,
-//    nnz,
-//                           this->get_strategy());
-//    size_type ind = 0;
-//    size_type cur_ptr = 0;
-//    tmp->get_row_ptrs()[0] = cur_ptr;
-//    for (size_type row = 0; row < data.size[0]; ++row) {
-//        for (; ind < data.nonzeros.size(); ++ind) {
-//            if (data.nonzeros[ind].row > row) {
-//                break;
-//            }
-//            auto val = data.nonzeros[ind].value;
-//            if (val != zero<ValueType>()) {
-//                tmp->get_values()[cur_ptr] = val;
-//                tmp->get_col_idxs()[cur_ptr] = data.nonzeros[ind].column;
-//                ++cur_ptr;
-//            }
-//        }
-//        tmp->get_row_ptrs()[row + 1] = cur_ptr;
-//    }
-//    tmp->make_srow();
-//    tmp->move_to(this);
-//}
+{
+    size_type num_batches = data.size();
+    std::vector<size_type> nnz(num_batches, 0);
+    size_type ind = 0;
+    for (const auto &batch_data : data) {
+        for (const auto &elem : batch_data.nonzeros) {
+            nnz[ind] += (elem.value != zero<ValueType>());
+        }
+        ++ind;
+    }
+    GKO_ASSERT(std::equal(nnz.begin() + 1, nnz.end(), nnz.begin()));
+    auto tmp = BatchCsr::create(this->get_executor()->get_master(), num_batches,
+                                data[0].size, nnz[0]);
+
+    size_type id = 0;
+    size_type nnz_offset = 0;
+    for (const auto &batch_data : data) {
+        ind = 0;
+        size_type cur_ptr = 0;
+        tmp->get_row_ptrs()[0] = cur_ptr;
+        for (size_type row = 0; row < batch_data.size[0]; ++row) {
+            for (; ind < batch_data.nonzeros.size(); ++ind) {
+                if (batch_data.nonzeros[ind].row > row) {
+                    break;
+                }
+                auto val = batch_data.nonzeros[ind].value;
+                if (val != zero<ValueType>()) {
+                    tmp->get_values()[nnz_offset + cur_ptr] = val;
+                    tmp->get_col_idxs()[cur_ptr] =
+                        batch_data.nonzeros[ind].column;
+                    ++cur_ptr;
+                }
+            }
+            tmp->get_row_ptrs()[row + 1] = cur_ptr;
+        }
+        nnz_offset += nnz[id];
+        ++id;
+    }
+    tmp->move_to(this);
+}
 
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
-    GKO_NOT_IMPLEMENTED;
-//{
-//    std::unique_ptr<const LinOp> op{};
-//    const BatchCsr *tmp{};
-//    if (this->get_executor()->get_master() != this->get_executor()) {
-//        op = this->clone(this->get_executor()->get_master());
-//        tmp = static_cast<const BatchCsr *>(op.get());
-//    } else {
-//        tmp = this;
-//    }
-//
-//    data = {tmp->get_size(), {}};
-//
-//    for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
-//        const auto start = tmp->row_ptrs_.get_const_data()[row];
-//        const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
-//        for (auto i = start; i < end; ++i) {
-//            const auto col = tmp->col_idxs_.get_const_data()[i];
-//            const auto val = tmp->values_.get_const_data()[i];
-//            data.nonzeros.emplace_back(row, col, val);
-//        }
-//    }
-//}
+{
+    std::unique_ptr<const BatchLinOp> op{};
+    const BatchCsr *tmp{};
+    if (this->get_executor()->get_master() != this->get_executor()) {
+        op = this->clone(this->get_executor()->get_master());
+        tmp = static_cast<const BatchCsr *>(op.get());
+    } else {
+        tmp = this;
+    }
+    data = std::vector<mat_data>(tmp->get_num_batches());
+
+    size_type num_nnz_per_batch =
+        tmp->get_num_stored_elements() / tmp->get_num_batches();
+    size_type offset = 0;
+    for (size_type batch = 0; batch < tmp->get_num_batches(); ++batch) {
+        data[batch] = {tmp->get_sizes()[batch], {}};
+
+        for (size_type row = 0; row < tmp->get_sizes()[0][0]; ++row) {
+            const auto start = tmp->row_ptrs_.get_const_data()[row];
+            const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
+            for (auto i = start; i < end; ++i) {
+                const auto col = tmp->col_idxs_.get_const_data()[i];
+                const auto val = tmp->values_.get_const_data()[offset + i];
+                data[batch].nonzeros.emplace_back(row, col, val);
+            }
+        }
+        offset += num_nnz_per_batch;
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
