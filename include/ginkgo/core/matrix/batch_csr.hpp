@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MATRIX_BatchCsr_HPP_
-#define GKO_PUBLIC_CORE_MATRIX_BatchCsr_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_CSR_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_BATCH_CSR_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -44,38 +44,10 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
-
-template <typename ValueType, typename IndexType>
-class Coo;
-
-template <typename ValueType, typename IndexType>
-class Ell;
-
-template <typename ValueType, typename IndexType>
-class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class Sellp;
-
-template <typename ValueType, typename IndexType>
-class SparsityBatchCsr;
+class BatchDense;
 
 template <typename ValueType, typename IndexType>
 class BatchCsr;
-
-template <typename ValueType, typename IndexType>
-class BatchCsrBuilder;
-
-
-namespace detail {
-
-
-template <typename ValueType = default_precision, typename IndexType = int32>
-void strategy_rebuild_helper(BatchCsr<ValueType, IndexType> *result);
-
-
-}  // namespace detail
 
 
 /**
@@ -114,26 +86,22 @@ void strategy_rebuild_helper(BatchCsr<ValueType, IndexType> *result);
  *
  * @ingroup batch_csr
  * @ingroup mat_formats
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BatchCsr
-    : public EnableLinOp<BatchCsr<ValueType, IndexType>>,
+    : public EnableBatchLinOp<BatchCsr<ValueType, IndexType>>,
       public EnableCreateMethod<BatchCsr<ValueType, IndexType>>,
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType>,
-      public Transposable,
-      public Permutable<IndexType>,
-      public EnableAbsoluteComputation<
-          remove_complex<BatchCsr<ValueType, IndexType>>> {
+      public BatchReadableFromMatrixData<ValueType, IndexType>,
+      public BatchWritableToMatrixData<ValueType, IndexType>,
+      public BatchTransposable {
     friend class EnableCreateMethod<BatchCsr>;
-    friend class EnablePolymorphicObject<BatchCsr, LinOp>;
+    friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;
 
 public:
-    using ReadableFromMatrixData<ValueType, IndexType>::read;
+    using BatchReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -147,13 +115,14 @@ public:
         result->values_ = this->values_;
         result->col_idxs_ = this->col_idxs_;
         result->row_ptrs_ = this->row_ptrs_;
-        result->set_size(this->get_size());
+        result->set_sizes(this->get_sizes());
+        result->set_num_batches(this->get_num_batches());
     }
 
     void move_to(BatchCsr<ValueType, IndexType> *result) override
     {
         bool same_executor = this->get_executor() == result->get_executor();
-        EnableLinOp<BatchCsr>::move_to(result);
+        EnableBatchLinOp<BatchCsr>::move_to(result);
     }
     friend class BatchCsr<next_precision<ValueType>, IndexType>;
 
@@ -163,37 +132,13 @@ public:
     void move_to(
         BatchCsr<next_precision<ValueType>, IndexType> *result) override;
 
-    void read(const mat_data &data) override;
+    void read(const std::vector<mat_data> &data) override;
 
-    void write(mat_data &data) const override;
+    void write(std::vector<mat_data> &data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
-
-    std::unique_ptr<LinOp> permute(
-        const Array<IndexType> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
-
-    std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType> *permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
-
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
-
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    void compute_absolute_inplace() override;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
@@ -285,11 +230,13 @@ protected:
      * @param strategy  the strategy of BatchCsr
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
-             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
-        : EnableLinOp<BatchCsr>(exec, size),
-          values_(exec, num_nonzeros),
+             const size_type num_batches = {}, const dim<2> &size = dim<2>{},
+             size_type num_nonzeros = {})
+        : EnableBatchLinOp<BatchCsr>(exec,
+                                     std::vector<dim<2>>(num_batches, size)),
+          values_(exec, num_nonzeros * num_batches),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1)
+          row_ptrs_(exec, (size[0]) + 1)
     {}
 
     /**
@@ -314,22 +261,24 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    BatchCsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
-             ValuesArray &&values, ColIdxsArray &&col_idxs,
+    BatchCsr(std::shared_ptr<const Executor> exec, const size_type num_batches,
+             const dim<2> &size, ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableLinOp<BatchCsr>(exec, size),
+        : EnableBatchLinOp<BatchCsr>(exec,
+                                     std::vector<dim<2>>(num_batches, size)),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_num_elems(),
+                      col_idxs_.get_num_elems() * num_batches);
+        GKO_ASSERT_EQ(this->get_sizes()[0][0] + 1, row_ptrs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
 private:
     Array<value_type> values_;
@@ -342,4 +291,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MATRIX_BatchCsr_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_CSR_HPP_
