@@ -42,11 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/components/fill_array.hpp"
@@ -107,9 +103,9 @@ void merge_path_spmv(
     syn::value_list<int, items_per_thread>,
     std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType> *a,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c,
-    const matrix::Dense<ValueType> *alpha = nullptr,
-    const matrix::Dense<ValueType> *beta = nullptr) GKO_NOT_IMPLEMENTED;
+    const matrix::BatchDense<ValueType> *b, matrix::BatchDense<ValueType> *c,
+    const matrix::BatchDense<ValueType> *alpha = nullptr,
+    const matrix::BatchDense<ValueType> *beta = nullptr) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_csr): change the code imported from matrix/csr if needed
 //    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
@@ -233,9 +229,9 @@ template <int subwarp_size, typename ValueType, typename IndexType>
 void classical_spmv(
     syn::value_list<int, subwarp_size>, std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType> *a,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c,
-    const matrix::Dense<ValueType> *alpha = nullptr,
-    const matrix::Dense<ValueType> *beta = nullptr) GKO_NOT_IMPLEMENTED;
+    const matrix::BatchDense<ValueType> *b, matrix::BatchDense<ValueType> *c,
+    const matrix::BatchDense<ValueType> *alpha = nullptr,
+    const matrix::BatchDense<ValueType> *beta = nullptr) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_csr): change the code imported from matrix/csr if needed
 //    const auto nwarps = exec->get_num_warps_per_sm() *
@@ -279,8 +275,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          const matrix::BatchDense<ValueType> *b,
+          matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_csr): change the code imported from matrix/csr if needed
 //    if (a->get_strategy()->get_name() == "load_balance") {
@@ -372,11 +368,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
+                   const matrix::BatchDense<ValueType> *alpha,
                    const matrix::BatchCsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   const matrix::BatchDense<ValueType> *b,
+                   const matrix::BatchDense<ValueType> *beta,
+                   matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_csr): change the code imported from matrix/csr if needed
 //    if (a->get_strategy()->get_name() == "load_balance") {
@@ -468,256 +464,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const HipExecutor> exec,
-            const matrix::BatchCsr<ValueType, IndexType> *a,
-            const matrix::BatchCsr<ValueType, IndexType> *b,
-            matrix::BatchCsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-//        auto handle = exec->get_hipsparse_handle();
-//        hipsparse::pointer_mode_guard pm_guard(handle);
-//        auto a_descr = hipsparse::create_mat_descr();
-//        auto b_descr = hipsparse::create_mat_descr();
-//        auto c_descr = hipsparse::create_mat_descr();
-//        auto d_descr = hipsparse::create_mat_descr();
-//        auto info = hipsparse::create_spgemm_info();
-//
-//        auto alpha = one<ValueType>();
-//        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-//        auto a_vals = a->get_const_values();
-//        auto a_row_ptrs = a->get_const_row_ptrs();
-//        auto a_col_idxs = a->get_const_col_idxs();
-//        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-//        auto b_vals = b->get_const_values();
-//        auto b_row_ptrs = b->get_const_row_ptrs();
-//        auto b_col_idxs = b->get_const_col_idxs();
-//        auto null_value = static_cast<ValueType *>(nullptr);
-//        auto null_index = static_cast<IndexType *>(nullptr);
-//        auto zero_nnz = IndexType{};
-//        auto m = static_cast<IndexType>(a->get_size()[0]);
-//        auto n = static_cast<IndexType>(b->get_size()[1]);
-//        auto k = static_cast<IndexType>(a->get_size()[1]);
-//        auto c_row_ptrs = c->get_row_ptrs();
-//        matrix::BatchCsrBuilder<ValueType, IndexType> c_builder{c};
-//        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-//        auto &c_vals_array = c_builder.get_value_array();
-//
-//        // allocate buffer
-//        size_type buffer_size{};
-//        hipsparse::spgemm_buffer_size(
-//            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-//            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-//            zero_nnz, null_index, null_index, info, buffer_size);
-//        Array<char> buffer_array(exec, buffer_size);
-//        auto buffer = buffer_array.get_data();
-//
-//        // count nnz
-//        IndexType c_nnz{};
-//        hipsparse::spgemm_nnz(
-//            handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
-//            b_nnz, b_row_ptrs, b_col_idxs, d_descr, zero_nnz, null_index,
-//            null_index, c_descr, c_row_ptrs, &c_nnz, info, buffer);
-//
-//        // accumulate non-zeros
-//        c_col_idxs_array.resize_and_reset(c_nnz);
-//        c_vals_array.resize_and_reset(c_nnz);
-//        auto c_col_idxs = c_col_idxs_array.get_data();
-//        auto c_vals = c_vals_array.get_data();
-//        hipsparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-//                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-//                          b_row_ptrs, b_col_idxs, null_value, d_descr,
-//                          zero_nnz, null_value, null_index, null_index,
-//                          c_descr, c_vals, c_row_ptrs, c_col_idxs, info,
-//                          buffer);
-//
-//        hipsparse::destroy_spgemm_info(info);
-//        hipsparse::destroy(d_descr);
-//        hipsparse::destroy(c_descr);
-//        hipsparse::destroy(b_descr);
-//        hipsparse::destroy(a_descr);
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_SPGEMM_KERNEL);
-
-
-namespace {
-
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const HipExecutor> exec, const ValueType *alpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *beta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals,
-            matrix::BatchCsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto m = static_cast<IndexType>(c->get_size()[0]);
-//    auto c_row_ptrs = c->get_row_ptrs();
-//    // count nnz for alpha * A + beta * B
-//    auto subwarps_per_block = default_block_size / subwarp_size;
-//    auto num_blocks = ceildiv(m, subwarps_per_block);
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam_nnz<subwarp_size>),
-//                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-//                       a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m,
-//                       c_row_ptrs);
-//
-//    // build row pointers
-//    components::prefix_sum(exec, c_row_ptrs, m + 1);
-//
-//    // accumulate non-zeros for alpha * A + beta * B
-//    matrix::BatchCsrBuilder<ValueType, IndexType> c_builder{c};
-//    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
-//    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
-//    c_builder.get_value_array().resize_and_reset(c_nnz);
-//    auto c_col_idxs = c->get_col_idxs();
-//    auto c_vals = c->get_values();
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam<subwarp_size>),
-//                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-//                       as_hip_type(alpha), a_row_ptrs, a_col_idxs,
-//                       as_hip_type(a_vals), as_hip_type(beta), b_row_ptrs,
-//                       b_col_idxs, as_hip_type(b_vals), m, c_row_ptrs,
-//                       c_col_idxs, as_hip_type(c_vals));
-//}
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
-
-
-}  // namespace
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::BatchCsr<ValueType, IndexType> *a,
-                     const matrix::BatchCsr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::BatchCsr<ValueType, IndexType> *d,
-                     matrix::BatchCsr<ValueType, IndexType> *c)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-//        auto handle = exec->get_hipsparse_handle();
-//        hipsparse::pointer_mode_guard pm_guard(handle);
-//        auto a_descr = hipsparse::create_mat_descr();
-//        auto b_descr = hipsparse::create_mat_descr();
-//        auto c_descr = hipsparse::create_mat_descr();
-//        auto d_descr = hipsparse::create_mat_descr();
-//        auto info = hipsparse::create_spgemm_info();
-//
-//        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-//        auto a_vals = a->get_const_values();
-//        auto a_row_ptrs = a->get_const_row_ptrs();
-//        auto a_col_idxs = a->get_const_col_idxs();
-//        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-//        auto b_vals = b->get_const_values();
-//        auto b_row_ptrs = b->get_const_row_ptrs();
-//        auto b_col_idxs = b->get_const_col_idxs();
-//        auto d_vals = d->get_const_values();
-//        auto d_row_ptrs = d->get_const_row_ptrs();
-//        auto d_col_idxs = d->get_const_col_idxs();
-//        auto null_value = static_cast<ValueType *>(nullptr);
-//        auto null_index = static_cast<IndexType *>(nullptr);
-//        auto one_value = one<ValueType>();
-//        auto m = static_cast<IndexType>(a->get_size()[0]);
-//        auto n = static_cast<IndexType>(b->get_size()[1]);
-//        auto k = static_cast<IndexType>(a->get_size()[1]);
-//
-//        // allocate buffer
-//        size_type buffer_size{};
-//        hipsparse::spgemm_buffer_size(
-//            handle, m, n, k, &one_value, a_descr, a_nnz, a_row_ptrs,
-//            a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value,
-//            d_descr, IndexType{}, null_index, null_index, info, buffer_size);
-//        Array<char> buffer_array(exec, buffer_size);
-//        auto buffer = buffer_array.get_data();
-//
-//        // count nnz
-//        Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
-//        auto c_tmp_row_ptrs = c_tmp_row_ptrs_array.get_data();
-//        IndexType c_nnz{};
-//        hipsparse::spgemm_nnz(
-//            handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
-//            b_nnz, b_row_ptrs, b_col_idxs, d_descr, IndexType{}, null_index,
-//            null_index, c_descr, c_tmp_row_ptrs, &c_nnz, info, buffer);
-//
-//        // accumulate non-zeros for A * B
-//        Array<IndexType> c_tmp_col_idxs_array(exec, c_nnz);
-//        Array<ValueType> c_tmp_vals_array(exec, c_nnz);
-//        auto c_tmp_col_idxs = c_tmp_col_idxs_array.get_data();
-//        auto c_tmp_vals = c_tmp_vals_array.get_data();
-//        hipsparse::spgemm(handle, m, n, k, &one_value, a_descr, a_nnz, a_vals,
-//                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-//                          b_row_ptrs, b_col_idxs, null_value, d_descr,
-//                          IndexType{}, null_value, null_index, null_index,
-//                          c_descr, c_tmp_vals, c_tmp_row_ptrs, c_tmp_col_idxs,
-//                          info, buffer);
-//
-//        // destroy hipsparse context
-//        hipsparse::destroy_spgemm_info(info);
-//        hipsparse::destroy(d_descr);
-//        hipsparse::destroy(c_descr);
-//        hipsparse::destroy(b_descr);
-//        hipsparse::destroy(a_descr);
-//
-//        auto total_nnz = c_nnz + d->get_num_stored_elements();
-//        auto nnz_per_row = total_nnz / m;
-//        select_spgeam(
-//            spgeam_kernels(),
-//            [&](int compiled_subwarp_size) {
-//                return compiled_subwarp_size >= nnz_per_row ||
-//                       compiled_subwarp_size == config::warp_size;
-//            },
-//            syn::value_list<int>(), syn::type_list<>(), exec,
-//            alpha->get_const_values(), c_tmp_row_ptrs, c_tmp_col_idxs,
-//            c_tmp_vals, beta->get_const_values(), d_row_ptrs, d_col_idxs,
-//            d_vals, c);
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_ADVANCED_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::BatchCsr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::BatchCsr<ValueType, IndexType> *b,
-            matrix::BatchCsr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto total_nnz =
-//        a->get_num_stored_elements() + b->get_num_stored_elements();
-//    auto nnz_per_row = total_nnz / a->get_size()[0];
-//    select_spgeam(
-//        spgeam_kernels(),
-//        [&](int compiled_subwarp_size) {
-//            return compiled_subwarp_size >= nnz_per_row ||
-//                   compiled_subwarp_size == config::warp_size;
-//        },
-//        syn::value_list<int>(), syn::type_list<>(), exec,
-//        alpha->get_const_values(), a->get_const_row_ptrs(),
-//        a->get_const_col_idxs(), a->get_const_values(),
-//        beta->get_const_values(), b->get_const_row_ptrs(),
-//        b->get_const_col_idxs(), b->get_const_values(), c);
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_SPGEAM_KERNEL);
-
-
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
@@ -733,28 +479,10 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::BatchCsr<ValueType, IndexType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_rows = result->get_size()[0];
-//
-//    auto row_idxs = result->get_row_idxs();
-//    const auto source_row_ptrs = source->get_const_row_ptrs();
-//
-//    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_COO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                       const matrix::BatchCsr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                      matrix::BatchDense<ValueType> *result)
+    GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:batch_csr): change the code imported from matrix/csr if needed
 //    const auto num_rows = result->get_size()[0];
@@ -781,113 +509,6 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::BatchCsr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    const auto num_rows = result->get_size()[0];
-//    const auto num_cols = result->get_size()[1];
-//
-//    auto result_values = result->get_values();
-//    auto result_col_idxs = result->get_col_idxs();
-//    auto slice_lengths = result->get_slice_lengths();
-//    auto slice_sets = result->get_slice_sets();
-//
-//    const auto slice_size = (result->get_slice_size() == 0)
-//                                ? matrix::default_slice_size
-//                                : result->get_slice_size();
-//    const auto stride_factor = (result->get_stride_factor() == 0)
-//                                   ? matrix::default_stride_factor
-//                                   : result->get_stride_factor();
-//    const int slice_num = ceildiv(num_rows, slice_size);
-//
-//    const auto source_values = source->get_const_values();
-//    const auto source_row_ptrs = source->get_const_row_ptrs();
-//    const auto source_col_idxs = source->get_const_col_idxs();
-//
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//    auto grid_dim = ceildiv(num_rows, default_block_size);
-//
-//    if (grid_dim > 0) {
-//        hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
-//                           dim3(default_block_size), 0, 0, num_rows,
-//                           as_hip_type(source_row_ptrs),
-//                           as_hip_type(nnz_per_row.get_data()));
-//    }
-//
-//    grid_dim = slice_num;
-//
-//    if (grid_dim > 0) {
-//        hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
-//                           dim3(config::warp_size), 0, 0, num_rows,
-//                           slice_size, stride_factor,
-//                           as_hip_type(nnz_per_row.get_const_data()),
-//                           as_hip_type(slice_lengths),
-//                           as_hip_type(slice_sets));
-//    }
-//
-//    components::prefix_sum(exec, slice_sets, slice_num + 1);
-//
-//    grid_dim = ceildiv(num_rows, default_block_size);
-//    if (grid_dim > 0) {
-//        hipLaunchKernelGGL(
-//            kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size),
-//            0, 0, num_rows, slice_size, as_hip_type(source_values),
-//            as_hip_type(source_row_ptrs), as_hip_type(source_col_idxs),
-//            as_hip_type(slice_lengths), as_hip_type(slice_sets),
-//            as_hip_type(result_col_idxs), as_hip_type(result_values));
-//    }
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::BatchCsr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    const auto source_values = source->get_const_values();
-//    const auto source_row_ptrs = source->get_const_row_ptrs();
-//    const auto source_col_idxs = source->get_const_col_idxs();
-//
-//    auto result_values = result->get_values();
-//    auto result_col_idxs = result->get_col_idxs();
-//    const auto stride = result->get_stride();
-//    const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-//    const auto num_rows = result->get_size()[0];
-//    const auto num_cols = result->get_size()[1];
-//
-//    const auto init_grid_dim =
-//        ceildiv(max_nnz_per_row * num_rows, default_block_size);
-//
-//    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(init_grid_dim),
-//                       dim3(default_block_size), 0, 0, max_nnz_per_row,
-//                       stride, as_hip_type(result_values),
-//                       as_hip_type(result_col_idxs));
-//
-//    const auto grid_dim =
-//        ceildiv(num_rows * config::warp_size, default_block_size);
-//
-//    hipLaunchKernelGGL(kernel::fill_in_ell, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, num_rows, stride,
-//                       as_hip_type(source_values),
-//                       as_hip_type(source_row_ptrs),
-//                       as_hip_type(source_col_idxs),
-//                       as_hip_type(result_values),
-//                       as_hip_type(result_col_idxs));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1009,130 +630,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_blocks = ceildiv(size, default_block_size);
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_permutation_kernel), num_blocks,
-//                       default_block_size, 0, 0, size, permutation_indices,
-//                       inv_permutation);
-//}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inv_symm_permute(
-    std::shared_ptr<const HipExecutor> exec, const IndexType *perm,
-    const matrix::BatchCsr<ValueType, IndexType> *orig,
-    matrix::BatchCsr<ValueType, IndexType> *permuted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_rows = orig->get_size()[0];
-//    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
-//                       count_num_blocks, default_block_size, 0, 0, num_rows,
-//                       perm, orig->get_const_row_ptrs(),
-//                       permuted->get_row_ptrs());
-//    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
-//    auto copy_num_blocks =
-//        ceildiv(num_rows, default_block_size / config::warp_size);
-//    hipLaunchKernelGGL(
-//        HIP_KERNEL_NAME(inv_symm_permute_kernel<config::warp_size>),
-//        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
-//        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-//        as_hip_type(orig->get_const_values()), permuted->get_row_ptrs(),
-//        permuted->get_col_idxs(), as_hip_type(permuted->get_values()));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INV_SYMM_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType *perm,
-                 const matrix::BatchCsr<ValueType, IndexType> *orig,
-                 matrix::BatchCsr<ValueType, IndexType> *row_permuted)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_rows = orig->get_size()[0];
-//    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(row_ptr_permute_kernel),
-//                       count_num_blocks, default_block_size, 0, 0, num_rows,
-//                       perm, orig->get_const_row_ptrs(),
-//                       row_permuted->get_row_ptrs());
-//    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
-//    auto copy_num_blocks =
-//        ceildiv(num_rows, default_block_size / config::warp_size);
-//    hipLaunchKernelGGL(
-//        HIP_KERNEL_NAME(row_permute_kernel<config::warp_size>),
-//        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
-//        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-//        as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-//        row_permuted->get_col_idxs(),
-//        as_hip_type(row_permuted->get_values()));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(
-    std::shared_ptr<const HipExecutor> exec, const IndexType *perm,
-    const matrix::BatchCsr<ValueType, IndexType> *orig,
-    matrix::BatchCsr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_rows = orig->get_size()[0];
-//    auto count_num_blocks = ceildiv(num_rows, default_block_size);
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
-//                       count_num_blocks, default_block_size, 0, 0, num_rows,
-//                       perm, orig->get_const_row_ptrs(),
-//                       row_permuted->get_row_ptrs());
-//    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
-//    auto copy_num_blocks =
-//        ceildiv(num_rows, default_block_size / config::warp_size);
-//    hipLaunchKernelGGL(
-//        HIP_KERNEL_NAME(inv_row_permute_kernel<config::warp_size>),
-//        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
-//        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-//        as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-//        row_permuted->get_col_idxs(),
-//        as_hip_type(row_permuted->get_values()));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::BatchCsr<ValueType, IndexType> *orig,
-                            matrix::BatchCsr<ValueType, IndexType>
-                                *column_permuted) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto num_rows = orig->get_size()[0];
-//    auto nnz = orig->get_num_stored_elements();
-//    auto num_blocks = ceildiv(std::max(num_rows, nnz), default_block_size);
-//    hipLaunchKernelGGL(
-//        HIP_KERNEL_NAME(col_permute_kernel), num_blocks, default_block_size,
-//        0, 0, num_rows, nnz, perm, orig->get_const_row_ptrs(),
-//        orig->get_const_col_idxs(), as_hip_type(orig->get_const_values()),
-//        column_permuted->get_row_ptrs(), column_permuted->get_col_idxs(),
-//        as_hip_type(column_permuted->get_values()));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const HipExecutor> exec,
@@ -1169,56 +666,6 @@ void calculate_max_nnz_per_row(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
-                       const matrix::BatchCsr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    auto ell_val = result->get_ell_values();
-//    auto ell_col = result->get_ell_col_idxs();
-//    auto coo_val = result->get_coo_values();
-//    auto coo_col = result->get_coo_col_idxs();
-//    auto coo_row = result->get_coo_row_idxs();
-//    const auto stride = result->get_ell_stride();
-//    const auto max_nnz_per_row =
-//    result->get_ell_num_stored_elements_per_row(); const auto num_rows =
-//    result->get_size()[0]; const auto coo_num_stored_elements =
-//    result->get_coo_num_stored_elements(); auto grid_dim =
-//    ceildiv(max_nnz_per_row * num_rows, default_block_size);
-//
-//    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, max_nnz_per_row,
-//                       stride, as_hip_type(ell_val), as_hip_type(ell_col));
-//
-//    grid_dim = ceildiv(num_rows, default_block_size);
-//    auto coo_offset = Array<size_type>(exec, num_rows);
-//    hipLaunchKernelGGL(kernel::calculate_hybrid_coo_row_nnz, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, num_rows,
-//                       max_nnz_per_row,
-//                       as_hip_type(source->get_const_row_ptrs()),
-//                       as_hip_type(coo_offset.get_data()));
-//
-//    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
-//
-//    grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
-//    hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim),
-//                       dim3(default_block_size), 0, 0, num_rows, stride,
-//                       max_nnz_per_row,
-//                       as_hip_type(source->get_const_values()),
-//                       as_hip_type(source->get_const_row_ptrs()),
-//                       as_hip_type(source->get_const_col_idxs()),
-//                       as_hip_type(coo_offset.get_const_data()),
-//                       as_hip_type(ell_val), as_hip_type(ell_col),
-//                       as_hip_type(coo_val), as_hip_type(coo_col),
-//                       as_hip_type(coo_row));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_CONVERT_TO_HYBRID_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1315,33 +762,6 @@ void is_sorted_by_column_index(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::BatchCsr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    const auto nnz = orig->get_num_stored_elements();
-//    const auto diag_size = diag->get_size()[0];
-//    const auto num_blocks =
-//        ceildiv(config::warp_size * diag_size, default_block_size);
-//
-//    const auto orig_values = orig->get_const_values();
-//    const auto orig_row_ptrs = orig->get_const_row_ptrs();
-//    const auto orig_col_idxs = orig->get_const_col_idxs();
-//    auto diag_values = diag->get_values();
-//
-//    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::extract_diagonal),
-//                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-//                       diag_size, nnz, as_hip_type(orig_values),
-//                       as_hip_type(orig_row_ptrs), as_hip_type(orig_col_idxs),
-//                       as_hip_type(diag_values));
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace batch_csr
