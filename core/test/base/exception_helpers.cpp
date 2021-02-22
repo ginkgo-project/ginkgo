@@ -172,6 +172,14 @@ TEST(HipError, ReturnsHipsparseError)
 }
 
 
+void throws_hipfft_error() { throw GKO_HIPFFT_ERROR(0); }
+
+TEST(HipError, ReturnsHipfftError)
+{
+    ASSERT_THROW(throws_hipfft_error(), gko::HipfftError);
+}
+
+
 TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)
 {
     ASSERT_NO_THROW(GKO_ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));
