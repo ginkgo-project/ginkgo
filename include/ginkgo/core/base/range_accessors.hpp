@@ -165,7 +165,7 @@ using are_span_compatible = are_span_compatible_impl<false, Args...>;
 template <typename ValueType, size_type N, size_type current, typename... Dims>
 constexpr GKO_ATTRIBUTES
     std::enable_if_t<(current == N), std::array<ValueType, N>>
-    to_array_impl(const dim<N> &size, Dims &&... dims)
+    to_array_impl(const dim<N> &, Dims &&... dims)
 {
     static_assert(sizeof...(Dims) == N,
                   "Number of arguments must match dimensionality!");
@@ -674,7 +674,6 @@ template <typename ValueType, size_type total_dim>
 struct index_helper_s<ValueType, total_dim, total_dim> {
     static_assert(total_dim >= 2, "Dimensionality must be >= 2");
 
-    // static constexpr size_type current_iter = total_dim;
     static constexpr size_type dim_idx{total_dim - 1};
 
     template <typename FirstType, typename... Indices>
@@ -682,7 +681,7 @@ struct index_helper_s<ValueType, total_dim, total_dim> {
     compute(const std::array<ValueType, total_dim> &size,
             const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>
                 &stride,
-            FirstType first, Indices &&... idxs)
+            FirstType first, Indices &&...)
     {
         return GKO_ASSERT(first < size[total_dim - 1]),
                first * stride[dim_idx - 1];
@@ -704,20 +703,6 @@ constexpr GKO_ATTRIBUTES ValueType compute_index(
 }
 
 
-template <size_type iter, typename ValueType, size_type N>
-constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, ValueType>
-mult_dim_upwards_impl(const std::array<ValueType, N> &size)
-{
-    return 1;
-}
-
-template <size_type iter, typename ValueType, size_type N>
-constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), ValueType>
-mult_dim_upwards_impl(const std::array<ValueType, N> &size)
-{
-    return size[iter] * mult_dim_upwards_impl<iter + 1>(size);
-}
-
 template <size_type iter = 1, typename ValueType, size_type N, typename... Args>
 constexpr GKO_ATTRIBUTES
     std::enable_if_t<(iter == N - 1) && (iter == sizeof...(Args) + 1),
@@ -735,7 +720,8 @@ constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N - 1 || iter == N) &&
 default_stride_array_impl(const std::array<ValueType, N> &size, Args &&... args)
 {
     return default_stride_array_impl<iter + 1>(
-        size, std::forward<Args>(args)..., mult_dim_upwards_impl<iter>(size));
+        size, std::forward<Args>(args)...,
+        detail::mult_dim_upwards_impl<iter>(size));
 }
 
 template <typename ValueType, size_type dimensions>
