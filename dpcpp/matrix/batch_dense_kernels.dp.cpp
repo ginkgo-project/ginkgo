@@ -132,6 +132,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::BatchDense<ValueType> *source,
+                          matrix::BatchCsr<ValueType, IndexType> *other)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL);
+
+
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::BatchDense<ValueType> *source,
