@@ -73,7 +73,8 @@ public:
      * @tparam ExecType  the static type of the executor
      */
     template <typename ExecType>
-    ExecutorAllocator(std::shared_ptr<ExecType> exec) : exec_{std::move(exec)}
+    ExecutorAllocator(std::shared_ptr<ExecType> exec) noexcept
+        : exec_{std::move(exec)}
     {}
 
     /**
@@ -81,7 +82,7 @@ public:
      *
      * @param other  the other allocator
      */
-    ExecutorAllocator(const ExecutorAllocator& other)
+    ExecutorAllocator(const ExecutorAllocator& other) noexcept
         : exec_{other.get_executor()}
     {}
 
@@ -92,7 +93,8 @@ public:
      *
      * @param other  the other allocator
      */
-    ExecutorAllocator(ExecutorAllocator&& other) : exec_{other.get_executor()}
+    ExecutorAllocator(ExecutorAllocator&& other) noexcept
+        : exec_{other.get_executor()}
     {}
 
     /**
@@ -103,7 +105,7 @@ public:
      * @param other  the other allocator
      * @tparam U  the element type of the allocator to be assigned.
      */
-    ExecutorAllocator& operator=(ExecutorAllocator&& other)
+    ExecutorAllocator& operator=(ExecutorAllocator&& other) noexcept
     {
         exec_ = other.get_executor();
         return *this;
@@ -115,7 +117,7 @@ public:
      * @param other  the other allocator
      * @tparam U  the element type of the allocator to be assigned.
      */
-    ExecutorAllocator& operator=(const ExecutorAllocator& other)
+    ExecutorAllocator& operator=(const ExecutorAllocator& other) noexcept
     {
         exec_ = other.get_executor();
         return *this;
@@ -133,7 +135,7 @@ public:
      * @tparam U  the element type of the allocator to be assigned.
      */
     template <typename U>
-    ExecutorAllocator& operator=(ExecutorAllocator<U>&& other)
+    ExecutorAllocator& operator=(ExecutorAllocator<U>&& other) noexcept
     {
         exec_ = other.get_executor();
         return *this;
@@ -149,7 +151,7 @@ public:
      * @tparam U  the element type of the allocator to be assigned.
      */
     template <typename U>
-    ExecutorAllocator& operator=(const ExecutorAllocator<U>& other)
+    ExecutorAllocator& operator=(const ExecutorAllocator<U>& other) noexcept
     {
         exec_ = other.get_executor();
         return *this;
@@ -165,7 +167,7 @@ public:
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
-    ExecutorAllocator(const ExecutorAllocator<U>& other)
+    ExecutorAllocator(const ExecutorAllocator<U>& other) noexcept
         : exec_{other.get_executor()}
     {}
 
@@ -182,12 +184,15 @@ public:
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
-    ExecutorAllocator(ExecutorAllocator<U>&& other)
+    ExecutorAllocator(ExecutorAllocator<U>&& other) noexcept
         : exec_{other.get_executor()}
     {}
 
     /** Returns the executor used by this allocator.  */
-    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
+    }
 
     /**
      * Allocates a memory area of the given size.
@@ -215,7 +220,7 @@ public:
      */
     template <typename T2>
     friend bool operator==(const ExecutorAllocator<T>& l,
-                           const ExecutorAllocator<T2>& r)
+                           const ExecutorAllocator<T2>& r) noexcept
     {
         return l.get_executor() == r.get_executor();
     }
@@ -229,7 +234,7 @@ public:
      */
     template <typename T2>
     friend bool operator!=(const ExecutorAllocator<T>& l,
-                           const ExecutorAllocator<T2>& r)
+                           const ExecutorAllocator<T2>& r) noexcept
     {
         return !(l == r);
     }
