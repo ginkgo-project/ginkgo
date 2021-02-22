@@ -45,12 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
-#include "core/base/accessors.hpp"
+#include "accessor/range.hpp"
+#include "accessor/reduced_row_major.hpp"
+#include "accessor/scaled_reduced_row_major.hpp"
 
 
 namespace gko {
@@ -65,7 +66,7 @@ struct has_3d_scaled_accessor : public std::false_type {};
 
 template <typename T1, typename T2, size_type mask>
 struct has_3d_scaled_accessor<
-    range<accessor::scaled_reduced_row_major<3, T1, T2, mask>>>
+    acc::range<acc::scaled_reduced_row_major<3, T1, T2, mask>>>
     : public std::true_type {};
 
 template <typename StorageType, bool = std::is_integral<StorageType>::value>
@@ -90,13 +91,13 @@ template <typename ValueType, typename StorageType>
 class Range3dHelper<ValueType, StorageType, true> {
 public:
     using Accessor =
-        accessor::scaled_reduced_row_major<3, ValueType, StorageType, 0b101>;
-    using Range = range<Accessor>;
+        acc::scaled_reduced_row_major<3, ValueType, StorageType, 0b101>;
+    using Range = acc::range<Accessor>;
 
     Range3dHelper() = default;
 
     Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
-        : krylov_dim_{krylov_dim},
+        : krylov_dim_{{krylov_dim[0], krylov_dim[1], krylov_dim[2]}},
           bases_{exec, krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]},
           scale_{exec, krylov_dim_[0] * krylov_dim_[2]}
     {
@@ -116,7 +117,7 @@ public:
     gko::Array<StorageType> &get_bases() { return bases_; }
 
 private:
-    dim<3> krylov_dim_;
+    std::array<size_type, 3> krylov_dim_;
     Array<StorageType> bases_;
     Array<ValueType> scale_;
 };
@@ -125,13 +126,13 @@ private:
 template <typename ValueType, typename StorageType>
 class Range3dHelper<ValueType, StorageType, false> {
 public:
-    using Accessor = accessor::reduced_row_major<3, ValueType, StorageType>;
-    using Range = range<Accessor>;
+    using Accessor = acc::reduced_row_major<3, ValueType, StorageType>;
+    using Range = acc::range<Accessor>;
 
     Range3dHelper() = default;
 
     Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
-        : krylov_dim_{krylov_dim},
+        : krylov_dim_{{krylov_dim[0], krylov_dim[1], krylov_dim[2]}},
           bases_{std::move(exec),
                  krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]}
     {}
@@ -141,7 +142,7 @@ public:
     gko::Array<StorageType> &get_bases() { return bases_; }
 
 private:
-    dim<3> krylov_dim_;
+    std::array<size_type, 3> krylov_dim_;
     Array<StorageType> bases_;
 };
 

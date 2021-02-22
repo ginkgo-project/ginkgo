@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "accessor/range.hpp"
+#include "accessor/reduced_row_major.hpp"
+#include "accessor/scaled_reduced_row_major.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
@@ -79,10 +82,10 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 // Specialization, so the Accessor can use the same function as regular pointers
 template <int dim, typename Type1, typename Type2>
 GKO_INLINE auto as_hip_accessor(
-    const range<accessor::reduced_row_major<dim, Type1, Type2>> &acc)
+    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
 {
-    return range<
-        accessor::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
+    return acc::range<
+        acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
         acc.get_accessor().get_size(),
         as_hip_type(acc.get_accessor().get_stored_data()),
         acc.get_accessor().get_stride());
@@ -90,10 +93,10 @@ GKO_INLINE auto as_hip_accessor(
 
 template <int dim, typename Type1, typename Type2, size_type mask>
 GKO_INLINE auto as_hip_accessor(
-    const range<accessor::scaled_reduced_row_major<dim, Type1, Type2, mask>>
+    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
         &acc)
 {
-    return range<accessor::scaled_reduced_row_major<dim, hip_type<Type1>,
+    return acc::range<acc::scaled_reduced_row_major<dim, hip_type<Type1>,
                                                     hip_type<Type2>, mask>>(
         acc.get_accessor().get_size(),
         as_hip_type(acc.get_accessor().get_stored_data()),
