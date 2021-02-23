@@ -361,82 +361,89 @@ TYPED_TEST(BatchCsr, AppliesLinearCombinationToDenseMatrix)
 //}
 
 
-// TYPED_TEST(BatchCsr, ApplyFailsOnWrongInnerDimension)
-//{
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{2});
-//    auto y = Vec::create(this->exec, gko::dim<2>{2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+TYPED_TEST(BatchCsr, ApplyFailsOnWrongInnerDimension)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{2}});
+    auto y = Vec::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{2}});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
-// TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfRows)
-//{
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
-//    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfRows)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, std::vector<gko::dim<2>>{
+                                         gko::dim<2>{3, 2}, gko::dim<2>{3, 2}});
+    auto y = Vec::create(this->exec, std::vector<gko::dim<2>>{
+                                         gko::dim<2>{3, 2}, gko::dim<2>{3, 2}});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
-// TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfCols)
-//{
-//    using Vec = typename TestFixture::Vec;
-//    auto x = Vec::create(this->exec, gko::dim<2>{3});
-//    auto y = Vec::create(this->exec, gko::dim<2>{2});
-//
-//    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-//}
+TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfCols)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{3}, gko::dim<2>{3}});
+    auto y = Vec::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{2}});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
 
 
-// TYPED_TEST(BatchCsr, ConvertsToPrecision)
-//{
-//    using ValueType = typename TestFixture::value_type;
-//    using IndexType = typename TestFixture::index_type;
-//    using OtherType = typename gko::next_precision<ValueType>;
-//    using BatchCsr = typename TestFixture::Mtx;
-//    using OtherBatchCsr = gko::matrix::BatchCsr<OtherType, IndexType>;
-//    auto tmp = OtherBatchCsr::create(this->exec);
-//    auto res = BatchCsr::create(this->exec);
-//    // If OtherType is more precise: 0, otherwise r
-//    auto residual = r<OtherType>::value < r<ValueType>::value
-//                        ? gko::remove_complex<ValueType>{0}
-//                        : gko::remove_complex<ValueType>{r<OtherType>::value};
-//
-//    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
-//    this->mtx2->convert_to(tmp.get());
-//    tmp->convert_to(res.get());
-//
-//    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
-//    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
-//              typeid(*res->get_strategy()));
-//}
+TYPED_TEST(BatchCsr, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using BatchCsr = typename TestFixture::Mtx;
+    using OtherBatchCsr = gko::matrix::BatchCsr<OtherType, IndexType>;
+    auto tmp = OtherBatchCsr::create(this->exec);
+    auto res = BatchCsr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx2->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    auto umtx2 = this->mtx2->unbatch();
+    auto ures = res->unbatch();
+    GKO_ASSERT_MTX_NEAR(umtx2[0].get(), ures[0].get(), residual);
+    GKO_ASSERT_MTX_NEAR(umtx2[1].get(), ures[1].get(), residual);
+}
 
 
-// TYPED_TEST(BatchCsr, MovesToPrecision)
-//{
-//    using ValueType = typename TestFixture::value_type;
-//    using IndexType = typename TestFixture::index_type;
-//    using OtherType = typename gko::next_precision<ValueType>;
-//    using BatchCsr = typename TestFixture::Mtx;
-//    using OtherBatchCsr = gko::matrix::BatchCsr<OtherType, IndexType>;
-//    auto tmp = OtherBatchCsr::create(this->exec);
-//    auto res = BatchCsr::create(this->exec);
-//    // If OtherType is more precise: 0, otherwise r
-//    auto residual = r<OtherType>::value < r<ValueType>::value
-//                        ? gko::remove_complex<ValueType>{0}
-//                        : gko::remove_complex<ValueType>{r<OtherType>::value};
-//
-//    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
-//    this->mtx2->move_to(tmp.get());
-//    tmp->move_to(res.get());
-//
-//    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
-//    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
-//              typeid(*res->get_strategy()));
-//}
+TYPED_TEST(BatchCsr, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using BatchCsr = typename TestFixture::Mtx;
+    using OtherBatchCsr = gko::matrix::BatchCsr<OtherType, IndexType>;
+    auto tmp = OtherBatchCsr::create(this->exec);
+    auto res = BatchCsr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    auto umtx2 = this->mtx2->unbatch();
+    auto ures = res->unbatch();
+    GKO_ASSERT_MTX_NEAR(umtx2[0].get(), ures[0].get(), residual);
+    GKO_ASSERT_MTX_NEAR(umtx2[1].get(), ures[1].get(), residual);
+}
 
 
 // TYPED_TEST(BatchCsr, SquareMtxIsTransposable)

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -106,6 +107,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = BatchCsr<ValueType, IndexType>;
+    using unbatch_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<BatchCsr>;
 
@@ -139,6 +141,29 @@ public:
     std::unique_ptr<BatchLinOp> transpose() const override;
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
+
+    std::vector<std::unique_ptr<unbatch_type>> unbatch() const
+    {
+        auto exec = this->get_executor();
+        auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
+        size_type num_nnz =
+            this->get_num_stored_elements() / this->get_num_batches();
+        size_type offset = 0;
+        for (size_type b = 0; b < this->get_num_batches(); ++b) {
+            auto mat =
+                unbatch_type::create(exec, this->get_sizes()[b], num_nnz);
+            exec->copy_from(exec.get(), num_nnz,
+                            this->get_const_values() + offset,
+                            mat->get_values());
+            exec->copy_from(exec.get(), num_nnz, this->get_const_col_idxs(),
+                            mat->get_col_idxs());
+            exec->copy_from(exec.get(), this->get_sizes()[b][0] + 1,
+                            this->get_const_row_ptrs(), mat->get_row_ptrs());
+            unbatch_mats.emplace_back(std::move(mat));
+            offset += num_nnz;
+        }
+        return unbatch_mats;
+    }
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
