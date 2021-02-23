@@ -50,6 +50,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
 
     BatchCsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -59,6 +60,13 @@ protected:
         value_type *v = mtx->get_values();
         index_type *c = mtx->get_col_idxs();
         index_type *r = mtx->get_row_ptrs();
+        /*
+         * 1  3  2
+         * 0  5  0
+         *
+         * 3  5  1
+         * 0  1  0
+         */
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -202,6 +210,23 @@ TYPED_TEST(BatchCsr, CanBeCleared)
     this->mtx->clear();
 
     this->assert_empty(this->mtx.get());
+}
+
+
+TYPED_TEST(BatchCsr, CanBeUnbatchedIntoCsrMatrices)
+{
+    using value_type = typename TestFixture::value_type;
+    using CsrMtx = typename TestFixture::CsrMtx;
+    using size_type = gko::size_type;
+    auto mat1 =
+        gko::initialize<CsrMtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
+    auto mat2 =
+        gko::initialize<CsrMtx>({{3.0, 5.0, 1.0}, {0.0, 1.0, 0.0}}, this->exec);
+
+    auto unbatch_mats = this->mtx->unbatch();
+
+    GKO_ASSERT_MTX_NEAR(unbatch_mats[0].get(), mat1.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(unbatch_mats[1].get(), mat2.get(), 0.);
 }
 
 
