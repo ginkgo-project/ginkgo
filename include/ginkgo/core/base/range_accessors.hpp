@@ -97,7 +97,11 @@ struct row_major_helper_s<ValueType, total_dim, total_dim> {
 
 /**
  * Computes the storage index for the given indices with respect to the given
- * stride array
+ * stride array for row-major access
+ *
+ * @param size  the multi-dimensional sizes of the range of values
+ * @param stride  the stride array
+ * @param idxs  the multi-dimensional indices of the desired entry
  */
 template <typename ValueType, size_type total_dim, typename... Indices>
 constexpr GKO_ATTRIBUTES ValueType compute_storage_index(
@@ -639,13 +643,14 @@ namespace detail_block_col_major {
 
 
 /**
- * This helper runs from first to last dimension in order to compute the index.
+ * Runs from first to last dimension in order to compute the index.
+ *
  * The index is computed like this:
  * indices: x1, x2, x3, ..., xn
  * compute(stride, x1, x2, x3, ..., x(n-1), xn) ->
  *  x1 * stride[0] + x2 * stride[1] + ...
  *    + x(n-2) * stride[n-3] + x(n-1) + xn * stride[n-2]
- * Note that swap of the last two strides, making this 'column major'.
+ * Note that swap of the last two strides, making this 'block column major'.
  */
 template <typename ValueType, size_type total_dim, size_type current_iter = 1>
 struct index_helper_s {
@@ -695,8 +700,11 @@ struct index_helper_s<ValueType, total_dim, total_dim> {
 };
 
 /**
- * Computes the storage index for the given indices with respect to the given
- * stride array
+ * Computes the flat storage index for block-column-major access.
+ *
+ * @param size  the multi-dimensional sizes of the range of values
+ * @param stride  the stride array
+ * @param idxs  the multi-dimensional indices of the desired entry
  */
 template <typename ValueType, size_type total_dim, typename... Indices>
 constexpr GKO_ATTRIBUTES ValueType compute_index(
