@@ -98,6 +98,7 @@ public:
     using value_type = ValueType;
     using index_type = int64;
     using transposed_type = BatchDense<ValueType>;
+    using unbatch_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<BatchDense>;
@@ -153,20 +154,20 @@ public:
      *
      * @return  a std::vector containing the Dense matrices.
      */
-    std::vector<std::unique_ptr<Dense<ValueType>>> unbatch()
+    std::vector<std::unique_ptr<unbatch_type>> unbatch() const
     {
         auto exec = this->get_executor();
-        auto dense_mats = std::vector<std::unique_ptr<Dense<ValueType>>>{};
+        auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
         for (size_type b = 0; b < this->get_num_batches(); ++b) {
-            auto mat = Dense<ValueType>::create(
-                exec, this->get_batch_sizes()[b], this->get_strides()[b]);
+            auto mat = unbatch_type::create(exec, this->get_batch_sizes()[b],
+                                            this->get_strides()[b]);
             exec->copy_from(
                 exec.get(), mat->get_num_stored_elements(),
                 this->get_const_values() + num_elems_per_batch_cumul_[b],
                 mat->get_values());
-            dense_mats.emplace_back(std::move(mat));
+            unbatch_mats.emplace_back(std::move(mat));
         }
-        return dense_mats;
+        return unbatch_mats;
     }
 
     /**
