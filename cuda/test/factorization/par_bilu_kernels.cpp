@@ -76,7 +76,6 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::unique_ptr<const Fbcsr> cyl2d_ref;
-    std::unique_ptr<const Fbcsr> rand_ref;
     const value_type tol = std::numeric_limits<real_type>::epsilon();
 
     ParBilu()
@@ -100,10 +99,6 @@ protected:
         gko::kernels::reference::factorization::add_diagonal_blocks(
             ref, gko::lend(ref_temp), false);
         cyl2d_ref = gko::give(ref_temp);
-
-        const int num_brows = 90;
-        rand_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
-            ref, std::ranlux48(43), num_brows, num_brows, 4, true, false);
     }
 
     /*
@@ -220,17 +215,33 @@ TEST_F(ParBilu, CudaKernelBLUSortedSampleBS3)
 
 TEST_F(ParBilu, CudaKernelBLUSortedRandomBS4)
 {
-    auto refmat = Fbcsr::create(ref);
-    refmat->copy_from(rand_ref.get());
+    const int num_brows = 90;
+    auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
+        ref, std::ranlux48(43), num_brows, num_brows, 4, true, false);
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
-    // const int iterations = rand_ref->get_num_stored_blocks()/10;
     const int iterations = 8;
-    printf(" Num its set to %d.\n", iterations);
+
+    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+
+    const double ttol = 10 * tol;
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
+}
+
+TEST_F(ParBilu, CudaKernelBLUSortedRandomBS7)
+{
+    const int num_brows = 90;
+    auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
+        ref, std::ranlux48(43), num_brows, num_brows, 7, true, false);
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 10;
 
     compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
 
     // For BS 7, initial error in L (reported by the macro) is ~1.0
-    const double ttol = 10 * tol;
+    const double ttol = 0.1;
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
