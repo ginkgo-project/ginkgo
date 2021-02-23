@@ -275,13 +275,13 @@ TEST_F(RowMajorAccessor3d, CanAssignSubranges)
 }
 
 
-class ColMajorAccessor3d : public ::testing::Test {
+class BlockColMajorAccessor3d : public ::testing::Test {
 protected:
     using span = gko::span;
     static constexpr gko::size_type dimensionality{3};
 
-    using col_major_range =
-        gko::range<gko::accessor::col_major<int, dimensionality>>;
+    using blk_col_major_range =
+        gko::range<gko::accessor::block_col_major<int, dimensionality>>;
 
     // clang-format off
     int data[2 * 3 * 4]{
@@ -308,14 +308,14 @@ protected:
     // clang-format on
     const gko::dim<dimensionality> dim1{2, 3, 4};
     const gko::dim<dimensionality> dim2{2, 2, 3};
-    col_major_range default_r{data, dim1};
-    col_major_range custom_r{
+    blk_col_major_range default_r{data, dim1};
+    blk_col_major_range custom_r{
         data, dim2,
         std::array<const gko::size_type, dimensionality - 1>{12, 3}};
 };
 
 
-TEST_F(ColMajorAccessor3d, ComputesCorrectStride)
+TEST_F(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = default_r.get_accessor().stride;
     auto check_stride = std::array<const gko::size_type, 2>{12, 3};
@@ -324,7 +324,7 @@ TEST_F(ColMajorAccessor3d, ComputesCorrectStride)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanAccessData)
+TEST_F(BlockColMajorAccessor3d, CanAccessData)
 {
     EXPECT_EQ(default_r(0, 0, 0), 1);
     EXPECT_EQ(custom_r(0, 0, 0), 1);
@@ -339,7 +339,7 @@ TEST_F(ColMajorAccessor3d, CanAccessData)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanWriteData)
+TEST_F(BlockColMajorAccessor3d, CanWriteData)
 {
     default_r(0, 0, 0) = 4;
     custom_r(1, 1, 1) = 100;
@@ -351,7 +351,7 @@ TEST_F(ColMajorAccessor3d, CanWriteData)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanCreateSubrange)
+TEST_F(BlockColMajorAccessor3d, CanCreateSubrange)
 {
     auto subr = custom_r(span{0, 2}, span{1, 2}, span{1, 3});
 
@@ -362,7 +362,7 @@ TEST_F(ColMajorAccessor3d, CanCreateSubrange)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanCreateRowVector)
+TEST_F(BlockColMajorAccessor3d, CanCreateRowVector)
 {
     auto subr = default_r(1u, 2u, span{0, 2});
 
@@ -371,7 +371,7 @@ TEST_F(ColMajorAccessor3d, CanCreateRowVector)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanCreateColumnVector)
+TEST_F(BlockColMajorAccessor3d, CanCreateColumnVector)
 {
     auto subr = default_r(span{0u, 2u}, 1u, 3u);
 
@@ -380,7 +380,7 @@ TEST_F(ColMajorAccessor3d, CanCreateColumnVector)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanAssignValues)
+TEST_F(BlockColMajorAccessor3d, CanAssignValues)
 {
     default_r(1, 1, 1) = default_r(0, 0, 0);
 
@@ -388,7 +388,7 @@ TEST_F(ColMajorAccessor3d, CanAssignValues)
 }
 
 
-TEST_F(ColMajorAccessor3d, CanAssignSubranges)
+TEST_F(BlockColMajorAccessor3d, CanAssignSubranges)
 {
     default_r(1u, span{0, 2}, span{0, 3}) =
         custom_r(0u, span{0, 2}, span{0, 3});

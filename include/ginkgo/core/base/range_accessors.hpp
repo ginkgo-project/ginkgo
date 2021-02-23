@@ -468,6 +468,10 @@ template <typename ValueType>
 class row_major<ValueType, 2> {
 public:
     friend class range<row_major>;
+
+    /**
+     * Number of dimensions of the accessor.
+     */
     static constexpr size_type dimensionality = 2;
 
     /**
@@ -479,10 +483,6 @@ public:
      * Type of underlying data storage.
      */
     using data_type = value_type *;
-
-    /**
-     * Number of dimensions of the accessor.
-     */
 
     using const_accessor = row_major<const ValueType, dimensionality>;
 
@@ -631,7 +631,11 @@ public:
 };
 
 
-namespace detail_colmajor {
+/**
+ * Namespace for helper functions and structs for
+ * the block column major accessor.
+ */
+namespace detail_block_col_major {
 
 
 /**
@@ -658,9 +662,11 @@ struct index_helper_s {
             FirstType first, Indices &&... idxs)
     {
         if (current_iter == total_dim - 1) {
-            return first +
-                   index_helper_s<ValueType, total_dim, current_iter + 1>::
-                       compute(size, stride, std::forward<Indices>(idxs)...);
+            return GKO_ASSERT(first < size[dim_idx]),
+                   first +
+                       index_helper_s<ValueType, total_dim, current_iter + 1>::
+                           compute(size, stride,
+                                   std::forward<Indices>(idxs)...);
         }
 
         return GKO_ASSERT(first < size[dim_idx]),
@@ -676,12 +682,12 @@ struct index_helper_s<ValueType, total_dim, total_dim> {
 
     static constexpr size_type dim_idx{total_dim - 1};
 
-    template <typename FirstType, typename... Indices>
+    template <typename FirstType>
     static constexpr GKO_ATTRIBUTES ValueType
     compute(const std::array<ValueType, total_dim> &size,
             const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)>
                 &stride,
-            FirstType first, Indices &&...)
+            FirstType first)
     {
         return GKO_ASSERT(first < size[total_dim - 1]),
                first * stride[dim_idx - 1];
@@ -733,15 +739,15 @@ constexpr GKO_ATTRIBUTES
 }
 
 
-}  // namespace detail_colmajor
+}  // namespace detail_block_col_major
 
 
 /**
- * A bridge between a range and a column-major memory layout.
+ * A bridge between a range and a block-column-major memory layout.
  *
- * Note that this is not completely a 'layout right'. Only the innermost
- * two dimensions are regarded as defining a column-major matrix, and
- * the rest of the dimensions are treated identically to \ref row_major.
+ * Only the innermost two dimensions are regarded as defining
+ * a column-major matrix, and the rest of the dimensions are treated
+ * identically to \ref row_major.
  *
  * You should not try to explicitly create an instance of this accessor.
  * Instead, supply it as a template parameter to a range, and pass the
@@ -752,14 +758,18 @@ constexpr GKO_ATTRIBUTES
  * @tparam Dimensionality  number of dimensions of this accessor
  */
 template <typename ValueType, size_type Dimensionality>
-class col_major {
+class block_col_major {
 public:
-    friend class range<col_major>;
+    friend class range<block_col_major>;
 
     static_assert(Dimensionality != 0,
                   "This accessor does not support a dimensionality of 0!");
     static_assert(Dimensionality != 1,
                   "Please use row_major accessor for 1D ranges.");
+
+    /**
+     * Number of dimensions of the accessor.
+     */
     static constexpr size_type dimensionality = Dimensionality;
 
     /**
@@ -772,17 +782,13 @@ public:
      */
     using data_type = value_type *;
 
-    /**
-     * Number of dimensions of the accessor.
-     */
-
-    using const_accessor = col_major<const ValueType, Dimensionality>;
+    using const_accessor = block_col_major<const ValueType, Dimensionality>;
     using stride_type = std::array<const size_type, dimensionality - 1>;
     using length_type = std::array<const size_type, dimensionality>;
 
 protected:
     /**
-     * Creates a col_major accessor.
+     * Creates a block_col_major accessor.
      *
      * @param data  pointer to the block of memory containing the data
      * @param lengths size / length of the accesses of each dimension
@@ -791,33 +797,34 @@ protected:
      *   `x_1 * stride_1 + x_2 * stride_2 * ... + x_(n-1) + x_n * stride_(n-1)`
      *                points to the element at (x_1, x_2, ..., x_n))
      */
-    constexpr GKO_ATTRIBUTES explicit col_major(data_type data,
-                                                dim<dimensionality> size,
-                                                stride_type stride)
+    constexpr GKO_ATTRIBUTES explicit block_col_major(data_type data,
+                                                      dim<dimensionality> size,
+                                                      stride_type stride)
         : data{data},
           lengths(detail::to_array<const size_type>(size)),
           stride(stride)
     {}
 
     /**
-     * Creates a col_major accessor with a default stride (assumes no padding)
+     * Creates a block_col_major accessor with a default stride
+     * (assumes no padding)
      *
      * @param data  pointer to the block of memory containing the data
      * @param lengths size / length of the accesses of each dimension
      */
-    constexpr GKO_ATTRIBUTES explicit col_major(data_type data,
-                                                dim<dimensionality> size)
+    constexpr GKO_ATTRIBUTES explicit block_col_major(data_type data,
+                                                      dim<dimensionality> size)
         : data{data},
           lengths(detail::to_array<const size_type>(size)),
-          stride(detail_colmajor::default_stride_array(lengths))
+          stride(detail_block_col_major::default_stride_array(lengths))
     {}
 
 public:
     /**
-     * Creates a col_major range which contains a read-only version of the
-     * current accessor.
+     * Creates a block_col_major range which contains a read-only version of
+     * the current accessor.
      *
-     * @returns  a col major range which is read-only.
+     * @returns  a block column major range which is read-only.
      */
     constexpr GKO_ATTRIBUTES range<const_accessor> to_const() const
     {
@@ -838,7 +845,7 @@ public:
         std::enable_if_t<are_all_integral<Indices...>::value, value_type &>
         operator()(Indices &&... indices) const
     {
-        return data[detail_colmajor::compute_index(
+        return data[detail_block_col_major::compute_index(
             lengths, stride, std::forward<Indices>(indices)...)];
     }
 
@@ -851,13 +858,14 @@ public:
      * @return sub-range spanning the given spans
      */
     template <typename... SpanTypes>
-    constexpr GKO_ATTRIBUTES std::enable_if_t<
-        detail::are_span_compatible<SpanTypes...>::value, range<col_major>>
-    operator()(SpanTypes... spans) const
+    constexpr GKO_ATTRIBUTES
+        std::enable_if_t<detail::are_span_compatible<SpanTypes...>::value,
+                         range<block_col_major>>
+        operator()(SpanTypes... spans) const
     {
         return detail::validate_spans(lengths, spans...),
-               range<col_major>{
-                   data + detail_colmajor::compute_index(
+               range<block_col_major>{
+                   data + detail_block_col_major::compute_index(
                               lengths, stride, (span{spans}.begin)...),
                    dim<dimensionality>{
                        (span{spans}.end - span{spans}.begin)...},
