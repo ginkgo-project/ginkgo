@@ -141,7 +141,7 @@ protected:
         std::array<size_type, dimensionality> size, storage_type *storage)
         : reduced_row_major{
               size, storage,
-              helper::compute_default_stride_array<size_type>(size)}
+              helper::compute_default_row_major_stride_array<size_type>(size)}
     {}
 
     /**
@@ -281,7 +281,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_storage_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<size_type, dimensionality>(
             size_, stride_, std::forward<Indices>(indices)...);
     }
 

@@ -124,8 +124,8 @@ template <typename ValueType, size_type iter = 1, size_type N,
 constexpr GKO_ACC_ATTRIBUTES
     std::enable_if_t<N == 0 || (iter == N && iter == sizeof...(Args) + 1),
                      std::array<ValueType, N == 0 ? 0 : N - 1>>
-    compute_default_stride_array(const std::array<DimensionType, N> &,
-                                 Args &&... args)
+    compute_default_row_major_stride_array(const std::array<DimensionType, N> &,
+                                           Args &&... args)
 {
     return {{std::forward<Args>(args)...}};
 }
@@ -134,10 +134,10 @@ template <typename ValueType, size_type iter = 1, size_type N,
           typename DimensionType, typename... Args>
 constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
     (iter < N) && (iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
-compute_default_stride_array(const std::array<DimensionType, N> &size,
-                             Args &&... args)
+compute_default_row_major_stride_array(const std::array<DimensionType, N> &size,
+                                       Args &&... args)
 {
-    return compute_default_stride_array<ValueType, iter + 1>(
+    return compute_default_row_major_stride_array<ValueType, iter + 1>(
         size, std::forward<Args>(args)...,
         mult_dim_upwards<ValueType, iter>(size));
 }
@@ -151,7 +151,7 @@ compute_default_stride_array(const std::array<DimensionType, N> &size,
  * stride array
  */
 template <typename ValueType, size_type total_dim, typename... Indices>
-constexpr GKO_ACC_ATTRIBUTES ValueType compute_storage_index(
+constexpr GKO_ACC_ATTRIBUTES ValueType compute_row_major_index(
     const std::array<size_type, total_dim> &size,
     const std::array<ValueType, (total_dim > 1 ? total_dim - 1 : 0)> &stride,
     Indices &&... idxs)
@@ -178,11 +178,12 @@ constexpr GKO_ACC_ATTRIBUTES ValueType compute_storage_index(
  *          information.
  */
 template <typename ValueType, size_type dimensions, typename DimensionType>
-constexpr GKO_ACC_ATTRIBUTES std::array<ValueType,
-                                        (dimensions > 0 ? dimensions - 1 : 0)>
-compute_default_stride_array(const std::array<DimensionType, dimensions> &size)
+constexpr GKO_ACC_ATTRIBUTES
+    std::array<ValueType, (dimensions > 0 ? dimensions - 1 : 0)>
+    compute_default_row_major_stride_array(
+        const std::array<DimensionType, dimensions> &size)
 {
-    return detail::compute_default_stride_array<ValueType>(size);
+    return detail::compute_default_row_major_stride_array<ValueType>(size);
 }
 
 
@@ -500,7 +501,7 @@ constexpr GKO_ACC_ATTRIBUTES auto compute_masked_index_direct(
  */
 template <typename ValueType, size_type mask, size_type stride_size,
           size_type total_dim>
-constexpr GKO_ACC_ATTRIBUTES auto compute_default_masked_stride_array(
+constexpr GKO_ACC_ATTRIBUTES auto compute_default_masked_row_major_stride_array(
     const std::array<size_type, total_dim> &size)
 {
     return detail::row_major_masked_helper_s<ValueType, mask, 0, stride_size, 0,
@@ -517,13 +518,13 @@ struct are_index_span_compatible_impl
 
 template <bool has_span, typename First, typename... Args>
 struct are_index_span_compatible_impl<has_span, First, Args...>
-    : public std::conditional<
+    : public std::conditional_t<
           std::is_integral<std::decay_t<First>>::value ||
               std::is_same<std::decay_t<First>, index_span>::value,
           are_index_span_compatible_impl<
               has_span || std::is_same<std::decay_t<First>, index_span>::value,
               Args...>,
-          std::false_type>::type {};
+          std::false_type> {};
 
 
 }  // namespace detail
@@ -552,14 +553,12 @@ GKO_ACC_ATTRIBUTES std::enable_if_t<iter == N> multidim_for_each_impl(
 
 template <size_type iter, size_type N, typename Callable, typename... Indices>
 GKO_ACC_ATTRIBUTES std::enable_if_t<(iter < N)> multidim_for_each_impl(
-    const std::array<size_type, N> &size, Callable &&callable,
-    Indices &&... indices)
+    const std::array<size_type, N> &size, Callable callable, Indices... indices)
 {
     static_assert(iter == sizeof...(Indices),
                   "Number arguments must match current iteration!");
     for (size_type i = 0; i < size[iter]; ++i) {
-        multidim_for_each_impl<iter + 1>(size, std::forward<Callable>(callable),
-                                         std::forward<Indices>(indices)..., i);
+        multidim_for_each_impl<iter + 1>(size, callable, indices..., i);
     }
 }
 
@@ -596,7 +595,6 @@ index_spans_in_size(const std::array<size_type, N> &size, First first,
 {
     static_assert(sizeof...(Remaining) + 1 == N - iter,
                   "Number of remaining spans must be equal to N - iter");
-    // TODO: Figure out why this assert causes errors outside of Ginkgo
     return GKO_ACC_ASSERT(index_span{first}.is_valid()),
            GKO_ACC_ASSERT(index_span{first} <= index_span{size[iter]}),
            index_spans_in_size<iter + 1>(size,

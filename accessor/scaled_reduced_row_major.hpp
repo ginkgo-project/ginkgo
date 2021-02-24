@@ -237,7 +237,7 @@ protected:
         storage_stride_type stride, scalar_type *scalar)
         : scaled_reduced_row_major{
               size, storage, stride, scalar,
-              helper::compute_default_masked_stride_array<
+              helper::compute_default_masked_row_major_stride_array<
                   size_type, scalar_mask, scalar_stride_dim, dimensionality>(
                   size)}
     {}
@@ -256,7 +256,8 @@ protected:
         scalar_type *scalar)
         : scaled_reduced_row_major{
               size, storage,
-              helper::compute_default_stride_array<size_type>(size), scalar}
+              helper::compute_default_row_major_stride_array<size_type>(size),
+              scalar}
     {}
 
     /**
@@ -474,7 +475,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_storage_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<size_type, dimensionality>(
             size_, storage_stride_, std::forward<Indices>(indices)...);
     }
 

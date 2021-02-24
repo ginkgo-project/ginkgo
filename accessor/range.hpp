@@ -79,12 +79,15 @@ public:
      *
      * @tparam DimensionTypes  The types of indexes. Supported types depend on
      *                         the underlying accessor, but are usually either
-     *                         integer types or spans. If at least one index is
-     *                         a span, the returned value will be a sub-range.
+     *                         integer types or index_spans. If at least one
+     *                         index is a span, the returned value will be a
+     *                         sub-range (if that is supported by the accessor).
      *
-     * @param dimensions  the indexes of the values.
+     * @param dimensions  the indexes of the values or index_spans for the new
+     *                    range.
      *
-     * @return a value on position `(dimensions...)`.
+     * @return a value on position `(dimensions...)` or a sub-range with the
+     *         given index_spans.
      */
     template <typename... DimensionTypes>
     GKO_ACC_ATTRIBUTES constexpr auto operator()(
