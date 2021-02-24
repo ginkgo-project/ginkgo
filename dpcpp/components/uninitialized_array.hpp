@@ -88,7 +88,7 @@ public:
     constexpr __dpct_inline__ ValueType &operator[](size_type pos) const
         noexcept
     {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
     /**
@@ -99,13 +99,14 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
+    __dpct_inline__ ValueType &operator[](size_type pos) noexcept
     {
-        return reinterpret_cast<ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
 private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    // unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    ValueType data_[size];
 };
 
 
