@@ -1,5 +1,4 @@
 ginkgo_create_test(abstract_factory)
-ginkgo_create_test(accessors_reduced_storage)
 ginkgo_create_test(allocator)
 ginkgo_create_test(array)
 ginkgo_create_test(combination)
