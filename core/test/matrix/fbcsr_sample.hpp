@@ -105,7 +105,7 @@ public:
         c[2] = 0;
         c[3] = 2;
 
-        gko::range<gko::accessor::col_major<value_type, 3>> vals(
+        gko::range<gko::accessor::block_col_major<value_type, 3>> vals(
             v, gko::dim<3>(nbnz, bs, bs));
 
         if (mtx->get_size()[0] % bs != 0)
