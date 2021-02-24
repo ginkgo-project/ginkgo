@@ -33,50 +33,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
-#include <CL/sycl.hpp>
+#include <memory>
+#include <random>
+#include <vector>
 
 
-#include "dpcpp/components/prefix_sum.dp.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-namespace components {
+#include <ginkgo/core/base/array.hpp>
 
 
-constexpr int prefix_sum_block_size = 256;
+#include "dpcpp/test/utils.hpp"
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
-                size_type num_entries)
-{
-    // prefix_sum should be on the valid array
-    if (num_entries > 0) {
-        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        Array<IndexType> block_sum_array(exec, num_blocks - 1);
-        auto block_sums = block_sum_array.get_data();
-        start_prefix_sum<prefix_sum_block_size>(
-            num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
-            num_entries, counts, block_sums);
-        // add the total sum of the previous block only when the number of block
-        // is larger than 1.
-        if (num_blocks > 1) {
-            finalize_prefix_sum<prefix_sum_block_size>(
-                num_blocks, prefix_sum_block_size, 0, exec->get_queue(),
-                num_entries, counts, block_sums);
+namespace {
+
+
+class PrefixSum : public ::testing::Test {
+protected:
+    using index_type = gko::int32;
+    PrefixSum()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::DpcppExecutor::create(0, ref)),
+          rand(293),
+          total_size(42793),
+          vals(ref, total_size),
+          dvals(exec)
+    {
+        std::uniform_int_distribution<index_type> dist(0, 1000);
+        for (gko::size_type i = 0; i < total_size; ++i) {
+            vals.get_data()[i] = dist(rand);
         }
+        dvals = vals;
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+    void test(gko::size_type size)
+    {
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::dpcpp::components::prefix_sum(exec, dvals.get_data(),
+                                                    size);
 
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+        GKO_ASSERT_ARRAY_EQ(vals, dvals);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::DpcppExecutor> exec;
+    std::default_random_engine rand;
+    gko::size_type total_size;
+    gko::Array<index_type> vals;
+    gko::Array<index_type> dvals;
+};
 
 
-}  // namespace components
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
+TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
+
+
+TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+
+
+}  // namespace
