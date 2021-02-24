@@ -89,6 +89,13 @@ protected:
 TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes);
 
 
+TYPED_TEST(PrefixSum, TrivialCasesEqualReference)
+{
+    this->test(0);
+    this->test(1);
+}
+
+
 TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
 
 
