@@ -77,7 +77,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    const range<accessor::col_major<const ValueType, 3>> avalues{
+    const range<accessor::block_col_major<const ValueType, 3>> avalues{
         vals, dim<3>(nbnz, bs, bs)};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -120,7 +120,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
-    const range<accessor::col_major<const ValueType, 3>> avalues{
+    const range<accessor::block_col_major<const ValueType, 3>> avalues{
         vals, dim<3>(a->get_num_stored_blocks(), bs, bs)};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -159,7 +159,7 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
     const IndexType *const col_idxs = source->get_const_col_idxs();
     const ValueType *const vals = source->get_const_values();
 
-    const range<accessor::col_major<const ValueType, 3>> values{
+    const range<accessor::block_col_major<const ValueType, 3>> values{
         vals, dim<3>(source->get_num_stored_blocks(), bs, bs)};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
@@ -209,7 +209,7 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     IndexType *const col_idxs = result->get_col_idxs();
     ValueType *const vals = result->get_values();
 
-    const range<accessor::col_major<const ValueType, 3>> bvalues{
+    const range<accessor::block_col_major<const ValueType, 3>> bvalues{
         bvals, dim<3>(source->get_num_stored_blocks(), bs, bs)};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
@@ -254,9 +254,9 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType *const col_ptrs,
                             ValueType *const csc_vals, UnaryOperator op)
 {
-    const range<accessor::col_major<const ValueType, 3>> rvalues{
+    const range<accessor::block_col_major<const ValueType, 3>> rvalues{
         fbcsr_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz)};
-    const range<accessor::col_major<ValueType, 3>> cvalues{
+    const range<accessor::block_col_major<ValueType, 3>> cvalues{
         csc_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz)};
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
@@ -463,7 +463,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    const range<accessor::col_major<const ValueType, 3>> vblocks{
+    const range<accessor::block_col_major<const ValueType, 3>> vblocks{
         values, dim<3>(orig->get_num_stored_blocks(), bs, bs)};
 
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {
