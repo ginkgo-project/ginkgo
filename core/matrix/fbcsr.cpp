@@ -339,9 +339,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     index_type cur_bcol = blocks.begin()->first.block_column;
     const index_type num_brows = detail::get_num_blocks(bs, data.size[0]);
 
-    // blockutils::DenseBlocksView<value_type, index_type> values(
-    //     tmp->values_.get_data(), bs, bs);
-    range<accessor::col_major<value_type, 3>> values(
+    range<accessor::block_col_major<value_type, 3>> values(
         tmp->values_.get_data(), dim<3>(blocks.size(), bs, bs));
 
     for (auto it = blocks.begin(); it != blocks.end(); it++) {
@@ -387,10 +385,8 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_size(), {}};
 
-    // const blockutils::DenseBlocksView<const value_type, index_type> vblocks(
-    //     tmp->values_.get_const_data(), bs_, bs_);
     const size_type nbnz = tmp->get_num_stored_blocks();
-    const range<accessor::col_major<const value_type, 3>> vblocks(
+    const range<accessor::block_col_major<const value_type, 3>> vblocks(
         tmp->values_.get_const_data(), dim<3>(nbnz, bs_, bs_));
 
     for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {
