@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 
 
-#include <array>
 #include <memory>
 
 
@@ -77,66 +76,6 @@ TEST(Dim, ConstructsNullObject)
 
     ASSERT_EQ(d[0], 0);
     ASSERT_EQ(d[1], 0);
-}
-
-
-TEST(Dim, ComputeDefaultStrideArrayConstexpr)
-{
-    using value_type = unsigned int;
-    constexpr int dimens{4};
-    constexpr gko::dim<dimens, int> d{2, 3, 5, 7};
-    constexpr std::array<value_type, dimens - 1> expected{3 * 5 * 7, 5 * 7, 7};
-
-    constexpr auto res = gko::compute_default_stride_array<value_type>(d);
-
-    ::testing::StaticAssertTypeEq<decltype(res),
-                                  const std::array<value_type, dimens - 1>>();
-    ASSERT_EQ(res, expected);
-}
-
-
-TEST(Dim, ComputeDefaultStrideArray)
-{
-    using value_type = gko::size_type;
-    constexpr int dimens{4};
-    gko::dim<dimens, int> d{2, 3, 5, 7};
-    std::array<value_type, dimens - 1> expected{3 * 5 * 7, 5 * 7, 7};
-
-    auto res = gko::compute_default_stride_array<value_type>(d);
-
-    ::testing::StaticAssertTypeEq<decltype(res),
-                                  std::array<value_type, dimens - 1>>();
-    ASSERT_EQ(res, expected);
-}
-
-
-TEST(Dim, ComputeDefaultStrideArrayEmpty)
-{
-    using value_type = gko::size_type;
-    constexpr int dimens{1};
-    gko::dim<dimens> d{2};
-    std::array<value_type, 0> expected{};
-
-    auto res = gko::compute_default_stride_array<value_type>(d);
-
-    ::testing::StaticAssertTypeEq<decltype(res),
-                                  std::array<value_type, dimens - 1>>();
-    ASSERT_EQ(res, expected);
-}
-
-
-TEST(Dim, ComputeDefaultStrideArrayEmptyConstexpr)
-{
-    using value_type = gko::size_type;
-    constexpr int dimens{1};
-    constexpr gko::dim<dimens> d{2};
-    constexpr std::array<value_type, 0> expected{};
-
-    constexpr auto res = gko::compute_default_stride_array<value_type>(d);
-
-    ::testing::StaticAssertTypeEq<decltype(res),
-                                  const std::array<value_type, dimens - 1>>();
-    ASSERT_EQ(res, expected);
 }
 
 
