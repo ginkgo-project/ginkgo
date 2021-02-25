@@ -289,7 +289,8 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp *b, const LinOp *x) const
+    virtual void validate_application_parameters(const LinOp *b,
+                                                 const LinOp *x) const
     {
         GKO_ASSERT_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(this, x);
@@ -305,9 +306,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp *alpha, const LinOp *b,
-                                         const LinOp *beta,
-                                         const LinOp *x) const
+    virtual void validate_application_parameters(const LinOp *alpha,
+                                                 const LinOp *b,
+                                                 const LinOp *beta,
+                                                 const LinOp *x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -615,6 +617,72 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void write(matrix_data<ValueType, IndexType> &data) const = 0;
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can read its data from a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchReadableFromMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchReadableFromMatrixData() = default;
+
+    /**
+     * Reads a matrix from a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void read(
+        const std::vector<matrix_data<ValueType, IndexType>> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>
+                  &assembly_data)
+    {
+        auto mat_data = std::vector<matrix_data<ValueType, IndexType>>(
+            assembly_data.size());
+        size_type ind = 0;
+        for (const auto &i : assembly_data) {
+            mat_data[ind] = i.get_ordered_data();
+            ++ind;
+        }
+        this->read(mat_data);
+    }
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can write its data to a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchWritableToMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchWritableToMatrixData() = default;
+
+    /**
+     * Writes a matrix to a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void write(
+        std::vector<matrix_data<ValueType, IndexType>> &data) const = 0;
 };
 
 
