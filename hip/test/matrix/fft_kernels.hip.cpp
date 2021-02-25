@@ -235,6 +235,9 @@ TYPED_TEST(Fft, ApplyStrided2DInverseIsEqualToReference)
 
 TYPED_TEST(Fft, Apply3DIsEqualToReference)
 {
+#if GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "Broken in rocFFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->fft3->apply(this->data.get(), this->out.get());
@@ -246,6 +249,9 @@ TYPED_TEST(Fft, Apply3DIsEqualToReference)
 
 TYPED_TEST(Fft, ApplyStrided3DIsEqualToReference)
 {
+#if GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "Broken in rocFFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->fft3->apply(this->data_strided.get(), this->out_strided.get());
@@ -257,6 +263,9 @@ TYPED_TEST(Fft, ApplyStrided3DIsEqualToReference)
 
 TYPED_TEST(Fft, Apply3DInverseIsEqualToReference)
 {
+#if GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "Broken in rocFFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->ifft3->apply(this->data.get(), this->out.get());
@@ -268,6 +277,9 @@ TYPED_TEST(Fft, Apply3DInverseIsEqualToReference)
 
 TYPED_TEST(Fft, ApplyStrided3DInverseIsEqualToReference)
 {
+#if GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "Broken in rocFFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->ifft3->apply(this->data_strided.get(), this->out_strided.get());
