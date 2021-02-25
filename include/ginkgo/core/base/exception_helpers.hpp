@@ -152,7 +152,7 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 template <typename T>
 inline std::vector<dim<2>> get_batch_size(const T &op)
 {
-    return op->get_sizes();
+    return op->get_batch_sizes();
 }
 
 inline std::vector<dim<2>> get_batch_size(const std::vector<dim<2>> &size)
