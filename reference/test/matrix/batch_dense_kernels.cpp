@@ -321,23 +321,6 @@ TYPED_TEST(BatchDense, AddScaledFailsOnWrongSizes)
 }
 
 
-// TYPED_TEST(BatchDense, AddsScaledDiag)
-//{
-//    using Mtx = typename TestFixture::Mtx;
-//    using T = typename TestFixture::value_type;
-//    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-//    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2,
-//    I<T>{3.0, 2.0});
-//
-//    this->mtx2->add_scaled(alpha.get(), diag.get());
-//
-//    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
-//    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
-//    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
-//    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
-//}
-
-
 TYPED_TEST(BatchDense, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -462,7 +445,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
 
     empty->convert_to(res.get());
 
-    ASSERT_FALSE(res->get_sizes().size());
+    ASSERT_FALSE(res->get_batch_sizes().size());
 }
 
 
@@ -477,7 +460,7 @@ TYPED_TEST(BatchDense, MovesEmptyToPrecision)
 
     empty->move_to(res.get());
 
-    ASSERT_FALSE(res->get_sizes().size());
+    ASSERT_FALSE(res->get_batch_sizes().size());
 }
 
 
