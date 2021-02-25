@@ -67,8 +67,8 @@ protected:
         gko::matrix::BatchDense<value_type> *m)
     {
         ASSERT_EQ(m->get_num_batches(), 2);
-        ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_stride(0), 4);
         ASSERT_EQ(m->get_stride(1), 3);
         ASSERT_EQ(m->get_num_stored_elements(), (2 * 4) + (2 * 3));
@@ -90,7 +90,7 @@ protected:
 
     static void assert_empty(gko::matrix::BatchDense<value_type> *m)
     {
-        ASSERT_EQ(m->get_sizes().size(), 0);
+        ASSERT_EQ(m->get_batch_sizes().size(), 0);
         ASSERT_EQ(m->get_num_batches(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
@@ -124,8 +124,8 @@ TYPED_TEST(BatchDense, CanBeConstructedWithSize)
         std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
 
     ASSERT_EQ(m->get_num_batches(), 2);
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 4));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 4));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_strides()[0], 4);
     EXPECT_EQ(m->get_strides()[1], 3);
     ASSERT_EQ(m->get_num_stored_elements(), 14);
@@ -141,7 +141,7 @@ TYPED_TEST(BatchDense, CanBeConstructedWithSizeAndStride)
         this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2, 3}},
         std::vector<size_type>{4});
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(0), 4);
     ASSERT_EQ(m->get_num_stored_elements(), 8);
 }
@@ -220,8 +220,8 @@ TYPED_TEST(BatchDense, CanBeListConstructed)
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 1));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0, 0), value_type{1});
     EXPECT_EQ(m->at(0, 1), value_type{2});
@@ -235,7 +235,7 @@ TYPED_TEST(BatchDense, CanBeListConstructedWithstride)
     using value_type = typename TestFixture::value_type;
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
         {2}, {{1.0, 2.0}}, this->exec);
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0, 0), value_type{1.0});
     EXPECT_EQ(m->at(0, 1), value_type{2.0});
@@ -251,8 +251,8 @@ TYPED_TEST(BatchDense, CanBeDoubleListConstructed)
          {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
         this->exec);
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(3, 2));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_stride(0), 3);
     ASSERT_EQ(m->get_stride(1), 2);
     EXPECT_EQ(m->get_num_stored_elements(), 15);
@@ -281,8 +281,8 @@ TYPED_TEST(BatchDense, CanBeDoubleListConstructedWithstride)
          {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}},
         this->exec);
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(3, 2));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_stride(0), 4);
     ASSERT_EQ(m->get_stride(1), 3);
     EXPECT_EQ(m->get_num_stored_elements(), 21);
@@ -354,8 +354,8 @@ TYPED_TEST(BatchDense, CanBeReadFromMatrixData)
                                           {1, 1, 9.0}}}});
     // clang-format on
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 2));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(2, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 10);
     ASSERT_EQ(m->get_num_stored_elements(0), 6);
     ASSERT_EQ(m->get_num_stored_elements(1), 4);
@@ -417,8 +417,8 @@ TYPED_TEST(BatchDense, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
-    ASSERT_EQ(m->get_sizes()[0], gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_sizes()[1], gko::dim<2>(2, 1));
+    ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_batch_sizes()[1], gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 8);
     ASSERT_EQ(m->get_num_stored_elements(0), 6);
     ASSERT_EQ(m->get_num_stored_elements(1), 2);
