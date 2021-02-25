@@ -685,6 +685,72 @@ public:
 
 
 /**
+ * A BatchLinOp implementing this interface can read its data from a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchReadableFromMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchReadableFromMatrixData() = default;
+
+    /**
+     * Reads a matrix from a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void read(
+        const std::vector<matrix_data<ValueType, IndexType>> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>
+                  &assembly_data)
+    {
+        auto mat_data = std::vector<matrix_data<ValueType, IndexType>>(
+            assembly_data.size());
+        size_type ind = 0;
+        for (const auto &i : assembly_data) {
+            mat_data[ind] = i.get_ordered_data();
+            ++ind;
+        }
+        this->read(mat_data);
+    }
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can write its data to a matrix_data
+ * structure.
+ *
+ * @ingroup BatchLinOp
+ */
+template <typename ValueType, typename IndexType>
+class BatchWritableToMatrixData {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    virtual ~BatchWritableToMatrixData() = default;
+
+    /**
+     * Writes a matrix to a matrix_data structure.
+     *
+     * @param data  the matrix_data structure
+     */
+    virtual void write(
+        std::vector<matrix_data<ValueType, IndexType>> &data) const = 0;
+};
+
+
+/**
  * A LinOp implementing this interface can be preconditioned.
  *
  * @ingroup precond
