@@ -1,5 +1,5 @@
-ginkgo_create_hip_test_special_linkage(ic_kernels)
-ginkgo_create_hip_test_special_linkage(ilu_kernels)
+ginkgo_create_test(ic_kernels)
+ginkgo_create_test(ilu_kernels)
 ginkgo_create_hip_test(par_ic_kernels)
 ginkgo_create_hip_test(par_ict_kernels)
 ginkgo_create_hip_test(par_ilu_kernels)

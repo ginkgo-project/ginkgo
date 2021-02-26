@@ -17,7 +17,7 @@ function(ginkgo_add_library name)
 endfunction()
 
 ginkgo_add_library(ginkgo_core_device machine_topology.cpp)
-ginkgo_install_library(ginkgo_core_device core/devices)
+ginkgo_install_library(ginkgo_core_device devices)
 
 add_subdirectory(cuda)
 add_subdirectory(dpcpp)

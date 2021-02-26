@@ -69,7 +69,6 @@ hwloc_topology *init_topology()
                                    HWLOC_TYPE_FILTER_KEEP_NONE);
     hwloc_topology_set_type_filter(tmp, HWLOC_OBJ_OS_DEVICE,
                                    HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-    hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
     hwloc_topology_load(tmp);
 
     return tmp;

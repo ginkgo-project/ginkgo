@@ -43,7 +43,6 @@ target_sources(ginkgo_omp
 
 ginkgo_compile_features(ginkgo_omp)
 
-target_link_libraries(ginkgo_omp PUBLIC ginkgo_core_device)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 # We first separate the arguments, otherwise, the target_compile_options adds it as a string
@@ -53,11 +52,12 @@ target_compile_options(ginkgo_omp PRIVATE "${OpenMP_SEP_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
-target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
+target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
-target_link_libraries(ginkgo_omp PUBLIC ginkgo_hip)
+target_link_libraries(ginkgo_omp PRIVATE ginkgo_hip)
 # Need to link against ginkgo_dpcpp for the `raw_copy_to(DpcppExecutor ...)` method
-target_link_libraries(ginkgo_omp PUBLIC ginkgo_dpcpp)
+target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
+target_link_libraries(ginkgo_omp PRIVATE ginkgo_core_device)
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
