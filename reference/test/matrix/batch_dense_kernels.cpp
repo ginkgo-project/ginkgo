@@ -452,8 +452,8 @@ TYPED_TEST(BatchDense, ConvertsToCsr32)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -489,8 +489,8 @@ TYPED_TEST(BatchDense, MovesToCsr32)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -526,8 +526,8 @@ TYPED_TEST(BatchDense, ConvertsToCsr64)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -563,8 +563,8 @@ TYPED_TEST(BatchDense, MovesToCsr64)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -630,7 +630,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_sizes().size());
+    ASSERT_FALSE(res->get_batch_sizes().size());
 }
 
 
@@ -646,7 +646,7 @@ TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_sizes().size());
+    ASSERT_FALSE(res->get_batch_sizes().size());
 }
 
 
