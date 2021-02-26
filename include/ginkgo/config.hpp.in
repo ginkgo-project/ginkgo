@@ -77,14 +77,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
 // clang-format on
 
+
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
 // clang-format on
 
-/* Set the system provided XML config file*/
-// clang-format off
-#define GKO_HWLOC_XMLFILE "@GKO_HWLOC_XMLFILE@"
-// clang-format on
 
 #endif  // GKO_INCLUDE_CONFIG_H

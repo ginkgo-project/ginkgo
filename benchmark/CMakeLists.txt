@@ -45,18 +45,6 @@ function(ginkgo_benchmark_hipsp_linops name)
         ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
         ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
 
-    if(GINKGO_HIP_PLATFORM MATCHES "hcc")
-        ginkgo_hip_ban_link_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_link_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_link_hcflag(hcc::mcwamp)
-        ginkgo_hip_ban_compile_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_compile_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_compile_hcflag(hcc::mcwamp)
-        ginkgo_hip_clang_ban_hip_device_flags()
-        target_link_libraries("${name}" hip::device)
-    else()
-        target_link_libraries("${name}" ${HIP_CUDA_LIBRARIES})
-    endif()
     target_link_libraries("${name}" ${HIPSPARSE_LIBRARIES})
 endfunction()
 

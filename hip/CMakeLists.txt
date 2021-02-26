@@ -44,23 +44,6 @@ if(NOT DEFINED HIPSPARSE_PATH)
     endif()
 endif()
 
-## Both the definition of `HCC_PATH` and `HIP_HIPCC_CMAKE_LINKER_HELPER` are required
-## before including `FindHIP`, as these are essential but not defined in the beginning
-## of the `FindHIP` file itself. Not defining these currently results in:
-## 1. Without `HCC_PATH`: the `hcc` backend not working properly if it is wrongly set,
-##    if it is not set, popentially all compilation could fail.
-## 2. Without `HIP_HIPCC_CMAKE_LINKER_HELPER` two compilations are required, since
-##    `FindHIP` defines this only in macro calls, which we call much later on after
-##    including the file itself.
-if(NOT DEFINED HCC_PATH)
-    if(DEFINED ENV{HCC_PATH})
-        set(HCC_PATH $ENV{HCC_PATH} CACHE PATH "Path to which HCC has been installed")
-    else()
-        set(HCC_PATH "${ROCM_PATH}/hcc" CACHE PATH "Path to which HCC has been installed")
-    endif()
-    set(HCC_HOME "${HCC_PATH}")
-endif()
-
 if(NOT DEFINED HIP_CLANG_PATH)
     if(NOT DEFINED ENV{HIP_CLANG_PATH})
         set(HIP_CLANG_PATH "${ROCM_PATH}/llvm/bin" CACHE PATH "Path to which HIP compatible clang binaries have been installed")
@@ -122,18 +105,11 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the us
      endif()
 endif()
 
-if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
-    # This is required by hipblas/hipsparse in the case where the platform is hcc.
-    # For nvcc platform, these aren't required and only cause trouble.
-    list(APPEND CMAKE_PREFIX_PATH
-        "${HIP_PATH}/lib/cmake"
-        "${HIP_PATH}/../lib/cmake" # hopefully catches all extra HIP dependencies, e.g. hcc
-    )
-endif()
-
-
 ## Setup all CMAKE variables to find HIP and its dependencies
 list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
+if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
+    list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}/lib/cmake")
+endif()
 list(APPEND CMAKE_PREFIX_PATH
     "${HIPBLAS_PATH}/lib/cmake"
     "${HIPRAND_PATH}/lib/cmake"
@@ -144,8 +120,7 @@ list(APPEND CMAKE_PREFIX_PATH
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
 
-# setting the default flags like CMAKE_{LANG}_FLAGS_{TYPE}
-# the setting is copied from the default CMAKE_CXX_FLAGS_{TYPE}
+# NOTE: without this, HIP jacobi build takes a *very* long time
 set(HIP_HIPCC_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Flags used by the HIPCC compiler during DEBUG builds")
 set(HIP_HIPCC_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}" CACHE STRING "Flags used by the HIPCC compiler during MINSIZEREL builds")
 set(HIP_HIPCC_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "Flags used by the HIPCC compiler during RELEASE builds")
@@ -221,11 +196,11 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
         unset(CMAKE_CUDA_HOST_COMPILER CACHE)
     endif()
     if (CMAKE_CUDA_HOST_COMPILER)
-        set(GINKGO_HIP_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
+        list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
     endif()
 
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
+    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "--expt-relaxed-constexpr")
 
     if (GINKGO_HIP_PLATFROM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION
             MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
@@ -251,59 +226,16 @@ if(GINKGO_HIP_AMDGPU)
     endforeach()
 endif()
 
-set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
+set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14")
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
-set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
 set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-if (GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5")
-    hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
-        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++14"
-        HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
-        CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
-        NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}
-        ${GINKGO_STATIC_OR_SHARED})
-else()
-    hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
-        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++14"
-        HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
-        NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}
-        ${GINKGO_STATIC_OR_SHARED})
-endif()
-
-
-target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
-if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
-    set_property(TARGET ginkgo_hip PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
-endif()
-if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
-    set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
-endif()
-
-if(GINKGO_HIP_PLATFORM MATCHES "hcc")
-    # Fix the exception thrown bug with `hcc` backend and shared libraries
-    set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
-
-    # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
-    # a static library, and it's definitely not a known option to any compiler.
-    ginkgo_hip_ban_link_hcflag(hcc::hccrt)
-
-    if (NOT BUILD_SHARED_LIBS)
-        # Do not let hip::device flags propagate to executables which don't
-        # directly use HIP
-        ginkgo_hip_clang_ban_hip_device_flags()
-    endif()
-    target_link_libraries(ginkgo_hip PRIVATE hip::device)
-elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-    find_package(CUDA 9.2 REQUIRED)
-    target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
-    set(HIP_CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
-endif()
-
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
-
-target_link_libraries(ginkgo_hip PUBLIC ginkgo_core_device)
+hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
+    HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+    CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+    NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS}
+    ${GINKGO_STATIC_OR_SHARED})
 
 target_include_directories(ginkgo_hip
     PUBLIC
@@ -315,23 +247,41 @@ target_include_directories(ginkgo_hip
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
+target_link_libraries(ginkgo_hip PRIVATE ginkgo_core_device)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
+
+target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
+
+if(GINKGO_HIP_PLATFORM MATCHES "hcc")
+    find_package(hip REQUIRED)
+    # To save a bit of pain, we directly link against the `library` instead of
+    # linking against the target.
+    get_target_property(HIP_LIBAMDHIP64_CONFIGURATIONS hip::amdhip64 IMPORTED_CONFIGURATIONS)
+    if (CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]" AND HIP_LIBAMDHIP64_CONFIGURATIONS MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_DEBUG)
+    else()
+        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_RELEASE)
+    endif()
+    target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
+elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
+    find_package(CUDA 9.2 REQUIRED)
+    target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
+endif()
+
+set(RPATH_ADD_HIP_PATH "")
+if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
+    set(RPATH_ADD_HIP_PATH "${HIP_PATH}/lib")
+endif()
+
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
-ginkgo_install_library(ginkgo_hip hip)
+ginkgo_install_library(ginkgo_hip hip "${RPATH_ADD_HIP_PATH}" "${HIPBLAS_PATH}/lib"
+    "${HIPRAND_PATH}/lib" "${HIPSPARSE_PATH}/lib" "${ROCRAND_PATH}/lib")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip)
 endif()
 
 if(GINKGO_BUILD_TESTS)
-  # Here, we go through all of Ginkgo's dependencies to build a `-Wl,-rpath` string since for
-  # some reason `hipcc` through CMake does not have rpath settings unlike the other compilers.
-    get_target_property(GINKGO_LINK_LIBRARIES ginkgo LINK_LIBRARIES)
-    set(GINKGO_RPATH_FOR_HIP "-Wl,-rpath,$<TARGET_FILE_DIR:ginkgo>")
-    foreach(target ${GINKGO_LINK_LIBRARIES})
-        if("${target}" MATCHES "^ginkgo")
-            set(GINKGO_RPATH_FOR_HIP "${GINKGO_RPATH_FOR_HIP}:$<TARGET_FILE_DIR:${target}>")
-        endif()
-    endforeach()
     add_subdirectory(test)
 endif()

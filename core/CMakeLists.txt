@@ -1,4 +1,3 @@
-add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
 add_library(ginkgo "")
@@ -69,8 +68,14 @@ if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
 endif()
 
+# Since we have a public dependency on HIP, this dependency appears here as well
+set(RPATH_ADD_HIP_PATH "")
+if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
+    set(RPATH_ADD_HIP_PATH "${HIP_PATH}/lib")
+endif()
+
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo core)
+ginkgo_install_library(ginkgo core "${RPATH_ADD_HIP_PATH}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo)

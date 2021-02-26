@@ -107,6 +107,7 @@ set(GINKGO_INSTALL_LIBRARY_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_LIBRARY
 set(GINKGO_INSTALL_PKGCONFIG_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_PKGCONFIG_DIR@")
 set(GINKGO_INSTALL_CONFIG_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_CONFIG_DIR@")
 set(GINKGO_INSTALL_MODULE_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_MODULE_DIR@")
+set(GINKGO_INSTALL_RPATH_FOR_HIP "-Wl,-rpath,${GINKGO_INSTALL_LIBRARY_DIR}")
 
 # Forward Ginkgo's MODULE PATH and the PREFIX PATH for HIP and more
 list(APPEND CMAKE_MODULE_PATH "@CMAKE_MODULE_PATH@" "${GINKGO_INSTALL_MODULE_DIR}")
@@ -139,10 +140,6 @@ set(GINKGO_OPENMP_LIBRARIES @OpenMP_CXX_LIBRARIES@)
 
 set(GINKGO_OPENMP_FLAGS "@OpenMP_CXX_FLAGS@")
 
-# Provide useful HIP helper functions
-if(GINKGO_BUILD_HIP)
-    include(${CMAKE_CURRENT_LIST_DIR}/hip_helpers.cmake)
-endif()
 if (WIN32 OR CYGWIN)
     include(${CMAKE_CURRENT_LIST_DIR}/windows_helpers.cmake)
 endif()
@@ -181,15 +178,6 @@ if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)
     find_package(hiprand REQUIRED)
     find_package(hipsparse REQUIRED)
     find_package(rocrand REQUIRED)
-    if(GINKGO_HIP_PLATFORM MATCHES "hcc")
-        ginkgo_hip_ban_link_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_link_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_link_hcflag(hcc::mcwamp)
-        ginkgo_hip_ban_compile_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_compile_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_compile_hcflag(hcc::mcwamp)
-    endif()
 endif()
-
 
 include(${CMAKE_CURRENT_LIST_DIR}/GinkgoTargets.cmake)

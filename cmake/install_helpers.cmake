@@ -9,7 +9,19 @@ set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
 
 function(ginkgo_install_library name subdir)
-
+    if (BUILD_SHARED_LIBS)
+        set (HWLOC_LIB_PATH "")
+        if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)
+            get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
+        endif()
+        if (APPLE)
+            set(ORIGIN_OR_LOADER_PATH "@loader_path")
+        else()
+            set(ORIGIN_OR_LOADER_PATH "$ORIGIN")
+        endif()
+        set_property(TARGET "${name}" PROPERTY INSTALL_RPATH
+        "${ORIGIN_OR_LOADER_PATH}" "${HWLOC_LIB_PATH}" "${ARGN}")
+    endif()
     if (WIN32 OR CYGWIN)
         # dll is considered as runtime
         install(TARGETS "${name}"
@@ -49,6 +61,21 @@ function(ginkgo_install)
             )
     endif()
 
+    if  (GINKGO_HAVE_HWLOC AND NOT GINKGO_USE_EXTERNAL_HWLOC)
+        get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
+        file(GLOB HWLOC_LIBS "${HWLOC_LIB_PATH}/libhwloc*")
+        install(FILES ${HWLOC_LIBS}
+            DESTINATION "${GINKGO_INSTALL_LIBRARY_DIR}"
+            )
+        # We only use hwloc and not netloc
+        install(DIRECTORY "${HWLOC_INCLUDE_DIRS}/hwloc"
+            DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+            )
+        install(FILES "${HWLOC_INCLUDE_DIRS}/hwloc.h"
+            DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
+            )
+    endif()
+
     # export targets
     export(EXPORT Ginkgo
         NAMESPACE Ginkgo::
@@ -66,7 +93,7 @@ function(ginkgo_install)
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
-    set(HELPERS "hip_helpers.cmake" "windows_helpers.cmake")
+    set(HELPERS "windows_helpers.cmake")
     foreach (helper ${HELPERS})
         configure_file(${Ginkgo_SOURCE_DIR}/cmake/${helper}
             ${Ginkgo_BINARY_DIR}/${helper} COPYONLY)
@@ -79,12 +106,6 @@ function(ginkgo_install)
     if (WIN32 OR CYGWIN)
         install(FILES
             "${Ginkgo_SOURCE_DIR}/cmake/windows_helpers.cmake"
-            DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
-            )
-    endif()
-    if (GINKGO_BUILD_HIP)
-        install(FILES
-            "${Ginkgo_SOURCE_DIR}/cmake/hip_helpers.cmake"
             DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
             )
     endif()

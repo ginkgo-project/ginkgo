@@ -178,7 +178,6 @@ endif()
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "HWLOC_VERSION")
-ginkgo_print_variable(${detailed_log} "GKO_HWLOC_XMLFILE")
 ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
 ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 
