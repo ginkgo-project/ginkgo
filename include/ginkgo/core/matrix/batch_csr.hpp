@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/batch_lin_op.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -87,18 +87,18 @@ class BatchCsr;
  *
  * @ingroup batch_csr
  * @ingroup mat_formats
- * @ingroup BatchLinOp
+ * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BatchCsr
-    : public EnableBatchLinOp<BatchCsr<ValueType, IndexType>>,
+    : public EnableLinOp<BatchCsr<ValueType, IndexType>>,
       public EnableCreateMethod<BatchCsr<ValueType, IndexType>>,
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public BatchTransposable {
+      public Transposable {
     friend class EnableCreateMethod<BatchCsr>;
-    friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
+    friend class EnablePolymorphicObject<BatchCsr, LinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;
 
 public:
@@ -117,14 +117,13 @@ public:
         result->values_ = this->values_;
         result->col_idxs_ = this->col_idxs_;
         result->row_ptrs_ = this->row_ptrs_;
-        result->set_sizes(this->get_sizes());
-        result->set_num_batches(this->get_num_batches());
+        result->set_batch_sizes(this->get_batch_sizes());
     }
 
     void move_to(BatchCsr<ValueType, IndexType> *result) override
     {
         bool same_executor = this->get_executor() == result->get_executor();
-        EnableBatchLinOp<BatchCsr>::move_to(result);
+        EnableLinOp<BatchCsr>::move_to(result);
     }
     friend class BatchCsr<next_precision<ValueType>, IndexType>;
 
@@ -138,9 +137,9 @@ public:
 
     void write(std::vector<mat_data> &data) const override;
 
-    std::unique_ptr<BatchLinOp> transpose() const override;
+    std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<BatchLinOp> conj_transpose() const override;
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::vector<std::unique_ptr<unbatch_type>> unbatch() const
     {
@@ -151,13 +150,13 @@ public:
         size_type offset = 0;
         for (size_type b = 0; b < this->get_num_batches(); ++b) {
             auto mat =
-                unbatch_type::create(exec, this->get_sizes()[b], num_nnz);
+                unbatch_type::create(exec, this->get_batch_sizes()[b], num_nnz);
             exec->copy_from(exec.get(), num_nnz,
                             this->get_const_values() + offset,
                             mat->get_values());
             exec->copy_from(exec.get(), num_nnz, this->get_const_col_idxs(),
                             mat->get_col_idxs());
-            exec->copy_from(exec.get(), this->get_sizes()[b][0] + 1,
+            exec->copy_from(exec.get(), this->get_batch_sizes()[b][0] + 1,
                             this->get_const_row_ptrs(), mat->get_row_ptrs());
             unbatch_mats.emplace_back(std::move(mat));
             offset += num_nnz;
@@ -245,6 +244,26 @@ public:
         return values_.get_num_elems();
     }
 
+    size_type get_num_batches() const { return batch_sizes_.size(); }
+
+    std::vector<dim<2>> get_batch_sizes() const { return batch_sizes_; }
+
+    void set_batch_sizes(const std::vector<dim<2>> sizes)
+    {
+        batch_sizes_ = sizes;
+    }
+
+private:
+    inline dim<2> compute_cumulative_size(const std::vector<gko::dim<2>> &sizes)
+    {
+        auto cumul_size = dim<2>{};
+        for (auto i = 0; i < sizes.size(); ++i) {
+            cumul_size[0] += (sizes[i])[0];
+            cumul_size[1] += (sizes[i])[1];
+        }
+        return cumul_size;
+    }
+
 protected:
     /**
      * Creates an uninitialized BatchCsr matrix of the specified size.
@@ -257,8 +276,10 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batches = {}, const dim<2> &size = dim<2>{},
              size_type num_nonzeros = {})
-        : EnableBatchLinOp<BatchCsr>(exec,
-                                     std::vector<dim<2>>(num_batches, size)),
+        : EnableLinOp<BatchCsr>(
+              exec,
+              compute_cumulative_size(std::vector<dim<2>>(num_batches, size))),
+          batch_sizes_(std::vector<dim<2>>(num_batches, size)),
           values_(exec, num_nonzeros * num_batches),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, (size[0]) + 1)
@@ -289,23 +310,55 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec, const size_type num_batches,
              const dim<2> &size, ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableBatchLinOp<BatchCsr>(exec,
-                                     std::vector<dim<2>>(num_batches, size)),
+        : EnableLinOp<BatchCsr>(
+              exec,
+              compute_cumulative_size(std::vector<dim<2>>(num_batches, size))),
+          batch_sizes_(std::vector<dim<2>>(num_batches, size)),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
         GKO_ASSERT_EQ(values_.get_num_elems(),
                       col_idxs_.get_num_elems() * num_batches);
-        GKO_ASSERT_EQ(this->get_sizes()[0][0] + 1, row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_batch_sizes()[0][0] + 1,
+                      row_ptrs_.get_num_elems());
     }
 
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    virtual void validate_application_parameters(const LinOp *b,
+                                                 const LinOp *x) const override
+    {
+        auto batch_this = as<BatchCsr<ValueType, IndexType>>(this);
+        auto batch_x = as<BatchDense<ValueType>>(x);
+        auto batch_b = as<BatchDense<ValueType>>(b);
+        GKO_ASSERT_CONFORMANT(batch_this, batch_b);
+        GKO_ASSERT_EQUAL_ROWS(batch_this, batch_x);
+        GKO_ASSERT_EQUAL_COLS(batch_b, batch_x);
+        GKO_ASSERT_BATCH_CONFORMANT(batch_this, batch_b);
+        GKO_ASSERT_BATCH_EQUAL_ROWS(batch_this, batch_x);
+        GKO_ASSERT_BATCH_EQUAL_COLS(batch_b, batch_x);
+    }
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    virtual void validate_application_parameters(const LinOp *alpha,
+                                                 const LinOp *b,
+                                                 const LinOp *beta,
+                                                 const LinOp *x) const override
+    {
+        this->validate_application_parameters(b, x);
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            as<BatchDense<ValueType>>(alpha),
+            std::vector<dim<2>>(get_num_batches(), dim<2>(1, 1)));
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            as<BatchDense<ValueType>>(beta),
+            std::vector<dim<2>>(get_num_batches(), dim<2>(1, 1)));
+    }
+
+    void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override;
 
 private:
+    std::vector<dim<2>> batch_sizes_;
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
