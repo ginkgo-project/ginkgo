@@ -377,8 +377,8 @@ public:
     }
 
 private:
-    inline size_type compute_batch_mem(const std::vector<dim<2>> sizes,
-                                       const std::vector<size_type> strides)
+    inline size_type compute_batch_mem(const std::vector<dim<2>> &sizes,
+                                       const std::vector<size_type> &strides)
     {
         GKO_ASSERT(sizes.size() == strides.size());
         size_type mem_req = 0;
@@ -389,7 +389,7 @@ private:
     }
 
     inline std::vector<size_type> extract_nth_dim(
-        const int dim, const std::vector<gko::dim<2>> sizes)
+        const int dim, const std::vector<gko::dim<2>> &sizes)
     {
         auto ndim_vec = std::vector<size_type>(sizes.size());
         for (auto i = 0; i < sizes.size(); ++i) {
@@ -419,8 +419,8 @@ private:
     }
 
     inline std::vector<size_type> compute_num_elems_per_batch_cumul(
-        const std::vector<gko::dim<2>> sizes,
-        const std::vector<size_type> strides)
+        const std::vector<gko::dim<2>> &sizes,
+        const std::vector<size_type> &strides)
     {
         auto num_elems = std::vector<size_type>(sizes.size() + 1, 0);
         for (auto i = 0; i < sizes.size(); ++i) {
@@ -429,7 +429,7 @@ private:
         return num_elems;
     }
 
-    inline dim<2> compute_cumulative_size(const std::vector<gko::dim<2>> sizes)
+    inline dim<2> compute_cumulative_size(const std::vector<gko::dim<2>> &sizes)
     {
         auto cumul_size = dim<2>{};
         for (auto i = 0; i < sizes.size(); ++i) {
