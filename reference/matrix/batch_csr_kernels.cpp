@@ -75,15 +75,15 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
     size_type offset = 0;
     for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
-        for (size_type row = 0; row < a->get_sizes()[0][0]; ++row) {
-            for (size_type j = 0; j < c->get_sizes()[batch][1]; ++j) {
+        for (size_type row = 0; row < a->get_batch_sizes()[0][0]; ++row) {
+            for (size_type j = 0; j < c->get_batch_sizes()[batch][1]; ++j) {
                 c->at(batch, row, j) = zero<ValueType>();
             }
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
                 auto val = vals[offset + k];
                 auto col = col_idxs[k];
-                for (size_type j = 0; j < c->get_sizes()[batch][1]; ++j) {
+                for (size_type j = 0; j < c->get_batch_sizes()[batch][1]; ++j) {
                     c->at(batch, row, j) += val * b->at(batch, col, j);
                 }
             }
@@ -113,15 +113,15 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
         auto valpha = alpha->at(batch, 0, 0);
         auto vbeta = beta->at(batch, 0, 0);
-        for (size_type row = 0; row < a->get_sizes()[0][0]; ++row) {
-            for (size_type j = 0; j < c->get_sizes()[batch][1]; ++j) {
+        for (size_type row = 0; row < a->get_batch_sizes()[0][0]; ++row) {
+            for (size_type j = 0; j < c->get_batch_sizes()[batch][1]; ++j) {
                 c->at(batch, row, j) *= vbeta;
             }
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
                 auto val = vals[offset + k];
                 auto col = col_idxs[k];
-                for (size_type j = 0; j < c->get_sizes()[batch][1]; ++j) {
+                for (size_type j = 0; j < c->get_batch_sizes()[batch][1]; ++j) {
                     c->at(batch, row, j) += valpha * val * b->at(batch, col, j);
                 }
             }

@@ -250,8 +250,10 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
                           matrix::BatchCsr<ValueType, IndexType> *result)
 {
-    auto num_rows = result->get_sizes().data() ? result->get_sizes()[0][0] : 0;
-    auto num_cols = result->get_sizes().data() ? result->get_sizes()[1][1] : 0;
+    auto num_rows =
+        result->get_batch_sizes().data() ? result->get_batch_sizes()[0][0] : 0;
+    auto num_cols =
+        result->get_batch_sizes().data() ? result->get_batch_sizes()[1][1] : 0;
     auto num_batches = result->get_num_batches();
 
     auto row_ptrs = result->get_row_ptrs();

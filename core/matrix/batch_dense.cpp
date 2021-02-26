@@ -92,11 +92,12 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
     num_stored_nonzeros.set_executor(exec->get_master());
     size_type num_nnz =
         num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
-    gko::dim<2> main_size =
-        source->get_sizes().data() ? source->get_sizes()[0] : gko::dim<2>{};
+    gko::dim<2> main_size = source->get_batch_sizes().data()
+                                ? source->get_batch_sizes()[0]
+                                : gko::dim<2>{};
     for (size_type i = 1; i < source->get_num_batches(); ++i) {
         GKO_ASSERT(num_nnz == num_stored_nonzeros.get_data()[i]);
-        GKO_ASSERT(main_size == source->get_sizes()[i]);
+        GKO_ASSERT(main_size == source->get_batch_sizes()[i]);
     }
     auto tmp = BatchCsr<ValueType, IndexType>::create(
         exec, source->get_num_batches(), main_size, num_nnz);
