@@ -257,8 +257,7 @@ packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, Ginkgo provides
 two ways to find packages. To rely on the CMake `find_package` command, use the
 CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` works the opposite
-way, Ginkgo always looks for the system's `hwloc` first. Set
-`-DGINKGO_USE_EXTERNAL_HWLOC=OFF` to not use the system provided one.
+way, Ginkgo always looks for the system's `hwloc` first.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the
