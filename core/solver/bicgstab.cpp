@@ -139,9 +139,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = -1;
 
     /* Memory movement summary:
-     * Per iteration:
-     * 15.5n * values + matrix/preconditioner storage
-     * Two iterations:
      * 31n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
      * 2x Preconditioner:      4n * values + 2 * storage
@@ -181,7 +178,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
                                         alpha.get(), beta.get(), &stop_status));
 
-        ++iter;
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
@@ -193,8 +189,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
                                               &stop_status));
         }
-        this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            s.get());
         if (all_converged) {
             break;
         }
