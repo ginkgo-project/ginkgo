@@ -25,6 +25,7 @@ Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+P\+C\+PP=\{ON, O\+FF\}} builds optimized D\+P\+C++ versions of the kernels (requires {\ttfamily C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+C\+O\+M\+P\+I\+L\+ER} to be set to the {\ttfamily dpcpp} compiler). The default is {\ttfamily ON} if {\ttfamily C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+C\+O\+M\+P\+I\+L\+ER} is a D\+P\+C++ compiler, {\ttfamily O\+FF} otherwise.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=\{ON, O\+FF\}} builds optimized H\+IP versions of the kernels (requires H\+IP), default is {\ttfamily ON} if an installation of H\+IP could be detected, {\ttfamily O\+FF} otherwise.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+A\+M\+D\+G\+PU=\char`\"{}gpuarch1;gpuarch2\char`\"{}} the amdgpu\+\_\+target(s) variable passed to hipcc for the {\ttfamily hcc} H\+IP backend. The default is none (auto).
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+W\+L\+OC=\{ON, O\+FF\}} builds Ginkgo with H\+W\+L\+OC. If system H\+W\+L\+OC is not found, Ginkgo will try to build it. Default is {\ttfamily ON}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+OC=\{ON, O\+FF\}} creates an H\+T\+ML version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+E\+X\+A\+M\+P\+L\+ES=\{ON, O\+FF\}} generates the documentation of examples in Ginkgo. The default is {\ttfamily ON}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+P\+DF=\{ON, O\+FF\}} generates a P\+DF version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
@@ -140,42 +141,15 @@ The following are the details for different environments\+:
 \end{DoxyItemize}
 \item Build Ginkgo in {\itshape Min\+GW}\+: If encountering the issue {\ttfamily cc1plus.\+exe\+: out of memory allocating 65536 bytes}, please follow the workaround in \href{https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html}{\texttt{ reference}}, or trying to compile ginkgo again might work.
 \end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsection{Building Ginkgo with H\+I\+P support}\label{install_ginkgo_autotoc_md2}
-Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. The C\+Make configuration step will try to auto-\/detect the presence of H\+IP either at {\ttfamily /opt/rocm/hip} or at the path specified by {\ttfamily H\+I\+P\+\_\+\+P\+A\+TH} as a C\+Make parameter ({\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=}) or environment variable ({\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}), unless {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=O\+N/\+O\+FF} is set explicitly.\hypertarget{install_ginkgo_autotoc_md3}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md3}
-In general, Ginkgo\textquotesingle{}s H\+IP backend requires the following packages\+:
+Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. The C\+Make configuration step will try to auto-\/detect the presence of H\+IP either at {\ttfamily /opt/rocm/hip} or at the path specified by {\ttfamily H\+I\+P\+\_\+\+P\+A\+TH} as a C\+Make parameter ({\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=}) or environment variable ({\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}), unless {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=O\+N/\+O\+FF} is set explicitly.\hypertarget{install_ginkgo_autotoc_md3}{}\doxysubsubsection{H\+I\+P dependencies for Ginkgo}\label{install_ginkgo_autotoc_md3}
+Ginkgo\textquotesingle{}s H\+IP backend adds a dependency to the following packages\+:
 \begin{DoxyItemize}
 \item H\+IP,
 \item hip\+B\+L\+AS,
 \item hip\+S\+P\+A\+R\+SE,
-\item Thrust.
-\end{DoxyItemize}
-
-It is necessary to provide some details about the different ways to procure and install these packages, in particular for N\+V\+I\+D\+IA systems since getting a correct, non bloated setup is not straightforward.
-
-For A\+MD systems, the simplest way is to follow the \href{https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md}{\texttt{ instructions provided here}} which provide package installers for most Linux distributions. Ginkgo also needs the installation of the \href{https://github.com/ROCmSoftwarePlatform/hipBLAS}{\texttt{ hip\+B\+L\+AS}} and \href{https://github.com/ROCmSoftwarePlatform/hipSPARSE}{\texttt{ hip\+S\+P\+A\+R\+SE}} interfaces. Optionally if you do not already have a thrust installation, \mbox{[}the R\+O\+Cm provided roc\+Thrust package can be used\mbox{]}(\href{https://github.com/ROCmSoftwarePlatform/rocThrust}{\texttt{ https\+://github.\+com/\+R\+O\+Cm\+Software\+Platform/roc\+Thrust}}).
-
-For N\+V\+I\+D\+IA systems, the traditional installation (package {\ttfamily hip\+\_\+nvcc}), albeit working properly is currently odd\+: it depends on all the {\ttfamily hcc} related packages, although the {\ttfamily nvcc} backend seems to entirely rely on the C\+U\+DA suite. \mbox{[}See this issue for more details\mbox{]}(\href{https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53}{\texttt{ https\+://github.\+com/\+R\+O\+Cm\+Software\+Platform/hip\+B\+L\+A\+S/issues/53}}). It is advised in this case to compile everything manually, including using forks of {\ttfamily hip\+B\+L\+AS} and {\ttfamily hip\+S\+P\+A\+R\+SE} specifically made to not depend on the {\ttfamily hcc} specific packages. {\ttfamily Thrust} is often provided by C\+U\+DA and this Thrust version should work with {\ttfamily H\+IP}. Here is a sample procedure for installing {\ttfamily H\+IP}, {\ttfamily hip\+B\+L\+AS} and {\ttfamily hip\+S\+P\+A\+R\+SE}.
-
-
-\begin{DoxyCode}{0}
-\DoxyCodeLine{\# HIP}
-\DoxyCodeLine{git clone https://github.com/ROCm-\/Developer-\/Tools/HIP.git}
-\DoxyCodeLine{pushd HIP \&\& mkdir build \&\& pushd build}
-\DoxyCodeLine{cmake .. \&\& make install}
-\DoxyCodeLine{popd \&\& popd}
-\DoxyCodeLine{}
-\DoxyCodeLine{\# hipBLAS}
-\DoxyCodeLine{git clone https://github.com/tcojean/hipBLAS.git}
-\DoxyCodeLine{pushd hipBLAS \&\& mkdir build \&\& pushd build}
-\DoxyCodeLine{cmake .. \&\& make install}
-\DoxyCodeLine{popd \&\& popd}
-\DoxyCodeLine{}
-\DoxyCodeLine{\# hipSPARSE}
-\DoxyCodeLine{git clone https://github.com/tcojean/hipSPARSE.git}
-\DoxyCodeLine{pushd hipSPARSE \&\& mkdir build \&\& pushd build}
-\DoxyCodeLine{cmake -\/DBUILD\_CUDA=ON .. \&\& make install}
-\DoxyCodeLine{popd \&\& popd}
-\end{DoxyCode}
-\hypertarget{install_ginkgo_autotoc_md4}{}\doxysubsubsection{Changing the paths to search for H\+I\+P and other packages}\label{install_ginkgo_autotoc_md4}
+\item roc\+R\+A\+ND,
+\item roc\+Thrust.
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md4}{}\doxysubsubsection{Changing the paths to search for H\+I\+P and other packages}\label{install_ginkgo_autotoc_md4}
 All H\+IP installation paths can be configured through the use of environment variables or C\+Make variables. This way of configuring the paths is currently imposed by the {\ttfamily H\+IP} tool suite. The variables are the following\+:
 \begin{DoxyItemize}
 \item C\+Make {\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily H\+IP} installation path. The default value is {\ttfamily /opt/rocm/hip}.
@@ -188,12 +162,19 @@ By default, Ginkgo uses the output of {\ttfamily /opt/rocm/hip/bin/hipconfig -\/
 \begin{DoxyCode}{0}
 \DoxyCodeLine{export HIP\_PLATFORM=nvcc}
 \end{DoxyCode}
+
+
+When using {\ttfamily H\+I\+P\+\_\+\+P\+L\+A\+T\+F\+O\+RM=hcc}, note that two {\ttfamily H\+IP} compilers can be set, the old {\ttfamily hcc} or since R\+O\+Cm 3.\+5, {\ttfamily clang}. On newer installations, {\ttfamily clang} should be set by default, but if encountering any problem try to manually set the {\ttfamily H\+IP} compiler to {\ttfamily clang}\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{export HIP\_COMPILER=clang}
+\end{DoxyCode}
 \hypertarget{install_ginkgo_autotoc_md6}{}\doxysubsubsection{Setting platform specific compilation flags}\label{install_ginkgo_autotoc_md6}
 Platform specific compilation flags can be given through the following C\+Make variables\+:
 \begin{DoxyItemize}
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to all platforms.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+H\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to A\+MD platforms.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+N\+V\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to N\+V\+I\+D\+IA platforms.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+C\+L\+A\+N\+G\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to A\+MD clang compiler.
 \end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md7}{}\doxysubsection{Third party libraries and packages}\label{install_ginkgo_autotoc_md7}
 Ginkgo relies on third party packages in different cases. These third party packages can be turned off by disabling the relevant options.
 
@@ -203,9 +184,12 @@ Ginkgo relies on third party packages in different cases. These third party pack
 \item G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+T\+E\+S\+TS=ON\+: Our tests are implemented with \href{https://github.com/google/googletest}{\texttt{ Google Test}};
 \item G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+B\+E\+N\+C\+H\+M\+A\+R\+KS=ON\+: For argument management we use \href{https://github.com/gflags/gflags}{\texttt{ gflags}} and for J\+S\+ON parsing we use \href{https://github.com/Tencent/rapidjson}{\texttt{ Rapid\+J\+S\+ON}};
 \item G\+I\+N\+K\+G\+O\+\_\+\+D\+E\+V\+E\+L\+\_\+\+T\+O\+O\+LS=ON\+: \href{https://github.com/gflegar/git-cmake-format}{\texttt{ git-\/cmake-\/format}} is our C\+Make helper for code formatting.
+\item G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+W\+L\+OC=ON\+: \href{https://www.open-mpi.org/projects/hwloc}{\texttt{ hwloc}} to detect and control cores and devices.
 \end{DoxyItemize}
 
-By default, Ginkgo uses the internal version of each package. For each of the packages {\ttfamily G\+T\+E\+ST}, {\ttfamily G\+F\+L\+A\+GS}, {\ttfamily R\+A\+P\+I\+D\+J\+S\+ON} and {\ttfamily C\+AS}, it is possible to force Ginkgo to try to use an external version of a package. For this, Ginkgo provides two ways to find packages. To rely on the C\+Make {\ttfamily find\+\_\+package} command, use the C\+Make option {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+U\+S\+E\+\_\+\+E\+X\+T\+E\+R\+N\+A\+L\+\_\+$<$package$>$=ON}. Note that, if the external packages were not installed to the default location, the C\+Make option {\ttfamily -\/D\+C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH=$<$path-\/list$>$} needs to be set to the semicolon ({\ttfamily ;}) separated list of install paths of these external packages. For more Information, see the \href{https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html}{\texttt{ C\+Make documentation for C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH}} for details.
+Usually, Ginkgo uses the internal version of each package. For each of the packages {\ttfamily G\+T\+E\+ST}, {\ttfamily G\+F\+L\+A\+GS}, {\ttfamily R\+A\+P\+I\+D\+J\+S\+ON} and {\ttfamily C\+AS}, it is possible to force Ginkgo to try to use an external version of a package. For this, Ginkgo provides two ways to find packages. To rely on the C\+Make {\ttfamily find\+\_\+package} command, use the C\+Make option {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+U\+S\+E\+\_\+\+E\+X\+T\+E\+R\+N\+A\+L\+\_\+$<$package$>$=ON}. {\ttfamily H\+W\+L\+OC} works the opposite way, Ginkgo always looks for the system\textquotesingle{}s {\ttfamily hwloc} first.
+
+Note that, if the external packages were not installed to the default location, the C\+Make option {\ttfamily -\/D\+C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH=$<$path-\/list$>$} needs to be set to the semicolon ({\ttfamily ;}) separated list of install paths of these external packages. For more Information, see the \href{https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html}{\texttt{ C\+Make documentation for C\+M\+A\+K\+E\+\_\+\+P\+R\+E\+F\+I\+X\+\_\+\+P\+A\+TH}} for details.
 
 To manually configure the paths, Ginkgo relies on the \href{https://xsdk.info/policies/}{\texttt{ standard x\+S\+DK Installation policies}} for all packages except {\ttfamily C\+AS} (as it is neither a library nor a header, it cannot be expressed through the {\ttfamily T\+PL} format)\+:
 \begin{DoxyItemize}
