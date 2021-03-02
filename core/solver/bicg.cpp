@@ -184,6 +184,15 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
 
+    /* Memory movement summary:
+     * 28n * values + matrix/preconditioner storage + conj storage
+     * 2x SpMV:                4n * values + storage + conj storage
+     * 2x Preconditioner:      4n * values + storage + conj storage
+     * 2x dot                  4n
+     * 1x step 1 (axpys)       6n
+     * 1x step 2 (axpys)       9n
+     * 1x norm2 residual        n
+     */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
         conj_trans_preconditioner->apply(r2.get(), z2.get());
@@ -201,21 +210,21 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
-                                    rho.get(), prev_rho.get(), &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
+        exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
+                                    rho.get(), prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         conj_trans_A->apply(p2.get(), q2.get());
         p2->compute_dot(q.get(), beta.get());
-        exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
-                                    q.get(), q2.get(), beta.get(), rho.get(),
-                                    &stop_status));
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
         // r2 = r2 - tmp * q2
+        exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
+                                    q.get(), q2.get(), beta.get(), rho.get(),
+                                    &stop_status));
         swap(prev_rho, rho);
     }
 }
