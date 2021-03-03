@@ -151,8 +151,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
      */
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
         rr->compute_dot(r.get(), rho.get());
 
         if (stop_criterion->update()
