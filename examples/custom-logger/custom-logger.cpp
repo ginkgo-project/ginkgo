@@ -93,18 +93,20 @@ struct ResidualLogger : gko::log::Logger {
         std::cout << "Recurrent vs true residual norm:" << std::endl;
         std::cout << '|' << std::setw(10) << "Iteration" << '|' << std::setw(25)
                   << "Recurrent Residual Norm" << '|' << std::setw(25)
-                  << "True Residual Norm" << '|' << std::endl;
+                  << "True Residual Norm" << '|' << std::setw(25)
+                  << "Implicit Residual Norm" << '|' << std::endl;
         // Print a separation line. Note that for creating `10` characters
         // `std::setw()` should be set to `11`.
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
                   << std::setw(26) << '|' << std::setw(26) << '|'
-                  << std::setfill(' ') << std::endl;
+                  << std::setw(26) << '|' << std::setfill(' ') << std::endl;
         // Print the data one by one in the form
         std::cout << std::scientific;
         for (std::size_t i = 0; i < iterations.size(); i++) {
             std::cout << '|' << std::setw(10) << iterations[i] << '|'
                       << std::setw(25) << recurrent_norms[i] << '|'
-                      << std::setw(25) << real_norms[i] << '|' << std::endl;
+                      << std::setw(25) << real_norms[i] << '|' << std::setw(25)
+                      << implicit_norms[i] << '|' << std::endl;
         }
         // std::defaultfloat could be used here but some compilers
         // do not support it properly, e.g. the Intel compiler
@@ -112,19 +114,30 @@ struct ResidualLogger : gko::log::Logger {
         // Print a separation line
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
                   << std::setw(26) << '|' << std::setw(26) << '|'
-                  << std::setfill(' ') << std::endl;
+                  << std::setw(26) << '|' << std::setfill(' ') << std::endl;
     }
 
     using gko_dense = gko::matrix::Dense<ValueType>;
     using gko_real_dense = gko::matrix::Dense<RealValueType>;
 
-    // Customize the logging hook which is called everytime an iteration is
-    // completed
-    void on_iteration_complete(const gko::LinOp *,
+    // This overload is necessary to avoid interface breaks for Ginkgo 2.0
+    void on_iteration_complete(const gko::LinOp *solver,
                                const gko::size_type &iteration,
                                const gko::LinOp *residual,
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
+    {
+        this->on_iteration_complete(solver, iteration, residual, solution,
+                                    residual_norm, nullptr);
+    }
+
+    // Customize the logging hook which is called everytime an iteration is
+    // completed
+    void on_iteration_complete(
+        const gko::LinOp *, const gko::size_type &iteration,
+        const gko::LinOp *residual, const gko::LinOp *solution,
+        const gko::LinOp *residual_norm,
+        const gko::LinOp *implicit_sq_residual_norm) const override
     {
         // If the solver shares a residual norm, log its value
         if (residual_norm) {
@@ -164,6 +177,18 @@ struct ResidualLogger : gko::log::Logger {
             real_norms.push_back(-1.0);
         }
 
+        if (implicit_sq_residual_norm) {
+            auto dense_norm =
+                gko::as<gko_real_dense>(implicit_sq_residual_norm);
+            // Add the norm to the `implicit_norms` vector
+            implicit_norms.push_back(
+                std::sqrt(get_first_element(gko::lend(dense_norm))));
+        } else {
+            // Add to the `implicit_norms` vector the value -1.0 if it could not
+            // be computed
+            implicit_norms.push_back(-1.0);
+        }
+
         // Add the current iteration number to the `iterations` vector
         iterations.push_back(iteration);
     }
@@ -185,6 +210,8 @@ private:
     mutable std::vector<RealValueType> recurrent_norms{};
     // Vector which stores all the real residual norms
     mutable std::vector<RealValueType> real_norms{};
+    // Vector which stores all the implicit residual norms
+    mutable std::vector<RealValueType> implicit_norms{};
     // Vector which stores all the iteration numbers
     mutable std::vector<std::size_t> iterations{};
 };
@@ -192,36 +219,36 @@ private:
 
 int main(int argc, char *argv[])
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
+    // Use some shortcuts. In Ginkgo, vectors are seen as a
+    // gko::matrix::Dense with one column/one row. The advantage of this
+    // concept is that using multiple vectors is a now a natural extension
+    // of adding columns/rows are necessary.
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using real_vec = gko::matrix::Dense<RealValueType>;
-    // The gko::matrix::Csr class is used here, but any other matrix class such
-    // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
+    // The gko::matrix::Csr class is used here, but any other matrix class
+    // such as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    // The gko::solver::Cg is used here, but any other solver class can also be
-    // used.
+    // The gko::solver::Cg is used here, but any other solver class can also
+    // be used.
     using cg = gko::solver::Cg<ValueType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
 
     // @sect3{Where do you want to run your solver ?}
-    // The gko::Executor class is one of the cornerstones of Ginkgo. Currently,
-    // we have support for
-    // an gko::OmpExecutor, which uses OpenMP multi-threading in most of its
-    // kernels, a gko::ReferenceExecutor, a single threaded specialization of
-    // the OpenMP executor and a gko::CudaExecutor which runs the code on a
-    // NVIDIA GPU if available.
-    // @note With the help of C++, you see that you only ever need to change the
-    // executor and all the other functions/ routines within Ginkgo should
-    // automatically work and run on the executor with any other changes.
+    // The gko::Executor class is one of the cornerstones of Ginkgo.
+    // Currently, we have support for an gko::OmpExecutor, which uses OpenMP
+    // multi-threading in most of its kernels, a gko::ReferenceExecutor, a
+    // single threaded specialization of the OpenMP executor and a
+    // gko::CudaExecutor which runs the code on a NVIDIA GPU if available.
+    // @note With the help of C++, you see that you only ever need to change
+    // the executor and all the other functions/ routines within Ginkgo
+    // should automatically work and run on the executor with any other
+    // changes.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
@@ -253,27 +280,27 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // @sect3{Reading your data and transfer to the proper device.}
-    // Read the matrix, right hand side and the initial solution using the @ref
-    // read function.
-    // @note Ginkgo uses C++ smart pointers to automatically manage memory. To
-    // this end, we use our own object ownership transfer functions that under
-    // the hood call the required smart pointer functions to manage object
-    // ownership. The gko::share , gko::give and gko::lend are the functions
-    // that you would need to use.
+    // Read the matrix, right hand side and the initial solution using the
+    // @ref read function.
+    // @note Ginkgo uses C++ smart pointers to automatically manage memory.
+    // To this end, we use our own object ownership transfer functions that
+    // under the hood call the required smart pointer functions to manage
+    // object ownership. The gko::share , gko::give and gko::lend are the
+    // functions that you would need to use.
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
     const RealValueType reduction_factor = 1e-7;
 
     // @sect3{Creating the solver}
-    // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
-    // build solvers with certain
-    // properties. Observe the Fluent interface used here. Here a cg solver is
-    // generated with a stopping criteria of maximum iterations of 20 and a
-    // residual norm reduction of 1e-15. You also observe that the stopping
-    // criteria(gko::stop) are also generated from factories using their build
-    // methods. You need to specify the executors which each of the object needs
-    // to be built on.
+    // Generate the gko::solver factory. Ginkgo uses the concept of
+    // Factories to build solvers with certain properties. Observe the
+    // Fluent interface used here. Here a cg solver is generated with a
+    // stopping criteria of maximum iterations of 20 and a residual norm
+    // reduction of 1e-15. You also observe that the stopping
+    // criteria(gko::stop) are also generated from factories using their
+    // build methods. You need to specify the executors which each of the
+    // object needs to be built on.
     auto solver_gen =
         cg::build()
             .with_criteria(
@@ -287,8 +314,9 @@ int main(int argc, char *argv[])
     auto logger = std::make_shared<ResidualLogger<ValueType>>(
         exec, gko::lend(A), gko::lend(b));
 
-    // Add the previously created logger to the solver factory. The logger will
-    // be automatically propagated to all solvers created from this factory.
+    // Add the previously created logger to the solver factory. The logger
+    // will be automatically propagated to all solvers created from this
+    // factory.
     solver_gen->add_logger(logger);
 
     // Generate the solver from the matrix. The solver factory built in the
@@ -302,9 +330,8 @@ int main(int argc, char *argv[])
     auto solver = solver_gen->generate(A);
 
 
-    // Finally, solve the system. The solver, being a gko::LinOp, can be applied
-    // to a right hand side, b to
-    // obtain the solution, x.
+    // Finally, solve the system. The solver, being a gko::LinOp, can be
+    // applied to a right hand side, b to obtain the solution, x.
     solver->apply(gko::lend(b), gko::lend(x));
 
     // Print the solution to the command line.
@@ -314,13 +341,13 @@ int main(int argc, char *argv[])
     // Print the table of the residuals obtained from the logger
     logger->write();
 
-    // To measure if your solution has actually converged, you can measure the
-    // error of the solution.
-    // one, neg_one are objects that represent the numbers which allow for a
-    // uniform interface when computing on any device. To compute the residual,
-    // all you need to do is call the apply method, which in this case is an
-    // spmv and equivalent to the LAPACK z_spmv routine. Finally, you compute
-    // the euclidean 2-norm with the compute_norm2 function.
+    // To measure if your solution has actually converged, you can measure
+    // the error of the solution. one, neg_one are objects that represent
+    // the numbers which allow for a uniform interface when computing on any
+    // device. To compute the residual, all you need to do is call the apply
+    // method, which in this case is an spmv and equivalent to the LAPACK
+    // z_spmv routine. Finally, you compute the euclidean 2-norm with the
+    // compute_norm2 function.
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
