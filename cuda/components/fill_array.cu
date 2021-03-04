@@ -62,6 +62,19 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    kernel::fill_seq_array<<<grid_size, block_size, 0, 0>>>(
+        n, as_cuda_type(array));
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+
+
 }  // namespace components
 }  // namespace cuda
 }  // namespace kernels

@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <numeric>
+
+
 #include "core/components/fill_array.hpp"
 
 
@@ -47,6 +50,16 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+
+
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+    std::iota(array, array + n, 0);
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 
 
 }  // namespace components

@@ -58,9 +58,11 @@ protected:
           exec(gko::CudaExecutor::create(0, ref)),
           total_size(6344),
           vals(ref, total_size),
-          dvals(exec, total_size)
+          dvals(exec, total_size),
+          seqs(ref, total_size)
     {
         std::fill_n(vals.get_data(), total_size, 1234.0);
+        std::iota(seqs.get_data(), seqs.get_data() + total_size, 0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -68,6 +70,7 @@ protected:
     gko::size_type total_size;
     gko::Array<value_type> vals;
     gko::Array<value_type> dvals;
+    gko::Array<value_type> seqs;
 };
 
 
@@ -75,7 +78,17 @@ TEST_F(FillArray, EqualsReference)
 {
     gko::kernels::cuda::components::fill_array(exec, dvals.get_data(),
                                                total_size, 1234.0);
+
     GKO_ASSERT_ARRAY_EQ(vals, dvals);
+}
+
+
+TEST_F(FillArray, FillSeqEqualsReference)
+{
+    gko::kernels::cuda::components::fill_seq_array(exec, dvals.get_data(),
+                                                   total_size);
+
+    GKO_ASSERT_ARRAY_EQ(seqs, dvals);
 }
 
 

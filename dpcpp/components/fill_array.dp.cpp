@@ -57,6 +57,21 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{n}, [=](sycl::id<1> idx_id) {
+            const auto idx = idx_id[0];
+            array[idx] = idx;
+        });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+
+
 }  // namespace components
 }  // namespace dpcpp
 }  // namespace kernels
