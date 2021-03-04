@@ -114,13 +114,38 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     ASSERT_TRUE(refdata.nonzeros == cudadata.nonzeros);
 }
 
-TEST_F(Fbcsr, TransposeIsEquivalentToRefSorted)
+TEST_F(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
 {
     using value_type = Mtx::value_type;
     using index_type = Mtx::index_type;
     auto rand_cuda = Mtx::create(cuda);
     rand_cuda->copy_from(gko::lend(rsorted_ref));
     auto trans_ref_linop = rsorted_ref->transpose();
+    std::unique_ptr<const Mtx> trans_ref =
+        gko::as<const Mtx>(std::move(trans_ref_linop));
+
+    auto trans_cuda_linop = rand_cuda->transpose();
+    std::unique_ptr<const Mtx> trans_cuda =
+        gko::as<const Mtx>(std::move(trans_cuda_linop));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(trans_ref, trans_cuda);
+    GKO_ASSERT_MTX_NEAR(trans_ref, trans_cuda, 0.0);
+}
+
+TEST_F(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
+{
+    using value_type = Mtx::value_type;
+    using index_type = Mtx::index_type;
+    auto rand_cuda = Mtx::create(cuda);
+    const index_type rand_brows = 50;
+    const index_type rand_bcols = 40;
+    const int block_size = 7;
+    auto rsorted_ref2 =
+        gko::test::generate_random_fbcsr<value_type, index_type>(
+            ref, std::ranlux48(43), rand_brows, rand_bcols, block_size, false,
+            false);
+    rand_cuda->copy_from(gko::lend(rsorted_ref2));
+    auto trans_ref_linop = rsorted_ref2->transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
 
