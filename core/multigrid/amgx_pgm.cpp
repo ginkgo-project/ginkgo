@@ -64,6 +64,7 @@ GKO_REGISTER_OPERATION(find_strongest_neighbor,
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(amgx_pgm_generate, amgx_pgm::amgx_pgm_generate);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 }  // namespace amgx_pgm
@@ -162,10 +163,22 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // this->set_multigrid_level(system_matrix_, coarse_matrix);
     auto coarse_dim = coarse_matrix->get_size()[0];
     auto fine_dim = system_matrix_->get_size()[0];
-    auto restrict_op = Mapping<ValueType, IndexType>::create(
-        exec, gko::dim<2>{coarse_dim, fine_dim}, agg_);
-    auto prolong_op = Mapping<ValueType, IndexType>::create(
-        exec, gko::dim<2>{fine_dim, coarse_dim}, agg_, false);
+
+    // TODO: prolong_op can be done with lightway format
+    auto prolong_op = share(
+        matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
+    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+                    prolong_op->get_col_idxs());
+    exec->run(amgx_pgm::make_fill_seq_array(prolong_op->get_row_ptrs(),
+                                            fine_dim + 1));
+    exec->run(amgx_pgm::make_fill_array(prolong_op->get_values(), fine_dim,
+                                        one<ValueType>()));
+    // TODO: implement the restrict_op from aggregation.
+    auto restrict_op = share(prolong_op->transpose());
+    // auto restrict_op = Mapping<ValueType, IndexType>::create(
+    //     exec, gko::dim<2>{coarse_dim, fine_dim}, agg_);
+    // auto prolong_op = Mapping<ValueType, IndexType>::create(
+    //     exec, gko::dim<2>{fine_dim, coarse_dim}, agg_, false);
     this->set_composition(share(prolong_op), coarse_matrix, share(restrict_op));
 }
 
