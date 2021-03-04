@@ -49,10 +49,16 @@ namespace kernels {
     void fill_array(std::shared_ptr<const DefaultExecutor> exec, \
                     ValueType *data, size_type num_entries, ValueType val)
 
+#define GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)                 \
+    void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec, \
+                        ValueType *data, size_type num_entries)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES          \
+    template <typename ValueType>             \
+    GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType); \
+    template <typename ValueType>             \
+    GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)
 
 
 namespace omp {

@@ -45,4 +45,15 @@ __global__ __launch_bounds__(default_block_size) void fill_array(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void fill_seq_array(
+    size_type n, ValueType *__restrict__ array)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < n) {
+        array[tidx] = tidx;
+    }
+}
+
+
 }  // namespace kernel
