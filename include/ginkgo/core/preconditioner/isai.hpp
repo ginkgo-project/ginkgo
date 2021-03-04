@@ -177,6 +177,12 @@ public:
          * Must be at least 0, default value 0.
          */
         index_type GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0);
+
+        /**
+         * Factory for the Excess System solver
+         */
+        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            excess_solver_factory, nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);

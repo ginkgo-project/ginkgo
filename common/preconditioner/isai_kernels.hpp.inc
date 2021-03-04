@@ -92,7 +92,6 @@ __forceinline__ __device__ void generic_generate(
         if (local_id == 0) {
             excess_rhs_sizes[row] = 0;
             excess_nnz[row] = 0;
-            rhs_one_idxs[row % subwarps_per_block] = 0;
         }
 
         // subwarp_size^2 storage per subwarp

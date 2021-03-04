@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 
 
 #include "core/preconditioner/isai_kernels.hpp"
@@ -64,6 +66,8 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using excess_solver_type = gko::solver::Gmres<value_type>;
+    using bj = gko::preconditioner::Jacobi<value_type, index_type>;
     using LowerIsai = gko::preconditioner::LowerIsai<value_type, index_type>;
     using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
     using GeneralIsai =
@@ -75,6 +79,17 @@ protected:
 
     Isai()
         : exec{gko::ReferenceExecutor::create()},
+          excess_solver_factory(
+              excess_solver_type::build()
+                  .with_preconditioner(
+                      bj::build().with_max_block_size(16u).on(exec))
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(1000u).on(
+                          exec),
+                      gko::stop::RelativeResidualNorm<value_type>::build()
+                          .with_tolerance(gko::remove_complex<value_type>{1e-6})
+                          .on(exec))
+                  .on(exec)),
           a_dense{gko::initialize<Dense>({{2, 1, 2}, {1, -2, 3}, {-1, 1, 1}},
                                          exec)},
           a_dense_inv{gko::initialize<Dense>({{0.3125, -0.0625, -0.4375},
@@ -248,6 +263,7 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<typename excess_solver_type::Factory> excess_solver_factory;
     std::unique_ptr<typename LowerIsai::Factory> lower_isai_factory;
     std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
     std::unique_ptr<typename GeneralIsai::Factory> general_isai_factory;
@@ -1010,6 +1026,26 @@ TYPED_TEST(Isai, ReturnsCorrectInverseALongrow)
 }
 
 
+TYPED_TEST(Isai, ReturnsCorrectInverseALongrowWithExcessSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using GeneralIsai = typename TestFixture::GeneralIsai;
+    auto general_isai_factory =
+        GeneralIsai::build()
+            .with_excess_solver_factory(this->excess_solver_factory)
+            .on(this->exec);
+    const auto isai = general_isai_factory->generate(this->a_csr_longrow);
+
+    auto a_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(a_inv, this->a_csr_longrow_inv);
+    // need to drastically reduce precision due to using different excess solver
+    // factory.
+    GKO_ASSERT_MTX_NEAR(a_inv, this->a_csr_longrow_inv,
+                        2e4 * r<value_type>::value);
+}
+
+
 TYPED_TEST(Isai, ReturnsCorrectInverseL)
 {
     using Csr = typename TestFixture::Csr;
@@ -1036,6 +1072,27 @@ TYPED_TEST(Isai, ReturnsCorrectInverseLLongrow)
 }
 
 
+TYPED_TEST(Isai, ReturnsCorrectInverseLLongrowWithExcessSolver)
+{
+    using Csr = typename TestFixture::Csr;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using value_type = typename TestFixture::value_type;
+    auto lower_isai_factory =
+        LowerIsai::build()
+            .with_excess_solver_factory(this->excess_solver_factory)
+            .on(this->exec);
+    const auto isai = lower_isai_factory->generate(this->l_csr_longrow);
+
+    auto l_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_csr_longrow_inv);
+    // need to drastically reduce precision due to using different excess solver
+    // factory.
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
+}
+
+
 TYPED_TEST(Isai, ReturnsCorrectInverseU)
 {
     using Csr = typename TestFixture::Csr;
@@ -1059,6 +1116,27 @@ TYPED_TEST(Isai, ReturnsCorrectInverseULongrow)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_csr_longrow_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_csr_longrow_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseULongrowWithExcessSolver)
+{
+    using Csr = typename TestFixture::Csr;
+    using UpperIsai = typename TestFixture::UpperIsai;
+    using value_type = typename TestFixture::value_type;
+    auto upper_isai_factory =
+        UpperIsai::build()
+            .with_excess_solver_factory(this->excess_solver_factory)
+            .on(this->exec);
+    const auto isai = upper_isai_factory->generate(this->u_csr_longrow);
+
+    auto u_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_csr_longrow_inv);
+    // need to drastically reduce precision due to using different excess solver
+    // factory.
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
 }
 
 
@@ -1161,6 +1239,34 @@ TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrow)
     GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
                         10 * r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose, 10 * r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrowWithExcessSolver)
+{
+    using Csr = typename TestFixture::Csr;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using value_type = typename TestFixture::value_type;
+    const auto expected_transpose =
+        gko::as<Csr>(this->spd_csr_longrow_inv->transpose());
+    auto spd_isai_factory =
+        SpdIsai::build()
+            .with_excess_solver_factory(this->excess_solver_factory)
+            .on(this->exec);
+    const auto isai = spd_isai_factory->generate(this->spd_csr_longrow);
+
+    const auto composition = isai->get_approximate_inverse()->get_operators();
+    const auto lower_t = gko::as<Csr>(composition[0]);
+    const auto lower = gko::as<Csr>(composition[1]);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower, this->spd_csr_longrow_inv);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lower_t, expected_transpose);
+    // need to drastically reduce precision due to using different excess solver
+    // factory.
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose,
+                        1e3 * r<value_type>::value);
 }
 
 

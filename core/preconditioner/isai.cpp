@@ -222,9 +222,13 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             system_copy->copy_from(excess_system.get());
             auto rhs_copy = Dense::create(exec->get_master());
             rhs_copy->copy_from(excess_rhs.get());
-            std::unique_ptr<LinOpFactory> trs_factory;
-            if (is_general || is_spd) {
-                trs_factory =
+            std::shared_ptr<LinOpFactory> excess_solver_factory;
+            if (parameters_.excess_solver_factory) {
+                excess_solver_factory =
+                    share(parameters_.excess_solver_factory);
+                excess_solution->copy_from(excess_rhs.get());
+            } else if (is_general || is_spd) {
+                excess_solver_factory =
                     Gmres::build()
                         .with_preconditioner(
                             bj::build().with_max_block_size(32u).on(exec))
@@ -237,14 +241,12 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                                 .on(exec))
                         .on(exec);
                 excess_solution->copy_from(excess_rhs.get());
-                auto sol_copy = Dense::create(exec->get_master());
-                sol_copy->copy_from(excess_solution.get());
             } else if (is_lower) {
-                trs_factory = UpperTrs::build().on(exec);
+                excess_solver_factory = UpperTrs::build().on(exec);
             } else {
-                trs_factory = LowerTrs::build().on(exec);
+                excess_solver_factory = LowerTrs::build().on(exec);
             }
-            trs_factory->generate(share(excess_system->transpose()))
+            excess_solver_factory->generate(share(excess_system->transpose()))
                 ->apply(lend(excess_rhs), lend(excess_solution));
             if (is_spd) {
                 exec->run(isai::make_scale_excess_solution(
