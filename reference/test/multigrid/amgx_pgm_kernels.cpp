@@ -418,11 +418,13 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
     auto amgx_pgm = this->amgxpgm_factory->generate(this->mtx);
+    auto one = gko::initialize<Vec>({value_type{1.0}}, this->exec);
     auto x = gko::clone(this->fine_x);
 
-    gko::as<gko::ApplyAddable>(amgx_pgm->get_prolong_op())
-        ->apply2(this->coarse_b.get(), x.get());
+    amgx_pgm->get_prolong_op()->apply(one.get(), this->coarse_b.get(),
+                                      one.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
