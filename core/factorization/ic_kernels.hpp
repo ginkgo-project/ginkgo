@@ -52,15 +52,15 @@ namespace kernels {
     void compute(std::shared_ptr<const DefaultExecutor> exec, \
                  matrix::Csr<ValueType, IndexType> *system_matrix)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)   \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)
+    _export_macro GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
 namespace ic_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace ic_factorization
 }  // namespace omp
@@ -69,7 +69,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace ic_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace ic_factorization
 }  // namespace cuda
@@ -78,7 +78,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace ic_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace ic_factorization
 }  // namespace reference
@@ -87,7 +87,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace ic_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace ic_factorization
 }  // namespace hip
@@ -96,7 +96,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace ic_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace ic_factorization
 }  // namespace dpcpp

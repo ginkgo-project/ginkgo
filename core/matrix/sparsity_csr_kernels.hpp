@@ -89,29 +89,33 @@ namespace kernels {
         const matrix::SparsityCsr<ValueType, IndexType> *to_check,    \
         bool *is_sorted)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
-                                                             IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
-                                                                IndexType); \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(    \
+        ValueType, IndexType);                                                 \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL( \
+        ValueType, IndexType);                                                 \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType,         \
+                                                            IndexType);        \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(          \
+        ValueType, IndexType)
 
 
 namespace omp {
 namespace sparsity_csr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace sparsity_csr
 }  // namespace omp
@@ -120,7 +124,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace sparsity_csr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace sparsity_csr
 }  // namespace cuda
@@ -129,7 +133,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace sparsity_csr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace sparsity_csr
 }  // namespace reference
@@ -138,7 +142,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace sparsity_csr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace sparsity_csr
 }  // namespace hip
@@ -147,7 +151,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace sparsity_csr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace sparsity_csr
 }  // namespace dpcpp

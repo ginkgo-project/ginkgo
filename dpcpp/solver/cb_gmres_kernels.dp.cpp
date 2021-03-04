@@ -78,7 +78,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
                   size_type krylov_dim) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+    GKO_DPCPP_EXPORT GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
@@ -96,7 +96,8 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             Array<stopping_status> *reorth_status,
             Array<size_type> *num_reorth) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_DPCPP_EXPORT GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 
 template <typename ValueType, typename ConstAccessor3d>
@@ -109,7 +110,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             const Array<size_type> *final_iter_nums) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+    GKO_DPCPP_EXPORT GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace cb_gmres

@@ -80,8 +80,8 @@ class LowerTrs;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
-                 public Transposable {
+class GKO_EXPORT UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
+                            public Transposable {
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;

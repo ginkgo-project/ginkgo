@@ -89,7 +89,7 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense
+class GKO_EXPORT Dense
     : public EnableLinOp<Dense<ValueType>>,
       public EnableCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,

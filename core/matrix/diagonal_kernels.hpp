@@ -84,25 +84,28 @@ namespace kernels {
                         const matrix::Diagonal<ValueType> *orig,     \
                         matrix::Diagonal<ValueType> *trans)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);                \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType);          \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);       \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType,          \
+                                                           IndexType);         \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType,    \
+                                                                 IndexType);   \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType,        \
+                                                             IndexType);       \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
 namespace omp {
 namespace diagonal {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace diagonal
 }  // namespace omp
@@ -111,7 +114,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace diagonal {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace diagonal
 }  // namespace cuda
@@ -120,7 +123,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace diagonal {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace diagonal
 }  // namespace reference
@@ -129,7 +132,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace diagonal {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace diagonal
 }  // namespace hip
@@ -138,7 +141,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace diagonal {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace diagonal
 }  // namespace dpcpp

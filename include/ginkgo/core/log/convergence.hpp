@@ -63,7 +63,7 @@ namespace log {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class Convergence : public Logger {
+class GKO_EXPORT Convergence : public Logger {
 public:
     void on_criterion_check_completed(
         const stop::Criterion *criterion, const size_type &num_iterations,

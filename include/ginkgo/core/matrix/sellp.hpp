@@ -65,16 +65,17 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
-              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
-              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
-              public ConvertibleTo<Dense<ValueType>>,
-              public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType>,
-              public EnableAbsoluteComputation<
-                  remove_complex<Sellp<ValueType, IndexType>>> {
+class GKO_EXPORT Sellp
+    : public EnableLinOp<Sellp<ValueType, IndexType>>,
+      public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;

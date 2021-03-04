@@ -68,7 +68,7 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparsityCsr
+class GKO_EXPORT SparsityCsr
     : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
       public EnableCreateMethod<SparsityCsr<ValueType, IndexType>>,
       public ReadableFromMatrixData<ValueType, IndexType>,

@@ -69,9 +69,9 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>,
-              public Preconditionable,
-              public Transposable {
+class GKO_EXPORT Gmres : public EnableLinOp<Gmres<ValueType>>,
+                         public Preconditionable,
+                         public Transposable {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 

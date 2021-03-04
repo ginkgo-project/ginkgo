@@ -49,7 +49,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Time : public EnablePolymorphicObject<Time, Criterion> {
+class GKO_EXPORT Time : public EnablePolymorphicObject<Time, Criterion> {
     friend class EnablePolymorphicObject<Time, Criterion>;
 
 public:

@@ -76,13 +76,13 @@ namespace bicg {
                 const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES               \
-    template <typename ValueType>                  \
-    GKO_DECLARE_BICG_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                  \
-    GKO_DECLARE_BICG_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                  \
-    GKO_DECLARE_BICG_STEP_2_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)              \
+    template <typename ValueType>                                \
+    _export_macro GKO_DECLARE_BICG_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                                \
+    _export_macro GKO_DECLARE_BICG_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                                \
+    _export_macro GKO_DECLARE_BICG_STEP_2_KERNEL(ValueType)
 
 
 }  // namespace bicg
@@ -91,7 +91,7 @@ namespace bicg {
 namespace omp {
 namespace bicg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace bicg
 }  // namespace omp
@@ -100,7 +100,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace bicg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace bicg
 }  // namespace cuda
@@ -109,7 +109,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace bicg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace bicg
 }  // namespace reference
@@ -118,7 +118,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace bicg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace bicg
 }  // namespace hip
@@ -127,7 +127,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace bicg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace bicg
 }  // namespace dpcpp

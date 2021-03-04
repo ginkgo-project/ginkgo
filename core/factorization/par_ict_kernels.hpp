@@ -63,17 +63,19 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *l,           \
                         const matrix::Coo<ValueType, IndexType> *l_coo)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    template <typename ValueType, typename IndexType>                   \
+    _export_macro GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType,  \
+                                                            IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    _export_macro GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType,  \
+                                                            IndexType)
 
 
 namespace omp {
 namespace par_ict_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace par_ict_factorization
 }  // namespace omp
@@ -82,7 +84,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace par_ict_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace par_ict_factorization
 }  // namespace cuda
@@ -91,7 +93,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace par_ict_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace par_ict_factorization
 }  // namespace reference
@@ -100,7 +102,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace par_ict_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace par_ict_factorization
 }  // namespace hip
@@ -109,7 +111,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace par_ict_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace par_ict_factorization
 }  // namespace dpcpp

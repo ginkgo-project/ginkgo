@@ -86,27 +86,30 @@ namespace kernels {
                           const matrix::Ell<ValueType, IndexType> *orig, \
                           matrix::Diagonal<ValueType> *diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);                       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType,           \
+                                                          IndexType);          \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(           \
+        ValueType, IndexType);                                                 \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType,           \
+                                                          IndexType)
 
 
 namespace omp {
 namespace ell {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace ell
 }  // namespace omp
@@ -115,7 +118,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace ell {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace ell
 }  // namespace cuda
@@ -124,7 +127,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace ell {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace ell
 }  // namespace reference
@@ -133,7 +136,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace ell {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace ell
 }  // namespace hip
@@ -142,7 +145,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace ell {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace ell
 }  // namespace dpcpp

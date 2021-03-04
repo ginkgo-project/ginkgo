@@ -56,17 +56,17 @@ namespace kernels {
                                  remove_complex<ValueType> *out)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                      \
-    template <typename ValueType>                         \
-    GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType); \
-    template <typename ValueType>                         \
-    GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    template <typename ValueType>                                       \
+    _export_macro GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType); \
+    template <typename ValueType>                                       \
+    _export_macro GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)
 
 
 namespace omp {
 namespace components {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace components
 }  // namespace omp
@@ -75,7 +75,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace components {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace components
 }  // namespace cuda
@@ -84,7 +84,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace components {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace components
 }  // namespace reference
@@ -93,7 +93,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace components {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace components
 }  // namespace hip
@@ -102,7 +102,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace components {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace components
 }  // namespace dpcpp

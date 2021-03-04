@@ -56,7 +56,7 @@ namespace log {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class Stream : public Logger {
+class GKO_EXPORT Stream : public Logger {
 public:
     /* Executor events */
     void on_allocation_started(const Executor *exec,

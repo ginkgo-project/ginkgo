@@ -49,7 +49,8 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
+class GKO_EXPORT Iteration
+    : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;
 
 public:

@@ -50,7 +50,8 @@ namespace ir {
                     Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_IR_INITIALIZE_KERNEL
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    _export_macro GKO_DECLARE_IR_INITIALIZE_KERNEL
 
 
 }  // namespace ir
@@ -59,7 +60,7 @@ namespace ir {
 namespace omp {
 namespace ir {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace ir
 }  // namespace omp
@@ -68,7 +69,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace ir {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace ir
 }  // namespace cuda
@@ -77,7 +78,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace ir {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace ir
 }  // namespace reference
@@ -86,7 +87,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace ir {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace ir
 }  // namespace hip
@@ -95,7 +96,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace ir {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace ir
 }  // namespace dpcpp

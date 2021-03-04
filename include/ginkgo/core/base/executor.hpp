@@ -205,7 +205,7 @@ class ExecutorBase;
  *
  * @ingroup Executor
  */
-class Operation {
+class GKO_EXPORT Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
@@ -466,7 +466,7 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor : public log::EnableLogging<Executor> {
+class GKO_EXPORT Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
@@ -654,7 +654,7 @@ protected:
      * A struct that abstracts the executor info for different executors
      * classes.
      */
-    struct exec_info {
+    struct GKO_EXPORT exec_info {
         /**
          * The id of the device.
          */
@@ -882,7 +882,7 @@ private:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
-    class LambdaOperation : public Operation {
+    class GKO_EXPORT LambdaOperation : public Operation {
     public:
         /**
          * Creates an LambdaOperation object from two functors.
@@ -1041,7 +1041,7 @@ private:
  * last living executor in Ginkgo. Setting this flag to an executor which is not
  * destroyed last has no effect.
  */
-class EnableDeviceReset {
+class GKO_EXPORT EnableDeviceReset {
 public:
     /**
      * Set the device reset capability.
@@ -1096,8 +1096,9 @@ private:
  * @ingroup exec_omp
  * @ingroup Executor
  */
-class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
-                    public std::enable_shared_from_this<OmpExecutor> {
+class GKO_EXPORT OmpExecutor
+    : public detail::ExecutorBase<OmpExecutor>,
+      public std::enable_shared_from_this<OmpExecutor> {
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
@@ -1137,7 +1138,10 @@ protected:
 
     void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_OVERRIDE_RAW_COPY_TO(OmpExecutor, omp);
+    GKO_HIP_EXPORT GKO_OVERRIDE_RAW_COPY_TO(HipExecutor, hip);
+    GKO_DPCPP_EXPORT GKO_OVERRIDE_RAW_COPY_TO(DpcppExecutor, dpcpp);
+    GKO_CUDA_EXPORT GKO_OVERRIDE_RAW_COPY_TO(CudaExecutor, cuda);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
 
@@ -1147,7 +1151,8 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
+    GKO_DPCPP_EXPORT bool verify_memory_to(
+        const DpcppExecutor *dest_exec) const override;
 };
 
 
@@ -1165,7 +1170,7 @@ using DefaultExecutor = OmpExecutor;
  * @ingroup exec_ref
  * @ingroup Executor
  */
-class ReferenceExecutor : public OmpExecutor {
+class GKO_EXPORT ReferenceExecutor : public OmpExecutor {
 public:
     static std::shared_ptr<ReferenceExecutor> create()
     {
@@ -1224,9 +1229,10 @@ using DefaultExecutor = ReferenceExecutor;
  * @ingroup exec_cuda
  * @ingroup Executor
  */
-class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
-                     public std::enable_shared_from_this<CudaExecutor>,
-                     public detail::EnableDeviceReset {
+class GKO_EXPORT CudaExecutor
+    : public detail::ExecutorBase<CudaExecutor>,
+      public std::enable_shared_from_this<CudaExecutor>,
+      public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
@@ -1237,7 +1243,7 @@ public:
      * @param master  an executor on the host that is used to invoke the device
      * kernels
      */
-    static std::shared_ptr<CudaExecutor> create(
+    GKO_CUDA_EXPORT static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
 
@@ -1247,9 +1253,9 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
-    void synchronize() const override;
+    GKO_CUDA_EXPORT void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    GKO_CUDA_EXPORT void run(const Operation &op) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1262,7 +1268,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    static GKO_CUDA_EXPORT int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -1348,9 +1354,9 @@ public:
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
 protected:
-    void set_gpu_property();
+    GKO_CUDA_EXPORT void set_gpu_property();
 
-    void init_handles();
+    GKO_CUDA_EXPORT void init_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false)
@@ -1369,11 +1375,11 @@ protected:
         increase_num_execs(this->get_exec_info().device_id);
     }
 
-    void *raw_alloc(size_type size) const override;
+    GKO_CUDA_EXPORT void *raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    GKO_CUDA_EXPORT void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_CUDA_EXPORT GKO_OVERRIDE_RAW_COPY_TO);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
 
@@ -1403,7 +1409,8 @@ protected:
         return num_execs[device_id];
     }
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    GKO_CUDA_EXPORT void populate_exec_info(
+        const MachineTopology *mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1432,9 +1439,9 @@ using DefaultExecutor = CudaExecutor;
  * @ingroup exec_hip
  * @ingroup Executor
  */
-class HipExecutor : public detail::ExecutorBase<HipExecutor>,
-                    public std::enable_shared_from_this<HipExecutor>,
-                    public detail::EnableDeviceReset {
+class GKO_EXPORT HipExecutor : public detail::ExecutorBase<HipExecutor>,
+                               public std::enable_shared_from_this<HipExecutor>,
+                               public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
@@ -1455,9 +1462,9 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
-    void synchronize() const override;
+    GKO_HIP_EXPORT void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    GKO_HIP_EXPORT void run(const Operation &op) const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1470,7 +1477,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    static GKO_HIP_EXPORT int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -1556,9 +1563,9 @@ public:
     }
 
 protected:
-    void set_gpu_property();
+    GKO_HIP_EXPORT void set_gpu_property();
 
-    void init_handles();
+    GKO_HIP_EXPORT void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false)
@@ -1577,11 +1584,11 @@ protected:
         increase_num_execs(this->get_exec_info().device_id);
     }
 
-    void *raw_alloc(size_type size) const override;
+    GKO_HIP_EXPORT void *raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    GKO_HIP_EXPORT void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_HIP_EXPORT GKO_OVERRIDE_RAW_COPY_TO);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
 
@@ -1611,7 +1618,8 @@ protected:
         return num_execs[device_id];
     }
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    GKO_HIP_EXPORT void populate_exec_info(
+        const MachineTopology *mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1640,8 +1648,9 @@ using DefaultExecutor = HipExecutor;
  * @ingroup exec_dpcpp
  * @ingroup Executor
  */
-class DpcppExecutor : public detail::ExecutorBase<DpcppExecutor>,
-                      public std::enable_shared_from_this<DpcppExecutor> {
+class GKO_EXPORT DpcppExecutor
+    : public detail::ExecutorBase<DpcppExecutor>,
+      public std::enable_shared_from_this<DpcppExecutor> {
     friend class detail::ExecutorBase<DpcppExecutor>;
 
 public:
@@ -1654,7 +1663,7 @@ public:
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
      */
-    static std::shared_ptr<DpcppExecutor> create(
+    static GKO_DPCPP_EXPORT std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::string device_type = "all");
 
@@ -1662,9 +1671,9 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
-    void synchronize() const override;
+    GKO_DPCPP_EXPORT void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    GKO_DPCPP_EXPORT void run(const Operation &op) const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
@@ -1685,7 +1694,7 @@ public:
      *
      * @return the number of devices present on the system
      */
-    static int get_num_devices(std::string device_type);
+    static GKO_DPCPP_EXPORT int get_num_devices(std::string device_type);
 
     /**
      * Get the available subgroup sizes for this device.
@@ -1748,7 +1757,7 @@ public:
     }
 
 protected:
-    void set_device_property();
+    GKO_DPCPP_EXPORT void set_device_property();
 
     DpcppExecutor(int device_id, std::shared_ptr<Executor> master,
                   std::string device_type = "all")
@@ -1761,13 +1770,14 @@ protected:
         this->set_device_property();
     }
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    GKO_DPCPP_EXPORT void populate_exec_info(
+        const MachineTopology *mach_topo) override;
 
-    void *raw_alloc(size_type size) const override;
+    GKO_DPCPP_EXPORT void *raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    GKO_DPCPP_EXPORT void raw_free(void *ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DPCPP_EXPORT GKO_OVERRIDE_RAW_COPY_TO);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
@@ -1775,9 +1785,11 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
+    GKO_DPCPP_EXPORT bool verify_memory_to(
+        const OmpExecutor *dest_exec) const override;
 
-    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
+    GKO_DPCPP_EXPORT bool verify_memory_to(
+        const DpcppExecutor *dest_exec) const override;
 
 private:
     std::shared_ptr<Executor> master_;

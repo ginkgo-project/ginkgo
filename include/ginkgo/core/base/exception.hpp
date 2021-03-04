@@ -83,7 +83,7 @@ namespace gko {
  *
  * @ingroup error
  */
-class Error : public std::exception {
+class GKO_EXPORT Error : public std::exception {
 public:
     /**
      * Initializes an error.
@@ -111,7 +111,7 @@ private:
  * NotImplemented is thrown in case an operation has not yet
  * been implemented (but will be implemented in the future).
  */
-class NotImplemented : public Error {
+class GKO_EXPORT NotImplemented : public Error {
 public:
     /**
      * Initializes a NotImplemented error.
@@ -130,7 +130,7 @@ public:
  * NotCompiled is thrown when attempting to call an operation which is a part of
  * a module that was not compiled on the system.
  */
-class NotCompiled : public Error {
+class GKO_EXPORT NotCompiled : public Error {
 public:
     /**
      * Initializes a NotCompiled error.
@@ -153,7 +153,7 @@ public:
  * NotSupported is thrown in case it is not possible to
  * perform the requested operation on the given object type.
  */
-class NotSupported : public Error {
+class GKO_EXPORT NotSupported : public Error {
 public:
     /**
      * Initializes a NotSupported error.
@@ -176,7 +176,7 @@ public:
 /**
  * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
-class CudaError : public Error {
+class GKO_EXPORT CudaError : public Error {
 public:
     /**
      * Initializes a CUDA error.
@@ -192,14 +192,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_CUDA_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * CublasError is thrown when a cuBLAS routine throws a non-zero error code.
  */
-class CublasError : public Error {
+class GKO_EXPORT CublasError : public Error {
 public:
     /**
      * Initializes a cuBLAS error.
@@ -215,14 +215,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_CUDA_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * CurandError is thrown when a cuRAND routine throws a non-zero error code.
  */
-class CurandError : public Error {
+class GKO_EXPORT CurandError : public Error {
 public:
     /**
      * Initializes a cuRAND error.
@@ -238,14 +238,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_CUDA_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * CusparseError is thrown when a cuSPARSE routine throws a non-zero error code.
  */
-class CusparseError : public Error {
+class GKO_EXPORT CusparseError : public Error {
 public:
     /**
      * Initializes a cuSPARSE error.
@@ -261,14 +261,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_CUDA_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * HipError is thrown when a HIP routine throws a non-zero error code.
  */
-class HipError : public Error {
+class GKO_EXPORT HipError : public Error {
 public:
     /**
      * Initializes a HIP error.
@@ -284,14 +284,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_HIP_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * HipblasError is thrown when a hipBLAS routine throws a non-zero error code.
  */
-class HipblasError : public Error {
+class GKO_EXPORT HipblasError : public Error {
 public:
     /**
      * Initializes a hipBLAS error.
@@ -307,14 +307,14 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_HIP_EXPORT std::string get_error(int64 error_code);
 };
 
 
 /**
  * HiprandError is thrown when a hipRAND routine throws a non-zero error code.
  */
-class HiprandError : public Error {
+class GKO_EXPORT HiprandError : public Error {
 public:
     /**
      * Initializes a hipRAND error.
@@ -330,7 +330,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_HIP_EXPORT std::string get_error(int64 error_code);
 };
 
 
@@ -338,7 +338,7 @@ private:
  * HipsparseError is thrown when a hipSPARSE routine throws a non-zero error
  * code.
  */
-class HipsparseError : public Error {
+class GKO_EXPORT HipsparseError : public Error {
 public:
     /**
      * Initializes a hipSPARSE error.
@@ -354,7 +354,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static GKO_HIP_EXPORT std::string get_error(int64 error_code);
 };
 
 
@@ -362,7 +362,7 @@ private:
  * DimensionMismatch is thrown if an operation is being applied to LinOps of
  * incompatible size.
  */
-class DimensionMismatch : public Error {
+class GKO_EXPORT DimensionMismatch : public Error {
 public:
     /**
      * Initializes a dimension mismatch error.
@@ -397,7 +397,7 @@ public:
  * BadDimension is thrown if an operation is being applied to a LinOp
  * with bad dimensions.
  */
-class BadDimension : public Error {
+class GKO_EXPORT BadDimension : public Error {
 public:
     /**
      * Initializes a bad dimension error.
@@ -424,7 +424,7 @@ public:
 /**
  * ValueMismatch is thrown if two values are not equal.
  */
-class ValueMismatch : public Error {
+class GKO_EXPORT ValueMismatch : public Error {
 public:
     /**
      * Initializes a value mismatch error.
@@ -449,7 +449,7 @@ public:
 /**
  * AllocationError is thrown if a memory allocation fails.
  */
-class AllocationError : public Error {
+class GKO_EXPORT AllocationError : public Error {
 public:
     /**
      * Initializes an allocation error.
@@ -472,7 +472,7 @@ public:
  * OutOfBoundsError is thrown if a memory access is detected to be
  * out-of-bounds.
  */
-class OutOfBoundsError : public Error {
+class GKO_EXPORT OutOfBoundsError : public Error {
 public:
     /**
      * Initializes an OutOfBoundsError.
@@ -495,7 +495,7 @@ public:
 /**
  * StreamError is thrown if accessing a stream failed.
  */
-class StreamError : public Error {
+class GKO_EXPORT StreamError : public Error {
 public:
     /**
      * Initializes a file access error.
@@ -516,7 +516,7 @@ public:
  * KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the
  * criteria imposed by the input arguments.
  */
-class KernelNotFound : public Error {
+class GKO_EXPORT KernelNotFound : public Error {
 public:
     /**
      * Initializes a KernelNotFound error.

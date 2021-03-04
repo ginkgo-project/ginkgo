@@ -158,7 +158,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
-class version_info {
+class GKO_EXPORT version_info {
 public:
     /**
      * Returns an instance of version_info.
@@ -228,15 +228,15 @@ private:
 
     static version get_core_version() noexcept;
 
-    static version get_reference_version() noexcept;
+    static GKO_REFERENCE_EXPORT version get_reference_version() noexcept;
 
-    static version get_omp_version() noexcept;
+    static GKO_OMP_EXPORT version get_omp_version() noexcept;
 
-    static version get_cuda_version() noexcept;
+    static GKO_CUDA_EXPORT version get_cuda_version() noexcept;
 
-    static version get_hip_version() noexcept;
+    static GKO_HIP_EXPORT version get_hip_version() noexcept;
 
-    static version get_dpcpp_version() noexcept;
+    static GKO_DPCPP_EXPORT version get_dpcpp_version() noexcept;
 
     version_info()
         : header_version{get_header_version()},
@@ -258,7 +258,8 @@ private:
  *
  * @return os
  */
-std::ostream &operator<<(std::ostream &os, const version_info &ver_info);
+GKO_EXPORT std::ostream &operator<<(std::ostream &os,
+                                    const version_info &ver_info);
 
 
 }  // namespace gko

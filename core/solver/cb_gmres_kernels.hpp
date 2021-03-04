@@ -165,21 +165,22 @@ namespace kernels {
                 const Array<size_type> *final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType>                                    \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(ValueType);             \
-    template <typename ValueType, typename Accessor3d>               \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>               \
-    GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, Accessor3d);       \
-    template <typename ValueType, typename Accessor3d>               \
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, Accessor3d)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    template <typename ValueType>                                            \
+    _export_macro GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(ValueType);       \
+    template <typename ValueType, typename Accessor3d>                       \
+    _export_macro GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(ValueType,        \
+                                                           Accessor3d);      \
+    template <typename ValueType, typename Accessor3d>                       \
+    _export_macro GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                       \
+    _export_macro GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, Accessor3d)
 
 
 namespace omp {
 namespace cb_gmres {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace cb_gmres
 }  // namespace omp
@@ -188,7 +189,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace cb_gmres {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace cb_gmres
 }  // namespace cuda
@@ -197,7 +198,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace cb_gmres {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace cb_gmres
 }  // namespace reference
@@ -206,7 +207,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace cb_gmres {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace cb_gmres
 }  // namespace hip
@@ -215,7 +216,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace cb_gmres {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace cb_gmres
 }  // namespace dpcpp

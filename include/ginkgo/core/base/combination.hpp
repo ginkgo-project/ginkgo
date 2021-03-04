@@ -52,9 +52,10 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Combination : public EnableLinOp<Combination<ValueType>>,
-                    public EnableCreateMethod<Combination<ValueType>>,
-                    public Transposable {
+class GKO_EXPORT Combination
+    : public EnableLinOp<Combination<ValueType>>,
+      public EnableCreateMethod<Combination<ValueType>>,
+      public Transposable {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
 

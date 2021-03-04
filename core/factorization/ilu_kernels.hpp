@@ -54,15 +54,15 @@ namespace kernels {
                     matrix::Csr<ValueType, IndexType> *system_matrix)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)   \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
+    _export_macro GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
 namespace ilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace ilu_factorization
 }  // namespace omp
@@ -71,7 +71,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace ilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace ilu_factorization
 }  // namespace cuda
@@ -80,7 +80,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace ilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace ilu_factorization
 }  // namespace reference
@@ -89,7 +89,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace ilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace ilu_factorization
 }  // namespace hip
@@ -98,7 +98,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace ilu_factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace ilu_factorization
 }  // namespace dpcpp

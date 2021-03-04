@@ -72,7 +72,7 @@ namespace detail {
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
-void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
+GKO_EXPORT void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
 
 
 }  // namespace detail
@@ -117,22 +117,23 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
-            public EnableCreateMethod<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ConvertibleTo<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Hybrid<ValueType, IndexType>>,
-            public ConvertibleTo<Sellp<ValueType, IndexType>>,
-            public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable,
-            public Permutable<IndexType>,
-            public EnableAbsoluteComputation<
-                remove_complex<Csr<ValueType, IndexType>>> {
+class GKO_EXPORT Csr
+    : public EnableLinOp<Csr<ValueType, IndexType>>,
+      public EnableCreateMethod<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Ell<ValueType, IndexType>>,
+      public ConvertibleTo<Hybrid<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable,
+      public Permutable<IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Csr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -161,7 +162,7 @@ public:
      * The practical strategy method should inherit strategy_type and implement
      * its `process`, `clac_size` function and the corresponding device kernel.
      */
-    class strategy_type {
+    class GKO_EXPORT strategy_type {
         friend class automatical;
 
     public:
@@ -216,7 +217,7 @@ public:
      * rows and then do a reduction of these threads results. The number of
      * threads per row depends on the max number of stored elements per row.
      */
-    class classical : public strategy_type {
+    class GKO_EXPORT classical : public strategy_type {
     public:
         /**
          * Creates a classical strategy.
@@ -266,7 +267,7 @@ public:
      * merge_path is according to Merrill and Garland: Merge-Based Parallel
      * Sparse Matrix-Vector Multiplication
      */
-    class merge_path : public strategy_type {
+    class GKO_EXPORT merge_path : public strategy_type {
     public:
         /**
          * Creates a merge_path strategy.
@@ -291,7 +292,7 @@ public:
      * @note cusparse is also known to the hip executor which converts between
      *       cuda and hip.
      */
-    class cusparse : public strategy_type {
+    class GKO_EXPORT cusparse : public strategy_type {
     public:
         /**
          * Creates a cusparse strategy.
@@ -315,7 +316,7 @@ public:
      *
      * @note Uses cusparse in cuda and hipsparse in hip.
      */
-    class sparselib : public strategy_type {
+    class GKO_EXPORT sparselib : public strategy_type {
     public:
         /**
          * Creates a sparselib strategy.
@@ -337,7 +338,7 @@ public:
     /**
      * load_balance is a strategy_type which uses the load balance algorithm.
      */
-    class load_balance : public strategy_type {
+    class GKO_EXPORT load_balance : public strategy_type {
     public:
         /**
          * Creates a load_balance strategy.
@@ -479,7 +480,7 @@ public:
         bool cuda_strategy_;
     };
 
-    class automatical : public strategy_type {
+    class GKO_EXPORT automatical : public strategy_type {
     public:
         /* Use imbalance strategy when the maximum number of nonzero per row is
          * more than 1024 on NVIDIA hardware */

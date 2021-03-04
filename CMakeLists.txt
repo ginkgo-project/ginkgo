@@ -77,6 +77,10 @@ option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system H
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
+# Disable symbol export by default
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+
 if(GINKGO_BENCHMARK_ENABLE_TUNING)
     # In this state, the tests and examples cannot be compiled without extra
     # complexity/intrusiveness, so we simply disable them.
@@ -206,11 +210,9 @@ if(MSVC)
     if(BUILD_SHARED_LIBS)
         ginkgo_switch_to_windows_dynamic("CXX")
         ginkgo_switch_to_windows_dynamic("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
     else()
         ginkgo_switch_to_windows_static("CXX")
         ginkgo_switch_to_windows_static("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
 

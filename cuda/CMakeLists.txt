@@ -177,3 +177,9 @@ endif()
 # Propagate some useful CUDA informations not propagated by default
 set(CMAKE_CUDA_COMPILER_VERSION "${CMAKE_CUDA_COMPILER_VERSION}" PARENT_SCOPE)
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER "${CMAKE_CUDA_HOST_LINK_LAUNCHER}" PARENT_SCOPE)
+
+include(GenerateExportHeader)
+generate_export_header(ginkgo_cuda
+    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_cuda.hpp"
+    BASE_NAME "GKO_CUDA"
+    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_CUDA_HPP_")

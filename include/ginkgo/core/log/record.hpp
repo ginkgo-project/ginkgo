@@ -56,7 +56,7 @@ namespace log {
 /**
  * Struct representing iteration complete related data
  */
-struct iteration_complete_data {
+struct GKO_EXPORT iteration_complete_data {
     std::unique_ptr<const LinOp> solver;
     const size_type num_iterations;
     std::unique_ptr<const LinOp> residual;
@@ -90,7 +90,7 @@ struct iteration_complete_data {
 /**
  * Struct representing Executor related data
  */
-struct executor_data {
+struct GKO_EXPORT executor_data {
     const Executor *exec;
     const size_type num_bytes;
     const uintptr location;
@@ -100,7 +100,7 @@ struct executor_data {
 /**
  * Struct representing Operator related data
  */
-struct operation_data {
+struct GKO_EXPORT operation_data {
     const Executor *exec;
     const Operation *operation;
 };
@@ -109,7 +109,7 @@ struct operation_data {
 /**
  * Struct representing PolymorphicObject related data
  */
-struct polymorphic_object_data {
+struct GKO_EXPORT polymorphic_object_data {
     const Executor *exec;
     std::unique_ptr<const PolymorphicObject> input;
     std::unique_ptr<const PolymorphicObject> output;  // optional
@@ -130,7 +130,7 @@ struct polymorphic_object_data {
 /**
  * Struct representing LinOp related data
  */
-struct linop_data {
+struct GKO_EXPORT linop_data {
     std::unique_ptr<const LinOp> A;
     std::unique_ptr<const LinOp> alpha;
     std::unique_ptr<const LinOp> b;
@@ -156,7 +156,7 @@ struct linop_data {
 /**
  * Struct representing LinOp factory related data
  */
-struct linop_factory_data {
+struct GKO_EXPORT linop_factory_data {
     const LinOpFactory *factory;
     std::unique_ptr<const LinOp> input;
     std::unique_ptr<const LinOp> output;
@@ -176,7 +176,7 @@ struct linop_factory_data {
 /**
  * Struct representing Criterion related data
  */
-struct criterion_data {
+struct GKO_EXPORT criterion_data {
     const stop::Criterion *criterion;
     const size_type num_iterations;
     std::unique_ptr<const LinOp> residual;
@@ -229,7 +229,7 @@ struct criterion_data {
  * parameter, consider implementing a specific logger for this. In addition, it
  * is advised to tune the history size in order to control memory overhead.
  */
-class Record : public Logger {
+class GKO_EXPORT Record : public Logger {
 public:
     /**
      * Struct storing the actually logged data

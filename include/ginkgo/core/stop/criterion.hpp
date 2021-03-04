@@ -61,7 +61,7 @@ namespace stop {
  * Note that depending on the criterion, convergence may not have happened after
  * stopping.
  */
-class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
+class GKO_EXPORT Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
     /**
      * The Updater class serves for convenient argument passing to the
@@ -217,7 +217,7 @@ protected:
  * `ResidualNormReduction` which really requires the `initial_residual` to be
  * set.
  */
-struct CriterionArgs {
+struct GKO_EXPORT CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
     const LinOp *x;
@@ -295,7 +295,7 @@ public:                                                                      \
         return _parameters_name##_;                                          \
     }                                                                        \
                                                                              \
-    class _factory_name                                                      \
+    class GKO_EXPORT _factory_name                                           \
         : public ::gko::stop::EnableDefaultCriterionFactory<                 \
               _factory_name, _criterion, _parameters_name##_type> {          \
         friend class ::gko::EnablePolymorphicObject<                         \

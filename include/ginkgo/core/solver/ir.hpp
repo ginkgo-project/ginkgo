@@ -103,7 +103,7 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnableLinOp<Ir<ValueType>>, public Transposable {
+class GKO_EXPORT Ir : public EnableLinOp<Ir<ValueType>>, public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 

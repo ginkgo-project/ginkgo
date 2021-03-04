@@ -148,5 +148,7 @@ void HipExecutor::init_handles() {}
 
 
 #define GKO_HOOK_MODULE hip
+#define GKO_EXPORT_HOOK GKO_HIP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

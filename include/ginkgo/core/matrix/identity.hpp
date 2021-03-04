@@ -60,9 +60,9 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>>,
-                 public Transposable {
+class GKO_EXPORT Identity : public EnableLinOp<Identity<ValueType>>,
+                            public EnableCreateMethod<Identity<ValueType>>,
+                            public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
     friend class EnableCreateMethod<Identity>;
 
@@ -128,7 +128,7 @@ protected:
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class IdentityFactory
+class GKO_EXPORT IdentityFactory
     : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
     friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
 

@@ -94,7 +94,7 @@ namespace factorization {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ParIlu : public Composition<ValueType> {
+class GKO_EXPORT ParIlu : public Composition<ValueType> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;

@@ -87,7 +87,7 @@ namespace log {
  * for events which are not tracked.
  * See #GKO_LOGGER_REGISTER_EVENT(_id, _event_name, ...).
  */
-class Logger {
+class GKO_EXPORT Logger {
 public:
     /** @internal std::bitset allows to store any number of bits */
     using mask_type = gko::uint64;
@@ -489,7 +489,7 @@ private:
  * to support logging. For most cases, one can rely on the EnableLogging mixin
  * which provides a default implementation of this interface.
  */
-class Loggable {
+class GKO_EXPORT Loggable {
 public:
     virtual ~Loggable() = default;
 

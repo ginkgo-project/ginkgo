@@ -52,7 +52,8 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Combined : public EnablePolymorphicObject<Combined, Criterion> {
+class GKO_EXPORT Combined
+    : public EnablePolymorphicObject<Combined, Criterion> {
     friend class EnablePolymorphicObject<Combined, Criterion>;
 
 public:

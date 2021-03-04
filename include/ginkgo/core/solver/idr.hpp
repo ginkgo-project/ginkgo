@@ -79,9 +79,9 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Idr : public EnableLinOp<Idr<ValueType>>,
-            public Preconditionable,
-            public Transposable {
+class GKO_EXPORT Idr : public EnableLinOp<Idr<ValueType>>,
+                       public Preconditionable,
+                       public Transposable {
     friend class EnableLinOp<Idr>;
     friend class EnablePolymorphicObject<Idr, LinOp>;
 

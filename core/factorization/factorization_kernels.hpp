@@ -80,26 +80,28 @@ namespace kernels {
                       bool diag_sqrt)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,      \
-                                                           IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType,    \
-                                                             IndexType);   \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType,      \
-                                                           IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(     \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(   \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType,  \
+                                                                  IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(     \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType,    \
+                                                                IndexType)
 
 
 namespace omp {
 namespace factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace factorization
 }  // namespace omp
@@ -108,7 +110,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace factorization
 }  // namespace cuda
@@ -117,7 +119,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace factorization
 }  // namespace reference
@@ -126,7 +128,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace factorization
 }  // namespace hip
@@ -135,7 +137,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace factorization {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace factorization
 }  // namespace dpcpp

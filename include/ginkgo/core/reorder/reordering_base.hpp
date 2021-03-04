@@ -59,7 +59,8 @@ namespace reorder {
  * It contains a factory to instantiate the reorderings. It is up to each
  * specific reordering to decide what to do with the data that is passed to it.
  */
-class ReorderingBase : public EnableAbstractPolymorphicObject<ReorderingBase> {
+class GKO_EXPORT ReorderingBase
+    : public EnableAbstractPolymorphicObject<ReorderingBase> {
 protected:
     explicit ReorderingBase(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<ReorderingBase>(exec)
@@ -72,7 +73,7 @@ protected:
  * EnableDefaultReorderingBaseFactory::generate() method. It is the
  * ComponentsType of ReorderingBaseFactory.
  */
-struct ReorderingBaseArgs {
+struct GKO_EXPORT ReorderingBaseArgs {
     std::shared_ptr<LinOp> system_matrix;
 
     ReorderingBaseArgs(std::shared_ptr<LinOp> system_matrix)
@@ -137,7 +138,7 @@ public:                                                                        \
         return _parameters_name##_;                                            \
     }                                                                          \
                                                                                \
-    class _factory_name                                                        \
+    class GKO_EXPORT _factory_name                                             \
         : public ::gko::reorder::EnableDefaultReorderingBaseFactory<           \
               _factory_name, _reordering_base, _parameters_name##_type> {      \
         friend class ::gko::EnablePolymorphicObject<                           \

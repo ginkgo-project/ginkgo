@@ -37,7 +37,14 @@ function(ginkgo_install)
         DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
         FILES_MATCHING PATTERN "*.hpp"
         )
-    install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
+    install(FILES
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export_cuda.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export_dpcpp.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export_hip.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export_omp.hpp"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/export_reference.hpp"
         DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/ginkgo"
         )
     if (GINKGO_HAVE_PAPI_SDE)

@@ -61,8 +61,9 @@ namespace detail {
  * to `TargetType` stored at `dst`.
  */
 template <typename SourceType, typename TargetType>
-void convert_data(std::shared_ptr<const Executor> exec, size_type size,
-                  const SourceType *src, TargetType *dst);
+GKO_EXPORT void convert_data(std::shared_ptr<const Executor> exec,
+                             size_type size, const SourceType *src,
+                             TargetType *dst);
 
 
 }  // namespace detail
@@ -81,7 +82,7 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
  * @ingroup array
  */
 template <typename ValueType>
-class Array {
+class GKO_EXPORT Array {
 public:
     /**
      * The type of elements stored in the array.

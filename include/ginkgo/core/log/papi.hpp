@@ -89,7 +89,7 @@ static std::mutex papi_count_mutex;
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class Papi : public Logger {
+class GKO_EXPORT Papi : public Logger {
 public:
     /* Executor events */
     void on_allocation_started(const Executor *exec,

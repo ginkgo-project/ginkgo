@@ -74,16 +74,17 @@ class CooBuilder;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
-            public EnableCreateMethod<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public EnableAbsoluteComputation<
-                remove_complex<Coo<ValueType, IndexType>>> {
+class GKO_EXPORT Coo
+    : public EnableLinOp<Coo<ValueType, IndexType>>,
+      public EnableCreateMethod<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;

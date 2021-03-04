@@ -151,5 +151,7 @@ void CudaExecutor::init_handles() {}
 
 
 #define GKO_HOOK_MODULE cuda
+#define GKO_EXPORT_HOOK GKO_CUDA_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

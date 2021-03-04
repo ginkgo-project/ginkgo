@@ -68,7 +68,8 @@ namespace gko {
  *      polymorphic object, and have the return types of the methods updated to
  *      your type (instead of having them return PolymorphicObject).
  */
-class PolymorphicObject : public log::EnableLogging<PolymorphicObject> {
+class GKO_EXPORT PolymorphicObject
+    : public log::EnableLogging<PolymorphicObject> {
 public:
     virtual ~PolymorphicObject()
     {

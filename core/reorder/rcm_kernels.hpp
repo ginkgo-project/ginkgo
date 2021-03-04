@@ -64,17 +64,17 @@ namespace kernels {
                              IndexType num_vertices,                      \
                              const IndexType *row_ptrs, IndexType *degrees)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                       \
-    template <typename IndexType>                          \
-    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType); \
-    template <typename IndexType>                          \
-    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                      \
+    template <typename IndexType>                                        \
+    _export_macro GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType); \
+    template <typename IndexType>                                        \
+    _export_macro GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)
 
 
 namespace omp {
 namespace rcm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace rcm
 }  // namespace omp
@@ -83,7 +83,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace rcm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace rcm
 }  // namespace cuda
@@ -92,7 +92,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace rcm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace rcm
 }  // namespace hip
@@ -101,7 +101,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace rcm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace rcm
 }  // namespace dpcpp
@@ -110,7 +110,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace rcm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace rcm
 }  // namespace reference
