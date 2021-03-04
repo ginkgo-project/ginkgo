@@ -53,22 +53,18 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
     // constexpr int entries_per_thread {mat_blk_sz_2/subwarp_size + 1};
 
     for (auto ibz = begin_blk; ibz < nbnz; ibz += total_subwarp_count) {
-        //__shared__ ValueType origblocks[warps_in_block][mat_blk_sz_2];
         __shared__ UninitializedArray<ValueType, warps_in_block * mat_blk_sz_2>
             origblocks;
         for (int i = sw_threadidx; i < mat_blk_sz_2; i += subwarp_size) {
-            // origblocks[sw_id_in_threadblock][i] = values[ibz*mat_blk_sz_2 +
-            // i];
             origblocks[sw_id_in_threadblock * mat_blk_sz_2 + i] =
                 values[ibz * mat_blk_sz_2 + i];
         }
         subwarp_grp.sync();
 
         for (int i = sw_threadidx; i < mat_blk_sz_2; i += subwarp_size) {
-            const int row = sw_threadidx % mat_blk_sz;
-            const int col = sw_threadidx / mat_blk_sz;
+            const int row = i % mat_blk_sz;
+            const int col = i / mat_blk_sz;
             const int in_pos = row * mat_blk_sz + col;
-            // values[i] = origblocks[sw_id_in_threadblock][in_pos];
             values[ibz * mat_blk_sz_2 + i] =
                 origblocks[sw_id_in_threadblock * mat_blk_sz_2 + in_pos];
         }

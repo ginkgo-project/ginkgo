@@ -195,8 +195,6 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
         const int bs = orig->get_block_size();
         const IndexType nnzb =
             static_cast<IndexType>(orig->get_num_stored_blocks());
-        // cudaDataType_t cu_value =
-        //     gko::kernels::cuda::cuda_data_type<ValueType>();
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
         const IndexType buffer_size = cusparse::transpose_buffersize(
