@@ -70,22 +70,41 @@ void compute_bilu_factors_impl(
     matrix::Fbcsr<ValueType, IndexType> *const u_factor)
 {
     constexpr int subwarp_size = config::warp_size;
+    constexpr int bs2{mat_blk_sz * mat_blk_sz};
     const auto num_b_rows = system_matrix->get_num_block_rows();
     const dim3 block_size{default_block_size, 1, 1};
     const int num_sm = exec->get_num_multiprocessor();
     const dim3 grid_dim{static_cast<uint32>(2 * num_sm), 1, 1};
     for (int i = 0; i < iterations; ++i) {
-        kernel::compute_bilu_factors_fbcsr_1<mat_blk_sz, subwarp_size>
-            <<<grid_dim, block_size, 0, 0>>>(
-                num_b_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-                as_cuda_type(system_matrix->get_const_col_idxs()),
-                as_cuda_type(system_matrix->get_const_values()),
-                as_cuda_type(l_factor->get_const_row_ptrs()),
-                as_cuda_type(l_factor->get_const_col_idxs()),
-                as_cuda_type(l_factor->get_values()),
-                as_cuda_type(u_factor->get_const_row_ptrs()),
-                as_cuda_type(u_factor->get_const_col_idxs()),
-                as_cuda_type(u_factor->get_values()));
+        if (bs2 <= subwarp_size) {
+            kernel::compute_bilu_factors_fbcsr_1<mat_blk_sz, subwarp_size,
+                                                 false>
+                <<<grid_dim, block_size, 0, 0>>>(
+                    num_b_rows,
+                    as_cuda_type(system_matrix->get_const_row_ptrs()),
+                    as_cuda_type(system_matrix->get_const_col_idxs()),
+                    as_cuda_type(system_matrix->get_const_values()),
+                    as_cuda_type(l_factor->get_const_row_ptrs()),
+                    as_cuda_type(l_factor->get_const_col_idxs()),
+                    as_cuda_type(l_factor->get_values()),
+                    as_cuda_type(u_factor->get_const_row_ptrs()),
+                    as_cuda_type(u_factor->get_const_col_idxs()),
+                    as_cuda_type(u_factor->get_values()));
+        } else {
+            kernel::compute_bilu_factors_fbcsr_1_shr<mat_blk_sz, subwarp_size,
+                                                     false>
+                <<<grid_dim, block_size, 0, 0>>>(
+                    num_b_rows,
+                    as_cuda_type(system_matrix->get_const_row_ptrs()),
+                    as_cuda_type(system_matrix->get_const_col_idxs()),
+                    as_cuda_type(system_matrix->get_const_values()),
+                    as_cuda_type(l_factor->get_const_row_ptrs()),
+                    as_cuda_type(l_factor->get_const_col_idxs()),
+                    as_cuda_type(l_factor->get_values()),
+                    as_cuda_type(u_factor->get_const_row_ptrs()),
+                    as_cuda_type(u_factor->get_const_col_idxs()),
+                    as_cuda_type(u_factor->get_values()));
+        }
         // exec->synchronize();
     }
 }
@@ -119,6 +138,93 @@ void compute_bilu_factors(
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL);
 
+
+template <int mat_blk_sz, typename ValueType, typename IndexType>
+void compute_bilu_factors_jac_impl(
+    std::shared_ptr<const CudaExecutor> exec, const int iterations,
+    const matrix::Fbcsr<ValueType, IndexType> *const system_matrix,
+    matrix::Fbcsr<ValueType, IndexType> *const l_factor,
+    matrix::Fbcsr<ValueType, IndexType> *const u_factor)
+{
+    constexpr int subwarp_size = config::warp_size;
+    constexpr int bs2{mat_blk_sz * mat_blk_sz};
+    const auto num_b_rows = system_matrix->get_num_block_rows();
+    const auto l_nnz = l_factor->get_num_stored_elements();
+    const auto u_nnz = u_factor->get_num_stored_elements();
+    Array<ValueType> n_l_values(exec, l_nnz);
+    Array<ValueType> n_u_values(exec, u_nnz);
+    const dim3 block_size{default_block_size, 1, 1};
+    const int num_sm = exec->get_num_multiprocessor();
+    const dim3 grid_dim{static_cast<uint32>(2 * num_sm), 1, 1};
+    exec->copy(l_nnz, l_factor->get_const_values(), n_l_values.get_data());
+    exec->copy(u_nnz, u_factor->get_const_values(), n_u_values.get_data());
+    for (int i = 0; i < iterations; ++i) {
+        if (bs2 <= subwarp_size) {
+            kernel::compute_bilu_factors_fbcsr_1<mat_blk_sz, subwarp_size, true>
+                <<<grid_dim, block_size, 0, 0>>>(
+                    num_b_rows,
+                    as_cuda_type(system_matrix->get_const_row_ptrs()),
+                    as_cuda_type(system_matrix->get_const_col_idxs()),
+                    as_cuda_type(system_matrix->get_const_values()),
+                    as_cuda_type(l_factor->get_const_row_ptrs()),
+                    as_cuda_type(l_factor->get_const_col_idxs()),
+                    as_cuda_type(l_factor->get_values()),
+                    as_cuda_type(u_factor->get_const_row_ptrs()),
+                    as_cuda_type(u_factor->get_const_col_idxs()),
+                    as_cuda_type(u_factor->get_values()),
+                    as_cuda_type(n_l_values.get_data()),
+                    as_cuda_type(n_u_values.get_data()));
+        } else {
+            kernel::compute_bilu_factors_fbcsr_1_shr<mat_blk_sz, subwarp_size,
+                                                     true>
+                <<<grid_dim, block_size, 0, 0>>>(
+                    num_b_rows,
+                    as_cuda_type(system_matrix->get_const_row_ptrs()),
+                    as_cuda_type(system_matrix->get_const_col_idxs()),
+                    as_cuda_type(system_matrix->get_const_values()),
+                    as_cuda_type(l_factor->get_const_row_ptrs()),
+                    as_cuda_type(l_factor->get_const_col_idxs()),
+                    as_cuda_type(l_factor->get_values()),
+                    as_cuda_type(u_factor->get_const_row_ptrs()),
+                    as_cuda_type(u_factor->get_const_col_idxs()),
+                    as_cuda_type(u_factor->get_values()),
+                    as_cuda_type(n_l_values.get_data()),
+                    as_cuda_type(n_u_values.get_data()));
+        }
+        // exec->synchronize();
+        exec->copy(l_nnz, n_l_values.get_const_data(), l_factor->get_values());
+        exec->copy(u_nnz, n_u_values.get_const_data(), u_factor->get_values());
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void compute_bilu_factors_jacobi(
+    std::shared_ptr<const CudaExecutor> exec, int iterations,
+    const matrix::Fbcsr<ValueType, IndexType> *const system_matrix,
+    matrix::Fbcsr<ValueType, IndexType> *const l_factor,
+    matrix::Fbcsr<ValueType, IndexType> *const u_factor)
+{
+    iterations = (iterations == -1) ? 10 : iterations;
+    const int bs = system_matrix->get_block_size();
+    if (bs == 2) {
+        compute_bilu_factors_jac_impl<2>(exec, iterations, system_matrix,
+                                         l_factor, u_factor);
+    } else if (bs == 3) {
+        compute_bilu_factors_jac_impl<3>(exec, iterations, system_matrix,
+                                         l_factor, u_factor);
+    } else if (bs == 4) {
+        compute_bilu_factors_jac_impl<4>(exec, iterations, system_matrix,
+                                         l_factor, u_factor);
+    } else if (bs == 7) {
+        compute_bilu_factors_jac_impl<7>(exec, iterations, system_matrix,
+                                         l_factor, u_factor);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_JACOBI);
 
 }  // namespace par_bilu_factorization
 }  // namespace cuda

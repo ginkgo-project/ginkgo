@@ -54,9 +54,19 @@ namespace kernels {
         gko::matrix::Fbcsr<ValueType, IndexType> *u_factor_t)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_JACOBI(ValueType, IndexType) \
+    void compute_bilu_factors_jacobi(                                       \
+        std::shared_ptr<const DefaultExecutor> exec, int iterations,        \
+        const gko::matrix::Fbcsr<ValueType, IndexType> *system_matrix,      \
+        gko::matrix::Fbcsr<ValueType, IndexType> *l_factor,                 \
+        gko::matrix::Fbcsr<ValueType, IndexType> *u_factor_t)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_COMPUTE_BILU_FACTORS_FBCSR_JACOBI(ValueType, IndexType)
 
 
 namespace omp {

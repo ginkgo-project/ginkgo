@@ -55,103 +55,76 @@ namespace reference {
 namespace bilu_factorization {
 
 
-template <typename ValueType, typename IndexType, int bs>
-static blockutils::FixedBlock<ValueType, bs, bs> extract_diag_block(
-    const IndexType blk_row, const IndexType *const browptr,
-    const IndexType *const bcolidx,
-    const blockutils::FixedBlock<ValueType, bs, bs> *const vals)
+template <typename IndexType>
+static inline ptrdiff_t get_diag_block_position(const IndexType blk_row,
+                                                const IndexType *const browptr,
+                                                const IndexType *const bcolidx)
 {
     const IndexType *const didx = std::find(
         bcolidx + browptr[blk_row], bcolidx + browptr[blk_row + 1], blk_row);
-    const ptrdiff_t dbz = didx - bcolidx;
-    blockutils::FixedBlock<ValueType, bs, bs> diag;
-    for (int i = 0; i < bs; i++) {
-        for (int j = 0; j < bs; j++) {
-            diag(i, j) = vals[dbz](i, j);
-        }
-    }
-    return diag;
+    return didx - bcolidx;
 }
 
-template <typename ValueType, typename IndexType, int bs>
-static void compute_bilu_impl(
-    const std::shared_ptr<const ReferenceExecutor> exec,
-    matrix::Fbcsr<ValueType, IndexType> *const sysmat)
+template <int bs, typename ValueType, typename IndexType>
+static void compute_bilu_inplace_impl(const int nbrows,
+                                      const IndexType *const row_ptrs,
+                                      const IndexType *const col_idxs,
+                                      ValueType *const values)
 {
-    const IndexType *const col_idxs = sysmat->get_const_col_idxs();
-    const IndexType *const row_ptrs = sysmat->get_const_row_ptrs();
-
     using Blk_t = blockutils::FixedBlock<ValueType, bs, bs>;
-    const auto vals = reinterpret_cast<Blk_t *>(sysmat->get_values());
+    const auto vals = reinterpret_cast<Blk_t *>(values);
 
-    for (IndexType ibrow = 0; ibrow < sysmat->get_num_block_rows(); ++ibrow) {
-        for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
-             ibz++) {
-            const auto jbcol = col_idxs[ibz];
-
-            Blk_t sum;
-            ValueType *const sumarr = &sum(0, 0);
-            const ValueType *const valarr = &vals[ibz](0, 0);
-            for (int i = 0; i < bs * bs; i++) {
-                sumarr[i] = valarr[i];
-            }
-
-            // Calculate: sum = system_matrix(ibrow, jbcol) -
-            //   block_dot(l_factor(ibrow, :), u_factor(:, jbcol))
-            for (IndexType kbz = row_ptrs[ibrow]; kbz < row_ptrs[ibrow + 1];
-                 kbz++) {
-                const auto kcol = col_idxs[kbz];
-
-                // we only cover k s.t. k < j and k < i
-                if (kcol >= jbcol || kcol >= ibrow) continue;
-
-                // search the kcol'th row for the jbcol'th column
-                IndexType foundbz = -1;
-                for (IndexType ubz = row_ptrs[kcol]; ubz < row_ptrs[kcol + 1];
-                     ubz++) {
-                    // skip entries in the lower-triangular part
-                    if (col_idxs[ubz] < kcol) continue;
-                    // stop if the matching entry is found
-                    else if (col_idxs[ubz] == jbcol) {
-                        foundbz = ubz;
-                        break;
-                    }
-                }
-                if (foundbz != -1) {
-                    for (int i = 0; i < bs; i++) {
-                        for (int j = 0; j < bs; j++) {
-                            for (int k = 0; k < bs; k++)
-                                sum(i, j) -=
-                                    vals[kbz](i, k) * vals[foundbz](k, j);
-                        }
-                    }
-                }
-            }
-
-            if (ibrow > jbcol) {
-                // invert diagonal block
-                Blk_t invU =
-                    extract_diag_block(jbcol, row_ptrs, col_idxs, vals);
-
-                const bool invflag = invert_block_complete(invU);
-                if (!invflag)
-                    printf(" Could not invert diag block at blk row %ld!",
+    for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
+        for (IndexType jbz = row_ptrs[ibrow]; jbz < row_ptrs[ibrow + 1];
+             jbz++) {
+            const IndexType jcol = col_idxs[jbz];
+            if (jcol < ibrow) {
+                const auto jdpos =
+                    get_diag_block_position(jcol, row_ptrs, col_idxs);
+                Blk_t D = vals[jdpos];
+                const bool invflag = invert_block_complete(D);
+                if (!invflag) {
+                    printf(" Could not invert diag block at blk-row %ld!",
                            static_cast<long int>(ibrow));
-
-                for (int i = 0; i < bs; i++)
-                    for (int j = 0; j < bs; j++) {
-                        vals[ibz](i, j) = 0;
-                        for (int k = 0; k < bs; k++) {
-                            vals[ibz](i, j) += sum(i, k) * invU(k, j);
-                        }
-                    }
-            } else {
-                // modify entry in U
+                }
+                Blk_t factor;
                 for (int i = 0; i < bs; i++) {
                     for (int j = 0; j < bs; j++) {
-                        vals[ibz](i, j) = sum(i, j);
+                        factor(i, j) = 0.0;
+                        for (int k = 0; k < bs; k++) {
+                            factor(i, j) += vals[jbz](i, k) * D(k, j);
+                        }
                     }
                 }
+
+                // match A[i, j+1:] with A[j, j+1:]
+                IndexType kbz = jbz + 1, lbz = jdpos + 1;
+                while (kbz < row_ptrs[ibrow + 1] && lbz < row_ptrs[jcol + 1]) {
+                    const IndexType kcol = col_idxs[kbz];
+                    const IndexType lcol = col_idxs[lbz];
+                    if (kcol == lcol) {
+                        for (int i = 0; i < bs; i++) {
+                            for (int j = 0; j < bs; j++) {
+                                for (int k = 0; k < bs; k++) {
+                                    vals[kbz](i, j) -=
+                                        factor(i, k) * vals[lbz](k, j);
+                                }
+                            }
+                        }
+                        kbz++;
+                        lbz++;
+                    } else if (kcol < lcol) {
+                        kbz++;
+                    } else {
+                        lbz++;
+                    }
+                }
+
+                // Replace (ibrow,jcol)
+                for (int i = 0; i < bs; i++)
+                    for (int j = 0; j < bs; j++) {
+                        vals[jbz](i, j) = factor(i, j);
+                    }
             }
         }
     }
@@ -163,16 +136,20 @@ void compute_bilu(const std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Fbcsr<ValueType, IndexType> *const sysmat)
 {
     const int bs = sysmat->get_block_size();
+    const auto row_ptrs = sysmat->get_const_row_ptrs();
+    const auto col_idxs = sysmat->get_const_col_idxs();
+    const auto values = sysmat->get_values();
+    const IndexType nbrows = sysmat->get_num_block_rows();
 
     if (bs == 2) {
-        compute_bilu_impl<ValueType, IndexType, 2>(exec, sysmat);
+        compute_bilu_inplace_impl<2>(nbrows, row_ptrs, col_idxs, values);
     }
     if (bs == 3) {
-        compute_bilu_impl<ValueType, IndexType, 3>(exec, sysmat);
+        compute_bilu_inplace_impl<3>(nbrows, row_ptrs, col_idxs, values);
     } else if (bs == 4) {
-        compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat);
+        compute_bilu_inplace_impl<4>(nbrows, row_ptrs, col_idxs, values);
     } else if (bs == 7) {
-        compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat);
+        compute_bilu_inplace_impl<7>(nbrows, row_ptrs, col_idxs, values);
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            " block size = " + std::to_string(bs));
