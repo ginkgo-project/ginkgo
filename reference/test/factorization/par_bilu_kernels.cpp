@@ -125,14 +125,14 @@ TYPED_TEST(ParBilu, KernelFactorizationSortedBS3)
     GKO_ASSERT_MTX_NEAR(refU, testU, eps);
 }
 
-TYPED_TEST(ParBilu, FactorizationSortedBS4)
+TYPED_TEST(ParBilu, FactorizationSortedBS7)
 {
     using Fbcsr = typename TestFixture::Fbcsr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using bilu_t = typename TestFixture::bilu_t;
     using par_bilu_t = typename TestFixture::par_bilu_t;
-    const int nbrows = 50, bs = 4;
+    const int nbrows = 20, bs = 7;
     std::shared_ptr<const Fbcsr> mtx =
         gko::test::generate_random_fbcsr<value_type, index_type>(
             this->refexec, std::ranlux48(42), nbrows, nbrows, bs, true, false);

@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/bilu_kernels.hpp"
 #include "core/factorization/block_factorization_kernels.hpp"
 #include "core/factorization/par_bilu_kernels.hpp"
+#include "core/test/factorization/block_factorization_test_utils.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -63,12 +64,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename ValueIndexType>
 class ParBilu : public ::testing::Test {
 protected:
-    // using value_type = gko::default_precision;
-    using value_type = float;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using real_type = gko::remove_complex<value_type>;
-    using index_type = gko::int32;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using BILUSample = gko::testing::Bilu0Sample<value_type, index_type>;
 
@@ -76,7 +79,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::unique_ptr<const Fbcsr> cyl2d_ref;
-    const value_type tol = std::numeric_limits<real_type>::epsilon();
+    const real_type tol = std::numeric_limits<real_type>::epsilon();
 
     ParBilu()
         : rand_engine(18),
@@ -101,36 +104,6 @@ protected:
         cyl2d_ref = gko::give(ref_temp);
     }
 
-    /*
-     * Initialize L and U factor matrices
-     */
-    void initialize_bilu(const Fbcsr *const ref_mat,
-                         std::shared_ptr<Fbcsr> *const l_factor,
-                         std::shared_ptr<Fbcsr> *const u_factor)
-    {
-        const auto exec = ref;
-        const gko::size_type num_brows = ref_mat->get_num_block_rows();
-        const int bs = ref_mat->get_block_size();
-        gko::Array<index_type> l_row_ptrs{exec, num_brows + 1};
-        gko::Array<index_type> u_row_ptrs{exec, num_brows + 1};
-        gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
-            exec, ref_mat, l_row_ptrs.get_data(), u_row_ptrs.get_data());
-        const auto l_nbnz = l_row_ptrs.get_data()[num_brows];
-        const auto u_nbnz = u_row_ptrs.get_data()[num_brows];
-        gko::Array<index_type> l_col_idxs(exec, l_nbnz);
-        gko::Array<value_type> l_vals(exec, l_nbnz * bs * bs);
-        gko::Array<index_type> u_col_idxs(exec, u_nbnz);
-        gko::Array<value_type> u_vals(exec, u_nbnz * bs * bs);
-        *l_factor =
-            Fbcsr::create(exec, ref_mat->get_size(), bs, std::move(l_vals),
-                          std::move(l_col_idxs), std::move(l_row_ptrs));
-        *u_factor =
-            Fbcsr::create(exec, ref_mat->get_size(), bs, std::move(u_vals),
-                          std::move(u_col_idxs), std::move(u_row_ptrs));
-        gko::kernels::reference::factorization::initialize_BLU(
-            ref, ref_mat, l_factor->get(), u_factor->get());
-    }
-
     template <typename ToType, typename FromType>
     static std::unique_ptr<ToType> static_unique_ptr_cast(
         std::unique_ptr<FromType> &&from)
@@ -148,7 +121,7 @@ protected:
         auto mat_cuda = Fbcsr::create(cuda);
         mat_ref->convert_to(gko::lend(mat_cuda));
         std::shared_ptr<Fbcsr> l_init_ref, u_init_ref;
-        initialize_bilu(mat_ref, &l_init_ref, &u_init_ref);
+        gko::test::initialize_bilu(mat_ref, &l_init_ref, &u_init_ref);
         *l_cuda = Fbcsr::create(cuda);
         l_init_ref->convert_to(l_cuda->get());
         auto u_transpose_ref = gko::as<Fbcsr>(u_init_ref->transpose());
@@ -159,7 +132,7 @@ protected:
         mat_ref_copy->copy_from(mat_ref);
         gko::kernels::reference::bilu_factorization::compute_bilu(
             ref, gko::lend(mat_ref_copy));
-        initialize_bilu(mat_ref_copy.get(), l_ref, u_ref);
+        gko::test::initialize_bilu(mat_ref_copy.get(), l_ref, u_ref);
 
         gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors(
             cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
@@ -176,7 +149,7 @@ protected:
     {
         auto mat_cuda = Fbcsr::create(cuda);
         mat_cuda->copy_from(gko::lend(mat_ref));
-        initialize_bilu(mat_ref, l_ref, u_ref);
+        gko::test::initialize_bilu(mat_ref, l_ref, u_ref);
         *l_cuda = Fbcsr::create(cuda);
         (*l_ref)->convert_to(l_cuda->get());
         auto u_transpose_ref = gko::as<Fbcsr>((*u_ref)->transpose());
@@ -195,53 +168,193 @@ protected:
         auto u_lin_op_cuda = u_transpose_cuda->transpose();
         *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
     }
+
+    void jacobi_bilu(const Fbcsr *const mat_ref, const int iterations,
+                     std::shared_ptr<Fbcsr> *const l_ref,
+                     std::shared_ptr<Fbcsr> *const u_ref,
+                     std::shared_ptr<Fbcsr> *const l_cuda,
+                     std::shared_ptr<Fbcsr> *const u_cuda)
+    {
+        auto mat_cuda = Fbcsr::create(cuda);
+        mat_cuda->copy_from(gko::lend(mat_ref));
+        gko::test::initialize_bilu(mat_ref, l_ref, u_ref);
+        *l_cuda = Fbcsr::create(cuda);
+        (*l_ref)->convert_to(l_cuda->get());
+        auto u_transpose_ref = gko::as<Fbcsr>((*u_ref)->transpose());
+        auto u_transpose_cuda = Fbcsr::create(cuda);
+        u_transpose_cuda->copy_from(gko::lend(u_transpose_ref));
+
+        gko::kernels::reference::par_bilu_factorization::
+            compute_bilu_factors_jacobi(ref, iterations, mat_ref, l_ref->get(),
+                                        u_transpose_ref.get());
+        auto u_lin_op_ref = u_transpose_ref->transpose();
+        *u_ref = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_ref));
+
+        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors_jacobi(
+            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
+            gko::lend(u_transpose_cuda));
+        auto u_lin_op_cuda = u_transpose_cuda->transpose();
+        *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
+    }
+
+    void jacobi_bilu_notrans(const Fbcsr *const mat_ref, const int iterations,
+                             std::shared_ptr<Fbcsr> *const l_ref,
+                             std::shared_ptr<Fbcsr> *const u_ref,
+                             std::shared_ptr<Fbcsr> *const l_cuda,
+                             std::shared_ptr<Fbcsr> *const u_cuda)
+    {
+        auto mat_cuda = Fbcsr::create(cuda);
+        mat_cuda->copy_from(gko::lend(mat_ref));
+        gko::test::initialize_bilu(mat_ref, l_ref, u_ref);
+        *l_cuda = Fbcsr::create(cuda);
+        *u_cuda = Fbcsr::create(cuda);
+        (*l_ref)->convert_to(l_cuda->get());
+        (*u_ref)->convert_to(u_cuda->get());
+
+        gko::kernels::reference::par_bilu_factorization::
+            compute_bilu_factors_jacobi(ref, iterations, mat_ref, l_ref->get(),
+                                        u_ref->get());
+
+        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors_jacobi(
+            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
+            gko::lend(*u_cuda));
+    }
 };
 
+using SomeTypes =
+    ::testing::Types<std::tuple<double, gko::int32>,
+                     std::tuple<std::complex<double>, gko::int32>>;
 
-TEST_F(ParBilu, CudaKernelBLUSortedSampleBS3)
+TYPED_TEST_SUITE(ParBilu, SomeTypes);
+
+
+TYPED_TEST(ParBilu, CudaKernelBLUSortedSampleBS3)
 {
-    BILUSample bilusample(ref);
+    using BILUSample = typename TestFixture::BILUSample;
+    using Fbcsr = typename TestFixture::Fbcsr;
+    BILUSample bilusample(this->ref);
     auto refmat = bilusample.generate_fbcsr();
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 1;
 
-    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                         &u_cuda);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, tol);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, tol);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, this->tol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, this->tol);
 }
 
-TEST_F(ParBilu, CudaKernelBLUSortedRandomBS4)
+TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS4)
 {
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Fbcsr;
     const int num_brows = 90;
     auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
-        ref, std::ranlux48(43), num_brows, num_brows, 4, true, false);
+        this->ref, std::ranlux48(43), num_brows, num_brows, 4, true, false);
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 8;
 
-    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                         &u_cuda);
 
-    const double ttol = 10 * tol;
+    const double ttol = 10 * this->tol;
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
 }
 
-TEST_F(ParBilu, CudaKernelBLUSortedRandomBS7)
+TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS7)
 {
-    const int num_brows = 90;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Fbcsr;
+    const bool diag_dom = true;
+    const bool unsort = false;
+    const int num_brows = 50;
     auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
-        ref, std::ranlux48(43), num_brows, num_brows, 7, true, false);
+        this->ref, std::ranlux48(43), num_brows, num_brows, 7, diag_dom,
+        unsort);
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
-    const int iterations = 10;
+    const int iterations = 50;
 
-    compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
+    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                         &u_cuda);
 
     // For BS 7, initial error in L (reported by the macro) is ~1.0
-    const double ttol = 0.1;
+    const double ttol = 10 * this->tol;
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
+}
+
+TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedSampleBS3)
+{
+    using BILUSample = typename TestFixture::BILUSample;
+    using Fbcsr = typename TestFixture::Fbcsr;
+    BILUSample bilusample(this->ref);
+    auto refmat = bilusample.generate_fbcsr();
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 1;
+
+    this->jacobi_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                      &u_cuda);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, this->tol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, this->tol);
+}
+
+// This test passes for block sizes upto 4, but not 7.
+TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedRandomBS4)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Fbcsr;
+    const bool diag_dom = true;
+    const bool unsort = false;
+    const int num_brows = 50;
+    const int bs = 4;
+    auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
+        this->ref, std::ranlux48(43), num_brows, num_brows, bs, diag_dom,
+        unsort);
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 5;
+
+    this->jacobi_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                      &u_cuda);
+
+    const double ttol = 5 * this->tol;
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
+}
+
+TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedRandomBS7)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Fbcsr = typename TestFixture::Fbcsr;
+    const bool diag_dom = true;
+    const bool unsort = false;
+    const int num_brows = 10;
+    const int bs = 7;
+    auto refmat = gko::test::generate_random_fbcsr<value_type, index_type>(
+        this->ref, std::ranlux48(43), num_brows, num_brows, bs, diag_dom,
+        unsort);
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 1;
+
+    this->jacobi_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                      &u_cuda);
+
+    const double ttol = 5 * this->tol;
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);

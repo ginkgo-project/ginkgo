@@ -105,28 +105,16 @@ protected:
             ref, gko::lend(ref_temp), false);
         cyl2d_ref = gko::give(ref_temp);
 
-        const index_type rand_dim = 200;
-        std::unique_ptr<Csr> rand_csr_ref =
-            gko::test::generate_random_matrix<Csr>(
-                rand_dim, rand_dim,
-                std::uniform_int_distribution<index_type>(0, rand_dim - 1),
-                std::normal_distribution<real_type>(0.0, 1.0),
-                std::ranlux48(47), ref);
-        gko::kernels::reference::factorization::add_diagonal_elements(
-            ref, gko::lend(rand_csr_ref), false);
-        auto rand_ref_temp = gko::test::generate_fbcsr_from_csr(
-            ref, rand_csr_ref.get(), 3, false, std::ranlux48(43));
-        rand_ref = gko::give(rand_ref_temp);
+        const bool diagdom = false;
+        const index_type rand_dim = 40;
+        const int bs = 7;
+        rand_ref = gko::test::generate_random_fbcsr<value_type>(
+            ref, std::ranlux48(43), rand_dim, rand_dim, bs, diagdom, false);
 
-        auto rand_unsrt_csr_ref = Csr::create(ref);
-        rand_unsrt_csr_ref->copy_from(rand_csr_ref.get());
-        if (rand_unsrt_csr_ref->is_sorted_by_column_index()) {
-            gko::test::unsort_matrix(rand_unsrt_csr_ref.get(),
-                                     std::ranlux48(43));
-        }
-        auto rand_unsrt_ref_temp = gko::test::generate_fbcsr_from_csr(
-            ref, rand_unsrt_csr_ref.get(), 3, false, std::ranlux48(43));
-        rand_unsrt_ref = gko::give(rand_unsrt_ref_temp);
+        const int ubs = 3;
+        const index_type urand_dim = 80;
+        rand_unsrt_ref = gko::test::generate_random_fbcsr<value_type>(
+            ref, std::ranlux48(43), urand_dim, urand_dim, ubs, diagdom, true);
     }
 
     void test_initializeBLU(const Fbcsr *const a_ref)
@@ -292,7 +280,7 @@ TEST_F(BlockFactor, CudaKernelInitializeBLUSorted4)
 }
 
 
-TEST_F(BlockFactor, CudaKernelInitializeBLUSortedRandom3)
+TEST_F(BlockFactor, CudaKernelInitializeBLUSortedRandom7)
 {
     test_initializeBLU(rand_ref.get());
 }

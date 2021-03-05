@@ -159,8 +159,6 @@ ParBilu<ValueType, IndexType>::generate_block_lu(
     exec->run(par_bilu_factorization::make_fbcsr_transpose(u_factor_t,
                                                            u_factor.get()));
 
-    // return Composition<ValueType>::create(std::move(l_factor),
-    //                                       std::move(u_factor));
     return {std::move(l_factor), std::move(u_factor)};
 }
 

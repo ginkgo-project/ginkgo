@@ -107,7 +107,7 @@ protected:
 };
 
 
-TEST_F(BiluCuda, ComputeUnsplitILUFbcsrIsEquivalentToCsr)
+TEST_F(BiluCuda, ComputeILUFbcsrIsEquivalentToCsr)
 {
     auto mtxcuda = this->mat_cuda->clone();
     gko::kernels::cuda::bilu_factorization::compute_bilu(this->cuda,
@@ -119,49 +119,6 @@ TEST_F(BiluCuda, ComputeUnsplitILUFbcsrIsEquivalentToCsr)
     GKO_ASSERT_MTX_NEAR(csr_cuda_copy, mtxcuda, 100 * eps);
     GKO_ASSERT_MTX_EQ_SPARSITY(csr_cuda_copy, mtxcuda);
 }
-
-
-// TEST_F(BiluCuda, ComputeILUIsEquivalentToRefSorted)
-// {
-//     auto ref_fact = gko::factorization::ParIlu<>::build()
-//                         .with_skip_sorting(true)
-//                         .on(ref)
-//                         ->generate(csr_ref);
-//     auto cuda_fact = gko::factorization::Ilu<>::build()
-//                          .with_skip_sorting(true)
-//                          .on(cuda)
-//                          ->generate(csr_cuda);
-
-//     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), cuda_fact->get_l_factor(),
-//                         1e-14);
-//     GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), cuda_fact->get_u_factor(),
-//                         1e-14);
-//     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
-//                                cuda_fact->get_l_factor());
-//     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
-//                                cuda_fact->get_u_factor());
-// }
-
-
-// TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
-// {
-//     gko::test::unsort_matrix(gko::lend(csr_ref), rand_engine);
-//     csr_cuda->copy_from(gko::lend(csr_ref));
-
-//     auto ref_fact =
-//         gko::factorization::ParIlu<>::build().on(ref)->generate(csr_ref);
-//     auto cuda_fact =
-//         gko::factorization::Ilu<>::build().on(cuda)->generate(csr_cuda);
-
-//     GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), cuda_fact->get_l_factor(),
-//                         1e-14);
-//     GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), cuda_fact->get_u_factor(),
-//                         1e-14);
-//     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
-//                                cuda_fact->get_l_factor());
-//     GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
-//                                cuda_fact->get_u_factor());
-// }
 
 
 }  // namespace
