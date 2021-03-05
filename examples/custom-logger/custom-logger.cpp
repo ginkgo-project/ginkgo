@@ -90,7 +90,8 @@ struct ResidualLogger : gko::log::Logger {
     void write() const
     {
         // Print a header for the table
-        std::cout << "Recurrent vs true residual norm:" << std::endl;
+        std::cout << "Recurrent vs true vs implicit residual norm:"
+                  << std::endl;
         std::cout << '|' << std::setw(10) << "Iteration" << '|' << std::setw(25)
                   << "Recurrent Residual Norm" << '|' << std::setw(25)
                   << "True Residual Norm" << '|' << std::setw(25)
