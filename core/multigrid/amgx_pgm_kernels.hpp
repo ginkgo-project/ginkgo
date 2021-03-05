@@ -51,18 +51,6 @@ namespace kernels {
 namespace amgx_pgm {
 
 
-#define GKO_DECLARE_AMGX_PGM_RESTRICT_APPLY_KERNEL(ValueType, IndexType) \
-    void restrict_apply(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const Array<IndexType> &agg,                     \
-                        const matrix::Dense<ValueType> *b,               \
-                        matrix::Dense<ValueType> *x)
-
-#define GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL(ValueType, IndexType) \
-    void prolong_applyadd(std::shared_ptr<const DefaultExecutor> exec,     \
-                          const Array<IndexType> &agg,                     \
-                          const matrix::Dense<ValueType> *b,               \
-                          matrix::Dense<ValueType> *x)
-
 #define GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(IndexType)        \
     void match_edge(std::shared_ptr<const DefaultExecutor> exec, \
                     const Array<IndexType> &strongest_neighbor,  \
@@ -97,10 +85,6 @@ namespace amgx_pgm {
                            matrix::Csr<ValueType, IndexType> *coarse)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_AMGX_PGM_RESTRICT_APPLY_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL(ValueType, IndexType); \
     template <typename IndexType>                                       \
     GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
     template <typename IndexType>                                       \

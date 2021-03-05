@@ -59,26 +59,6 @@ namespace omp {
 namespace amgx_pgm {
 
 
-template <typename ValueType, typename IndexType>
-void restrict_apply(std::shared_ptr<const OmpExecutor> exec,
-                    const Array<IndexType> &agg,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_RESTRICT_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void prolong_applyadd(std::shared_ptr<const OmpExecutor> exec,
-                      const Array<IndexType> &agg,
-                      const matrix::Dense<ValueType> *b,
-                      matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL);
-
-
 template <typename IndexType>
 void match_edge(std::shared_ptr<const OmpExecutor> exec,
                 const Array<IndexType> &strongest_neighbor,

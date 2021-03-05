@@ -62,7 +62,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           amgxpgm_factory(RestrictProlong::build()
                               .with_max_iterations(2u)
-                              .with_max_unassigned_percentage(0.1)
+                              .with_max_unassigned_ratio(0.1)
                               .with_deterministic(true)
                               .on(exec))
 
@@ -87,7 +87,7 @@ TYPED_TEST(AmgxPgmFactory, DefaultSetting)
     auto factory = RestrictProlong::build().on(this->exec);
 
     ASSERT_EQ(factory->get_parameters().max_iterations, 15u);
-    ASSERT_EQ(factory->get_parameters().max_unassigned_percentage, 0.05);
+    ASSERT_EQ(factory->get_parameters().max_unassigned_ratio, 0.05);
     ASSERT_EQ(factory->get_parameters().deterministic, false);
 }
 
@@ -100,7 +100,7 @@ TYPED_TEST(AmgxPgmFactory, SetMaxIterations)
 
 TYPED_TEST(AmgxPgmFactory, SetMaxUnassignedPercentage)
 {
-    ASSERT_EQ(this->amgxpgm_factory->get_parameters().max_unassigned_percentage,
+    ASSERT_EQ(this->amgxpgm_factory->get_parameters().max_unassigned_ratio,
               0.1);
 }
 

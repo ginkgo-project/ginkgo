@@ -167,16 +167,36 @@ private:
 };
 
 
+/**
+ * The UseComposition class can be used to store the composition information in
+ * LinOp.
+ *
+ * @tparam ValueType  precision of input and result vectors
+ */
 template <typename ValueType = default_precision>
 class UseComposition {
 public:
     using value_type = ValueType;
+    /**
+     * Returns the composition opertor.
+     *
+     * @return composition
+     */
     std::shared_ptr<Composition<ValueType>> get_composition() const
     {
         return composition_;
     }
 
-    std::shared_ptr<const LinOp> get_composition_ithop(int index) const
+    /**
+     * Returns the operator at index-th poistion of composition
+     *
+     * @return index-th operator
+     *
+     * @note when this composition is not set, this function always returns
+     *       nullptr. However, when this composition is set, it will throw
+     *       exception when exceeding index.
+     */
+    std::shared_ptr<const LinOp> get_operator_at(size_type index) const
     {
         if (composition_ == nullptr) {
             return nullptr;
@@ -186,6 +206,9 @@ public:
     }
 
 protected:
+    /**
+     * Sets the composition with a list of operators
+     */
     template <typename... LinOp>
     void set_composition(LinOp &&... linop)
     {
