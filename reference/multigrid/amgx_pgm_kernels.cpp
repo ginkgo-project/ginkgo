@@ -61,53 +61,6 @@ namespace reference {
 namespace amgx_pgm {
 
 
-template <typename ValueType, typename IndexType>
-void restrict_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                    const Array<IndexType> &agg,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *x)
-{
-    auto x_vals = x->get_values();
-    const auto x_stride = x->get_stride();
-    auto x_dim = x->get_size();
-    for (size_type i = 0; i < x_dim[0]; i++) {
-        for (size_type j = 0; j < x_dim[1]; j++) {
-            x->at(i, j) = zero<ValueType>();
-        }
-    }
-    for (size_type i = 0; i < agg.get_num_elems(); i++) {
-        const auto x_row = agg.get_const_data()[i];
-        for (size_type j = 0; j < x_dim[1]; j++) {
-            x->at(x_row, j) += b->at(i, j);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_RESTRICT_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void prolong_applyadd(std::shared_ptr<const ReferenceExecutor> exec,
-                      const Array<IndexType> &agg,
-                      const matrix::Dense<ValueType> *b,
-                      matrix::Dense<ValueType> *x)
-{
-    auto x_vals = x->get_values();
-    const auto x_stride = x->get_stride();
-    auto x_dim = x->get_size();
-    for (size_type i = 0; i < agg.get_num_elems(); i++) {
-        const auto b_row = agg.get_const_data()[i];
-        for (size_type j = 0; j < x_dim[1]; j++) {
-            x->at(i, j) += b->at(b_row, j);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL);
-
-
 template <typename IndexType>
 void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
                 const Array<IndexType> &strongest_neighbor,

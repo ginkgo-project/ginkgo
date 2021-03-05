@@ -54,8 +54,6 @@ namespace multigrid {
 namespace amgx_pgm {
 
 
-GKO_REGISTER_OPERATION(restrict_apply, amgx_pgm::restrict_apply);
-GKO_REGISTER_OPERATION(prolong_applyadd, amgx_pgm::prolong_applyadd);
 GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
 GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
@@ -138,9 +136,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
         // Get the num_unagg
         exec->run(amgx_pgm::make_count_unagg(agg_, &num_unagg));
         // no new match, all match, or the ratio of num_unagg/num is lower
-        // than parameter.max_unassigned_percentage
+        // than parameter.max_unassigned_ratio
         if (num_unagg == 0 || num_unagg == num_unagg_prev ||
-            num_unagg < parameters_.max_unassigned_percentage * num_rows) {
+            num_unagg < parameters_.max_unassigned_ratio * num_rows) {
             break;
         }
         num_unagg_prev = num_unagg;
@@ -153,7 +151,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Assign all left points
     exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
                                                  agg_, intermediate_agg));
-    IndexType num_agg;
+    IndexType num_agg = 0;
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
@@ -175,47 +173,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
                                         one<ValueType>()));
     // TODO: implement the restrict_op from aggregation.
     auto restrict_op = share(prolong_op->transpose());
-    // auto restrict_op = Mapping<ValueType, IndexType>::create(
-    //     exec, gko::dim<2>{coarse_dim, fine_dim}, agg_);
-    // auto prolong_op = Mapping<ValueType, IndexType>::create(
-    //     exec, gko::dim<2>{fine_dim, coarse_dim}, agg_, false);
-    this->set_composition(share(prolong_op), coarse_matrix, share(restrict_op));
-}
-
-
-template <typename ValueType, typename IndexType>
-void AmgxPgm<ValueType, IndexType>::restrict_apply_impl(const LinOp *b,
-                                                        LinOp *x) const
-{
-    auto exec = this->get_executor();
-    exec->run(amgx_pgm::make_restrict_apply(agg_,
-                                            as<matrix::Dense<ValueType>>(b),
-                                            as<matrix::Dense<ValueType>>(x)));
-}
-
-
-template <typename ValueType, typename IndexType>
-void AmgxPgm<ValueType, IndexType>::prolong_applyadd_impl(const LinOp *b,
-                                                          LinOp *x) const
-{
-    auto exec = this->get_executor();
-    exec->run(amgx_pgm::make_prolong_applyadd(agg_,
-                                              as<matrix::Dense<ValueType>>(b),
-                                              as<matrix::Dense<ValueType>>(x)));
-}
-
-
-template <typename ValueType, typename IndexType>
-void AmgxPgm<ValueType, IndexType>::prolong_apply_impl(const LinOp *b,
-                                                       LinOp *x) const
-{
-    auto exec = this->get_executor();
-    auto vec_x = as<matrix::Dense<ValueType>>(x);
-    exec->run(amgx_pgm::make_fill_array(
-        vec_x->get_values(), vec_x->get_size()[0] * vec_x->get_stride(),
-        zero<ValueType>()));
-    exec->run(amgx_pgm::make_prolong_applyadd(
-        agg_, as<matrix::Dense<ValueType>>(b), vec_x));
+    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
 
 

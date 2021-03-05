@@ -43,8 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/multigrid/mapping.hpp>
-#include <ginkgo/core/multigrid/multigrid_base.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 namespace gko {
 namespace multigrid {
@@ -130,7 +129,7 @@ public:
          * Reference Manual (October 2017, API Version 2,
          * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
          */
-        double GKO_FACTORY_PARAMETER(max_unassigned_percentage, 0.05);
+        double GKO_FACTORY_PARAMETER(max_unassigned_ratio, 0.05);
 
         /**
          * Use the deterministic assign_to_exist_agg method or not.
@@ -145,12 +144,6 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void restrict_apply_impl(const LinOp *b, LinOp *x) const;
-
-    void prolong_applyadd_impl(const LinOp *b, LinOp *x) const;
-
-    void prolong_apply_impl(const LinOp *b, LinOp *x) const;
-
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
         this->get_composition()->apply(b, x);
@@ -163,7 +156,7 @@ protected:
     }
 
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AmgxPgm>(std::move(exec)), MultigridLevel<ValueType>()
+        : EnableLinOp<AmgxPgm>(std::move(exec))
     {}
 
     explicit AmgxPgm(const Factory *factory,
@@ -175,8 +168,8 @@ protected:
           system_matrix_{system_matrix},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
     {
-        GKO_ASSERT(parameters_.max_unassigned_percentage <= 1.0);
-        GKO_ASSERT(parameters_.max_unassigned_percentage >= 0.0);
+        GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
+        GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();

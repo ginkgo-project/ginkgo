@@ -75,7 +75,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           amgxpgm_factory(RestrictProlong::build()
                               .with_max_iterations(2u)
-                              .with_max_unassigned_percentage(0.1)
+                              .with_max_unassigned_ratio(0.1)
                               .on(exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
@@ -292,32 +292,6 @@ TYPED_TEST(AmgxPgm, CanBeCleared)
     ASSERT_EQ(mtx, nullptr);
     ASSERT_EQ(coarse, nullptr);
     ASSERT_EQ(agg, nullptr);
-}
-
-
-TYPED_TEST(AmgxPgm, RestrictApply)
-{
-    // fine->coarse
-    using Vec = typename TestFixture::Vec;
-    using value_type = typename TestFixture::value_type;
-    auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
-
-    gko::kernels::reference::amgx_pgm::restrict_apply(
-        this->exec, this->agg, this->fine_b.get(), x.get());
-
-    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
-}
-
-
-TYPED_TEST(AmgxPgm, ProlongApplyadd)
-{
-    using value_type = typename TestFixture::value_type;
-    auto x = gko::clone(this->fine_x);
-
-    gko::kernels::reference::amgx_pgm::prolong_applyadd(
-        this->exec, this->agg, this->coarse_b.get(), x.get());
-
-    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
 
 

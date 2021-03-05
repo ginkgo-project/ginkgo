@@ -32,7 +32,6 @@ target_sources(ginkgo
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
     multigrid/amgx_pgm.cpp
-    multigrid/mapping.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp

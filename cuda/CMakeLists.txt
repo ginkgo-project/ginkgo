@@ -102,7 +102,6 @@ target_sources(ginkgo_cuda
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu
     multigrid/amgx_pgm_kernels.cu
-    multigrid/mapping_kernels.cu
     preconditioner/isai_kernels.cu
     preconditioner/jacobi_advanced_apply_kernel.cu
     preconditioner/jacobi_generate_kernel.cu
