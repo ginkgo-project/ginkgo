@@ -965,6 +965,8 @@ public:
         }
     }
 
+    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+
 private:
     std::shared_ptr<const Executor> exec_;
 };
@@ -986,6 +988,8 @@ public:
         }
     }
 
+    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+
 private:
     std::shared_ptr<const Executor> exec_;
 };
@@ -995,7 +999,7 @@ namespace detail {
 
 
 template <typename ConcreteExecutor>
-class ExecutorBase : public Executor {
+class GKO_EXPORT ExecutorBase : public Executor {
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
     friend class ReferenceExecutor;
 

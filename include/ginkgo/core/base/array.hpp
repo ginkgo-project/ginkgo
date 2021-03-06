@@ -82,7 +82,7 @@ GKO_EXPORT void convert_data(std::shared_ptr<const Executor> exec,
  * @ingroup array
  */
 template <typename ValueType>
-class GKO_EXPORT Array {
+class Array {
 public:
     /**
      * The type of elements stored in the array.
@@ -92,12 +92,7 @@ public:
     /**
      * The default deleter type used by Array.
      */
-    using default_deleter = executor_deleter<value_type[]>;
-
-    /**
-     * The deleter type used for views.
-     */
-    using view_deleter = null_deleter<value_type[]>;
+    using default_deleter = executor_deleter<value_type>;
 
     /**
      * Creates an empty Array not tied to any executor.
@@ -286,7 +281,7 @@ public:
     static Array view(std::shared_ptr<const Executor> exec, size_type num_elems,
                       value_type *data)
     {
-        return Array{exec, num_elems, data, view_deleter{}};
+        return Array{exec, num_elems, data, default_deleter{nullptr}};
     }
 
     /**
@@ -485,7 +480,7 @@ public:
      *
      * @param value the value to be filled
      */
-    void fill(const ValueType value);
+    GKO_EXPORT void fill(const ValueType value);
 
     /**
      * Returns the number of elements in the Array.
@@ -553,7 +548,8 @@ public:
      */
     bool is_owning()
     {
-        return data_.get_deleter().target_type() == typeid(default_deleter);
+        return data_.get_deleter().get_executor() != nullptr ||
+               data_.get() == nullptr;
     }
 
 
@@ -562,8 +558,7 @@ private:
     template <typename OtherValueType>
     friend class Array;
 
-    using data_manager =
-        std::unique_ptr<value_type[], std::function<void(value_type[])>>;
+    using data_manager = std::unique_ptr<value_type, default_deleter>;
 
     size_type num_elems_;
     data_manager data_;

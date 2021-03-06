@@ -466,7 +466,7 @@ public:
  * ```
  */
 template <typename IndexType>
-class Permutable {
+class GKO_EXPORT Permutable {
 public:
     virtual ~Permutable() = default;
 
@@ -569,7 +569,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
-class ReadableFromMatrixData {
+class GKO_EXPORT ReadableFromMatrixData {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -602,7 +602,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
-class WritableToMatrixData {
+class GKO_EXPORT WritableToMatrixData {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -662,7 +662,7 @@ private:
  * @ingroup LinOp
  */
 template <typename ValueType>
-class DiagonalExtractable {
+class GKO_EXPORT DiagonalExtractable {
 public:
     using value_type = ValueType;
 
@@ -711,7 +711,7 @@ public:
  * @ingroup LinOp
  */
 template <typename AbsoluteLinOp>
-class EnableAbsoluteComputation : public AbsoluteComputable {
+class GKO_EXPORT EnableAbsoluteComputation : public AbsoluteComputable {
 public:
     using absolute_type = AbsoluteLinOp;
 
@@ -762,7 +762,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
+class GKO_EXPORT EnableLinOp
     : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
       public EnablePolymorphicAssignment<ConcreteLinOp> {
 public:

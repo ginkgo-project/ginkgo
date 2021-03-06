@@ -526,7 +526,7 @@ public:
  *                          class.
  */
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
-class EnableLogging : public Loggable {
+class GKO_EXPORT EnableLogging : public Loggable {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {

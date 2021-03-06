@@ -293,7 +293,7 @@ private:
  *      PolymorphicObject.
  */
 template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
-class EnableAbstractPolymorphicObject : public PolymorphicBase {
+class GKO_EXPORT EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
 
@@ -388,7 +388,7 @@ public:
  *                     has to be a subclass of PolymorphicObject
  */
 template <typename ResultType>
-class ConvertibleTo {
+class GKO_EXPORT ConvertibleTo {
 public:
     using result_type = ResultType;
 
@@ -568,7 +568,7 @@ std::shared_ptr<const R> copy_and_convert_to(
  *                          object
  */
 template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
-class EnablePolymorphicObject
+class GKO_EXPORT EnablePolymorphicObject
     : public EnableAbstractPolymorphicObject<ConcreteObject, PolymorphicBase> {
 protected:
     using EnableAbstractPolymorphicObject<
@@ -617,7 +617,8 @@ private:
  * @tparam ResultType  the type to which copy_from is being enabled
  */
 template <typename ConcreteType, typename ResultType = ConcreteType>
-class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
+class GKO_EXPORT EnablePolymorphicAssignment
+    : public ConvertibleTo<ResultType> {
 public:
     using result_type = ResultType;
 
@@ -639,7 +640,7 @@ private:
  *                         implemented [CRTP parameter]
  */
 template <typename ConcreteType>
-class EnableCreateMethod {
+class GKO_EXPORT EnableCreateMethod {
 public:
     template <typename... Args>
     static std::unique_ptr<ConcreteType> create(Args &&... args)
