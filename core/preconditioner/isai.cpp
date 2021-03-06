@@ -193,11 +193,11 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
 
 
 #define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::lower, ValueType, IndexType>
+    class GKO_EXPORT Isai<isai_type::lower, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
 
 #define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::upper, ValueType, IndexType>
+    class GKO_EXPORT Isai<isai_type::upper, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
 
 
