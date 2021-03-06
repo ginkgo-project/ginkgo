@@ -76,5 +76,4 @@ set(OpenMP_CXX_LIBRARIES ${OpenMP_CXX_LIBRARIES} PARENT_SCOPE)
 include(GenerateExportHeader)
 generate_export_header(ginkgo_omp
     EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_omp.hpp"
-    BASE_NAME "GKO_OMP"
-    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_OMP_HPP_")
+    BASE_NAME "GKO_OMP")

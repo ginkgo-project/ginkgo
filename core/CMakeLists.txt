@@ -82,5 +82,4 @@ endif()
 include(GenerateExportHeader)
 generate_export_header(ginkgo
     EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export.hpp"
-    BASE_NAME "GKO"
-    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_HPP_")
+    BASE_NAME "GKO")

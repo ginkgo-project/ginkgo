@@ -181,5 +181,4 @@ set(CMAKE_CUDA_HOST_LINK_LAUNCHER "${CMAKE_CUDA_HOST_LINK_LAUNCHER}" PARENT_SCOP
 include(GenerateExportHeader)
 generate_export_header(ginkgo_cuda
     EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_cuda.hpp"
-    BASE_NAME "GKO_CUDA"
-    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_CUDA_HPP_")
+    BASE_NAME "GKO_CUDA")
