@@ -94,12 +94,19 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
 
-    BlockFactorization() : refexec(gko::ReferenceExecutor::create()) {}
+    BlockFactorization()
+        : refexec(gko::ReferenceExecutor::create()),
+          ompexec(gko::OmpExecutor::create())
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> refexec;
+    std::shared_ptr<const gko::OmpExecutor> ompexec;
 };
 
-TYPED_TEST_SUITE(BlockFactorization, gko::test::ValueIndexTypes);
+using SomeTypes = ::testing::Types<std::tuple<double, gko::int32>,
+                                   std::tuple<std::complex<float>, gko::int64>>;
+
+TYPED_TEST_SUITE(BlockFactorization, SomeTypes);
 
 
 TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsEmpty)
@@ -135,7 +142,7 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquare)
     const gko::dim<2> size{9, 6};
     const int bs = 3;
     auto test_mtx = Fbcsr::create(
-        this->refexec, size, bs,
+        this->ompexec, size, bs,
         std::initializer_list<value_type>{1., 2., 1., 2., 1., 2., 3., 1., 2.,
                                           0., 2., 3., 1., 2., 3., 6., 7., 8.},
         std::initializer_list<index_type>{0, 1},
@@ -149,7 +156,7 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquare)
         std::initializer_list<index_type>{0, 1, 2, 3});
 
     gko::kernels::omp::factorization::add_diagonal_blocks(
-        this->refexec, gko::lend(test_mtx), true);
+        this->ompexec, gko::lend(test_mtx), true);
 
     GKO_ASSERT_MTX_NEAR(test_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(test_mtx, expected_mtx);
@@ -164,7 +171,7 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquareUnsorted)
     const gko::dim<2> size{6, 8};
     const int bs = 2;
     auto test_mtx =
-        Fbcsr::create(this->refexec, size, bs,
+        Fbcsr::create(this->ompexec, size, bs,
                       std::initializer_list<value_type>{
                           1., 2., 1., 7., 1., 2., 3., 1., 2., 0., 2., 3.,
                           1., 2., 3., 6., 7., 8., 1., 2., 3., 4., 1., 9.},
@@ -179,11 +186,12 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquareUnsorted)
         std::initializer_list<index_type>{0, 1, 5, 7});
 
     gko::kernels::omp::factorization::add_diagonal_blocks(
-        this->refexec, gko::lend(test_mtx), true);
+        this->ompexec, gko::lend(test_mtx), true);
 
     GKO_ASSERT_MTX_NEAR(test_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(test_mtx, expected_mtx);
 }
+
 
 TYPED_TEST(BlockFactorization, KernelInitializeBLUSorted)
 {
