@@ -509,11 +509,12 @@ TEST(Record, CatchesIterations)
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
     auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+    auto implicit_sq_residual_norm = gko::initialize<Dense>({-3.5}, exec);
 
 
     logger->on<gko::log::Logger::iteration_complete>(
         solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get());
+        residual_norm.get(), implicit_sq_residual_norm.get());
 
     auto &data = logger->get().iteration_completed.back();
     ASSERT_NE(data->solver.get(), nullptr);
@@ -522,6 +523,8 @@ TEST(Record, CatchesIterations)
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
                         residual_norm, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->implicit_sq_residual_norm.get()),
+                        implicit_sq_residual_norm, 0);
 }
 
 
