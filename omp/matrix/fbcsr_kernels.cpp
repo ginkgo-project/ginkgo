@@ -113,9 +113,9 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType *const col_ptrs,
                             ValueType *const csc_vals, UnaryOperator op)
 {
-    const range<accessor::col_major<const ValueType, 3>> rvalues(
+    const range<accessor::block_col_major<const ValueType, 3>> rvalues(
         fbcsr_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz));
-    range<accessor::col_major<ValueType, 3>> cvalues(
+    range<accessor::block_col_major<ValueType, 3>> cvalues(
         csc_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz));
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
@@ -332,7 +332,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    const range<accessor::col_major<const ValueType, 3>> vblocks(
+    const range<accessor::block_col_major<const ValueType, 3>> vblocks(
         values, dim<3>(row_ptrs[nbrows], bs, bs));
 
 #pragma omp parallel for
