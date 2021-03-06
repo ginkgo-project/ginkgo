@@ -382,6 +382,8 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
+        add_or_set_member(solver_json, "implicit_residuals",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "iteration_timestamps",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         if (b->get_size()[1] == 1 && !FLAGS_overhead) {
@@ -457,9 +459,13 @@ void solve_system(const std::string &solver_name,
                     exec, lend(system_matrix), b,
                     solver_json["recurrent_residuals"],
                     solver_json["true_residuals"],
+                    solver_json["implicit_residuals"],
                     solver_json["iteration_timestamps"], allocator);
                 solver->add_logger(res_logger);
                 solver->apply(lend(b), lend(x_clone));
+                if (!res_logger->has_implicit_res_norms()) {
+                    solver_json.RemoveMember("implicit_residuals");
+                }
             }
             exec->synchronize();
         }

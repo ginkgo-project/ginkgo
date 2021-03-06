@@ -62,16 +62,19 @@ struct iteration_complete_data {
     std::unique_ptr<const LinOp> residual;
     std::unique_ptr<const LinOp> solution;
     std::unique_ptr<const LinOp> residual_norm;
+    std::unique_ptr<const LinOp> implicit_sq_residual_norm;
 
     iteration_complete_data(const LinOp *solver, const size_type num_iterations,
                             const LinOp *residual = nullptr,
                             const LinOp *solution = nullptr,
-                            const LinOp *residual_norm = nullptr)
+                            const LinOp *residual_norm = nullptr,
+                            const LinOp *implicit_sq_residual_norm = nullptr)
         : solver{nullptr},
           num_iterations{num_iterations},
           residual{nullptr},
           solution{nullptr},
-          residual_norm{nullptr}
+          residual_norm{nullptr},
+          implicit_sq_residual_norm{nullptr}
     {
         this->solver = solver->clone();
         if (residual != nullptr) {
@@ -82,6 +85,10 @@ struct iteration_complete_data {
         }
         if (residual_norm != nullptr) {
             this->residual_norm = residual_norm->clone();
+        }
+        if (implicit_sq_residual_norm != nullptr) {
+            this->implicit_sq_residual_norm =
+                implicit_sq_residual_norm->clone();
         }
     }
 };
@@ -369,6 +376,11 @@ public:
         const LinOp *residual, const LinOp *solution = nullptr,
         const LinOp *residual_norm = nullptr) const override;
 
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution,
+        const LinOp *residual_norm,
+        const LinOp *implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,

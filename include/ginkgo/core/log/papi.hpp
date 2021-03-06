@@ -177,6 +177,12 @@ public:
         const LinOp *residual, const LinOp *solution = nullptr,
         const LinOp *residual_norm = nullptr) const override;
 
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution,
+        const LinOp *residual_norm,
+        const LinOp *implicit_sq_residual_norm) const override;
+
     /**
      * Creates a Papi Logger.
      *

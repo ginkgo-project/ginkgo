@@ -482,7 +482,7 @@ TYPED_TEST(Papi, CatchesIterationComplete)
 
     this->start();
     this->logger->template on<gko::log::Logger::iteration_complete>(
-        A.get(), 42, nullptr, nullptr, nullptr);
+        A.get(), 42, nullptr, nullptr, nullptr, nullptr);
     long long int value = 0;
     this->stop(&value);
 
