@@ -57,16 +57,14 @@ namespace test {
 
 
 template <typename ValueType>
-inline std::enable_if_t<gko::is_complex<ValueType>(), ValueType>
-complexify_if_possible(const ValueType x)
+inline std::enable_if_t<!gko::is_complex<ValueType>(), std::complex<ValueType>>
+complexify_if_possible(const std::complex<ValueType> x)
 {
     using namespace std::complex_literals;
-    ValueType y{x};
-    constexpr gko::remove_complex<ValueType> eps =
-        std::numeric_limits<gko::remove_complex<ValueType>>::epsilon();
-    constexpr gko::remove_complex<ValueType> minval =
-        std::numeric_limits<gko::remove_complex<ValueType>>::min();
-    const gko::remove_complex<ValueType> absval = abs(x);
+    std::complex<ValueType> y{x};
+    constexpr ValueType eps = std::numeric_limits<ValueType>::epsilon();
+    constexpr ValueType minval = std::numeric_limits<ValueType>::min();
+    const ValueType absval = abs(x);
     if (absval > minval && abs(y.imag / absval) < eps) y.imag = abs(x);
     return y;
 }
