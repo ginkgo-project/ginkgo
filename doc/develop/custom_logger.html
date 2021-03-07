@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/264376163 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/266502448 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -158,37 +158,50 @@ $(function() {
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>()<span class="keyword"> const</span></div>
 <div class="line"><span class="keyword"></span>{</div>
 </div><!-- fragment --><p>Print a header for the table</p>
-<div class="fragment"><div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;Recurrent vs true residual norm:&quot;</span> &lt;&lt; std::endl;</div>
+<div class="fragment"><div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;Recurrent vs true vs implicit residual norm:&quot;</span></div>
+<div class="line">          &lt;&lt; std::endl;</div>
 <div class="line">std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(10) &lt;&lt; <span class="stringliteral">&quot;Iteration&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
 <div class="line">          &lt;&lt; <span class="stringliteral">&quot;Recurrent Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
-<div class="line">          &lt;&lt; <span class="stringliteral">&quot;True Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
+<div class="line">          &lt;&lt; <span class="stringliteral">&quot;True Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
+<div class="line">          &lt;&lt; <span class="stringliteral">&quot;Implicit Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
 </div><!-- fragment --><p>Print a separation line. Note that for creating <code>10</code> characters <code>std::setw()</code> should be set to <code>11</code>.</p>
 <div class="fragment"><div class="line">std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39;-&#39;</span>) &lt;&lt; std::setw(11) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">          &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">          &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
+<div class="line">          &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
 </div><!-- fragment --><p>Print the data one by one in the form</p>
 <div class="fragment"><div class="line">std::cout &lt;&lt; std::scientific;</div>
 <div class="line"><span class="keywordflow">for</span> (std::size_t i = 0; i &lt; iterations.size(); i++) {</div>
 <div class="line">    std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(10) &lt;&lt; iterations[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">              &lt;&lt; std::setw(25) &lt;&lt; recurrent_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">              &lt;&lt; std::setw(25) &lt;&lt; real_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; std::setw(25) &lt;&lt; real_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
+<div class="line">              &lt;&lt; implicit_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>std::defaultfloat could be used here but some compilers do not support it properly, e.g. the Intel compiler</p>
 <div class="fragment"><div class="line">std::cout.unsetf(std::ios_base::floatfield);</div>
 </div><!-- fragment --><p>Print a separation line</p>
 <div class="fragment"><div class="line">    std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39;-&#39;</span>) &lt;&lt; std::setw(11) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">              &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">              &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">using</span> gko_dense = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> gko_real_dense = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
-</div><!-- fragment --><p>Customize the logging hook which is called everytime an iteration is completed</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> on_iteration_complete(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *,</div>
+</div><!-- fragment --><p>This overload is necessary to avoid interface breaks for Ginkgo 2.0</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> on_iteration_complete(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solver,</div>
 <div class="line">                           <span class="keyword">const</span> <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> &amp;iteration,</div>
 <div class="line">                           <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual,</div>
 <div class="line">                           <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solution,</div>
 <div class="line">                           <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm)<span class="keyword"> const override</span></div>
+<div class="line"><span class="keyword"></span>{</div>
+<div class="line">    this-&gt;on_iteration_complete(solver, iteration, residual, solution,</div>
+<div class="line">                                residual_norm, <span class="keyword">nullptr</span>);</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>Customize the logging hook which is called everytime an iteration is completed</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> on_iteration_complete(</div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *, <span class="keyword">const</span> <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> &amp;iteration,</div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solution,</div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm,</div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *implicit_sq_residual_norm)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword"></span>{</div>
 </div><!-- fragment --><p>If the solver shares a residual norm, log its value</p>
 <div class="fragment"><div class="line"><span class="keywordflow">if</span> (residual_norm) {</div>
@@ -222,6 +235,17 @@ $(function() {
 </div><!-- fragment --><p>Add to the <code>real_norms</code> vector the value -1.0 if it could not be computed</p>
 <div class="fragment"><div class="line">    real_norms.push_back(-1.0);</div>
 <div class="line">}</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">if</span> (implicit_sq_residual_norm) {</div>
+<div class="line">    <span class="keyword">auto</span> dense_norm =</div>
+<div class="line">        gko::as&lt;gko_real_dense&gt;(implicit_sq_residual_norm);</div>
+</div><!-- fragment --><p>Add the norm to the <code>implicit_norms</code> vector</p>
+<div class="fragment"><div class="line">    implicit_norms.push_back(</div>
+<div class="line">        std::sqrt(get_first_element(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(dense_norm))));</div>
+<div class="line">} <span class="keywordflow">else</span> {</div>
+</div><!-- fragment --><p>Add to the <code>implicit_norms</code> vector the value -1.0 if it could not be computed</p>
+<div class="fragment"><div class="line">    implicit_norms.push_back(-1.0);</div>
+<div class="line">}</div>
 </div><!-- fragment --><p>Add the current iteration number to the <code>iterations</code> vector</p>
 <div class="fragment"><div class="line">    iterations.push_back(iteration);</div>
 <div class="line">}</div>
@@ -242,6 +266,8 @@ $(function() {
 <div class="fragment"><div class="line"><span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; recurrent_norms{};</div>
 </div><!-- fragment --><p>Vector which stores all the real residual norms</p>
 <div class="fragment"><div class="line"><span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; real_norms{};</div>
+</div><!-- fragment --><p>Vector which stores all the implicit residual norms</p>
+<div class="fragment"><div class="line"><span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; implicit_norms{};</div>
 </div><!-- fragment --><p>Vector which stores all the iteration numbers</p>
 <div class="fragment"><div class="line">    <span class="keyword">mutable</span> std::vector&lt;std::size_t&gt; iterations{};</div>
 <div class="line">};</div>
@@ -355,30 +381,30 @@ $(function() {
 <div class="line">0.0107016</div>
 <div class="line">0.0121141</div>
 <div class="line">0.0123025</div>
-<div class="line">Recurrent vs true residual norm:</div>
-<div class="line">| Iteration|  Recurrent Residual Norm|       True Residual Norm|</div>
-<div class="line">|----------|-------------------------|-------------------------|</div>
-<div class="line">|         0|             4.358899e+00|             4.358899e+00|</div>
-<div class="line">|         1|             2.304548e+00|             2.304548e+00|</div>
-<div class="line">|         2|             1.467706e+00|             1.467706e+00|</div>
-<div class="line">|         3|             9.848751e-01|             9.848751e-01|</div>
-<div class="line">|         4|             7.418330e-01|             7.418330e-01|</div>
-<div class="line">|         5|             5.136231e-01|             5.136231e-01|</div>
-<div class="line">|         6|             3.841650e-01|             3.841650e-01|</div>
-<div class="line">|         7|             3.164394e-01|             3.164394e-01|</div>
-<div class="line">|         8|             2.277088e-01|             2.277088e-01|</div>
-<div class="line">|         9|             1.703121e-01|             1.703121e-01|</div>
-<div class="line">|        10|             9.737220e-02|             9.737220e-02|</div>
-<div class="line">|        11|             6.168306e-02|             6.168306e-02|</div>
-<div class="line">|        12|             4.541231e-02|             4.541231e-02|</div>
-<div class="line">|        13|             3.195304e-02|             3.195304e-02|</div>
-<div class="line">|        14|             1.616058e-02|             1.616058e-02|</div>
-<div class="line">|        15|             6.570152e-03|             6.570152e-03|</div>
-<div class="line">|        16|             2.643669e-03|             2.643669e-03|</div>
-<div class="line">|        17|             8.588089e-04|             8.588089e-04|</div>
-<div class="line">|        18|             2.864613e-04|             2.864613e-04|</div>
-<div class="line">|        19|             1.641952e-15|             2.107881e-15|</div>
-<div class="line">|----------|-------------------------|-------------------------|</div>
+<div class="line">Recurrent vs true vs implicit residual norm:</div>
+<div class="line">| Iteration|  Recurrent Residual Norm|       True Residual Norm|   Implicit Residual Norm|</div>
+<div class="line">|----------|-------------------------|-------------------------|-------------------------|</div>
+<div class="line">|         0|             4.358899e+00|             4.358899e+00|             4.358899e+00|</div>
+<div class="line">|         1|             2.304548e+00|             2.304548e+00|             2.304548e+00|</div>
+<div class="line">|         2|             1.467706e+00|             1.467706e+00|             1.467706e+00|</div>
+<div class="line">|         3|             9.848751e-01|             9.848751e-01|             9.848751e-01|</div>
+<div class="line">|         4|             7.418330e-01|             7.418330e-01|             7.418330e-01|</div>
+<div class="line">|         5|             5.136231e-01|             5.136231e-01|             5.136231e-01|</div>
+<div class="line">|         6|             3.841650e-01|             3.841650e-01|             3.841650e-01|</div>
+<div class="line">|         7|             3.164394e-01|             3.164394e-01|             3.164394e-01|</div>
+<div class="line">|         8|             2.277088e-01|             2.277088e-01|             2.277088e-01|</div>
+<div class="line">|         9|             1.703121e-01|             1.703121e-01|             1.703121e-01|</div>
+<div class="line">|        10|             9.737220e-02|             9.737220e-02|             9.737220e-02|</div>
+<div class="line">|        11|             6.168306e-02|             6.168306e-02|             6.168306e-02|</div>
+<div class="line">|        12|             4.541231e-02|             4.541231e-02|             4.541231e-02|</div>
+<div class="line">|        13|             3.195304e-02|             3.195304e-02|             3.195304e-02|</div>
+<div class="line">|        14|             1.616058e-02|             1.616058e-02|             1.616058e-02|</div>
+<div class="line">|        15|             6.570152e-03|             6.570152e-03|             6.570152e-03|</div>
+<div class="line">|        16|             2.643669e-03|             2.643669e-03|             2.643669e-03|</div>
+<div class="line">|        17|             8.588089e-04|             8.588089e-04|             8.588089e-04|</div>
+<div class="line">|        18|             2.864613e-04|             2.864613e-04|             2.864613e-04|</div>
+<div class="line">|        19|             1.641952e-15|             2.107881e-15|             1.641952e-15|</div>
+<div class="line">|----------|-------------------------|-------------------------|-------------------------|</div>
 <div class="line">Residual norm sqrt(r^T r):</div>
 <div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">real</a> general</div>
 <div class="line">1 1</div>
@@ -453,33 +479,46 @@ $(function() {
 <div class="line">    <span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#afd46d554050c4ae90e84ea4fcd9a41f3">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>()<span class="keyword"> const</span></div>
 <div class="line"><span class="keyword">    </span>{</div>
-<div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;Recurrent vs true residual norm:&quot;</span> &lt;&lt; std::endl;</div>
+<div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;Recurrent vs true vs implicit residual norm:&quot;</span></div>
+<div class="line">                  &lt;&lt; std::endl;</div>
 <div class="line">        std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(10) &lt;&lt; <span class="stringliteral">&quot;Iteration&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
 <div class="line">                  &lt;&lt; <span class="stringliteral">&quot;Recurrent Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
-<div class="line">                  &lt;&lt; <span class="stringliteral">&quot;True Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
+<div class="line">                  &lt;&lt; <span class="stringliteral">&quot;True Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
+<div class="line">                  &lt;&lt; <span class="stringliteral">&quot;Implicit Residual Norm&quot;</span> &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
 <div class="line">        std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39;-&#39;</span>) &lt;&lt; std::setw(11) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">                  &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">                  &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
+<div class="line">                  &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
 <div class="line">        std::cout &lt;&lt; std::scientific;</div>
 <div class="line">        <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; iterations.size(); i++) {</div>
 <div class="line">            std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(10) &lt;&lt; iterations[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">                      &lt;&lt; std::setw(25) &lt;&lt; recurrent_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">                      &lt;&lt; std::setw(25) &lt;&lt; real_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
+<div class="line">                      &lt;&lt; std::setw(25) &lt;&lt; real_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(25)</div>
+<div class="line">                      &lt;&lt; implicit_norms[i] &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::endl;</div>
 <div class="line">        }</div>
 <div class="line">        std::cout.unsetf(std::ios_base::floatfield);</div>
 <div class="line">        std::cout &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39;-&#39;</span>) &lt;&lt; std::setw(11) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
 <div class="line">                  &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span></div>
-<div class="line">                  &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
+<div class="line">                  &lt;&lt; std::setw(26) &lt;&lt; <span class="charliteral">&#39;|&#39;</span> &lt;&lt; std::setfill(<span class="charliteral">&#39; &#39;</span>) &lt;&lt; std::endl;</div>
 <div class="line">    }</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">using</span> gko_dense = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> gko_real_dense = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line"> </div>
-<div class="line">    <span class="keywordtype">void</span> on_iteration_complete(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *,</div>
+<div class="line">    <span class="keywordtype">void</span> on_iteration_complete(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solver,</div>
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> &amp;iteration,</div>
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual,</div>
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solution,</div>
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm)<span class="keyword"> const override</span></div>
+<div class="line"><span class="keyword">    </span>{</div>
+<div class="line">        this-&gt;on_iteration_complete(solver, iteration, residual, solution,</div>
+<div class="line">                                    residual_norm, <span class="keyword">nullptr</span>);</div>
+<div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordtype">void</span> on_iteration_complete(</div>
+<div class="line">        <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *, <span class="keyword">const</span> <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> &amp;iteration,</div>
+<div class="line">        <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *solution,</div>
+<div class="line">        <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm,</div>
+<div class="line">        <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *implicit_sq_residual_norm)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{</div>
 <div class="line">        <span class="keywordflow">if</span> (residual_norm) {</div>
 <div class="line">            <span class="keyword">auto</span> dense_norm = gko::as&lt;gko_real_dense&gt;(residual_norm);</div>
@@ -503,6 +542,15 @@ $(function() {
 <div class="line">            real_norms.push_back(-1.0);</div>
 <div class="line">        }</div>
 <div class="line"> </div>
+<div class="line">        <span class="keywordflow">if</span> (implicit_sq_residual_norm) {</div>
+<div class="line">            <span class="keyword">auto</span> dense_norm =</div>
+<div class="line">                gko::as&lt;gko_real_dense&gt;(implicit_sq_residual_norm);</div>
+<div class="line">            implicit_norms.push_back(</div>
+<div class="line">                std::sqrt(get_first_element(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(dense_norm))));</div>
+<div class="line">        } <span class="keywordflow">else</span> {</div>
+<div class="line">            implicit_norms.push_back(-1.0);</div>
+<div class="line">        }</div>
+<div class="line"> </div>
 <div class="line">        iterations.push_back(iteration);</div>
 <div class="line">    }</div>
 <div class="line"> </div>
@@ -518,6 +566,7 @@ $(function() {
 <div class="line">    <span class="keyword">const</span> gko_dense *b;</div>
 <div class="line">    <span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; recurrent_norms{};</div>
 <div class="line">    <span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; real_norms{};</div>
+<div class="line">    <span class="keyword">mutable</span> std::vector&lt;RealValueType&gt; implicit_norms{};</div>
 <div class="line">    <span class="keyword">mutable</span> std::vector&lt;std::size_t&gt; iterations{};</div>
 <div class="line">};</div>
 <div class="line"> </div>

@@ -179,10 +179,12 @@ Print a header for the table
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Recurrent vs true residual norm:"} << std::endl;}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Recurrent vs true vs implicit residual norm:"}}
+\DoxyCodeLine{          << std::endl;}
 \DoxyCodeLine{std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << \textcolor{stringliteral}{"Iteration"} << \textcolor{charliteral}{'|'} << std::setw(25)}
 \DoxyCodeLine{          << \textcolor{stringliteral}{"Recurrent Residual Norm"} << \textcolor{charliteral}{'|'} << std::setw(25)}
-\DoxyCodeLine{          << \textcolor{stringliteral}{"True Residual Norm"} << \textcolor{charliteral}{'|'} << std::endl;}
+\DoxyCodeLine{          << \textcolor{stringliteral}{"True Residual Norm"} << \textcolor{charliteral}{'|'} << std::setw(25)}
+\DoxyCodeLine{          << \textcolor{stringliteral}{"Implicit Residual Norm"} << \textcolor{charliteral}{'|'} << std::endl;}
 \end{DoxyCode}
 
 
@@ -192,7 +194,7 @@ Print a separation line. Note that for creating {\ttfamily 10} characters {\ttfa
 \begin{DoxyCode}{0}
 \DoxyCodeLine{std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-\/'}) << std::setw(11) << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{          << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{          << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
+\DoxyCodeLine{          << std::setw(26) << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
 \end{DoxyCode}
 
 
@@ -204,7 +206,8 @@ Print the data one by one in the form
 \DoxyCodeLine{\textcolor{keywordflow}{for} (std::size\_t i = 0; i < iterations.size(); i++) \{}
 \DoxyCodeLine{    std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << iterations[i] << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{              << std::setw(25) << recurrent\_norms[i] << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{              << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;}
+\DoxyCodeLine{              << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::setw(25)}
+\DoxyCodeLine{              << implicit\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;}
 \DoxyCodeLine{\}}
 \end{DoxyCode}
 
@@ -223,7 +226,7 @@ Print a separation line
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-\/'}) << std::setw(11) << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{              << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{              << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
+\DoxyCodeLine{              << std::setw(26) << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{using} gko\_dense = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -231,15 +234,31 @@ Print a separation line
 \end{DoxyCode}
 
 
-Customize the logging hook which is called everytime an iteration is completed
+This overload is necessary to avoid interface breaks for Ginkgo 2.\+0
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keywordtype}{void} on\_iteration\_complete(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *,}
+\DoxyCodeLine{\textcolor{keywordtype}{void} on\_iteration\_complete(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solver,}
 \DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} \&iteration,}
 \DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual,}
 \DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solution,}
 \DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual\_norm)\textcolor{keyword}{ const override}}
+\DoxyCodeLine{\textcolor{keyword}{}\{}
+\DoxyCodeLine{    this-\/>on\_iteration\_complete(solver, iteration, residual, solution,}
+\DoxyCodeLine{                                residual\_norm, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Customize the logging hook which is called everytime an iteration is completed
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{void} on\_iteration\_complete(}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *, \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} \&iteration,}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solution,}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual\_norm,}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *implicit\_sq\_residual\_norm)\textcolor{keyword}{ const override}}
 \DoxyCodeLine{\textcolor{keyword}{}\{}
 \end{DoxyCode}
 
@@ -351,6 +370,29 @@ Add to the {\ttfamily real\+\_\+norms} vector the value -\/1.\+0 if it could not
 \begin{DoxyCode}{0}
 \DoxyCodeLine{    real\_norms.push\_back(-\/1.0);}
 \DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (implicit\_sq\_residual\_norm) \{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} dense\_norm =}
+\DoxyCodeLine{        gko::as<gko\_real\_dense>(implicit\_sq\_residual\_norm);}
+\end{DoxyCode}
+
+
+Add the norm to the {\ttfamily implicit\+\_\+norms} vector
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    implicit\_norms.push\_back(}
+\DoxyCodeLine{        std::sqrt(get\_first\_element(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(dense\_norm))));}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\end{DoxyCode}
+
+
+Add to the {\ttfamily implicit\+\_\+norms} vector the value -\/1.\+0 if it could not be computed
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    implicit\_norms.push\_back(-\/1.0);}
+\DoxyCodeLine{\}}
 \end{DoxyCode}
 
 
@@ -407,6 +449,14 @@ Vector which stores all the real residual norms
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{mutable} std::vector<RealValueType> real\_norms\{\};}
+\end{DoxyCode}
+
+
+Vector which stores all the implicit residual norms
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{mutable} std::vector<RealValueType> implicit\_norms\{\};}
 \end{DoxyCode}
 
 
@@ -636,30 +686,30 @@ The following is the expected result\+:
 \DoxyCodeLine{0.0107016}
 \DoxyCodeLine{0.0121141}
 \DoxyCodeLine{0.0123025}
-\DoxyCodeLine{Recurrent vs true residual norm:}
-\DoxyCodeLine{| Iteration|  Recurrent Residual Norm|       True Residual Norm|}
-\DoxyCodeLine{|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|}
-\DoxyCodeLine{|         0|             4.358899e+00|             4.358899e+00|}
-\DoxyCodeLine{|         1|             2.304548e+00|             2.304548e+00|}
-\DoxyCodeLine{|         2|             1.467706e+00|             1.467706e+00|}
-\DoxyCodeLine{|         3|             9.848751e-\/01|             9.848751e-\/01|}
-\DoxyCodeLine{|         4|             7.418330e-\/01|             7.418330e-\/01|}
-\DoxyCodeLine{|         5|             5.136231e-\/01|             5.136231e-\/01|}
-\DoxyCodeLine{|         6|             3.841650e-\/01|             3.841650e-\/01|}
-\DoxyCodeLine{|         7|             3.164394e-\/01|             3.164394e-\/01|}
-\DoxyCodeLine{|         8|             2.277088e-\/01|             2.277088e-\/01|}
-\DoxyCodeLine{|         9|             1.703121e-\/01|             1.703121e-\/01|}
-\DoxyCodeLine{|        10|             9.737220e-\/02|             9.737220e-\/02|}
-\DoxyCodeLine{|        11|             6.168306e-\/02|             6.168306e-\/02|}
-\DoxyCodeLine{|        12|             4.541231e-\/02|             4.541231e-\/02|}
-\DoxyCodeLine{|        13|             3.195304e-\/02|             3.195304e-\/02|}
-\DoxyCodeLine{|        14|             1.616058e-\/02|             1.616058e-\/02|}
-\DoxyCodeLine{|        15|             6.570152e-\/03|             6.570152e-\/03|}
-\DoxyCodeLine{|        16|             2.643669e-\/03|             2.643669e-\/03|}
-\DoxyCodeLine{|        17|             8.588089e-\/04|             8.588089e-\/04|}
-\DoxyCodeLine{|        18|             2.864613e-\/04|             2.864613e-\/04|}
-\DoxyCodeLine{|        19|             1.641952e-\/15|             2.107881e-\/15|}
-\DoxyCodeLine{|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|}
+\DoxyCodeLine{Recurrent vs true vs implicit residual norm:}
+\DoxyCodeLine{| Iteration|  Recurrent Residual Norm|       True Residual Norm|   Implicit Residual Norm|}
+\DoxyCodeLine{|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|}
+\DoxyCodeLine{|         0|             4.358899e+00|             4.358899e+00|             4.358899e+00|}
+\DoxyCodeLine{|         1|             2.304548e+00|             2.304548e+00|             2.304548e+00|}
+\DoxyCodeLine{|         2|             1.467706e+00|             1.467706e+00|             1.467706e+00|}
+\DoxyCodeLine{|         3|             9.848751e-\/01|             9.848751e-\/01|             9.848751e-\/01|}
+\DoxyCodeLine{|         4|             7.418330e-\/01|             7.418330e-\/01|             7.418330e-\/01|}
+\DoxyCodeLine{|         5|             5.136231e-\/01|             5.136231e-\/01|             5.136231e-\/01|}
+\DoxyCodeLine{|         6|             3.841650e-\/01|             3.841650e-\/01|             3.841650e-\/01|}
+\DoxyCodeLine{|         7|             3.164394e-\/01|             3.164394e-\/01|             3.164394e-\/01|}
+\DoxyCodeLine{|         8|             2.277088e-\/01|             2.277088e-\/01|             2.277088e-\/01|}
+\DoxyCodeLine{|         9|             1.703121e-\/01|             1.703121e-\/01|             1.703121e-\/01|}
+\DoxyCodeLine{|        10|             9.737220e-\/02|             9.737220e-\/02|             9.737220e-\/02|}
+\DoxyCodeLine{|        11|             6.168306e-\/02|             6.168306e-\/02|             6.168306e-\/02|}
+\DoxyCodeLine{|        12|             4.541231e-\/02|             4.541231e-\/02|             4.541231e-\/02|}
+\DoxyCodeLine{|        13|             3.195304e-\/02|             3.195304e-\/02|             3.195304e-\/02|}
+\DoxyCodeLine{|        14|             1.616058e-\/02|             1.616058e-\/02|             1.616058e-\/02|}
+\DoxyCodeLine{|        15|             6.570152e-\/03|             6.570152e-\/03|             6.570152e-\/03|}
+\DoxyCodeLine{|        16|             2.643669e-\/03|             2.643669e-\/03|             2.643669e-\/03|}
+\DoxyCodeLine{|        17|             8.588089e-\/04|             8.588089e-\/04|             8.588089e-\/04|}
+\DoxyCodeLine{|        18|             2.864613e-\/04|             2.864613e-\/04|             2.864613e-\/04|}
+\DoxyCodeLine{|        19|             1.641952e-\/15|             2.107881e-\/15|             1.641952e-\/15|}
+\DoxyCodeLine{|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/|}
 \DoxyCodeLine{Residual norm sqrt(r\string^T r):}
 \DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}} general}
 \DoxyCodeLine{1 1}
@@ -743,33 +793,46 @@ The following is the expected result\+:
 \DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_afd46d554050c4ae90e84ea4fcd9a41f3}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keywordtype}{void} \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}()\textcolor{keyword}{ const}}
 \DoxyCodeLine{\textcolor{keyword}{    }\{}
-\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"Recurrent vs true residual norm:"} << std::endl;}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"Recurrent vs true vs implicit residual norm:"}}
+\DoxyCodeLine{                  << std::endl;}
 \DoxyCodeLine{        std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << \textcolor{stringliteral}{"Iteration"} << \textcolor{charliteral}{'|'} << std::setw(25)}
 \DoxyCodeLine{                  << \textcolor{stringliteral}{"Recurrent Residual Norm"} << \textcolor{charliteral}{'|'} << std::setw(25)}
-\DoxyCodeLine{                  << \textcolor{stringliteral}{"True Residual Norm"} << \textcolor{charliteral}{'|'} << std::endl;}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{"True Residual Norm"} << \textcolor{charliteral}{'|'} << std::setw(25)}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{"Implicit Residual Norm"} << \textcolor{charliteral}{'|'} << std::endl;}
 \DoxyCodeLine{        std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-\/'}) << std::setw(11) << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{                  << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{                  << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
+\DoxyCodeLine{                  << std::setw(26) << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
 \DoxyCodeLine{        std::cout << std::scientific;}
 \DoxyCodeLine{        \textcolor{keywordflow}{for} (std::size\_t i = 0; i < iterations.size(); i++) \{}
 \DoxyCodeLine{            std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << iterations[i] << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{                      << std::setw(25) << recurrent\_norms[i] << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{                      << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;}
+\DoxyCodeLine{                      << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::setw(25)}
+\DoxyCodeLine{                      << implicit\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{        std::cout.unsetf(std::ios\_base::floatfield);}
 \DoxyCodeLine{        std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-\/'}) << std::setw(11) << \textcolor{charliteral}{'|'}}
 \DoxyCodeLine{                  << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}}
-\DoxyCodeLine{                  << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
+\DoxyCodeLine{                  << std::setw(26) << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{' '}) << std::endl;}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{using} gko\_dense = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} gko\_real\_dense = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<RealValueType>}};}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keywordtype}{void} on\_iteration\_complete(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *,}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} on\_iteration\_complete(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solver,}
 \DoxyCodeLine{                               \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} \&iteration,}
 \DoxyCodeLine{                               \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual,}
 \DoxyCodeLine{                               \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solution,}
 \DoxyCodeLine{                               \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual\_norm)\textcolor{keyword}{ const override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{}
+\DoxyCodeLine{        this-\/>on\_iteration\_complete(solver, iteration, residual, solution,}
+\DoxyCodeLine{                                    residual\_norm, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} on\_iteration\_complete(}
+\DoxyCodeLine{        \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *, \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} \&iteration,}
+\DoxyCodeLine{        \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *solution,}
+\DoxyCodeLine{        \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *residual\_norm,}
+\DoxyCodeLine{        \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *implicit\_sq\_residual\_norm)\textcolor{keyword}{ const override}}
 \DoxyCodeLine{\textcolor{keyword}{    }\{}
 \DoxyCodeLine{        \textcolor{keywordflow}{if} (residual\_norm) \{}
 \DoxyCodeLine{            \textcolor{keyword}{auto} dense\_norm = gko::as<gko\_real\_dense>(residual\_norm);}
@@ -793,6 +856,15 @@ The following is the expected result\+:
 \DoxyCodeLine{            real\_norms.push\_back(-\/1.0);}
 \DoxyCodeLine{        \}}
 \DoxyCodeLine{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (implicit\_sq\_residual\_norm) \{}
+\DoxyCodeLine{            \textcolor{keyword}{auto} dense\_norm =}
+\DoxyCodeLine{                gko::as<gko\_real\_dense>(implicit\_sq\_residual\_norm);}
+\DoxyCodeLine{            implicit\_norms.push\_back(}
+\DoxyCodeLine{                std::sqrt(get\_first\_element(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(dense\_norm))));}
+\DoxyCodeLine{        \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{            implicit\_norms.push\_back(-\/1.0);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{}
 \DoxyCodeLine{        iterations.push\_back(iteration);}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
@@ -808,6 +880,7 @@ The following is the expected result\+:
 \DoxyCodeLine{    \textcolor{keyword}{const} gko\_dense *b;}
 \DoxyCodeLine{    \textcolor{keyword}{mutable} std::vector<RealValueType> recurrent\_norms\{\};}
 \DoxyCodeLine{    \textcolor{keyword}{mutable} std::vector<RealValueType> real\_norms\{\};}
+\DoxyCodeLine{    \textcolor{keyword}{mutable} std::vector<RealValueType> implicit\_norms\{\};}
 \DoxyCodeLine{    \textcolor{keyword}{mutable} std::vector<std::size\_t> iterations\{\};}
 \DoxyCodeLine{\};}
 \DoxyCodeLine{}
