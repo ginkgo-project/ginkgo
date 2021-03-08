@@ -287,15 +287,15 @@ protected:
     int data[2 * 3 * 4]{
          1, 3, 5,
          2, 4, 6,
-		-1,-2,-3,
-		11,12,13,
+        -1,-2,-3,
+        11,12,13,
 
-		21,25,29,
-		22,26,30,
-		23,27,31,
-		24,28,32
+        21,25,29,
+        22,26,30,
+        23,27,31,
+        24,28,32
 
-		/* This matrix actually looks like
+        /* This matrix actually looks like
         1, 2, -1, 11,
         3, 4, -2, 12,
         5, 6, -3, 13,
@@ -303,7 +303,7 @@ protected:
         21, 22, 23, 24,
         25, 26, 27, 28,
         29, 30, 31, 32
-	    */
+        */
     };
     // clang-format on
     const gko::dim<dimensionality> dim1{2, 3, 4};

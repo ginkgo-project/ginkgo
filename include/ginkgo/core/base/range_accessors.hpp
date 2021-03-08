@@ -635,11 +635,12 @@ public:
 };
 
 
+namespace detail {
 /**
  * Namespace for helper functions and structs for
  * the block column major accessor.
  */
-namespace detail_block_col_major {
+namespace blk_col_major {
 
 
 /**
@@ -747,7 +748,8 @@ constexpr GKO_ATTRIBUTES
 }
 
 
-}  // namespace detail_block_col_major
+}  // namespace blk_col_major
+}  // namespace detail
 
 
 /**
@@ -824,7 +826,7 @@ protected:
                                                       dim<dimensionality> size)
         : data{data},
           lengths(detail::to_array<const size_type>(size)),
-          stride(detail_block_col_major::default_stride_array(lengths))
+          stride(detail::blk_col_major::default_stride_array(lengths))
     {}
 
 public:
@@ -853,7 +855,7 @@ public:
         std::enable_if_t<are_all_integral<Indices...>::value, value_type &>
         operator()(Indices &&... indices) const
     {
-        return data[detail_block_col_major::compute_index(
+        return data[detail::blk_col_major::compute_index(
             lengths, stride, std::forward<Indices>(indices)...)];
     }
 
@@ -873,7 +875,7 @@ public:
     {
         return detail::validate_spans(lengths, spans...),
                range<block_col_major>{
-                   data + detail_block_col_major::compute_index(
+                   data + detail::blk_col_major::compute_index(
                               lengths, stride, (span{spans}.begin)...),
                    dim<dimensionality>{
                        (span{spans}.end - span{spans}.begin)...},
