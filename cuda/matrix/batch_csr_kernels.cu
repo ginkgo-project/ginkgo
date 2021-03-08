@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
@@ -77,6 +78,10 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
 constexpr int classical_overweight = 32;
+
+#include "common/matrix/batch_dense_kernels.hpp.inc"
+// csr needs dense
+#include "common/matrix/batch_csr_kernels.hpp.inc"
 
 
 /**
@@ -250,124 +255,18 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType> *a,
           const matrix::BatchDense<ValueType> *b,
-          matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_csr): change the code imported from matrix/csr if needed
-//    if (a->get_strategy()->get_name() == "load_balance") {
-//        components::fill_array(exec, c->get_values(),
-//                               c->get_num_stored_elements(),
-//                               zero<ValueType>());
-//        const IndexType nwarps = a->get_num_srow_elements();
-//        if (nwarps > 0) {
-//            const dim3 batch_csr_block(config::warp_size, warps_in_block, 1);
-//            const dim3 batch_csr_grid(ceildiv(nwarps, warps_in_block),
-//                                b->get_size()[1]);
-//            kernel::abstract_spmv<<<batch_csr_grid, batch_csr_block>>>(
-//                nwarps, static_cast<IndexType>(a->get_size()[0]),
-//                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-//                as_cuda_type(a->get_const_row_ptrs()),
-//                as_cuda_type(a->get_const_srow()),
-//                as_cuda_type(b->get_const_values()),
-//                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
-//                as_cuda_type(c->get_stride()));
-//        } else {
-//            GKO_NOT_SUPPORTED(nwarps);
-//        }
-//    } else if (a->get_strategy()->get_name() == "merge_path") {
-//        int items_per_thread =
-//            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
-//        host_kernel::select_merge_path_spmv(
-//            compiled_kernels(),
-//            [&items_per_thread](int compiled_info) {
-//                return items_per_thread == compiled_info;
-//            },
-//            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-//    } else if (a->get_strategy()->get_name() == "classical") {
-//        IndexType max_length_per_row = 0;
-//        using Tbatch_csr = matrix::BatchCsr<ValueType, IndexType>;
-//        if (auto strategy =
-//                std::dynamic_pointer_cast<const typename
-//                Tbatch_csr::classical>(
-//                    a->get_strategy())) {
-//            max_length_per_row = strategy->get_max_length_per_row();
-//        } else if (auto strategy = std::dynamic_pointer_cast<
-//                       const typename
-//                       Tbatch_csr::automatical>(a->get_strategy())) {
-//            max_length_per_row = strategy->get_max_length_per_row();
-//        } else {
-//            GKO_NOT_SUPPORTED(a->get_strategy());
-//        }
-//        host_kernel::select_classical_spmv(
-//            classical_kernels(),
-//            [&max_length_per_row](int compiled_info) {
-//                return max_length_per_row >= compiled_info;
-//            },
-//            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-//    } else if (a->get_strategy()->get_name() == "sparselib" ||
-//               a->get_strategy()->get_name() == "cusparse") {
-//        if (cusparse::is_supported<ValueType, IndexType>::value) {
-//            // TODO: add implementation for int64 and multiple RHS
-//            auto handle = exec->get_cusparse_handle();
-//            {
-//                cusparse::pointer_mode_guard pm_guard(handle);
-//                const auto alpha = one<ValueType>();
-//                const auto beta = zero<ValueType>();
-//                // TODO: add implementation for int64 and multiple RHS
-//                if (b->get_stride() != 1 || c->get_stride() != 1)
-//                    GKO_NOT_IMPLEMENTED;
-//
-//#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-//                auto descr = cusparse::create_mat_descr();
-//                auto row_ptrs = a->get_const_row_ptrs();
-//                auto col_idxs = a->get_const_col_idxs();
-//                cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-//                               a->get_size()[0], a->get_size()[1],
-//                               a->get_num_stored_elements(), &alpha, descr,
-//                               a->get_const_values(), row_ptrs, col_idxs,
-//                               b->get_const_values(), &beta, c->get_values());
-//
-//                cusparse::destroy(descr);
-//#else  // CUDA_VERSION >= 11000
-//                cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-//                cusparseSpMVAlg_t alg = CUSPARSE_BATCH_CSRMV_ALG1;
-//                auto row_ptrs =
-//                    const_cast<IndexType *>(a->get_const_row_ptrs());
-//                auto col_idxs =
-//                    const_cast<IndexType *>(a->get_const_col_idxs());
-//                auto values = const_cast<ValueType *>(a->get_const_values());
-//                auto mat = cusparse::create_batch_csr(
-//                    a->get_size()[0], a->get_size()[1],
-//                    a->get_num_stored_elements(), row_ptrs, col_idxs, values);
-//                auto b_val = const_cast<ValueType *>(b->get_const_values());
-//                auto c_val = c->get_values();
-//                auto vecb =
-//                    cusparse::create_dnvec(b->get_num_stored_elements(),
-//                    b_val);
-//                auto vecc =
-//                    cusparse::create_dnvec(c->get_num_stored_elements(),
-//                    c_val);
-//                size_type buffer_size = 0;
-//                cusparse::spmv_buffersize<ValueType>(handle, trans, &alpha,
-//                mat,
-//                                                     vecb, &beta, vecc, alg,
-//                                                     &buffer_size);
-//
-//                gko::Array<char> buffer_array(exec, buffer_size);
-//                auto buffer = buffer_array.get_data();
-//                cusparse::spmv<ValueType>(handle, trans, &alpha, mat, vecb,
-//                                          &beta, vecc, alg, buffer);
-//                cusparse::destroy(vecb);
-//                cusparse::destroy(vecc);
-//                cusparse::destroy(mat);
-//#endif
-//            }
-//        } else {
-//            GKO_NOT_IMPLEMENTED;
-//        }
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
+          matrix::BatchDense<ValueType> *c)
+{
+    //   typename matrix::BatchCsr<ValueType, IndexType>::device_obj batch_csr;
+    //   batch_csr.value = 1.0;
+    //   batch_csr.index = 2;
+    //   can not directly use the object from class
+    //   batch_apply_kernel<<<1, 1>>>(batch_csr, one<ValueType>(),
+    //   zero<IndexType>());
+    auto csr_obj = prepare(a);
+    auto dense_obj = prepare(one<ValueType>());
+    batch_apply_kernel<<<1, 1>>>(csr_obj, dense_obj);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
