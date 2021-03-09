@@ -1110,6 +1110,25 @@ TYPED_TEST(Isai, ReturnsCorrectInverseULongrow)
 
     auto u_inv = isai->get_approximate_inverse();
 
+    auto inv_d = gko::matrix::Dense<value_type>::create(this->exec);
+    inv_d->copy_from(u_inv.get());
+    for (auto i = 0; i < u_inv->get_size()[0]; i++) {
+        for (auto j = 0; j < u_inv->get_size()[1]; j++) {
+            std::cout << inv_d->at(i, j) << "   ";
+        }
+        std::cout << std::endl;
+    }
+
+    std::cout << "----------------------------------------" << std::endl;
+    auto inv_dd = gko::matrix::Dense<value_type>::create(this->exec);
+    inv_dd->copy_from(this->u_csr_longrow.get());
+    for (auto i = 0; i < u_inv->get_size()[0]; i++) {
+        for (auto j = 0; j < u_inv->get_size()[1]; j++) {
+            std::cout << inv_dd->at(i, j) << "   ";
+        }
+        std::cout << std::endl;
+    }
+
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_csr_longrow_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_csr_longrow_inv, r<value_type>::value);
 }

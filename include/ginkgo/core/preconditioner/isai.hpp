@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {
@@ -126,6 +127,7 @@ public:
     using Comp = Composition<ValueType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     using Dense = matrix::Dense<ValueType>;
+    using Ell = matrix::Ell<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
     /**
@@ -139,8 +141,25 @@ public:
                                                     Comp, Csr>::type>
     get_approximate_inverse() const
     {
+        auto exec = this->get_executor();
+        std::shared_ptr<LinOp> return_inv;
+        if (IsaiType == isai_type::spd) {
+            auto ops = as<Comp>(approximate_inverse_)->get_operators();
+            auto inv = as<Ell>(ops[1]);
+            auto inv_transp = as<Ell>(ops[0]);
+            auto csr_inv = Csr::create(exec);
+            auto csr_inv_transp = Csr::create(exec);
+            inv->convert_to(csr_inv.get());
+            inv_transp->convert_to(csr_inv_transp.get());
+            return_inv = share(Composition<ValueType>::create(
+                share(csr_inv_transp), share(csr_inv)));
+        } else {
+            auto csr_inv = Csr::create(exec);
+            as<Ell>(approximate_inverse_)->convert_to(csr_inv.get());
+            return_inv = share(csr_inv);
+        }
         return as<typename std::conditional<IsaiType == isai_type::spd, Comp,
-                                            Csr>::type>(approximate_inverse_);
+                                            Csr>::type>(return_inv);
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -211,15 +230,22 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
+        const auto exec = this->get_executor();
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+        auto inv = share(as<Csr>(approximate_inverse_));
+        auto ell_inv = Ell::create(exec);
+        inv->move_to(ell_inv.get());
         if (IsaiType == isai_type::spd) {
-            auto inv = share(as<Csr>(approximate_inverse_));
-            auto inv_transp = share(inv->conj_transpose());
-            approximate_inverse_ =
-                Composition<ValueType>::create(inv_transp, inv);
+            auto inv_transp = share(as<Csr>(inv->conj_transpose()));
+            auto ell_inv_transp = Ell::create(exec);
+            inv_transp->move_to(ell_inv_transp.get());
+            approximate_inverse_ = Composition<ValueType>::create(
+                share(ell_inv_transp), share(ell_inv));
+        } else {
+            approximate_inverse_ = share(ell_inv);
         }
     }
 
