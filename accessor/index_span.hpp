@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_ACCESSOR_INDEX_SPAN_HPP_
 #define GKO_ACCESSOR_INDEX_SPAN_HPP_
 
-#include "accessor/utils.hpp"
+#include "utils.hpp"
 
 
 namespace gko {

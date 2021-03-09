@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
-#include "accessor/index_span.hpp"
-#include "accessor/utils.hpp"
+#include "index_span.hpp"
+#include "utils.hpp"
 
 
 namespace gko {

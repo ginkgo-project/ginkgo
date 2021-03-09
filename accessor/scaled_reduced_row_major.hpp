@@ -39,11 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
-#include "accessor/accessor_helper.hpp"
-#include "accessor/accessor_references.hpp"
-#include "accessor/index_span.hpp"
-#include "accessor/range.hpp"
-#include "accessor/utils.hpp"
+#include "accessor_helper.hpp"
+#include "accessor_references.hpp"
+#include "index_span.hpp"
+#include "range.hpp"
+#include "utils.hpp"
 
 
 namespace gko {
