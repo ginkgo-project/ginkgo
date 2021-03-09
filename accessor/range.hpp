@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
-#include "accessor/utils.hpp"
+#include "utils.hpp"
 
 
 namespace gko {
