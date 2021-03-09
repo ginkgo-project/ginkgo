@@ -73,9 +73,9 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
-                 public Preconditionable,
-                 public Transposable {
+class GKO_EXPORT Bicgstab : public EnableLinOp<Bicgstab<ValueType>>,
+                            public Preconditionable,
+                            public Transposable {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
 

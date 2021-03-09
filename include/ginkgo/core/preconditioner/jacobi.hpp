@@ -204,10 +204,10 @@ struct block_interleaved_storage_scheme {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
-               public ConvertibleTo<matrix::Dense<ValueType>>,
-               public WritableToMatrixData<ValueType, IndexType>,
-               public Transposable {
+class GKO_EXPORT Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
+                          public ConvertibleTo<matrix::Dense<ValueType>>,
+                          public WritableToMatrixData<ValueType, IndexType>,
+                          public Transposable {
     friend class EnableLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, LinOp>;
 

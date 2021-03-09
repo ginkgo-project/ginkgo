@@ -75,7 +75,7 @@ enum class mode { absolute, initial_resnorm, rhs_norm };
  * @ingroup stop
  */
 template <typename ValueType>
-class ResidualNormBase
+class GKO_EXPORT ResidualNormBase
     : public EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion> {
     friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
                                          Criterion>;
@@ -180,7 +180,7 @@ private:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ResidualNorm : public ResidualNormBase<ValueType> {
+class GKO_EXPORT ResidualNorm : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -236,7 +236,7 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ImplicitResidualNorm : public ResidualNormBase<ValueType> {
+class GKO_EXPORT ImplicitResidualNorm : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -302,7 +302,7 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ResidualNormReduction : public ResidualNormBase<ValueType> {
+class GKO_EXPORT ResidualNormReduction : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -355,7 +355,7 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm : public ResidualNormBase<ValueType> {
+class GKO_EXPORT RelativeResidualNorm : public ResidualNormBase<ValueType> {
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -406,7 +406,7 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class AbsoluteResidualNorm : public ResidualNormBase<ValueType> {
+class GKO_EXPORT AbsoluteResidualNorm : public ResidualNormBase<ValueType> {
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;

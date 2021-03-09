@@ -58,7 +58,7 @@ namespace gko {
  *       structure. Consider using gko::read instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_raw(std::istream &is);
+GKO_EXPORT matrix_data<ValueType, IndexType> read_raw(std::istream &is);
 
 
 /**
@@ -91,8 +91,9 @@ enum class layout_type {
  *       gko::write instead.
  */
 template <typename ValueType, typename IndexType>
-void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
-               layout_type layout = layout_type::array);
+GKO_EXPORT void write_raw(std::ostream &os,
+                          const matrix_data<ValueType, IndexType> &data,
+                          layout_type layout = layout_type::array);
 
 
 /**

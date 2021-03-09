@@ -55,9 +55,9 @@ namespace residual_norm {
         bool *all_converged, bool *one_changed)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    template <typename ValueType>                   \
+    _export_macro GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
 
 
 }  // namespace residual_norm
@@ -76,9 +76,9 @@ namespace implicit_residual_norm {
         Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES2 \
-    template <typename ValueType>     \
-    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES2(_export_macro) \
+    template <typename ValueType>                    \
+    _export_macro GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
 
 
 }  // namespace implicit_residual_norm
@@ -87,14 +87,14 @@ namespace implicit_residual_norm {
 namespace omp {
 namespace residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES2;
+GKO_DECLARE_ALL_AS_TEMPLATES2(GKO_OMP_EXPORT);
 
 }  // namespace implicit_residual_norm
 }  // namespace omp
@@ -103,14 +103,14 @@ GKO_DECLARE_ALL_AS_TEMPLATES2;
 namespace cuda {
 namespace residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES2;
+GKO_DECLARE_ALL_AS_TEMPLATES2(GKO_CUDA_EXPORT);
 
 }  // namespace implicit_residual_norm
 }  // namespace cuda
@@ -119,14 +119,14 @@ GKO_DECLARE_ALL_AS_TEMPLATES2;
 namespace reference {
 namespace residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES2;
+GKO_DECLARE_ALL_AS_TEMPLATES2(GKO_REFERENCE_EXPORT);
 
 }  // namespace implicit_residual_norm
 }  // namespace reference
@@ -135,14 +135,14 @@ GKO_DECLARE_ALL_AS_TEMPLATES2;
 namespace hip {
 namespace residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES2;
+GKO_DECLARE_ALL_AS_TEMPLATES2(GKO_HIP_EXPORT);
 
 }  // namespace implicit_residual_norm
 }  // namespace hip
@@ -151,14 +151,14 @@ GKO_DECLARE_ALL_AS_TEMPLATES2;
 namespace dpcpp {
 namespace residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
 
-GKO_DECLARE_ALL_AS_TEMPLATES2;
+GKO_DECLARE_ALL_AS_TEMPLATES2(GKO_DPCPP_EXPORT);
 
 }  // namespace implicit_residual_norm
 }  // namespace dpcpp

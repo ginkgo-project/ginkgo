@@ -46,7 +46,7 @@ namespace gko {
  *
  * @ingroup stop
  */
-class stopping_status {
+class GKO_EXPORT stopping_status {
     friend GKO_ATTRIBUTES GKO_INLINE bool operator==(
         const stopping_status &x, const stopping_status &y) noexcept;
     friend GKO_ATTRIBUTES GKO_INLINE bool operator!=(

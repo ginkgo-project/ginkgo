@@ -67,20 +67,23 @@ namespace kernels {
         const matrix::Dense<ValueType> *excess_solution,                      \
         matrix::Csr<ValueType, IndexType> *inverse)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    constexpr auto row_size_limit = 32;                                   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    constexpr auto row_size_limit = 32;                                      \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType,    \
+                                                               IndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType,  \
+                                                                 IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, \
+                                                                  IndexType)
 
 
 namespace omp {
 namespace isai {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace isai
 }  // namespace omp
@@ -89,7 +92,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace isai {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace isai
 }  // namespace cuda
@@ -98,7 +101,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace isai {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace isai
 }  // namespace reference
@@ -107,7 +110,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace isai {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace isai
 }  // namespace hip
@@ -116,7 +119,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace isai {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace isai
 }  // namespace dpcpp

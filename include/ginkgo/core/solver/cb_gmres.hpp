@@ -118,8 +118,8 @@ enum class storage_precision {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
-                public Preconditionable {
+class GKO_EXPORT CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+                           public Preconditionable {
     friend class EnableLinOp<CbGmres>;
     friend class EnablePolymorphicObject<CbGmres, LinOp>;
 

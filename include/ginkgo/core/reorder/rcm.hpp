@@ -92,7 +92,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm
+class GKO_EXPORT Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>, ReorderingBase>,
       public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Rcm, ReorderingBase>;

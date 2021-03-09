@@ -87,14 +87,14 @@ namespace gko {
  *       any subsequent queries will be from the same global object and hence
  *       use an extra atomic read.
  */
-class MachineTopology {
+class GKO_EXPORT MachineTopology {
     template <typename T>
     using hwloc_manager = std::unique_ptr<T, std::function<void(T *)>>;
 
     /**
      * This struct holds the attributes for a normal non-IO object.
      */
-    struct normal_obj_info {
+    struct GKO_EXPORT normal_obj_info {
         /**
          * The hwloc object.
          */
@@ -147,7 +147,7 @@ class MachineTopology {
      * @note IO children can have names such as ibX for Infiniband cards, cudaX
      * for NVIDIA cards with CUDA and rsmiX for AMD cards.
      */
-    struct io_obj_info {
+    struct GKO_EXPORT io_obj_info {
         /**
          * The hwloc object.
          */

@@ -33,6 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_INCLUDE_CONFIG_H
 #define GKO_INCLUDE_CONFIG_H
 
+#include "export.hpp"
+#include "export_cuda.hpp"
+#include "export_dpcpp.hpp"
+#include "export_hip.hpp"
+#include "export_omp.hpp"
+#include "export_reference.hpp"
+
 // clang-format off
 #define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
 #define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@

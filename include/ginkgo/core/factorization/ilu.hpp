@@ -68,7 +68,7 @@ namespace factorization {
  */
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class Ilu : public Composition<ValueType> {
+class GKO_EXPORT Ilu : public Composition<ValueType> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;

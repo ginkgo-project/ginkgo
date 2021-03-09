@@ -142,7 +142,7 @@ class Diagonal;
  *
  * @ref LinOp
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
+class GKO_EXPORT LinOp : public EnableAbstractPolymorphicObject<LinOp> {
 public:
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -373,7 +373,7 @@ private:
  *
  * @ingroup LinOp
  */
-class LinOpFactory
+class GKO_EXPORT LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
 public:
     using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
@@ -415,7 +415,7 @@ public:
  * auto trans = op->transpose();
  * ```
  */
-class Transposable {
+class GKO_EXPORT Transposable {
 public:
     virtual ~Transposable() = default;
 
@@ -466,7 +466,7 @@ public:
  * ```
  */
 template <typename IndexType>
-class Permutable {
+class GKO_EXPORT Permutable {
 public:
     virtual ~Permutable() = default;
 
@@ -569,7 +569,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
-class ReadableFromMatrixData {
+class GKO_EXPORT ReadableFromMatrixData {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -602,7 +602,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
-class WritableToMatrixData {
+class GKO_EXPORT WritableToMatrixData {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -624,7 +624,7 @@ public:
  * @ingroup precond
  * @ingroup LinOp
  */
-class Preconditionable {
+class GKO_EXPORT Preconditionable {
 public:
     virtual ~Preconditionable() = default;
 
@@ -662,7 +662,7 @@ private:
  * @ingroup LinOp
  */
 template <typename ValueType>
-class DiagonalExtractable {
+class GKO_EXPORT DiagonalExtractable {
 public:
     using value_type = ValueType;
 
@@ -683,7 +683,7 @@ public:
  * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
  * implement this interface.
  */
-class AbsoluteComputable {
+class GKO_EXPORT AbsoluteComputable {
 public:
     /**
      * Gets the absolute LinOp
@@ -711,7 +711,7 @@ public:
  * @ingroup LinOp
  */
 template <typename AbsoluteLinOp>
-class EnableAbsoluteComputation : public AbsoluteComputable {
+class GKO_EXPORT EnableAbsoluteComputation : public AbsoluteComputable {
 public:
     using absolute_type = AbsoluteLinOp;
 
@@ -762,7 +762,7 @@ public:
  * @ingroup LinOp
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
+class GKO_EXPORT EnableLinOp
     : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
       public EnablePolymorphicAssignment<ConcreteLinOp> {
 public:
@@ -867,7 +867,7 @@ using EnableDefaultLinOpFactory =
 #define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
 public:                                                                 \
     class _factory_name;                                                \
-    struct _parameters_name##_type                                      \
+    struct GKO_EXPORT _parameters_name##_type                           \
         : public ::gko::enable_parameters_type<_parameters_name##_type, \
                                                _factory_name>
 
@@ -954,7 +954,7 @@ public:                                                                      \
         return _parameters_name##_;                                          \
     }                                                                        \
                                                                              \
-    class _factory_name                                                      \
+    class GKO_EXPORT _factory_name                                           \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
         friend class ::gko::EnablePolymorphicObject<_factory_name,           \

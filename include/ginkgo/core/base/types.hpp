@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/config.hpp>
+
+
 #ifdef __HIPCC__
 #include <hip/hip_runtime.h>
 #endif  // __HIPCC__
@@ -83,14 +86,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
         // defined(__HIP_DEVICE_COMPILE__)
-
-
-// Handle deprecated notices correctly on different systems
-#if defined(_WIN32) || defined(__CYGWIN__)
-#define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
-#else
-#define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#endif  // defined(_WIN32) || defined(__CYGWIN__)
 
 
 namespace gko {

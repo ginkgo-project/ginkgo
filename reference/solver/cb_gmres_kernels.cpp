@@ -394,7 +394,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+    GKO_REFERENCE_EXPORT GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
@@ -430,7 +430,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
                                  stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_REFERENCE_EXPORT GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 
 template <typename ValueType, typename ConstAccessor3d>
@@ -449,7 +450,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+    GKO_REFERENCE_EXPORT GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace cb_gmres

@@ -334,3 +334,8 @@ if(GINKGO_BUILD_TESTS)
     endforeach()
     add_subdirectory(test)
 endif()
+
+include(GenerateExportHeader)
+generate_export_header(ginkgo_hip
+    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_hip.hpp"
+    BASE_NAME "GKO_HIP")

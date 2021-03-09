@@ -68,7 +68,7 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Hybrid
+class GKO_EXPORT Hybrid
     : public EnableLinOp<Hybrid<ValueType, IndexType>>,
       public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
@@ -108,7 +108,7 @@ public:
      * The practical strategy method should inherit strategy_type and implement
      * its `compute_ell_num_stored_elements_per_row` function.
      */
-    class strategy_type {
+    class GKO_EXPORT strategy_type {
     public:
         /**
          * Creates a strategy_type.
@@ -202,7 +202,7 @@ public:
      * column_limit is a strategy_type which decides the number of stored
      * elements per row of the ell part by specifying the number of columns.
      */
-    class column_limit : public strategy_type {
+    class GKO_EXPORT column_limit : public strategy_type {
     public:
         /**
          * Creates a column_limit strategy.
@@ -237,7 +237,7 @@ public:
      * `floor(percent * num_row)` as the number of stored elements per row of
      * the ell part. Thus, at least `percent` rows of all are in the ell part.
      */
-    class imbalance_limit : public strategy_type {
+    class GKO_EXPORT imbalance_limit : public strategy_type {
     public:
         /**
          * Creates a imbalance_limit strategy.
@@ -284,7 +284,7 @@ public:
      * stored elements per row of the ell part. It uses the imbalance_limit and
      * adds the upper bound of the number of ell's cols by the number of rows.
      */
-    class imbalance_bounded_limit : public strategy_type {
+    class GKO_EXPORT imbalance_bounded_limit : public strategy_type {
     public:
         /**
          * Creates a imbalance_bounded_limit strategy.
@@ -328,7 +328,7 @@ public:
      * stored elements per row of the ell part. It is determined by the size of
      * ValueType and IndexType, the storage is the minimum among all partition.
      */
-    class minimal_storage_limit : public strategy_type {
+    class GKO_EXPORT minimal_storage_limit : public strategy_type {
     public:
         /**
          * Creates a minimal_storage_limit strategy.
@@ -361,7 +361,7 @@ public:
      * automatic is a strategy_type which decides the number of stored elements
      * per row of the ell part automatically.
      */
-    class automatic : public strategy_type {
+    class GKO_EXPORT automatic : public strategy_type {
     public:
         /**
          * Creates an automatic strategy.

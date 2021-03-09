@@ -67,7 +67,7 @@ namespace gko {
  *                         the product
  */
 template <typename AbstractProductType, typename ComponentsType>
-class AbstractFactory
+class GKO_EXPORT AbstractFactory
     : public EnableAbstractPolymorphicObject<
           AbstractFactory<AbstractProductType, ComponentsType>> {
 public:
@@ -145,7 +145,7 @@ protected:
  */
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
-class EnableDefaultFactory
+class GKO_EXPORT EnableDefaultFactory
     : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
       public EnablePolymorphicAssignment<ConcreteFactory> {
 public:

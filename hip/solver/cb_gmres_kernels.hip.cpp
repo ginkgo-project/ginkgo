@@ -210,7 +210,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
-    GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
+    GKO_HIP_EXPORT GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
@@ -455,7 +455,8 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_HIP_EXPORT GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -534,7 +535,7 @@ void step_2(std::shared_ptr<const HipExecutor> exec,
 
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
+    GKO_HIP_EXPORT GKO_DECLARE_CB_GMRES_STEP_2_KERNEL);
 
 
 }  // namespace cb_gmres

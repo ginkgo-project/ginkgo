@@ -60,9 +60,10 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Composition : public EnableLinOp<Composition<ValueType>>,
-                    public EnableCreateMethod<Composition<ValueType>>,
-                    public Transposable {
+class GKO_EXPORT Composition
+    : public EnableLinOp<Composition<ValueType>>,
+      public EnableCreateMethod<Composition<ValueType>>,
+      public Transposable {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 

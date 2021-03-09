@@ -48,5 +48,7 @@ version version_info::get_omp_version() noexcept
 
 
 #define GKO_HOOK_MODULE omp
+#define GKO_EXPORT_HOOK GKO_OMP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

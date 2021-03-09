@@ -65,7 +65,7 @@ class Dense;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Diagonal
+class GKO_EXPORT Diagonal
     : public EnableLinOp<Diagonal<ValueType>>,
       public EnableCreateMethod<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,

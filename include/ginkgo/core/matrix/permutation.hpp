@@ -76,8 +76,9 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class Permutation : public EnableLinOp<Permutation<IndexType>>,
-                    public EnableCreateMethod<Permutation<IndexType>> {
+class GKO_EXPORT Permutation
+    : public EnableLinOp<Permutation<IndexType>>,
+      public EnableCreateMethod<Permutation<IndexType>> {
     friend class EnableCreateMethod<Permutation>;
     friend class EnablePolymorphicObject<Permutation, LinOp>;
 

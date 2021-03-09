@@ -71,13 +71,13 @@ namespace cg {
                 const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES             \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                \
-    GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)            \
+    template <typename ValueType>                              \
+    _export_macro GKO_DECLARE_CG_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                              \
+    _export_macro GKO_DECLARE_CG_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                              \
+    _export_macro GKO_DECLARE_CG_STEP_2_KERNEL(ValueType)
 
 
 }  // namespace cg
@@ -86,7 +86,7 @@ namespace cg {
 namespace omp {
 namespace cg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace cg
 }  // namespace omp
@@ -95,7 +95,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace cg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace cg
 }  // namespace cuda
@@ -104,7 +104,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace cg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace cg
 }  // namespace reference
@@ -113,7 +113,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace cg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace cg
 }  // namespace hip
@@ -122,7 +122,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace cg {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace cg
 }  // namespace dpcpp

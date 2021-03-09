@@ -75,13 +75,13 @@ namespace lower_trs {
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL();  \
-    GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL();               \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                         \
+    _export_macro GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL();  \
+    _export_macro GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL();               \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
 
 
 }  // namespace lower_trs
@@ -90,7 +90,7 @@ namespace lower_trs {
 namespace omp {
 namespace lower_trs {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace lower_trs
 }  // namespace omp
@@ -99,7 +99,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace lower_trs {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace lower_trs
 }  // namespace cuda
@@ -108,7 +108,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace lower_trs {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace lower_trs
 }  // namespace reference
@@ -117,7 +117,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace lower_trs {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace lower_trs
 }  // namespace hip
@@ -126,7 +126,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace lower_trs {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace lower_trs
 }  // namespace dpcpp

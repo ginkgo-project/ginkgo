@@ -91,17 +91,17 @@ namespace idr {
         const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES              \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)             \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)
 
 
 }  // namespace idr
@@ -110,7 +110,7 @@ namespace idr {
 namespace omp {
 namespace idr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace idr
 }  // namespace omp
@@ -119,7 +119,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace idr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace idr
 }  // namespace cuda
@@ -128,7 +128,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace idr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace idr
 }  // namespace reference
@@ -137,7 +137,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace idr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace idr
 }  // namespace hip
@@ -146,7 +146,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace idr {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace idr
 }  // namespace dpcpp

@@ -96,17 +96,17 @@ namespace bicgstab {
                   Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                   \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);     \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);     \
-    template <typename ValueType>                      \
-    GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                  \
+    template <typename ValueType>                                    \
+    _export_macro GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                                    \
+    _export_macro GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                                    \
+    _export_macro GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                                    \
+    _export_macro GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType);     \
+    template <typename ValueType>                                    \
+    _export_macro GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType)
 
 
 }  // namespace bicgstab
@@ -115,7 +115,7 @@ namespace bicgstab {
 namespace omp {
 namespace bicgstab {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_OMP_EXPORT);
 
 }  // namespace bicgstab
 }  // namespace omp
@@ -124,7 +124,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace cuda {
 namespace bicgstab {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_CUDA_EXPORT);
 
 }  // namespace bicgstab
 }  // namespace cuda
@@ -133,7 +133,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace reference {
 namespace bicgstab {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_REFERENCE_EXPORT);
 
 }  // namespace bicgstab
 }  // namespace reference
@@ -142,7 +142,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace hip {
 namespace bicgstab {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_HIP_EXPORT);
 
 }  // namespace bicgstab
 }  // namespace hip
@@ -151,7 +151,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 namespace dpcpp {
 namespace bicgstab {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+GKO_DECLARE_ALL_AS_TEMPLATES(GKO_DPCPP_EXPORT);
 
 }  // namespace bicgstab
 }  // namespace dpcpp

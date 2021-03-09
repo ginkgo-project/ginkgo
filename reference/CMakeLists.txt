@@ -51,3 +51,8 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+
+include(GenerateExportHeader)
+generate_export_header(ginkgo_reference
+    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_reference.hpp"
+    BASE_NAME "GKO_REFERENCE")

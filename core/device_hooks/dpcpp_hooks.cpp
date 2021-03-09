@@ -145,5 +145,7 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 
 
 #define GKO_HOOK_MODULE dpcpp
+#define GKO_EXPORT_HOOK GKO_DPCPP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

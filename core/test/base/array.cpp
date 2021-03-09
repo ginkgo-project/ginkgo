@@ -100,15 +100,6 @@ TYPED_TEST(Array, ReturnsNullWhenEmpty)
 }
 
 
-TYPED_TEST(Array, CanBeCreatedFromExistingData)
-{
-    gko::Array<TypeParam> a{this->exec, 3, new TypeParam[3],
-                            std::default_delete<TypeParam[]>{}};
-
-    EXPECT_EQ(a.get_num_elems(), 3);
-}
-
-
 TYPED_TEST(Array, CanBeCreatedFromDataOnExecutor)
 {
     gko::Array<TypeParam> a{this->exec, 3,
@@ -331,35 +322,6 @@ TYPED_TEST(Array, ViewCannotBeResized)
     EXPECT_THROW(view.resize_and_reset(1), gko::NotSupported);
     EXPECT_EQ(view.get_num_elems(), 3);
     ASSERT_EQ(view.get_data()[0], TypeParam{1});
-}
-
-
-template <typename T>
-class my_null_deleter {
-public:
-    using pointer = T *;
-
-    void operator()(pointer) const noexcept {}
-};
-
-template <typename T>
-class my_null_deleter<T[]> {
-public:
-    using pointer = T[];
-
-    void operator()(pointer) const noexcept {}
-};
-
-
-TYPED_TEST(Array, CustomDeleterCannotBeResized)
-{
-    TypeParam data[] = {1, 2, 3};
-    auto view_custom_deleter = gko::Array<TypeParam>(
-        this->exec, 3, data, my_null_deleter<TypeParam[]>{});
-
-    EXPECT_THROW(view_custom_deleter.resize_and_reset(1), gko::NotSupported);
-    EXPECT_EQ(view_custom_deleter.get_num_elems(), 3);
-    ASSERT_EQ(view_custom_deleter.get_data()[0], TypeParam{1});
 }
 
 
