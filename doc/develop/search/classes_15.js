@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['writabletomatrixdata_1274',['WritableToMatrixData',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
-  ['writabletomatrixdata_3c_20valuetype_2c_20int32_20_3e_1275',['WritableToMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
-  ['writabletomatrixdata_3c_20valuetype_2c_20int64_20_3e_1276',['WritableToMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]]
+  ['writabletomatrixdata_1279',['WritableToMatrixData',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
+  ['writabletomatrixdata_3c_20valuetype_2c_20int32_20_3e_1280',['WritableToMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]],
+  ['writabletomatrixdata_3c_20valuetype_2c_20int64_20_3e_1281',['WritableToMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1WritableToMatrixData.html',1,'gko']]]
 ];

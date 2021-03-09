@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/266502448 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/267539205 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -88,7 +88,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::accessor::row_major&lt; ValueType, Dimensionality &gt;:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="classgko_1_1accessor_1_1row__major__coll__graph.svg" width="282" height="260"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
+<div class="center"><iframe scrolling="no" frameborder="0" src="classgko_1_1accessor_1_1row__major__coll__graph.svg" width="370" height="260"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -103,20 +103,29 @@ using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cla
 <tr class="memdesc:a898459c9506607cd7df2b1f2728eac39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of underlying data storage. <br /></td></tr>
 <tr class="separator:a898459c9506607cd7df2b1f2728eac39"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abaacebb6a53ae02d1ef44f60c256fd1e"><td class="memItemLeft" align="right" valign="top"><a id="abaacebb6a53ae02d1ef44f60c256fd1e"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>const_accessor</b> = <a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a>&lt; const ValueType, Dimensionality &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#abaacebb6a53ae02d1ef44f60c256fd1e">const_accessor</a> = <a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a>&lt; const ValueType, Dimensionality &gt;</td></tr>
+<tr class="memdesc:abaacebb6a53ae02d1ef44f60c256fd1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of dimensions of the accessor. <br /></td></tr>
 <tr class="separator:abaacebb6a53ae02d1ef44f60c256fd1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa2974d7d13284ef6e97c5c65af9dc486"><td class="memItemLeft" align="right" valign="top"><a id="aa2974d7d13284ef6e97c5c65af9dc486"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>stride_type</b> = <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">std::array</a>&lt; const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>, dimensionality - 1 &gt;</td></tr>
+<tr class="separator:aa2974d7d13284ef6e97c5c65af9dc486"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3e2d5801ae980e0d8e53e143e89d8ff8"><td class="memItemLeft" align="right" valign="top"><a id="a3e2d5801ae980e0d8e53e143e89d8ff8"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>length_type</b> = <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">std::array</a>&lt; const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>, dimensionality &gt;</td></tr>
+<tr class="separator:a3e2d5801ae980e0d8e53e143e89d8ff8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:af670e48b658904235274e6f821b8a1b6"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">const_accessor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#af670e48b658904235274e6f821b8a1b6">to_const</a> () const</td></tr>
+<tr class="memitem:af670e48b658904235274e6f821b8a1b6"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html#abaacebb6a53ae02d1ef44f60c256fd1e">const_accessor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#af670e48b658904235274e6f821b8a1b6">to_const</a> () const</td></tr>
 <tr class="memdesc:af670e48b658904235274e6f821b8a1b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1accessor_1_1row__major.html" title="A row_major accessor is a bridge between a range and the row-major memory layout.">row_major</a> range which contains a read-only version of the current accessor.  <a href="classgko_1_1accessor_1_1row__major.html#af670e48b658904235274e6f821b8a1b6">More...</a><br /></td></tr>
 <tr class="separator:af670e48b658904235274e6f821b8a1b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a669d87e6198b1bdb4c915b909a61f756"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba">value_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#a669d87e6198b1bdb4c915b909a61f756">operator()</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> row, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> col) const</td></tr>
-<tr class="memdesc:a669d87e6198b1bdb4c915b909a61f756"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the data element at position (row, col)  <a href="classgko_1_1accessor_1_1row__major.html#a669d87e6198b1bdb4c915b909a61f756">More...</a><br /></td></tr>
-<tr class="separator:a669d87e6198b1bdb4c915b909a61f756"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1a38f9d96e849ae10de733809a3494d"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#ad1a38f9d96e849ae10de733809a3494d">operator()</a> (const <a class="el" href="structgko_1_1span.html">span</a> &amp;rows, const <a class="el" href="structgko_1_1span.html">span</a> &amp;cols) const</td></tr>
-<tr class="memdesc:ad1a38f9d96e849ae10de733809a3494d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the sub-range spanning the range (rows, cols)  <a href="classgko_1_1accessor_1_1row__major.html#ad1a38f9d96e849ae10de733809a3494d">More...</a><br /></td></tr>
-<tr class="separator:ad1a38f9d96e849ae10de733809a3494d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad272ed9a05bb8cb35d9302dabe78a20a"><td class="memTemplParams" colspan="2">template&lt;typename... Indices&gt; </td></tr>
+<tr class="memitem:ad272ed9a05bb8cb35d9302dabe78a20a"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; <a class="el" href="structgko_1_1are__all__integral.html">are_all_integral</a>&lt; Indices... &gt;::value, <a class="el" href="classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba">value_type</a> &amp; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#ad272ed9a05bb8cb35d9302dabe78a20a">operator()</a> (Indices &amp;&amp;... indices) const</td></tr>
+<tr class="memdesc:ad272ed9a05bb8cb35d9302dabe78a20a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the data element at the specified indices.  <a href="classgko_1_1accessor_1_1row__major.html#ad272ed9a05bb8cb35d9302dabe78a20a">More...</a><br /></td></tr>
+<tr class="separator:ad272ed9a05bb8cb35d9302dabe78a20a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5b75d7894b4b63c2434f4bab8acc307"><td class="memTemplParams" colspan="2">template&lt;typename... SpanTypes&gt; </td></tr>
+<tr class="memitem:af5b75d7894b4b63c2434f4bab8acc307"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::enable_if_t&lt; detail::are_span_compatible&lt; SpanTypes... &gt;::value, <a class="el" href="classgko_1_1range.html">range</a>&lt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a> &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#af5b75d7894b4b63c2434f4bab8acc307">operator()</a> (SpanTypes... spans) const</td></tr>
+<tr class="memdesc:af5b75d7894b4b63c2434f4bab8acc307"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the sub-range spanning the range (x1_span, x2_span, ...)  <a href="classgko_1_1accessor_1_1row__major.html#af5b75d7894b4b63c2434f4bab8acc307">More...</a><br /></td></tr>
+<tr class="separator:af5b75d7894b4b63c2434f4bab8acc307"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a438bb22bf86a33db403119bcb914dacc"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#a438bb22bf86a33db403119bcb914dacc">length</a> (<a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> dimension) const</td></tr>
 <tr class="memdesc:a438bb22bf86a33db403119bcb914dacc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the length in dimension <code>dimension</code>.  <a href="classgko_1_1accessor_1_1row__major.html#a438bb22bf86a33db403119bcb914dacc">More...</a><br /></td></tr>
 <tr class="separator:a438bb22bf86a33db403119bcb914dacc"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -131,20 +140,19 @@ Public Attributes</h2></td></tr>
 const <a class="el" href="classgko_1_1accessor_1_1row__major.html#a898459c9506607cd7df2b1f2728eac39">data_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">data</a></td></tr>
 <tr class="memdesc:aa83eec10535e8ac7f79c6a04c0c05b4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reference to the underlying data. <br /></td></tr>
 <tr class="separator:aa83eec10535e8ac7f79c6a04c0c05b4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4912695f06056d9e46cb335168bf28c9"><td class="memItemLeft" align="right" valign="top"><a id="a4912695f06056d9e46cb335168bf28c9"></a>
-const <a class="el" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">std::array</a>&lt; const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#ae969fbac55f5ba6e6f95f25a0aac483d">dimensionality</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">lengths</a></td></tr>
-<tr class="memdesc:a4912695f06056d9e46cb335168bf28c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">An array of dimension sizes. <br /></td></tr>
-<tr class="separator:a4912695f06056d9e46cb335168bf28c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a651793392dc0327f324289bb096b3316"><td class="memItemLeft" align="right" valign="top"><a id="a651793392dc0327f324289bb096b3316"></a>
-const <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316">stride</a></td></tr>
-<tr class="memdesc:a651793392dc0327f324289bb096b3316"><td class="mdescLeft">&#160;</td><td class="mdescRight">Distance between consecutive rows. <br /></td></tr>
-<tr class="separator:a651793392dc0327f324289bb096b3316"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adef48d861241ab1f721739a4d1f5da70"><td class="memItemLeft" align="right" valign="top"><a id="adef48d861241ab1f721739a4d1f5da70"></a>
+const length_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">lengths</a></td></tr>
+<tr class="memdesc:adef48d861241ab1f721739a4d1f5da70"><td class="mdescLeft">&#160;</td><td class="mdescRight">An array of dimension sizes. <br /></td></tr>
+<tr class="separator:adef48d861241ab1f721739a4d1f5da70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49e5de6c92d50b0f1c064df64b755ba3"><td class="memItemLeft" align="right" valign="top"><a id="a49e5de6c92d50b0f1c064df64b755ba3"></a>
+const stride_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#a49e5de6c92d50b0f1c064df64b755ba3">stride</a></td></tr>
+<tr class="memdesc:a49e5de6c92d50b0f1c064df64b755ba3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Distance between consecutive rows for each dimension (except the first). <br /></td></tr>
+<tr class="separator:a49e5de6c92d50b0f1c064df64b755ba3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
 <tr class="memitem:ae969fbac55f5ba6e6f95f25a0aac483d"><td class="memItemLeft" align="right" valign="top"><a id="ae969fbac55f5ba6e6f95f25a0aac483d"></a>
-static constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1accessor_1_1row__major.html#ae969fbac55f5ba6e6f95f25a0aac483d">dimensionality</a> = 2</td></tr>
-<tr class="memdesc:ae969fbac55f5ba6e6f95f25a0aac483d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of dimensions of the accessor. <br /></td></tr>
+static constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dimensionality</b> = Dimensionality</td></tr>
 <tr class="separator:ae969fbac55f5ba6e6f95f25a0aac483d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
@@ -159,11 +167,11 @@ class gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</h3>
 
 <p>A <a class="el" href="classgko_1_1accessor_1_1row__major.html" title="A row_major accessor is a bridge between a range and the row-major memory layout.">row_major</a> accessor is a bridge between a range and the row-major memory layout. </p>
 <p>You should never try to explicitly create an instance of this accessor. Instead, supply it as a template parameter to a range, and pass the constructor parameters for this class to the range (it will forward it to this class).</p>
-<dl class="section warning"><dt>Warning</dt><dd>The current implementation is incomplete, and only allows for 2-dimensional ranges.</dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>For backward compatability reasons, a specialization is provided for dimensionality == 2.</dd></dl>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>type of values this accessor returns </td></tr>
-    <tr><td class="paramname">Dimensionality</td><td>number of dimensions of this accessor (has to be 2) </td></tr>
+    <tr><td class="paramname">Dimensionality</td><td>number of dimensions of this accessor </td></tr>
   </table>
   </dd>
 </dl>
@@ -211,7 +219,7 @@ template&lt;typename OtherAccessor &gt; </div>
   </dd>
 </dl>
 
-<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>.</p>
+<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>.</p>
 
 </div>
 </div>
@@ -250,37 +258,29 @@ template&lt;typename ValueType , size_type Dimensionality&gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>length in dimension <code>dimension</code> </dd></dl>
 
-<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>.</p>
+<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>.</p>
 
 </div>
 </div>
-<a id="ad1a38f9d96e849ae10de733809a3494d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad1a38f9d96e849ae10de733809a3494d">&#9670;&nbsp;</a></span>operator()() <span class="overload">[1/2]</span></h2>
+<a id="ad272ed9a05bb8cb35d9302dabe78a20a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad272ed9a05bb8cb35d9302dabe78a20a">&#9670;&nbsp;</a></span>operator()() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename ValueType , size_type Dimensionality&gt; </div>
+<div class="memtemplate">
+template&lt;typename... Indices&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt;<a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a>&gt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::operator() </td>
+          <td class="memname">constexpr std::enable_if_t&lt;<a class="el" href="structgko_1_1are__all__integral.html">are_all_integral</a>&lt;Indices...&gt;::value, <a class="el" href="classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba">value_type</a> &amp;&gt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::operator() </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="structgko_1_1span.html">span</a> &amp;&#160;</td>
-          <td class="paramname"><em>rows</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="structgko_1_1span.html">span</a> &amp;&#160;</td>
-          <td class="paramname"><em>cols</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
+          <td class="paramtype">Indices &amp;&amp;...&#160;</td>
+          <td class="paramname"><em>indices</em></td><td>)</td>
+          <td> const</td>
         </tr>
       </table>
   </td>
@@ -290,57 +290,7 @@ template&lt;typename ValueType , size_type Dimensionality&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Returns the sub-range spanning the range (rows, cols) </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">rows</td><td>row span </td></tr>
-    <tr><td class="paramname">cols</td><td>column span</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>sub-range spanning the range (rows, cols) </dd></dl>
-
-<p class="reference">References <a class="el" href="structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7">gko::span::begin</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="structgko_1_1span.html#af68200dea4456e1bd3511c3b14bc2886">gko::span::end</a>, <a class="el" href="structgko_1_1span.html#a32a87f434708e6857820858503f9b133">gko::span::is_valid()</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
-
-</div>
-</div>
-<a id="a669d87e6198b1bdb4c915b909a61f756"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a669d87e6198b1bdb4c915b909a61f756">&#9670;&nbsp;</a></span>operator()() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename ValueType , size_type Dimensionality&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr <a class="el" href="classgko_1_1accessor_1_1row__major.html#a687bda931be92c31abf02965fa72ceba">value_type</a>&amp; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::operator() </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
-          <td class="paramname"><em>row</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
-          <td class="paramname"><em>col</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Returns the data element at position (row, col) </p>
+<p>Returns the data element at the specified indices. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">row</td><td>row index </td></tr>
@@ -348,9 +298,51 @@ template&lt;typename ValueType , size_type Dimensionality&gt; </div>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>data element at (row, col) </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>data element at (indices...) </dd></dl>
 
-<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
+<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a49e5de6c92d50b0f1c064df64b755ba3">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
+
+</div>
+</div>
+<a id="af5b75d7894b4b63c2434f4bab8acc307"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af5b75d7894b4b63c2434f4bab8acc307">&#9670;&nbsp;</a></span>operator()() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType , size_type Dimensionality&gt; </div>
+<div class="memtemplate">
+template&lt;typename... SpanTypes&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr std::enable_if_t&lt; detail::are_span_compatible&lt;SpanTypes...&gt;::value, <a class="el" href="classgko_1_1range.html">range</a>&lt;<a class="el" href="classgko_1_1accessor_1_1row__major.html">row_major</a>&gt; &gt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::operator() </td>
+          <td>(</td>
+          <td class="paramtype">SpanTypes...&#160;</td>
+          <td class="paramname"><em>spans</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the sub-range spanning the range (x1_span, x2_span, ...) </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rows</td><td>row span </td></tr>
+    <tr><td class="paramname">cols</td><td>column span</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>sub-range spanning the given spans </dd></dl>
+
+<p class="reference">References <a class="el" href="structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7">gko::span::begin</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="structgko_1_1span.html#af68200dea4456e1bd3511c3b14bc2886">gko::span::end</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a49e5de6c92d50b0f1c064df64b755ba3">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
 
 </div>
 </div>
@@ -366,7 +358,7 @@ template&lt;typename ValueType , size_type Dimensionality&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt;<a class="el" href="classgko_1_1accessor_1_1row__major.html">const_accessor</a>&gt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::to_const </td>
+          <td class="memname">constexpr <a class="el" href="classgko_1_1range.html">range</a>&lt;<a class="el" href="classgko_1_1accessor_1_1row__major.html#abaacebb6a53ae02d1ef44f60c256fd1e">const_accessor</a>&gt; <a class="el" href="classgko_1_1accessor_1_1row__major.html">gko::accessor::row_major</a>&lt; ValueType, Dimensionality &gt;::to_const </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -382,7 +374,7 @@ template&lt;typename ValueType , size_type Dimensionality&gt; </div>
 <p>Creates a <a class="el" href="classgko_1_1accessor_1_1row__major.html" title="A row_major accessor is a bridge between a range and the row-major memory layout.">row_major</a> range which contains a read-only version of the current accessor. </p>
 <dl class="section return"><dt>Returns</dt><dd>a row major range which is read-only. </dd></dl>
 
-<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
+<p class="reference">References <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::data</a>, <a class="el" href="classgko_1_1accessor_1_1row__major.html#adef48d861241ab1f721739a4d1f5da70">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::lengths</a>, and <a class="el" href="classgko_1_1accessor_1_1row__major.html#a49e5de6c92d50b0f1c064df64b755ba3">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;::stride</a>.</p>
 
 </div>
 </div>

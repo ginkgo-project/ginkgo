@@ -1,5 +1,4 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" title=" " alt="" coords="5,65,89,91"/>
-<area shape="rect" id="node2" href="$structgko_1_1are__all__integral.html" title="Evaluates if all template arguments Args fulfill std::is_integral." alt="" coords="167,5,322,47"/>
-<area shape="rect" id="node3" href="$structgko_1_1solver_1_1has__with__criteria_3_01SolverType_00_01xstd_1_1void__t_3_01decltype_07Sof67c73d1a2e78f628608606c7b5ff68b.html" title="Helper structure to test if the Factory of SolverType has a function with_criteria." alt="" coords="137,71,352,186"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,215,76"/>
+<area shape="rect" id="node2" href="$structgko_1_1accessor_1_1unary__plus.html" title=" " alt="" coords="263,20,419,61"/>
 </map>
