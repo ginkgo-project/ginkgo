@@ -67,13 +67,13 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
+    using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
     using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
     using WeightMtx = gko::matrix::Csr<real_type, index_type>;
     AmgxPgm()
         : exec(gko::ReferenceExecutor::create()),
-          amgxpgm_factory(RestrictProlong::build()
+          amgxpgm_factory(MgLevel::build()
                               .with_max_iterations(2u)
                               .with_max_unassigned_ratio(0.1)
                               .on(exec)),
@@ -107,7 +107,7 @@ protected:
           agg(exec, 5)
     {
         this->create_mtx(mtx.get(), weight.get(), &agg, coarse.get());
-        rstr_prlg = amgxpgm_factory->generate(mtx);
+        mg_level = amgxpgm_factory->generate(mtx);
         mtx_diag = weight->extract_diagonal();
     }
 
@@ -210,8 +210,8 @@ protected:
     std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
-    std::unique_ptr<typename RestrictProlong::Factory> amgxpgm_factory;
-    std::unique_ptr<RestrictProlong> rstr_prlg;
+    std::unique_ptr<typename MgLevel::Factory> amgxpgm_factory;
+    std::unique_ptr<MgLevel> mg_level;
 };
 
 TYPED_TEST_SUITE(AmgxPgm, gko::test::ValueIndexTypes);
@@ -220,13 +220,12 @@ TYPED_TEST_SUITE(AmgxPgm, gko::test::ValueIndexTypes);
 TYPED_TEST(AmgxPgm, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
-    using RestrictProlong = typename TestFixture::RestrictProlong;
+    using MgLevel = typename TestFixture::MgLevel;
     auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->rstr_prlg.get());
-    auto copy_mtx =
-        static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
-    auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
+    copy->copy_from(this->mg_level.get());
+    auto copy_mtx = copy->get_system_matrix();
+    auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
@@ -241,13 +240,12 @@ TYPED_TEST(AmgxPgm, CanBeCopied)
 TYPED_TEST(AmgxPgm, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
-    using RestrictProlong = typename TestFixture::RestrictProlong;
+    using MgLevel = typename TestFixture::MgLevel;
     auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->rstr_prlg));
-    auto copy_mtx =
-        static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
-    auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
+    copy->copy_from(std::move(this->mg_level));
+    auto copy_mtx = copy->get_system_matrix();
+    auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
@@ -262,13 +260,11 @@ TYPED_TEST(AmgxPgm, CanBeMoved)
 TYPED_TEST(AmgxPgm, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
-    using RestrictProlong = typename TestFixture::RestrictProlong;
-    auto clone = this->rstr_prlg->clone();
+    using MgLevel = typename TestFixture::MgLevel;
+    auto clone = this->mg_level->clone();
     auto clone_mtx = clone->get_system_matrix();
-    auto clone_agg =
-        static_cast<RestrictProlong *>(clone.get())->get_const_agg();
-    auto clone_coarse =
-        dynamic_cast<RestrictProlong *>(clone.get())->get_coarse_op();
+    auto clone_agg = clone->get_const_agg();
+    auto clone_coarse = clone->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
                                this->mtx.get());
@@ -281,13 +277,12 @@ TYPED_TEST(AmgxPgm, CanBeCloned)
 
 TYPED_TEST(AmgxPgm, CanBeCleared)
 {
-    using RestrictProlong = typename TestFixture::RestrictProlong;
+    using MgLevel = typename TestFixture::MgLevel;
 
-    this->rstr_prlg->clear();
-    auto mtx = static_cast<RestrictProlong *>(this->rstr_prlg.get())
-                   ->get_system_matrix();
-    auto coarse = this->rstr_prlg->get_coarse_op();
-    auto agg = static_cast<RestrictProlong *>(this->rstr_prlg.get())->get_agg();
+    this->mg_level->clear();
+    auto mtx = this->mg_level->get_system_matrix();
+    auto coarse = this->mg_level->get_coarse_op();
+    auto agg = this->mg_level->get_agg();
 
     ASSERT_EQ(mtx, nullptr);
     ASSERT_EQ(coarse, nullptr);

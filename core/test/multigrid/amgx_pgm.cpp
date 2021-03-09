@@ -57,10 +57,10 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
+    using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
     AmgxPgmFactory()
         : exec(gko::ReferenceExecutor::create()),
-          amgxpgm_factory(RestrictProlong::build()
+          amgxpgm_factory(MgLevel::build()
                               .with_max_iterations(2u)
                               .with_max_unassigned_ratio(0.1)
                               .with_deterministic(true)
@@ -69,7 +69,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename RestrictProlong::Factory> amgxpgm_factory;
+    std::unique_ptr<typename MgLevel::Factory> amgxpgm_factory;
 };
 
 TYPED_TEST_CASE(AmgxPgmFactory, gko::test::ValueIndexTypes);
@@ -83,8 +83,8 @@ TYPED_TEST(AmgxPgmFactory, FactoryKnowsItsExecutor)
 
 TYPED_TEST(AmgxPgmFactory, DefaultSetting)
 {
-    using RestrictProlong = typename TestFixture::RestrictProlong;
-    auto factory = RestrictProlong::build().on(this->exec);
+    using MgLevel = typename TestFixture::MgLevel;
+    auto factory = MgLevel::build().on(this->exec);
 
     ASSERT_EQ(factory->get_parameters().max_iterations, 15u);
     ASSERT_EQ(factory->get_parameters().max_unassigned_ratio, 0.05);
