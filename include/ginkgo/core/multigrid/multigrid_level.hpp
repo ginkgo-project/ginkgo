@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -104,7 +103,8 @@ public:
 
 protected:
     /**
-     * Sets the multigrid level information.
+     * Sets the multigrid level information. The stored composition will be
+     * prolong_op x coarse_op x restrict_op.
      *
      * @param prolong_op  the prolong operator
      * @param coarse_op  the coarse operator
@@ -126,11 +126,11 @@ protected:
     /**
      * Creates a MultigridLevel with the given fine operator
      *
-     * @param fine_op  The fine operotor associated to the multigrid_level
+     * @param fine_op  The fine operator associated to the multigrid_level
      *
      * @note the multigrid is generated in the generation not the construction,
-     *       so needs to call `set_multigrid_level` to set corresponding
-     *       information after generation.
+     *       so the user needs to call `set_multigrid_level` to set the
+     *       corresponding information after generation.
      */
     explicit MultigridLevel(std::shared_ptr<const LinOp> fine_op)
         : fine_op_(fine_op)
