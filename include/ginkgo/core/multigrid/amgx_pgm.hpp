@@ -67,7 +67,7 @@ namespace multigrid {
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup RestrictProlong
+ * @ingroup MultigridLevel
  * @ingroup Multigrid
  * @ingroup LinOp
  */
