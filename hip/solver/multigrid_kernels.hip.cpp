@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto nrows = e->get_size()[0];
     const auto nrhs = e->get_size()[1];
-    constexpr int max_size = 1 << 31 - 1;
+    constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));
@@ -108,7 +108,7 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto nrows = e->get_size()[0];
     const auto nrhs = e->get_size()[1];
-    constexpr int max_size = 1 << 31 - 1;
+    constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));

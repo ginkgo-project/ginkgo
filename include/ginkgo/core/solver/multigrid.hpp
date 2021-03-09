@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_MULTIGRID_HPP_
-#define GKO_CORE_SOLVER_MULTIGRID_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
 
 
 #include <functional>
@@ -39,19 +39,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 
-#include <ginkgo/core/base/abstract_factory.hpp>
+// #include <ginkgo/core/base/abstract_factory.hpp>
+// #include <ginkgo/core/base/array.hpp>
+// #include <ginkgo/core/base/dim.hpp>
+// #include <ginkgo/core/base/exception_helpers.hpp>
+// #include <ginkgo/core/base/lin_op.hpp>
+// #include <ginkgo/core/base/math.hpp>
+// #include <ginkgo/core/base/polymorphic_object.hpp>
+// #include <ginkgo/core/base/types.hpp>
+// #include <ginkgo/core/base/utils.hpp>
+// #include <ginkgo/core/log/logger.hpp>
+// #include <ginkgo/core/matrix/csr.hpp>
+// #include <ginkgo/core/matrix/dense.hpp>
+// #include <ginkgo/core/matrix/identity.hpp>
+// #include <ginkgo/core/multigrid/multigrid_level.hpp>
+// #include <ginkgo/core/stop/combined.hpp>
+// #include <ginkgo/core/stop/criterion.hpp>
+
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/multigrid/restrict_prolong.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -121,14 +134,14 @@ public:
     }
 
     /**
-     * Gets the list of RestrictProlong operator.
+     * Gets the list of MultigridLevel operator.
      *
-     * @return the list of RestrictProlong opertor
+     * @return the list of MultigridLevel opertor
      */
-    const std::vector<std::shared_ptr<gko::multigrid::RestrictProlong>>
-    get_rstr_prlg_list() const
+    const std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+    get_mg_level_list() const
     {
-        return rstr_prlg_list_;
+        return mg_level_list_;
     }
 
     /**
@@ -194,26 +207,25 @@ public:
             GKO_FACTORY_PARAMETER(criteria, nullptr);
 
         /**
-         * RestrictProlong Factory list
+         * MultigridLevel Factory list
          */
-        std::vector<
-            std::shared_ptr<const gko::multigrid::RestrictProlongFactory>>
-            GKO_FACTORY_PARAMETER(rstr_prlg, nullptr);
+        std::vector<std::shared_ptr<const gko::LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(mg_level_a, nullptr);
 
         /**
          * Custom selector (level, matrix)
-         * default selector: use the first factory when rstr_prlg size = 1
-         *                   use the level as the index when rstr_prlg size > 1
+         * default selector: use the first factory when mg_level size = 1
+         *                   use the level as the index when mg_level size > 1
          */
         std::function<size_type(const size_type, const LinOp *)>
-            GKO_FACTORY_PARAMETER(rstr_prlg_index, nullptr);
+            GKO_FACTORY_PARAMETER(mg_level_index, nullptr);
 
         /**
          * Pre-smooth Factory list.
-         * Its size must be 0, 1 or be the same as rstr_prlg's.
+         * Its size must be 0, 1 or be the same as mg_level's.
          * when size = 0, do not use pre_smoother
          * when size = 1, use the first factory
-         * when size > 1, use the same selector as rstr_prlg
+         * when size > 1, use the same selector as mg_level
          * nullptr skips this pre_smoother at the level, which is different from
          * Identity Factory. Identity Factory updates x = x + relaxation *
          * residual.
@@ -332,18 +344,18 @@ protected:
 
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
-        if (!parameters_.rstr_prlg_index) {
-            if (parameters_.rstr_prlg.size() == 1) {
-                rstr_prlg_index_ = [](const size_type, const LinOp *) {
+        if (!parameters_.mg_level_index) {
+            if (parameters_.mg_level_a.size() == 1) {
+                mg_level_index_ = [](const size_type, const LinOp *) {
                     return size_type{0};
                 };
-            } else if (parameters_.rstr_prlg.size() > 1) {
-                rstr_prlg_index_ = [](const size_type level, const LinOp *) {
+            } else if (parameters_.mg_level_a.size() > 1) {
+                mg_level_index_ = [](const size_type level, const LinOp *) {
                     return level;
                 };
             }
         } else {
-            rstr_prlg_index_ = parameters_.rstr_prlg_index;
+            mg_level_index_ = parameters_.mg_level_index;
         }
         if (!parameters_.solver_index) {
             if (parameters_.coarsest_solver.size() >= 1) {
@@ -354,28 +366,28 @@ protected:
         } else {
             solver_index_ = parameters_.solver_index;
         }
-        const auto rstr_prlg_len = parameters_.rstr_prlg.size();
-        if (rstr_prlg_len == 0) {
+        const auto mg_level_len = parameters_.mg_level_a.size();
+        if (mg_level_len == 0) {
             GKO_NOT_SUPPORTED(this);
         } else {
-            // each rstr_prlg can not be nullptr
-            for (size_type i = 0; i < rstr_prlg_len; i++) {
-                if (parameters_.rstr_prlg.at(i) == nullptr) {
+            // each mg_level can not be nullptr
+            for (size_type i = 0; i < mg_level_len; i++) {
+                if (parameters_.mg_level_a.at(i) == nullptr) {
                     GKO_NOT_SUPPORTED(this);
                 }
             }
         }
         // verify pre-related parameters
         this->verify_legal_length(true, parameters_.pre_smoother.size(),
-                                  rstr_prlg_len);
+                                  mg_level_len);
         // verify post-related parameters when post does not use pre
         this->verify_legal_length(!parameters_.post_uses_pre,
                                   parameters_.post_smoother.size(),
-                                  rstr_prlg_len);
+                                  mg_level_len);
         // verify mid-related parameters when mid does not use pre/post.
         this->verify_legal_length(
             parameters_.mid_case == multigrid_mid_uses::mid,
-            parameters_.mid_smoother.size(), rstr_prlg_len);
+            parameters_.mid_smoother.size(), mg_level_len);
 
         cycle_ = parameters_.cycle;
         if (system_matrix_->get_size()[0] != 0) {
@@ -388,7 +400,7 @@ protected:
         if (checked) {
             // len = 0 uses default behaviour
             // len = 1 uses the first one
-            // len > 1 : must contain the same len as ref(rstr_prlg)
+            // len > 1 : must contain the same len as ref(mg_level)
             if (len > 1 && len != ref_len) {
                 GKO_NOT_SUPPORTED(this);
             }
@@ -398,13 +410,13 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    std::vector<std::shared_ptr<gko::multigrid::RestrictProlong>>
-        rstr_prlg_list_{};
+    std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+        mg_level_list_{};
     std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> mid_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
     std::shared_ptr<LinOp> coarsest_solver_{};
-    std::function<size_type(const size_type, const LinOp *)> rstr_prlg_index_;
+    std::function<size_type(const size_type, const LinOp *)> mg_level_index_;
     std::function<size_type(const size_type, const LinOp *)> solver_index_;
     std::shared_ptr<matrix::Dense<ValueType>> one_op_;
     std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
@@ -416,4 +428,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_MULTIGRID_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
