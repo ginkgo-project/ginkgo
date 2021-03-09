@@ -195,6 +195,9 @@ public:
      * @note when this composition is not set, this function always returns
      *       nullptr. However, when this composition is set, it will throw
      *       exception when exceeding index.
+     *
+     * @throw std::out_of_range if index is out of bound when composition is
+     *        existed.
      */
     std::shared_ptr<const LinOp> get_operator_at(size_type index) const
     {

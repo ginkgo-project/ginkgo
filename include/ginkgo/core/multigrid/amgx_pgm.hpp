@@ -52,10 +52,10 @@ namespace multigrid {
 /**
  * Amgx parallel graph match (AmgxPgm) is the aggregate method introduced in the
  * paper M. Naumov et al., "AmgX: A Library for GPU Accelerated Algebraic
- * Multigrid and Preconditioned Iterative Methods". Current implemenation only
+ * Multigrid and Preconditioned Iterative Methods". Current implementation only
  * contains size = 2 version.
  *
- * AmgxPgm creates the aggreagate group according to the matrix value not the
+ * AmgxPgm creates the aggregate group according to the matrix value not the
  * structure. AmgxPgm gives two steps (one-phase handshaking) to group the
  * elements.
  * 1: get the strongest neighbor of each unaggregated element.
@@ -94,7 +94,7 @@ public:
     /**
      * Returns the aggregate group.
      *
-     * Aggregate group whose size is same as the number of rows stores the
+     * Aggregate group whose size is same as the number of rows. Stores the
      * mapping information from row index to coarse row index.
      * i.e., agg[row_idx] = coarse_row_idx.
      *
@@ -134,7 +134,7 @@ public:
         /**
          * Use the deterministic assign_to_exist_agg method or not.
          *
-         * If the deterministic is true, always get the same aggregated group
+         * If deterministic is set to true, always get the same aggregated group
          * from the same matrix. Otherwise, the aggregated group might be
          * different depending on the execution ordering.
          */
