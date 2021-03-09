@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
+#include <iostream>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <iostream>
+
 
 #include "core/components/fill_array.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -125,14 +129,14 @@ struct MultigridState {
           rel_tol(rel_tol_in)
     {
         auto current_nrows = system_matrix->get_size()[0];
-        auto rstr_prlg_list = multigrid->get_rstr_prlg_list();
-        auto list_size = rstr_prlg_list.size();
+        auto mg_level_list = multigrid->get_mg_level_list();
+        auto list_size = mg_level_list.size();
         auto cycle = multigrid->get_cycle();
         r_list.reserve(list_size);
         g_list.reserve(list_size);
         e_list.reserve(list_size);
         if (cycle == multigrid_cycle::kfcg || cycle == multigrid_cycle::kgcr) {
-            auto k_num = rstr_prlg_list.size() / k_base;
+            auto k_num = mg_level_list.size() / k_base;
             alpha_list.reserve(k_num);
             beta_list.reserve(k_num);
             gamma_list.reserve(k_num);
@@ -145,9 +149,9 @@ struct MultigridState {
             new_norm_list.reserve(k_num);
         }
         // Allocate memory first such that repeating allocation in each iter.
-        for (int i = 0; i < rstr_prlg_list.size(); i++) {
+        for (int i = 0; i < mg_level_list.size(); i++) {
             auto next_nrows =
-                rstr_prlg_list.at(i)->get_coarse_operator()->get_size()[0];
+                mg_level_list.at(i)->get_coarse_op()->get_size()[0];
             r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
             g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
             e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
@@ -182,9 +186,9 @@ struct MultigridState {
         auto r = r_list.at(level);
         auto g = g_list.at(level);
         auto e = e_list.at(level);
-        // get rstr_prlg
-        auto rstr_prlg = multigrid->get_rstr_prlg_list().at(level);
-        auto total_level = multigrid->get_rstr_prlg_list().size();
+        // get mg_level
+        auto mg_level = multigrid->get_mg_level_list().at(level);
+        auto total_level = multigrid->get_mg_level_list().size();
         // get the pre_smoother
         auto pre_smoother = multigrid->get_pre_smoother_list().at(level);
         // get the mid_smoother
@@ -204,19 +208,19 @@ struct MultigridState {
             matrix->apply(neg_one, x, one, r.get());
         }
         // first cycle
-        rstr_prlg->restrict_apply(r.get(), g.get());
+        mg_level->get_restrict_op()->apply(r.get(), g.get());
         // next level or solve it
         if (level + 1 == total_level) {
             multigrid->get_coarsest_solver()->apply(g.get(), e.get());
         } else {
-            this->run_cycle(cycle, level + 1, rstr_prlg->get_coarse_operator(),
+            this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
                             g.get(), e.get());
         }
         // additional work for non-v_cycle
         if (cycle == multigrid_cycle::f || cycle == multigrid_cycle::w) {
             // second cycle - f_cycle, w_cycle
             // prolong
-            rstr_prlg->prolong_applyadd(e.get(), x);
+            mg_level->get_prolong_op()->apply(one, e.get(), one, x);
             // mid-smooth
             if (mid_smoother) {
                 mid_smoother->apply(b, x);
@@ -225,7 +229,7 @@ struct MultigridState {
             r->copy_from(b);  // n * b
             matrix->apply(neg_one, x, one, r.get());
 
-            rstr_prlg->restrict_apply(r.get(), g.get());
+            mg_level->get_restrict_op()->apply(r.get(), g.get());
             // next level or solve it
             if (level + 1 == total_level) {
                 multigrid->get_coarsest_solver()->apply(g.get(), e.get());
@@ -233,12 +237,11 @@ struct MultigridState {
                 if (cycle == multigrid_cycle::f) {
                     // f_cycle call v_cycle in the second cycle
                     this->run_cycle(multigrid_cycle::v, level + 1,
-                                    rstr_prlg->get_coarse_operator(), g.get(),
+                                    mg_level->get_coarse_op(), g.get(),
                                     e.get());
                 } else {
-                    this->run_cycle(cycle, level + 1,
-                                    rstr_prlg->get_coarse_operator(), g.get(),
-                                    e.get());
+                    this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
+                                    g.get(), e.get());
                 }
             }
         } else if ((cycle == multigrid_cycle::kfcg ||
@@ -258,7 +261,7 @@ struct MultigridState {
             auto d = d_list.at(k_idx);
             auto old_norm = old_norm_list.at(k_idx);
             auto new_norm = new_norm_list.at(k_idx);
-            auto matrix = rstr_prlg->get_coarse_operator();
+            auto matrix = mg_level->get_coarse_op();
 
             // first iteration
             matrix->apply(e.get(), v.get());
@@ -294,9 +297,8 @@ struct MultigridState {
                 if (level + 1 == total_level) {
                     multigrid->get_coarsest_solver()->apply(g.get(), d.get());
                 } else {
-                    this->run_cycle(cycle, level + 1,
-                                    rstr_prlg->get_coarse_operator(), g.get(),
-                                    d.get());
+                    this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
+                                    g.get(), d.get());
                 }
                 matrix->apply(d.get(), w.get());
                 t = is_fcg ? d : w;
@@ -313,7 +315,7 @@ struct MultigridState {
             }
         }
         // prolong
-        rstr_prlg->prolong_applyadd(e.get(), x);
+        mg_level->get_prolong_op()->apply(one, e.get(), one, x);
 
         // post-smooth
         if (post_smoother) {
@@ -366,16 +368,19 @@ void Multigrid<ValueType>::generate()
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = rstr_prlg_index_(level, lend(matrix));
-        GKO_ENSURE_IN_BOUNDS(index, parameters_.rstr_prlg.size());
-        auto rstr_prlg_factory = parameters_.rstr_prlg.at(index);
+        auto index = mg_level_index_(level, lend(matrix));
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level_a.size());
+        auto mg_level_factory = parameters_.mg_level_a.at(index);
         // coarse generate
-        auto rstr = rstr_prlg_factory->generate(matrix);
-        if (rstr->get_coarse_operator()->get_size()[0] == num_rows) {
+        std::cout << "123" << std::endl;
+        auto mg_level = as<gko::multigrid::MultigridLevel>(
+            share(mg_level_factory->generate(matrix)));
+        if (mg_level->get_coarse_op()->get_size()[0] == num_rows) {
             // do not reduce dimension
             break;
         }
-        rstr_prlg_list_.emplace_back(give(rstr));
+        std::cout << "generate " << level << std::endl;
+        mg_level_list_.emplace_back(mg_level);
         // pre_smooth_generate
         handle_list(exec, index, matrix, parameters_.pre_smoother,
                     pre_smoother_list_, one_op_);
@@ -389,7 +394,7 @@ void Multigrid<ValueType>::generate()
             handle_list(exec, index, matrix, parameters_.post_smoother,
                         post_smoother_list_, one_op_);
         }
-        matrix = rstr_prlg_list_.back()->get_coarse_operator();
+        matrix = mg_level_list_.back()->get_coarse_op();
         std::cout << num_rows << " -> " << matrix->get_size()[0] << std::endl;
         num_rows = matrix->get_size()[0];
         level++;
