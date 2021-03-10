@@ -25,6 +25,8 @@ if (MINGW OR CYGWIN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
 
+set(GINKGO_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -112,19 +114,6 @@ if(GINKGO_BENCHMARK_ENABLE_TUNING)
     # complexity/intrusiveness, so we simply disable them.
     set(GINKGO_BUILD_TESTS OFF)
     set(GINKGO_BUILD_EXAMPLES OFF)
-endif()
-
-if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
-    # Change shared libraries output only if this build has executable program
-    # with shared libraries.
-    set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
-    option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
-    set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
-        "Set Ginkgo's shared library relative path in windows. Current default is `windows_shared_library`. \
-        This absolute path ${PROJECT_BINARY_DIR}/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH must be in the environment variable PATH.")
-    set(GINKGO_WINDOWS_SHARED_LIBRARY_PATH ${PROJECT_BINARY_DIR}/${GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH})
-else()
-    set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
 endif()
 
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP OR GINKGO_BUILD_DPCPP))

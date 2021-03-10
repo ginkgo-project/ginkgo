@@ -33,7 +33,7 @@ jobs:
         bcdedit /set IncreaseUserVa 3072
         editbin /LARGEADDRESSAWARE "C:\Program Files\Git\mingw64\bin\cc1plus.exe"
         path %PATH:C:\Program Files\Git\bin;=%
-        path %PATH:C:\Program Files\Git\usr\bin;=%;%GITHUB_WORKSPACE%\build\windows_shared_library
+        path %PATH:C:\Program Files\Git\usr\bin;=%
         mkdir build
         cd build
         cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
