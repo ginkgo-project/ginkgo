@@ -129,7 +129,6 @@ int main(int, char **)
         auto test = gko::name_demangling::get_static_type(testVar);
     }
 
-
     // core/base/polymorphic_object.hpp
     {
         auto test = gko::layout_type::array;

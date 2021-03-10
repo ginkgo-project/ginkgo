@@ -51,7 +51,7 @@ find_library(HWLOC_LIBRARIES "hwloc"
     )
 
 if (HWLOC_INCLUDE_DIRS)
-        # Find the version of hwloc found
+    # Find the version of hwloc found
     if(NOT HWLOC_VERSION)
         file(READ "${HWLOC_INCLUDE_DIRS}/hwloc.h"
             HEADER_CONTENTS LIMIT 16384)
