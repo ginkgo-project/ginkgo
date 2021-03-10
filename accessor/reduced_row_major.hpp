@@ -90,6 +90,7 @@ public:
     friend class range<reduced_row_major>;
 
 protected:
+    using dim_type = std::array<size_type, dimensionality>;
     using storage_stride_type = std::array<size_type, dimensionality - 1>;
     using reference_type =
         reference_class::reduced_storage<arithmetic_type, storage_type>;
@@ -103,9 +104,9 @@ protected:
      * @param storage  pointer to the block of memory containing the storage
      * @param stride  stride array used for memory accesses
      */
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage,
-        storage_stride_type stride)
+    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                   storage_type *storage,
+                                                   storage_stride_type stride)
         : size_(size), storage_{storage}, stride_(stride)
     {}
 
@@ -119,9 +120,9 @@ protected:
      * @param strides  strides used for memory accesses
      */
     template <typename... Strides>
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage,
-        Strides &&... strides)
+    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                   storage_type *storage,
+                                                   Strides &&... strides)
         : reduced_row_major{
               size, storage,
               storage_stride_type{{std::forward<Strides>(strides)...}}}
@@ -137,8 +138,8 @@ protected:
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
      */
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage)
+    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                   storage_type *storage)
         : reduced_row_major{
               size, storage,
               helper::compute_default_row_major_stride_array<size_type>(size)}
@@ -229,7 +230,7 @@ public:
     {
         return helper::validate_index_spans(size_, spans...),
                range<reduced_row_major>{
-                   std::array<size_type, dimensionality>{
+                   dim_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    stride_};
@@ -240,11 +241,7 @@ public:
      *
      * @returns the size of the accessor
      */
-    constexpr GKO_ACC_ATTRIBUTES std::array<size_type, dimensionality>
-    get_size() const
-    {
-        return size_;
-    }
+    constexpr GKO_ACC_ATTRIBUTES dim_type get_size() const { return size_; }
 
     /**
      * Returns a pointer to a stride array of size dimensionality - 1
@@ -286,7 +283,7 @@ protected:
     }
 
 private:
-    const std::array<size_type, dimensionality> size_;
+    const dim_type size_;
     storage_type *storage_;
     const storage_stride_type stride_;
 };

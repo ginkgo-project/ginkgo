@@ -85,8 +85,8 @@ public:
     using data_type = value_type *;
 
     using const_accessor = block_col_major<const ValueType, Dimensionality>;
-    using stride_type = std::array<const size_type, dimensionality - 1>;
-    using length_type = std::array<const size_type, dimensionality>;
+    using stride_type = std::array<size_type, dimensionality - 1>;
+    using length_type = std::array<size_type, dimensionality>;
 
 protected:
     /**

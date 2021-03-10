@@ -83,8 +83,8 @@ public:
      */
 
     using const_accessor = row_major<const ValueType, Dimensionality>;
-    using stride_type = std::array<const size_type, dimensionality - 1>;
-    using length_type = std::array<const size_type, dimensionality>;
+    using stride_type = std::array<size_type, dimensionality - 1>;
+    using length_type = std::array<size_type, dimensionality>;
 
 protected:
     /**
@@ -112,10 +112,9 @@ protected:
      */
     constexpr GKO_ACC_ATTRIBUTES explicit row_major(data_type data,
                                                     length_type size)
-        : row_major{
-              data, size,
-              helper::compute_default_row_major_stride_array<const size_type>(
-                  size)}
+        : row_major{data, size,
+                    helper::compute_default_row_major_stride_array<
+                        typename stride_type::value_type>(size)}
     {}
 
 public:

@@ -193,6 +193,7 @@ protected:
     static constexpr size_type scalar_stride_dim{
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
+    using dim_type = std::array<size_type, dimensionality>;
     using storage_stride_type = std::array<size_type, dimensionality - 1>;
     using scalar_stride_type = std::array<size_type, scalar_stride_dim>;
     using reference_type =
@@ -211,7 +212,7 @@ protected:
      * @param scalar_stride  stride array used for memory accesses to scalar
      */
     constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage,
+        dim_type size, storage_type *storage,
         storage_stride_type storage_stride, scalar_type *scalar,
         scalar_stride_type scalar_stride)
         : size_(size),
@@ -233,13 +234,13 @@ protected:
      *                values.
      */
     constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage,
-        storage_stride_type stride, scalar_type *scalar)
+        dim_type size, storage_type *storage, storage_stride_type stride,
+        scalar_type *scalar)
         : scaled_reduced_row_major{
               size, storage, stride, scalar,
               helper::compute_default_masked_row_major_stride_array<
-                  size_type, scalar_mask, scalar_stride_dim, dimensionality>(
-                  size)}
+                  typename scalar_stride_type::value_type, scalar_mask,
+                  scalar_stride_dim, dimensionality>(size)}
     {}
 
     /**
@@ -251,12 +252,13 @@ protected:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      */
-    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
-        std::array<size_type, dimensionality> size, storage_type *storage,
-        scalar_type *scalar)
+    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(dim_type size,
+                                                          storage_type *storage,
+                                                          scalar_type *scalar)
         : scaled_reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<size_type>(size),
+              helper::compute_default_row_major_stride_array<
+                  typename storage_stride_type::value_type>(size),
               scalar}
     {}
 
@@ -384,7 +386,7 @@ public:
     {
         return helper::validate_index_spans(size_, spans...),
                range<scaled_reduced_row_major>{
-                   std::array<size_type, dimensionality>{
+                   dim_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    storage_stride_,
@@ -398,11 +400,7 @@ public:
      *
      * @returns the size of the accessor
      */
-    constexpr GKO_ACC_ATTRIBUTES std::array<size_type, dimensionality>
-    get_size() const
-    {
-        return size_;
-    }
+    constexpr GKO_ACC_ATTRIBUTES dim_type get_size() const { return size_; }
 
     /**
      * Returns a const reference to the storage stride array of size
@@ -504,7 +502,7 @@ protected:
 
 
 private:
-    const std::array<size_type, dimensionality> size_;
+    const dim_type size_;
     storage_type *storage_;
     const storage_stride_type storage_stride_;
     scalar_type *scalar_;

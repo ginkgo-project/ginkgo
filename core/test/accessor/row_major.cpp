@@ -54,8 +54,8 @@ namespace {
 class RowMajorAccessor : public ::testing::Test {
 protected:
     using span = gko::acc::index_span;
-    using dim_type = std::array<const gko::acc::size_type, 2>;
-    using stride_type = std::array<const gko::acc::size_type, 1>;
+    using dim_type = std::array<gko::acc::size_type, 2>;
+    using stride_type = std::array<gko::acc::size_type, 1>;
 
     using row_major_int_range = gko::acc::range<gko::acc::row_major<int, 2>>;
 
@@ -156,24 +156,6 @@ TEST_F(RowMajorAccessor, CanAssignValues)
 }
 
 
-/*
-TEST_F(RowMajorAccessor, CanAssignSubranges)
-{
-    r(0, span{0, 2}) = r(1, span{0, 2});
-
-    EXPECT_EQ(data[0], 3);
-    EXPECT_EQ(data[1], 4);
-    EXPECT_EQ(data[2], -1);
-    EXPECT_EQ(data[3], 3);
-    EXPECT_EQ(data[4], 4);
-    EXPECT_EQ(data[5], -2);
-    EXPECT_EQ(data[6], 5);
-    EXPECT_EQ(data[7], 6);
-    EXPECT_EQ(data[8], -3);
-}
-*/
-
-
 class RowMajorAccessor3d : public ::testing::Test {
 protected:
     using span = gko::acc::index_span;
@@ -193,12 +175,11 @@ protected:
         29, 30, 31, 32
     };
     // clang-format on
-    const std::array<const gko::acc::size_type, dimensionality> dim1{2, 3, 4};
-    const std::array<const gko::acc::size_type, dimensionality> dim2{2, 2, 3};
+    const std::array<gko::acc::size_type, dimensionality> dim1{2, 3, 4};
+    const std::array<gko::acc::size_type, dimensionality> dim2{2, 2, 3};
     row_major_int_range default_r{data, dim1};
     row_major_int_range custom_r{
-        data, dim2,
-        std::array<const gko::size_type, dimensionality - 1>{12, 4}};
+        data, dim2, std::array<gko::size_type, dimensionality - 1>{12, 4}};
 };
 
 
@@ -263,28 +244,6 @@ TEST_F(RowMajorAccessor3d, CanAssignValues)
 
     EXPECT_EQ(data[17], 1);
 }
-
-
-/*
-TEST_F(RowMajorAccessor3d, CanAssignSubranges)
-{
-    default_r(1u, span{0, 2}, span{0, 3}) =
-        custom_r(0u, span{0, 2}, span{0, 3});
-
-    EXPECT_EQ(data[12], 1);
-    EXPECT_EQ(data[13], 2);
-    EXPECT_EQ(data[14], -1);
-    EXPECT_EQ(data[15], 24);
-    EXPECT_EQ(data[16], 3);
-    EXPECT_EQ(data[17], 4);
-    EXPECT_EQ(data[18], -2);
-    EXPECT_EQ(data[19], 28);
-    EXPECT_EQ(data[20], 29);
-    EXPECT_EQ(data[21], 30);
-    EXPECT_EQ(data[22], 31);
-    EXPECT_EQ(data[23], 32);
-}
-*/
 
 
 }  // namespace
