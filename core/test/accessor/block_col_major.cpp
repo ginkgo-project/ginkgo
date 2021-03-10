@@ -81,19 +81,18 @@ protected:
         */
     };
     // clang-format on
-    const std::array<const gko::acc::size_type, dimensionality> dim1{2, 3, 4};
-    const std::array<const gko::acc::size_type, dimensionality> dim2{2, 2, 3};
+    const std::array<gko::acc::size_type, dimensionality> dim1{2, 3, 4};
+    const std::array<gko::acc::size_type, dimensionality> dim2{2, 2, 3};
     blk_col_major_range default_r{data, dim1};
     blk_col_major_range custom_r{
-        data, dim2,
-        std::array<const gko::acc::size_type, dimensionality - 1>{12, 3}};
+        data, dim2, std::array<gko::acc::size_type, dimensionality - 1>{12, 3}};
 };
 
 
 TEST_F(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = default_r.get_accessor().stride;
-    auto check_stride = std::array<const gko::acc::size_type, 2>{12, 3};
+    auto check_stride = std::array<gko::acc::size_type, 2>{12, 3};
 
     ASSERT_EQ(range_stride, check_stride);
 }
@@ -153,35 +152,6 @@ TEST_F(BlockColMajorAccessor3d, CanCreateColumnVector)
     EXPECT_EQ(subr(0, 0, 0), 12);
     EXPECT_EQ(subr(1, 0, 0), 28);
 }
-
-/*
-TEST_F(BlockColMajorAccessor3d, CanAssignValues)
-{
-    default_r(1, 1, 1) = default_r(0, 0, 0);
-
-    EXPECT_EQ(data[16], 1);
-}
-
-
-TEST_F(BlockColMajorAccessor3d, CanAssignSubranges)
-{
-    default_r(1u, span{0, 2}, span{0, 3}) =
-        custom_r(0u, span{0, 2}, span{0, 3});
-
-    EXPECT_EQ(data[12], 1);
-    EXPECT_EQ(data[15], 2);
-    EXPECT_EQ(data[18], -1);
-    EXPECT_EQ(data[21], 24);
-    EXPECT_EQ(data[13], 3);
-    EXPECT_EQ(data[16], 4);
-    EXPECT_EQ(data[19], -2);
-    EXPECT_EQ(data[22], 28);
-    EXPECT_EQ(data[14], 29);
-    EXPECT_EQ(data[17], 30);
-    EXPECT_EQ(data[20], 31);
-    EXPECT_EQ(data[23], 32);
-}
-*/
 
 
 }  // namespace
