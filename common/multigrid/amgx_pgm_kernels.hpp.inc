@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,42 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void restrict_apply_kernel(
-    const IndexType *__restrict__ agg, const size_type num_rows,
-    const size_type num_rhs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ x,
-    const size_type x_stride)
-{
-    auto tidx = thread::get_thread_id_flat();
-    auto row = tidx / num_rhs;
-    if (row >= num_rows) {
-        return;
-    }
-    auto col = tidx % num_rhs;
-    auto ind = agg[row];
-    atomic_add(x + ind * x_stride + col, b[row * b_stride + col]);
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void prolong_applyadd_kernel(
-    const IndexType *__restrict__ agg, const size_type num_rows,
-    const size_type num_rhs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ x,
-    const size_type x_stride)
-{
-    auto tidx = thread::get_thread_id_flat();
-    auto row = tidx / num_rhs;
-    if (row >= num_rows) {
-        return;
-    }
-    auto col = tidx % num_rhs;
-    auto ind = agg[row];
-    x[row * x_stride + col] += b[ind * b_stride + col];
-}
 
 
 template <typename IndexType>

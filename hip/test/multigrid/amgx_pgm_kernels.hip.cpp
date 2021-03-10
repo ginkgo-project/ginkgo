@@ -219,38 +219,6 @@ protected:
 };
 
 
-TEST_F(AmgxPgm, RestrictApplyIsEquivalentToRef)
-{
-    initialize_data();
-    // fine->coarse
-    auto x = Mtx::create_with_config_of(gko::lend(coarse_vector));
-    auto d_x = Mtx::create_with_config_of(gko::lend(d_coarse_vector));
-
-    gko::kernels::reference::amgx_pgm::restrict_apply(
-        ref, agg, fine_vector.get(), x.get());
-    gko::kernels::hip::amgx_pgm::restrict_apply(hip, d_agg, d_fine_vector.get(),
-                                                d_x.get());
-
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-}
-
-
-TEST_F(AmgxPgm, ProlongApplyaddIsEquivalentToRef)
-{
-    initialize_data();
-    // coarse->fine
-    auto x = fine_vector->clone();
-    auto d_x = d_fine_vector->clone();
-
-    gko::kernels::reference::amgx_pgm::prolong_applyadd(
-        ref, agg, coarse_vector.get(), x.get());
-    gko::kernels::hip::amgx_pgm::prolong_applyadd(
-        hip, d_agg, d_coarse_vector.get(), d_x.get());
-
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-}
-
-
 TEST_F(AmgxPgm, MatchEdgeIsEquivalentToRef)
 {
     initialize_data();
