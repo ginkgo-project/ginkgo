@@ -1,4 +1,4 @@
-find_package(OpenMP REQUIRED)
+find_package(OpenMP 3.0 REQUIRED)
 
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
