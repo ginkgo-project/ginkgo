@@ -39,7 +39,7 @@ jobs:
         path C:\tools\cygwin\bin;%GITHUB_WORKSPACE%\build\windows_shared_library
         mkdir build
         cd build
-        bash -c "cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} .."
+        bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} .."
         bash -c "make -j4"
         bash -c "ctest . --output-on-failure"
       shell: cmd

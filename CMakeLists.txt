@@ -18,6 +18,13 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+if (MINGW OR CYGWIN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)

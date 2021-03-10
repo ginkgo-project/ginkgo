@@ -35,7 +35,7 @@ jobs:
         $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
         mkdir build
         cd build
-        cmake  -DCMAKE_CXX_FLAGS=/bigobj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG="/MDd /Zi /Ob1 /Od /RTC1" -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} ..
+        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG="/MDd /Zi /Ob1 /Od /RTC1" -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} ..
         cmake --build . -j4 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }} --output-on-failure
 
