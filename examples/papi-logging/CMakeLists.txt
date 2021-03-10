@@ -1,9 +1,15 @@
-if (GINKGO_HAVE_PAPI_SDE)
-    set(target_name "papi-logging")
-    add_executable(${target_name} ${target_name}.cpp)
-    target_link_libraries(${target_name} ginkgo PAPI::PAPI)
-    target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
-    configure_file(data/A.mtx data/A.mtx COPYONLY)
-    configure_file(data/b.mtx data/b.mtx COPYONLY)
-    configure_file(data/x0.mtx data/x0.mtx COPYONLY)
+cmake_minimum_required(VERSION 3.9)
+project(papi-logging)
+
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
 endif()
+
+add_executable(papi-logging papi-logging.cpp)
+target_link_libraries(papi-logging ginkgo PAPI::PAPI)
+
+# Copy the data files to the execution directory
+configure_file(data/A.mtx data/A.mtx COPYONLY)
+configure_file(data/b.mtx data/b.mtx COPYONLY)
+configure_file(data/x0.mtx data/x0.mtx COPYONLY)

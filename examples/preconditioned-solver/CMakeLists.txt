@@ -1,7 +1,14 @@
-set(target_name "preconditioned-solver")
-add_executable(${target_name} ${target_name}.cpp)
-target_link_libraries(${target_name} Ginkgo::ginkgo)
-target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+cmake_minimum_required(VERSION 3.9)
+project(preconditioned-solver)
+
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
+endif()
+add_executable(preconditioned-solver preconditioned-solver.cpp)
+target_link_libraries(preconditioned-solver Ginkgo::ginkgo)
+
+# Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
 configure_file(data/b.mtx data/b.mtx COPYONLY)
 configure_file(data/x0.mtx data/x0.mtx COPYONLY)

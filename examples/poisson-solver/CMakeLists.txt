@@ -1,4 +1,10 @@
-set(target_name "poisson-solver")
-add_executable(${target_name} ${target_name}.cpp)
-target_link_libraries(${target_name} Ginkgo::ginkgo)
-target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+cmake_minimum_required(VERSION 3.9)
+project(poisson-solver)
+
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
+endif()
+
+add_executable(poisson-solver poisson-solver.cpp)
+target_link_libraries(poisson-solver Ginkgo::ginkgo)

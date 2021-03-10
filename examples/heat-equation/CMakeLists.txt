@@ -1,12 +1,15 @@
-set(target_name "heat-equation")
-find_package(OpenCV)
+cmake_minimum_required(VERSION 3.9)
+project(heat-equation)
 
-if (OpenCV_FOUND)
-    add_executable(${target_name} ${target_name}.cpp)
-    target_link_libraries(${target_name} Ginkgo::ginkgo ${OpenCV_LIBS})
-    target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
-    configure_file(data/initial.mtx data/initial.mtx COPYONLY)
-    configure_file(data/source.mtx data/source.mtx COPYONLY)
-else()
-    message("OpenCV not found, skipping heat-equation example")
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
 endif()
+find_package(OpenCV REQUIRED)
+
+add_executable(heat-equation heat-equation.cpp)
+target_link_libraries(heat-equation Ginkgo::ginkgo ${OpenCV_LIBS})
+
+# Copy the data files to the execution directory
+configure_file(data/initial.mtx data/initial.mtx COPYONLY)
+configure_file(data/source.mtx data/source.mtx COPYONLY)

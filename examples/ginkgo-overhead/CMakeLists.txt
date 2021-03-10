@@ -1,4 +1,10 @@
-set(target_name "ginkgo-overhead")
-add_executable(${target_name} ${target_name}.cpp)
-target_link_libraries(${target_name} Ginkgo::ginkgo)
-target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+cmake_minimum_required(VERSION 3.9)
+project(ginkgo-overhead)
+
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
+endif()
+
+add_executable(ginkgo-overhead ginkgo-overhead.cpp)
+target_link_libraries(ginkgo-overhead Ginkgo::ginkgo)

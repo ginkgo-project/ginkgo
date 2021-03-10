@@ -1,5 +1,13 @@
-set(target_name "preconditioner-export")
-add_executable(${target_name} ${target_name}.cpp)
-target_link_libraries(${target_name} Ginkgo::ginkgo)
-target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR})
+cmake_minimum_required(VERSION 3.9)
+project(preconditioner-export)
+
+# We only need to find Ginkgo if we build this example stand-alone
+if (NOT GINKGO_BUILD_EXAMPLES)
+    find_package(Ginkgo 1.3.0 REQUIRED)
+endif()
+
+add_executable(preconditioner-export preconditioner-export.cpp)
+target_link_libraries(preconditioner-export Ginkgo::ginkgo)
+
+# Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
