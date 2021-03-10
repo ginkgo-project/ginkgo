@@ -89,13 +89,9 @@ The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_ or _Cygwin_
 
 Depending on the configuration settings, some manual work might be required. More details are availble in [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
-* Build Ginkgo as shared library:
-  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
-  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default.
 * Build Ginkgo with Debug mode:
   Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
-  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
-  2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
+  1. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
 * Build Ginkgo in _MinGW_:
   If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
   [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
