@@ -41,7 +41,7 @@ jobs:
 
     - name: install
       run: |
-        $env:PATH="$env:PATH;C:\Program Files (x86)\Ginkgo\lib"
+        $env:PATH="$env:PATH;C:\Program Files (x86)\Ginkgo\bin"
         cd build
         cmake --install . --config ${{ matrix.config.build_type }}
         cmake --build . --target test_install --config ${{ matrix.config.build_type }}
