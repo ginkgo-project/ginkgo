@@ -44,7 +44,7 @@ jobs:
     - name: install
       run: |
         set PATH=%PATH:C:\Program Files\Git\bin;=%
-        set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\Program Files (x86)\Ginkgo\lib
+        set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\Program Files (x86)\Ginkgo\bin
         cd build
         cmake --install .
         cmake --build . --target test_install

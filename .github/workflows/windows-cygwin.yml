@@ -49,5 +49,5 @@ jobs:
         path C:\tools\cygwin\bin
         cd build
         bash -c "make install"
-        bash -c "export PATH=/usr/local/lib:$PATH && make test_install"
+        bash -c "export PATH=/usr/local/bin:$PATH && make test_install"
       shell: cmd
