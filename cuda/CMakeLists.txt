@@ -16,13 +16,6 @@ if(MSVC)
     if("${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}" STREQUAL "")
         set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
     endif()
-
-    # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
-    if(BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CUDA")
-    else()
-        ginkgo_switch_to_windows_static("CUDA")
-    endif()
 endif()
 
 include(CudaArchitectureSelector)

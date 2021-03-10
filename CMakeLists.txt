@@ -227,22 +227,6 @@ if(GINKGO_BUILD_HIP)
     endif()
 endif()
 
-
-if(MSVC)
-    # This is modified from
-    # https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
-    include(cmake/windows_helpers.cmake)
-    if(BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CXX")
-        ginkgo_switch_to_windows_dynamic("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-    else()
-        ginkgo_switch_to_windows_static("CXX")
-        ginkgo_switch_to_windows_static("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    endif()
-endif()
-
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
@@ -260,6 +244,14 @@ add_subdirectory(third_party)    # Third-party tools and libraries
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
+
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    else()
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
+    endif()
+endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
