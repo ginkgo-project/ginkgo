@@ -117,8 +117,9 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+void Isai<IsaiType, ValueType, IndexType, StorageType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
     IndexType excess_limit)
 {
@@ -265,8 +266,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+std::unique_ptr<LinOp>
+Isai<IsaiType, ValueType, IndexType, StorageType>::transpose() const
 {
     auto exec = this->get_executor();
     auto is_spd = IsaiType == isai_type::spd;
@@ -278,17 +281,17 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
     transp->set_size(gko::transpose(this->get_size()));
     auto csr_transp =
         share(as<Csr>(as<Csr>(this->get_approximate_inverse())->transpose()));
-    auto ell_transp = Ell::create(exec);
-    csr_transp->convert_to(ell_transp.get());
+    auto ell_transp = convert_matrix_formats<Ell>(csr_transp);
     transp->approximate_inverse_ = share(ell_transp);
 
     return std::move(transp);
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
-    const
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+std::unique_ptr<LinOp>
+Isai<IsaiType, ValueType, IndexType, StorageType>::conj_transpose() const
 {
     auto exec = this->get_executor();
     auto is_spd = IsaiType == isai_type::spd;
@@ -300,29 +303,28 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     transp->set_size(gko::transpose(this->get_size()));
     auto csr_transp = share(
         as<Csr>(as<Csr>(this->get_approximate_inverse())->conj_transpose()));
-    auto ell_transp = Ell::create(exec);
-    csr_transp->convert_to(ell_transp.get());
+    auto ell_transp = convert_matrix_formats<Ell>(csr_transp);
     transp->approximate_inverse_ = share(ell_transp);
 
     return std::move(transp);
 }
 
 
-#define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::lower, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
+#define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType, StorageType) \
+    class Isai<isai_type::lower, ValueType, IndexType, StorageType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_LOWER_ISAI);
 
-#define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::upper, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
+#define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType, StorageType) \
+    class Isai<isai_type::upper, ValueType, IndexType, StorageType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_UPPER_ISAI);
 
-#define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::general, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI);
+#define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType, StorageType) \
+    class Isai<isai_type::general, ValueType, IndexType, StorageType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_GENERAL_ISAI);
 
-#define GKO_DECLARE_SPD_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::spd, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI);
+#define GKO_DECLARE_SPD_ISAI(ValueType, IndexType, StorageType) \
+    class Isai<isai_type::spd, ValueType, IndexType, StorageType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_SPD_ISAI);
 
 
 }  // namespace preconditioner

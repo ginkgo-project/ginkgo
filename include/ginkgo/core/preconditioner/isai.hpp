@@ -103,15 +103,17 @@ enum struct isai_type { lower, upper, general, spd };
  * @ingroup precond
  * @ingroup LinOp
  */
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
-             public Transposable {
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType = ValueType>
+class Isai
+    : public EnableLinOp<Isai<IsaiType, ValueType, IndexType, StorageType>>,
+      public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
-    friend class Isai<isai_type::general, ValueType, IndexType>;
-    friend class Isai<isai_type::lower, ValueType, IndexType>;
-    friend class Isai<isai_type::upper, ValueType, IndexType>;
-    friend class Isai<isai_type::spd, ValueType, IndexType>;
+    friend class Isai<isai_type::general, ValueType, IndexType, StorageType>;
+    friend class Isai<isai_type::lower, ValueType, IndexType, StorageType>;
+    friend class Isai<isai_type::upper, ValueType, IndexType, StorageType>;
+    friend class Isai<isai_type::spd, ValueType, IndexType, StorageType>;
 
 public:
     using value_type = ValueType;
@@ -123,11 +125,11 @@ public:
                        ? isai_type::spd
                        : IsaiType == isai_type::lower ? isai_type::upper
                                                       : isai_type::lower,
-             ValueType, IndexType>;
+             ValueType, IndexType, StorageType>;
     using Comp = Composition<ValueType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     using Dense = matrix::Dense<ValueType>;
-    using Ell = matrix::Ell<ValueType, IndexType>;
+    using Ell = matrix::Ell<StorageType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
     /**
@@ -142,21 +144,18 @@ public:
     get_approximate_inverse() const
     {
         auto exec = this->get_executor();
-        std::shared_ptr<LinOp> return_inv;
+        std::shared_ptr<const LinOp> return_inv;
         if (IsaiType == isai_type::spd) {
             auto ops = as<Comp>(approximate_inverse_)->get_operators();
             auto inv = as<Ell>(ops[1]);
             auto inv_transp = as<Ell>(ops[0]);
-            auto csr_inv = Csr::create(exec);
-            auto csr_inv_transp = Csr::create(exec);
-            inv->convert_to(csr_inv.get());
-            inv_transp->convert_to(csr_inv_transp.get());
-            return_inv = share(Composition<ValueType>::create(
-                share(csr_inv_transp), share(csr_inv)));
+            auto csr_inv = convert_matrix_formats<const Csr>(inv);
+            auto csr_inv_transp = convert_matrix_formats<const Csr>(inv_transp);
+            return_inv =
+                share(Composition<ValueType>::create(csr_inv_transp, csr_inv));
         } else {
-            auto csr_inv = Csr::create(exec);
-            as<Ell>(approximate_inverse_)->convert_to(csr_inv.get());
-            return_inv = share(csr_inv);
+            return_inv = convert_matrix_formats<const Csr>(
+                as<Ell>(approximate_inverse_));
         }
         return as<typename std::conditional<IsaiType == isai_type::spd, Comp,
                                             Csr>::type>(return_inv);
@@ -205,6 +204,15 @@ public:
          */
         std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_factory, nullptr);
+
+        /**
+         * @brief Parameter for reducing preconditioner storage precision.
+         *
+         * Reduces the preconditioner storage precision up to reduce_precision
+         * times. For value types double and complex<double>, storage precision
+         * can be reduced up to two times, for float and complex<float> once.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(reduce_precision, 0);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -236,16 +244,42 @@ protected:
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
         auto inv = share(as<Csr>(approximate_inverse_));
-        auto ell_inv = Ell::create(exec);
-        inv->move_to(ell_inv.get());
+        auto ell_inv = convert_matrix_formats<Ell>(inv);
         if (IsaiType == isai_type::spd) {
             auto inv_transp = share(as<Csr>(inv->conj_transpose()));
-            auto ell_inv_transp = Ell::create(exec);
-            inv_transp->move_to(ell_inv_transp.get());
+            auto ell_inv_transp = convert_matrix_formats<Ell>(inv_transp);
             approximate_inverse_ = Composition<ValueType>::create(
                 share(ell_inv_transp), share(ell_inv));
         } else {
             approximate_inverse_ = share(ell_inv);
+        }
+    }
+
+    template <typename OutType, typename InType>
+    std::shared_ptr<OutType> convert_matrix_formats(
+        std::shared_ptr<InType> in) const
+    {
+        if (std::is_same<OutType, InType>::value) {
+            return as<OutType>(in);
+        }
+
+        auto out = OutType::create(in->get_executor());
+        if (std::is_same<
+                InType, gko::matrix::Csr<typename InType::value_type,
+                                         typename InType::index_type>>::value) {
+            auto tmp = gko::matrix::Csr<
+                typename OutType::value_type,
+                typename InType::index_type>::create(in->get_executor());
+            as<Csr>(in)->convert_to(tmp.get());
+            tmp->convert_to(out.get());
+            return share(out);
+        } else {
+            auto tmp = gko::matrix::Ell<
+                typename OutType::value_type,
+                typename InType::index_type>::create(in->get_executor());
+            as<Ell>(in)->convert_to(tmp.get());
+            tmp->convert_to(out.get());
+            return share(out);
         }
     }
 
@@ -280,17 +314,21 @@ private:
 };
 
 
-template <typename ValueType = default_precision, typename IndexType = int32>
-using LowerIsai = Isai<isai_type::lower, ValueType, IndexType>;
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename StorageType = ValueType>
+using LowerIsai = Isai<isai_type::lower, ValueType, IndexType, StorageType>;
 
-template <typename ValueType = default_precision, typename IndexType = int32>
-using UpperIsai = Isai<isai_type::upper, ValueType, IndexType>;
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename StorageType = ValueType>
+using UpperIsai = Isai<isai_type::upper, ValueType, IndexType, StorageType>;
 
-template <typename ValueType = default_precision, typename IndexType = int32>
-using GeneralIsai = Isai<isai_type::general, ValueType, IndexType>;
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename StorageType = ValueType>
+using GeneralIsai = Isai<isai_type::general, ValueType, IndexType, StorageType>;
 
-template <typename ValueType = default_precision, typename IndexType = int32>
-using SpdIsai = Isai<isai_type::spd, ValueType, IndexType>;
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename StorageType = ValueType>
+using SpdIsai = Isai<isai_type::spd, ValueType, IndexType, StorageType>;
 
 
 }  // namespace preconditioner
