@@ -161,6 +161,41 @@ public:
         return (*other).create_with_same_config();
     }
 
+    /**
+     * Creates a Dense matrix with the same type and executor as another Dense
+     * matrix but a different size.
+     *
+     * @param other  The other matrix whose type we target.
+     * @param exec  The executor of the new matrix.
+     * @param size  The size of the new matrix.
+     * @param stride  The stride of the new matrix.
+     *
+     * @returns a Dense matrix with the type of other.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size = dim<2>{})
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, size[1]);
+    }
+
+    /**
+     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * Executor>, const dim<2>)
+     *
+     * @param stride  The stride of the new matrix.
+     *
+     * @note This is an overload which allows full parameter specification.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size, size_type stride)
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, stride);
+    }
+
     friend class Dense<next_precision<ValueType>>;
 
     void convert_to(Dense<next_precision<ValueType>> *result) const override;
@@ -639,6 +674,20 @@ protected:
     }
 
     /**
+     * Creates a Dense matrix with the same type as the callers matrix.
+     *
+     * @param size  size of the matrix
+     *
+     * @returns a Dense matrix with the same type as the caller.
+     */
+    virtual std::unique_ptr<Dense> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        size_type stride) const
+    {
+        return Dense::create(exec, size, stride);
+    }
+
+    /**
      * @copydoc scale(const LinOp *)
      *
      * @note  Other implementations of dense should override this function
@@ -745,7 +794,7 @@ private:
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     size_type stride, std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -784,7 +833,7 @@ std::unique_ptr<Matrix> initialize(
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     return initialize<Matrix>(1, vals, std::move(exec),
                               std::forward<TArgs>(create_args)...);
@@ -817,7 +866,7 @@ std::unique_ptr<Matrix> initialize(
     size_type stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -865,7 +914,7 @@ template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
                               std::move(exec),
