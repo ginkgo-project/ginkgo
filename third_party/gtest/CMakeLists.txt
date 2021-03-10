@@ -5,7 +5,7 @@ if(MSVC)
         "https://github.com/google/googletest.git"
         "6a7ed316a5cdc07b6d26362c90770787513822d4"
         # Work around the linking errors when compiling gtest with CUDA
-        "-Dgtest_disable_pthreads=ON" "-Dgtest_force_shared_crt=${BUILD_SHARED_LIBS}")
+        "-Dgtest_disable_pthreads=ON" "-Dgtest_force_shared_crt=ON")
 else()
     ginkgo_load_git_package(gtest_external
         "https://github.com/google/googletest.git"

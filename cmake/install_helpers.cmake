@@ -124,22 +124,11 @@ function(ginkgo_install)
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         INSTALL_DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
-    set(HELPERS "windows_helpers.cmake")
-    foreach (helper ${HELPERS})
-        configure_file(${Ginkgo_SOURCE_DIR}/cmake/${helper}
-            ${Ginkgo_BINARY_DIR}/${helper} COPYONLY)
-    endforeach()
     install(FILES
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
-    if (WIN32 OR CYGWIN)
-        install(FILES
-            "${Ginkgo_SOURCE_DIR}/cmake/windows_helpers.cmake"
-            DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
-            )
-    endif()
     install(EXPORT Ginkgo
         NAMESPACE Ginkgo::
         FILE GinkgoTargets.cmake
