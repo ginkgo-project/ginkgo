@@ -61,10 +61,10 @@ following:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
-* _ROCm 2.8+_
-*    the HIP, hipBLAS and hipSPARSE packages compiled with either:
-    * _AMD_ backend
-    * _CUDA 9.0+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
+* _ROCm 3.5+_
+*    the HIP, hipBLAS, hipSPARSE, hip/rocRAND packages compiled with either:
+    * _AMD_ backend (using the `clang` compiler)
+    * _CUDA 9.2+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
 
 ### Windows
 

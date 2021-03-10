@@ -57,7 +57,7 @@ target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_hip)
 # Need to link against ginkgo_dpcpp for the `raw_copy_to(DpcppExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
-target_link_libraries(ginkgo_omp PRIVATE ginkgo_core_device)
+target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)

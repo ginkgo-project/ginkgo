@@ -9,6 +9,13 @@ set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
 
 function(ginkgo_install_library name subdir)
+    # This setting sets the directory of the library as the `INSTALL_RPATH`.
+    # This is required for `libginkgo.so` to find its dependencies such as
+    # `libginkgo_omp.so` etc. Note that with this setting it's not possible on
+    # Linux to control which Ginkgo libraries are found and where: if all the
+    # libraries are present in the directory, these will be used first and
+    # foremost and the environment variable `LD_LIBRARY_PATH` will have no
+    # effect.
     if (BUILD_SHARED_LIBS)
         set (HWLOC_LIB_PATH "")
         if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)

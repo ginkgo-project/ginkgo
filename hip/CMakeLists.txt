@@ -120,7 +120,9 @@ list(APPEND CMAKE_PREFIX_PATH
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
 
-# NOTE: without this, HIP jacobi build takes a *very* long time
+# NOTE: without this, HIP jacobi build takes a *very* long time. The reason for
+# that is that these variables are seemingly empty by default, thus there is no
+# proper optimization applied to the HIP builds otherwise.
 set(HIP_HIPCC_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Flags used by the HIPCC compiler during DEBUG builds")
 set(HIP_HIPCC_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}" CACHE STRING "Flags used by the HIPCC compiler during MINSIZEREL builds")
 set(HIP_HIPCC_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "Flags used by the HIPCC compiler during RELEASE builds")
@@ -247,7 +249,7 @@ target_include_directories(ginkgo_hip
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
-target_link_libraries(ginkgo_hip PRIVATE ginkgo_core_device)
+target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)

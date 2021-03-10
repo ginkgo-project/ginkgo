@@ -192,14 +192,21 @@ Ginkgo's HIP backend adds a dependency to the following packages:
 All HIP installation paths can be configured through the use of environment
 variables or CMake variables. This way of configuring the paths is currently
 imposed by the `HIP` tool suite. The variables are the following:
-+ CMake `-DHIP_PATH=` or  environment `export HIP_PATH=`: sets the `HIP`
-  installation path. The default value is `/opt/rocm/hip`.
-+ CMake `-DHIPBLAS_PATH=` or  environment `export HIPBLAS_PATH=`: sets the
-  `hipBLAS` installation path. The default value is `/opt/rocm/hipblas`.
-+ CMake `-DHIPSPARSE_PATH=` or  environment `export HIPSPARSE_PATH=`: sets the
-  `hipSPARSE` installation path. The default value is `/opt/rocm/hipsparse`.
-+ CMake `-DHCC_PATH=` or  environment `export HCC_PATH=`: sets the `HCC`
-  installation path, for AMD backends. The default value is `/opt/rocm/hcc`.
++ CMake `-DROCM_PATH=` or environment `export ROCM_PATH=`: sets the `ROCM`
+  installation path. The default value is `/opt/rocm/`.
++ CMake `-DHIP_CLANG_PATH` or environment `export HIP_CLANG_PATH=`: sets the
+  `HIP` compatible `clang` binary path. The default value is
+  `${ROCM_PATH}/llvm/bin`.
++ CMake `-DHIP_PATH=` or environment `export HIP_PATH=`: sets the `HIP`
+  installation path. The default value is `${ROCM_PATH}/hip`.
++ CMake `-DHIPBLAS_PATH=` or environment `export HIPBLAS_PATH=`: sets the
+  `hipBLAS` installation path. The default value is `${ROCM_PATH}/hipblas`.
++ CMake `-DHIPSPARSE_PATH=` or environment `export HIPSPARSE_PATH=`: sets the
+  `hipSPARSE` installation path. The default value is `${ROCM_PATH}/hipsparse`.
++ CMake `-DROCRAND_PATH=` or environment `export ROCRAND_PATH=`: sets the
+  `rocRAND` installation path. The default value is `${ROCM_PATH}/rocrand`.
++ CMake `-DHIPRAND_PATH=` or environment `export HIPRAND_PATH=`: sets the
+  `hipRAND` installation path. The default value is `${ROCM_PATH}/hiprand`.
 + environment `export CUDA_PATH=`: where `hipcc` can find `CUDA` if it is not in
   the default `/usr/local/cuda` path.
 
@@ -216,9 +223,9 @@ export HIP_PLATFORM=nvcc
 ```
 
 When using `HIP_PLATFORM=hcc`, note that two `HIP` compilers can be set, the old
-`hcc` or since ROCm 3.5, `clang`. On newer installations, `clang` should be set
-by default, but if encountering any problem try to manually set the `HIP`
-compiler to `clang`:
+`hcc` or since ROCm 3.5, `clang`. Ginkgo is only compatible with the `clang`
+based installations. Although this setting should be automatically done, it is
+also possible to manually set the `HIP` compiler to `clang`:
 ```
 export HIP_COMPILER=clang
 ```
@@ -227,7 +234,6 @@ export HIP_COMPILER=clang
 Platform specific compilation flags can be given through the following
 CMake variables:
 + `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
-+ `-DGINKGO_HIP_HCC_COMPILER_FLAGS=`: compilation flags given to AMD platforms.
 + `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
 + `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
 
@@ -257,7 +263,9 @@ packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
 Ginkgo to try to use an external version of a package. For this, Ginkgo provides
 two ways to find packages. To rely on the CMake `find_package` command, use the
 CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` works the opposite
-way, Ginkgo always looks for the system's `hwloc` first.
+way, Ginkgo always looks for the system's `hwloc` first. In addition, when
+installing Ginkgo, `hwloc` will be installed as well into the Ginkgo directory
+if there were no system `hwloc` detected.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the

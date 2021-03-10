@@ -131,7 +131,6 @@ int main(int, char **)
         gko::name_demangling::get_static_type(testVar);
     }
 
-
     // core/base/polymorphic_object.hpp
     {
         gko::PolymorphicObject *test;
