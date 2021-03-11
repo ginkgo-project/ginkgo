@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/preconditioner/ras_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -1255,6 +1256,56 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace jacobi
+
+
+// TODO (script:ras): adapt this block as needed
+namespace ras {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_FIND_BLOCKS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RAS_FIND_BLOCKS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_GENERATE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RAS_GENERATE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_APPLY_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RAS_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_SIMPLE_APPLY_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RAS_SIMPLE_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_TRANSPOSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RAS_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RAS_CONJ_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RAS_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RAS_CONVERT_TO_DENSE_KERNEL);
+
+GKO_DECLARE_RAS_INITIALIZE_PRECISIONS_KERNEL()
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+
+
+}  // namespace ras
 
 
 namespace isai {

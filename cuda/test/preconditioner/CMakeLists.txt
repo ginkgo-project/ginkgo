@@ -1,2 +1,3 @@
-ginkgo_create_test(jacobi_kernels)
 ginkgo_create_test_cpp_cuda_header(isai_kernels)
+ginkgo_create_test(jacobi_kernels)
+ginkgo_create_test(ras_kernels)
