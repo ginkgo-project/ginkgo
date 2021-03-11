@@ -48,7 +48,13 @@ class PolymorphicObjectTest : public gko::PolymorphicObject {};
 
 int main(int, char **)
 {
-    auto refExec = gko::ReferenceExecutor::create();
+#if defined(HAS_CUDA)
+    auto exec = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
+#elif defined(HAS_HIP)
+    auto exec = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
+#else
+    auto exec = gko::ReferenceExecutor::create();
+#endif
     // core/base/abstract_factory.hpp
     {
         using type1 = int;
@@ -177,12 +183,12 @@ int main(int, char **)
 
     // core/factorization/par_ilu.hpp
     {
-        auto test = gko::factorization::ParIlu<>::build().on(refExec);
+        auto test = gko::factorization::ParIlu<>::build().on(exec);
     }
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        auto test = gko::log::Convergence<>::create(exec);
     }
 
     // core/log/record.hpp
@@ -192,69 +198,69 @@ int main(int, char **)
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(refExec);
+        auto test = gko::log::Stream<>::create(exec);
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        auto test = gko::log::Papi<>::create(refExec);
+        auto test = gko::log::Papi<>::create(exec);
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2,
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2,
                                 std::make_shared<Mtx::load_balance>(2));
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2, 2, 1);
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2, 2, 1);
     }
 
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
-        auto test = Mtx::create(refExec);
+        auto test = Mtx::create(exec);
     }
 
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/sparsity_csr.hpp
     {
         using Mtx = gko::matrix::SparsityCsr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
     // core/multigrid/amgx_pgm.hpp
@@ -264,130 +270,130 @@ int main(int, char **)
 
     // core/preconditioner/ilu.hpp
     {
-        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
+        auto test = gko::preconditioner::Ilu<>::build().on(exec);
     }
 
     // core/preconditioner/isai.hpp
     {
-        auto test_l = gko::preconditioner::LowerIsai<>::build().on(refExec);
-        auto test_u = gko::preconditioner::UpperIsai<>::build().on(refExec);
+        auto test_l = gko::preconditioner::LowerIsai<>::build().on(exec);
+        auto test_u = gko::preconditioner::UpperIsai<>::build().on(exec);
     }
 
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
-        auto test = Bj::build().with_max_block_size(1u).on(refExec);
+        auto test = Bj::build().with_max_block_size(1u).on(exec);
     }
 
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/lower_trs.hpp
     {
         using Solver = gko::solver::LowerTrs<>;
-        auto test = Solver::build().on(refExec);
+        auto test = Solver::build().on(exec);
     }
 
     // core/stop/
     {
         // iteration.hpp
         auto iteration =
-            gko::stop::Iteration::build().with_max_iters(1u).on(refExec);
+            gko::stop::Iteration::build().with_max_iters(1u).on(exec);
 
         // time.hpp
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
-                        .on(refExec);
+                        .on(exec);
 
         // residual_norm.hpp
         auto main_res = gko::stop::ResidualNorm<>::build()
                             .with_reduction_factor(1e-10)
                             .with_baseline(gko::stop::mode::absolute)
-                            .on(refExec);
+                            .on(exec);
 
         auto implicit_res = gko::stop::ImplicitResidualNorm<>::build()
                                 .with_reduction_factor(1e-10)
                                 .with_baseline(gko::stop::mode::absolute)
-                                .on(refExec);
+                                .on(exec);
 
         auto res_red = gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(1e-10)
-                           .on(refExec);
+                           .on(exec);
 
         auto rel_res =
             gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
-                refExec);
+                exec);
 
         auto abs_res =
             gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
-                refExec);
+                exec);
 
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};
@@ -396,10 +402,16 @@ int main(int, char **)
         auto combined =
             gko::stop::Combined::build()
                 .with_criteria(std::move(time), std::move(iteration))
-                .on(refExec);
+                .on(exec);
     }
-
-    std::cout << "test_install: the Ginkgo installation was correctly detected "
+#if defined(HAS_CUDA)
+    auto extra_info = "(CUDA)";
+#elif defined(HAS_HIP)
+    auto extra_info = "(HIP)";
+#else
+    auto extra_info = "";
+#endif
+    std::cout << "test_install"<< extra_info << ": the Ginkgo installation was correctly detected "
                  "and is complete."
               << std::endl;
 

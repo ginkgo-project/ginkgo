@@ -33,25 +33,28 @@ if(GINKGO_BUILD_CUDA)
             ginkgo_switch_to_windows_static("CUDA")
         endif()
     endif()
-    add_executable(test_install_cuda test_install_cuda.cu)
+    set_source_file_properties(test_install.cpp PROPERTIES LANGUAGE CUDA)
+    add_executable(test_install_cuda test_install.cpp)
+    target_compile_definitions(test_install_cuda PRIVATE HAS_CUDA=1)
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
 endif()
 
 if(GINKGO_BUILD_HIP)
     find_package(HIP REQUIRED)
 
-    set_source_files_properties(test_install.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
+    set_source_files_properties(test_install.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
     # The library was compiled with `-fPIC` when in shared library mode
     if (GINKGO_BUILD_SHARED_LIBS)
         set (GINKGO_PIC_OPTION "-fPIC")
         set (GINKGO_CUDA_PIC_OPTION "-Xcompiler '-fPIC'")
     endif()
-    hip_add_executable(test_install_hip test_install.hip.cpp
+    hip_add_executable(test_install_hip test_install.cpp
         HIPCC_OPTIONS "-std=c++14"
         CLANG_OPTIONS "${GINKGO_PIC_OPTION}"
         NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}")
 
     target_link_libraries(test_install_hip PRIVATE Ginkgo::ginkgo)
+    target_compile_definitions(test_install_hip PRIVATE HAS_HIP=1)
 
     # If we always link with CXX there is no RPATH issue
     set_target_properties(test_install_hip PROPERTIES LINKER_LANGUAGE CXX)

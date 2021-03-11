@@ -351,6 +351,8 @@ else()
         set(GINKGO_TEST_INSTALL_HIP_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_hip")
     endif()
 endif()
+
+file(MAKE_DIRECTORY ${Ginkgo_BINARY_DIR}/test_install)
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
     -B${Ginkgo_BINARY_DIR}/test_install
