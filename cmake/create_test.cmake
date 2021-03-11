@@ -108,13 +108,26 @@ function(ginkgo_create_hip_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
 
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-    hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
-        # With how HIP works, to prevent redifinition we need to comment these.
-        # They might need to be used later though.
-        #HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
-        #NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
-        #CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
-        )
+
+    # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here
+    # creates a redefinition of all flags. This creates some issues with `nvcc`
+    # (particularly the flags in `HIPCC_OPTIONS`), but `clang` is fine with the
+    # redefinitions.
+    if (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+        hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
+            # If `FindHIP.cmake`, namely `HIP_PARSE_HIPCC_OPTIONS` macro and
+            # call gets fixed, uncomment this.
+            # HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+            # NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
+            # CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+            )
+    else() # hcc/clang
+        hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
+            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+            NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
+            CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+            )
+    endif()
 
     # Let's use a normal compiler for linking
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
