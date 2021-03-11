@@ -52,51 +52,77 @@ namespace multigrid {
 /**
  * This class represents two levels in a multigrid hierarchy.
  *
- * A class implementing this interface should use the
- * this->get_compositions()->apply(...) as its own apply, which represents
- * op(b) = prolong(coarse(restrict(b))). All MultigridLevel generator should
- * inherit from this class.
+ * The MultigridLevel is an interface that allows to get the individual
+ * components of multigrid level. Each implementation of a multigrid level
+ * should inherit from this interface. Use EnableMultigridLevel<ValueType> to
+ * implement this interface with composition by default.
  *
  * @ingroup Multigrid
  */
-template <typename ValueType>
-class MultigridLevel : public UseComposition<ValueType> {
+class MultigridLevel {
 public:
-    using value_type = ValueType;
-
     /**
      * Returns the operator on fine level.
      *
      * @return  the operator on fine level.
      */
-    std::shared_ptr<const LinOp> get_fine_op() const { return fine_op_; }
+    virtual std::shared_ptr<const LinOp> get_fine_op() const = 0;
 
     /**
      * Returns the restrict operator.
      *
      * @return  the restrict operator.
      */
-    std::shared_ptr<const LinOp> get_restrict_op() const
-    {
-        return this->get_operator_at(2);
-    }
+    virtual std::shared_ptr<const LinOp> get_restrict_op() const = 0;
 
     /**
      * Returns the operator on coarse level.
      *
      * @return  the operator on coarse level.
      */
-    std::shared_ptr<const LinOp> get_coarse_op() const
-    {
-        return this->get_operator_at(1);
-    }
+    virtual std::shared_ptr<const LinOp> get_coarse_op() const = 0;
 
     /**
      * Returns the prolong operator.
      *
      * @return  the prolong operator.
      */
-    std::shared_ptr<const LinOp> get_prolong_op() const
+    virtual std::shared_ptr<const LinOp> get_prolong_op() const = 0;
+};
+
+
+/**
+ * The EnableMultigridLevel gives the default implementation of MultigridLevel
+ * with composition and provides `set_multigrid_level` function.
+ *
+ * A class inherit from EnableMultigridLevel should use the
+ * this->get_compositions()->apply(...) as its own apply, which represents
+ * op(b) = prolong(coarse(restrict(b))).
+ *
+ * @ingroup Multigrid
+ */
+template <typename ValueType>
+class EnableMultigridLevel : public MultigridLevel,
+                             public UseComposition<ValueType> {
+public:
+    using value_type = ValueType;
+
+    std::shared_ptr<const LinOp> get_fine_op() const override
+    {
+        return fine_op_;
+    }
+
+    std::shared_ptr<const LinOp> get_restrict_op() const override
+    {
+        return this->get_operator_at(2);
+    }
+
+    std::shared_ptr<const LinOp> get_coarse_op() const override
+    {
+        return this->get_operator_at(1);
+    }
+
+    std::shared_ptr<const LinOp> get_prolong_op() const override
     {
         return this->get_operator_at(0);
     }
@@ -121,10 +147,10 @@ protected:
         this->set_composition(prolong_op, coarse_op, restrict_op);
     }
 
-    explicit MultigridLevel() {}
+    explicit EnableMultigridLevel() {}
 
     /**
-     * Creates a MultigridLevel with the given fine operator
+     * Creates a EnableMultigridLevel with the given fine operator
      *
      * @param fine_op  The fine operator associated to the multigrid_level
      *
@@ -132,7 +158,7 @@ protected:
      *       so the user needs to call `set_multigrid_level` to set the
      *       corresponding information after generation.
      */
-    explicit MultigridLevel(std::shared_ptr<const LinOp> fine_op)
+    explicit EnableMultigridLevel(std::shared_ptr<const LinOp> fine_op)
         : fine_op_(fine_op)
     {}
 
