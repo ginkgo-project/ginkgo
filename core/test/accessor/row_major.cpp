@@ -120,7 +120,7 @@ TEST_F(RowMajorAccessor, CanWriteData)
 
 TEST_F(RowMajorAccessor, CanCreateSubrange)
 {
-    auto subr = r(span{1, 3}, span{0, 2});
+    auto subr = r(span{1u, 3u}, span{0u, 2u});
 
     EXPECT_EQ(subr(0, 0), 3);
     EXPECT_EQ(subr(0, 1), 4);
@@ -131,7 +131,7 @@ TEST_F(RowMajorAccessor, CanCreateSubrange)
 
 TEST_F(RowMajorAccessor, CanCreateRowVector)
 {
-    auto subr = r(2, span{0, 2});
+    auto subr = r(2u, span{0u, 2u});
 
     EXPECT_EQ(subr(0, 0), 5);
     EXPECT_EQ(subr(0, 1), 6);
@@ -140,7 +140,7 @@ TEST_F(RowMajorAccessor, CanCreateRowVector)
 
 TEST_F(RowMajorAccessor, CanCreateColumnVector)
 {
-    auto subr = r(span{0, 3}, 0);
+    auto subr = r(span{0u, 3u}, 0u);
 
     EXPECT_EQ(subr(0, 0), 1);
     EXPECT_EQ(subr(1, 0), 3);
@@ -211,7 +211,7 @@ TEST_F(RowMajorAccessor3d, CanWriteData)
 
 TEST_F(RowMajorAccessor3d, CanCreateSubrange)
 {
-    auto subr = custom_r(span{0, 2}, span{1, 2}, span{1, 3});
+    auto subr = custom_r(span{0u, 2u}, span{1u, 2u}, span{1u, 3u});
 
     EXPECT_EQ(subr(0, 0, 0), 4);
     EXPECT_EQ(subr(0, 0, 1), -2);
@@ -222,7 +222,7 @@ TEST_F(RowMajorAccessor3d, CanCreateSubrange)
 
 TEST_F(RowMajorAccessor3d, CanCreateRowVector)
 {
-    auto subr = default_r(1u, 2u, span{0, 2});
+    auto subr = default_r(1u, 2u, span{0u, 2u});
 
     EXPECT_EQ(subr(0, 0, 0), 29);
     EXPECT_EQ(subr(0, 0, 1), 30);
