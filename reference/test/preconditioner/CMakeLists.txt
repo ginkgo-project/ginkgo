@@ -1,5 +1,6 @@
-ginkgo_create_test(ilu)
 ginkgo_create_test(ic)
+ginkgo_create_test(ilu)
 ginkgo_create_test(isai_kernels)
 ginkgo_create_test(jacobi)
 ginkgo_create_test(jacobi_kernels)
+ginkgo_create_test(ras_kernels)

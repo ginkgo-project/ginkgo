@@ -14,7 +14,6 @@ set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
-    base/version.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     components/absolute_array.dp.cpp
@@ -24,9 +23,9 @@ target_sources(ginkgo_dpcpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
+    factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
-    factorization/factorization_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
     factorization/par_ilu_kernels.dp.cpp
@@ -43,9 +42,9 @@ target_sources(ginkgo_dpcpp
     multigrid/amgx_pgm_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
+    preconditioner/ras_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
-    solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp
