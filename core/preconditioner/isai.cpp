@@ -310,21 +310,40 @@ Isai<IsaiType, ValueType, IndexType, StorageType>::conj_transpose() const
 }
 
 
-#define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType, StorageType) \
-    class Isai<isai_type::lower, ValueType, IndexType, StorageType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_LOWER_ISAI);
+#define GKO_DECLARE_LOWER_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::lower, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI1);
 
-#define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType, StorageType) \
-    class Isai<isai_type::upper, ValueType, IndexType, StorageType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_UPPER_ISAI);
+#define GKO_DECLARE_UPPER_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::upper, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI1);
 
-#define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType, StorageType) \
-    class Isai<isai_type::general, ValueType, IndexType, StorageType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_GENERAL_ISAI);
+#define GKO_DECLARE_GENERAL_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::general, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI1);
 
-#define GKO_DECLARE_SPD_ISAI(ValueType, IndexType, StorageType) \
-    class Isai<isai_type::spd, ValueType, IndexType, StorageType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(GKO_DECLARE_SPD_ISAI);
+#define GKO_DECLARE_SPD_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::spd, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI1);
+
+#define GKO_DECLARE_LOWER_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::lower, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI2);
+
+#define GKO_DECLARE_UPPER_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::upper, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI2);
+
+#define GKO_DECLARE_GENERAL_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::general, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI2);
+
+#define GKO_DECLARE_SPD_ISAI2(ValueType, IndexType) \
+    class Isai<isai_type::spd, ValueType, IndexType, next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI2);
 
 
 }  // namespace preconditioner

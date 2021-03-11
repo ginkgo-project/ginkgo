@@ -524,25 +524,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_INDEX_AND_STORAGE_TYPE(_macro)   \
-    template _macro(float, int32, float);                               \
-    template _macro(float, int32, double);                              \
-    template _macro(double, int32, double);                             \
-    template _macro(double, int32, float);                              \
-    template _macro(std::complex<float>, int32, std::complex<float>);   \
-    template _macro(std::complex<float>, int32, std::complex<double>);  \
-    template _macro(std::complex<double>, int32, std::complex<double>); \
-    template _macro(std::complex<double>, int32, std::complex<float>);  \
-    template _macro(float, int64, float);                               \
-    template _macro(float, int64, double);                              \
-    template _macro(double, int64, double);                             \
-    template _macro(double, int64, float);                              \
-    template _macro(std::complex<float>, int64, std::complex<float>);   \
-    template _macro(std::complex<float>, int64, std::complex<double>);  \
-    template _macro(std::complex<double>, int64, std::complex<double>); \
-    template _macro(std::complex<double>, int64, std::complex<float>)
-
-
 /**
  * Instantiates a template for each value type conversion pair compiled by
  * Ginkgo.
