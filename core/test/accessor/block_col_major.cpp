@@ -127,7 +127,7 @@ TEST_F(BlockColMajorAccessor3d, CanWriteData)
 
 TEST_F(BlockColMajorAccessor3d, CanCreateSubrange)
 {
-    auto subr = custom_r(span{0, 2}, span{1, 2}, span{1, 3});
+    auto subr = custom_r(span{0u, 2u}, span{1u, 2u}, span{1u, 3u});
 
     EXPECT_EQ(subr(0, 0, 0), 4);
     EXPECT_EQ(subr(0, 0, 1), -2);
@@ -138,7 +138,7 @@ TEST_F(BlockColMajorAccessor3d, CanCreateSubrange)
 
 TEST_F(BlockColMajorAccessor3d, CanCreateRowVector)
 {
-    auto subr = default_r(1u, 2u, span{0, 2});
+    auto subr = default_r(1u, 2u, span{0u, 2u});
 
     EXPECT_EQ(subr(0, 0, 0), 29);
     EXPECT_EQ(subr(0, 0, 1), 30);
