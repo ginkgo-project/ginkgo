@@ -57,6 +57,7 @@ class Ell : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Ell<>;
     using Vec = gko::matrix::Dense<>;
+    using Vec2 = gko::matrix::Dense<float>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Ell() : rand_engine(42) {}
@@ -90,19 +91,33 @@ protected:
         mtx = Mtx::create(ref, gko::dim<2>{}, max_nonzeros_per_row, stride);
         mtx->copy_from(gen_mtx(532, 231, 1));
         expected = gen_mtx(532, num_vectors, 1);
+        expected2 = Vec2::create(ref);
+        expected2->copy_from(expected.get());
         y = gen_mtx(231, num_vectors, 1);
+        y2 = Vec2::create(ref);
+        y2->copy_from(y.get());
         alpha = gko::initialize<Vec>({2.0}, ref);
+        alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
+        beta2 = gko::initialize<Vec2>({-1.0}, ref);
         dmtx = Mtx::create(omp);
         dmtx->copy_from(mtx.get());
         dresult = Vec::create(omp);
         dresult->copy_from(expected.get());
+        dresult2 = Vec2::create(omp);
+        dresult2->copy_from(expected2.get());
         dy = Vec::create(omp);
         dy->copy_from(y.get());
+        dy2 = Vec2::create(omp);
+        dy2->copy_from(y2.get());
         dalpha = Vec::create(omp);
         dalpha->copy_from(alpha.get());
+        dalpha2 = Vec2::create(omp);
+        dalpha2->copy_from(alpha2.get());
         dbeta = Vec::create(omp);
         dbeta->copy_from(beta.get());
+        dbeta2 = Vec2::create(omp);
+        dbeta2->copy_from(beta2.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -112,15 +127,23 @@ protected:
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Vec> expected;
+    std::unique_ptr<Vec2> expected2;
     std::unique_ptr<Vec> y;
+    std::unique_ptr<Vec2> y2;
     std::unique_ptr<Vec> alpha;
+    std::unique_ptr<Vec2> alpha2;
     std::unique_ptr<Vec> beta;
+    std::unique_ptr<Vec2> beta2;
 
     std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<Vec> dresult;
+    std::unique_ptr<Vec2> dresult2;
     std::unique_ptr<Vec> dy;
+    std::unique_ptr<Vec2> dy2;
     std::unique_ptr<Vec> dalpha;
+    std::unique_ptr<Vec2> dalpha2;
     std::unique_ptr<Vec> dbeta;
+    std::unique_ptr<Vec2> dbeta2;
 };
 
 
@@ -135,6 +158,39 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef1)
+{
+    set_up_apply_data();
+
+    mtx->apply(y2.get(), expected2.get());
+    dmtx->apply(dy2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef2)
+{
+    set_up_apply_data();
+
+    mtx->apply(y2.get(), expected.get());
+    dmtx->apply(dy2.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef3)
+{
+    set_up_apply_data();
+
+    mtx->apply(y.get(), expected2.get());
+    dmtx->apply(dy.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
 TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -143,6 +199,39 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef1)
+{
+    set_up_apply_data();
+
+    mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef2)
+{
+    set_up_apply_data();
+
+    mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef3)
+{
+    set_up_apply_data();
+
+    mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
 }
 
 
@@ -157,6 +246,39 @@ TEST_F(Ell, SimpleApplyWithPaddingIsEquivalentToRef)
 }
 
 
+TEST_F(Ell, MixedSimpleApplyWithPaddingIsEquivalentToRef1)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(y2.get(), expected2.get());
+    dmtx->apply(dy2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyWithPaddingIsEquivalentToRef2)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(y2.get(), expected.get());
+    dmtx->apply(dy2.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyWithPaddingIsEquivalentToRef3)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(y.get(), expected2.get());
+    dmtx->apply(dy.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
 TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
 {
     set_up_apply_data(300, 600);
@@ -164,6 +286,39 @@ TEST_F(Ell, AdvancedApplyWithPaddingIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingIsEquivalentToRef1)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingIsEquivalentToRef2)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingIsEquivalentToRef3)
+{
+    set_up_apply_data(300, 600);
+
+    mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
 }
 
 
@@ -178,6 +333,39 @@ TEST_F(Ell, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef1)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(y2.get(), expected2.get());
+    dmtx->apply(dy2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef2)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(y2.get(), expected.get());
+    dmtx->apply(dy2.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef3)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(y.get(), expected2.get());
+    dmtx->apply(dy.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
 TEST_F(Ell, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(0, 0, 3);
@@ -189,7 +377,40 @@ TEST_F(Ell, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, SimpleApplyWithPaddinToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef1)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef2)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef3)
+{
+    set_up_apply_data(0, 0, 3);
+
+    mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, SimpleApplyWithPaddingToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(300, 600, 3);
 
@@ -200,6 +421,39 @@ TEST_F(Ell, SimpleApplyWithPaddinToDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Ell, MixedSimpleApplyWithPaddingToDenseMatrixIsEquivalentToRef1)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(y2.get(), expected2.get());
+    dmtx->apply(dy2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyWithPaddingToDenseMatrixIsEquivalentToRef2)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(y2.get(), expected.get());
+    dmtx->apply(dy2.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedSimpleApplyWithPaddingToDenseMatrixIsEquivalentToRef3)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(y.get(), expected2.get());
+    dmtx->apply(dy.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
 TEST_F(Ell, AdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(300, 600, 3);
@@ -207,6 +461,39 @@ TEST_F(Ell, AdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef1)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef2)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Ell, MixedAdvancedApplyWithPaddingToDenseMatrixIsEquivalentToRef3)
+{
+    set_up_apply_data(300, 600, 3);
+
+    mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
 }
 
 
