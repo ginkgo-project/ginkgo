@@ -223,7 +223,7 @@ namespace reference_class {
  * conversion between both formats is done with a simple static_cast.
  *
  * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::range).
+ * allow for an additional layer (like gko::acc::range).
  * The assignment operator only works for an rvalue reference (&&) to
  * prevent accidentally copying the reference and working on a reference.
  *
@@ -331,7 +331,6 @@ template <typename ArithmeticType, typename StorageType>
 constexpr remove_complex_t<ArithmeticType> abs(
     const reduced_storage<ArithmeticType, StorageType> &ref)
 {
-    // For some reason necessary to get the correct abs function
     using std::abs;
     return abs(static_cast<ArithmeticType>(ref));
 }
@@ -345,7 +344,7 @@ constexpr remove_complex_t<ArithmeticType> abs(
  * scalar before casting to the StorageType).
  *
  * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::range).
+ * allow for an additional layer (like gko::acc::range).
  * The assignment operator only works for an rvalue reference (&&) to
  * prevent accidentally copying and working on the reference.
  *
@@ -455,7 +454,6 @@ template <typename ArithmeticType, typename StorageType>
 constexpr remove_complex_t<ArithmeticType> abs(
     const scaled_reduced_storage<ArithmeticType, StorageType> &ref)
 {
-    // For some reason necessary to get the correct abs function
     using std::abs;
     return abs(static_cast<ArithmeticType>(ref));
 }

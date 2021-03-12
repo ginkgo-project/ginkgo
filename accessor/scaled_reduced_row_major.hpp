@@ -177,6 +177,9 @@ public:
         scaled_reduced_row_major<dimensionality, arithmetic_type,
                                  const storage_type, ScalarMask>;
 
+    static_assert(!is_complex<ArithmeticType>::value &&
+                      !is_complex<StorageType>::value,
+                  "Both arithmetic and storage type must not be complex!");
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
     static_assert(dimensionality <= 32,
@@ -327,29 +330,6 @@ public:
     constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
-    }
-
-    /**
-     * Copies data from another accessor
-     *
-     * @warning Do not use this function since it is not optimized for a
-     *          specific executor. It will always be performed sequentially.
-     *          Please write an optimized version (adjusted to the architecture)
-     *          by iterating through the values yourself.
-     *
-     * @tparam OtherAccessor  type of the other accessor
-     *
-     * @param other  other accessor
-     */
-    template <typename OtherAccessor>
-    GKO_ACC_ATTRIBUTES void copy_from(const OtherAccessor &other) const
-    {
-        helper::multidim_for_each(size_, [this, &other](auto... indices) {
-            // especially inefficient if mask has not all bits set
-            this->write_scalar_masked(other.read_scalar_masked(indices...),
-                                      indices...);
-            (*this)(indices...) = other(indices...);
-        });
     }
 
     /**

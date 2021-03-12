@@ -118,11 +118,35 @@ struct remove_complex_impl<thrust::complex<T>> {
 #endif
 
 
+template <typename T>
+struct is_complex_impl {
+    static constexpr bool value{false};
+};
+
+
+template <typename T>
+struct is_complex_impl<std::complex<T>> {
+    static constexpr bool value{true};
+};
+
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
+template <typename T>
+struct is_complex_impl<thrust::complex<T>> {
+    static constexpr bool value{true};
+};
+#endif
+
+
 }  // namespace detail
 
 
 template <typename T>
 using remove_complex_t = typename detail::remove_complex_impl<T>::type;
+
+
+template <typename T>
+using is_complex = typename detail::is_complex_impl<T>;
 
 
 /**
