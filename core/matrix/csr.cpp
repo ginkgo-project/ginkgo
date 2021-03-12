@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -66,6 +67,9 @@ GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
+GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
+                       csr::calculate_nonzeros_per_row_in_span);
+GKO_REGISTER_OPERATION(block_approx, csr::block_approx);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
@@ -145,6 +149,45 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
             },
             alpha, b, beta, x);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>
+Csr<ValueType, IndexType>::get_block_approx(Array<size_type> block_sizes,
+                                            Array<size_type> permutation) const
+{
+    auto exec = this->get_executor();
+    block_sizes.set_executor(exec->get_master());
+    size_type num_blocks = block_sizes.get_num_elems();
+    std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> block_mtxs;
+    if (permutation.get_data() == nullptr) {
+        size_type block_offset = 0;
+        for (size_type i = 0; i < num_blocks; ++i) {
+            auto block_size = block_sizes.get_data()[i];
+            auto row_span = gko::span{block_offset, block_offset + block_size};
+            auto col_span = gko::span{block_offset, block_offset + block_size};
+            Array<size_type> row_nnz(exec, block_size);
+            row_nnz.fill(size_type(0));
+            exec->run(csr::make_calculate_nonzeros_per_row_in_span(
+                this, row_span, col_span, &row_nnz));
+            Array<size_type> row_nnz_host(exec->get_master(), block_size);
+            row_nnz_host = row_nnz;
+            size_type block_nnz =
+                std::accumulate(row_nnz_host.get_data(),
+                                row_nnz_host.get_data() + block_size, 0);
+            auto mtx = Csr<ValueType, IndexType>::create(
+                exec, gko::dim<2>(block_size), block_nnz);
+            exec->run(csr::make_block_approx(this, mtx.get(), &row_nnz,
+                                             block_offset));
+            block_mtxs.emplace_back(std::move(mtx));
+            block_offset += block_sizes.get_data()[i];
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+    block_sizes.set_executor(this->get_executor());
+    return block_mtxs;
 }
 
 

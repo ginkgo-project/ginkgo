@@ -86,6 +86,12 @@ protected:
           mtx7(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec)),
           mtx8(gko::initialize<Mtx>(
               {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({-3.0, 3.0})}, exec))
+              mtx9(gko::initialize<Mtx>({{1.0, 2.0, 2.0, 8.0, 3.0},
+                                         {0.0, 3.0, 1.5, 2.0, 0.0},
+                                         {0.0, 3.0, 2.5, 1.5, 0.0},
+                                         {1.0, 2.0, 1.0, 3.0, 4.0},
+                                         {1.0, 1.0, 2.0, 1.5, 3.0}},
+                                        exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -97,6 +103,7 @@ protected:
     std::unique_ptr<Mtx> mtx6;
     std::unique_ptr<Mtx> mtx7;
     std::unique_ptr<Mtx> mtx8;
+    std::unique_ptr<Mtx> mtx9;
 
     std::ranlux48 rand_engine;
 
@@ -1791,6 +1798,28 @@ TYPED_TEST(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
     sellp_mtx->convert_to(dense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), x.get(), 0.0);
+}
+
+
+TYPED_TEST(Dense, CanComputeBlockApprox)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx9->get_executor();
+    auto b_sizes =
+        gko::Array<gko::size_type>(this->mtx9->get_executor(), {2, 1, 2});
+    auto perm = gko::Array<gko::size_type>{};
+    auto block_mtxs = this->mtx9->get_block_approx(b_sizes, perm);
+
+    auto mtx91 =
+        gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
+    auto mtx92 = gko::initialize<Mtx>({2.5}, exec);
+    auto mtx93 =
+        gko::initialize<Mtx>({I<T>({3.0, 4.0}), I<T>({1.5, 3.0})}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0], mtx91.get(), r<TypeParam>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1], mtx92.get(), r<TypeParam>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2], mtx93.get(), r<TypeParam>::value);
 }
 
 
