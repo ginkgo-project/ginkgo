@@ -1,0 +1,149 @@
+\hypertarget{classgko_1_1multigrid_1_1AmgxPgm}{}\doxysection{gko\+::multigrid\+::Amgx\+Pgm$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1multigrid_1_1AmgxPgm}\index{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}}
+
+
+Amgx parallel graph match (\mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{Amgx\+Pgm}}) is the aggregate method introduced in the paper M.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/multigrid/amgx\+\_\+pgm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::multigrid\+::Amgx\+Pgm$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1multigrid_1_1AmgxPgm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1multigrid_1_1AmgxPgm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_aa15d4216f9efec79c7d590a0c5e917c9}\label{classgko_1_1multigrid_1_1AmgxPgm_aa15d4216f9efec79c7d590a0c5e917c9}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_a70085976fcab21ffffa59018a135ec95}\label{classgko_1_1multigrid_1_1AmgxPgm_a70085976fcab21ffffa59018a135ec95}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm_a0f16c51d1d27de42483099cf89de6b59}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Returns the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+Index\+Type $\ast$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm_ac1f84790da2f6351146e7fad250a3f13}{get\+\_\+agg}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the aggregate group. \end{DoxyCompactList}\item 
+const Index\+Type $\ast$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm_a648a98124115a617a16c8819f7a028c5}{get\+\_\+const\+\_\+agg}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the aggregate group. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_a9144295d3a7825daff03078dfffed4f9}\label{classgko_1_1multigrid_1_1AmgxPgm_a9144295d3a7825daff03078dfffed4f9}} 
+const \mbox{\hyperlink{structgko_1_1multigrid_1_1AmgxPgm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_ace0d82aff30e262ee303e7a8f12a0b79}\label{classgko_1_1multigrid_1_1AmgxPgm_ace0d82aff30e262ee303e7a8f12a0b79}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_a739bbd07dda6489ef77a661db153c54f}\label{classgko_1_1multigrid_1_1AmgxPgm_a739bbd07dda6489ef77a661db153c54f}} 
+class {\bfseries Enable\+Lin\+Op$<$ Amgx\+Pgm $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_ad9fa178770fbae78c303da6506484210}\label{classgko_1_1multigrid_1_1AmgxPgm_ad9fa178770fbae78c303da6506484210}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Amgx\+Pgm, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::multigrid\+::\+Amgx\+Pgm$<$ Value\+Type, Index\+Type $>$}
+
+Amgx parallel graph match (\mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{Amgx\+Pgm}}) is the aggregate method introduced in the paper M. 
+
+Naumov et al., \char`\"{}\+Amg\+X\+: A Library for G\+P\+U Accelerated Algebraic
+\+Multigrid and Preconditioned Iterative Methods\char`\"{}. Current implementation only contains size = 2 version.
+
+\mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{Amgx\+Pgm}} creates the aggregate group according to the matrix value not the structure. \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{Amgx\+Pgm}} gives two steps (one-\/phase handshaking) to group the elements. 1\+: get the strongest neighbor of each unaggregated element. 2\+: group the elements whose strongest neighbor is each other. repeating until reaching the given conditions. After that, the un-\/aggregated elements are assigned to an aggregated group or are left alone.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_ac1f84790da2f6351146e7fad250a3f13}\label{classgko_1_1multigrid_1_1AmgxPgm_ac1f84790da2f6351146e7fad250a3f13}} 
+\index{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}!get\_agg@{get\_agg}}
+\index{get\_agg@{get\_agg}!gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_agg()}{get\_agg()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+Index\+Type$\ast$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{gko\+::multigrid\+::\+Amgx\+Pgm}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+agg (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the aggregate group. 
+
+Aggregate group whose size is same as the number of rows. Stores the mapping information from row index to coarse row index. i.\+e., agg\mbox{[}row\+\_\+idx\mbox{]} = coarse\+\_\+row\+\_\+idx.
+
+\begin{DoxyReturn}{Returns}
+the aggregate group. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_a648a98124115a617a16c8819f7a028c5}\label{classgko_1_1multigrid_1_1AmgxPgm_a648a98124115a617a16c8819f7a028c5}} 
+\index{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}!get\_const\_agg@{get\_const\_agg}}
+\index{get\_const\_agg@{get\_const\_agg}!gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_agg()}{get\_const\_agg()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+const Index\+Type$\ast$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{gko\+::multigrid\+::\+Amgx\+Pgm}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+agg (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the aggregate group. 
+
+Aggregate group whose size is same as the number of rows. Stores the mapping information from row index to coarse row index. i.\+e., agg\mbox{[}row\+\_\+idx\mbox{]} = coarse\+\_\+row\+\_\+idx.
+
+\begin{DoxyReturn}{Returns}
+the aggregate group.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1AmgxPgm_a0f16c51d1d27de42483099cf89de6b59}\label{classgko_1_1multigrid_1_1AmgxPgm_a0f16c51d1d27de42483099cf89de6b59}} 
+\index{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$@{gko::multigrid::AmgxPgm$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1AmgxPgm}{gko\+::multigrid\+::\+Amgx\+Pgm}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/multigrid/amgx\+\_\+pgm.\+hpp\end{DoxyCompactItemize}

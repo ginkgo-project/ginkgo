@@ -1,0 +1,138 @@
+\hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel}{}\doxysection{gko\+::multigrid\+::Enable\+Multigrid\+Level$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1multigrid_1_1EnableMultigridLevel}\index{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{Enable\+Multigrid\+Level}} gives the default implementation of \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel}{Multigrid\+Level}} with composition and provides {\ttfamily set\+\_\+multigrid\+\_\+level} function.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/multigrid/multigrid\+\_\+level.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::multigrid\+::Enable\+Multigrid\+Level$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1multigrid_1_1EnableMultigridLevel__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel_a9b93d94985bc75a605f89987f7a2226c}\label{classgko_1_1multigrid_1_1EnableMultigridLevel_a9b93d94985bc75a605f89987f7a2226c}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel_aa238696dbbf0ec6b53083a872bd1afc4}{get\+\_\+fine\+\_\+op}} () const override
+\begin{DoxyCompactList}\small\item\em Returns the operator on fine level. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel_aa41d8008530ebe9f6ced62601a0d1983}{get\+\_\+restrict\+\_\+op}} () const override
+\begin{DoxyCompactList}\small\item\em Returns the restrict operator. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel_a4a39455bc4b2edd1af9fbd998679d951}{get\+\_\+coarse\+\_\+op}} () const override
+\begin{DoxyCompactList}\small\item\em Returns the operator on coarse level. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel_ad58c145df32e0c687433e837a6ceaff6}{get\+\_\+prolong\+\_\+op}} () const override
+\begin{DoxyCompactList}\small\item\em Returns the prolong operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type$>$\newline
+class gko\+::multigrid\+::\+Enable\+Multigrid\+Level$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{Enable\+Multigrid\+Level}} gives the default implementation of \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel}{Multigrid\+Level}} with composition and provides {\ttfamily set\+\_\+multigrid\+\_\+level} function. 
+
+A class inherit from \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{Enable\+Multigrid\+Level}} should use the this-\/$>$get\+\_\+compositions()-\/$>$apply(...) as its own apply, which represents op(b) = prolong(coarse(restrict(b))). 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel_a4a39455bc4b2edd1af9fbd998679d951}\label{classgko_1_1multigrid_1_1EnableMultigridLevel_a4a39455bc4b2edd1af9fbd998679d951}} 
+\index{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}!get\_coarse\_op@{get\_coarse\_op}}
+\index{get\_coarse\_op@{get\_coarse\_op}!gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coarse\_op()}{get\_coarse\_op()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type $>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{gko\+::multigrid\+::\+Enable\+Multigrid\+Level}}$<$ Value\+Type $>$\+::get\+\_\+coarse\+\_\+op (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the operator on coarse level. 
+
+\begin{DoxyReturn}{Returns}
+the operator on coarse level. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel_af8a8f5368bf546c453749538249c9029}{gko\+::multigrid\+::\+Multigrid\+Level}}.
+
+
+
+References gko\+::\+Use\+Composition$<$ Value\+Type $>$\+::get\+\_\+operator\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel_aa238696dbbf0ec6b53083a872bd1afc4}\label{classgko_1_1multigrid_1_1EnableMultigridLevel_aa238696dbbf0ec6b53083a872bd1afc4}} 
+\index{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}!get\_fine\_op@{get\_fine\_op}}
+\index{get\_fine\_op@{get\_fine\_op}!gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_fine\_op()}{get\_fine\_op()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type $>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{gko\+::multigrid\+::\+Enable\+Multigrid\+Level}}$<$ Value\+Type $>$\+::get\+\_\+fine\+\_\+op (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the operator on fine level. 
+
+\begin{DoxyReturn}{Returns}
+the operator on fine level. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel_af69bb32a1057cf4f472f9ff17c41ee01}{gko\+::multigrid\+::\+Multigrid\+Level}}.
+
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel_ad58c145df32e0c687433e837a6ceaff6}\label{classgko_1_1multigrid_1_1EnableMultigridLevel_ad58c145df32e0c687433e837a6ceaff6}} 
+\index{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}!get\_prolong\_op@{get\_prolong\_op}}
+\index{get\_prolong\_op@{get\_prolong\_op}!gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_prolong\_op()}{get\_prolong\_op()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type $>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{gko\+::multigrid\+::\+Enable\+Multigrid\+Level}}$<$ Value\+Type $>$\+::get\+\_\+prolong\+\_\+op (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the prolong operator. 
+
+\begin{DoxyReturn}{Returns}
+the prolong operator. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel_a538fcb39f114f7ab0efe6ea7ea180c40}{gko\+::multigrid\+::\+Multigrid\+Level}}.
+
+
+
+References gko\+::\+Use\+Composition$<$ Value\+Type $>$\+::get\+\_\+operator\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1multigrid_1_1EnableMultigridLevel_aa41d8008530ebe9f6ced62601a0d1983}\label{classgko_1_1multigrid_1_1EnableMultigridLevel_aa41d8008530ebe9f6ced62601a0d1983}} 
+\index{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}!get\_restrict\_op@{get\_restrict\_op}}
+\index{get\_restrict\_op@{get\_restrict\_op}!gko::multigrid::EnableMultigridLevel$<$ ValueType $>$@{gko::multigrid::EnableMultigridLevel$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_restrict\_op()}{get\_restrict\_op()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type $>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1multigrid_1_1EnableMultigridLevel}{gko\+::multigrid\+::\+Enable\+Multigrid\+Level}}$<$ Value\+Type $>$\+::get\+\_\+restrict\+\_\+op (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns the restrict operator. 
+
+\begin{DoxyReturn}{Returns}
+the restrict operator. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1multigrid_1_1MultigridLevel_adf082fb7e8cb0cdc6c4b27bcdda4634d}{gko\+::multigrid\+::\+Multigrid\+Level}}.
+
+
+
+References gko\+::\+Use\+Composition$<$ Value\+Type $>$\+::get\+\_\+operator\+\_\+at().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/multigrid/multigrid\+\_\+level.\+hpp\end{DoxyCompactItemize}

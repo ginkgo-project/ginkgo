@@ -1,0 +1,5 @@
+<map id="gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;" name="gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;">
+<area shape="rect" id="node1" title="The EnableMultigridLevel gives the default implementation of MultigridLevel with composition and prov..." alt="" coords="81,95,303,136"/>
+<area shape="rect" id="node2" href="$classgko_1_1multigrid_1_1MultigridLevel.html" title="This class represents two levels in a multigrid hierarchy." alt="" coords="5,5,184,47"/>
+<area shape="rect" id="node3" href="$classgko_1_1UseComposition.html" title="The UseComposition class can be used to store the composition information in LinOp." alt="" coords="209,5,370,47"/>
+</map>

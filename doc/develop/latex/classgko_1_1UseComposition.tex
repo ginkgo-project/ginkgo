@@ -1,0 +1,85 @@
+\hypertarget{classgko_1_1UseComposition}{}\doxysection{gko\+::Use\+Composition$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1UseComposition}\index{gko::UseComposition$<$ ValueType $>$@{gko::UseComposition$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1UseComposition}{Use\+Composition}} class can be used to store the composition information in \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/composition.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1UseComposition_a0c12fdd9ebc794226fad8301bae83b36}\label{classgko_1_1UseComposition_a0c12fdd9ebc794226fad8301bae83b36}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1UseComposition_aede7aa004ddcbf3edb97b41d60d78e51}{get\+\_\+composition}} () const
+\begin{DoxyCompactList}\small\item\em Returns the composition opertor. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1UseComposition_af8e2ce77ac2d8dae7d124622aba139b6}{get\+\_\+operator\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} index) const
+\begin{DoxyCompactList}\small\item\em Returns the operator at index-\/th poistion of composition. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::\+Use\+Composition$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1UseComposition}{Use\+Composition}} class can be used to store the composition information in \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of input and result vectors \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1UseComposition_aede7aa004ddcbf3edb97b41d60d78e51}\label{classgko_1_1UseComposition_aede7aa004ddcbf3edb97b41d60d78e51}} 
+\index{gko::UseComposition$<$ ValueType $>$@{gko::UseComposition$<$ ValueType $>$}!get\_composition@{get\_composition}}
+\index{get\_composition@{get\_composition}!gko::UseComposition$<$ ValueType $>$@{gko::UseComposition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_composition()}{get\_composition()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$Value\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1UseComposition}{gko\+::\+Use\+Composition}}$<$ Value\+Type $>$\+::get\+\_\+composition (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the composition opertor. 
+
+\begin{DoxyReturn}{Returns}
+composition 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1UseComposition_af8e2ce77ac2d8dae7d124622aba139b6}\label{classgko_1_1UseComposition_af8e2ce77ac2d8dae7d124622aba139b6}} 
+\index{gko::UseComposition$<$ ValueType $>$@{gko::UseComposition$<$ ValueType $>$}!get\_operator\_at@{get\_operator\_at}}
+\index{get\_operator\_at@{get\_operator\_at}!gko::UseComposition$<$ ValueType $>$@{gko::UseComposition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_operator\_at()}{get\_operator\_at()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1UseComposition}{gko\+::\+Use\+Composition}}$<$ Value\+Type $>$\+::get\+\_\+operator\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{index }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the operator at index-\/th poistion of composition. 
+
+\begin{DoxyReturn}{Returns}
+index-\/th operator
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+when this composition is not set, this function always returns nullptr. However, when this composition is set, it will throw exception when exceeding index.
+\end{DoxyNote}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em std\+::out\+\_\+of\+\_\+range} & if index is out of bound when composition is existed. \\
+\hline
+\end{DoxyExceptions}
+
+
+Referenced by gko\+::multigrid\+::\+Enable\+Multigrid\+Level$<$ Value\+Type $>$\+::get\+\_\+coarse\+\_\+op(), gko\+::multigrid\+::\+Enable\+Multigrid\+Level$<$ Value\+Type $>$\+::get\+\_\+prolong\+\_\+op(), and gko\+::multigrid\+::\+Enable\+Multigrid\+Level$<$ Value\+Type $>$\+::get\+\_\+restrict\+\_\+op().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/composition.\+hpp\end{DoxyCompactItemize}

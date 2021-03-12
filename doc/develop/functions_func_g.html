@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/267539205 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/269312723 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -78,6 +78,9 @@ $(function() {
 <li>get_accessor()
 : <a class="el" href="classgko_1_1range.html#ac62f76256fce7442670275827e32d506">gko::range&lt; Accessor &gt;</a>
 </li>
+<li>get_agg()
+: <a class="el" href="classgko_1_1multigrid_1_1AmgxPgm.html#ac1f84790da2f6351146e7fad250a3f13">gko::multigrid::AmgxPgm&lt; ValueType, IndexType &gt;</a>
+</li>
 <li>get_approximate_inverse()
 : <a class="el" href="classgko_1_1preconditioner_1_1Isai.html#a3151e65a57c5c003aaf05c23da37d7bf">gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;</a>
 </li>
@@ -98,6 +101,10 @@ $(function() {
 : <a class="el" href="classgko_1_1CudaExecutor.html#ab7e9f82cce904e2649a61d39e7161538">gko::CudaExecutor</a>
 , <a class="el" href="classgko_1_1HipExecutor.html#a7c6f4683d767aa1588dc69d79280bf72">gko::HipExecutor</a>
 </li>
+<li>get_coarse_op()
+: <a class="el" href="classgko_1_1multigrid_1_1EnableMultigridLevel.html#a4a39455bc4b2edd1af9fbd998679d951">gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1multigrid_1_1MultigridLevel.html#af8a8f5368bf546c453749538249c9029">gko::multigrid::MultigridLevel</a>
+</li>
 <li>get_coefficients()
 : <a class="el" href="classgko_1_1Combination.html#ad5844423c39d70ee90d5dc432c83261f">gko::Combination&lt; ValueType &gt;</a>
 </li>
@@ -111,8 +118,14 @@ $(function() {
 <li>get_complex_subspace()
 : <a class="el" href="classgko_1_1solver_1_1Idr.html#ac06361fe669b70c6ab0507e7cd9cfa58">gko::solver::Idr&lt; ValueType &gt;</a>
 </li>
+<li>get_composition()
+: <a class="el" href="classgko_1_1UseComposition.html#aede7aa004ddcbf3edb97b41d60d78e51">gko::UseComposition&lt; ValueType &gt;</a>
+</li>
 <li>get_conditioning()
 : <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_const_agg()
+: <a class="el" href="classgko_1_1multigrid_1_1AmgxPgm.html#a648a98124115a617a16c8819f7a028c5">gko::multigrid::AmgxPgm&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_const_col_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Coo.html#ae4afdbf2dc5a5a42a197f3a479febc75">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>
@@ -232,6 +245,10 @@ $(function() {
 <li>get_executor()
 : <a class="el" href="classgko_1_1Array.html#a820e5930cb5072acc7673fdb2d11efcd">gko::Array&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject</a>
+</li>
+<li>get_fine_op()
+: <a class="el" href="classgko_1_1multigrid_1_1EnableMultigridLevel.html#aa238696dbbf0ec6b53083a872bd1afc4">gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1multigrid_1_1MultigridLevel.html#af69bb32a1057cf4f472f9ff17c41ee01">gko::multigrid::MultigridLevel</a>
 </li>
 <li>get_global_block_offset()
 : <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ad8356b187814609c7d77bd03e025c48f">gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</a>
@@ -368,6 +385,9 @@ $(function() {
 : <a class="el" href="classgko_1_1CudaExecutor.html#a245c1c35a18e6534d87ef6e9cad24f7c">gko::CudaExecutor</a>
 , <a class="el" href="classgko_1_1HipExecutor.html#a43bc417378f1c0f07ef49d2856ddd37c">gko::HipExecutor</a>
 </li>
+<li>get_operator_at()
+: <a class="el" href="classgko_1_1UseComposition.html#af8e2ce77ac2d8dae7d124622aba139b6">gko::UseComposition&lt; ValueType &gt;</a>
+</li>
 <li>get_operators()
 : <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1Composition.html#a196507096c635aba24e1074050827c68">gko::Composition&lt; ValueType &gt;</a>
@@ -405,6 +425,10 @@ $(function() {
 <li>get_projector()
 : <a class="el" href="classgko_1_1Perturbation.html#a000aeeb35938fef6923673de3b932234">gko::Perturbation&lt; ValueType &gt;</a>
 </li>
+<li>get_prolong_op()
+: <a class="el" href="classgko_1_1multigrid_1_1EnableMultigridLevel.html#ad58c145df32e0c687433e837a6ceaff6">gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1multigrid_1_1MultigridLevel.html#a538fcb39f114f7ab0efe6ea7ea180c40">gko::multigrid::MultigridLevel</a>
+</li>
 <li>get_pu()
 : <a class="el" href="classgko_1_1MachineTopology.html#ad797df175047226774837aea972a6635">gko::MachineTopology</a>
 </li>
@@ -419,6 +443,10 @@ $(function() {
 </li>
 <li>get_residual_norm()
 : <a class="el" href="classgko_1_1log_1_1Convergence.html#a68297edb94aee77f6125c4b823f4503c">gko::log::Convergence&lt; ValueType &gt;</a>
+</li>
+<li>get_restrict_op()
+: <a class="el" href="classgko_1_1multigrid_1_1EnableMultigridLevel.html#aa41d8008530ebe9f6ced62601a0d1983">gko::multigrid::EnableMultigridLevel&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1multigrid_1_1MultigridLevel.html#adf082fb7e8cb0cdc6c4b27bcdda4634d">gko::multigrid::MultigridLevel</a>
 </li>
 <li>get_row_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Coo.html#a57aa0f7b701020c4322a3aed63d8a25d">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>
@@ -484,7 +512,8 @@ $(function() {
 : <a class="el" href="classgko_1_1solver_1_1Idr.html#ac265f8be9752fde6368b86a1c9a41570">gko::solver::Idr&lt; ValueType &gt;</a>
 </li>
 <li>get_system_matrix()
-: <a class="el" href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg&lt; ValueType &gt;</a>
+: <a class="el" href="classgko_1_1multigrid_1_1AmgxPgm.html#a0f16c51d1d27de42483099cf89de6b59">gko::multigrid::AmgxPgm&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#ada73e8ca3e8924011c8780cab92f651e">gko::solver::Bicgstab&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1CbGmres.html#a147d0f4d9c38a53fb2617d632c48f1f8">gko::solver::CbGmres&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">gko::solver::Cg&lt; ValueType &gt;</a>
