@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "accessor/reduced_row_major.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -111,15 +112,37 @@ using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 namespace {
 
 
-template <int info, typename ValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   matrix::Dense<ValueType> *c,
-                   const matrix::Dense<ValueType> *alpha = nullptr,
-                   const matrix::Dense<ValueType> *beta = nullptr)
+template <int dim, typename Type1, typename Type2>
+GKO_INLINE auto as_hip_accessor(
+    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
 {
+    return acc::range<
+        acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
+        acc.get_accessor().get_size(),
+        as_hip_type(acc.get_accessor().get_stored_data()),
+        acc.get_accessor().get_stride());
+}
+
+
+template <int info, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   matrix::Dense<OutputValueType> *c,
+                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
+                   const matrix::Dense<OutputValueType> *beta = nullptr)
+{
+    using a_accessor =
+        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+    using b_accessor =
+        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+
     const auto nrows = a->get_size()[0];
+    const auto stride = a->get_stride();
+    const auto num_stored_elements_per_row =
+        a->get_num_stored_elements_per_row();
+
     constexpr int num_thread_per_worker =
         (info == 0) ? max_thread_per_worker : info;
     constexpr bool atomic = (info == 0);
@@ -127,22 +150,31 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                           num_thread_per_worker, 1);
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
+
+    const auto a_vals = gko::acc::range<a_accessor>(
+        std::array<long unsigned int, 1>{
+            {num_stored_elements_per_row * stride}},
+        a->get_const_values());
+    const auto b_vals = gko::acc::range<b_accessor>(
+        std::array<long unsigned int, 2>{{nrows, b->get_stride()}},
+        b->get_const_values());
+
     if (alpha == nullptr && beta == nullptr) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
             dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
-            as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_hip_type(b->get_const_values()), b->get_stride(),
-            as_hip_type(c->get_values()), c->get_stride());
+            as_hip_accessor(a_vals), a->get_const_col_idxs(), stride,
+            num_stored_elements_per_row, as_hip_accessor(b_vals),
+            b->get_stride(), as_hip_type(c->get_values()), c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
+        const auto alpha_val = gko::acc::range<a_accessor>(
+            std::array<long unsigned int, 1>{1}, alpha->get_const_values());
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
             dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
-            as_hip_type(alpha->get_const_values()),
-            as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_hip_type(b->get_const_values()), b->get_stride(),
+            as_hip_accessor(alpha_val), as_hip_accessor(a_vals),
+            a->get_const_col_idxs(), stride, num_stored_elements_per_row,
+            as_hip_accessor(b_vals), b->get_stride(),
             as_hip_type(beta->get_const_values()), as_hip_type(c->get_values()),
             c->get_stride());
     } else {
@@ -197,10 +229,12 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 }  // namespace
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType> *a,
+          const matrix::Dense<InputValueType> *b,
+          matrix::Dense<OutputValueType> *c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -215,7 +249,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
         components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
+                               c->get_num_stored_elements(),
+                               zero<OutputValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -224,16 +259,18 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
         c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<MatrixValueType> *alpha,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   const matrix::Dense<OutputValueType> *beta,
+                   matrix::Dense<OutputValueType> *c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -256,7 +293,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         alpha, beta);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

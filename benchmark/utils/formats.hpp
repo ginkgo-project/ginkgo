@@ -208,10 +208,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<etype>>},
-        {"fell",
+        {"ell_mixed",
          [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<> &data) {
-             gko::matrix_data<float> conv_data;
+            const gko::matrix_data<etype> &data) {
+             gko::matrix_data<gko::next_precision<etype>> conv_data;
              conv_data.size = data.size;
              conv_data.nonzeros.resize(data.nonzeros.size());
              auto it = conv_data.nonzeros.begin();
@@ -221,7 +221,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                  it->value = el.value;
                  ++it;
              }
-             auto mat = gko::matrix::Ell<float>::create(std::move(exec));
+             auto mat = gko::matrix::Ell<gko::next_precision<etype>>::create(std::move(exec));
              mat->read(conv_data);
              return mat;
          }},
