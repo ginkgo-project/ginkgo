@@ -34,12 +34,102 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <chrono>
+#include <cmath>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+
+void assert_similar_matrices(const gko::matrix::Dense<> *m1,
+                             const gko::matrix::Dense<> *m2, double prec)
+{
+    assert(m1->get_size()[0] == m2->get_size()[0]);
+    assert(m1->get_size()[1] == m2->get_size()[1]);
+    for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
+        for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
+            assert(std::abs(m1->at(i, j) - m2->at(i, j)) < prec);
+        }
+    }
+}
+
+
+template <typename Mtx>
+void check_spmv(std::shared_ptr<gko::Executor> exec,
+                gko::matrix_data<double> &A_raw, gko::matrix::Dense<> *b,
+                gko::matrix::Dense<> *x)
+{
+    auto test = Mtx::create(exec);
+#if HAS_REFERENCE
+    auto x_clone = gko::clone(x);
+    test->read(A_raw);
+    test->apply(b, gko::lend(x_clone));
+
+#if defined(HAS_HIP) || defined(HAS_CUDA)
+    auto test_ref = Mtx::create(exec->get_master());
+    auto x_ref = gko::clone(exec->get_master(), x);
+    test_ref->read(A_raw);
+    test_ref->apply(b, gko::lend(x_ref));
+
+    auto x_clone_ref = gko::clone(exec->get_master(), gko::lend(x_clone));
+    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-14);
+#endif  // defined(HAS_HIP) || defined(HAS_CUDA)
+#endif  // HAS_REFERENCE
+}
+
+
+template <typename Solver>
+void check_solver(std::shared_ptr<gko::Executor> exec,
+                  gko::matrix_data<double> &A_raw, gko::matrix::Dense<> *b,
+                  gko::matrix::Dense<> *x)
+{
+    using Mtx = gko::matrix::Csr<>;
+    auto A =
+        gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
+#if HAS_REFERENCE
+    A->read(A_raw);
+#endif  // HAS_REFERENCE
+
+    auto num_iters = 20u;
+    double reduction_factor = 1e-7;
+    auto solver_gen =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec))
+            .on(exec);
+#if HAS_REFERENCE
+    auto x_clone = gko::clone(x);
+    solver_gen->generate(A)->apply(b, gko::lend(x_clone));
+
+#if defined(HAS_HIP) || defined(HAS_CUDA)
+    auto A_ref =
+        gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
+    A_ref->read(A_raw);
+    auto refExec = exec->get_master();
+    auto solver_gen_ref =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(refExec))
+            .on(refExec);
+    auto x_ref = gko::clone(exec->get_master(), x);
+    solver_gen->generate(A_ref)->apply(b, gko::lend(x_ref));
+
+    auto x_clone_ref = gko::clone(exec->get_master(), gko::lend(x_clone));
+    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-12);
+#endif  // defined(HAS_HIP) || defined(HAS_CUDA)
+#endif  // HAS_REFERENCE
+}
 
 
 // core/base/polymorphic_object.hpp
@@ -55,6 +145,13 @@ int main(int, char **)
 #else
     auto exec = gko::ReferenceExecutor::create();
 #endif
+
+    using vec = gko::matrix::Dense<>;
+    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    std::ifstream A_file("data/A.mtx");
+    auto A_raw = gko::read_raw<double>(A_file);
+
     // core/base/abstract_factory.hpp
     {
         using type1 = int;
@@ -211,32 +308,31 @@ int main(int, char **)
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2,
-                                std::make_shared<Mtx::load_balance>(2));
+        auto test = Mtx::create(exec, std::make_shared<Mtx::load_balance>());
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2, 2, 1);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/identity.hpp
@@ -254,7 +350,7 @@ int main(int, char **)
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/sparsity_csr.hpp
@@ -265,7 +361,7 @@ int main(int, char **)
 
     // core/multigrid/amgx_pgm.hpp
     {
-        auto test = gko::multigrid::AmgxPgm<>::build().on(refExec);
+        auto test = gko::multigrid::AmgxPgm<>::build().on(exec);
     }
 
     // core/preconditioner/ilu.hpp
@@ -288,61 +384,37 @@ int main(int, char **)
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        auto test =
-            Solver::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-                .on(exec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/ir.hpp
@@ -411,7 +483,8 @@ int main(int, char **)
 #else
     auto extra_info = "";
 #endif
-    std::cout << "test_install"<< extra_info << ": the Ginkgo installation was correctly detected "
+    std::cout << "test_install" << extra_info
+              << ": the Ginkgo installation was correctly detected "
                  "and is complete."
               << std::endl;
 
