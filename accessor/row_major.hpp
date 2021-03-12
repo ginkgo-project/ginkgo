@@ -183,26 +183,6 @@ public:
     }
 
     /**
-     * Copies data from another accessor
-     *
-     * @warning Do not use this function since it is not optimized for a
-     *          specific executor. It will always be performed sequentially.
-     *          Please write an optimized version (adjusted to the
-     * architecture) by iterating through the values yourself.
-     *
-     * @tparam OtherAccessor  type of the other accessor
-     *
-     * @param other  other accessor
-     */
-    template <typename OtherAccessor>
-    GKO_ACC_ATTRIBUTES void copy_from(const OtherAccessor &other) const
-    {
-        helper::multidim_for_each(lengths, [this, &other](auto... indices) {
-            (*this)(indices...) = other(indices...);
-        });
-    }
-
-    /**
      * Reference to the underlying data.
      */
     const data_type data;
