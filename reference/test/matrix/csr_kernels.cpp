@@ -579,6 +579,63 @@ TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TYPED_TEST(Csr, CanComputeBlockApprox)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
+    auto perm = gko::Array<gko::size_type>{};
+    auto block_mtxs = mat->get_block_approx(b_sizes, perm);
+
+    auto mat1 = gko::initialize<Mtx>(
+        {{1.0, 2.0, 0.0}, {0.0, 3.0, 0.0}, {0.0, 3.0, 2.5}}, exec);
+    auto mat2 =
+        gko::initialize<Mtx>({I<T>({2.0, 4.0}), I<T>({1.5, 3.0})}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0], mat1, r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1], mat2, r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApprox2)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
+    auto perm = gko::Array<gko::size_type>{};
+    auto block_mtxs = mat->get_block_approx(b_sizes, perm);
+
+    auto mat1 = gko::initialize<Mtx>({1.0}, exec);
+    auto mat2 = gko::initialize<Mtx>(
+        {{3.0, 0.0, 0.0}, {3.0, 2.5, 1.5}, {0.0, 1.0, 2.0}}, exec);
+    auto mat3 = gko::initialize<Mtx>({3.0}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0], mat1, r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1], mat2, r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2], mat3, r<ValueType>::value);
+}
+
+
 TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;

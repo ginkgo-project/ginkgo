@@ -136,6 +136,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+            public BlockApproximatable<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
@@ -777,6 +778,10 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    std::vector<std::unique_ptr<Csr>> get_block_approx(
+        Array<size_type> block_sizes,
+        Array<size_type> permutation) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

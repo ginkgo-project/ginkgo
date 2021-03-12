@@ -228,6 +228,39 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType>* result,
 
 
 template <typename ValueType>
+std::vector<std::unique_ptr<Dense<ValueType>>>
+Dense<ValueType>::get_block_approx(Array<size_type> block_sizes,
+                                   Array<size_type> permutation) const
+{
+    block_sizes.set_executor(this->get_executor()->get_master());
+    size_type num_blocks = block_sizes.get_num_elems();
+    std::vector<std::unique_ptr<Dense>> block_mtxs;
+    // TODO Maybe move to separate optimized kernels
+    if (permutation.get_data() == nullptr) {
+        size_type block_offset = 0;
+        for (size_type i = 0; i < num_blocks; ++i) {
+            auto block_size = block_sizes.get_data()[i];
+            auto mtx = Dense<ValueType>::create(this->get_executor(),
+                                                gko::dim<2>(block_size));
+            for (auto b = 0; b < block_size; ++b) {
+                this->get_executor()->copy_from(
+                    this->get_executor().get(), block_size,
+                    &(this->get_const_values()[(block_offset + b) *
+                                                   this->get_stride() +
+                                               block_offset]),
+                    &mtx->get_values()[b * mtx->get_stride()]);
+            }
+            block_mtxs.emplace_back(std::move(mtx));
+            block_offset += block_sizes.get_data()[i];
+        }
+    } else {
+    }
+    block_sizes.set_executor(this->get_executor());
+    return block_mtxs;
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(

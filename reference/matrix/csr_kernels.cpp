@@ -366,6 +366,59 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_span(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *source, const span &row_span,
+    const span &col_span, Array<size_type> *row_nnz)
+{
+    const auto block_size = row_nnz->get_num_elems();
+    size_type res_row = 0;
+    for (size_type row = row_span.begin; row < row_span.end; ++row) {
+        for (size_type col = source->get_const_row_ptrs()[row];
+             col < source->get_const_row_ptrs()[row + 1]; ++col) {
+            if (source->get_const_col_idxs()[col] >= col_span.begin &&
+                source->get_const_col_idxs()[col] < col_span.end) {
+                row_nnz->get_data()[res_row]++;
+            }
+        }
+        res_row++;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void block_approx(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *source,
+                  matrix::Csr<ValueType, IndexType> *result,
+                  Array<size_type> *row_nnz, size_type block_offset)
+{
+    auto block_size = result->get_size()[0];
+    for (size_type row = 0; row < block_size; ++row) {
+        result->get_row_ptrs()[row] = row_nnz->get_data()[row];
+    }
+    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
+    size_type res_nnz = 0;
+    for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
+        if (nnz >= source->get_const_row_ptrs()[block_offset] &&
+            nnz < source->get_const_row_ptrs()[block_offset + block_size] &&
+            (source->get_const_col_idxs()[nnz] < (block_offset + block_size) &&
+             source->get_const_col_idxs()[nnz] >= block_offset)) {
+            result->get_col_idxs()[res_nnz] =
+                source->get_const_col_idxs()[nnz] - block_offset;
+            result->get_values()[res_nnz] = source->get_const_values()[nnz];
+            res_nnz++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)

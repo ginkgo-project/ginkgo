@@ -119,6 +119,7 @@ class Dense
       public ConvertibleTo<SparsityCsr<ValueType, int32>>,
       public ConvertibleTo<SparsityCsr<ValueType, int64>>,
       public DiagonalExtractable<ValueType>,
+      public BlockApproximatable<Dense<ValueType>>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
@@ -358,6 +359,10 @@ public:
 
     std::unique_ptr<LinOp> row_permute(
         const Array<int64>* permutation_indices) const override;
+
+    std::vector<std::unique_ptr<Dense>> get_block_approx(
+        Array<size_type> block_sizes,
+        Array<size_type> permutation) const override;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
