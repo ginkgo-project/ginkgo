@@ -120,11 +120,46 @@ TYPED_TEST(Ell, AppliesToDenseVector)
 }
 
 
-TYPED_TEST(Ell, AppliesToMixedDenseVector)
+TYPED_TEST(Ell, MixedAppliesToDenseVector1)
 {
-    using MixedVec = typename TestFixture::MixedVec;
-    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
-    auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = typename gko::matrix::Dense<next_T>;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, MixedAppliesToDenseVector2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto x = gko::initialize<Vec1>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec2::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, MixedAppliesToDenseVector3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<gko::next_precision<T>>;
+    auto x = gko::initialize<Vec2>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec1::create(this->exec, gko::dim<2>{2, 1});
 
     this->mtx1->apply(x.get(), y.get());
 
@@ -154,6 +189,80 @@ TYPED_TEST(Ell, AppliesToDenseMatrix)
 }
 
 
+TYPED_TEST(Ell, MixedAppliesToDenseMatrix1)
+{
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Ell, MixedAppliesToDenseMatrix2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec1>(
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec2::create(this->exec, gko::dim<2>{2});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Ell, MixedAppliesToDenseMatrix3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    // clang-format off
+    auto x = gko::initialize<Vec2>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    // clang-format on
+    auto y = Vec1::create(this->exec, gko::dim<2>{2});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
+    // clang-format on
+}
+
+
 TYPED_TEST(Ell, AppliesLinearCombinationToDenseVector)
 {
     using Vec = typename TestFixture::Vec;
@@ -168,13 +277,52 @@ TYPED_TEST(Ell, AppliesLinearCombinationToDenseVector)
 }
 
 
-TYPED_TEST(Ell, AppliesLinearCombinationToMixedDenseVector)
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseVector1)
 {
-    using MixedVec = typename TestFixture::MixedVec;
-    auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
-    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
-    auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseVector2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec2>({2.0}, this->exec);
+    auto x = gko::initialize<Vec1>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec2>({1.0, 2.0}, this->exec);
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseVector3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec1>({2.0}, this->exec);
+    auto x = gko::initialize<Vec2>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec1>({1.0, 2.0}, this->exec);
 
     this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
@@ -194,6 +342,92 @@ TYPED_TEST(Ell, AppliesLinearCombinationToDenseMatrix)
          I<T>{1.0, -1.5},
          I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{-11.0, -2.5},
+                           { -1.0,  4.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseMatrix1)
+{
+    // Both vectors have the same value type which differs from the matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    // clang-format off
+    auto x = gko::initialize<Vec>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec>(
+        {I<next_T>{1.0, 0.5},
+         I<next_T>{2.0, -1.5}}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{-11.0, -2.5},
+                           { -1.0,  4.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseMatrix2)
+{
+    // Input vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec2>({2.0}, this->exec);
+    // clang-format off
+    auto x = gko::initialize<Vec1>(
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec2>(
+        {I<next_T>{1.0, 0.5},
+         I<next_T>{2.0, -1.5}}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(y,
+                        l({{-11.0, -2.5},
+                           { -1.0,  4.5}}), 0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Ell, MixedAppliesLinearCombinationToDenseMatrix3)
+{
+    // Output vector has same value type as matrix
+    using T = typename TestFixture::value_type;
+    using next_T = gko::next_precision<T>;
+    using Vec1 = typename TestFixture::Vec;
+    using Vec2 = gko::matrix::Dense<next_T>;
+    auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec1>({2.0}, this->exec);
+    // clang-format off
+    auto x = gko::initialize<Vec2>(
+        {I<next_T>{2.0, 3.0},
+         I<next_T>{1.0, -1.5},
+         I<next_T>{4.0, 2.5}}, this->exec);
+    auto y = gko::initialize<Vec1>(
         {I<T>{1.0, 0.5},
          I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
