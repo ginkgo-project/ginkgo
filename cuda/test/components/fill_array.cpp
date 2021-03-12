@@ -45,22 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils/assertions.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class FillArray : public ::testing::Test {
 protected:
-    using value_type = double;
+    using value_type = T;
     FillArray()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::CudaExecutor::create(0, ref)),
           total_size(6344),
           vals(ref, total_size),
-          dvals(exec, total_size)
+          dvals(exec, total_size),
+          seqs(ref, total_size)
     {
-        std::fill_n(vals.get_data(), total_size, 1234.0);
+        std::fill_n(vals.get_data(), total_size, T(1234));
+        std::iota(seqs.get_data(), seqs.get_data() + total_size, 0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -68,14 +72,29 @@ protected:
     gko::size_type total_size;
     gko::Array<value_type> vals;
     gko::Array<value_type> dvals;
+    gko::Array<value_type> seqs;
 };
 
+TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes);
 
-TEST_F(FillArray, EqualsReference)
+
+TYPED_TEST(FillArray, EqualsReference)
 {
-    gko::kernels::cuda::components::fill_array(exec, dvals.get_data(),
-                                               total_size, 1234.0);
-    GKO_ASSERT_ARRAY_EQ(vals, dvals);
+    using T = typename TestFixture::value_type;
+    gko::kernels::cuda::components::fill_array(
+        this->exec, this->dvals.get_data(), this->total_size, T(1234));
+
+    GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
+}
+
+
+TYPED_TEST(FillArray, FillSeqEqualsReference)
+{
+    using T = typename TestFixture::value_type;
+    gko::kernels::cuda::components::fill_seq_array(
+        this->exec, this->dvals.get_data(), this->total_size);
+
+    GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);
 }
 
 

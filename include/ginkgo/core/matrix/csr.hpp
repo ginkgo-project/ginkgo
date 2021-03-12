@@ -655,6 +655,7 @@ public:
             detail::strategy_rebuild_helper(result);
         }
     }
+
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(

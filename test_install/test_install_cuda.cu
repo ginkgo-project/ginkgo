@@ -262,6 +262,11 @@ int main(int, char **)
         Mtx::create(cudaExec, gko::dim<2>{2, 2});
     }
 
+    // core/multigrid/amgx_pgm.hpp
+    {
+        gko::multigrid::AmgxPgm<>::build().on(cudaExec);
+    }
+
     // core/preconditioner/ilu.hpp
     {
         gko::preconditioner::Ilu<>::build().on(cudaExec);

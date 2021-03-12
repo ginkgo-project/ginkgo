@@ -52,6 +52,19 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < n; ++i) {
+        array[i] = i;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+
+
 }  // namespace components
 }  // namespace omp
 }  // namespace kernels
