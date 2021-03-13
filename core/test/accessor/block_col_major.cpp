@@ -81,18 +81,19 @@ protected:
         */
     };
     // clang-format on
-    const std::array<gko::acc::size_type, dimensionality> dim1{2, 3, 4};
-    const std::array<gko::acc::size_type, dimensionality> dim2{2, 2, 3};
+    const std::array<gko::acc::size_type, dimensionality> dim1{{2, 3, 4}};
+    const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
     blk_col_major_range default_r{data, dim1};
     blk_col_major_range custom_r{
-        data, dim2, std::array<gko::acc::size_type, dimensionality - 1>{12, 3}};
+        data, dim2,
+        std::array<gko::acc::size_type, dimensionality - 1>{{12, 3}}};
 };
 
 
 TEST_F(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = default_r.get_accessor().stride;
-    auto check_stride = std::array<gko::acc::size_type, 2>{12, 3};
+    auto check_stride = std::array<gko::acc::size_type, 2>{{12, 3}};
 
     ASSERT_EQ(range_stride, check_stride);
 }
