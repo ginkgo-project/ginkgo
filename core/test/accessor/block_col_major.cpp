@@ -83,9 +83,9 @@ protected:
     // clang-format on
     const std::array<gko::acc::size_type, dimensionality> dim1{{2, 3, 4}};
     const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
-    blk_col_major_range default_r{data, dim1};
+    blk_col_major_range default_r{dim1, data};
     blk_col_major_range custom_r{
-        data, dim2,
+        dim2, data,
         std::array<gko::acc::size_type, dimensionality - 1>{{12, 3}}};
 };
 
