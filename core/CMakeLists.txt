@@ -22,6 +22,7 @@ target_sources(ginkgo
     log/logger.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/block_approx.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp

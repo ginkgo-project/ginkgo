@@ -47,16 +47,17 @@ namespace matrix {
 
 
 template <class ConcreteType>
-class BlockApprox : public EnableLinOp<BlockApprox<ConcreteType>>,
-                    public EnableCreateMethod<BlockApprox<ConcreteType>>,
-                    public ReadableFromMatrixData<ConcreteType::value_type,
-                                                  ConcreteType::index_type> {
+class BlockApprox
+    : public EnableLinOp<BlockApprox<ConcreteType>>,
+      public EnableCreateMethod<BlockApprox<ConcreteType>>,
+      public ReadableFromMatrixData<typename ConcreteType::value_type,
+                                    typename ConcreteType::index_type> {
     friend class EnableCreateMethod<BlockApprox>;
     friend class EnablePolymorphicObject<BlockApprox, LinOp>;
 
 public:
-    using value_type = ConcreteType::value_type;
-    using index_type = ConcreteType::index_type;
+    using value_type = typename ConcreteType::value_type;
+    using index_type = typename ConcreteType::index_type;
     void read(const matrix_data<value_type, index_type> &data) override {}
 
     size_type get_num_blocks() const { return block_mtxs_.size(); }
@@ -65,33 +66,37 @@ public:
 
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
-    std::vector<size_type> get_block_mtxs() const { return block_mtxs_; }
+    std::vector<std::shared_ptr<ConcreteType>> get_block_mtxs() const
+    {
+        return block_mtxs_;
+    }
 
 protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
-                size_type num_blocks = size_type{1})
-        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}},
-          block_mtxs_(num_blocks)
+                const Array<size_type> num_blocks = {})
+        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}}, block_mtxs_{}
     {}
 
-    BlockApprox(std::shared_ptr<const Executor> exec, size_type num_blocks,
-                const ConcreteType *matrix)
-        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}},
-          block_mtxs_(num_blocks)
+    BlockApprox(std::shared_ptr<const Executor> exec,
+                const Array<size_type> num_blocks, const ConcreteType *matrix)
+        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}}, block_mtxs_{}
     {
-        block_mtxs_ = matrix->get_block_approx(num_blocks);
+        auto block_mtxs = matrix->get_block_approx(num_blocks);
 
-        for (const auto &i : block_mtxs_) {
-            block_dims_.emplace_back(i->get_size());
-            block_nnzs_.emplace_back(i->get_num_stored_elements());
+        for (size_type j = 0; j < block_mtxs.size(); ++j) {
+            block_mtxs_.emplace_back(std::move(block_mtxs[j]));
+            block_dims_.emplace_back(block_mtxs_.back()->get_size());
+            block_nnzs_.emplace_back(
+                block_mtxs_.back()->get_num_stored_elements());
         }
     }
 
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp *b, LinOp *x) const override {}
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+                    LinOp *x) const override
+    {}
 
 private:
     std::vector<std::shared_ptr<ConcreteType>> block_mtxs_;

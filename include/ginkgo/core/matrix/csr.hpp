@@ -781,7 +781,7 @@ public:
 
     std::vector<std::unique_ptr<Csr>> get_block_approx(
         Array<size_type> block_sizes,
-        Array<size_type> permutation) const override;
+        Array<size_type> permutation = {}) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
