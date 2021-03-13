@@ -264,7 +264,7 @@ protected:
 
 private:
     const dim_type size_;
-    storage_type *storage_;
+    storage_type *const storage_;
     const storage_stride_type stride_;
 };
 

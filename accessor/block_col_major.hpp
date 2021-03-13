@@ -99,10 +99,10 @@ protected:
      *   `x_1 * stride_1 + x_2 * stride_2 * ... + x_(n-1) + x_n * stride_(n-1)`
      *                points to the element at (x_1, x_2, ..., x_n))
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit block_col_major(data_type data,
-                                                          length_type size,
+    constexpr GKO_ACC_ATTRIBUTES explicit block_col_major(length_type size,
+                                                          data_type data,
                                                           stride_type stride)
-        : data{data}, lengths(size), stride(stride)
+        : lengths(size), data{data}, stride(stride)
     {}
 
     /**
@@ -112,10 +112,10 @@ protected:
      * @param data  pointer to the block of memory containing the data
      * @param lengths size / length of the accesses of each dimension
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit block_col_major(data_type data,
-                                                          length_type size)
-        : data{data},
-          lengths(size),
+    constexpr GKO_ACC_ATTRIBUTES explicit block_col_major(length_type size,
+                                                          data_type data)
+        : lengths(size),
+          data{data},
           stride(helper::blk_col_major::default_stride_array(lengths))
     {}
 
@@ -129,7 +129,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         // TODO Remove this functionality all together (if requested)
-        return range<const_accessor>(data, lengths, stride);
+        return range<const_accessor>(lengths, data, stride);
     }
 
     /**
@@ -165,10 +165,10 @@ public:
     {
         return helper::validate_index_spans(lengths, spans...),
                range<block_col_major>{
-                   data + helper::blk_col_major::compute_index(
-                              lengths, stride, (index_span{spans}.begin)...),
                    length_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
+                   data + helper::blk_col_major::compute_index(
+                              lengths, stride, (index_span{spans}.begin)...),
                    stride};
     }
 
@@ -185,14 +185,14 @@ public:
     }
 
     /**
-     * Reference to the underlying data.
-     */
-    const data_type data;
-
-    /**
      * An array of dimension sizes.
      */
     const length_type lengths;
+
+    /**
+     * Reference to the underlying data.
+     */
+    const data_type data;
 
     /**
      * Distance between consecutive 'layers' for each dimension

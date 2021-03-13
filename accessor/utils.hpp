@@ -162,9 +162,8 @@ struct are_all_integral : public std::true_type {};
 
 template <typename First, typename... Args>
 struct are_all_integral<First, Args...>
-    : public std::conditional<std::is_integral<std::decay_t<First>>::value,
-                              are_all_integral<Args...>,
-                              std::false_type>::type {};
+    : public std::conditional_t<std::is_integral<std::decay_t<First>>::value,
+                                are_all_integral<Args...>, std::false_type> {};
 
 
 }  // namespace acc

@@ -66,6 +66,10 @@ public:
 
     static_assert(Dimensionality != 0,
                   "This accessor does not support a dimensionality of 0!");
+
+    /**
+     * Number of dimensions of the accessor.
+     */
     static constexpr size_type dimensionality = Dimensionality;
 
     /**
@@ -78,41 +82,37 @@ public:
      */
     using data_type = value_type *;
 
-    /**
-     * Number of dimensions of the accessor.
-     */
-
     using const_accessor = row_major<const ValueType, Dimensionality>;
-    using stride_type = std::array<size_type, dimensionality - 1>;
     using length_type = std::array<size_type, dimensionality>;
+    using stride_type = std::array<size_type, dimensionality - 1>;
 
 protected:
     /**
      * Creates a row_major accessor.
      *
-     * @param data  pointer to the block of memory containing the data
      * @param lengths size / length of the accesses of each dimension
+     * @param data  pointer to the block of memory containing the data
      * @param stride  distance (in elements) between starting positions of
      *                the dimensions (i.e.
      *                `x_1 * stride_1 + x_2 * stride_2 * ... + x_n`
      *                points to the element at (x_1, x_2, ..., x_n))
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit row_major(data_type data,
-                                                    length_type size,
+    constexpr GKO_ACC_ATTRIBUTES explicit row_major(length_type size,
+                                                    data_type data,
                                                     stride_type stride)
-        : data{data}, lengths(size), stride(stride)
+        : lengths(size), data{data}, stride(stride)
     {}
 
     /**
      * Creates a row_major accessor with a default stride (assumes no
      * padding)
      *
-     * @param data  pointer to the block of memory containing the data
      * @param lengths size / length of the accesses of each dimension
+     * @param data  pointer to the block of memory containing the data
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit row_major(data_type data,
-                                                    length_type size)
-        : row_major{data, size,
+    constexpr GKO_ACC_ATTRIBUTES explicit row_major(length_type size,
+                                                    data_type data)
+        : row_major{size, data,
                     helper::compute_default_row_major_stride_array<
                         typename stride_type::value_type>(size)}
     {}
@@ -127,7 +127,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         // TODO Remove this functionality all together (if requested)
-        return range<const_accessor>(data, lengths, stride);
+        return range<const_accessor>(lengths, data, stride);
     }
 
     /**
@@ -163,10 +163,10 @@ public:
     {
         return helper::validate_index_spans(lengths, spans...),
                range<row_major>{
-                   data + helper::compute_row_major_index(
-                              lengths, stride, (index_span{spans}.begin)...),
                    length_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
+                   data + helper::compute_row_major_index(
+                              lengths, stride, (index_span{spans}.begin)...),
                    stride};
     }
 
@@ -183,14 +183,14 @@ public:
     }
 
     /**
-     * Reference to the underlying data.
-     */
-    const data_type data;
-
-    /**
      * An array of dimension sizes.
      */
     const length_type lengths;
+
+    /**
+     * Reference to the underlying data.
+     */
+    const data_type data;
 
     /**
      * Distance between consecutive rows for each dimension (except the

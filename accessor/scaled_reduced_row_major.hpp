@@ -483,9 +483,9 @@ protected:
 
 private:
     const dim_type size_;
-    storage_type *storage_;
+    storage_type *const storage_;
     const storage_stride_type storage_stride_;
-    scalar_type *scalar_;
+    scalar_type *const scalar_;
     const scalar_stride_type scalar_stride_;
 };
 

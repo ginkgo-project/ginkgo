@@ -66,26 +66,13 @@ protected:
         5, 6, -3
     };
     // clang-format on
-    row_major_int_range r{data, dim_type{{3u, 2u}}, stride_type{{3u}}};
+    row_major_int_range r{dim_type{{3u, 2u}}, data, stride_type{{3u}}};
 };
-
-
-TEST_F(RowMajorAccessor, CanCreateWithDim)
-{
-    row_major_int_range r2{data, dim_type{{3, 2}}, stride_type{{3u}}};
-
-    EXPECT_EQ(r2(0, 0), 1);
-    EXPECT_EQ(r2(0, 1), 2);
-    EXPECT_EQ(r2(1, 0), 3);
-    EXPECT_EQ(r2(1, 1), 4);
-    EXPECT_EQ(r2(2, 0), 5);
-    EXPECT_EQ(r2(2, 1), 6);
-}
 
 
 TEST_F(RowMajorAccessor, CanCreateDefaultStride)
 {
-    row_major_int_range r2{data, dim_type{{3, 3}}};
+    row_major_int_range r2{dim_type{{3, 3}}, data};
 
     EXPECT_EQ(r2(0, 0), 1);
     EXPECT_EQ(r2(0, 1), 2);
@@ -177,9 +164,9 @@ protected:
     // clang-format on
     const std::array<gko::acc::size_type, dimensionality> dim1{{2, 3, 4}};
     const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
-    row_major_int_range default_r{data, dim1};
+    row_major_int_range default_r{dim1, data};
     row_major_int_range custom_r{
-        data, dim2, std::array<gko::size_type, dimensionality - 1>{{12, 4}}};
+        dim2, data, std::array<gko::size_type, dimensionality - 1>{{12, 4}}};
 };
 
 
