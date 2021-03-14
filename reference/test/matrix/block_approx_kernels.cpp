@@ -33,10 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/block_approx.hpp>
 
 
-#include <gtest/gtest.h>
-
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include <gtest/gtest.h>
+
 
 #include "core/test/utils.hpp"
 
@@ -53,6 +55,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Mtx = gko::matrix::BlockApprox<CsrMtx>;
 
     BlockApprox()
@@ -67,6 +70,12 @@ protected:
                                            exec)),
           csr_mtx1(gko::initialize<CsrMtx>(
               {{2.5, 1.5, 0.0}, {1.0, 2.0, 4.0}, {2.0, 1.5, 3.0}}, exec)),
+          b(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
+          b0(gko::initialize<Dense>({2.0, 1.0}, exec)),
+          b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
+          x(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
+          x0(gko::initialize<Dense>({2.0, 1.0}, exec)),
+          x1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
           mtx(Mtx::create(exec))
     {}
 
@@ -75,29 +84,30 @@ protected:
     std::unique_ptr<CsrMtx> csr_mtx0;
     std::unique_ptr<CsrMtx> csr_mtx1;
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Dense> b;
+    std::unique_ptr<Dense> b0;
+    std::unique_ptr<Dense> b1;
+    std::unique_ptr<Dense> x;
+    std::unique_ptr<Dense> x0;
+    std::unique_ptr<Dense> x1;
 };
 
 TYPED_TEST_SUITE(BlockApprox, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(BlockApprox, CanBeEmpty)
+TYPED_TEST(BlockApprox, CanApplyToDense)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx = Mtx::create(this->exec);
-
-    ASSERT_EQ(mtx->get_num_blocks(), 0);
-    ASSERT_EQ(mtx->get_block_nonzeros().size(), 0);
-}
-
-
-TYPED_TEST(BlockApprox, CanBeCreatedFromCsr)
-{
-    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
-    auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
+    auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
     auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+
+    mtx->apply(this->b.get(), this->x.get());
+    this->csr_mtx0->apply(this->b0.get(), this->x0.get());
+    this->csr_mtx1->apply(this->b1.get(), this->x1.get());
 
     ASSERT_EQ(mtx->get_num_blocks(), 2);
     ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
@@ -108,89 +118,46 @@ TYPED_TEST(BlockApprox, CanBeCreatedFromCsr)
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
                         r<value_type>::value);
+    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
+    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
+    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
+    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
+    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
 }
 
 
-TYPED_TEST(BlockApprox, CanBeCopied)
+TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
+
+    auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
     auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
-    auto copy = Mtx::create(this->exec);
+    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
 
-    copy->copy_from(mtx.get());
+    mtx->apply(alpha.get(), this->b.get(), beta.get(), this->x.get());
+    this->csr_mtx0->apply(alpha.get(), this->b0.get(), beta.get(),
+                          this->x0.get());
+    this->csr_mtx1->apply(alpha.get(), this->b1.get(), beta.get(),
+                          this->x1.get());
 
-    ASSERT_EQ(copy->get_num_blocks(), 2);
-    ASSERT_EQ(copy->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(copy->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(copy->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(copy->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0], this->csr_mtx0,
+    ASSERT_EQ(mtx->get_num_blocks(), 2);
+    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
+    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
+    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
+    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
                         r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1], this->csr_mtx1,
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
                         r<value_type>::value);
-}
-
-
-TYPED_TEST(BlockApprox, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
-    auto copy = Mtx::create(this->exec);
-
-    copy->copy_from(std::move(mtx.get()));
-
-    ASSERT_EQ(copy->get_num_blocks(), 2);
-    ASSERT_EQ(copy->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(copy->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(copy->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(copy->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(BlockApprox, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
-    auto clone = mtx->clone();
-
-    ASSERT_EQ(clone->get_num_blocks(), 2);
-    ASSERT_EQ(clone->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(clone->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(clone->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(clone->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-}
-
-
-TYPED_TEST(BlockApprox, CanBeCleared)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
-    ASSERT_NE(mtx->get_num_blocks(), 0);
-
-    mtx->clear();
-
-    ASSERT_EQ(mtx->get_num_blocks(), 0);
-    ASSERT_EQ(mtx->get_block_nonzeros().size(), 0);
+    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
+    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
+    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
+    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
+    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
 }
 
 

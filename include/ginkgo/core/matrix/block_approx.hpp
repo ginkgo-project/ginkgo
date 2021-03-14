@@ -37,9 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -79,7 +78,8 @@ protected:
 
     BlockApprox(std::shared_ptr<const Executor> exec,
                 const Array<size_type> num_blocks, const ConcreteType *matrix)
-        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}}, block_mtxs_{}
+        : EnableLinOp<BlockApprox<ConcreteType>>{exec, matrix->get_size()},
+          block_mtxs_{}
     {
         auto block_mtxs = matrix->get_block_approx(num_blocks);
 
@@ -92,13 +92,13 @@ protected:
     }
 
 
-    void apply_impl(const LinOp *b, LinOp *x) const override {}
+    void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
-    {}
+                    LinOp *x) const override;
 
 private:
+    std::vector<size_type> overlap_;
     std::vector<std::shared_ptr<ConcreteType>> block_mtxs_;
     std::vector<dim<2>> block_dims_;
     std::vector<size_type> block_nnzs_;

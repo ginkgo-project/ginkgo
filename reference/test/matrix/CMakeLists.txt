@@ -1,3 +1,4 @@
+ginkgo_create_test(block_approx_kernels)
 ginkgo_create_test(coo_kernels)
 ginkgo_create_test(csr_kernels)
 ginkgo_create_test(dense_kernels)
