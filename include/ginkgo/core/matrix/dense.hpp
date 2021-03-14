@@ -361,7 +361,7 @@ public:
 
     std::vector<std::unique_ptr<Dense>> get_block_approx(
         Array<size_type> block_sizes,
-        Array<size_type> permutation) const override;
+        Array<size_type> permutation = {}) const override;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
