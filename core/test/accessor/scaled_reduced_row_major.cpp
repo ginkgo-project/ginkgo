@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <array>
+#include <cinttypes>
+#include <limits>
 #include <tuple>
 #include <type_traits>
 
@@ -38,14 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
 #include "accessor/index_span.hpp"
+#include "accessor/range.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
-#include "core/base/extended_float.hpp"
-#include "core/test/utils.hpp"
 
 
 namespace {
@@ -62,7 +59,8 @@ protected:
     using t = std::tuple<int, int, int>;
     using i_span = gko::acc::index_span;
 
-    static constexpr ar_type delta{::r<ar_type>::value};
+    static constexpr ar_type delta{std::numeric_limits<ar_type>::epsilon() *
+                                   1e1};
 
     using accessor =
         gko::acc::scaled_reduced_row_major<3, ar_type, st_type, 0b0101>;
@@ -72,9 +70,9 @@ protected:
     using reduced_storage = gko::acc::range<accessor>;
     using const_reduced_storage = gko::acc::range<const_accessor>;
 
-    const std::array<gko::size_type, 3> size{{1u, 4u, 2u}};
-    static constexpr gko::size_type data_elements{8};
-    static constexpr gko::size_type scalar_elements{8};
+    const std::array<gko::acc::size_type, 3> size{{1u, 4u, 2u}};
+    static constexpr gko::acc::size_type data_elements{8};
+    static constexpr gko::acc::size_type scalar_elements{8};
     // clang-format off
     st_type data[8]{
         10, 11,
@@ -86,8 +84,8 @@ protected:
         1., 2., 3., 4., 5., 6., 7., 8.
     };
     // clang-format on
-    const std::array<gko::size_type, 2> storage_stride{{8, 2}};
-    const std::array<gko::size_type, 1> scalar_stride{{2}};
+    const std::array<gko::acc::size_type, 2> storage_stride{{8, 2}};
+    const std::array<gko::acc::size_type, 1> scalar_stride{{2}};
     reduced_storage r{size, data, storage_stride, scalar, scalar_stride};
     const_reduced_storage cr{size, data, scalar};
 
@@ -112,9 +110,9 @@ protected:
 };
 
 using ScaledReducedStorage3dTypes = ::testing::Types<
-    std::tuple<double, gko::int64>, std::tuple<double, gko::int32>,
-    std::tuple<double, gko::int16>, std::tuple<float, gko::int32>,
-    std::tuple<float, gko::int16>>;
+    std::tuple<double, std::int64_t>, std::tuple<double, std::int32_t>,
+    std::tuple<double, std::int16_t>, std::tuple<float, std::int32_t>,
+    std::tuple<float, std::int16_t>>;
 
 TYPED_TEST_SUITE(ScaledReducedStorage3d, ScaledReducedStorage3dTypes);
 
@@ -184,9 +182,9 @@ TYPED_TEST(ScaledReducedStorage3d, CanCreateWithStride)
 {
     using reduced_storage = typename TestFixture::reduced_storage;
     using ar_type = typename TestFixture::ar_type;
-    std::array<gko::size_type, 3> size{{2, 1, 2}};
-    std::array<gko::size_type, 2> stride_storage{{5, 2}};
-    std::array<gko::size_type, 1> stride_scalar{{4}};
+    std::array<gko::acc::size_type, 3> size{{2, 1, 2}};
+    std::array<gko::acc::size_type, 2> stride_storage{{5, 2}};
+    std::array<gko::acc::size_type, 1> stride_scalar{{4}};
 
     reduced_storage range{size, this->data, stride_storage, this->scalar,
                           stride_scalar};
@@ -390,7 +388,7 @@ class ScaledReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = int;
-    using size_type = gko::size_type;
+    using size_type = gko::acc::size_type;
     static constexpr ar_type delta{0.1};
 
     using accessor1d =
@@ -416,10 +414,10 @@ protected:
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
     const std::array<size_type, 1> stride_sc{{5}};
-    const std::array<gko::size_type, 1> size_1d{{8u}};
-    const std::array<gko::size_type, 2> size_2d{{2u, 2u}};
+    const std::array<gko::acc::size_type, 1> size_1d{{8u}};
+    const std::array<gko::acc::size_type, 2> size_2d{{2u, 2u}};
 
-    static constexpr gko::size_type data_elements{8};
+    static constexpr gko::acc::size_type data_elements{8};
     st_type data[data_elements]{10, 22, 32, 44, 54, 66, 76, -88};
     ar_type scalar[data_elements]{1e0,  5e-1, 1e-1, 5e-2,
                                   1e-2, 5e-3, 1e-3, 5e-4};

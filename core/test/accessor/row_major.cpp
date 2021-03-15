@@ -38,14 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
 #include "accessor/index_span.hpp"
+#include "accessor/range.hpp"
 #include "accessor/row_major.hpp"
-#include "core/base/extended_float.hpp"
-#include "core/test/utils.hpp"
 
 
 namespace {
@@ -146,7 +141,7 @@ TEST_F(RowMajorAccessor, CanAssignValues)
 class RowMajorAccessor3d : public ::testing::Test {
 protected:
     using span = gko::acc::index_span;
-    static constexpr gko::size_type dimensionality{3};
+    static constexpr gko::acc::size_type dimensionality{3};
 
     using row_major_int_range =
         gko::acc::range<gko::acc::row_major<int, dimensionality>>;
@@ -166,7 +161,8 @@ protected:
     const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
     row_major_int_range default_r{dim1, data};
     row_major_int_range custom_r{
-        dim2, data, std::array<gko::size_type, dimensionality - 1>{{12, 4}}};
+        dim2, data,
+        std::array<gko::acc::size_type, dimensionality - 1>{{12, 4}}};
 };
 
 
