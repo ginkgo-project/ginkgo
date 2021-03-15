@@ -156,19 +156,27 @@ void assign_to_exist_agg(std::shared_ptr<const HipExecutor> exec,
                          Array<IndexType> &agg,
                          Array<IndexType> &intermediate_agg)
 {
-    auto agg_val = (intermediate_agg.get_num_elems() > 0)
-                       ? intermediate_agg.get_data()
-                       : agg.get_data();
     const auto num = agg.get_num_elems();
     const dim3 grid(ceildiv(num, default_block_size));
-    hipLaunchKernelGGL(
-        kernel::assign_to_exist_agg_kernel, dim3(grid),
-        dim3(default_block_size), 0, 0, num, weight_mtx->get_const_row_ptrs(),
-        weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
-        diag->get_const_values(), agg.get_const_data(), agg_val);
+
     if (intermediate_agg.get_num_elems() > 0) {
+        // determinstic kernel
+        hipLaunchKernelGGL(
+            kernel::assign_to_exist_agg_kernel, dim3(grid),
+            dim3(default_block_size), 0, 0, num,
+            weight_mtx->get_const_row_ptrs(), weight_mtx->get_const_col_idxs(),
+            weight_mtx->get_const_values(), diag->get_const_values(),
+            agg.get_const_data(), intermediate_agg.get_data());
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;
+    } else {
+        // undeterminstic kernel
+        hipLaunchKernelGGL(kernel::assign_to_exist_agg_kernel, dim3(grid),
+                           dim3(default_block_size), 0, 0, num,
+                           weight_mtx->get_const_row_ptrs(),
+                           weight_mtx->get_const_col_idxs(),
+                           weight_mtx->get_const_values(),
+                           diag->get_const_values(), agg.get_data());
     }
 }
 

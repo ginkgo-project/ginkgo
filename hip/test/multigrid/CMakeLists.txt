@@ -1,1 +1,1 @@
-ginkgo_create_hip_test(amgx_pgm_kernels)
+ginkgo_create_hip_test_special_linkage(amgx_pgm_kernels)

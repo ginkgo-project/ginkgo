@@ -52,14 +52,14 @@ __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
     size_type num, const IndexType *__restrict__ strongest_neighbor_vals,
     IndexType *__restrict__ agg_vals)
 {
-    auto tidx = thread::get_thread_id_flat();
+    auto tidx = thread::get_thread_id_flat<IndexType>();
     if (tidx >= num) {
         return;
     }
     if (agg_vals[tidx] != -1) {
         return;
     }
-    size_type neighbor = strongest_neighbor_vals[tidx];
+    auto neighbor = strongest_neighbor_vals[tidx];
     if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx) {
         // Use the smaller index as agg point
         auto group = min(tidx, neighbor);
@@ -175,10 +175,7 @@ __global__
         IndexType *__restrict__ agg_val)
 {
     auto row = thread::get_thread_id_flat();
-    if (row >= num) {
-        return;
-    }
-    if (agg_val[row] != -1) {
+    if (row >= num || agg_val[row] != -1) {
         return;
     }
     ValueType max_weight_agg = zero<ValueType>();
@@ -198,6 +195,42 @@ __global__
     }
     if (strongest_agg != -1) {
         agg_val[row] = agg_const_val[strongest_agg];
+    } else {
+        agg_val[row] = row;
+    }
+}
+
+// This is the undeterminstic implementation which is the same implementation of
+// the previous one but agg_val == agg_const_val.
+template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void assign_to_exist_agg_kernel(
+        const size_type num, const IndexType *__restrict__ row_ptrs,
+        const IndexType *__restrict__ col_idxs,
+        const ValueType *__restrict__ weight_vals,
+        const ValueType *__restrict__ diag, IndexType *__restrict__ agg_val)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= num || agg_val[row] != -1) {
+        return;
+    }
+    ValueType max_weight_agg = zero<ValueType>();
+    IndexType strongest_agg = -1;
+    for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+        auto col = col_idxs[idx];
+        if (col == row) {
+            continue;
+        }
+        auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+        if (agg_val[col] != -1 &&
+            (weight > max_weight_agg ||
+             (weight == max_weight_agg && col > strongest_agg))) {
+            max_weight_agg = weight;
+            strongest_agg = col;
+        }
+    }
+    if (strongest_agg != -1) {
+        agg_val[row] = agg_val[strongest_agg];
     } else {
         agg_val[row] = row;
     }
