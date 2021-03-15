@@ -38,13 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
 #include "accessor/block_col_major.hpp"
 #include "accessor/index_span.hpp"
-#include "core/test/utils.hpp"
+#include "accessor/range.hpp"
 
 
 namespace {
