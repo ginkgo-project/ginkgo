@@ -131,6 +131,10 @@ protected:
         weight_csr = Csr::create(ref);
         weight->convert_to(weight_csr.get());
         weight_diag = weight_csr->extract_diagonal();
+        auto system_dense = gen_mtx(m, m);
+        make_spd(system_dense.get());
+        system_mtx = Csr::create(ref);
+        system_dense->convert_to(system_mtx.get());
 
         d_agg.set_executor(hip);
         d_unfinished_agg.set_executor(hip);
@@ -139,6 +143,7 @@ protected:
         d_fine_vector = Mtx::create(hip);
         d_weight_csr = Csr::create(hip);
         d_weight_diag = Diag::create(hip);
+        d_system_mtx = Csr::create(hip);
         d_agg = agg;
         d_unfinished_agg = unfinished_agg;
         d_strongest_neighbor = strongest_neighbor;
@@ -146,6 +151,7 @@ protected:
         d_fine_vector->copy_from(fine_vector.get());
         d_weight_csr->copy_from(weight_csr.get());
         d_weight_diag->copy_from(weight_diag.get());
+        d_system_mtx->copy_from(system_mtx.get());
     }
 
     void make_symetric(Mtx *mtx)
@@ -209,11 +215,13 @@ protected:
     std::unique_ptr<Mtx> fine_vector;
     std::unique_ptr<Diag> weight_diag;
     std::unique_ptr<Csr> weight_csr;
+    std::shared_ptr<Csr> system_mtx;
 
     std::unique_ptr<Mtx> d_coarse_vector;
     std::unique_ptr<Mtx> d_fine_vector;
     std::unique_ptr<Diag> d_weight_diag;
     std::unique_ptr<Csr> d_weight_csr;
+    std::shared_ptr<Csr> d_system_mtx;
 
     gko::size_type n;
 };
@@ -326,6 +334,28 @@ TEST_F(AmgxPgm, GenerateMtxIsEquivalentToRef)
         ref, weight_csr.get(), agg, csr_coarse.get(), csr_temp.get());
 
     GKO_ASSERT_MTX_NEAR(d_csr_coarse, csr_coarse, 1e-14);
+}
+
+
+TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
+{
+    initialize_data();
+    auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                .with_deterministic(true)
+                                .on(ref);
+    auto d_mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                  .with_deterministic(true)
+                                  .on(hip);
+
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
+                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
+                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
 }
 
 
