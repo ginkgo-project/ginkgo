@@ -36,7 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/block_approx.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -52,175 +55,56 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Bj = gko::preconditioner::Ras<value_type, index_type>;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using Ras = gko::preconditioner::Ras<value_type, index_type>;
+    using Cg = gko::solver::Cg<value_type>;
 
     RasFactory()
         : exec(gko::ReferenceExecutor::create()),
-          bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
-          block_pointers(exec, 2),
-          block_precisions(exec, 2),
-          mtx(gko::matrix::Csr<value_type, index_type>::create(
-              exec, gko::dim<2>{5, 5}, 13))
-    {
-        block_pointers.get_data()[0] = 2;
-        block_pointers.get_data()[1] = 3;
-        block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
-        block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
-    }
+          csr_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                           {0.0, 3.0, 0.0, 0.0, 0.0},
+                                           {0.0, 3.0, 2.5, 1.5, 0.0},
+                                           {1.0, 0.0, 1.0, 2.0, 4.0},
+                                           {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                          exec)),
+          block_sizes(gko::Array<gko::size_type>(exec, {2, 3})),
+          block_mtx(
+              gko::matrix::
+                  BlockApprox<gko::matrix::Csr<value_type, index_type>>::create(
+                      exec, block_sizes, csr_mtx.get())),
+          ras_factory(
+              Ras::build()
+                  .with_solver(Cg::build()
+                                   .with_criteria(gko::stop::Iteration::build()
+                                                      .with_max_iters(3u)
+                                                      .on(exec))
+                                   .on(exec))
+                  .on(exec))
+    {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename Bj::Factory> bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
-    std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
+    gko::Array<gko::size_type> block_sizes;
+    std::shared_ptr<gko::matrix::Csr<value_type, index_type>> csr_mtx;
+    std::shared_ptr<
+        gko::matrix::BlockApprox<gko::matrix::Csr<value_type, index_type>>>
+        block_mtx;
+    std::unique_ptr<typename Ras::Factory> ras_factory;
 };
 
 TYPED_TEST_SUITE(RasFactory, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(RasFactory, KnowsItsExecutor)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->bj_factory->get_executor(), this->exec);
-//}
+{
+    ASSERT_EQ(this->ras_factory->get_executor(), this->exec);
+}
 
 
-TYPED_TEST(RasFactory, SavesMaximumBlockSize)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->bj_factory->get_parameters().max_block_size, 3);
-//}
-
-
-TYPED_TEST(RasFactory, CanSetBlockPointers)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_block_pointers(this->block_pointers)
-//                          .on(this->exec);
-//
-//    auto ptrs = bj_factory->get_parameters().block_pointers;
-//    EXPECT_EQ(ptrs.get_data()[0], 2);
-//    EXPECT_EQ(ptrs.get_data()[1], 3);
-//}
-
-
-TYPED_TEST(RasFactory, CanMoveBlockPointers)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_block_pointers(std::move(this->block_pointers))
-//                          .on(this->exec);
-//
-//    auto ptrs = bj_factory->get_parameters().block_pointers;
-//    EXPECT_EQ(ptrs.get_data()[0], 2);
-//    EXPECT_EQ(ptrs.get_data()[1], 3);
-//}
-
-
-TYPED_TEST(RasFactory, CanSetBlockPrecisions)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_storage_optimization(this->block_precisions)
-//                          .on(this->exec);
-//
-//    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
-//    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
-//    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
-//}
-
-
-TYPED_TEST(RasFactory, CanMoveBlockPrecisions)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory =
-//        Bj::build()
-//            .with_max_block_size(3u)
-//            .with_storage_optimization(std::move(this->block_precisions))
-//            .on(this->exec);
-//
-//    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
-//    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
-//    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
-//}
-
-
-template <typename T>
-class BlockInterleavedStorageScheme : public ::testing::Test {
-protected:
-    using index_type = T;
-    // groups of 4 blocks, offset of 3 within the group and 16 between groups
-    gko::preconditioner::block_interleaved_storage_scheme<index_type> s{3, 16,
-                                                                        2};
-};
-
-TYPED_TEST_SUITE(BlockInterleavedStorageScheme, gko::test::IndexTypes);
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesStorageSpace)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.compute_storage_space(10),
-//              16 * 3);  // 3 groups of 16 elements
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesGroupOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_group_offset(17), 16 * 4);  // 5th group
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesBlockOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_block_offset(17), 1 * 3);  // 2nd in group
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesGlobalBlockOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_global_block_offset(17), 16 * 4 + 1 * 3);
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesStride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:ras): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_stride(), 4 * 3);  // 4 offsets of 3
-//}
+TYPED_TEST(RasFactory, KnowsItsSize)
+{
+    auto solver = this->ras_factory->generate(this->block_mtx);
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
+}
 
 
 }  // namespace

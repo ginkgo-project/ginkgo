@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/block_approx.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -69,80 +70,67 @@ GKO_REGISTER_OPERATION(initialize_precisions, ras::initialize_precisions);
 
 
 template <typename ValueType, typename IndexType>
-void Ras<ValueType, IndexType>::apply_impl(const LinOp *b,
-                                           LinOp *x) const GKO_NOT_IMPLEMENTED;
-//{
-//    using dense = matrix::Dense<ValueType>;
-//    this->get_executor()->run(ras::make_simple_apply(
-//        num_blocks_, parameters_.max_block_size, storage_scheme_,
-//        parameters_.storage_optimization.block_wise,
-//        parameters_.block_pointers, blocks_, as<dense>(b), as<dense>(x)));
-//}
+void Ras<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+{
+    using Dense = matrix::Dense<ValueType>;
+    auto dense_b = const_cast<Dense *>(as<Dense>(b));
+    auto dense_x = as<Dense>(x);
+    const auto num_subdomains = this->inner_solvers_.size();
+    size_type offset = 0;
+    for (size_type i = 0; i < num_subdomains; ++i) {
+        auto loc_size = this->inner_solvers_[i]->get_size();
+        const auto loc_b = dense_b->create_submatrix(
+            span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
+        auto loc_x = dense_x->create_submatrix(
+            span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
+        this->inner_solvers_[i]->apply(loc_b.get(), loc_x.get());
+        offset += loc_size[0];
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 void Ras<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta,
-                                           LinOp *x) const GKO_NOT_IMPLEMENTED;
-//{
-//    using dense = matrix::Dense<ValueType>;
-//    this->get_executor()->run(ras::make_apply(
-//        num_blocks_, parameters_.max_block_size, storage_scheme_,
-//        parameters_.storage_optimization.block_wise,
-//        parameters_.block_pointers, blocks_, as<dense>(alpha), as<dense>(b),
-//        as<dense>(beta), as<dense>(x)));
-//}
+                                           const LinOp *beta, LinOp *x) const
+{
+    using Dense = matrix::Dense<ValueType>;
+    auto dense_b = const_cast<Dense *>(as<Dense>(b));
+    auto dense_x = as<Dense>(x);
+    const auto num_subdomains = this->inner_solvers_.size();
+    size_type offset = 0;
+    for (size_type i = 0; i < num_subdomains; ++i) {
+        auto loc_size = this->inner_solvers_[i]->get_size();
+        const auto loc_b = dense_b->create_submatrix(
+            span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
+        auto loc_x = dense_x->create_submatrix(
+            span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
+        this->inner_solvers_[i]->apply(alpha, loc_b.get(), beta, loc_x.get());
+        offset += loc_size[0];
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Ras<ValueType, IndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
-//{
-//    auto res = std::unique_ptr<Ras<ValueType, IndexType>>(
-//        new Ras<ValueType, IndexType>(this->get_executor()));
-//    // Ras enforces square matrices, so no dim transposition necessary
-//    res->set_size(this->get_size());
-//    res->storage_scheme_ = storage_scheme_;
-//    res->num_blocks_ = num_blocks_;
-//    res->blocks_.resize_and_reset(blocks_.get_num_elems());
-//    res->conditioning_ = conditioning_;
-//    res->parameters_ = parameters_;
-//    this->get_executor()->run(ras::make_transpose_ras(
-//        num_blocks_, parameters_.max_block_size,
-//        parameters_.storage_optimization.block_wise,
-//        parameters_.block_pointers, blocks_, storage_scheme_, res->blocks_));
-//
-//    return std::move(res);
-//}
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Ras<ValueType, IndexType>::conj_transpose() const
     GKO_NOT_IMPLEMENTED;
-//{
-//    auto res = std::unique_ptr<Ras<ValueType, IndexType>>(
-//        new Ras<ValueType, IndexType>(this->get_executor()));
-//    // Ras enforces square matrices, so no dim transposition necessary
-//    res->set_size(this->get_size());
-//    res->storage_scheme_ = storage_scheme_;
-//    res->num_blocks_ = num_blocks_;
-//    res->blocks_.resize_and_reset(blocks_.get_num_elems());
-//    res->conditioning_ = conditioning_;
-//    res->parameters_ = parameters_;
-//    this->get_executor()->run(ras::make_conj_transpose_ras(
-//        num_blocks_, parameters_.max_block_size,
-//        parameters_.storage_optimization.block_wise,
-//        parameters_.block_pointers, blocks_, storage_scheme_, res->blocks_));
-//
-//    return std::move(res);
-//}
 
 
 template <typename ValueType, typename IndexType>
 void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
+    using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-    const auto num_subdomains = this->get_num_subdomains();
+    auto block_mtxs = as<block_t>(system_matrix)->get_block_mtxs();
+    const auto num_subdomains = block_mtxs.size();
+    for (size_type i = 0; i < num_subdomains; ++i) {
+        this->inner_solvers_.emplace_back(
+            parameters_.solver->generate(block_mtxs[i]));
+    }
 }
 
 
