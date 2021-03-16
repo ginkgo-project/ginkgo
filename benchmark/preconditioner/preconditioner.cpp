@@ -114,9 +114,13 @@ std::string encode_parameters(const char *precond_name)
          [] {
              return std::string{"ilu-isai-"} + std::to_string(FLAGS_isai_power);
          }},
-        {"general-isai", [] {
+        {"general-isai",
+         [] {
              return std::string{"general-isai-"} +
                     std::to_string(FLAGS_isai_power);
+         }},
+        {"spd-isai", [] {
+             return std::string{"spd-isai-"} + std::to_string(FLAGS_isai_power);
          }}};
     if (encoder.find(precond_name) == encoder.end()) {
         return precond_name;

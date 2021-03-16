@@ -276,7 +276,8 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
         ValueType sol = subwarp.shfl(rhs, perm);
 
         if (spd) {
-            sol /= sqrt(subwarp.shfl(rhs, num_elems - 1));
+            auto diag = subwarp.shfl(sol, num_elems - 1);
+            sol /= sqrt(diag);
         }
 
         return sol;
@@ -371,16 +372,17 @@ __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int local_id = subwarp.thread_rank();
+    const auto row = warp_id + e_start;
 
-    if (warp_id >= e_end - e_start) {
+    if (row >= e_end) {
         return;
     }
 
     const IndexType offset = excess_block_ptrs[e_start];
-    const IndexType block_begin = excess_block_ptrs[warp_id] - offset;
-    const IndexType block_end = excess_block_ptrs[warp_id + 1] - offset;
-    const ValueType scal =
-        one<ValueType>() / sqrt(excess_solution[block_end - 1]);
+    const IndexType block_begin = excess_block_ptrs[row] - offset;
+    const IndexType block_end = excess_block_ptrs[row + 1] - offset;
+    const auto diag = excess_solution[block_end - 1];
+    const ValueType scal = one<ValueType>() / sqrt(diag);
 
     for (size_type i = block_begin + local_id; i < block_end;
          i += subwarp_size) {

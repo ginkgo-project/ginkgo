@@ -181,27 +181,27 @@ TYPED_TEST(IsaiFactory, SetsExcessLimitCorrectly)
     using UpperIsai = typename TestFixture::UpperIsai;
 
     auto a_isai_factory =
-        GeneralIsai::build().with_excess_limit(1024).on(this->exec);
+        GeneralIsai::build().with_excess_limit(1024u).on(this->exec);
     auto spd_isai_factory =
-        SpdIsai::build().with_excess_limit(1024).on(this->exec);
+        SpdIsai::build().with_excess_limit(1024u).on(this->exec);
     auto l_isai_factory =
-        LowerIsai::build().with_excess_limit(1024).on(this->exec);
+        LowerIsai::build().with_excess_limit(1024u).on(this->exec);
     auto u_isai_factory =
-        UpperIsai::build().with_excess_limit(1024).on(this->exec);
+        UpperIsai::build().with_excess_limit(1024u).on(this->exec);
 
-    ASSERT_EQ(a_isai_factory->get_parameters().excess_limit, 1024);
-    ASSERT_EQ(spd_isai_factory->get_parameters().excess_limit, 1024);
-    ASSERT_EQ(l_isai_factory->get_parameters().excess_limit, 1024);
-    ASSERT_EQ(u_isai_factory->get_parameters().excess_limit, 1024);
+    ASSERT_EQ(a_isai_factory->get_parameters().excess_limit, 1024u);
+    ASSERT_EQ(spd_isai_factory->get_parameters().excess_limit, 1024u);
+    ASSERT_EQ(l_isai_factory->get_parameters().excess_limit, 1024u);
+    ASSERT_EQ(u_isai_factory->get_parameters().excess_limit, 1024u);
 }
 
 
 TYPED_TEST(IsaiFactory, SetsDefaultExcessLimitCorrectly)
 {
-    ASSERT_EQ(this->general_isai_factory->get_parameters().excess_limit, 0);
-    ASSERT_EQ(this->spd_isai_factory->get_parameters().excess_limit, 0);
-    ASSERT_EQ(this->lower_isai_factory->get_parameters().excess_limit, 0);
-    ASSERT_EQ(this->upper_isai_factory->get_parameters().excess_limit, 0);
+    ASSERT_EQ(this->general_isai_factory->get_parameters().excess_limit, 0u);
+    ASSERT_EQ(this->spd_isai_factory->get_parameters().excess_limit, 0u);
+    ASSERT_EQ(this->lower_isai_factory->get_parameters().excess_limit, 0u);
+    ASSERT_EQ(this->upper_isai_factory->get_parameters().excess_limit, 0u);
 }
 
 
