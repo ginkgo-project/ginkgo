@@ -14,6 +14,8 @@ set(EXAMPLES_EXEC_LIST
     nine-pt-stencil-solver
     poisson-solver
     preconditioned-solver
+    ras-precond-solver
+    ras-ir
     simple-solver
     three-pt-stencil-solver)
 
