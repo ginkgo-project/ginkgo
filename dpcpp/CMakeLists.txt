@@ -15,6 +15,9 @@ target_sources(ginkgo_dpcpp
     components/fill_array.dp.cpp
     components/precision_conversion.dp.cpp
     components/prefix_sum.dp.cpp
+    distributed/matrix_kernels.dp.cpp
+    distributed/partition_kernels.dp.cpp
+    distributed/vector_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp

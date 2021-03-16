@@ -88,4 +88,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is MPI available for distributed LinOps? */
+// clang-format off
+#define GKO_HAVE_MPI @GINKGO_HAVE_MPI@
+// clang-format on
+
+
 #endif  // GKO_INCLUDE_CONFIG_H

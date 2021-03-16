@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -50,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/base/mpi_executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/perturbation.hpp>
@@ -65,6 +65,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
+
+#include <ginkgo/core/distributed/communicator.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
@@ -83,7 +88,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/distributed_matrix.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
