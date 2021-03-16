@@ -58,7 +58,7 @@ namespace preconditioner {
  * This enum lists the types of the ISAI preconditioner.
  *
  * ISAI can either be generated for a general square matrix, a lower triangular
- * matrix, an upper triangular matrix or a spd matrix.
+ * matrix, an upper triangular matrix or an spd matrix.
  */
 enum struct isai_type { lower, upper, general, spd };
 
@@ -93,8 +93,8 @@ enum struct isai_type { lower, upper, general, spd };
  *       elements will be ignored.
  *
  * @tparam IsaiType  determines if the ISAI is generated for a general square
- * matrix, a lower triangular matrix, an upper triangular matrix or an spd
- * matrix
+ *         matrix, a lower triangular matrix, an upper triangular matrix or an
+ *         spd matrix
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -176,7 +176,7 @@ public:
          * solution has been computed.
          * Must be at least 0, default value 0.
          */
-        index_type GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0u);
 
         /**
          * Factory for the Excess System solver

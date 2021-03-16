@@ -126,7 +126,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
     using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
     using Gmres = solver::Gmres<ValueType>;
-    using bj = preconditioner::Jacobi<ValueType, IndexType>;
+    using Bj = preconditioner::Jacobi<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
     auto is_lower = IsaiType == isai_type::lower;
@@ -150,9 +150,9 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         // Init arrays
         Array<IndexType> inverted_col_idxs{exec, inverted_nnz};
         Array<ValueType> inverted_vals{exec, inverted_nnz};
-        std::shared_ptr<Csr> inverted_base = Csr::create(
+        auto inverted_base = share(Csr::create(
             exec, dim<2>{num_rows, num_rows}, std::move(inverted_vals),
-            std::move(inverted_col_idxs), std::move(inverted_row_ptrs));
+            std::move(inverted_col_idxs), std::move(inverted_row_ptrs)));
 
         // Extract lower factor: columns and values
         exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
@@ -180,32 +180,33 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             excess_row_ptrs_full.get_data(), is_lower));
     }
 
-    auto total_excess_dim =
-        exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
+    auto host_excess_block_ptrs_array =
+        Array<IndexType>(exec->get_master(), excess_block_ptrs);
+    auto host_excess_block_ptrs = host_excess_block_ptrs_array.get_const_data();
+    auto host_excess_row_ptrs_full_array =
+        Array<IndexType>(exec->get_master(), excess_row_ptrs_full);
+    auto host_excess_row_ptrs_full =
+        host_excess_row_ptrs_full_array.get_const_data();
+    auto total_excess_dim = host_excess_block_ptrs[num_rows];
     auto excess_lim = excess_limit == 0 ? total_excess_dim : excess_limit;
     // if we had long rows:
     if (total_excess_dim > 0) {
         bool done = false;
         size_type block = 0;
-        while (true) {
+        while (block < num_rows) {
             // build the excess sparse triangular system
-            size_type excess_dim = 0;
+            size_type excess_dim;
             size_type excess_start = block;
-            const auto block_offset = exec->copy_val_to_host(
-                excess_block_ptrs.get_const_data() + block);
-            const auto nnz_offset = exec->copy_val_to_host(
-                excess_row_ptrs_full.get_const_data() + block);
-            while (excess_dim < excess_lim && block < num_rows) {
+            const auto block_offset = host_excess_block_ptrs[block];
+            const auto nnz_offset = host_excess_row_ptrs_full[block];
+            for (excess_dim = 0; excess_dim < excess_lim && block < num_rows;
+                 excess_dim = host_excess_block_ptrs[block] - block_offset) {
                 block++;
-                excess_dim = exec->copy_val_to_host(
-                                 excess_block_ptrs.get_const_data() + block) -
-                             block_offset;
             }
-            if (excess_dim == 0) break;
-            auto excess_nnz =
-                exec->copy_val_to_host(excess_row_ptrs_full.get_const_data() +
-                                       block) -
-                nnz_offset;
+            if (excess_dim == 0) {
+                break;
+            }
+            auto excess_nnz = host_excess_row_ptrs_full[block] - nnz_offset;
             auto excess_system =
                 Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
             excess_system->set_strategy(
@@ -231,7 +232,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_solver_factory =
                     Gmres::build()
                         .with_preconditioner(
-                            bj::build().with_max_block_size(32u).on(exec))
+                            Bj::build().with_max_block_size(32u).on(exec))
                         .with_criteria(
                             gko::stop::Iteration::build()
                                 .with_max_iters(excess_dim)

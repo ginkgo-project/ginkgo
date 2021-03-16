@@ -430,7 +430,6 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_longrow_inv_partial,
                         r<value_type>::value);
-    // no row above the size limit -> zero array
     GKO_ASSERT_ARRAY_EQ(a1, a1_expect);
     GKO_ASSERT_ARRAY_EQ(a2, a2_expect);
 }
@@ -939,7 +938,6 @@ TYPED_TEST(Isai, KernelGenerateSpdLongrow)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_inv_partial,
                         r<value_type>::value);
-    // no row above the size limit -> zero array
     GKO_ASSERT_ARRAY_EQ(a1, a1_expect);
     GKO_ASSERT_ARRAY_EQ(a2, a2_expect);
 }

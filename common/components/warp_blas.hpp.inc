@@ -92,6 +92,8 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
  * routine uses warp shuffles to exchange data between rows. The transform is
  * performed by using the `key_row`-th row and `key_col`-th column of the
  * matrix.
+ * Works with one right hand side vector `rhs` which can be directly worked on
+ * when solving Ax = rhs without the need of storing the inverse of A.
  */
 template <
     int max_problem_size, typename Group, typename ValueType,

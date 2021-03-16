@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <iostream>
 #include <memory>
 
 
@@ -82,7 +81,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
                       IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
-                      Callable direct_solve)
+                      Callable direct_solve, bool tri)
 {
     /*
     Consider: aiM := inverse_mtx; M := mtx
@@ -146,7 +145,11 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                         if (m_cols[m_idx + m_begin] < row && col == row) {
                             rhs_one_idx++;
                         }
-                        dense_system(i, i_idx) = m_vals[m_idx + m_begin];
+                        if (tri) {
+                            dense_system(i, i_idx) = m_vals[m_idx + m_begin];
+                        } else {
+                            dense_system(i_idx, i) = m_vals[m_idx + m_begin];
+                        }
                     });
             }
 
@@ -229,7 +232,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
         };
 
     generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
-                     trs_solve);
+                     trs_solve, true);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -269,68 +272,62 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                               IndexType *excess_nz_ptrs, bool spd)
 {
     using std::swap;
-    auto general_solve =
-        [spd](const range<accessor::row_major<ValueType, 2>> system,
-              ValueType *rhs, const IndexType rhs_one_idx) {
-            const IndexType size = system.length(0);
-            if (size <= 0) {
-                return;
+    auto general_solve = [spd](const range<accessor::row_major<ValueType, 2>>
+                                   transposed_system_range,
+                               ValueType *rhs, const IndexType rhs_one_idx) {
+        const IndexType size = transposed_system_range.length(0);
+        if (size <= 0) {
+            return;
+        }
+        // RHS is the identity: zero everywhere except for the diagonal
+        // entry
+        std::fill_n(rhs, size, zero<ValueType>());
+        rhs[rhs_one_idx] = one<ValueType>();
+
+        auto transposed_system = transposed_system_range.get_accessor().data;
+
+        // solve transposed system
+        for (IndexType col = 0; col < size; col++) {
+            const auto row =
+                choose_pivot(size - col, transposed_system + col * (size + 1),
+                             size) +
+                col;
+            swap_rows(col, row, size, transposed_system, size);
+            swap(rhs[row], rhs[col]);
+
+            const auto d = transposed_system[col * size + col];
+
+            for (IndexType i = 0; i < size; ++i) {
+                transposed_system[i * size + col] /= -d;
             }
-            // RHS is the identity: zero everywhere except for the diagonal
-            // entry
-            std::fill_n(rhs, size, zero<ValueType>());
-            rhs[rhs_one_idx] = one<ValueType>();
 
-            // fill in transposed system
-            ValueType *transposed_system = new ValueType[size * size];
-            for (auto row = 0; row < size; row++) {
-                for (auto col = 0; col < size; col++) {
-                    transposed_system[row * size + col] = system(col, row);
-                }
-            }
-
-            // solve transposed system
-            for (IndexType col = 0; col < size; col++) {
-                const auto row =
-                    choose_pivot(size - col,
-                                 transposed_system + col * (size + 1), size) +
-                    col;
-                swap_rows(col, row, size, transposed_system, size);
-                swap(rhs[row], rhs[col]);
-
-                const auto d = transposed_system[col * size + col];
-
-                for (IndexType i = 0; i < size; ++i) {
-                    transposed_system[i * size + col] /= -d;
-                }
-
-                transposed_system[col * size + col] = zero<ValueType>();
-                const auto rhs_key_val = rhs[col];
-                for (IndexType i = 0; i < size; ++i) {
-                    const auto scal = transposed_system[i * size + col];
-                    for (IndexType j = 0; j < size; ++j) {
-                        transposed_system[i * size + j] +=
-                            scal * transposed_system[col * size + j];
-                    }
-                    rhs[i] += rhs_key_val * scal;
-                }
+            transposed_system[col * size + col] = zero<ValueType>();
+            const auto rhs_key_val = rhs[col];
+            for (IndexType i = 0; i < size; ++i) {
+                const auto scal = transposed_system[i * size + col];
                 for (IndexType j = 0; j < size; ++j) {
-                    transposed_system[col * size + j] /= d;
+                    transposed_system[i * size + j] +=
+                        scal * transposed_system[col * size + j];
                 }
-                rhs[col] /= d;
-                transposed_system[col * size + col] = one<ValueType>() / d;
+                rhs[i] += rhs_key_val * scal;
             }
+            for (IndexType j = 0; j < size; ++j) {
+                transposed_system[col * size + j] /= d;
+            }
+            rhs[col] /= d;
+            transposed_system[col * size + col] = one<ValueType>() / d;
+        }
 
-            if (spd) {
-                const auto scal = one<ValueType>() / sqrt(rhs[size - 1]);
-                for (IndexType row = 0; row < size; row++) {
-                    rhs[row] *= scal;
-                }
+        if (spd) {
+            const auto scal = one<ValueType>() / sqrt(rhs[size - 1]);
+            for (IndexType row = 0; row < size; row++) {
+                rhs[row] *= scal;
             }
-        };
+        }
+    };
 
     generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
-                     general_solve);
+                     general_solve, false);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -341,7 +338,8 @@ template <typename ValueType, typename IndexType>
 void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                             const matrix::Csr<ValueType, IndexType> *input,
                             const matrix::Csr<ValueType, IndexType> *inverse,
-                            const IndexType *, const IndexType *,
+                            const IndexType *excess_rhs_ptrs,
+                            const IndexType *excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType> *excess_system,
                             matrix::Dense<ValueType> *excess_rhs,
                             size_type e_start, size_type e_end)
@@ -357,18 +355,20 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     auto e_cols = excess_system->get_col_idxs();
     auto e_vals = excess_system->get_values();
     auto e_rhs = excess_rhs->get_values();
-    IndexType e_block_begin{};
-    IndexType e_nz{};
 
     for (size_type row = e_start; row < e_end; ++row) {
         const auto i_begin = i_row_ptrs[row];
         const auto i_size = i_row_ptrs[row + 1] - i_begin;
+        // first row index of the sparse block in the excess system
+        auto e_begin = excess_rhs_ptrs[row] - excess_rhs_ptrs[e_start];
+        // first non-zero index in the sparse block
+        auto e_nz = excess_nz_ptrs[row] - excess_nz_ptrs[e_start];
 
         if (i_size > row_size_limit) {
             // count non-zeros and dimension in the excess system
             for (size_type i = 0; i < i_size; ++i) {
                 // current row in the excess system
-                const auto e_row = e_block_begin + i;
+                const auto e_row = e_begin + i;
                 const auto col = i_cols[i_begin + i];
                 const auto m_begin = m_row_ptrs[col];
                 const auto m_size = m_row_ptrs[col + 1] - m_begin;
@@ -383,15 +383,14 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                     [&](IndexType, IndexType m_idx, IndexType i_idx) {
                         // trisystem(i, i_idx) = m_vals[m_idx + m_begin]
                         // just in sparse
-                        e_cols[e_nz] = i_idx + e_block_begin;
+                        e_cols[e_nz] = i_idx + e_begin;
                         e_vals[e_nz] = m_vals[m_idx + m_begin];
                         ++e_nz;
                     });
             }
-            e_block_begin += i_size;
         }
     }
-    e_row_ptrs[e_dim] = e_nz;
+    e_row_ptrs[e_dim] = excess_nz_ptrs[e_end] - excess_nz_ptrs[e_start];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

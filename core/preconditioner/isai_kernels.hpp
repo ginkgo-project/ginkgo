@@ -51,7 +51,6 @@ namespace kernels {
                               IndexType *excess_rhs_ptrs,                     \
                               IndexType *excess_nz_ptrs, bool lower)
 
-
 #define GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType) \
     void generate_general_inverse(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                           \

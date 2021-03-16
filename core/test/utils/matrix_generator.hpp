@@ -340,6 +340,52 @@ std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
 }
 
 
+/**
+ * Generates a random square band matrix.
+ *
+ * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
+ *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
+ *
+ * @param size  number of rows and columns
+ * @param lower_bandwidth number of nonzeros in each row left of the main
+ * diagonal
+ * @param upper_bandwidth number of nonzeros in each row right of the main
+ * diagonal
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ */
+template <typename MatrixType = matrix::Dense<>, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> generate_random_band_matrix(
+    size_type size, size_type lower_bandwidth, size_type upper_bandwidth,
+    ValueDistribution &&value_dist, Engine &&engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+
+    matrix_data<value_type, index_type> data{gko::dim<2>{size, size}, {}};
+
+    for (size_type row = 0; row < size; ++row) {
+        for (size_type col = row < lower_bandwidth ? 0 : row - lower_bandwidth;
+             col <= std::min(row + upper_bandwidth, size - 1); col++) {
+            auto val = detail::get_rand_value<value_type>(value_dist, engine);
+            data.nonzeros.emplace_back(row, col, val);
+        }
+    }
+
+    // convert to the correct matrix type
+    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
+    result->read(data);
+    return result;
+}
+
+
 }  // namespace test
 }  // namespace gko
 
