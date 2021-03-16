@@ -87,7 +87,14 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+dim<2> Cg<ValueType>::get_global_size() const noexcept
+{
+    return this->get_system_matrix()->get_global_size();
+}
+
+
+template <typename ValueType>
+void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {

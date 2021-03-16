@@ -189,6 +189,13 @@ else()
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
+# Automatically find MPI
+find_package(MPI)
+set(GINKGO_HAVE_MPI 0)
+if (MPI_FOUND)
+    set(GINKGO_HAVE_MPI 1)
+endif()
+
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
 # updated everything to use NVIDIA/AMD in ROCM 4.1
 set(GINKGO_HIP_PLATFORM_NVCC 0)

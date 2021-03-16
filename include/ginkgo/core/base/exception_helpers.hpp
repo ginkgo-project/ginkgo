@@ -147,6 +147,15 @@ inline dim<2> get_size(const T& op)
 inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
+template <typename T>
+inline dim<2> get_global_size(const T &op)
+{
+    return op->get_global_size();
+}
+
+inline dim<2> get_global_size(const dim<2> &size) { return size; }
+
+
 }  // namespace detail
 
 
@@ -177,6 +186,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op1)[1], #_op1,                     \
             ::gko::detail::get_size(_op1)[0],                            \
             ::gko::detail::get_size(_op1)[1], "expected square matrix"); \
+    } else if (::gko::detail::get_global_size(_op1)[0] !=                \
+               ::gko::detail::get_global_size(_op1)[1]) {                \
+        throw ::gko::DimensionMismatch(                                  \
+            __FILE__, __LINE__, __func__, #_op1,                         \
+            ::gko::detail::get_global_size(_op1)[0],                     \
+            ::gko::detail::get_global_size(_op1)[1], #_op1,              \
+            ::gko::detail::get_global_size(_op1)[0],                     \
+            ::gko::detail::get_global_size(_op1)[1],                     \
+            "expected globally square matrix");                          \
     }
 
 
@@ -185,12 +203,17 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
  *
  *@throw BadDimension if any one of the dimensions of _op1 is equal to zero.
  */
-#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                           \
-    if (!(::gko::detail::get_size(_op1))) {                            \
-        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1, \
-                                  ::gko::detail::get_size(_op1)[0],    \
-                                  ::gko::detail::get_size(_op1)[1],    \
-                                  "expected non-empty matrix");        \
+#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                               \
+    if (!(::gko::detail::get_size(_op1))) {                                \
+        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1,     \
+                                  ::gko::detail::get_size(_op1)[0],        \
+                                  ::gko::detail::get_size(_op1)[1],        \
+                                  "expected non-empty matrix");            \
+    } else if (!(::gko::detail::get_global_size(_op1))) {                  \
+        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1,     \
+                                  ::gko::detail::get_global_size(_op1)[0], \
+                                  ::gko::detail::get_global_size(_op1)[1], \
+                                  "expected globally non-empty matrix");   \
     }
 
 
@@ -224,6 +247,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
                                        ::gko::detail::get_size(_op2)[0],      \
                                        ::gko::detail::get_size(_op2)[1],      \
                                        "expected matching inner dimensions"); \
+    } else if (::gko::detail::get_global_size(_op1)[1] !=                     \
+               ::gko::detail::get_global_size(_op2)[0]) {                     \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1,                              \
+            ::gko::detail::get_global_size(_op1)[0],                          \
+            ::gko::detail::get_global_size(_op1)[1], #_op2,                   \
+            ::gko::detail::get_global_size(_op2)[0],                          \
+            ::gko::detail::get_global_size(_op2)[1],                          \
+            "expected globally matching inner dimensions");                   \
     }
 
 
@@ -242,6 +274,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
                                        ::gko::detail::get_size(_op2)[0],      \
                                        ::gko::detail::get_size(_op2)[1],      \
                                        "expected matching inner dimensions"); \
+    } else if (::gko::detail::get_global_size(_op1)[0] !=                     \
+               ::gko::detail::get_global_size(_op2)[1]) {                     \
+        throw ::gko::DimensionMismatch(                                       \
+            __FILE__, __LINE__, __func__, #_op1,                              \
+            ::gko::detail::get_global_size(_op1)[0],                          \
+            ::gko::detail::get_global_size(_op1)[1], #_op2,                   \
+            ::gko::detail::get_global_size(_op2)[0],                          \
+            ::gko::detail::get_global_size(_op2)[1],                          \
+            "expected globally matching inner dimensions");                   \
     }
 
 
@@ -259,6 +300,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op1)[1], #_op2,                           \
             ::gko::detail::get_size(_op2)[0],                                  \
             ::gko::detail::get_size(_op2)[1], "expected matching row length"); \
+    } else if (::gko::detail::get_global_size(_op1)[0] !=                      \
+               ::gko::detail::get_global_size(_op2)[0]) {                      \
+        throw ::gko::DimensionMismatch(                                        \
+            __FILE__, __LINE__, __func__, #_op1,                               \
+            ::gko::detail::get_global_size(_op1)[0],                           \
+            ::gko::detail::get_global_size(_op1)[1], #_op2,                    \
+            ::gko::detail::get_global_size(_op2)[0],                           \
+            ::gko::detail::get_global_size(_op2)[1],                           \
+            "expected matching global row length");                            \
     }
 
 
@@ -278,6 +328,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
                                        ::gko::detail::get_size(_op2)[0],    \
                                        ::gko::detail::get_size(_op2)[1],    \
                                        "expected matching column length");  \
+    } else if (::gko::detail::get_global_size(_op1)[1] !=                   \
+               ::gko::detail::get_global_size(_op2)[1]) {                   \
+        throw ::gko::DimensionMismatch(                                     \
+            __FILE__, __LINE__, __func__, #_op1,                            \
+            ::gko::detail::get_global_size(_op1)[0],                        \
+            ::gko::detail::get_global_size(_op1)[1], #_op2,                 \
+            ::gko::detail::get_global_size(_op2)[0],                        \
+            ::gko::detail::get_global_size(_op2)[1],                        \
+            "expected matching global column length");                      \
     }
 
 
@@ -295,6 +354,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
             ::gko::detail::get_size(_op1)[1], #_op2,                        \
             ::gko::detail::get_size(_op2)[0],                               \
             ::gko::detail::get_size(_op2)[1], "expected equal dimensions"); \
+    } else if (::gko::detail::get_global_size(_op1) !=                      \
+               ::gko::detail::get_global_size(_op2)) {                      \
+        throw ::gko::DimensionMismatch(                                     \
+            __FILE__, __LINE__, __func__, #_op1,                            \
+            ::gko::detail::get_global_size(_op1)[0],                        \
+            ::gko::detail::get_global_size(_op1)[1], #_op2,                 \
+            ::gko::detail::get_global_size(_op2)[0],                        \
+            ::gko::detail::get_global_size(_op2)[1],                        \
+            "expected equal global dimensions");                            \
     }
 
 
@@ -459,6 +527,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ * Instantiates a MpiError.
+ *
+ * @param errcode  The error code returned from the MPI routine.
+ */
+#define GKO_MPI_ERROR(_errcode) \
+    ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Asserts that a HIP library call completed without errors.
  *
  * @param _hip_call  a library call expression
@@ -525,6 +602,20 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
         if (_errcode != HIPFFT_SUCCESS) {         \
             throw GKO_HIPFFT_ERROR(_errcode);     \
         }                                         \
+    } while (false)
+
+
+/**
+ * Asserts that a MPI library call completed without errors.
+ *
+ * @param _mpi_call  a library call expression
+ */
+#define GKO_ASSERT_NO_MPI_ERRORS(_mpi_call) \
+    do {                                    \
+        auto _errcode = _mpi_call;          \
+        if (_errcode != MPI_SUCCESS) {      \
+            throw GKO_MPI_ERROR(_errcode);  \
+        }                                   \
     } while (false)
 
 

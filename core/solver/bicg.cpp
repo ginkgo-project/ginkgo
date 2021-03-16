@@ -86,6 +86,13 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
 }
 
 
+template <typename ValueType>
+dim<2> Bicg<ValueType>::get_global_size() const noexcept
+{
+    return this->get_system_matrix()->get_global_size();
+}
+
+
 /**
  * @internal
  * (Conjugate-)Transposes the matrix by converting it into a CSR matrix of type

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,13 +57,12 @@ int main(int argc, char *argv[])
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
     using ValueType = double;
-    using IndexType = int;
+    using GlobalIndexType = gko::distributed::global_index_type;
+    using LocalIndexType = GlobalIndexType;
+    using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
+    using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
-    // The gko::matrix::Csr class is used here, but any other matrix class such
-    // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
-    // gko::matrix::Sellp could also be used.
-    using local_mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using dist_mtx = gko::matrix::DistributedMatrix<ValueType, IndexType>;
+    using part_type = gko::distributed::Partition<LocalIndexType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
@@ -105,32 +104,38 @@ int main(int argc, char *argv[])
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation
-    const auto local_exec =
-        exec_map.at(executor_string)();  // throws if not valid
-    const auto mpi_exec = gko::MpiExecutor::create(local_exec, MPI_COMM_WORLD);
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    const auto comm = gko::distributed::communicator{};
 
     std::ifstream a_stream{"data/A.mtx"};
-    auto A = gko::read<dist_mtx>(a_stream, mpi_exec);
     std::ifstream x_stream{"data/x.mtx"};
-    auto x_full = gko::read<vec>(x_stream, mpi_exec);
     std::ifstream b_stream{"data/b.mtx"};
-    auto b_full = gko::read<vec>(b_stream, mpi_exec);
-    auto size = x_full->get_size()[0];
-    auto local_size = gko::ceildiv(size, mpi_exec->get_size());
-    auto local_begin = local_size * mpi_exec->get_rank();
-    auto local_end = std::min<gko::size_type>(local_begin + local_size, size);
-    gko::Array<gko::int32> local_rows{mpi_exec->get_master(),
-                                      local_end - local_begin};
-    for (auto i = local_begin; i < local_end; ++i) {
-        local_rows.get_data()[i - local_begin] = i;
-    }
-    auto x = x_full->row_gather(&local_rows);
-    auto b = b_full->row_gather(&local_rows);
+    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    auto x_data = gko::read_raw<ValueType, GlobalIndexType>(x_stream);
+    auto b_data = gko::read_raw<ValueType, GlobalIndexType>(b_stream);
 
-    auto one = gko::initialize<vec>({1.0}, mpi_exec);
-    auto minus_one = gko::initialize<vec>({-1.0}, mpi_exec);
+    // build partition: uniform number of rows per rank
+    gko::Array<gko::int64> ranges_array{
+        exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
+    const auto rows_per_rank = gko::ceildiv(A_data.size[0], comm.size());
+    for (int i = 0; i < comm.size(); i++) {
+        ranges_array.get_data()[i] = i * rows_per_rank;
+    }
+    ranges_array.get_data()[comm.size()] = A_data.size[0];
+    auto partition =
+        gko::share(part_type::build_from_contiguous(exec, ranges_array));
+
+    auto A = dist_mtx::create(exec, comm);
+    auto x = dist_vec::create(exec, comm);
+    auto b = dist_vec::create(exec, comm);
+    A->read_distributed(A_data, partition);
+    x->read_distributed(x_data, partition);
+    b->read_distributed(b_data, partition);
+
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto minus_one = gko::initialize<vec>({-1.0}, exec);
     A->apply(lend(one), lend(x), lend(minus_one), lend(b));
-    auto result = gko::initialize<vec>({0.0}, mpi_exec->get_master());
+    auto result = gko::initialize<vec>({0.0}, exec->get_master());
     b->compute_norm2(lend(result));
     std::cout << *result->get_values() << std::endl;
 

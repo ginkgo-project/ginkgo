@@ -121,7 +121,7 @@ class GkoArrayPrinter:
         return 'array'
 
 def lookup_type(val):
-    if not str(val.type.unqualified()).startswith('gko::'):
+    if not str(val.type.unqualified()).startswith('gko::') and not str(val.type).startswith('const gko::'):
         return None
     suffix = str(val.type.unqualified())[5:]
     if suffix.startswith('Array'):
