@@ -150,6 +150,9 @@ set(GINKGO_HIP_SOURCES
     components/absolute_array.hip.cpp
     components/fill_array.hip.cpp
     components/prefix_sum.hip.cpp
+    distributed/matrix_kernels.hip.cpp
+    distributed/partition_kernels.hip.cpp
+    distributed/vector_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp

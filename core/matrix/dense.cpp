@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/mpi_executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -76,8 +75,6 @@ GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
-GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
@@ -383,14 +380,9 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     exec->run(dense::make_compute_dot(this, dense_b.get(), dense_res.get()));
-    if (mpi_exec) {
-        mpi_exec->get_local()->synchronize();
-        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
-    }
 }
 
 
@@ -401,15 +393,10 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     exec->run(
         dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get()));
-    if (mpi_exec) {
-        mpi_exec->get_local()->synchronize();
-        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
-    }
 }
 
 
@@ -418,17 +405,9 @@ void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    auto mpi_exec = dynamic_cast<const MpiExecutor *>(exec.get());
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
-    if (mpi_exec) {
-        exec->run(dense::make_compute_norm2_sqr(this, dense_res.get()));
-        mpi_exec->get_local()->synchronize();
-        mpi_exec->allreduce(dense_res->get_values(), this->get_size()[1]);
-        exec->run(dense::make_compute_sqrt(dense_res.get()));
-    } else {
-        exec->run(dense::make_compute_norm2(this, dense_res.get()));
-    }
+    exec->run(dense::make_compute_norm2(this, dense_res.get()));
 }
 
 
@@ -1283,31 +1262,6 @@ void Dense<ValueType>::get_imag(
 
     exec->run(dense::make_get_imag(
         this, make_temporary_output_clone(exec, result).get()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_local_view()
-{
-    auto local_exec = as<MpiExecutor>(this->get_executor())->get_local();
-    return Dense::create(
-        local_exec, this->get_size(),
-        Array<ValueType>::view(local_exec, this->values_.get_num_elems(),
-                               this->get_values()),
-        this->get_stride());
-}
-
-
-template <typename ValueType>
-std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_local_view()
-    const
-{
-    auto local_exec = as<MpiExecutor>(this->get_executor())->get_local();
-    return Dense::create(local_exec, this->get_size(),
-                         Array<ValueType>::view(
-                             local_exec, this->values_.get_num_elems(),
-                             const_cast<ValueType *>(this->get_const_values())),
-                         this->get_stride());
 }
 
 

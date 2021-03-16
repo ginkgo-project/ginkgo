@@ -7,6 +7,9 @@ target_sources(ginkgo_omp
     components/absolute_array.cpp
     components/fill_array.cpp
     components/prefix_sum.cpp
+    distributed/matrix_kernels.cpp
+    distributed/partition_kernels.cpp
+    distributed/vector_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp

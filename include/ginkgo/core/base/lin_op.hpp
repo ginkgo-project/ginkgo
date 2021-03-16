@@ -232,6 +232,14 @@ public:
     const dim<2>& get_size() const noexcept { return size_; }
 
     /**
+     * Returns the global size of the operator.
+     * For non-distributed matrices, it matches the (local) size.
+     *
+     * @return global size of the operator
+     */
+    virtual dim<2> get_global_size() const noexcept { return this->get_size(); }
+
+    /**
      * Returns true if the linear operator uses the data given in x as
      * an initial guess. Returns false otherwise.
      *
@@ -582,6 +590,34 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType>& data) = 0;
+
+
+    /**
+     * Reads a matrix from a matrix_data structure stored in an Array.
+     * This function may provide better performance by avoiding memory movement.
+     *
+     * @param data  the matrix_data array
+     */
+    virtual void read(
+        const Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
+            &data,
+        gko::dim<2> size)
+    {
+        matrix_data<ValueType, IndexType> stored_data;
+        stored_data.size = size;
+        stored_data.nonzeros.resize(data.get_num_elems());
+        if (data.get_executor()->get_master() == data.get_executor()) {
+            std::copy_n(data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        } else {
+            Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
+                host_data{data.get_executor()->get_master()};
+            host_data = data;
+            std::copy_n(host_data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        }
+        this->read(stored_data);
+    }
 
     /**
      * Reads a matrix from a matrix_assembly_data structure.
