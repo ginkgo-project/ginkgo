@@ -21,7 +21,7 @@ set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
     distributed-spmv
-    distributed-solver
+    #distributed-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv

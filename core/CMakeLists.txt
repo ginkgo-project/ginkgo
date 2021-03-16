@@ -10,6 +10,8 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    distributed/partition.cpp
+    distributed/errors.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp
@@ -56,6 +58,12 @@ if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
+if(GINKGO_HAVE_MPI)
+    target_sources(ginkgo PRIVATE
+        distributed/matrix.cpp
+        distributed/vector.cpp)
+endif()
+
 ginkgo_compile_features(ginkgo)
 
 target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
@@ -66,7 +74,7 @@ target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
-if (GINKGO_HAVE_PAPI_SDE)
+if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
     list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
     get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
@@ -79,11 +87,13 @@ if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}"
     list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
 endif()
 
+if(GINKGO_HAVE_MPI)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+endif()
+
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
 
-find_package(MPI REQUIRED)
-target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo "")
