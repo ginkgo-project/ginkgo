@@ -99,29 +99,12 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using transposed_type = Ras<ValueType, IndexType>;
 
-    /**
-     * Returns the number of subdomains of the operator.
-     *
-     * @return the number of subdomains of the operator
-     */
-    size_type get_num_subdomains() const noexcept { return num_subdomains_; }
-
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * Number of subdomains
-         */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(num_subdomains, 1);
-
-        /**
-         * Overlap between the subdomains
-         */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(overlap, 0);
-
         /**
          * Inner solver factory.
          */
@@ -137,8 +120,7 @@ protected:
      *
      * @param exec  the executor this object is assigned to
      */
-    explicit Ras(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ras>(exec), num_subdomains_{1}
+    explicit Ras(std::shared_ptr<const Executor> exec) : EnableLinOp<Ras>(exec)
     {}
 
     /**
@@ -152,8 +134,7 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ras>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          num_subdomains_{parameters_.num_subdomains}
+          parameters_{factory->get_parameters()}
     {
         this->generate(lend(system_matrix));
     }
@@ -172,8 +153,7 @@ protected:
                     LinOp *x) const override;
 
 private:
-    size_type num_subdomains_;
-    std::shared_ptr<LinOp> decomposed_mat_;
+    std::vector<std::shared_ptr<LinOp>> inner_solvers_;
 };
 
 
