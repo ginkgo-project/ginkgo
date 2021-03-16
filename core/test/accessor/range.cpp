@@ -30,108 +30,81 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/range_accessors.hpp>
+#include <array>
+#include <cstddef>
 
 
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "core/test/utils.hpp"
+#include "accessor/range.hpp"
 
 
 namespace {
 
 
-class RowMajorAccessor : public ::testing::Test {
-protected:
-    using span = gko::span;
+// 0-memory constant accessor, which "stores" x*i + y*j + k at location
+// (i, j, k)
+struct dummy_accessor {
+    static constexpr std::size_t dimensionality = 3;
 
-    using row_major_int_range = gko::range<gko::accessor::row_major<int, 2>>;
+    dummy_accessor(std::size_t size, int x, int y)
+        : sizes{size, size, size}, x{x}, y{y}
+    {}
 
-    // clang-format off
-    int data[9]{
-        1, 2, -1,
-        3, 4, -2,
-        5, 6, -3
-    };
-    // clang-format on
-    row_major_int_range r{data, 3u, 2u, 3u};
+    dummy_accessor(std::size_t size_x, std::size_t size_y, std::size_t size_z,
+                   int x, int y)
+        : sizes{size_x, size_y, size_z}, x{x}, y{y}
+    {}
+
+    int operator()(int a, int b, int c) const { return x * a + y * b + c; }
+
+    gko::acc::size_type length(std::size_t dim) const { return sizes[dim]; }
+
+    std::array<std::size_t, 3> sizes;
+    mutable int x;
+    mutable int y;
 };
 
 
-TEST_F(RowMajorAccessor, CanAccessData)
+using dummy_range = gko::acc::range<dummy_accessor>;
+
+
+TEST(Range, CreatesRange)
 {
-    EXPECT_EQ(r(0, 0), 1);
-    EXPECT_EQ(r(0, 1), 2);
-    EXPECT_EQ(r(1, 0), 3);
-    EXPECT_EQ(r(1, 1), 4);
-    EXPECT_EQ(r(2, 0), 5);
-    EXPECT_EQ(r(2, 1), 6);
+    dummy_range r{5u, 2, 3};
+
+    EXPECT_EQ(r->x, 2);
+    ASSERT_EQ(r->y, 3);
 }
 
 
-TEST_F(RowMajorAccessor, CanWriteData)
+TEST(Range, ForwardsCallsToAccessor)
 {
-    r(0, 0) = 4;
+    dummy_range r{5u, 2, 3};
 
-    EXPECT_EQ(r(0, 0), 4);
+    EXPECT_EQ(r(1, 2, 3), 2 * 1 + 3 * 2 + 3);
+    ASSERT_EQ(r(4, 2, 5), 2 * 4 + 3 * 2 + 5);
 }
 
 
-TEST_F(RowMajorAccessor, CanCreateSubrange)
+TEST(Range, ForwardsCopyToAccessor)
 {
-    auto subr = r(span{1, 3}, span{0, 2});
+    dummy_range r{5u, 2, 3};
+    r = dummy_range{5u, 2, 5};
 
-    EXPECT_EQ(subr(0, 0), 3);
-    EXPECT_EQ(subr(0, 1), 4);
-    EXPECT_EQ(subr(1, 0), 5);
-    EXPECT_EQ(subr(1, 1), 6);
+    EXPECT_EQ(r->x, 2);
+    ASSERT_EQ(r->y, 5);
 }
 
 
-TEST_F(RowMajorAccessor, CanCreateRowVector)
+TEST(Range, ForwardsLength)
 {
-    auto subr = r(2, span{0, 2});
+    dummy_range r{5u, 2, 3};
 
-    EXPECT_EQ(subr(0, 0), 5);
-    EXPECT_EQ(subr(0, 1), 6);
-}
-
-
-TEST_F(RowMajorAccessor, CanCreateColumnVector)
-{
-    auto subr = r(span{0, 3}, 0);
-
-    EXPECT_EQ(subr(0, 0), 1);
-    EXPECT_EQ(subr(1, 0), 3);
-    EXPECT_EQ(subr(2, 0), 5);
-}
-
-
-TEST_F(RowMajorAccessor, CanAssignValues)
-{
-    r(1, 1) = r(0, 0);
-
-    EXPECT_EQ(data[4], 1);
-}
-
-
-TEST_F(RowMajorAccessor, CanAssignSubranges)
-{
-    r(0, span{0, 2}) = r(1, span{0, 2});
-
-    EXPECT_EQ(data[0], 3);
-    EXPECT_EQ(data[1], 4);
-    EXPECT_EQ(data[2], -1);
-    EXPECT_EQ(data[3], 3);
-    EXPECT_EQ(data[4], 4);
-    EXPECT_EQ(data[5], -2);
-    EXPECT_EQ(data[6], 5);
-    EXPECT_EQ(data[7], 6);
-    EXPECT_EQ(data[8], -3);
+    EXPECT_EQ(r->length(0), 5);
+    EXPECT_EQ(r->length(1), 5);
+    ASSERT_EQ(r->length(2), 5);
 }
 
 

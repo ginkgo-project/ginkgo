@@ -30,108 +30,102 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/range_accessors.hpp>
-
-
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "core/test/utils.hpp"
+#include "accessor/index_span.hpp"
 
 
 namespace {
 
 
-class RowMajorAccessor : public ::testing::Test {
-protected:
-    using span = gko::span;
-
-    using row_major_int_range = gko::range<gko::accessor::row_major<int, 2>>;
-
-    // clang-format off
-    int data[9]{
-        1, 2, -1,
-        3, 4, -2,
-        5, 6, -3
-    };
-    // clang-format on
-    row_major_int_range r{data, 3u, 2u, 3u};
-};
-
-
-TEST_F(RowMajorAccessor, CanAccessData)
+TEST(IndexSpan, CreatesSpan)
 {
-    EXPECT_EQ(r(0, 0), 1);
-    EXPECT_EQ(r(0, 1), 2);
-    EXPECT_EQ(r(1, 0), 3);
-    EXPECT_EQ(r(1, 1), 4);
-    EXPECT_EQ(r(2, 0), 5);
-    EXPECT_EQ(r(2, 1), 6);
+    gko::acc::index_span s{3, 5};
+
+    ASSERT_EQ(s.begin, 3);
+    ASSERT_EQ(s.end, 5);
 }
 
 
-TEST_F(RowMajorAccessor, CanWriteData)
+TEST(IndexSpan, CreatesPoint)
 {
-    r(0, 0) = 4;
+    gko::acc::index_span s{3};
 
-    EXPECT_EQ(r(0, 0), 4);
+    ASSERT_EQ(s.begin, 3);
+    ASSERT_EQ(s.end, 4);
 }
 
 
-TEST_F(RowMajorAccessor, CanCreateSubrange)
+TEST(IndexSpan, LessThanEvaluatesToTrue)
 {
-    auto subr = r(span{1, 3}, span{0, 2});
-
-    EXPECT_EQ(subr(0, 0), 3);
-    EXPECT_EQ(subr(0, 1), 4);
-    EXPECT_EQ(subr(1, 0), 5);
-    EXPECT_EQ(subr(1, 1), 6);
+    ASSERT_TRUE(gko::acc::index_span(2, 3) < gko::acc::index_span(4, 7));
 }
 
 
-TEST_F(RowMajorAccessor, CanCreateRowVector)
+TEST(IndexSpan, LessThanEvaluatesToFalse)
 {
-    auto subr = r(2, span{0, 2});
-
-    EXPECT_EQ(subr(0, 0), 5);
-    EXPECT_EQ(subr(0, 1), 6);
+    ASSERT_FALSE(gko::acc::index_span(2, 4) < gko::acc::index_span(4, 7));
 }
 
 
-TEST_F(RowMajorAccessor, CanCreateColumnVector)
+TEST(IndexSpan, LessOrEqualEvaluatesToTrue)
 {
-    auto subr = r(span{0, 3}, 0);
-
-    EXPECT_EQ(subr(0, 0), 1);
-    EXPECT_EQ(subr(1, 0), 3);
-    EXPECT_EQ(subr(2, 0), 5);
+    ASSERT_TRUE(gko::acc::index_span(2, 4) <= gko::acc::index_span(4, 7));
 }
 
 
-TEST_F(RowMajorAccessor, CanAssignValues)
+TEST(IndexSpan, LessOrEqualEvaluatesToFalse)
 {
-    r(1, 1) = r(0, 0);
-
-    EXPECT_EQ(data[4], 1);
+    ASSERT_FALSE(gko::acc::index_span(2, 5) <= gko::acc::index_span(4, 7));
 }
 
 
-TEST_F(RowMajorAccessor, CanAssignSubranges)
+TEST(IndexSpan, GreaterThanEvaluatesToTrue)
 {
-    r(0, span{0, 2}) = r(1, span{0, 2});
+    ASSERT_TRUE(gko::acc::index_span(4, 7) > gko::acc::index_span(2, 3));
+}
 
-    EXPECT_EQ(data[0], 3);
-    EXPECT_EQ(data[1], 4);
-    EXPECT_EQ(data[2], -1);
-    EXPECT_EQ(data[3], 3);
-    EXPECT_EQ(data[4], 4);
-    EXPECT_EQ(data[5], -2);
-    EXPECT_EQ(data[6], 5);
-    EXPECT_EQ(data[7], 6);
-    EXPECT_EQ(data[8], -3);
+
+TEST(IndexSpan, GreaterThanEvaluatesToFalse)
+{
+    ASSERT_FALSE(gko::acc::index_span(4, 7) > gko::acc::index_span(2, 4));
+}
+
+
+TEST(IndexSpan, GreaterOrEqualEvaluatesToTrue)
+{
+    ASSERT_TRUE(gko::acc::index_span(4, 7) >= gko::acc::index_span(2, 4));
+}
+
+
+TEST(IndexSpan, GreaterOrEqualEvaluatesToFalse)
+{
+    ASSERT_FALSE(gko::acc::index_span(4, 7) >= gko::acc::index_span(2, 5));
+}
+
+
+TEST(IndexSpan, EqualityEvaluatesToTrue)
+{
+    ASSERT_TRUE(gko::acc::index_span(2, 4) == gko::acc::index_span(2, 4));
+}
+
+
+TEST(IndexSpan, EqualityEvaluatesToFalse)
+{
+    ASSERT_FALSE(gko::acc::index_span(3, 4) == gko::acc::index_span(2, 5));
+}
+
+
+TEST(IndexSpan, NotEqualEvaluatesToTrue)
+{
+    ASSERT_TRUE(gko::acc::index_span(3, 4) != gko::acc::index_span(2, 5));
+}
+
+
+TEST(IndexSpan, NotEqualEvaluatesToFalse)
+{
+    ASSERT_FALSE(gko::acc::index_span(2, 4) != gko::acc::index_span(2, 4));
 }
 
 

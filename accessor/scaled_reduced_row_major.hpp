@@ -30,25 +30,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_ACCESSORS_HPP_
-#define GKO_CORE_BASE_ACCESSORS_HPP_
+#ifndef GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
+#define GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
 
 
 #include <array>
-#include <memory>
 #include <type_traits>
 #include <utility>
 
 
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/dim.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "core/base/accessor_helper.hpp"
-#include "core/base/accessor_references.hpp"
+#include "accessor_helper.hpp"
+#include "accessor_references.hpp"
+#include "index_span.hpp"
+#include "range.hpp"
+#include "utils.hpp"
 
 
 namespace gko {
@@ -57,240 +52,7 @@ namespace gko {
  *
  * @ingroup accessor
  */
-namespace accessor {
-
-
-/**
- * The reduced_row_major class allows a storage format that is different from
- * the arithmetic format (which is returned from the brace operator).
- * As storage, the StorageType is used.
- *
- * This accessor uses row-major access. For example for three dimensions,
- * neighboring z coordinates are next to each other in memory, followed by y
- * coordinates and then x coordinates.
- *
- * @tparam Dimensionality  The number of dimensions managed by this accessor
- *
- * @tparam ArithmeticType  Value type used for arithmetic operations and
- *                         for in- and output
- *
- * @tparam StorageType  Value type used for storing the actual value to memory
- *
- * @note  This class only manages the accesses and not the memory itself.
- */
-template <int Dimensionality, typename ArithmeticType, typename StorageType>
-class reduced_row_major {
-public:
-    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-    using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
-    static constexpr bool is_const{std::is_const<storage_type>::value};
-    using const_accessor =
-        reduced_row_major<dimensionality, arithmetic_type, const storage_type>;
-
-    static_assert(Dimensionality >= 1,
-                  "Dimensionality must be a positive number!");
-
-    friend class range<reduced_row_major>;
-
-protected:
-    using storage_stride_type = std::array<size_type, dimensionality - 1>;
-    using reference_type =
-        reference_class::reduced_storage<arithmetic_type, storage_type>;
-
-    /**
-     * Creates the accessor for an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     *
-     * @param size  multidimensional size of the memory
-     * @param storage  pointer to the block of memory containing the storage
-     * @param stride  stride array used for memory accesses
-     */
-    constexpr GKO_ATTRIBUTES reduced_row_major(gko::dim<dimensionality> size,
-                                               storage_type *storage,
-                                               storage_stride_type stride)
-        : size_{size}, storage_{storage}, stride_(stride)
-    {}
-
-    /**
-     * Creates the accessor for an already allocated storage space with a
-     * stride. The first stride is used for computing the index for the first
-     * index, the second stride for the second index, and so on.
-     *
-     * @param storage  pointer to the block of memory containing the storage
-     * @param size  multidimensional size of the memory
-     * @param strides  strides used for memory accesses
-     */
-    template <typename... Strides>
-    constexpr GKO_ATTRIBUTES reduced_row_major(gko::dim<dimensionality> size,
-                                               storage_type *storage,
-                                               Strides &&... strides)
-        : reduced_row_major{
-              size, storage,
-              storage_stride_type{{std::forward<Strides>(strides)...}}}
-    {
-        static_assert(sizeof...(Strides) + 1 == dimensionality,
-                      "Number of provided Strides must be dimensionality - 1!");
-    }
-
-    /**
-     * Creates the accessor for an already allocated storage space.
-     * It is assumed that all accesses are without padding.
-     *
-     * @param storage  pointer to the block of memory containing the storage
-     * @param size  multidimensional size of the memory
-     */
-    constexpr GKO_ATTRIBUTES reduced_row_major(dim<dimensionality> size,
-                                               storage_type *storage)
-        : reduced_row_major{size, storage,
-                            compute_default_stride_array<size_type>(size)}
-    {}
-
-    /**
-     * Creates an empty accessor (pointing nowhere with an empty size)
-     */
-    constexpr GKO_ATTRIBUTES reduced_row_major()
-        : reduced_row_major{{0, 0, 0}, nullptr}
-    {}
-
-public:
-    /**
-     * Creates a reduced_row_major range which contains a read-only version of
-     * the current accessor.
-     *
-     * @returns  a reduced_row_major major range which is read-only.
-     */
-    constexpr GKO_ATTRIBUTES range<const_accessor> to_const() const
-    {
-        return range<const_accessor>{size_, storage_, stride_};
-    }
-
-    /**
-     * Returns the length in dimension `dimension`.
-     *
-     * @param dimension  a dimension index
-     *
-     * @returns  length in dimension `dimension`
-     */
-    constexpr GKO_ATTRIBUTES size_type length(size_type dimension) const
-    {
-        return dimension < dimensionality ? size_[dimension] : 1;
-    }
-
-    /**
-     * Copies data from another accessor
-     *
-     * @warning Do not use this function since it is not optimized for a
-     *          specific executor. It will always be performed sequentially.
-     *          Please write an optimized version (adjusted to the architecture)
-     *          by iterating through the values yourself.
-     *
-     * @tparam OtherAccessor  type of the other accessor
-     *
-     * @param other  other accessor
-     */
-    template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
-    {
-        helper::multidim_for_each(size_, [this, &other](auto... indices) {
-            (*this)(indices...) = other(indices...);
-        });
-    }
-
-    /**
-     * Returns the stored value for the given indices. If the storage is const,
-     * a value is returned, otherwise, a reference is returned.
-     *
-     * @param indices  indices which value is supposed to access
-     *
-     * @returns  the stored value if the accessor is const (if the storage type
-     *           is const), or a reference if the accessor is non-const
-     */
-    template <typename... Indices>
-    constexpr GKO_ATTRIBUTES std::enable_if_t<
-        are_all_integral<Indices...>::value,
-        std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
-    {
-        return reference_type{storage_ +
-                              compute_index(std::forward<Indices>(indices)...)};
-    }
-
-    /**
-     * Returns a sub-range spanning the current range (x1_span, x2_span, ...)
-     *
-     * @param spans  span for the indices
-     *
-     * @returns a sub-range for the given spans.
-     */
-    template <typename... SpanTypes>
-    constexpr GKO_ATTRIBUTES
-        std::enable_if_t<helper::are_span_compatible<SpanTypes...>::value,
-                         range<reduced_row_major>>
-        operator()(SpanTypes... spans) const
-    {
-        return helper::validate_spans(size_, spans...),
-               range<reduced_row_major>{
-                   dim<dimensionality>{
-                       (span{spans}.end - span{spans}.begin)...},
-                   storage_ + compute_index((span{spans}.begin)...), stride_};
-    }
-
-    /**
-     * Returns the size of the accessor
-     *
-     * @returns the size of the accessor
-     */
-    constexpr GKO_ATTRIBUTES dim<dimensionality> get_size() const
-    {
-        return size_;
-    }
-
-    /**
-     * Returns a pointer to a stride array of size dimensionality - 1
-     *
-     * @returns returns a pointer to a stride array of size dimensionality - 1
-     */
-    GKO_ATTRIBUTES
-    constexpr const storage_stride_type &get_stride() const { return stride_; }
-
-    /**
-     * Returns the pointer to the storage data
-     *
-     * @returns the pointer to the storage data
-     */
-    constexpr GKO_ATTRIBUTES storage_type *get_stored_data() const
-    {
-        return storage_;
-    }
-
-    /**
-     * Returns a const pointer to the storage data
-     *
-     * @returns a const pointer to the storage data
-     */
-    constexpr GKO_ATTRIBUTES const storage_type *get_const_storage() const
-    {
-        return storage_;
-    }
-
-protected:
-    template <typename... Indices>
-    constexpr GKO_ATTRIBUTES size_type
-    compute_index(Indices &&... indices) const
-    {
-        static_assert(sizeof...(Indices) == dimensionality,
-                      "Number of indices must match dimensionality!");
-        return helper::compute_storage_index<size_type, dimensionality>(
-            size_, stride_, std::forward<Indices>(indices)...);
-    }
-
-private:
-    const dim<dimensionality> size_;
-    storage_type *storage_;
-    const storage_stride_type stride_;
-};
+namespace acc {
 
 
 namespace detail {
@@ -322,12 +84,12 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES scalar_type
     write_scalar_masked(scalar_type value, Indices &&... indices) const
     {
         static_assert(sizeof...(Indices) == Dimensionality,
                       "Number of indices must match dimensionality!");
-        scalar_type *GKO_RESTRICT rest_scalar = self()->scalar_;
+        scalar_type *GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
         return rest_scalar[self()->compute_mask_scalar_index(
                    std::forward<Indices>(indices)...)] = value;
     }
@@ -344,17 +106,17 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES scalar_type
     write_scalar_direct(scalar_type value, Indices &&... indices) const
     {
-        scalar_type *GKO_RESTRICT rest_scalar = self()->scalar_;
+        scalar_type *GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
         return rest_scalar[self()->compute_direct_scalar_index(
                    std::forward<Indices>(indices)...)] = value;
     }
 
 
 private:
-    constexpr GKO_ATTRIBUTES const Accessor *self() const
+    constexpr GKO_ACC_ATTRIBUTES const Accessor *self() const
     {
         return static_cast<const Accessor *>(this);
     }
@@ -415,6 +177,9 @@ public:
         scaled_reduced_row_major<dimensionality, arithmetic_type,
                                  const storage_type, ScalarMask>;
 
+    static_assert(!is_complex<ArithmeticType>::value &&
+                      !is_complex<StorageType>::value,
+                  "Both arithmetic and storage type must not be complex!");
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
     static_assert(dimensionality <= 32,
@@ -431,6 +196,7 @@ protected:
     static constexpr size_type scalar_stride_dim{
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
+    using dim_type = std::array<size_type, dimensionality>;
     using storage_stride_type = std::array<size_type, dimensionality - 1>;
     using scalar_stride_type = std::array<size_type, scalar_stride_dim>;
     using reference_type =
@@ -448,11 +214,11 @@ protected:
      *                values.
      * @param scalar_stride  stride array used for memory accesses to scalar
      */
-    constexpr GKO_ATTRIBUTES scaled_reduced_row_major(
-        dim<dimensionality> size, storage_type *storage,
+    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
+        dim_type size, storage_type *storage,
         storage_stride_type storage_stride, scalar_type *scalar,
         scalar_stride_type scalar_stride)
-        : size_{size},
+        : size_(size),
           storage_{storage},
           storage_stride_(storage_stride),
           scalar_{scalar},
@@ -470,14 +236,14 @@ protected:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      */
-    constexpr GKO_ATTRIBUTES scaled_reduced_row_major(
-        dim<dimensionality> size, storage_type *storage,
-        storage_stride_type stride, scalar_type *scalar)
+    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
+        dim_type size, storage_type *storage, storage_stride_type stride,
+        scalar_type *scalar)
         : scaled_reduced_row_major{
               size, storage, stride, scalar,
-              helper::compute_default_masked_stride_array<
-                  size_type, scalar_mask, scalar_stride_dim, dimensionality>(
-                  size)}
+              helper::compute_default_masked_row_major_stride_array<
+                  typename scalar_stride_type::value_type, scalar_mask,
+                  scalar_stride_dim, dimensionality>(size)}
     {}
 
     /**
@@ -489,18 +255,20 @@ protected:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      */
-    constexpr GKO_ATTRIBUTES scaled_reduced_row_major(dim<dimensionality> size,
-                                                      storage_type *storage,
-                                                      scalar_type *scalar)
+    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(dim_type size,
+                                                          storage_type *storage,
+                                                          scalar_type *scalar)
         : scaled_reduced_row_major{
-              size, storage, compute_default_stride_array<size_type>(size),
+              size, storage,
+              helper::compute_default_row_major_stride_array<
+                  typename storage_stride_type::value_type>(size),
               scalar}
     {}
 
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
      */
-    constexpr GKO_ATTRIBUTES scaled_reduced_row_major()
+    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major()
         : scaled_reduced_row_major{{0, 0, 0}, nullptr, nullptr}
     {}
 
@@ -511,7 +279,7 @@ public:
      *
      * @returns  a scaled_reduced_row_major major range which is read-only.
      */
-    constexpr GKO_ATTRIBUTES range<const_accessor> to_const() const
+    constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         return range<const_accessor>{size_, storage_, storage_stride_, scalar_,
                                      scalar_stride_};
@@ -526,10 +294,10 @@ public:
      * @returns the scalar value at the given indices.
      */
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES scalar_type
     read_scalar_masked(Indices &&... indices) const
     {
-        const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
+        const arithmetic_type *GKO_ACC_RESTRICT rest_scalar = scalar_;
         return rest_scalar[compute_mask_scalar_index(
             std::forward<Indices>(indices)...)];
     }
@@ -544,10 +312,10 @@ public:
      * @returns the scalar value at the given indices.
      */
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES scalar_type
     read_scalar_direct(Indices &&... indices) const
     {
-        const arithmetic_type *GKO_RESTRICT rest_scalar = scalar_;
+        const arithmetic_type *GKO_ACC_RESTRICT rest_scalar = scalar_;
         return rest_scalar[compute_direct_scalar_index(
             std::forward<Indices>(indices)...)];
     }
@@ -559,32 +327,9 @@ public:
      *
      * @returns length in dimension `dimension`
      */
-    constexpr GKO_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
-    }
-
-    /**
-     * Copies data from another accessor
-     *
-     * @warning Do not use this function since it is not optimized for a
-     *          specific executor. It will always be performed sequentially.
-     *          Please write an optimized version (adjusted to the architecture)
-     *          by iterating through the values yourself.
-     *
-     * @tparam OtherAccessor  type of the other accessor
-     *
-     * @param other  other accessor
-     */
-    template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
-    {
-        helper::multidim_for_each(size_, [this, &other](auto... indices) {
-            // especially inefficient if mask has not all bits set
-            this->write_scalar_masked(other.read_scalar_masked(indices...),
-                                      indices...);
-            (*this)(indices...) = other(indices...);
-        });
     }
 
     /**
@@ -597,7 +342,7 @@ public:
      *           is const), or a reference if the accessor is non-const
      */
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES std::enable_if_t<
+    constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices... indices) const
@@ -614,18 +359,19 @@ public:
      * @returns a sub-range for the given spans.
      */
     template <typename... SpanTypes>
-    constexpr GKO_ATTRIBUTES
-        std::enable_if_t<helper::are_span_compatible<SpanTypes...>::value,
+    constexpr GKO_ACC_ATTRIBUTES
+        std::enable_if_t<helper::are_index_span_compatible<SpanTypes...>::value,
                          range<scaled_reduced_row_major>>
         operator()(SpanTypes... spans) const
     {
-        return helper::validate_spans(size_, spans...),
+        return helper::validate_index_spans(size_, spans...),
                range<scaled_reduced_row_major>{
-                   dim<dimensionality>{
-                       (span{spans}.end - span{spans}.begin)...},
-                   storage_ + compute_index((span{spans}.begin)...),
+                   dim_type{
+                       (index_span{spans}.end - index_span{spans}.begin)...},
+                   storage_ + compute_index((index_span{spans}.begin)...),
                    storage_stride_,
-                   scalar_ + compute_mask_scalar_index(span{spans}.begin...),
+                   scalar_ +
+                       compute_mask_scalar_index(index_span{spans}.begin...),
                    scalar_stride_};
     }
 
@@ -634,10 +380,7 @@ public:
      *
      * @returns the size of the accessor
      */
-    constexpr GKO_ATTRIBUTES dim<dimensionality> get_size() const
-    {
-        return size_;
-    }
+    constexpr GKO_ACC_ATTRIBUTES dim_type get_size() const { return size_; }
 
     /**
      * Returns a const reference to the storage stride array of size
@@ -646,7 +389,7 @@ public:
      * @returns a const reference to the storage stride array of size
      *          dimensionality - 1
      */
-    constexpr GKO_ATTRIBUTES const storage_stride_type &get_storage_stride()
+    constexpr GKO_ACC_ATTRIBUTES const storage_stride_type &get_storage_stride()
         const
     {
         return storage_stride_;
@@ -657,7 +400,8 @@ public:
      *
      * @returns a const reference to the scalar stride array
      */
-    constexpr GKO_ATTRIBUTES const scalar_stride_type &get_scalar_stride() const
+    constexpr GKO_ACC_ATTRIBUTES const scalar_stride_type &get_scalar_stride()
+        const
     {
         return scalar_stride_;
     }
@@ -667,7 +411,7 @@ public:
      *
      * @returns the pointer to the storage data
      */
-    constexpr GKO_ATTRIBUTES storage_type *get_stored_data() const
+    constexpr GKO_ACC_ATTRIBUTES storage_type *get_stored_data() const
     {
         return storage_;
     }
@@ -677,7 +421,7 @@ public:
      *
      * @returns a const pointer to the storage data
      */
-    constexpr GKO_ATTRIBUTES const storage_type *get_const_storage() const
+    constexpr GKO_ACC_ATTRIBUTES const storage_type *get_const_storage() const
     {
         return storage_;
     }
@@ -687,31 +431,34 @@ public:
      *
      * @returns the pointer to the scalar data
      */
-    constexpr GKO_ATTRIBUTES scalar_type *get_scalar() const { return scalar_; }
+    constexpr GKO_ACC_ATTRIBUTES scalar_type *get_scalar() const
+    {
+        return scalar_;
+    }
 
     /**
      * Returns a const pointer to the scalar data
      *
      * @returns a const pointer to the scalar data
      */
-    constexpr GKO_ATTRIBUTES const scalar_type *get_const_scalar() const
+    constexpr GKO_ACC_ATTRIBUTES const scalar_type *get_const_scalar() const
     {
         return scalar_;
     }
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES size_type
+    constexpr GKO_ACC_ATTRIBUTES size_type
     compute_index(Indices &&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_storage_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<size_type, dimensionality>(
             size_, storage_stride_, std::forward<Indices>(indices)...);
     }
 
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES size_type
+    constexpr GKO_ACC_ATTRIBUTES size_type
     compute_mask_scalar_index(Indices &&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -722,7 +469,7 @@ protected:
     }
 
     template <typename... Indices>
-    constexpr GKO_ATTRIBUTES size_type
+    constexpr GKO_ACC_ATTRIBUTES size_type
     compute_direct_scalar_index(Indices &&... indices) const
     {
         static_assert(
@@ -735,16 +482,16 @@ protected:
 
 
 private:
-    const dim<dimensionality> size_;
-    storage_type *storage_;
+    const dim_type size_;
+    storage_type *const storage_;
     const storage_stride_type storage_stride_;
-    scalar_type *scalar_;
+    scalar_type *const scalar_;
     const scalar_stride_type scalar_stride_;
 };
 
 
-}  // namespace accessor
+}  // namespace acc
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_ACCESSORS_HPP_
+#endif  // GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_

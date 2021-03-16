@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_DIM_HPP_
 
 
-#include <array>
-
-
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -242,76 +239,6 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
     const dim<2, DimensionType> &dimensions) noexcept
 {
     return {dimensions[1], dimensions[0]};
-}
-
-
-namespace detail {
-
-
-template <typename ValueType, size_type iter, size_type N,
-          typename DimensionType>
-constexpr GKO_ATTRIBUTES std::enable_if_t<iter == N, ValueType>
-mult_dim_upwards(const dim<N, DimensionType> &)
-{
-    return 1;
-}
-
-template <typename ValueType, size_type iter, size_type N,
-          typename DimensionType>
-constexpr GKO_ATTRIBUTES std::enable_if_t<(iter < N), ValueType>
-mult_dim_upwards(const dim<N, DimensionType> &size)
-{
-    return size[iter] * mult_dim_upwards<ValueType, iter + 1>(size);
-}
-
-
-template <typename ValueType, size_type iter = 1, size_type N,
-          typename DimensionType, typename... Args>
-constexpr GKO_ATTRIBUTES
-    std::enable_if_t<N == 0 || (iter == N && iter == sizeof...(Args) + 1),
-                     std::array<ValueType, N == 0 ? 0 : N - 1>>
-    compute_default_stride_array(const dim<N, DimensionType> &, Args &&... args)
-{
-    return {{std::forward<Args>(args)...}};
-}
-
-template <typename ValueType, size_type iter = 1, size_type N,
-          typename DimensionType, typename... Args>
-constexpr GKO_ATTRIBUTES std::enable_if_t<
-    (iter < N) && (iter == sizeof...(Args) + 1), std::array<ValueType, N - 1>>
-compute_default_stride_array(const dim<N, DimensionType> &size, Args &&... args)
-{
-    return compute_default_stride_array<ValueType, iter + 1>(
-        size, std::forward<Args>(args)...,
-        mult_dim_upwards<ValueType, iter>(size));
-}
-
-
-}  // namespace detail
-
-
-/**
- * Computes the default stride array from a given size, assuming there is no
- * padding.
- *
- * Example: dim<4> size={2, 3, 5, 7} results in a return value of:
- * std::array<ValueType, 3> = {3*5*7, 5*7, 7}
- *
- * @tparam ValueType  value type of the values in the returned array
- *
- * @tparam dimensions  number of dimensions in the given size
- *
- * @tparam DimensionType  value type of the stored size
- *
- * @returns an std::array<ValueType, dimensions - 1> with the stride
- *          information.
- */
-template <typename ValueType, size_type dimensions, typename DimensionType>
-constexpr GKO_ATTRIBUTES
-    std::array<ValueType, (dimensions > 0 ? dimensions - 1 : 0)>
-    compute_default_stride_array(const dim<dimensions, DimensionType> &size)
-{
-    return detail::compute_default_stride_array<ValueType>(size);
 }
 
 
