@@ -51,7 +51,7 @@ namespace matrix {
  * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
  * for inverse DFT it computes
  *
- *     $$ x_k = \sum_{i=0}^{n-1} \omega^{ik} b_i $$
+ *     $$ x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j $$
  *
  * without normalization factors.
  *

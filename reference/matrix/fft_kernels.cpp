@@ -125,7 +125,6 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
     auto roots = build_unit_roots<complex_type>(exec, size, sign);
     // first butterfly step
     auto d = size / 2;
-#pragma omp parallel for
     for (int64 k = 0; k < size / 2; k++) {
         bfly(b, x, k, k + d, roots[k]);
     }

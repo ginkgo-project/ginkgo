@@ -169,7 +169,6 @@ protected:
     std::unique_ptr<Mtx3> ifft3;
 };
 
-
 TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes);
 
 
