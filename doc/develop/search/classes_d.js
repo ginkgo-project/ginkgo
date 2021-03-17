@@ -1,10 +1,10 @@
 var searchData=
 [
-  ['nonzero_5ftype_1242',['nonzero_type',['../structgko_1_1matrix__data_1_1nonzero__type.html',1,'gko::matrix_data']]],
-  ['not_5fequal_1243',['not_equal',['../structgko_1_1accessor_1_1not__equal.html',1,'gko::accessor']]],
-  ['notcompiled_1244',['NotCompiled',['../classgko_1_1NotCompiled.html',1,'gko']]],
-  ['notimplemented_1245',['NotImplemented',['../classgko_1_1NotImplemented.html',1,'gko']]],
-  ['notsupported_1246',['NotSupported',['../classgko_1_1NotSupported.html',1,'gko']]],
-  ['null_5fdeleter_1247',['null_deleter',['../classgko_1_1null__deleter.html',1,'gko']]],
-  ['null_5fdeleter_3c_20t_5b_5d_3e_1248',['null_deleter&lt; T[]&gt;',['../classgko_1_1null__deleter_3_01T_0f_0e_4.html',1,'gko']]]
+  ['nonzero_5ftype_1236',['nonzero_type',['../structgko_1_1matrix__data_1_1nonzero__type.html',1,'gko::matrix_data']]],
+  ['not_5fequal_1237',['not_equal',['../structgko_1_1accessor_1_1not__equal.html',1,'gko::accessor']]],
+  ['notcompiled_1238',['NotCompiled',['../classgko_1_1NotCompiled.html',1,'gko']]],
+  ['notimplemented_1239',['NotImplemented',['../classgko_1_1NotImplemented.html',1,'gko']]],
+  ['notsupported_1240',['NotSupported',['../classgko_1_1NotSupported.html',1,'gko']]],
+  ['null_5fdeleter_1241',['null_deleter',['../classgko_1_1null__deleter.html',1,'gko']]],
+  ['null_5fdeleter_3c_20t_5b_5d_3e_1242',['null_deleter&lt; T[]&gt;',['../classgko_1_1null__deleter_3_01T_0f_0e_4.html',1,'gko']]]
 ];

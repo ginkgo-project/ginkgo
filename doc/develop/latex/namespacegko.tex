@@ -263,8 +263,6 @@ enum \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68}{layout\+\_
 \begin{DoxyCompactList}\small\item\em Checks if two dim objects are different. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Dimension\+Type $>$ }\\constexpr \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2, Dimension\+Type $>$ \mbox{\hyperlink{namespacegko_a9b6a9d7018703d6d1f2140054e2afe4a}{transpose}} (const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2, Dimension\+Type $>$ \&dimensions) noexcept
 \begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{structgko_1_1dim}{dim$<$2$>$}} object with its dimensions swapped. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Value\+Type , size\+\_\+type dimensions, typename Dimension\+Type $>$ }\\constexpr \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{std\+::array}}$<$ Value\+Type,(dimensions $>$ 0 ? dimensions -\/ 1 \+:0)$>$ \mbox{\hyperlink{namespacegko_a0fd0b845113485abaf4ddcc2b3d5854e}{compute\+\_\+default\+\_\+stride\+\_\+array}} (const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ dimensions, Dimension\+Type $>$ \&size)
-\begin{DoxyCompactList}\small\item\em Computes the default stride array from a given size, assuming there is no padding. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_a9b3e79911bb6145d7ba865dbe436b915}{is\+\_\+complex}} ()
 \begin{DoxyCompactList}\small\item\em Checks if T is a complex type. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_a6881ebae53e15cb88342c0540d953f59}{is\+\_\+complex\+\_\+or\+\_\+scalar}} ()
@@ -1069,31 +1067,6 @@ The pointee (i.\+e. {\ttfamily $\ast$p}) needs to have a clone method that takes
 \begin{DoxyNote}{Note}
 The difference between this function and directly calling Lin\+Op\+::clone() is that this one preserves the static type of the object. 
 \end{DoxyNote}
-\mbox{\Hypertarget{namespacegko_a0fd0b845113485abaf4ddcc2b3d5854e}\label{namespacegko_a0fd0b845113485abaf4ddcc2b3d5854e}} 
-\index{gko@{gko}!compute\_default\_stride\_array@{compute\_default\_stride\_array}}
-\index{compute\_default\_stride\_array@{compute\_default\_stride\_array}!gko@{gko}}
-\doxysubsubsection{\texorpdfstring{compute\_default\_stride\_array()}{compute\_default\_stride\_array()}}
-{\footnotesize\ttfamily template$<$typename Value\+Type , size\+\_\+type dimensions, typename Dimension\+Type $>$ \\
-constexpr \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{std\+::array}}$<$Value\+Type, (dimensions $>$ 0 ? dimensions -\/ 1 \+: 0)$>$ gko\+::compute\+\_\+default\+\_\+stride\+\_\+array (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ dimensions, Dimension\+Type $>$ \&}]{size }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
-
-
-
-Computes the default stride array from a given size, assuming there is no padding. 
-
-Example\+: dim$<$4$>$ size=\{2, 3, 5, 7\} results in a return value of\+: \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{std\+::array$<$\+Value\+Type, 3$>$}} = \{3$\ast$5$\ast$7, 5$\ast$7, 7\}
-
-
-\begin{DoxyTemplParams}{Template Parameters}
-{\em Value\+Type} & value type of the values in the returned array\\
-\hline
-{\em dimensions} & number of dimensions in the given size\\
-\hline
-{\em Dimension\+Type} & value type of the stored size\\
-\hline
-\end{DoxyTemplParams}
-\begin{DoxyReturn}{Returns}
-an \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{std\+::array}}$<$Value\+Type, dimensions -\/ 1$>$ with the stride information. 
-\end{DoxyReturn}
 \mbox{\Hypertarget{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}\label{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}} 
 \index{gko@{gko}!conj@{conj}}
 \index{conj@{conj}!gko@{gko}}

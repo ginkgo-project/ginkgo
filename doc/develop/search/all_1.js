@@ -13,11 +13,10 @@ var searchData=
   ['bitwise_5fnot_46',['bitwise_not',['../structgko_1_1accessor_1_1bitwise__not.html',1,'gko::accessor']]],
   ['bitwise_5for_47',['bitwise_or',['../structgko_1_1accessor_1_1bitwise__or.html',1,'gko::accessor']]],
   ['bitwise_5fxor_48',['bitwise_xor',['../structgko_1_1accessor_1_1bitwise__xor.html',1,'gko::accessor']]],
-  ['block_5fcol_5fmajor_49',['block_col_major',['../classgko_1_1accessor_1_1block__col__major.html',1,'gko::accessor']]],
-  ['block_5finterleaved_5fstorage_5fscheme_50',['block_interleaved_storage_scheme',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
-  ['block_5finterleaved_5fstorage_5fscheme_3c_20index_5ftype_20_3e_51',['block_interleaved_storage_scheme&lt; index_type &gt;',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
-  ['block_5foffset_52',['block_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ada09b37f171d433cc74818961fc6eccc',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
-  ['block_5fpointers_53',['block_pointers',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66',1,'gko::preconditioner::Jacobi::parameters_type']]],
-  ['both_5ffactors_54',['both_factors',['../structgko_1_1factorization_1_1Ic_1_1parameters__type.html#afb4c7814334072ab39c2e2b04925cdc4',1,'gko::factorization::Ic::parameters_type::both_factors()'],['../structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#abfa3c5afbc05b7c25b09ae225e6c966a',1,'gko::factorization::ParIc::parameters_type::both_factors()']]],
-  ['byte_5fsize_55',['byte_size',['../namespacegko.html#acae2e648052ec788bd8ba9e0192652a6',1,'gko']]]
+  ['block_5finterleaved_5fstorage_5fscheme_49',['block_interleaved_storage_scheme',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
+  ['block_5finterleaved_5fstorage_5fscheme_3c_20index_5ftype_20_3e_50',['block_interleaved_storage_scheme&lt; index_type &gt;',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html',1,'gko::preconditioner']]],
+  ['block_5foffset_51',['block_offset',['../structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ada09b37f171d433cc74818961fc6eccc',1,'gko::preconditioner::block_interleaved_storage_scheme']]],
+  ['block_5fpointers_52',['block_pointers',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66',1,'gko::preconditioner::Jacobi::parameters_type']]],
+  ['both_5ffactors_53',['both_factors',['../structgko_1_1factorization_1_1Ic_1_1parameters__type.html#afb4c7814334072ab39c2e2b04925cdc4',1,'gko::factorization::Ic::parameters_type::both_factors()'],['../structgko_1_1factorization_1_1ParIc_1_1parameters__type.html#abfa3c5afbc05b7c25b09ae225e6c966a',1,'gko::factorization::ParIc::parameters_type::both_factors()']]],
+  ['byte_5fsize_54',['byte_size',['../namespacegko.html#acae2e648052ec788bd8ba9e0192652a6',1,'gko']]]
 ];
