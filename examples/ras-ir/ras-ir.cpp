@@ -49,12 +49,16 @@ int main(int argc, char *argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using real_vec = gko::matrix::Dense<RealValueType>;
-    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using block_approx =
         gko::matrix::BlockApprox<gko::matrix::Csr<ValueType, IndexType>>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
-    using ras = gko::preconditioner::Ras<ValueType, IndexType>;
     using ir = gko::solver::Ir<ValueType>;
+    using fcg = gko::solver::Fcg<ValueType>;
+    using bicgstab = gko::solver::Bicgstab<ValueType>;
+    using ras = gko::preconditioner::Ras<ValueType, IndexType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using paric = gko::preconditioner::Ic<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -66,7 +70,6 @@ int main(int argc, char *argv[])
     }
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-
     gko::size_type num_subdomains = argc >= 3 ? std::atoi(argv[2]) : 1;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -95,7 +98,7 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    std::cout << "\nNumber of rows in matrix: " << size << "\n" << std::endl;
+    std::cout << "\n Num rows " << size << std::endl;
     auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
                                                         gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
@@ -115,7 +118,7 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-    gko::size_type max_iters = 1000u;
+    gko::size_type max_iters = 10000u;
     RealValueType outer_reduction_factor{1e-8};
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
@@ -127,22 +130,23 @@ int main(int argc, char *argv[])
         gko::log::Convergence<ValueType>::create(exec);
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
+
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     block_sizes.fill(size / num_subdomains);
-    if (size % num_subdomains != 0) {
-        block_sizes.get_data()[num_subdomains - 1] =
-            size - num_subdomains * (size / num_subdomains);
-    }
-    std::shared_ptr<block_approx> block_A =
-        block_approx::create(exec, block_sizes, gko::lend(A));
-
+    auto block_A = block_approx::create(exec, block_sizes, A.get());
     // Create solver factory
     RealValueType inner_reduction_factor{1e-2};
-    auto ras_solver =
+    auto ras_precond =
         ras::build()
             .with_solver(
+                // bj::build().on(exec)
+                // paric::build().on(exec)
                 cg::build()
+                    // .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
+                        //
+                        // gko::stop::Iteration::build().with_max_iters(20u).on(
+                        //     exec),
                         gko::stop::ResidualNorm<ValueType>::build()
                             .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
@@ -151,23 +155,18 @@ int main(int argc, char *argv[])
             ->generate(gko::share(block_A));
     auto solver_gen =
         ir::build()
-            .with_generated_solver(gko::share(ras_solver))
+            .with_generated_solver(share(ras_precond))
             // .with_solver(
-            //     ras::build()
-            //         .with_solver(
-            //             cg::build()
-            //                 .with_criteria(
-            //                     gko::stop::ResidualNorm<ValueType>::build()
-            //                         .with_reduction_factor(
-            //                             inner_reduction_factor)
-            //                         .on(exec))
+            //     cg::build()
+            //         .with_criteria(
+            //             gko::stop::ResidualNorm<ValueType>::build()
+            //                 .with_reduction_factor(inner_reduction_factor)
             //                 .on(exec))
             //         .on(exec))
             .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
             .on(exec);
     // Create solver
-    auto solver = solver_gen->generate(gko::share(A));
-
+    auto solver = solver_gen->generate(A);
 
     // Solve system
     exec->synchronize();
