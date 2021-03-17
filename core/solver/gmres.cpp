@@ -107,9 +107,10 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    auto krylov_bases = Vector::create(
-        exec, dim<2>{system_matrix_->get_size()[1] * (krylov_dim_ + 1),
-                     dense_b->get_size()[1]});
+    auto krylov_bases = Vector::create_with_type_of(
+        dense_b, exec,
+        dim<2>{system_matrix_->get_size()[1] * (krylov_dim_ + 1),
+               dense_b->get_size()[1]});
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(

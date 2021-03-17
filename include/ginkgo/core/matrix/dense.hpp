@@ -161,6 +161,41 @@ public:
         return (*other).create_with_same_config();
     }
 
+    /**
+     * Creates a Dense matrix with the same type and executor as another Dense
+     * matrix but a different size.
+     *
+     * @param other  The other matrix whose type we target.
+     * @param exec  The executor of the new matrix.
+     * @param size  The size of the new matrix.
+     * @param stride  The stride of the new matrix.
+     *
+     * @returns a Dense matrix with the type of other.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size = dim<2>{})
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, size[1]);
+    }
+
+    /**
+     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * Executor>, const dim<2>)
+     *
+     * @param stride  The stride of the new matrix.
+     *
+     * @note This is an overload which allows full parameter specification.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size, size_type stride)
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, stride);
+    }
+
     friend class Dense<next_precision<ValueType>>;
 
     void convert_to(Dense<next_precision<ValueType>> *result) const override;
@@ -510,19 +545,7 @@ public:
                                             const span &columns,
                                             const size_type stride)
     {
-        row_major_range range_this{this->get_values(), this->get_size()[0],
-                                   this->get_size()[1], this->get_stride()};
-        auto range_result = range_this(rows, columns);
-        // TODO: can result in HUGE padding - which will be copied with the
-        // vector
-        return Dense::create(
-            this->get_executor(),
-            dim<2>{range_result.length(0), range_result.length(1)},
-            Array<ValueType>::view(
-                this->get_executor(),
-                range_result.length(0) * range_this.length(1) - columns.begin,
-                range_result->data),
-            stride);
+        return this->create_submatrix_impl(rows, columns, stride);
     }
 
     /**
@@ -651,6 +674,20 @@ protected:
     }
 
     /**
+     * Creates a Dense matrix with the same type as the callers matrix.
+     *
+     * @param size  size of the matrix
+     *
+     * @returns a Dense matrix with the same type as the caller.
+     */
+    virtual std::unique_ptr<Dense> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        size_type stride) const
+    {
+        return Dense::create(exec, size, stride);
+    }
+
+    /**
      * @copydoc scale(const LinOp *)
      *
      * @note  Other implementations of dense should override this function
@@ -681,6 +718,32 @@ protected:
      *        instead of compute_norm2(LinOp *result).
      */
     virtual void compute_norm2_impl(LinOp *result) const;
+
+    /**
+     * @copydoc create_submatrix(const span, const span, const size_type)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of create_submatrix(const span, const span, const
+     *        size_type).
+     */
+    virtual std::unique_ptr<Dense> create_submatrix_impl(const span &rows,
+                                                         const span &columns,
+                                                         const size_type stride)
+    {
+        row_major_range range_this{this->get_values(), this->get_size()[0],
+                                   this->get_size()[1], this->get_stride()};
+        auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
+        return Dense::create(
+            this->get_executor(),
+            dim<2>{range_result.length(0), range_result.length(1)},
+            Array<ValueType>::view(
+                this->get_executor(),
+                range_result.length(0) * range_this.length(1) - columns.begin,
+                range_result->data),
+            stride);
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
