@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
-#include "core/matrix/batch_device.hpp"
+#include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 
