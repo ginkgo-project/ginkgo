@@ -65,12 +65,19 @@ int main(int argc, char *argv[])
 
     // Figure out where to run the code
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " [num_subdomains] [relax_fac] [matrix] [executor] "
+                     "[inner_tolerance]"
+                  << std::endl;
         std::exit(-1);
     }
 
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    gko::size_type num_subdomains = argc >= 3 ? std::atoi(argv[2]) : 1;
+    gko::size_type num_subdomains = argc >= 2 ? std::atoi(argv[1]) : 1;
+    ValueType relax_fac = argc >= 3 ? std::atof(argv[2]) : 1.0;
+    const auto mat_string = argc >= 4 ? argv[3] : "A.mtx";
+    const auto executor_string = argc >= 5 ? argv[4] : "omp";
+    RealValueType inner_reduction_factor =
+        argc >= 6 ? std::atof(argv[5]) : 1e-3;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -95,7 +102,8 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(
+        gko::read<mtx>(std::ifstream("data/" + std::string(mat_string)), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
     std::cout << "\n Num rows " << size << std::endl;
@@ -115,11 +123,13 @@ int main(int argc, char *argv[])
     auto initres = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(initres));
+    std::cout << "Initial residual norm sqrt(r^T r):\n";
+    write(std::cout, lend(initres));
 
     // copy b again
     b->copy_from(host_x.get());
-    gko::size_type max_iters = 10000u;
-    RealValueType outer_reduction_factor{1e-8};
+    gko::size_type max_iters = 5000u;
+    RealValueType outer_reduction_factor{1e-6};
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
     auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
@@ -133,16 +143,19 @@ int main(int argc, char *argv[])
 
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     block_sizes.fill(size / num_subdomains);
+    if (size % num_subdomains != 0) {
+        block_sizes.get_data()[num_subdomains - 1] =
+            size / num_subdomains + size % num_subdomains;
+    }
     auto block_A = block_approx::create(exec, block_sizes, A.get());
     // Create solver factory
-    RealValueType inner_reduction_factor{1e-2};
     auto ras_precond =
         ras::build()
             .with_solver(
-                // bj::build().on(exec)
+                // bj::build().on(exec))
                 // paric::build().on(exec)
                 cg::build()
-                    // .with_preconditioner(bj::build().on(exec))
+                    .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
                         //
                         // gko::stop::Iteration::build().with_max_iters(20u).on(
@@ -156,6 +169,7 @@ int main(int argc, char *argv[])
     auto solver_gen =
         ir::build()
             .with_generated_solver(share(ras_precond))
+            .with_relaxation_factor(relax_fac)
             // .with_solver(
             //     cg::build()
             //         .with_criteria(
@@ -181,8 +195,6 @@ int main(int argc, char *argv[])
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
-    std::cout << "Initial residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
 
