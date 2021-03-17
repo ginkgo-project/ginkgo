@@ -103,6 +103,8 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    bool apply_uses_initial_guess() const override { return true; }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
