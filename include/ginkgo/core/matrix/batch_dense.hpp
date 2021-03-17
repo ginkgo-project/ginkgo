@@ -815,6 +815,91 @@ std::unique_ptr<Matrix> batch_initialize(
                                     std::forward<TArgs>(create_args)...);
 }
 
+/**
+ * Creates and initializes a column-vector from copies of a given vector.
+ *
+ * This function first creates a temporary batch dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param stride  row strides for the temporary batch dense matrix
+ * @param num_vectors  The number of times the input vector is copied into
+ *                     the final output
+ * @param vals  values used to initialize each vector in the temp. batch
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> batch_initialize(
+    std::vector<size_type> stride, const size_type num_vectors,
+    std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    size_type num_batches = num_vectors;
+    std::vector<size_type> num_rows(num_vectors);
+    std::vector<dim<2>> sizes(num_vectors);
+    for (size_type b = 0; b < num_vectors; ++b) {
+        num_rows[b] = vals.size();
+        sizes[b] = dim<2>(vals.size(), 1);
+    }
+    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    size_type batch = 0;
+    for (size_type batch = 0; batch < num_vectors; batch++) {
+        size_type idx = 0;
+        for (const auto &elem : vals) {
+            tmp->at(batch, idx) = elem;
+            ++idx;
+        }
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
+}
+
+/**
+ * Creates and initializes a column-vector from copies of a given vector.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type. The stride of
+ * the intermediate Dense matrix is set to 1.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param num_vectors  The number of times the input vector is copied into
+ *                     the final output
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> batch_initialize(
+    const size_type num_vectors,
+    std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    return batch_initialize<Matrix>(std::vector<size_type>(num_vectors, 1),
+                                    num_vectors, vals, std::move(exec),
+                                    std::forward<TArgs>(create_args)...);
+}
+
 
 }  // namespace gko
 
