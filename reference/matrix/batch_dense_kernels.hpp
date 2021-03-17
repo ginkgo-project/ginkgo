@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
-#include "core/matrix/batch_device.hpp"
+#include "core/matrix/batch_struct.hpp"
 
 
 namespace gko {
