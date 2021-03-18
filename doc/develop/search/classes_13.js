@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['unary_5fminus_1293',['unary_minus',['../structgko_1_1accessor_1_1unary__minus.html',1,'gko::accessor']]],
-  ['unary_5fplus_1294',['unary_plus',['../structgko_1_1accessor_1_1unary__plus.html',1,'gko::accessor']]],
-  ['updater_1295',['Updater',['../classgko_1_1stop_1_1Criterion_1_1Updater.html',1,'gko::stop::Criterion']]],
-  ['uppertrs_1296',['UpperTrs',['../classgko_1_1solver_1_1UpperTrs.html',1,'gko::solver']]],
-  ['usecomposition_1297',['UseComposition',['../classgko_1_1UseComposition.html',1,'gko']]]
+  ['unary_5fminus_1294',['unary_minus',['../structgko_1_1accessor_1_1unary__minus.html',1,'gko::accessor']]],
+  ['unary_5fplus_1295',['unary_plus',['../structgko_1_1accessor_1_1unary__plus.html',1,'gko::accessor']]],
+  ['updater_1296',['Updater',['../classgko_1_1stop_1_1Criterion_1_1Updater.html',1,'gko::stop::Criterion']]],
+  ['uppertrs_1297',['UpperTrs',['../classgko_1_1solver_1_1UpperTrs.html',1,'gko::solver']]],
+  ['usecomposition_1298',['UseComposition',['../classgko_1_1UseComposition.html',1,'gko']]]
 ];

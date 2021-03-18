@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/271513712 branch based on develop. Ginkgo version 1.3.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/271925380 branch based on develop. Ginkgo version 1.3.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -684,6 +684,11 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a4c2089b9e1f7a99a32488a4964e832db"><td class="memItemLeft" align="right" valign="top">static std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a4c2089b9e1f7a99a32488a4964e832db">create_with_config_of</a> (const <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> *other)</td></tr>
 <tr class="memdesc:a4c2089b9e1f7a99a32488a4964e832db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix with the configuration of another <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix.  <a href="classgko_1_1matrix_1_1Dense.html#a4c2089b9e1f7a99a32488a4964e832db">More...</a><br /></td></tr>
 <tr class="separator:a4c2089b9e1f7a99a32488a4964e832db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7fb9fae9603ed2fff3eb7c347d326be1"><td class="memItemLeft" align="right" valign="top">static std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a7fb9fae9603ed2fff3eb7c347d326be1">create_with_type_of</a> (const <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> *other, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt; &amp;size=<a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt;{})</td></tr>
+<tr class="memdesc:a7fb9fae9603ed2fff3eb7c347d326be1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix with the same type and executor as another <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix but a different size.  <a href="classgko_1_1matrix_1_1Dense.html#a7fb9fae9603ed2fff3eb7c347d326be1">More...</a><br /></td></tr>
+<tr class="separator:a7fb9fae9603ed2fff3eb7c347d326be1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a68e08c6bc2f26e192c949a79a48053"><td class="memItemLeft" align="right" valign="top">static std::unique_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Dense.html#a3a68e08c6bc2f26e192c949a79a48053">create_with_type_of</a> (const <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a> *other, std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt; &amp;size, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride)</td></tr>
+<tr class="separator:a3a68e08c6bc2f26e192c949a79a48053"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_static_methods_classgko_1_1EnableCreateMethod"><td colspan="2" onclick="javascript:toggleInherit('pub_static_methods_classgko_1_1EnableCreateMethod')"><img src="closed.png" alt="-"/>&#160;Static Public Member Functions inherited from <a class="el" href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod&lt; Dense&lt; ValueType &gt; &gt;</a></td></tr>
 <tr class="memitem:aa732d4d8736a4ade9206b9641cd1edd5 inherit pub_static_methods_classgko_1_1EnableCreateMethod"><td class="memItemLeft" align="right" valign="top"><a id="aa732d4d8736a4ade9206b9641cd1edd5"></a>
 static std::unique_ptr&lt; Dense&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create</b> (Args &amp;&amp;... args)</td></tr>
@@ -1386,8 +1391,6 @@ template&lt;typename ValueType = default_precision&gt; </div>
   </dd>
 </dl>
 
-<p class="reference">References <a class="el" href="structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7">gko::span::begin</a>, <a class="el" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor()</a>, <a class="el" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a8c1b220b9b9292893d9be22d632a9a0e">gko::matrix::Dense&lt; ValueType &gt;::get_stride()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense&lt; ValueType &gt;::get_values()</a>, and <a class="el" href="classgko_1_1Array.html#ae8e2b4841e60741227daf3367de6ecde">gko::Array&lt; ValueType &gt;::view()</a>.</p>
-
 <p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#a621650dbf619a21aafb8cc311dd14bc9">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>.</p>
 
 </div>
@@ -1425,6 +1428,121 @@ template&lt;typename ValueType = default_precision&gt; </div>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a3a68e08c6bc2f26e192c949a79a48053"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3a68e08c6bc2f26e192c949a79a48053">&#9670;&nbsp;</a></span>create_with_type_of() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::unique_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::create_with_type_of </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; ValueType &gt; *&#160;</td>
+          <td class="paramname"><em>other</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt; &amp;&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td>
+          <td class="paramname"><em>stride</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stride</td><td>The stride of the new matrix.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>This is an overload which allows full parameter specification. </dd></dl>
+
+</div>
+</div>
+<a id="a7fb9fae9603ed2fff3eb7c347d326be1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7fb9fae9603ed2fff3eb7c347d326be1">&#9670;&nbsp;</a></span>create_with_type_of() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::unique_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a>&lt; ValueType &gt;::create_with_type_of </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; ValueType &gt; *&#160;</td>
+          <td class="paramname"><em>other</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structgko_1_1dim.html">dim</a>&lt; 2 &gt; &amp;&#160;</td>
+          <td class="paramname"><em>size</em> = <code><a class="el" href="structgko_1_1dim.html">dim</a>&lt;2&gt;{}</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Creates a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix with the same type and executor as another <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix but a different size. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>The other matrix whose type we target. </td></tr>
+    <tr><td class="paramname">exec</td><td>The executor of the new matrix. </td></tr>
+    <tr><td class="paramname">size</td><td>The size of the new matrix. </td></tr>
+    <tr><td class="paramname">stride</td><td>The stride of the new matrix.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">Dense</a> matrix with the type of other. </dd></dl>
 
 </div>
 </div>
@@ -1588,7 +1706,7 @@ template&lt;typename ValueType = default_precision&gt; </div>
 <p>Returns the stride of the matrix. </p>
 <dl class="section return"><dt>Returns</dt><dd>the stride of the matrix. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#a42971e5349decc17ec015a8548ce9f11">gko::matrix::Dense&lt; ValueType &gt;::create_real_view()</a>, and <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#a42971e5349decc17ec015a8548ce9f11">gko::matrix::Dense&lt; ValueType &gt;::create_real_view()</a>, and <a class="el" href="classgko_1_1matrix_1_1Dense.html#a621650dbf619a21aafb8cc311dd14bc9">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>.</p>
 
 </div>
 </div>
@@ -1622,7 +1740,7 @@ template&lt;typename ValueType = default_precision&gt; </div>
 
 <p class="reference">References <a class="el" href="classgko_1_1Array.html#a9acf29878703bb8767e3cea2ba499dae">gko::Array&lt; ValueType &gt;::get_data()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#a42971e5349decc17ec015a8548ce9f11">gko::matrix::Dense&lt; ValueType &gt;::create_real_view()</a>, and <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;::create_submatrix()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#a42971e5349decc17ec015a8548ce9f11">gko::matrix::Dense&lt; ValueType &gt;::create_real_view()</a>.</p>
 
 </div>
 </div>

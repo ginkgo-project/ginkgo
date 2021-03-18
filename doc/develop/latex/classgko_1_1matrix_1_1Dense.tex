@@ -236,7 +236,11 @@ std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{De
 \begin{DoxyCompactItemize}
 \item 
 static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}{create\+\_\+with\+\_\+config\+\_\+of}} (const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $\ast$other)
-\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the configuration of another \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the configuration of another \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix. \end{DoxyCompactList}\item 
+static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a7fb9fae9603ed2fff3eb7c347d326be1}{create\+\_\+with\+\_\+type\+\_\+of}} (const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $\ast$other, std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \&size=\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$\{\})
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the same type and executor as another \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix but a different size. \end{DoxyCompactList}\item 
+static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3a68e08c6bc2f26e192c949a79a48053}{create\+\_\+with\+\_\+type\+\_\+of}} (const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} $\ast$other, std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \&size, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} stride)
+\end{DoxyCompactItemize}
 \doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -644,10 +648,6 @@ Warning\+: defining stride for this create\+\_\+submatrix method might cause wro
 \end{DoxyParams}
 
 
-References gko\+::span\+::begin, gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), gko\+::\+Lin\+Op\+::get\+\_\+size(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+stride(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), and gko\+::\+Array$<$ Value\+Type $>$\+::view().
-
-
-
 Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}\label{classgko_1_1matrix_1_1Dense_a4c2089b9e1f7a99a32488a4964e832db}} 
@@ -666,6 +666,50 @@ Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the 
 {\em other} & The other matrix whose configuration needs to copied. \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a3a68e08c6bc2f26e192c949a79a48053}\label{classgko_1_1matrix_1_1Dense_a3a68e08c6bc2f26e192c949a79a48053}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_with\_type\_of@{create\_with\_type\_of}}
+\index{create\_with\_type\_of@{create\_with\_type\_of}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create\_with\_type\_of()}{create\_with\_type\_of()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+static std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+with\+\_\+type\+\_\+of (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$}]{other,  }\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \&}]{size,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{stride }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+
+
+
+\begin{DoxyParams}{Parameters}
+{\em stride} & The stride of the new matrix.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This is an overload which allows full parameter specification. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a7fb9fae9603ed2fff3eb7c347d326be1}\label{classgko_1_1matrix_1_1Dense_a7fb9fae9603ed2fff3eb7c347d326be1}} 
+\index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!create\_with\_type\_of@{create\_with\_type\_of}}
+\index{create\_with\_type\_of@{create\_with\_type\_of}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create\_with\_type\_of()}{create\_with\_type\_of()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision$>$ \\
+static std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}}$<$ Value\+Type $>$\+::create\+\_\+with\+\_\+type\+\_\+of (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$}]{other,  }\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \&}]{size = {\ttfamily \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$2$>$\{\}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the same type and executor as another \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix but a different size. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & The other matrix whose type we target. \\
+\hline
+{\em exec} & The executor of the new matrix. \\
+\hline
+{\em size} & The size of the new matrix. \\
+\hline
+{\em stride} & The stride of the new matrix.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} matrix with the type of other. 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}\label{classgko_1_1matrix_1_1Dense_a533aa6d9c41c38e0b9353b0e0ef255a1}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!extract\_diagonal@{extract\_diagonal}}
 \index{extract\_diagonal@{extract\_diagonal}!gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}}
@@ -783,7 +827,7 @@ References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
 
 
 
-Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view(), and gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+real\+\_\+view().
 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Dense_af4421d30735edac95994b0c749f90be5}\label{classgko_1_1matrix_1_1Dense_af4421d30735edac95994b0c749f90be5}} 
 \index{gko::matrix::Dense$<$ ValueType $>$@{gko::matrix::Dense$<$ ValueType $>$}!inverse\_column\_permute@{inverse\_column\_permute}}
