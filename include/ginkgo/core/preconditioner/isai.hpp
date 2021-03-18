@@ -179,7 +179,10 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0u);
 
         /**
-         * Factory for the Excess System solver
+         * @brief Factory for the Excess System solver.
+         *
+         * Defaults to using a triangular solver for upper and lower ISAI and
+         * to Block-Jacobi preconditioned GMRES for general and spd ISAI.
          */
         std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_factory, nullptr);
