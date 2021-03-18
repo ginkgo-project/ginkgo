@@ -815,6 +815,7 @@ std::unique_ptr<Matrix> batch_initialize(
                                     std::forward<TArgs>(create_args)...);
 }
 
+
 /**
  * Creates and initializes a column-vector from copies of a given vector.
  *
@@ -822,7 +823,8 @@ std::unique_ptr<Matrix> batch_initialize(
  * passed in values, and then converts the matrix to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                  interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
@@ -866,15 +868,17 @@ std::unique_ptr<Matrix> batch_initialize(
     return mtx;
 }
 
+
 /**
  * Creates and initializes a column-vector from copies of a given vector.
  *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
+ * This function first creates a temporary Dense matrix, fills it with passed
+ * in values, and then converts the matrix to the requested type. The stride of
  * the intermediate Dense matrix is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                  interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
