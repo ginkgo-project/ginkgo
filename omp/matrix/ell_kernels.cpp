@@ -77,8 +77,8 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         std::array<size_type, 1>{num_stored_elements_per_row * stride},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{num_rows, b->get_stride()},
-        b->get_const_values());
+        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
+        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; row++) {
@@ -121,8 +121,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         std::array<size_type, 1>{num_stored_elements_per_row * stride},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{num_rows, b->get_stride()},
-        b->get_const_values());
+        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
+        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
     const auto alpha_val = OutputValueType(alpha->at(0, 0));
     const auto beta_val = beta->at(0, 0);
 

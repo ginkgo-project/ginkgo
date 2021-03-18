@@ -159,8 +159,8 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
             <<<grid_size, block_size, 0, 0>>>(
                 nrows, num_worker_per_row, as_cuda_accessor(a_vals),
                 a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-                as_cuda_accessor(b_vals), b->get_stride(),
-                as_cuda_type(c->get_values()), c->get_stride());
+                as_cuda_accessor(b_vals), as_cuda_type(c->get_values()),
+                c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
         const auto alpha_val = gko::acc::range<a_accessor>(
             std::array<size_type, 1>{1}, alpha->get_const_values());
@@ -169,7 +169,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                 nrows, num_worker_per_row, as_cuda_accessor(alpha_val),
                 as_cuda_accessor(a_vals), a->get_const_col_idxs(), stride,
                 num_stored_elements_per_row, as_cuda_accessor(b_vals),
-                b->get_stride(), as_cuda_type(beta->get_const_values()),
+                as_cuda_type(beta->get_const_values()),
                 as_cuda_type(c->get_values()), c->get_stride());
     } else {
         GKO_KERNEL_NOT_FOUND;

@@ -41,8 +41,8 @@ __device__ void spmv_kernel(
     const size_type num_rows, const int num_worker_per_row,
     acc::range<a_accessor> val, const IndexType *__restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, const size_type b_stride,
-    OutputValueType *__restrict__ c, const size_type c_stride, Closure op)
+    acc::range<b_accessor> b, OutputValueType *__restrict__ c,
+    const size_type c_stride, Closure op)
 {
     const auto tidx = thread::get_thread_id_flat();
     const decltype(tidx) column_id = blockIdx.y;
@@ -109,12 +109,12 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const int num_worker_per_row,
     acc::range<a_accessor> val, const IndexType *__restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, const size_type b_stride,
-    OutputValueType *__restrict__ c, const size_type c_stride)
+    acc::range<b_accessor> b, OutputValueType *__restrict__ c,
+    const size_type c_stride)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
-        num_stored_elements_per_row, b, b_stride, c, c_stride,
+        num_stored_elements_per_row, b, c, c_stride,
         [](const OutputValueType &x, const OutputValueType &y) { return x; });
 }
 
@@ -126,8 +126,8 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     acc::range<a_accessor> alpha, acc::range<a_accessor> val,
     const IndexType *__restrict__ col, const size_type stride,
     const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
-    const size_type b_stride, const OutputValueType *__restrict__ beta,
-    OutputValueType *__restrict__ c, const size_type c_stride)
+    const OutputValueType *__restrict__ beta, OutputValueType *__restrict__ c,
+    const size_type c_stride)
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
@@ -138,14 +138,14 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     if (atomic) {
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
+            num_stored_elements_per_row, b, c, c_stride,
             [&alpha_val](const OutputValueType &x, const OutputValueType &y) {
                 return alpha_val * x;
             });
     } else {
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
+            num_stored_elements_per_row, b, c, c_stride,
             [&alpha_val, &beta_val](const OutputValueType &x,
                                     const OutputValueType &y) {
                 return alpha_val * x + beta_val * y;
