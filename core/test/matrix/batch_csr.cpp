@@ -213,23 +213,6 @@ TYPED_TEST(BatchCsr, CanBeCleared)
 }
 
 
-TYPED_TEST(BatchCsr, CanBeUnbatchedIntoCsrMatrices)
-{
-    using value_type = typename TestFixture::value_type;
-    using CsrMtx = typename TestFixture::CsrMtx;
-    using size_type = gko::size_type;
-    auto mat1 =
-        gko::initialize<CsrMtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
-    auto mat2 =
-        gko::initialize<CsrMtx>({{3.0, 5.0, 1.0}, {0.0, 1.0, 0.0}}, this->exec);
-
-    auto unbatch_mats = this->mtx->unbatch();
-
-    GKO_ASSERT_MTX_NEAR(unbatch_mats[0].get(), mat1.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(unbatch_mats[1].get(), mat2.get(), 0.);
-}
-
-
 TYPED_TEST(BatchCsr, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
