@@ -53,6 +53,8 @@ namespace {
 
 
 enum struct matrix_type { lower, upper, general, spd };
+
+
 class Isai : public ::testing::Test {
 protected:
     using value_type = double;
