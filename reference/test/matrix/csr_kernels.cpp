@@ -595,7 +595,7 @@ TYPED_TEST(Csr, CanComputeBlockApprox)
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
     auto perm = gko::Array<gko::size_type>{};
-    auto block_mtxs = mat->get_block_approx(b_sizes, perm);
+    auto block_mtxs = mat->get_block_approx(b_sizes);
 
     auto mat1 = gko::initialize<Mtx>(
         {{1.0, 2.0, 0.0}, {0.0, 3.0, 0.0}, {0.0, 3.0, 2.5}}, exec);
@@ -623,7 +623,7 @@ TYPED_TEST(Csr, CanComputeBlockApprox2)
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
     auto perm = gko::Array<gko::size_type>{};
-    auto block_mtxs = mat->get_block_approx(b_sizes, perm);
+    auto block_mtxs = mat->get_block_approx(b_sizes);
 
     auto mat1 = gko::initialize<Mtx>({1.0}, exec);
     auto mat2 = gko::initialize<Mtx>(

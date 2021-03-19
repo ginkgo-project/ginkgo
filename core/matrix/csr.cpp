@@ -154,14 +154,17 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>
-Csr<ValueType, IndexType>::get_block_approx(Array<size_type> block_sizes,
-                                            Array<size_type> permutation) const
+Csr<ValueType, IndexType>::get_block_approx(
+    const Array<size_type> &block_sizes_in,
+    const Overlap<size_type> &block_overlaps,
+    const Array<size_type> &permutation) const
 {
     auto exec = this->get_executor();
-    block_sizes.set_executor(exec->get_master());
+    Array<size_type> block_sizes(exec->get_master());
+    block_sizes = block_sizes_in;
     size_type num_blocks = block_sizes.get_num_elems();
     std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> block_mtxs;
-    if (permutation.get_data() == nullptr) {
+    if (permutation.get_const_data() == nullptr) {
         size_type block_offset = 0;
         for (size_type i = 0; i < num_blocks; ++i) {
             auto block_size = block_sizes.get_data()[i];

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -52,6 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+template <typename ValueType>
+class Overlap;
+
+
 namespace matrix {
 
 
@@ -724,8 +731,9 @@ template <typename ConcreteType>
 class BlockApproximatable {
 public:
     virtual std::vector<std::unique_ptr<ConcreteType>> get_block_approx(
-        Array<size_type> num_blocks,
-        Array<size_type> permutation = {}) const = 0;
+        const Array<size_type> &block_sizes,
+        const gko::Overlap<size_type> &block_overlaps = {},
+        const Array<size_type> &permutation = {}) const = 0;
 };
 
 

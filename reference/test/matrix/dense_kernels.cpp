@@ -1823,6 +1823,28 @@ TYPED_TEST(Dense, CanComputeBlockApprox)
 }
 
 
+TYPED_TEST(Dense, CanComputeBlockApproxWithOverlap)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx9->get_executor();
+    auto b_sizes =
+        gko::Array<gko::size_type>(this->mtx9->get_executor(), {2, 1, 2});
+    auto perm = gko::Array<gko::size_type>{};
+    auto block_mtxs = this->mtx9->get_block_approx(b_sizes);
+
+    auto mtx91 =
+        gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
+    auto mtx92 = gko::initialize<Mtx>({2.5}, exec);
+    auto mtx93 =
+        gko::initialize<Mtx>({I<T>({3.0, 4.0}), I<T>({1.5, 3.0})}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0], mtx91.get(), r<TypeParam>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1], mtx92.get(), r<TypeParam>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2], mtx93.get(), r<TypeParam>::value);
+}
+
+
 TYPED_TEST(Dense, ConvertsEmptyToPrecision)
 {
     using Dense = typename TestFixture::Mtx;

@@ -366,6 +366,25 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, BlockApproxIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(231, 231, 25);
+    auto d_mat = Mtx::create(omp);
+    d_mat->copy_from(mat.get());
+    auto b_sizes = gko::Array<gko::size_type>(ref, {3, 2, 1, 5, 52, 74, 94});
+    auto d_b_sizes = gko::Array<gko::size_type>(omp);
+    d_b_sizes = b_sizes;
+
+    auto block_mtxs = mat->get_block_approx(b_sizes);
+    auto d_block_mtxs = d_mat->get_block_approx(d_b_sizes);
+    ASSERT_EQ(block_mtxs.size(), 7);
+    ASSERT_EQ(block_mtxs.size(), d_block_mtxs.size());
+    for (auto i = 0; i < block_mtxs.size(); ++i) {
+        GKO_ASSERT_MTX_NEAR(d_block_mtxs[i], block_mtxs[i], 0.0);
+    }
+}
+
+
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
     set_up_apply_data();

@@ -229,14 +229,17 @@ inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
 
 template <typename ValueType>
 std::vector<std::unique_ptr<Dense<ValueType>>>
-Dense<ValueType>::get_block_approx(Array<size_type> block_sizes,
-                                   Array<size_type> permutation) const
+Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
+                                   const Overlap<size_type> &block_overlaps,
+                                   const Array<size_type> &permutation) const
 {
-    block_sizes.set_executor(this->get_executor()->get_master());
+    auto exec = this->get_executor();
+    Array<size_type> block_sizes(exec->get_master());
+    block_sizes = block_sizes_in;
     size_type num_blocks = block_sizes.get_num_elems();
     std::vector<std::unique_ptr<Dense>> block_mtxs;
     // TODO Maybe move to separate optimized kernels
-    if (permutation.get_data() == nullptr) {
+    if (permutation.get_const_data() == nullptr) {
         size_type block_offset = 0;
         for (size_type i = 0; i < num_blocks; ++i) {
             auto block_size = block_sizes.get_data()[i];
@@ -254,6 +257,7 @@ Dense<ValueType>::get_block_approx(Array<size_type> block_sizes,
             block_offset += block_sizes.get_data()[i];
         }
     } else {
+        GKO_NOT_IMPLEMENTED;
     }
     block_sizes.set_executor(this->get_executor());
     return block_mtxs;
