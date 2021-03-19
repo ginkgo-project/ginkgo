@@ -305,6 +305,18 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_u_solver_factory(uisai)
                  .on(exec);
          }},
+        {"general-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::GeneralIsai<>::build()
+                 .with_sparsity_power(FLAGS_isai_power)
+                 .on(exec);
+         }},
+        {"spd-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::SpdIsai<>::build()
+                 .with_sparsity_power(FLAGS_isai_power)
+                 .on(exec);
+         }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
                  .with_criteria(gko::stop::ResidualNorm<etype>::build()

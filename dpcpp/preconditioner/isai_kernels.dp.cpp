@@ -87,23 +87,50 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(
-    std::shared_ptr<const DefaultExecutor>,
-    const matrix::Csr<ValueType, IndexType> *input,
-    const matrix::Csr<ValueType, IndexType> *inverse,
-    const IndexType *excess_rhs_ptrs, const IndexType *excess_nz_ptrs,
-    matrix::Csr<ValueType, IndexType> *excess_system,
-    matrix::Dense<ValueType> *excess_rhs) GKO_NOT_IMPLEMENTED;
+void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *input,
+                              matrix::Csr<ValueType, IndexType> *inverse,
+                              IndexType *excess_rhs_ptrs,
+                              IndexType *excess_nz_ptrs,
+                              bool spd) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
+                            const matrix::Csr<ValueType, IndexType> *input,
+                            const matrix::Csr<ValueType, IndexType> *inverse,
+                            const IndexType *excess_rhs_ptrs,
+                            const IndexType *excess_nz_ptrs,
+                            matrix::Csr<ValueType, IndexType> *excess_system,
+                            matrix::Dense<ValueType> *excess_rhs,
+                            size_type e_start,
+                            size_type e_end) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(
-    std::shared_ptr<const DefaultExecutor>, const IndexType *excess_block_ptrs,
-    const matrix::Dense<ValueType> *excess_solution,
-    matrix::Csr<ValueType, IndexType> *inverse) GKO_NOT_IMPLEMENTED;
+void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                           const IndexType *excess_block_ptrs,
+                           matrix::Dense<ValueType> *excess_solution,
+                           size_type e_start,
+                           size_type e_end) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                             const IndexType *excess_block_ptrs,
+                             const matrix::Dense<ValueType> *excess_solution,
+                             matrix::Csr<ValueType, IndexType> *inverse,
+                             size_type e_start,
+                             size_type e_end) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);

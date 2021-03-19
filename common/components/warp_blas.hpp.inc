@@ -86,6 +86,54 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
 /**
  * @internal
  *
+ * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
+ * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using the
+ * thread group `group. Each thread contributes one `row` of the matrix, and the
+ * routine uses warp shuffles to exchange data between rows. The transform is
+ * performed by using the `key_row`-th row and `key_col`-th column of the
+ * matrix.
+ * Works with one right hand side vector `rhs` which can be directly worked on
+ * when solving Ax = rhs without the need of storing the inverse of A.
+ */
+template <
+    int max_problem_size, typename Group, typename ValueType,
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
+__device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
+    const Group &__restrict__ group, int32 key_row, int32 key_col,
+    ValueType *__restrict__ row, ValueType *__restrict__ rhs,
+    bool &__restrict__ status)
+{
+    auto key_col_elem = group.shfl(row[key_col], key_row);
+    auto key_rhs_elem = group.shfl(rhs[0], key_row);
+    if (key_col_elem == zero<ValueType>()) {
+        // TODO: implement error handling for GPUs to be able to properly
+        //       report it here
+        status = false;
+        return;
+    }
+    if (group.thread_rank() == key_row) {
+        key_col_elem = one<ValueType>() / key_col_elem;
+        rhs[0] = key_rhs_elem * key_col_elem;
+    } else {
+        key_col_elem = -row[key_col] / key_col_elem;
+        rhs[0] += key_rhs_elem * key_col_elem;
+    }
+#pragma unroll
+    for (int32 i = 0; i < max_problem_size; ++i) {
+        const auto key_row_elem = group.shfl(row[i], key_row);
+        if (group.thread_rank() == key_row) {
+            row[i] = zero<ValueType>();
+        }
+        // rhs[0] += key_rhs_elem * key_row_elem;
+        row[i] += key_col_elem * key_row_elem;
+    }
+    row[key_col] = key_col_elem;
+}
+
+
+/**
+ * @internal
+ *
  * Inverts a matrix using Gauss-Jordan elimination. The inversion is
  * done in-place, so the original matrix will be overridden with the inverse.
  * The inversion routine uses implicit pivoting, so the returned matrix will be
