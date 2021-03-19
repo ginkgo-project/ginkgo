@@ -144,6 +144,19 @@ struct dim {
     }
 
     /**
+     * Adds two dim objects.
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return a dim object representing the size of the sum `x + y`
+     */
+    friend constexpr GKO_ATTRIBUTES dim operator+(const dim& x, const dim& y)
+    {
+        return dim(x.first_ + y.first_, x.rest_ + y.rest_);
+    }
+
+    /**
      * Multiplies two dim objects.
      *
      * @param x  first object
@@ -221,6 +234,11 @@ struct dim<1u, DimensionType> {
     friend constexpr GKO_ATTRIBUTES bool operator==(const dim& x, const dim& y)
     {
         return x.first_ == y.first_;
+    }
+
+    friend constexpr GKO_ATTRIBUTES dim operator+(const dim& x, const dim& y)
+    {
+        return dim(x.first_ + y.first_);
     }
 
     friend constexpr GKO_ATTRIBUTES dim operator*(const dim& x, const dim& y)

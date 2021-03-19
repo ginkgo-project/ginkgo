@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -361,8 +362,9 @@ public:
         const Array<int64>* permutation_indices) const override;
 
     std::vector<std::unique_ptr<Dense>> get_block_approx(
-        Array<size_type> block_sizes,
-        Array<size_type> permutation = {}) const override;
+        const Array<size_type> &block_sizes,
+        const Overlap<size_type> &block_overlaps = {},
+        const Array<size_type> &permutation = {}) const override;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.

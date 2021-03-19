@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 
 
 namespace gko {
@@ -780,8 +781,9 @@ public:
     void compute_absolute_inplace() override;
 
     std::vector<std::unique_ptr<Csr>> get_block_approx(
-        Array<size_type> block_sizes,
-        Array<size_type> permutation = {}) const override;
+        const Array<size_type> &num_blocks,
+        const Overlap<size_type> &block_overlaps = {},
+        const Array<size_type> &permutation = {}) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
