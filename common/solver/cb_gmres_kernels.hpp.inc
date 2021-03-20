@@ -326,8 +326,8 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row; i < end_row; i += blockDim.y) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases(k, i, col_idx);
+            ValueType other_basis = krylov_bases(k, i, col_idx);
+            local_res += next_krylov_basis[next_krylov_idx] * conj(other_basis);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
@@ -380,8 +380,8 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     if (!stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row; i < end_row; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res += next_krylov_basis[next_krylov_idx] *
-                         krylov_bases(k, i, col_idx);
+            ValueType other_basis = krylov_bases(k, i, col_idx);
+            local_res += next_krylov_basis[next_krylov_idx] * conj(other_basis);
         }
     }
     // Transpose local_res, so each warp contains a local_res from the same
