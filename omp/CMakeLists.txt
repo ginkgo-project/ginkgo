@@ -29,6 +29,7 @@ target_sources(ginkgo_omp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
+	solver/batch_richardson_kernels.cpp
     solver/gmres_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
