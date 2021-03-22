@@ -51,50 +51,27 @@ namespace solver {
 
 
 /**
- * Richardson is an iterative method that uses a preconditioner to approximate
- * the error of the current solution via the current residual.
- * This solver applies Richardson iteration to a batch of linear systems.
- *
- * For any approximation of the solution `solution` to the system `Ax = b`, the
- * residual is defined as: `residual = b - A solution`. The error in
- * `solution`,  `e = x - solution` (with `x` being the exact solution) can be
- * obtained as the solution to the residual equation `Ae = residual`, since `A e
- * = Ax - A solution = b - A solution = residual`. Then, the real solution is
- * computed as `x = relaxation_factor * solution + e`. Instead of accurately
- * solving the residual equation `Ae = residual`, the solution of the system `e`
- * can be approximated to obtain the approximation `error` using a coarse method
- * `solver`, which is used to update `solution`, and the entire process is
- * repeated with the updated `solution`.  This yields the iterative refinement
- * method:
+ * The (preconditioned) Richardson solver is an iterative method that uses
+ * a preconditioner to approximate the error of the current solution via the
+ * current (preconditioned) residual.
+ * This solver applies the Richardson iteration to a batch of linear systems.
  *
  * ```
  * solution = initial_guess
  * while not converged:
  *     residual = b - A solution
- *     error = solver(A, residual)
+ *     error = preconditioner(A, residual)
  *     solution = solution + relaxation_factor * error
  * ```
  *
- * With `relaxation_factor` equal to 1 (default), the solver is Iterative
- * Refinement, with `relaxation_factor` equal to a value other than `1`, the
- * solver is a Richardson iteration, with possibility for additional
- * preconditioning.
+ * Unless otherwise specified via the `preconditioner` factory parameter, this
+ * implementation uses the Jacobi preconditioner as the default preconditioner.
+ * The only stopping criterion currently available is controlled by the
+ * `max_iterations` and `rel_residual_tol` factory parameters. The solver is
+ * stopped whrn the maximum iterations are reached, or the relative residual
+ * is smaller than the specified tolerance.
  *
- * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
- * iterative refinement will converge with a convergence rate of `c`. Indeed,
- * from `e - error = x - solution - error = x - solution*` (where `solution*`
- * denotes the value stored in `solution` after the update) and `e = inv(A)
- * residual = inv(A)b - inv(A) A solution = x - solution` it follows that | x -
- * solution* | <= c | x - solution |.
- *
- * Unless otherwise specified via the `solver` factory parameter, this
- * implementation uses the identity operator (i.e. the solver that approximates
- * the solution of a system Ax = b by setting x := b) as the default inner
- * solver. Such a setting results in a relaxation method known as the Richardson
- * iteration with parameter 1, which is guaranteed to converge for matrices
- * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
- * its eigenvalues `lambda` have to satisfy the equation `|relaxation_factor *
- * lambda - 1| < 1).
+ * @sa Ir
  *
  * @tparam ValueType  precision of matrix elements
  *
