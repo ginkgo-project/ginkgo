@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
+#include "core/solver/batch_richardson_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -707,6 +708,18 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace ir
+
+
+namespace batch_rich {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
+
+
+}  // namespace batch_rich
 
 
 namespace sparsity_csr {
