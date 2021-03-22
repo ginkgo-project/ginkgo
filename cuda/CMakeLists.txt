@@ -85,6 +85,7 @@ target_sources(ginkgo_cuda
     base/executor.cpp
     base/version.cpp
     components/absolute_array.cu
+    components/accumulate_array.cu
     components/fill_array.cu
     components/prefix_sum.cu
     distributed/matrix_kernels.cu

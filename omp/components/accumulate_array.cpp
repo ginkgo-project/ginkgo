@@ -30,58 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/accumulate_array.hpp"
+
+#include <numeric>
+
+namespace gko {
+namespace kernels {
+namespace omp {
+namespace components {
 
 
-#include <algorithm>
+template <typename ValueType>
+void accumulate_array(std::shared_ptr<const DefaultExecutor> exec,
+                      ValueType *sum, const ValueType *array, const size_type n,
+                      const ValueType val)
+{
+#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 
-
-#include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
+    sum[0] = val;
+#pragma omp parallel for shared(array) reduction(add : sum[0])
+    for (size_type i = 0; i < n; ++i) {
+        sum[0] += array[i];
     }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
 }
 
-
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
-}
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ACCUMULATE_ARRAY_KERNEL);
 
 
-}  // namespace
+}  // namespace components
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko

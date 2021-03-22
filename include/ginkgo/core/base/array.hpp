@@ -480,6 +480,13 @@ public:
     }
 
     /**
+     * Accumulates the values in the array
+     *
+     * @param value the initial value to start the accumulation.
+     */
+    ValueType accumulate(const ValueType value) const;
+
+    /**
      * Fill the array with the given value.
      *
      * @param value the value to be filled

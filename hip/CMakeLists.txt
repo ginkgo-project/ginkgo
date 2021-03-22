@@ -148,6 +148,7 @@ set(GINKGO_HIP_SOURCES
     base/executor.hip.cpp
     base/version.hip.cpp
     components/absolute_array.hip.cpp
+    components/accumulate_array.hip.cpp
     components/fill_array.hip.cpp
     components/prefix_sum.hip.cpp
     distributed/matrix_kernels.hip.cpp

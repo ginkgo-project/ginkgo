@@ -30,58 +30,82 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#ifndef GKO_CORE_COMPONENTS_ACCUMULATE_ARRAY_HPP_
+#define GKO_CORE_COMPONENTS_ACCUMULATE_ARRAY_HPP_
 
 
-#include <algorithm>
-
-
-#include <gtest/gtest.h>
+#include <memory>
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include "core/test/utils.hpp"
+namespace gko {
+namespace kernels {
 
 
-namespace {
+#define GKO_DECLARE_ACCUMULATE_ARRAY_KERNEL(ValueType)                 \
+    void accumulate_array(std::shared_ptr<const DefaultExecutor> exec, \
+                          ValueType *sum, const ValueType *data,       \
+                          const size_type num_entries, const ValueType val)
 
 
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename ValueType>    \
+    GKO_DECLARE_ACCUMULATE_ARRAY_KERNEL(ValueType)
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
+namespace omp {
+namespace components {
 
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace omp
 
 
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
+namespace cuda {
+namespace components {
 
-    ASSERT_EQ(sum, TypeParam{49});
-}
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace cuda
 
 
-}  // namespace
+namespace reference {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace reference
+
+
+namespace hip {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace hip
+
+
+namespace dpcpp {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace dpcpp
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_COMPONENTS_ACCUMULATE_ARRAY_HPP_
