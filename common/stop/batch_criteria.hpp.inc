@@ -62,6 +62,17 @@ public:
     using bitset_type = uint32;
     static constexpr int max_nrhs = 32;
 
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param num_rhs  The number of right-hand-sides in the linear systems.
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param converged_bitset  A bit-set representing the state of convergence
+     *                          of each RHS: 1 for converged and 0 otherwise.
+     *                          It is initialized appropriately here, and must
+     *                          be passed to the \ref check_converged function.
+     * @param rhs_b_norms  The reference RHS norms.
+     */
     __device__ __forceinline__ RelResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type rel_res_tol,
         bitset_type &converge_bitset, const real_type *const rhs_b_norms)
@@ -79,9 +90,14 @@ public:
     /**
      * Checks whether the different right hand sides have converged.
      *
-     * @param converged  Bits that represent whether a RHS has converged (1)
-     *                   or not (0).
-     *                   The 'right-most' bit corresponds to the first RHS.
+     * @param iter  The current iteration count.
+     * @param residual_norms  (Optional) current residual norm of each RHS.
+     * @param residual  Current residual vectors. Unused if residual_norms
+     *                  are provided.
+     * @param converged  Bits representing converged (1) or not (0) for each
+     *                   RHS. The 'right-most' bit corresponds to the first RHS.
+     *
+     * @return  True if all RHS have converged, false otherwise.
      */
     __device__ __forceinline__ bool check_converged(
         const int iter, const real_type *const residual_norms,
