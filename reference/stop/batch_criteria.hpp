@@ -64,6 +64,9 @@ constexpr uint32 pow(const uint32 x, const int N)
 }  // namespace detail
 
 /**
+ * A stopping criterion for batch solvers that comprises a
+ * maximum iteration count as well as relative residual tolerance.
+ *
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
@@ -73,6 +76,17 @@ public:
     using bitset_type = uint32;
     static constexpr int max_nrhs = 32;
 
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param num_rhs  The number of right-hand-sides in the linear systems.
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param converged_bitset  A bit-set representing the state of convergence
+     *                          of each RHS: 1 for converged and 0 otherwise.
+     *                          It is initialized appropriately here, and must
+     *                          be passed to the \ref check_converged function.
+     * @param rhs_b_norms  The reference RHS norms.
+     */
     RelResidualMaxIter(const int num_rhs, const int max_iters,
                        const real_type rel_res_tol,
                        bitset_type &converge_bitset,
@@ -91,8 +105,14 @@ public:
     /**
      * Checks whether the different right hand sides have converged.
      *
+     * @param iter  The current iteration count.
+     * @param residual_norms  (Optional) current residual norm of each RHS.
+     * @param residual  Current residual vectors. Unused if residual_norms
+     *                  are provided.
      * @param converged  Bits representing converged (1) or not (0) for each
-     * RHS. The 'right-most' bit corresponds to the first RHS.
+     *                   RHS. The 'right-most' bit corresponds to the first RHS.
+     *
+     * @return  True if all RHS have converged, false otherwise.
      */
     bool check_converged(
         const int iter, const real_type *const residual_norms,
