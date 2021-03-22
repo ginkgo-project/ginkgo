@@ -60,6 +60,7 @@ target_sources(ginkgo
     reorder/amd.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+	solver/batch_richardson.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
