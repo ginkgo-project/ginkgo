@@ -162,14 +162,14 @@ static void apply_impl(
 
             // zero out dx for rhs's which do not need to be updated,
             //  though this is unnecessary for this solver.
-            // for(int j = 0; j < nrhs; j++) {
-            // 	const uint32 conv = converged & (1 << j);
-            // 	if(conv) {
-            // 		for(int i = 0; i < nrows; i++) {
-            // 			dx_b.values[i*dx_b.stride + j] = 0.0;
-            // 		}
-            // 	}
-            // }
+            for (int j = 0; j < nrhs; j++) {
+                const uint32 conv = converged & (1 << j);
+                if (conv) {
+                    for (int i = 0; i < nrows; i++) {
+                        dx_b.values[i * dx_b.stride + j] = 0.0;
+                    }
+                }
+            }
 
             batch_dense::add_scaled(one_b, gko::batch_dense::to_const(dx_b),
                                     x_b);
