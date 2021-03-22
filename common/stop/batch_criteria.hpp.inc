@@ -53,6 +53,9 @@ constexpr uint32 pow(const uint32 x, const int N)
 }  // namespace detail
 
 /**
+ * A stopping criterion for batch solvers that comprises a
+ * maximum iteration count as well as relative residual tolerance.
+ *
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
