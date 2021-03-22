@@ -89,7 +89,6 @@ __global__ void apply_kernel(
         }
         batch_dense::compute_norm2<ValueType>(gko::batch_dense::to_const(r_b),
                                               norms_b);
-        // for now, convergence is purely determined by the first RHS
         __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
             init_rel_res_norm[iz] = sqrt(norms_b.values[iz]);
