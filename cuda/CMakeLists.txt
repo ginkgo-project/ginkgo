@@ -111,6 +111,7 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
+	solver/batch_richardson_kernels.cu
     solver/bicg_kernels.cu
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu

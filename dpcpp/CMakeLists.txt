@@ -37,6 +37,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
+	solver/batch_richardson_kernels.dp.cpp
     solver/bicg_kernels.dp.cpp
     solver/bicgstab_kernels.dp.cpp
     solver/cg_kernels.dp.cpp

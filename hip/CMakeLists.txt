@@ -181,6 +181,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
+	solver/batch_richardson_kernels.hip.cpp
     solver/bicg_kernels.hip.cpp
     solver/bicgstab_kernels.hip.cpp
     solver/cg_kernels.hip.cpp
