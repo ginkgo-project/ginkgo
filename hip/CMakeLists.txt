@@ -270,15 +270,21 @@ elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
 endif()
 
-set(RPATH_ADD_HIP_PATH "")
-if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
-    set(RPATH_ADD_HIP_PATH "${HIP_PATH}/lib")
+# Try to find everything in /opt/rocm/lib first.
+set(GKO_HIP_RPATH "${ROCM_PATH}/lib" )
+if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
+    list(GET CUDA_LIBRARIES 0 CUDA_FIRST_LIB)
+    get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
+    list(APPEND GKO_HIP_RPATH "${GKO_CUDA_LIBDIR}")
+else()
+    list(APPEND GKO_HIP_RPATH "${HIP_PATH}/lib")
 endif()
+list(APPEND GKO_HIP_RPATH "${HIPBLAS_PATH}/lib" "${HIPRAND_PATH}/lib"
+    "${HIPSPARSE_PATH}/lib" "${ROCRAND_PATH}/lib")
 
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
-ginkgo_install_library(ginkgo_hip hip "${RPATH_ADD_HIP_PATH}" "${HIPBLAS_PATH}/lib"
-    "${HIPRAND_PATH}/lib" "${HIPSPARSE_PATH}/lib" "${ROCRAND_PATH}/lib")
+ginkgo_install_library(ginkgo_hip hip "${GKO_HIP_RPATH}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip)

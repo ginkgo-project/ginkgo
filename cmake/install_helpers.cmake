@@ -8,27 +8,32 @@ set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
 
-function(ginkgo_install_library name subdir)
-    # This setting sets the directory of the library as the `INSTALL_RPATH`.
-    # This is required for `libginkgo.so` to find its dependencies such as
-    # `libginkgo_omp.so` etc. Note that with this setting it's not possible on
-    # Linux to control which Ginkgo libraries are found and where: if all the
-    # libraries are present in the directory, these will be used first and
-    # foremost and the environment variable `LD_LIBRARY_PATH` will have no
-    # effect.
+function(ginkgo_add_install_rpath name subdir)
     if (BUILD_SHARED_LIBS)
-        set (HWLOC_LIB_PATH "")
-        if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)
-            get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
+        if (GINKGO_INSTALL_RPATH_ORIGIN)
+            if (APPLE)
+                set(ORIGIN_OR_LOADER_PATH "@loader_path")
+            else()
+                set(ORIGIN_OR_LOADER_PATH "$ORIGIN")
+            endif()
         endif()
-        if (APPLE)
-            set(ORIGIN_OR_LOADER_PATH "@loader_path")
-        else()
-            set(ORIGIN_OR_LOADER_PATH "$ORIGIN")
+        if (GINKGO_INSTALL_RPATH_DEPENDENCIES)
+            set(RPATH_DEPENDENCIES "${ARGN}")
+            if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)
+                get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
+                list(APPEND RPATH_DEPENDENCIES "${HWLOC_LIBRARIES}")
+            endif()
         endif()
-        set_property(TARGET "${name}" PROPERTY INSTALL_RPATH
-        "${ORIGIN_OR_LOADER_PATH}" "${HWLOC_LIB_PATH}" "${ARGN}")
+        if (GINKGO_INSTALL_RPATH)
+            set_property(TARGET "${name}" PROPERTY INSTALL_RPATH
+                "${ORIGIN_OR_LOADER_PATH}" "${RPATH_DEPENDENCIES}")
+        endif()
     endif()
+endfunction()
+
+function(ginkgo_install_library name subdir)
+    ginkgo_add_install_rpath("${name}" "${subdir}" "${ARGN}")
+
     if (WIN32 OR CYGWIN)
         # dll is considered as runtime
         install(TARGETS "${name}"
