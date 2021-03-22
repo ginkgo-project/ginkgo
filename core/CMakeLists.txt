@@ -64,18 +64,22 @@ add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 # The PAPI dependency needs to be exposed to the user.
+set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+    list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
+    get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
+    list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
 endif()
 
-# Since we have a public dependency on HIP, this dependency appears here as well
-set(RPATH_ADD_HIP_PATH "")
+# Since we have a public dependency on HIP, this dependency appears
+# here as well
 if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
-    set(RPATH_ADD_HIP_PATH "${HIP_PATH}/lib")
+    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
 endif()
 
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo core "${RPATH_ADD_HIP_PATH}")
+ginkgo_install_library(ginkgo core "${GKO_RPATH_ADDITIONS}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo)

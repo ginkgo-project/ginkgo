@@ -72,6 +72,9 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
+option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
+option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
