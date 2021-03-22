@@ -31,18 +31,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
+/**
+ * (Scalar) Jacobi preconditioner for batch solvers.
+ */
 template <typename ValueType>
 class BatchJacobi final {
 public:
+    /**
+     * The size of the work vector required in case of static allocation.
+     */
     static constexpr int work_size = batch_config<ValueType>::max_num_rows;
 
+    /**
+     * The size of the work vector required in case of dynamic allocation.
+     *
+     * For the Jacobi preconditioner, this is unnecessary, but this function is
+     * part of a 'batch preconditioner interface' because other preconditioners
+     * may need it.
+     */
     static constexpr int dynamic_work_size(int, int)
     {
         return batch_config<ValueType>::max_num_rows;
     }
 
-    // Can decide to have a separate generate function instead of generating
-    // constructor
+    /**
+     * @param mat  Matrix for which to build a Jacobi preconditioner.
+     * @param work  A 'work-vector', used here to store the inverse diagonal
+     *              entries. It must be allocated with at least the amount
+     *              of memory given by work_size or dynamic_work_size.
+     */
     GKO_ATTRIBUTES GKO_INLINE
     BatchJacobi(const gko::batch_csr::BatchEntry<const ValueType> &mat,
                 ValueType *const __restrict__ work)
