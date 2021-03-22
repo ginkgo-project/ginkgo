@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+#define GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+
+
 #include <algorithm>
 
 
@@ -57,9 +61,9 @@ using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
 
 
 template <typename ValueType>
-void simple_apply(const BatchEntry<const ValueType> &a,
-                  const BatchEntry<const ValueType> &b,
-                  const BatchEntry<ValueType> &c)
+inline void simple_apply(const BatchEntry<const ValueType> &a,
+                         const BatchEntry<const ValueType> &b,
+                         const BatchEntry<ValueType> &c)
 {
     for (int row = 0; row < c.num_rows; ++row) {
         for (int col = 0; col < c.num_rhs; ++col) {
@@ -175,3 +179,6 @@ inline void compute_norm2(const BatchEntry<const ValueType> &x,
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif
