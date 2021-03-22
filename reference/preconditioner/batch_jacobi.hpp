@@ -68,13 +68,14 @@ public:
     }
 
     /**
+     * Sets the input and generates the preconditioner by storing the inverse
+     * diagonal entries in the work vector.
+     *
      * @param mat  Matrix for which to build a Jacobi preconditioner.
      * @param work  A 'work-vector', used here to store the inverse diagonal
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    // Can decide to have a separate generate function instead of generating
-    // constructor
     BatchJacobi(const gko::batch_csr::BatchEntry<const ValueType> &mat,
                 ValueType *const work)
         : matrix_{mat}, work_{work}
