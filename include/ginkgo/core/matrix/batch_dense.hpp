@@ -1010,6 +1010,101 @@ std::unique_ptr<Matrix> batch_initialize(
                                     std::forward<TArgs>(create_args)...);
 }
 
+/**
+ * Creates and initializes a matrix from copies of a given matrix.
+ *
+ * This function first creates a temporary batch dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param stride  row strides for the temporary batch dense matrix
+ * @param num_matrices  The number of times the input matrix is copied into
+ *                     the final output
+ * @param vals  values used to initialize each vector in the temp. batch
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> batch_initialize(
+    std::vector<size_type> stride, const size_type num_matrices,
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
+    const size_type num_batches = num_matrices;
+    std::vector<dim<2>> sizes(num_matrices);
+    const size_type num_rows = vals.size();
+    for (size_type b = 0; b < num_matrices; ++b) {
+        const size_type num_cols = begin(vals)->size();
+        sizes[b] = dim<2>(num_rows, num_cols);
+        for (auto blockit = begin(vals); blockit != end(vals); ++blockit) {
+            GKO_ASSERT(blockit->size() == num_cols);
+        }
+    }
+    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    size_type batch = 0;
+    for (size_type batch = 0; batch < num_matrices; batch++) {
+        size_type ridx = 0;
+        for (const auto &row : vals) {
+            size_type cidx = 0;
+            for (const auto &elem : row) {
+                tmp->at(batch, ridx, cidx) = elem;
+                ++cidx;
+            }
+            ++ridx;
+        }
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
+}
+
+/**
+ * Creates and initializes a matrix from copies of a given matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * values, and then converts the matrix to the requested type. The stride of
+ * the intermediate Dense matrix is set to 1.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param num_vectors  The number of times the input vector is copied into
+ *                     the final output
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> batch_initialize(
+    const size_type num_matrices,
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+{
+    auto strides = std::vector<size_type>(num_matrices, begin(vals)->size());
+    return batch_initialize<Matrix>(strides, num_matrices, vals,
+                                    std::move(exec),
+                                    std::forward<TArgs>(create_args)...);
+}
+
 
 }  // namespace gko
 
