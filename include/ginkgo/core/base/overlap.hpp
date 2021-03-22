@@ -59,13 +59,13 @@ struct Overlap {
     const ValueType &get_overlap() const
     {
         GKO_ASSERT(overlaps_.get_num_elems() == 1);
-        return &(overlaps_.get_const_data()[0]);
+        return overlaps_.get_const_data()[0];
     }
 
     const bool &is_unidirectional() const
     {
         GKO_ASSERT(is_unidirectional_.get_num_elems() == 1);
-        return &(is_unidirectional_.get_const_data()[0]);
+        return is_unidirectional_.get_const_data()[0];
     }
 
     void set_executor(std::shared_ptr<const Executor> exec)
@@ -87,9 +87,8 @@ struct Overlap {
     {}
 
     template <typename OverlapArray, typename UnidirArray>
-    Overlap(std::shared_ptr<const Executor> exec,
-            const Array<ValueType> &overlap,
-            const Array<bool> &is_unidirectional)
+    Overlap(std::shared_ptr<const Executor> exec, OverlapArray &&overlap,
+            UnidirArray &&is_unidirectional)
         : is_unidirectional_{exec, std::forward<OverlapArray>(overlap)},
           overlaps_{exec, std::forward<UnidirArray>(is_unidirectional)}
     {}

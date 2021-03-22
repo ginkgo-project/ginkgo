@@ -30,58 +30,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/accumulate_array.hpp"
 
 
-#include <algorithm>
+#include <hip/hip_runtime.h>
 
 
-#include <gtest/gtest.h>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
 
 
-#include "core/test/utils.hpp"
+namespace gko {
+namespace kernels {
+namespace hip {
+namespace components {
+
+constexpr int default_block_size = 512;
+
+#include "common/components/reduction.hpp.inc"
 
 
-namespace {
+template <typename ValueType>
+void accumulate_array(std::shared_ptr<const DefaultExecutor> exec,
+                      ValueType *sum, const ValueType *array, const size_type n,
+                      const ValueType val) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ACCUMULATE_ARRAY_KERNEL);
 
 
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
-
-
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
-}
-
-
-}  // namespace
+}  // namespace components
+}  // namespace hip
+}  // namespace kernels
+}  // namespace gko

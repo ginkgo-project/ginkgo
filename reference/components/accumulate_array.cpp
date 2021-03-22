@@ -30,58 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/accumulate_array.hpp"
 
 
-#include <algorithm>
+#include <numeric>
 
 
-#include <gtest/gtest.h>
+namespace gko {
+namespace kernels {
+namespace reference {
+namespace components {
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
+template <typename ValueType>
+void accumulate_array(std::shared_ptr<const DefaultExecutor> exec,
+                      ValueType *sum, const ValueType *array, const size_type n,
+                      const ValueType val)
 {
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
+    sum[0] = std::accumulate(array, array + n, val);
 }
 
-
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
-}
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ACCUMULATE_ARRAY_KERNEL);
 
 
-}  // namespace
+}  // namespace components
+}  // namespace reference
+}  // namespace kernels
+}  // namespace gko

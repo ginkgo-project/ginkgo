@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/components/accumulate_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 
@@ -57,6 +58,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(accumulate_array, components::accumulate_array);
 
 
 }  // anonymous namespace
@@ -95,6 +97,25 @@ void Array<ValueType>::fill(const ValueType value)
 #define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
+
+
+template <typename ValueType>
+ValueType Array<ValueType>::accumulate(const ValueType value) const
+{
+    auto exec = this->get_executor();
+    Array<ValueType> accumulate(exec, {0});
+    exec->run(array::make_accumulate_array(accumulate.get_data(),
+                                           this->get_const_data(),
+                                           this->get_num_elems(), value));
+    accumulate.set_executor(exec->get_master());
+    return accumulate.get_const_data()[0];
+}
+
+
+#define GKO_DECLARE_ARRAY_ACCUMULATE(_type) \
+    _type Array<_type>::accumulate(const _type value) const
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_ACCUMULATE);
 
 
 }  // namespace gko

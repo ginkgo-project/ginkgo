@@ -18,6 +18,7 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     components/absolute_array.dp.cpp
+    components/accumulate_array.dp.cpp
     components/fill_array.dp.cpp
     components/prefix_sum.dp.cpp
     distributed/matrix_kernels.dp.cpp

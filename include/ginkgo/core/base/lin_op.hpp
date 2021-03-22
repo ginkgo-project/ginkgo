@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -53,12 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
-template <typename ValueType>
-class Overlap;
-
-
 namespace matrix {
 
 

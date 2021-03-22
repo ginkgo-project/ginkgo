@@ -30,57 +30,64 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/accumulate_array.hpp"
 
 
-#include <algorithm>
+#include <memory>
+#include <random>
+#include <vector>
 
 
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/array.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
 
 
 template <typename T>
-class Array : public ::testing::Test {
+class AccumulateArray : public ::testing::Test {
 protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
+    using value_type = T;
+    AccumulateArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::CudaExecutor::create(0, ref)),
+          total_size(5),
+          vals(ref, {1, 4, 2, 5, 18}),
+          sum(ref, {0}),
+          dsum(ref, {0}),
+          dvals(exec, {1, 4, 2, 5, 18})
+    {}
 
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CudaExecutor> exec;
+    gko::size_type total_size;
+    gko::Array<value_type> sum;
+    gko::Array<value_type> dsum;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(AccumulateArray, gko::test::ValueAndIndexTypes);
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
+TYPED_TEST(AccumulateArray, EqualsReference)
 {
-    this->x.fill(TypeParam{42});
+    using T = typename TestFixture::value_type;
+    gko::kernels::reference::components::accumulate_array(
+        this->ref, this->sum.get_data(), this->vals.get_const_data(),
+        this->total_size, T(23));
+    gko::kernels::cuda::components::accumulate_array(
+        this->exec, this->dsum.get_data(), this->dvals.get_const_data(),
+        this->total_size, T(23));
 
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
-
-
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
+    GKO_ASSERT_ARRAY_EQ(this->sum, this->dsum);
 }
 
 
