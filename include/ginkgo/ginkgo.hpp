@@ -132,6 +132,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/reordering_base.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
+#include <ginkgo/core/solver/batch_richardson.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
