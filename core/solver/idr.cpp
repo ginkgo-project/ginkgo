@@ -54,6 +54,7 @@ GKO_REGISTER_OPERATION(step_1, idr::step_1);
 GKO_REGISTER_OPERATION(step_2, idr::step_2);
 GKO_REGISTER_OPERATION(step_3, idr::step_3);
 GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
+GKO_REGISTER_OPERATION(compute_gamma, idr::compute_gamma);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
@@ -114,6 +115,8 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     auto v = Vector::create_with_config_of(dense_b);
     auto t = Vector::create_with_config_of(dense_b);
     auto helper = Vector::create_with_config_of(dense_b);
+    auto rs = Vector::create_with_config_of(dense_b);
+    auto xs = Vector::create_with_config_of(dense_b);
 
     auto m =
         Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
@@ -131,6 +134,8 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     auto tht = Vector::create(exec, dim<2>{1, nrhs});
     auto t_norm = NormVector::create(exec, dim<2>{1, nrhs});
     auto alpha = Vector::create(exec, gko::dim<2>{1, nrhs});
+    auto gamma = Vector::create(exec, gko::dim<2>{1, nrhs});
+    auto one_minus_gamma = Vector::create(exec, gko::dim<2>{1, nrhs});
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, nrhs);
@@ -155,6 +160,10 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     residual->copy_from(dense_b);
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
+    if (smoothing_) {
+        rs->copy_from(residual.get());
+        xs->copy_from(dense_x);
+    }
     residual->compute_norm2(residual_norm.get());
 
     // g = u = 0
@@ -242,6 +251,20 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
                                        helper.get(), u.get(), m.get(), f.get(),
                                        alpha.get(), residual.get(), dense_x,
                                        &stop_status));
+
+            if (smoothing_) {
+                t->copy_from(rs.get());
+                t->add_scaled(subspace_neg_one_op.get(), residual.get());
+                t->compute_dot(rs.get(), gamma.get());
+                t->compute_dot(t.get(), tht.get());
+                exec->run(idr::make_compute_gamma(nrhs, tht.get(), gamma.get(),
+                                                  one_minus_gamma.get(),
+                                                  &stop_status));
+                rs->scale(one_minus_gamma.get());
+                rs->add_scaled(gamma.get(), residual.get());
+                xs->scale(one_minus_gamma.get());
+                xs->add_scaled(gamma.get(), dense_x);
+            }
         }
 
         get_preconditioner()->apply(residual.get(), helper.get());
@@ -265,6 +288,26 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         t->scale(subspace_neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
         dense_x->add_scaled(omega.get(), helper.get());
+
+        if (smoothing_) {
+            t->copy_from(rs.get());
+            t->add_scaled(subspace_neg_one_op.get(), residual.get());
+            t->compute_dot(rs.get(), gamma.get());
+            t->compute_dot(t.get(), tht.get());
+            exec->run(idr::make_compute_gamma(nrhs, tht.get(), gamma.get(),
+                                              one_minus_gamma.get(),
+                                              &stop_status));
+            rs->scale(one_minus_gamma.get());
+            rs->add_scaled(gamma.get(), residual.get());
+            xs->scale(one_minus_gamma.get());
+            xs->add_scaled(gamma.get(), dense_x);
+
+            rs->compute_norm2(residual_norm.get());
+        }
+    }
+
+    if (smoothing_) {
+        dense_x->copy_from(xs.get());
     }
 }
 

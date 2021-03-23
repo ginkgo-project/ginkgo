@@ -362,6 +362,25 @@ void compute_omega(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
+template <typename ValueType>
+void compute_gamma(std::shared_ptr<const HipExecutor> exec,
+                   const size_type nrhs, const matrix::Dense<ValueType> *tht,
+                   matrix::Dense<ValueType> *gamma,
+                   matrix::Dense<ValueType> *one_minus_gamma,
+                   const Array<stopping_status> *stop_status)
+{
+    const auto grid_dim = ceildiv(nrhs, config::warp_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_gamma_kernel), grid_dim,
+                       config::warp_size, 0, 0, nrhs,
+                       as_hip_type(tht->get_const_values()),
+                       as_hip_type(gamma->get_values()),
+                       as_hip_type(one_minus_gamma->get_values()),
+                       as_hip_type(stop_status->get_const_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_GAMMA_KERNEL);
+
+
 }  // namespace idr
 }  // namespace hip
 }  // namespace kernels

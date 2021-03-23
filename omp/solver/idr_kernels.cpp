@@ -336,6 +336,29 @@ void compute_omega(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
+template <typename ValueType>
+void compute_gamma(std::shared_ptr<const OmpExecutor> exec,
+                   const size_type nrhs, const matrix::Dense<ValueType> *tht,
+                   matrix::Dense<ValueType> *gamma,
+                   matrix::Dense<ValueType> *one_minus_gamma,
+                   const Array<stopping_status> *stop_status)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < nrhs; i++) {
+        if (stop_status->get_const_data()[i].has_stopped()) {
+            gamma->at(0, i) = zero<ValueType>();
+            one_minus_gamma->at(0, i) = one<ValueType>();
+        }
+
+        auto gam = gamma->at(0, i) / tht->at(0, i);
+        gamma->at(0, i) = gam;
+        one_minus_gamma->at(0, i) = one<ValueType>() - gam;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_GAMMA_KERNEL);
+
+
 }  // namespace idr
 }  // namespace omp
 }  // namespace kernels

@@ -109,6 +109,16 @@ void compute_omega(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
+template <typename ValueType>
+void compute_gamma(
+    std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
+    const matrix::Dense<ValueType> *tht, matrix::Dense<ValueType> *gamma,
+    matrix::Dense<ValueType> *one_minus_gamma,
+    const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_GAMMA_KERNEL);
+
+
 }  // namespace idr
 }  // namespace dpcpp
 }  // namespace kernels

@@ -350,6 +350,24 @@ void compute_omega(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
+template <typename ValueType>
+void compute_gamma(std::shared_ptr<const CudaExecutor> exec,
+                   const size_type nrhs, const matrix::Dense<ValueType> *tht,
+                   matrix::Dense<ValueType> *gamma,
+                   matrix::Dense<ValueType> *one_minus_gamma,
+                   const Array<stopping_status> *stop_status)
+{
+    const auto grid_dim = ceildiv(nrhs, config::warp_size);
+    compute_gamma_kernel<<<grid_dim, config::warp_size>>>(
+        nrhs, as_cuda_type(tht->get_const_values()),
+        as_cuda_type(gamma->get_values()),
+        as_cuda_type(one_minus_gamma->get_values()),
+        as_cuda_type(stop_status->get_const_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_GAMMA_KERNEL);
+
+
 }  // namespace idr
 }  // namespace cuda
 }  // namespace kernels

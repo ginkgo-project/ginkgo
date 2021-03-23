@@ -343,3 +343,23 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
         }
     }
 }
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(config::warp_size) void compute_gamma_kernel(
+    size_type nrhs, const ValueType *__restrict__ tht,
+    ValueType *__restrict__ gamma, ValueType *__restrict__ one_minus_gamma,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+
+    if (global_id >= nrhs) {
+        return;
+    }
+
+    auto gam = stop_status[global_id].has_stopped()
+                   ? zero<ValueType>()
+                   : gamma[global_id] / tht[global_id];
+    gamma[global_id] = gam;
+    one_minus_gamma[global_id] = one<ValueType>() - gam;
+}

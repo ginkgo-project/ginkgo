@@ -240,6 +240,14 @@ public:
          * The default is false.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(complex_subspace, false);
+
+        /**
+         * If set to true, IDR will perform a smoothing operation before
+         * updating the iterates.
+         *
+         * The default is true.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(smoothing, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -281,6 +289,7 @@ protected:
         kappa_ = parameters_.kappa;
         deterministic_ = parameters_.deterministic;
         complex_subspace_ = parameters_.complex_subspace;
+        smoothing_ = parameters_.smoothing;
     }
 
 private:
@@ -290,6 +299,7 @@ private:
     remove_complex<ValueType> kappa_;
     bool deterministic_;
     bool complex_subspace_;
+    bool smoothing_;
 };
 
 
