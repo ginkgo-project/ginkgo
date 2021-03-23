@@ -40,6 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
+#include "accessor/block_col_major.hpp"
+#include "accessor/range.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 
@@ -72,8 +77,10 @@ void assert_matrices_are_same(
     const IndexType nbrows = bm->get_num_block_rows();
     const int bs = bm->get_block_size();
     const auto nbnz = bm->get_num_stored_blocks();
-    gko::range<gko::accessor::block_col_major<const ValueType, 3>> fbvals(
-        bm->get_const_values(), gko::dim<3>(nbnz, bs, bs));
+    gko::acc::range<gko::acc::block_col_major<const ValueType, 3>> fbvals(
+        std::array<gko::size_type, 3>{nbnz, static_cast<gko::size_type>(bs),
+                                      static_cast<gko::size_type>(bs)},
+        bm->get_const_values());
 
     for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
         const IndexType *const browptr = bm->get_const_row_ptrs();

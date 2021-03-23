@@ -42,10 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "accessor/range.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
@@ -77,8 +78,8 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
-    const range<accessor::block_col_major<const ValueType, 3>> avalues{
-        vals, dim<3>(nbnz, bs, bs)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        std::array<size_type, 3>{nbnz, (size_type)bs, (size_type)bs}, vals};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -120,8 +121,11 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
-    const range<accessor::block_col_major<const ValueType, 3>> avalues{
-        vals, dim<3>(a->get_num_stored_blocks(), bs, bs)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        std::array<size_type, 3>{a->get_num_stored_blocks(),
+                                 static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        vals};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -159,8 +163,11 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
     const IndexType *const col_idxs = source->get_const_col_idxs();
     const ValueType *const vals = source->get_const_values();
 
-    const range<accessor::block_col_major<const ValueType, 3>> values{
-        vals, dim<3>(source->get_num_stored_blocks(), bs, bs)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> values{
+        std::array<size_type, 3>{source->get_num_stored_blocks(),
+                                 static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        vals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
         for (size_type bcol = 0; bcol < nbcols; ++bcol) {
@@ -209,8 +216,11 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     IndexType *const col_idxs = result->get_col_idxs();
     ValueType *const vals = result->get_values();
 
-    const range<accessor::block_col_major<const ValueType, 3>> bvalues{
-        bvals, dim<3>(source->get_num_stored_blocks(), bs, bs)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> bvalues{
+        std::array<size_type, 3>{source->get_num_stored_blocks(),
+                                 static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        bvals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
         const IndexType nz_browstart = browptrs[brow] * bs * bs;
@@ -254,10 +264,16 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType *const col_ptrs,
                             ValueType *const csc_vals, UnaryOperator op)
 {
-    const range<accessor::block_col_major<const ValueType, 3>> rvalues{
-        fbcsr_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz)};
-    const range<accessor::block_col_major<ValueType, 3>> cvalues{
-        csc_vals, dim<3>(row_ptrs[num_blk_rows], blksz, blksz)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> rvalues{
+        std::array<size_type, 3>{static_cast<size_type>(row_ptrs[num_blk_rows]),
+                                 static_cast<size_type>(blksz),
+                                 static_cast<size_type>(blksz)},
+        fbcsr_vals};
+    const acc::range<acc::block_col_major<ValueType, 3>> cvalues{
+        std::array<size_type, 3>{static_cast<size_type>(row_ptrs[num_blk_rows]),
+                                 static_cast<size_type>(blksz),
+                                 static_cast<size_type>(blksz)},
+        csc_vals};
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
             const auto dest_idx = col_ptrs[col_idxs[i]];
@@ -463,8 +479,11 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    const range<accessor::block_col_major<const ValueType, 3>> vblocks{
-        values, dim<3>(orig->get_num_stored_blocks(), bs, bs)};
+    const acc::range<acc::block_col_major<const ValueType, 3>> vblocks{
+        std::array<size_type, 3>{orig->get_num_stored_blocks(),
+                                 static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        values};
 
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {
         for (IndexType idx = row_ptrs[ibrow]; idx < row_ptrs[ibrow + 1];
