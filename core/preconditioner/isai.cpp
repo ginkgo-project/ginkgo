@@ -271,18 +271,16 @@ template <isai_type IsaiType, typename ValueType, typename IndexType,
 std::unique_ptr<LinOp>
 Isai<IsaiType, ValueType, IndexType, StorageType>::transpose() const
 {
-    auto exec = this->get_executor();
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
+    if (IsaiType == isai_type::spd) {
         return this->clone();
     }
 
-    std::unique_ptr<transposed_type> transp{new transposed_type{exec}};
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
-    auto csr_transp =
-        share(as<Csr>(as<Csr>(this->get_approximate_inverse())->transpose()));
-    auto ell_transp = convert_matrix_formats<Ell>(csr_transp);
-    transp->approximate_inverse_ = share(ell_transp);
+
+    transp->approximate_inverse_ =
+        convert_csr_to_ell(this->get_approximate_inverse()->transpose().get());
 
     return std::move(transp);
 }
@@ -293,18 +291,16 @@ template <isai_type IsaiType, typename ValueType, typename IndexType,
 std::unique_ptr<LinOp>
 Isai<IsaiType, ValueType, IndexType, StorageType>::conj_transpose() const
 {
-    auto exec = this->get_executor();
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
+    if (IsaiType == isai_type::spd) {
         return this->clone();
     }
 
-    std::unique_ptr<transposed_type> transp{new transposed_type{exec}};
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
-    auto csr_transp = share(
-        as<Csr>(as<Csr>(this->get_approximate_inverse())->conj_transpose()));
-    auto ell_transp = convert_matrix_formats<Ell>(csr_transp);
-    transp->approximate_inverse_ = share(ell_transp);
+
+    transp->approximate_inverse_ = convert_csr_to_ell(
+        this->get_approximate_inverse()->conj_transpose().get());
 
     return std::move(transp);
 }

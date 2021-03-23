@@ -119,13 +119,11 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type =
-        Isai<IsaiType == isai_type::general
-                 ? isai_type::general
-                 : IsaiType == isai_type::spd
-                       ? isai_type::spd
-                       : IsaiType == isai_type::lower ? isai_type::upper
-                                                      : isai_type::lower,
+        Isai<IsaiType == isai_type::lower
+                 ? isai_type::upper
+                 : IsaiType == isai_type::upper ? isai_type::lower : IsaiType,
              ValueType, IndexType, StorageType>;
+
     using Comp = Composition<ValueType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     using Dense = matrix::Dense<ValueType>;
@@ -147,15 +145,12 @@ public:
         std::shared_ptr<const LinOp> return_inv;
         if (IsaiType == isai_type::spd) {
             auto ops = as<Comp>(approximate_inverse_)->get_operators();
-            auto inv = as<Ell>(ops[1]);
-            auto inv_transp = as<Ell>(ops[0]);
-            auto csr_inv = convert_matrix_formats<const Csr>(inv);
-            auto csr_inv_transp = convert_matrix_formats<const Csr>(inv_transp);
+            auto csr_inv = convert_ell_to_csr(ops[1].get());
+            auto csr_inv_transp = convert_ell_to_csr(ops[0].get());
             return_inv =
                 share(Composition<ValueType>::create(csr_inv_transp, csr_inv));
         } else {
-            return_inv = convert_matrix_formats<const Csr>(
-                as<Ell>(approximate_inverse_));
+            return_inv = convert_ell_to_csr(approximate_inverse_.get());
         }
         return as<typename std::conditional<IsaiType == isai_type::spd, Comp,
                                             Csr>::type>(return_inv);
@@ -243,43 +238,16 @@ protected:
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
         generate_inverse(system_matrix, skip_sorting, power, excess_limit);
-        auto inv = share(as<Csr>(approximate_inverse_));
-        auto ell_inv = convert_matrix_formats<Ell>(inv);
+
+        auto csr_inv = as<Csr>(approximate_inverse_);
+        auto ell_inv = convert_csr_to_ell(approximate_inverse_.get());
         if (IsaiType == isai_type::spd) {
-            auto inv_transp = share(as<Csr>(inv->conj_transpose()));
-            auto ell_inv_transp = convert_matrix_formats<Ell>(inv_transp);
-            approximate_inverse_ = Composition<ValueType>::create(
-                share(ell_inv_transp), share(ell_inv));
+            auto csr_inv_transp = csr_inv->conj_transpose();
+            auto ell_inv_transp = convert_csr_to_ell(csr_inv_transp.get());
+            approximate_inverse_ =
+                Composition<ValueType>::create(ell_inv_transp, ell_inv);
         } else {
-            approximate_inverse_ = share(ell_inv);
-        }
-    }
-
-    template <typename OutType, typename InType>
-    std::shared_ptr<OutType> convert_matrix_formats(
-        std::shared_ptr<InType> in) const
-    {
-        if (std::is_same<OutType, InType>::value) {
-            return as<OutType>(in);
-        }
-
-        auto out = OutType::create(in->get_executor());
-        if (std::is_same<
-                InType, gko::matrix::Csr<typename InType::value_type,
-                                         typename InType::index_type>>::value) {
-            auto tmp = gko::matrix::Csr<
-                typename OutType::value_type,
-                typename InType::index_type>::create(in->get_executor());
-            as<Csr>(in)->convert_to(tmp.get());
-            tmp->convert_to(out.get());
-            return share(out);
-        } else {
-            auto tmp = gko::matrix::Ell<
-                typename OutType::value_type,
-                typename InType::index_type>::create(in->get_executor());
-            as<Ell>(in)->convert_to(tmp.get());
-            tmp->convert_to(out.get());
-            return share(out);
+            approximate_inverse_ = ell_inv;
         }
     }
 
@@ -296,6 +264,59 @@ protected:
 
 private:
     /**
+     * Converts a given matrix in ELL format to a matrix in CSR format.
+     * @note ELL format uses StorageType as the storage
+     *
+     * @param in  Matrix in ELL format
+     *
+     * @returns the given matrix converted to the CSR format.
+     */
+    static std::shared_ptr<Csr> convert_ell_to_csr(const LinOp *in)
+    {
+        using EllValue = matrix::Ell<value_type, index_type>;
+        auto ell = as<const Ell>(in);
+        auto out = Csr::create(ell->get_executor());
+        if (std::is_same<value_type, StorageType>::value) {
+            // This cast is necessary for the compiler
+            as<EllValue>(ell)->convert_to(out.get());
+        }
+        // In-between step required to convert StorageType to value_type
+        else {
+            auto tmp = EllValue::create(ell->get_executor());
+            ell->convert_to(tmp.get());
+            tmp->convert_to(out.get());
+        }
+        return std::move(out);
+    }
+
+    /**
+     * Converts a given matrix in CSR format to a matrix in ELL format
+     * @note ELL format uses StorageType as the storage
+     *
+     * @param in  Matrix in CSR format
+     *
+     * @returns the given matrix converted to the ELL format.
+     */
+    static std::shared_ptr<Ell> convert_csr_to_ell(const LinOp *in)
+    {
+        using CsrStorage = matrix::Csr<StorageType, index_type>;
+
+        auto csr = as<const Csr>(in);
+        auto out = Ell::create(in->get_executor());
+        if (std::is_same<value_type, StorageType>::value) {
+            // This cast is necessary for the compiler
+            as<CsrStorage>(csr)->convert_to(out.get());
+        }
+        // In-between step required to convert value_type to StorageType
+        else {
+            auto tmp = CsrStorage::create(csr->get_executor());
+            csr->convert_to(tmp.get());
+            tmp->convert_to(out.get());
+        }
+        return std::move(out);
+    }
+
+    /**
      * Generates the approximate inverse for a triangular matrix and
      * stores the result in `approximate_inverse_`.
      *
@@ -309,7 +330,6 @@ private:
                           bool skip_sorting, int power,
                           index_type excess_limit);
 
-private:
     std::shared_ptr<LinOp> approximate_inverse_;
 };
 
