@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "accessor/range.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -105,8 +107,10 @@ public:
         c[2] = 0;
         c[3] = 2;
 
-        gko::range<gko::accessor::block_col_major<value_type, 3>> vals(
-            v, gko::dim<3>(nbnz, bs, bs));
+        gko::acc::range<gko::acc::block_col_major<value_type, 3>> vals(
+            std::array<size_type, 3>{nbnz, static_cast<size_type>(bs),
+                                     static_cast<size_type>(bs)},
+            v);
 
         if (mtx->get_size()[0] % bs != 0)
             throw gko::BadDimension(__FILE__, __LINE__, __func__, "test fbcsr",

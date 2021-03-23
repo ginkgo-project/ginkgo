@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "accessor/range.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
@@ -339,8 +341,9 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     index_type cur_bcol = blocks.begin()->first.block_column;
     const index_type num_brows = detail::get_num_blocks(bs, data.size[0]);
 
-    range<accessor::block_col_major<value_type, 3>> values(
-        tmp->values_.get_data(), dim<3>(blocks.size(), bs, bs));
+    acc::range<acc::block_col_major<value_type, 3>> values(
+        std::array<size_type, 3>{blocks.size(), (size_type)bs, (size_type)bs},
+        tmp->values_.get_data());
 
     for (auto it = blocks.begin(); it != blocks.end(); it++) {
         GKO_ENSURE_IN_BOUNDS(cur_brow, num_brows);
@@ -386,8 +389,10 @@ void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
     data = {tmp->get_size(), {}};
 
     const size_type nbnz = tmp->get_num_stored_blocks();
-    const range<accessor::block_col_major<const value_type, 3>> vblocks(
-        tmp->values_.get_const_data(), dim<3>(nbnz, bs_, bs_));
+    const acc::range<acc::block_col_major<const value_type, 3>> vblocks(
+        std::array<size_type, 3>{nbnz, static_cast<size_type>(bs_),
+                                 static_cast<size_type>(bs_)},
+        tmp->values_.get_const_data());
 
     for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {
         const auto start = tmp->row_ptrs_.get_const_data()[brow];
