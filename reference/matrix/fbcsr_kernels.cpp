@@ -79,7 +79,9 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        std::array<size_type, 3>{nbnz, (size_type)bs, (size_type)bs}, vals};
+        std::array<size_type, 3>{nbnz, static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        vals};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;

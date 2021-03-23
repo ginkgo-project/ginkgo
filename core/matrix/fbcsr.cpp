@@ -342,7 +342,8 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     const index_type num_brows = detail::get_num_blocks(bs, data.size[0]);
 
     acc::range<acc::block_col_major<value_type, 3>> values(
-        std::array<size_type, 3>{blocks.size(), (size_type)bs, (size_type)bs},
+        std::array<size_type, 3>{blocks.size(), static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
         tmp->values_.get_data());
 
     for (auto it = blocks.begin(); it != blocks.end(); it++) {
