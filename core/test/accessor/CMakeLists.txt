@@ -21,9 +21,12 @@ endfunction(create_accessor_test)
 
 create_accessor_test(index_span)
 create_accessor_test(range)
+create_accessor_test(math)
 # Accessor tests:
 create_accessor_test(block_col_major)
 create_accessor_test(reduced_row_major)
+create_accessor_test(reduced_row_major_reference)
 ginkgo_create_test(reduced_row_major_ginkgo) # needs Ginkgo for gko::half
 create_accessor_test(row_major)
 create_accessor_test(scaled_reduced_row_major)
+create_accessor_test(scaled_reduced_row_major_reference)
