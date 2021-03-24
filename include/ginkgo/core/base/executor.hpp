@@ -391,7 +391,7 @@ private:                                                                     \
             ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;       \
                                                                               \
     public:                                                                   \
-        explicit _name##_operation(Args &&... args)                           \
+        explicit _name##_operation(Args &&...args)                            \
             : data(std::forward<Args>(args)...)                               \
         {}                                                                    \
                                                                               \
@@ -417,7 +417,7 @@ private:                                                                     \
     };                                                                        \
                                                                               \
     template <typename... Args>                                               \
-    static _name##_operation<Args...> make_##_name(Args &&... args)           \
+    static _name##_operation<Args...> make_##_name(Args &&...args)            \
     {                                                                         \
         return _name##_operation<Args...>(std::forward<Args>(args)...);       \
     }                                                                         \
@@ -1174,6 +1174,9 @@ public:
         return this->get_exec_info().num_pu_per_cu;
     }
 
+    template <typename KernelDescription>
+    void run_kernel(KernelDescription kernel) const;
+
 protected:
     OmpExecutor()
     {
@@ -1228,6 +1231,9 @@ public:
             this->shared_from_this()));
         this->template log<log::Logger::operation_completed>(this, &op);
     }
+
+    template <typename KernelDescription>
+    void run_kernel(KernelDescription kernel) const;
 
 protected:
     ReferenceExecutor()
@@ -1304,6 +1310,9 @@ public:
     void synchronize() const override;
 
     void run(const Operation &op) const override;
+
+    template <typename KernelDescription>
+    void run_kernel(KernelDescription kernel) const;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1522,6 +1531,9 @@ public:
 
     void run(const Operation &op) const override;
 
+    template <typename KernelDescription>
+    void run_kernel(KernelDescription kernel) const;
+
     /**
      * Get the HIP device id of the device associated to this executor.
      */
@@ -1732,6 +1744,9 @@ public:
     void synchronize() const override;
 
     void run(const Operation &op) const override;
+
+    template <typename KernelDescription>
+    void run_kernel(KernelDescription kernel) const;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
