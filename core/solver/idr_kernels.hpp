@@ -41,16 +41,111 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "accessor/reduced_row_major.hpp"
+#include "accessor/scaled_reduced_row_major.hpp"
+#include "core/base/extended_float.hpp"
+
+
+// TODO Find way around using it!
+#define GKO_UNPACK(...) __VA_ARGS__
+/**
+ * Instantiates a template for each value type with each lower precision type
+ * supported by Ginkgo for CbGmres.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments:
+ *                1. the first will be used as the regular ValueType
+ *                     (precisions supported by Ginkgo), and
+ *                2. the second the value type of the reduced precision.
+ * @param _const  qualifier used for the storage type, indicating if it is a
+ *                const accessor, or not.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_IDR_TYPE_HELPER(_macro, _const)               \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, double, _const double>>));    \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, double, _const float>>));     \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, double, _const half>>));      \
+    template _macro(double,                                                    \
+                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
+                                   2, double, _const int64, 0b101>>));         \
+    template _macro(double,                                                    \
+                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
+                                   2, double, _const int32, 0b101>>));         \
+    template _macro(double,                                                    \
+                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
+                                   2, double, _const int16, 0b101>>));         \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, float, _const float>>));      \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, float, _const half>>));       \
+    template _macro(float,                                                     \
+                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
+                                   2, float, _const int32, 0b101>>));          \
+    template _macro(float,                                                     \
+                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
+                                   2, float, _const int16, 0b101>>));          \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, std::complex<double>,         \
+                                              _const std::complex<double>>>)); \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, std::complex<double>,         \
+                                              _const std::complex<float>>>));  \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, std::complex<double>,         \
+                                              _const std::complex<half>>>));   \
+    template _macro(                                                           \
+        std::complex<float>,                                                   \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, std::complex<float>,          \
+                                              _const std::complex<float>>>));  \
+    template _macro(                                                           \
+        std::complex<float>,                                                   \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<2, std::complex<float>,          \
+                                              _const std::complex<half>>>))
+
+#define GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_IDR_TYPE_HELPER(_macro, )
+
+#define GKO_INSTANTIATE_FOR_EACH_IDR_CONST_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_IDR_TYPE_HELPER(_macro, const)
+
+
 namespace gko {
 namespace kernels {
 namespace idr {
 
 
-#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                   \
+#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type, _range)           \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,   \
                     const size_type nrhs, matrix::Dense<_type> *m, \
-                    matrix::Dense<_type> *subspace_vectors,        \
-                    bool deterministic, Array<stopping_status> *stop_status)
+                    _range subspace_vectors, bool deterministic,   \
+                    Array<stopping_status> *stop_status)
+
+
+#define GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL(_type, _range)                  \
+    void apply_subspace(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec, _range subspace_vectors, \
+        const matrix::Dense<_type> *residual, matrix::Dense<_type> *f)
 
 
 #define GKO_DECLARE_IDR_STEP_1_KERNEL(_type)                                 \
@@ -71,14 +166,13 @@ namespace idr {
                 const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_IDR_STEP_3_KERNEL(_type)                                 \
-    void step_3(std::shared_ptr<const DefaultExecutor> exec,                 \
-                const size_type nrhs, const size_type k,                     \
-                const matrix::Dense<_type> *p, matrix::Dense<_type> *g,      \
-                matrix::Dense<_type> *g_k, matrix::Dense<_type> *u,          \
-                matrix::Dense<_type> *m, matrix::Dense<_type> *f,            \
-                matrix::Dense<_type> *alpha, matrix::Dense<_type> *residual, \
-                matrix::Dense<_type> *x,                                     \
+#define GKO_DECLARE_IDR_STEP_3_KERNEL(_type, _range)                     \
+    void step_3(std::shared_ptr<const DefaultExecutor> exec,             \
+                const size_type nrhs, const size_type k, _range p,       \
+                matrix::Dense<_type> *g, matrix::Dense<_type> *g_k,      \
+                matrix::Dense<_type> *u, matrix::Dense<_type> *m,        \
+                matrix::Dense<_type> *f, matrix::Dense<_type> *alpha,    \
+                matrix::Dense<_type> *residual, matrix::Dense<_type> *x, \
                 const Array<stopping_status> *stop_status)
 
 
@@ -99,18 +193,20 @@ namespace idr {
                        const Array<stopping_status> *stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                 \
-    template <typename ValueType>                    \
-    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType);    \
-    template <typename ValueType>                    \
-    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);        \
-    template <typename ValueType>                    \
-    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);        \
-    template <typename ValueType>                    \
-    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);        \
-    template <typename ValueType>                    \
-    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType); \
-    template <typename ValueType>                    \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                       \
+    template <typename ValueType, typename Acc>            \
+    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType, Acc);     \
+    template <typename ValueType, typename Acc>            \
+    GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL(ValueType, Acc); \
+    template <typename ValueType>                          \
+    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);              \
+    template <typename ValueType>                          \
+    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);              \
+    template <typename ValueType, typename Acc>            \
+    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType, Acc);         \
+    template <typename ValueType>                          \
+    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType);       \
+    template <typename ValueType>                          \
     GKO_DECLARE_IDR_COMPUTE_GAMMA_KERNEL(ValueType)
 
 }  // namespace idr

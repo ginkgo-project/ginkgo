@@ -84,9 +84,8 @@ void solve_lower_triangular(const size_type nrhs,
 }
 
 
-template <typename ValueType>
-void update_g_and_u(const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType> *p,
+template <typename ValueType, typename Acc>
+void update_g_and_u(const size_type nrhs, const size_type k, Acc p,
                     const matrix::Dense<ValueType> *m,
                     matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
                     matrix::Dense<ValueType> *u,
@@ -101,7 +100,7 @@ void update_g_and_u(const size_type nrhs, const size_type k,
         for (size_type j = 0; j < k; j++) {
             auto alpha = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                alpha += p->at(j, ind) * g_k->at(ind, i);
+                alpha += p(j, ind) * g_k->at(ind, i);
             }
             alpha /= m->at(j, j * nrhs + i);
 
@@ -137,11 +136,10 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 }  // namespace
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType> *m, Acc subspace_vectors,
+                bool deterministic, Array<stopping_status> *stop_status)
 {
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 
@@ -167,40 +165,68 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     auto gen = std::ranlux48(seed);
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
-            subspace_vectors->at(row, col) =
-                get_rand_value<ValueType>(dist, gen);
+            subspace_vectors(row, col) = get_rand_value<ValueType>(dist, gen);
         }
 
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
 #pragma omp parallel for reduction(add : dot)
             for (size_type j = 0; j < num_cols; j++) {
-                dot += subspace_vectors->at(row, j) *
-                       conj(subspace_vectors->at(i, j));
+                dot += subspace_vectors(row, j) *
+                       conj(ValueType{subspace_vectors(i, j)});
             }
 #pragma omp parallel for
             for (size_type j = 0; j < num_cols; j++) {
-                subspace_vectors->at(row, j) -=
-                    dot * subspace_vectors->at(i, j);
+                subspace_vectors(row, j) -= dot * subspace_vectors(i, j);
             }
         }
 
         auto norm = zero<remove_complex<ValueType>>();
 #pragma omp parallel for reduction(+ : norm)
         for (size_type j = 0; j < num_cols; j++) {
-            norm += squared_norm(subspace_vectors->at(row, j));
+            norm += squared_norm(ValueType{subspace_vectors(row, j)});
         }
 
         norm = sqrt(norm);
 
 #pragma omp parallel for
         for (size_type j = 0; j < num_cols; j++) {
-            subspace_vectors->at(row, j) /= norm;
+            subspace_vectors(row, j) /= norm;
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+
+
+template <typename ValueType, typename Acc>
+void apply_subspace(std::shared_ptr<const OmpExecutor> exec,
+                    Acc subspace_vectors,
+                    const matrix::Dense<ValueType> *residual,
+                    matrix::Dense<ValueType> *f)
+{
+    const auto num_rhs = residual->get_size()[1];
+    const auto num_rows = subspace_vectors->get_size()[0];
+    const auto num_cols = subspace_vectors->get_size()[1];
+
+#pragma omp parallel for
+    for (size_type i = 0; i < num_rows; i++) {
+        for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+            f->at(i, rhs) = zero<ValueType>();
+        }
+    }
+
+#pragma omp parallel for
+    for (size_type i = 0; i < num_rows; i++) {
+        for (size_type j = 0; j < num_cols; j++) {
+            for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                f->at(i, rhs) += subspace_vectors(i, j) * residual->at(j, rhs);
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL);
 
 
 template <typename ValueType>
@@ -263,13 +289,13 @@ void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
+            const size_type k, Acc p, matrix::Dense<ValueType> *g,
+            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
+            matrix::Dense<ValueType> *, matrix::Dense<ValueType> *residual,
+            matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
     update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
@@ -283,7 +309,7 @@ void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
         for (size_type j = k; j < m->get_size()[0]; j++) {
             auto temp = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                temp += p->at(j, ind) * g->at(ind, k * nrhs + i);
+                temp += p(j, ind) * g->at(ind, k * nrhs + i);
             }
             m->at(j, k * nrhs + i) = temp;
         }
@@ -306,7 +332,7 @@ void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>

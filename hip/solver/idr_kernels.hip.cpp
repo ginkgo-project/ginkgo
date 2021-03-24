@@ -260,18 +260,26 @@ void update_x_r_and_f(std::shared_ptr<const HipExecutor> exec,
 }  // namespace
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void initialize(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType> *m, Acc subspace_vectors,
+                bool deterministic, Array<stopping_status> *stop_status)
 {
     initialize_m(nrhs, m, stop_status);
     initialize_subspace_vectors(subspace_vectors, deterministic);
     orthonormalize_subspace_vectors(subspace_vectors);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+
+
+template <typename ValueType, typename Acc>
+void apply_subspace(std::shared_ptr<const HipExecutor> exec,
+                    Acc subspace_vectors,
+                    const matrix::Dense<ValueType> *residual,
+                    matrix::Dense<ValueType> *f) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL);
 
 
 template <typename ValueType>
@@ -326,13 +334,13 @@ void step_2(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void step_3(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *alpha,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
+            const size_type k, Acc p, matrix::Dense<ValueType> *g,
+            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
+            matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *residual,
+            matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
@@ -340,7 +348,7 @@ void step_3(std::shared_ptr<const HipExecutor> exec, const size_type nrhs,
     update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>

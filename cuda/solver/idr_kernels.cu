@@ -90,33 +90,28 @@ void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
-                                 bool deterministic)
+void initialize_subspace_vectors(ValueType *subspace_vectors, gko::dim<2> size,
+                                 size_type stride, bool deterministic)
 {
     if (deterministic) {
         auto subspace_vectors_data = matrix_data<ValueType>(
-            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
-            std::ranlux48(15));
-        subspace_vectors->read(subspace_vectors_data);
+            size, std::normal_distribution<>(0.0, 1.0), std::ranlux48(15));
+        // subspace_vectors->read(subspace_vectors_data);
     } else {
         auto gen =
             curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
-        curand::rand_vector(
-            gen,
-            subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
-            0.0, 1.0, subspace_vectors->get_values());
+        curand::rand_vector(gen, size[0] * stride, 0.0, 1.0, subspace_vectors);
     }
 }
 
 
-template <typename ValueType>
-void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
+template <typename ValueType, typename Acc>
+void orthonormalize_subspace_vectors(Acc subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>
         <<<1, default_block_size>>>(
             subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
-            as_cuda_type(subspace_vectors->get_values()),
-            subspace_vectors->get_stride());
+            as_cuda_accessor(subspace_vectors), subspace_vectors->get_stride());
 }
 
 
@@ -138,10 +133,9 @@ void solve_lower_triangular(const size_type nrhs,
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
-                    const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType> *p,
+                    const size_type nrhs, const size_type k, Acc p,
                     const matrix::Dense<ValueType> *m,
                     matrix::Dense<ValueType> *alpha,
                     matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
@@ -156,19 +150,12 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = 0; i < k; i++) {
-        const auto p_i = p->get_const_values() + i * p_stride;
-        if (nrhs > 1 || is_complex<ValueType>()) {
-            components::fill_array(exec, alpha->get_values(), nrhs,
-                                   zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim>>>(
-                size, nrhs, as_cuda_type(p_i), as_cuda_type(g_k->get_values()),
-                g_k->get_stride(), as_cuda_type(alpha->get_values()),
-                as_cuda_type(stop_status->get_const_data()));
-        } else {
-            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
-                        g_k->get_values(), g_k->get_stride(),
-                        alpha->get_values());
-        }
+        components::fill_array(exec, alpha->get_values(), nrhs,
+                               zero<ValueType>());
+        multidot_kernel<<<grid_dim, block_dim>>>(
+            size, nrhs, as_cuda_accessor(p), i, as_cuda_type(g_k->get_values()),
+            g_k->get_stride(), as_cuda_type(alpha->get_values()),
+            as_cuda_type(stop_status->get_const_data()));
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k->get_stride(), default_block_size),
                default_block_size>>>(
@@ -188,10 +175,10 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
-              const size_type k, const matrix::Dense<ValueType> *p,
-              const matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *m,
+              const size_type k, Acc p, const matrix::Dense<ValueType> *g_k,
+              matrix::Dense<ValueType> *m,
               const Array<stopping_status> *stop_status)
 {
     const auto size = g_k->get_size()[0];
@@ -204,18 +191,12 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = k; i < subspace_dim; i++) {
-        const auto p_i = p->get_const_values() + i * p_stride;
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        if (nrhs > 1 || is_complex<ValueType>()) {
-            components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim>>>(
-                size, nrhs, as_cuda_type(p_i),
-                as_cuda_type(g_k->get_const_values()), g_k->get_stride(),
-                as_cuda_type(m_i), as_cuda_type(stop_status->get_const_data()));
-        } else {
-            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
-                        g_k->get_const_values(), g_k->get_stride(), m_i);
-        }
+        components::fill_array(exec, m_i, nrhs, zero<ValueType>());
+        multidot_kernel<<<grid_dim, block_dim>>>(
+            size, nrhs, as_cuda_accessor(p), i,
+            as_cuda_type(g_k->get_const_values()), g_k->get_stride(),
+            as_cuda_type(m_i), as_cuda_type(stop_status->get_const_data()));
     }
 }
 
@@ -250,18 +231,26 @@ void update_x_r_and_f(std::shared_ptr<const CudaExecutor> exec,
 }  // namespace
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void initialize(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType> *m, Acc subspace_vectors,
+                bool deterministic, Array<stopping_status> *stop_status)
 {
     initialize_m(nrhs, m, stop_status);
-    initialize_subspace_vectors(subspace_vectors, deterministic);
+    initialize_subspace_vectors(subspace_vectors.get_storage(), deterministic);
     orthonormalize_subspace_vectors(subspace_vectors);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+
+
+template <typename ValueType, typename Acc>
+void apply_subspace(std::shared_ptr<const CudaExecutor> exec,
+                    Acc subspace_vectors,
+                    const matrix::Dense<ValueType> *residual,
+                    matrix::Dense<ValueType> *f) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL);
 
 
 template <typename ValueType>
@@ -315,13 +304,13 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *alpha,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
+            const size_type k, Acc p, matrix::Dense<ValueType> *g,
+            matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *u,
+            matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *f,
+            matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *residual,
+            matrix::Dense<ValueType> *x,
             const Array<stopping_status> *stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
@@ -329,7 +318,7 @@ void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
     update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>

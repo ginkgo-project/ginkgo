@@ -50,11 +50,12 @@ __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
 }
 
 
-template <size_type block_size, typename ValueType>
-__global__
-    __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
-        size_type num_rows, size_type num_cols, ValueType *__restrict__ values,
-        size_type stride)
+template <size_type block_size, typename ValueType, typename Acc>
+__global__ __launch_bounds__(
+    block_size) void orthonormalize_subspace_vectors_kernel(size_type num_rows,
+                                                            size_type num_cols,
+                                                            Acc values,
+                                                            size_type stride)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -67,7 +68,7 @@ __global__
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
             for (size_type j = tidx; j < num_cols; j += block_size) {
-                dot += values[row * stride + j] * conj(values[i * stride + j]);
+                dot += values(row, j) * conj(ValueType{values(i, j)});
             }
 
             reduction_helper[tidx] = dot;
@@ -80,13 +81,13 @@ __global__
 
             dot = reduction_helper[0];
             for (size_type j = tidx; j < num_cols; j += block_size) {
-                values[row * stride + j] -= dot * values[i * stride + j];
+                values(row, j) -= dot * values(i, j);
             }
         }
 
         auto norm = zero<remove_complex<ValueType>>();
         for (size_type j = tidx; j < num_cols; j += block_size) {
-            norm += squared_norm(values[row * stride + j]);
+            norm += squared_norm(ValueType{values(row, j)});
         }
 
         reduction_helper_real[tidx] = norm;
@@ -99,7 +100,7 @@ __global__
 
         norm = sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
-            values[row * stride + j] /= norm;
+            values(row, j) /= norm;
         }
     }
 }
@@ -131,6 +132,35 @@ __global__
                 temp / m_values[row * m_stride + row * nrhs + global_id];
         }
     }
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename Acc>
+__global__ __launch_bounds__(default_block_size) void apply_subspace_kernel(
+    size_type num_rows, size_type num_cols, size_type nrhs, Acc values,
+    const ValueType *__restrict__ input, ValueType *__restrict__ output)
+{
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto warpid = thread::get_subwarp_id_flat<subwarp_size>();
+    const auto row = warpid / nrhs;
+    const auto rhs = warpid % nrhs;
+    const auto local_id = subwarp.thread_rank();
+
+    if (row >= num_rows || rhs >= nrhs) {
+        return;
+    }
+
+    ValueType local_res = zero<ValueType>();
+    for (size_type i = local_id; i < num_cols; i += subwarp_size) {
+        local_res += values(row, i) * input[i];
+    }
+
+    subwarp.sync();
+
+    output[row] =
+        reduce(subwarp, local_res,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
 }
 
 
@@ -190,9 +220,9 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename Acc>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
-    size_type num_rows, size_type nrhs, const ValueType *__restrict__ p_i,
+    size_type num_rows, size_type nrhs, Acc p, size_type subspace_idx,
     const ValueType *__restrict__ g_k, size_type g_k_stride,
     ValueType *__restrict__ alpha,
     const stopping_status *__restrict__ stop_status)
@@ -216,7 +246,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto g_idx = i * g_k_stride + rhs;
-            local_res += p_i[i] * g_k[g_idx];
+            local_res += p(subspace_idx, i) * g_k[g_idx];
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "accessor/reduced_row_major.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/solver/idr_kernels.hpp"
 
@@ -50,6 +51,7 @@ namespace idr {
 
 
 GKO_REGISTER_OPERATION(initialize, idr::initialize);
+GKO_REGISTER_OPERATION(apply_subspace, idr::apply_subspace);
 GKO_REGISTER_OPERATION(step_1, idr::step_1);
 GKO_REGISTER_OPERATION(step_2, idr::step_2);
 GKO_REGISTER_OPERATION(step_3, idr::step_3);
@@ -91,9 +93,11 @@ template <typename ValueType>
 template <typename SubspaceType>
 void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 {
+    using StorageType = reduce_precision<SubspaceType>;
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Acc = gko::acc::reduced_row_major<2, SubspaceType, StorageType>;
 
     auto exec = this->get_executor();
 
@@ -145,12 +149,15 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     // matrix containing the subspace vectors in row major order is called P,
     // subspace_vectors actually contains P^H.
     auto subspace_vectors =
-        Vector::create(exec, gko::dim<2>(subspace_dim_, problem_size));
+        gko::Array<StorageType>(exec, subspace_dim_ * problem_size);
+    auto subspace_acc = acc::range<Acc>(
+        std::array<size_type, 2>{{subspace_dim_, problem_size}},
+        subspace_vectors.get_data(), std::array<size_type, 1>{{problem_size}});
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
-                                   deterministic_, &stop_status));
+    exec->run(idr::make_initialize(nrhs, m.get(), subspace_acc, deterministic_,
+                                   &stop_status));
 
     // omega = 1
     exec->run(
@@ -213,7 +220,9 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
         }
 
         // f = P^H * residual
-        subspace_vectors->apply(residual.get(), f.get());
+        exec->run(
+            idr::make_apply_subspace(subspace_acc, residual.get(), f.get()));
+        // subspace_vectors->apply(residual.get(), f.get());
 
         for (size_type k = 0; k < subspace_dim_; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
@@ -247,10 +256,9 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
-            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
-                                       helper.get(), u.get(), m.get(), f.get(),
-                                       alpha.get(), residual.get(), dense_x,
-                                       &stop_status));
+            exec->run(idr::make_step_3(
+                nrhs, k, subspace_acc, g.get(), helper.get(), u.get(), m.get(),
+                f.get(), alpha.get(), residual.get(), dense_x, &stop_status));
 
             if (smoothing_) {
                 t->copy_from(rs.get());
