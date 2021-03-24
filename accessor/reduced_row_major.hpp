@@ -41,9 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "accessor_helper.hpp"
-#include "accessor_references.hpp"
 #include "index_span.hpp"
 #include "range.hpp"
+#include "reduced_row_major_reference.hpp"
 #include "utils.hpp"
 
 
