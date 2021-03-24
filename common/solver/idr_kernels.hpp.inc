@@ -50,14 +50,18 @@ __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
 }
 
 
-template <size_type block_size, typename ValueType, typename Acc>
+template <size_type block_size, typename Acc>
 __global__ __launch_bounds__(
     block_size) void orthonormalize_subspace_vectors_kernel(size_type num_rows,
                                                             size_type num_cols,
                                                             Acc values,
                                                             size_type stride)
 {
+    using ValueType = typename Acc::accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat();
+
+    static_assert(std::is_same<ValueType, to_complex<ValueType>>::value,
+                  "Type check");
 
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;

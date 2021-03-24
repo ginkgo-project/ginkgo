@@ -74,15 +74,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         double,                                                                \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, double, _const half>>));      \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   2, double, _const int64, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   2, double, _const int32, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   2, double, _const int16, 0b101>>));         \
     template _macro(                                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
@@ -91,12 +82,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         float,                                                                 \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, float, _const half>>));       \
-    template _macro(float,                                                     \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   2, float, _const int32, 0b101>>));          \
-    template _macro(float,                                                     \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   2, float, _const int16, 0b101>>));          \
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \

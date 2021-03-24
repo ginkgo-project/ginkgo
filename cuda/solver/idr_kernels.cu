@@ -118,29 +118,51 @@ void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
 }
 
 
-template <typename ValueType>
-void initialize_subspace_vectors(ValueType *subspace_vectors, gko::dim<2> size,
-                                 size_type stride, bool deterministic)
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
 {
-    if (deterministic) {
-        auto subspace_vectors_data = matrix_data<ValueType>(
-            size, std::normal_distribution<>(0.0, 1.0), std::ranlux48(15));
-        // subspace_vectors->read(subspace_vectors_data);
-    } else {
-        auto gen =
-            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
-        curand::rand_vector(gen, size[0] * stride, 0.0, 1.0, subspace_vectors);
-    }
+    return ValueType{dist(gen)};
 }
 
 
-template <typename ValueType, typename Acc>
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
+get_rand_value(Distribution &&dist, Generator &&gen)
+{
+    return ValueType(dist(gen), dist(gen));
+}
+
+
+template <typename ValueType>
+void initialize_subspace_vectors(ValueType *subspace_vectors, gko::dim<2> size,
+                                 bool deterministic)
+{
+    if (!deterministic || deterministic) {
+        auto dist = std::normal_distribution<>(0.0, 1.0);
+        auto gen = std::ranlux48(15);
+        for (size_type i = 0; i < size[0]; i++) {
+            for (size_type j = 0; j < size[1]; j++) {
+                subspace_vectors[i * size[1] + j] =
+                    get_rand_value<ValueType>(dist, gen);
+            }
+        }
+    } /*else {
+        auto gen =
+            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
+        curand::rand_vector(gen, size[0] * size[1], 0.0, 1.0, subspace_vectors);
+    }*/
+}
+
+
+template <typename Acc>
 void orthonormalize_subspace_vectors(Acc subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>
-        <<<1, default_block_size>>>(
-            subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
-            as_cuda_accessor(subspace_vectors), subspace_vectors->get_stride());
+        <<<1, default_block_size>>>(subspace_vectors->get_size()[0],
+                                    subspace_vectors->get_size()[1],
+                                    as_cuda_accessor(subspace_vectors),
+                                    subspace_vectors->get_size()[1]);
 }
 
 
@@ -172,7 +194,7 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
                     const Array<stopping_status> *stop_status)
 {
     const auto size = g->get_size()[0];
-    const auto p_stride = p->get_stride();
+    const auto p_stride = p.get_accessor().get_stride();
 
     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
                         exec->get_num_multiprocessor() * 2);
@@ -212,7 +234,7 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
 {
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
-    const auto p_stride = p->get_stride();
+    const auto p_stride = p.get_accessor().get_stride();
     const auto m_stride = m->get_stride();
 
     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
@@ -266,7 +288,11 @@ void initialize(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
                 bool deterministic, Array<stopping_status> *stop_status)
 {
     initialize_m(nrhs, m, stop_status);
-    initialize_subspace_vectors(subspace_vectors.get_storage(), deterministic);
+    initialize_subspace_vectors(
+        subspace_vectors.get_accessor().get_stored_data(),
+        gko::dim<2>{subspace_vectors->get_size()[0],
+                    subspace_vectors->get_size()[1]},
+        deterministic);
     orthonormalize_subspace_vectors(subspace_vectors);
 }
 
