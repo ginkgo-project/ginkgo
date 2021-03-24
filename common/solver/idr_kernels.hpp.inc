@@ -72,7 +72,8 @@ __global__ __launch_bounds__(
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
             for (size_type j = tidx; j < num_cols; j += block_size) {
-                dot += values(row, j) * conj(ValueType{values(i, j)});
+                ValueType tmp = values(i, j);
+                dot += values(row, j) * conj(tmp);
             }
 
             reduction_helper[tidx] = dot;
@@ -91,7 +92,8 @@ __global__ __launch_bounds__(
 
         auto norm = zero<remove_complex<ValueType>>();
         for (size_type j = tidx; j < num_cols; j += block_size) {
-            norm += squared_norm(ValueType{values(row, j)});
+            ValueType tmp = values(row, j);
+            norm += squared_norm(tmp);
         }
 
         reduction_helper_real[tidx] = norm;
