@@ -709,7 +709,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
-    template _macro(size_type)
+    template _macro(size_type);                        \
+    template _macro(bool)
 
 
 }  // namespace gko
