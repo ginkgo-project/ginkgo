@@ -8,31 +8,47 @@ set(GINKGO_INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/Ginkgo/Modules")
 
-function(ginkgo_add_install_rpath name subdir)
-    if (BUILD_SHARED_LIBS)
-        if (GINKGO_INSTALL_RPATH_ORIGIN)
-            if (APPLE)
-                set(ORIGIN_OR_LOADER_PATH "@loader_path")
-            else()
-                set(ORIGIN_OR_LOADER_PATH "$ORIGIN")
-            endif()
+# This function adds the correct RPATH properties to a Ginkgo target.
+#
+# The behavior depends on three options GINKGO_INSTALL_RPATH[*] variables. It
+# does the following:
+#
+# 1. GINKGO_INSTALL_RPATH : If this flag is not set, no RPATH information is
+#    added.
+# 2. GINKGO_INSTALL_RPATH_ORIGIN : Allows adding the library directory to the
+#    RPATH.
+# 3. GINKGO_INSTALL_RPATH_DEPENDENCIES : Allows adding any extra paths to the
+#    RPATH.
+#
+# @param name  the name of the target
+# @param ARGN  any external dependencies path to be added
+function(ginkgo_add_install_rpath name)
+    if (GINKGO_INSTALL_RPATH_ORIGIN)
+        if (APPLE)
+            set(ORIGIN_OR_LOADER_PATH "@loader_path")
+        else()
+            set(ORIGIN_OR_LOADER_PATH "$ORIGIN")
         endif()
-        if (GINKGO_INSTALL_RPATH_DEPENDENCIES)
-            set(RPATH_DEPENDENCIES "${ARGN}")
-            if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)
-                get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
-                list(APPEND RPATH_DEPENDENCIES "${HWLOC_LIBRARIES}")
-            endif()
+    endif()
+    if (GINKGO_INSTALL_RPATH_DEPENDENCIES)
+        set(RPATH_DEPENDENCIES "${ARGN}")
+        if  (GINKGO_HAVE_HWLOC AND GINKGO_USE_EXTERNAL_HWLOC)
+            get_filename_component(HWLOC_LIB_PATH ${HWLOC_LIBRARIES} DIRECTORY)
+            list(APPEND RPATH_DEPENDENCIES "${HWLOC_LIBRARIES}")
         endif()
-        if (GINKGO_INSTALL_RPATH)
-            set_property(TARGET "${name}" PROPERTY INSTALL_RPATH
-                "${ORIGIN_OR_LOADER_PATH}" "${RPATH_DEPENDENCIES}")
-        endif()
+    endif()
+    if (GINKGO_INSTALL_RPATH)
+        set_property(TARGET "${name}" PROPERTY INSTALL_RPATH
+            "${ORIGIN_OR_LOADER_PATH}" "${RPATH_DEPENDENCIES}")
     endif()
 endfunction()
 
-function(ginkgo_install_library name subdir)
-    ginkgo_add_install_rpath("${name}" "${subdir}" "${ARGN}")
+# Handles installation settings for a Ginkgo library.
+#
+# @param name  the name of the Ginkgo library target
+# @param ARGN  this should contain any external dependency's library PATH
+function(ginkgo_install_library name)
+    ginkgo_add_install_rpath("${name}" "${ARGN}")
 
     if (WIN32 OR CYGWIN)
         # dll is considered as runtime
