@@ -303,7 +303,18 @@ template <typename ValueType, typename Acc>
 void apply_subspace(std::shared_ptr<const CudaExecutor> exec,
                     Acc subspace_vectors,
                     const matrix::Dense<ValueType> *residual,
-                    matrix::Dense<ValueType> *f) GKO_NOT_IMPLEMENTED;
+                    matrix::Dense<ValueType> *f)
+{
+    const auto grid_dim = ceildiv(
+        residual->get_size()[0] * residual->get_size()[1] * config::warp_size,
+        default_block_size);
+
+    apply_subspace_kernel<<<grid_dim, default_block_size>>>(
+        subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
+        residual->get_size()[1], as_cuda_accessor(subspace_vectors),
+        as_cuda_type(residual->get_const_values()),
+        as_cuda_type(f->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(GKO_DECLARE_IDR_APPLY_SUBSPACE_KERNEL);
 
