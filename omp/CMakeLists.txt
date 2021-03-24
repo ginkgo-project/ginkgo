@@ -60,7 +60,7 @@ target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
 
 ginkgo_default_includes(ginkgo_omp)
-ginkgo_install_library(ginkgo_omp omp)
+ginkgo_install_library(ginkgo_omp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_omp)

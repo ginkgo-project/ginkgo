@@ -284,7 +284,7 @@ list(APPEND GKO_HIP_RPATH "${HIPBLAS_PATH}/lib" "${HIPRAND_PATH}/lib"
 
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
-ginkgo_install_library(ginkgo_hip hip "${GKO_HIP_RPATH}")
+ginkgo_install_library(ginkgo_hip "${GKO_HIP_RPATH}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip)

@@ -79,7 +79,7 @@ if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
 endif()
 
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo core "${GKO_RPATH_ADDITIONS}")
+ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo)

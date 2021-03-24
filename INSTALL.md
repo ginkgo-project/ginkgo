@@ -65,8 +65,9 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
-*   `GINKGO_INSTALL_RPATH` sets the RPATH when installing the Ginkgo libraries.
-    The default is `ON`.
+*   `GINKGO_INSTALL_RPATH` allows setting any RPATH information when installing
+    the Ginkgo libraries. If this is `OFF`, the behavior is the same as if all
+    other RPATH flags are set to `OFF` as well. The default is `ON`.
 *   `GINKGO_INSTALL_RPATH_ORIGIN` adds $ORIGIN (Linux) or @loader_path (MacOS)
     to the installation RPATH. The default is `ON`.
 *   `GINKGO_INSTALL_RPATH_DEPENDENCIES` adds the dependencies to the

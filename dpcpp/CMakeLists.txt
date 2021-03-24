@@ -57,7 +57,7 @@ target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 
 ginkgo_default_includes(ginkgo_dpcpp)
-ginkgo_install_library(ginkgo_dpcpp dpcpp)
+ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_dpcpp)

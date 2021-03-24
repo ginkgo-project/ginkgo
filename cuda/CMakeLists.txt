@@ -167,7 +167,7 @@ list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
 get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
 ginkgo_default_includes(ginkgo_cuda)
-ginkgo_install_library(ginkgo_cuda cuda "${GKO_CUDA_LIBDIR}")
+ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_cuda)
