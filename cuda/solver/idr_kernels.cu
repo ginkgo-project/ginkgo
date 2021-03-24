@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "accessor/range.hpp"
+#include "accessor/reduced_row_major.hpp"
 #include "core/components/fill_array.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
@@ -70,6 +72,33 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "common/solver/idr_kernels.hpp.inc"
+
+
+// Specialization, so the Accessor can use the same function as regular pointers
+template <int dim, typename Type1, typename Type2>
+GKO_INLINE auto as_cuda_accessor(
+    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
+{
+    return acc::range<
+        acc::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
+        acc.get_accessor().get_size(),
+        as_cuda_type(acc.get_accessor().get_stored_data()),
+        acc.get_accessor().get_stride());
+}
+
+template <int dim, typename Type1, typename Type2, size_type mask>
+GKO_INLINE auto as_cuda_accessor(
+    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
+        &acc)
+{
+    return acc::range<acc::scaled_reduced_row_major<dim, cuda_type<Type1>,
+                                                    cuda_type<Type2>, mask>>(
+        acc.get_accessor().get_size(),
+        as_cuda_type(acc.get_accessor().get_stored_data()),
+        acc.get_accessor().get_storage_stride(),
+        as_cuda_type(acc.get_accessor().get_scalar()),
+        acc.get_accessor().get_scalar_stride());
+}
 
 
 namespace {
