@@ -869,6 +869,7 @@ void block_approx(std::shared_ptr<const DefaultExecutor> exec,
         as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(source->get_const_col_idxs()),
         as_cuda_type(source->get_const_values()),
+        as_cuda_type(result->get_const_row_ptrs()),
         as_cuda_type(result->get_col_idxs()),
         as_cuda_type(result->get_values()));
 }
