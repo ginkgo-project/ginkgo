@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <hip/hip_runtime.h>
+
+
 #include <chrono>
 #include <iostream>
 #include <map>
@@ -49,7 +52,7 @@ class PolymorphicObjectTest : public gko::PolymorphicObject {};
 int main(int, char **)
 {
     auto refExec = gko::ReferenceExecutor::create();
-    auto cudaExec = gko::CudaExecutor::create(0, refExec);
+    auto hipExec = gko::HipExecutor::create(0, refExec);
     // core/base/abstract_factory.hpp
     {
         using type1 = int;
@@ -181,12 +184,12 @@ int main(int, char **)
 
     // core/factorization/par_ilu.hpp
     {
-        gko::factorization::ParIlu<>::build().on(cudaExec);
+        gko::factorization::ParIlu<>::build().on(hipExec);
     }
 
     // core/log/convergence.hpp
     {
-        gko::log::Convergence<>::create(cudaExec);
+        gko::log::Convergence<>::create(hipExec);
     }
 
     // core/log/record.hpp
@@ -196,85 +199,80 @@ int main(int, char **)
 
     // core/log/stream.hpp
     {
-        gko::log::Stream<>::create(cudaExec);
+        gko::log::Stream<>::create(hipExec);
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        gko::log::Papi<>::create(cudaExec);
+        gko::log::Papi<>::create(hipExec);
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(hipExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2,
+        Mtx::create(hipExec, gko::dim<2>{2, 2}, 2,
                     std::make_shared<Mtx::load_balance>(2));
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2});
+        Mtx::create(hipExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(hipExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2, 2, 1);
+        Mtx::create(hipExec, gko::dim<2>{2, 2}, 2, 2, 1);
     }
 
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
-        Mtx::create(cudaExec);
+        Mtx::create(hipExec);
     }
 
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2});
+        Mtx::create(hipExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(hipExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/sparsity_csr.hpp
     {
         using Mtx = gko::matrix::SparsityCsr<>;
-        Mtx::create(cudaExec, gko::dim<2>{2, 2});
-    }
-
-    // core/multigrid/amgx_pgm.hpp
-    {
-        gko::multigrid::AmgxPgm<>::build().on(cudaExec);
+        Mtx::create(hipExec, gko::dim<2>{2, 2});
     }
 
     // core/preconditioner/ilu.hpp
     {
-        gko::preconditioner::Ilu<>::build().on(cudaExec);
+        gko::preconditioner::Ilu<>::build().on(hipExec);
     }
 
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
-        Bj::build().with_max_block_size(1u).on(cudaExec);
+        Bj::build().with_max_block_size(1u).on(hipExec);
     }
 
     // core/solver/bicgstab.hpp
@@ -282,8 +280,8 @@ int main(int, char **)
         using Solver = gko::solver::Bicgstab<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/cg.hpp
@@ -291,8 +289,8 @@ int main(int, char **)
         using Solver = gko::solver::Cg<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/cgs.hpp
@@ -300,8 +298,8 @@ int main(int, char **)
         using Solver = gko::solver::Cgs<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/fcg.hpp
@@ -309,8 +307,8 @@ int main(int, char **)
         using Solver = gko::solver::Fcg<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/gmres.hpp
@@ -318,8 +316,8 @@ int main(int, char **)
         using Solver = gko::solver::Gmres<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/ir.hpp
@@ -327,47 +325,47 @@ int main(int, char **)
         using Solver = gko::solver::Ir<>;
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
-            .on(cudaExec);
+                gko::stop::Iteration::build().with_max_iters(1u).on(hipExec))
+            .on(hipExec);
     }
 
     // core/solver/lower_trs.hpp
     {
         using Solver = gko::solver::LowerTrs<>;
-        Solver::build().on(cudaExec);
+        Solver::build().on(hipExec);
     }
 
     // core/stop/
     {
         // iteration.hpp
         auto iteration =
-            gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec);
+            gko::stop::Iteration::build().with_max_iters(1u).on(hipExec);
 
         // time.hpp
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
-                        .on(cudaExec);
+                        .on(hipExec);
 
         // residual_norm.hpp
         gko::stop::ResidualNormReduction<>::build()
             .with_reduction_factor(1e-10)
-            .on(cudaExec);
+            .on(hipExec);
 
         gko::stop::ResidualNorm<>::build()
             .with_reduction_factor(1e-10)
             .with_baseline(gko::stop::mode::absolute)
-            .on(cudaExec);
+            .on(hipExec);
 
         gko::stop::ImplicitResidualNorm<>::build()
             .with_reduction_factor(1e-10)
             .with_baseline(gko::stop::mode::absolute)
-            .on(cudaExec);
+            .on(hipExec);
 
         gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
-            cudaExec);
+            hipExec);
 
         gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
-            cudaExec);
+            hipExec);
 
         // stopping_status.hpp
         gko::stopping_status{};
@@ -376,11 +374,11 @@ int main(int, char **)
         auto combined =
             gko::stop::Combined::build()
                 .with_criteria(std::move(time), std::move(iteration))
-                .on(cudaExec);
+                .on(hipExec);
     }
 
     std::cout
-        << "test_install_cuda: the Ginkgo installation was correctly detected "
+        << "test_install_hip: the Ginkgo installation was correctly detected "
            "and is complete."
         << std::endl;
 

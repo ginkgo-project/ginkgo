@@ -65,8 +65,6 @@ set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP nvcc compiler flags. Current default is an empty string.")
-set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIP HCC compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP CLANG compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
@@ -74,6 +72,9 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
+option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
+option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -191,12 +192,22 @@ if(GINKGO_BUILD_HIP)
     endif()
 endif()
 
-configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
-    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
+
+# Try to find the third party packages before using our subdirectories
+include(cmake/package_helpers.cmake)
+ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
+ginkgo_find_package(gflags gflags FALSE 2.2.2)
+ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+if(GINKGO_HAVE_HWLOC)
+    ginkgo_find_package(HWLOC hwloc FALSE 2.1)
+    if (NOT HWLOC_FOUND)
+        set(GINKGO_USE_EXTERNAL_HWLOC 0)
+    endif()
+endif()
+add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
-include(cmake/hip_helpers.cmake)
 include(cmake/install_helpers.cmake)
 include(cmake/windows_helpers.cmake)
 
@@ -214,40 +225,30 @@ if(MSVC)
     endif()
 endif()
 
-# Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
-ginkgo_find_package(gflags gflags FALSE 2.2.2)
-ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
-if(GINKGO_HAVE_HWLOC)
-    ginkgo_find_package(HWLOC hwloc FALSE 2.1)
-endif()
-set(GKO_HWLOC_XMLFILE "$ENV{HWLOC_XMLFILE}")
-message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
-add_subdirectory(third_party)    # Third-party tools and libraries
+configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
 # Ginkgo core libraries
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
+add_subdirectory(devices)        # Basic device functionalities. Always compiled.
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
-add_subdirectory(core)           # Core Ginkgo types and top-level functions
-add_subdirectory(include)        # Public API self-contained check
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
-if (GINKGO_BUILD_OMP)
-    add_subdirectory(omp)        # High-performance omp kernels
+if(GINKGO_BUILD_HIP)
+    add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
 if (GINKGO_BUILD_DPCPP)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
-# HIP needs to be last because it builds the GINKGO_RPATH_FOR_HIP variable
-# which needs to know the `ginkgo` target.
-if(GINKGO_BUILD_HIP)
-    add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
+if (GINKGO_BUILD_OMP)
+    add_subdirectory(omp)        # High-performance omp kernels
 endif()
+add_subdirectory(core)           # Core Ginkgo types and top-level functions
+add_subdirectory(include)        # Public API self-contained check
 
 # Non core directories and targets
 if(GINKGO_BUILD_EXAMPLES)
@@ -322,20 +323,22 @@ if(MSVC)
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install")
     set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/$<CONFIG>/test_exportbuild")
     if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
+        set(GINKGO_TEST_INSTALL_CUDA_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
     endif()
 else()
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
     set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/test_exportbuild")
     if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
+        set(GINKGO_TEST_INSTALL_CUDA_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
+    endif()
+    if(GINKGO_BUILD_HIP)
+        set(GINKGO_TEST_INSTALL_HIP_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_hip")
     endif()
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
     -B${Ginkgo_BINARY_DIR}/test_install
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
-    -DHWLOC_DIR=${HWLOC_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.
@@ -343,6 +346,8 @@ add_custom_target(test_install
     # single-configuration generator.
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>
     COMMAND ${GINKGO_TEST_INSTALL_COMMAND}
+    COMMAND ${GINKGO_TEST_INSTALL_CUDA_COMMAND}
+    COMMAND ${GINKGO_TEST_INSTALL_HIP_COMMAND}
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
 add_custom_target(test_exportbuild

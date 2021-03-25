@@ -1,4 +1,3 @@
-add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
 add_library(ginkgo "")
@@ -63,14 +62,24 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_core_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 # The PAPI dependency needs to be exposed to the user.
+set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
+    list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
+    get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
+    list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+endif()
+
+# Since we have a public dependency on HIP, this dependency appears
+# here as well
+if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
+    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
 endif()
 
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo core)
+ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo)

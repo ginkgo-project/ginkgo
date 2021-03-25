@@ -160,12 +160,14 @@ ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
-target_link_libraries(ginkgo_cuda PRIVATE ginkgo_core_device)
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
+get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
 ginkgo_default_includes(ginkgo_cuda)
-ginkgo_install_library(ginkgo_cuda cuda)
+ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_cuda)
