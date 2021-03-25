@@ -640,6 +640,69 @@ __global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
 }
 
 
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void get_row_nnz_data(
+    const size_type num_rows, const size_type *__restrict__ nnz_per_row,
+    IndexType *__restrict__ row_ptrs)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < num_rows) {
+        row_ptrs[tidx] = nnz_per_row[tidx];
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void compute_block_idxs_and_vals(
+        const size_type block_size, const size_type num_nnz,
+        const size_type block_offset,
+        const IndexType *__restrict__ source_row_ptrs,
+        const IndexType *__restrict__ source_col_idxs,
+        const ValueType *__restrict__ source_values,
+        IndexType *__restrict__ result_col_idxs,
+        ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    // if (tidx < num_rows) {
+    //     row_ptrs[tidx] = nnz_per_row[tidx];
+    // }
+    if (tidx == 1) {
+        size_type res_nnz = 0;
+        for (size_type nnz = 0; nnz < num_nnz; ++nnz) {
+            if (nnz >= source_row_ptrs[block_offset] &&
+                nnz < source_row_ptrs[block_offset + block_size] &&
+                (source_col_idxs[nnz] < (block_offset + block_size) &&
+                 source_col_idxs[nnz] >= block_offset)) {
+                result_col_idxs[res_nnz] = source_col_idxs[nnz] - block_offset;
+                result_values[res_nnz] = source_values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
+        const span row_span, const span col_span,
+        const IndexType *__restrict__ row_ptrs,
+        const IndexType *__restrict__ col_idxs,
+        size_type *__restrict__ nnz_per_row)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx >= row_span.begin && tidx < row_span.end) {
+        for (size_type col = row_ptrs[tidx]; col < row_ptrs[tidx + 1]; ++col) {
+            if (col_idxs[col] >= col_span.begin &&
+                col_idxs[col] < col_span.end) {
+                nnz_per_row[tidx - row_span.begin]++;
+            }
+        }
+    }
+}
+
+
 __global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
     size_type num_rows, size_type slice_size, size_type stride_factor,
     const size_type* __restrict__ nnz_per_row,
