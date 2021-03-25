@@ -54,15 +54,8 @@ template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
            const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x)
-{
-    // if(prec_type == gko::preconditioner::batch::jacobi_str) {
-    // 	apply_csr_impl<BatchJacobi>(exec,a,b,x);
-    // } else {
-    // 	GKO_NOT_IMPLEMENTED;
-    // }
-    GKO_NOT_IMPLEMENTED;
-}
+           matrix::BatchDense<ValueType> *const x,
+           log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
 
