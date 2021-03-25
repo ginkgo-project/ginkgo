@@ -108,6 +108,9 @@ stages:
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
     - ninja test_install
+    - pushd test_install
+    - ninja install
+    - popd
     - |
       if [ "${RUN_EXAMPLES}" == "ON" ]; then
          export EX_ARG="reference"
