@@ -100,7 +100,8 @@ template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
            const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x)
+           matrix::BatchDense<ValueType> *const x,
+           log::BatchLogData<ValueType> &logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
     const gko::batch_dense::UniformBatch<const cu_value_type> b_b =

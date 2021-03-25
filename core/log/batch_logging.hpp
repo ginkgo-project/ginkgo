@@ -30,35 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/batch_richardson_kernels.hpp"
+
+#ifndef GKO_CORE_LOG_BATCH_LOGGING_HPP_
+#define GKO_CORE_LOG_BATCH_LOGGING_HPP_
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 namespace gko {
-namespace kernels {
-namespace dpcpp {
+namespace log {
+
+
 /**
- * @brief The batch Richardson solver namespace.
- *
- * @ingroup batch_rich
+ * Stores logging data for batch solver kernels.
  */
-namespace batch_rich {
-
-
-template <typename T>
-using BatchRichardsonOptions =
-    gko::kernels::batch_rich::BatchRichardsonOptions<T>;
-
 template <typename ValueType>
-void apply(std::shared_ptr<const DpcppExecutor> exec,
-           const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-           const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
+struct BatchLogData {
+    std::shared_ptr<matrix::BatchDense<remove_complex<ValueType>>> res_norms;
+    Array<int> iter_counts;
+};
 
 
-}  // namespace batch_rich
-}  // namespace dpcpp
-}  // namespace kernels
+}  // namespace log
 }  // namespace gko
+
+#endif
