@@ -185,7 +185,8 @@ Csr<ValueType, IndexType>::get_block_approx(
                     std::accumulate(row_nnz_host.get_data(),
                                     row_nnz_host.get_data() + block_size, 0);
                 auto mtx = Csr<ValueType, IndexType>::create(
-                    exec, gko::dim<2>(block_size), block_nnz);
+                    exec, gko::dim<2>(block_size), block_nnz,
+                    this->get_strategy());
                 exec->run(csr::make_block_approx(this, mtx.get(), &row_nnz,
                                                  block_offset));
                 block_mtxs.emplace_back(std::move(mtx));
@@ -231,7 +232,8 @@ Csr<ValueType, IndexType>::get_block_approx(
                     std::accumulate(row_nnz_host.get_data(),
                                     row_nnz_host.get_data() + block_size, 0);
                 auto mtx = Csr<ValueType, IndexType>::create(
-                    exec, gko::dim<2>(block_size), block_nnz);
+                    exec, gko::dim<2>(block_size), block_nnz,
+                    this->get_strategy());
                 exec->run(csr::make_block_approx(this, mtx.get(), &row_nnz,
                                                  block_offset_outer));
                 block_mtxs.emplace_back(std::move(mtx));
