@@ -30,11 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <typename PrecType, typename StopType, typename MatrixType,
-          typename ValueType>
+template <typename PrecType, typename StopType, typename LogType,
+          typename MatrixType, typename ValueType>
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> rel_tol,
-    const gko::remove_complex<ValueType> relax_factor, const MatrixType mat,
+    const gko::remove_complex<ValueType> relax_factor, LogType logger,
+    const MatrixType mat,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
@@ -131,6 +132,7 @@ __global__ void apply_kernel(
 
             const bool all_converged =
                 stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
+            logger.log_iteration(ibatch, iter, norms, converged);
             if (all_converged) {
                 break;
             }
