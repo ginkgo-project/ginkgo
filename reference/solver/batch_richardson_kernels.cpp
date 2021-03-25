@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
+#include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
@@ -65,12 +66,12 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
-template <typename PrecType, typename StopType, typename BatchMatrixType,
-          typename ValueType>
+template <typename PrecType, typename StopType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-    const BatchMatrixType *const a,
+    LogType logger, const BatchMatrixType *const a,
     const gko::batch_dense::UniformBatch<const ValueType> *const b,
     const gko::batch_dense::UniformBatch<ValueType> *const x)
 {
@@ -131,11 +132,6 @@ static void apply_impl(
 
         int iter = 0;
         while (1) {
-            const bool all_converged =
-                stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
-            if (all_converged) {
-                break;
-            }
             // r <- r - Adx  This causes instability!
             // batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
             // 					  gko::batch_dense::to_const(dx_b),
@@ -154,8 +150,14 @@ static void apply_impl(
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(r_b), norms_b);
             for (int j = 0; j < nrhs; j++) {
-                norms_b.values[j] =
-                    sqrt(norms_b.values[j]) / init_rel_res_norm[j];
+                norms_b.values[j] = sqrt(norms_b.values[j]);
+            }
+
+            const bool all_converged =
+                stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
+            logger.log_iteration(ibatch, iter, norms, converged);
+            if (all_converged) {
+                break;
             }
 
             prec.apply(gko::batch_dense::to_const(r_b), dx_b);
@@ -178,17 +180,17 @@ static void apply_impl(
     }
 }
 
-template <typename BatchType, typename ValueType>
+template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-    const BatchType *const a,
+    const LoggerType logger, const BatchType *const a,
     const gko::batch_dense::UniformBatch<const ValueType> *const b,
     const gko::batch_dense::UniformBatch<ValueType> *const x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
         apply_impl<BatchJacobi<ValueType>, stop::RelResidualMaxIter<ValueType>>(
-            exec, opts, a, b, x);
+            exec, opts, logger, a, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -198,15 +200,19 @@ template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
            const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x)
+           matrix::BatchDense<ValueType> *const x,
+           gko::log::BatchLogData<ValueType> &logdata)
 {
+    batch_log::FinalLogger<remove_complex<ValueType>> logger(
+        b->get_batch_sizes()[0][1], logdata.res_norms->get_values(),
+        logdata.iter_counts.get_data());
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
         get_batch_struct(b);
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<const ValueType> a_b =
             get_batch_struct(a_mat);
-        apply_select_prec(exec, opts, &a_b, &b_b, &x_b);
+        apply_select_prec(exec, opts, logger, &a_b, &b_b, &x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
