@@ -116,6 +116,17 @@ protected:
         res->compute_norm2(resnorm_1.get());
     }
 
+    int single_iters_regression() const
+    {
+        if (std::is_same<real_type, float>::value) {
+            return 50;
+        } else if (std::is_same<real_type, double>::value) {
+            return 80;
+        } else {
+            return -1;
+        }
+    }
+
     void solve_poisson_uniform_mult()
     {
         const int nrows = 3;
@@ -157,6 +168,22 @@ protected:
         mtx->apply(alpha.get(), x_m.get(), beta.get(), res.get());
         res->compute_norm2(resnorm_m.get());
     }
+
+    std::vector<int> multiple_iters_regression() const
+    {
+        std::vector<int> iters(2);
+        if (std::is_same<real_type, float>::value) {
+            iters[0] = 50;
+            iters[1] = 63;
+        } else if (std::is_same<real_type, double>::value) {
+            iters[0] = 80;
+            iters[1] = 79;
+        } else {
+            iters[0] = -1;
+            iters[1] = -1;
+        }
+        return iters;
+    }
 };
 
 TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
@@ -178,17 +205,7 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    // regression values for iteration counts
-    auto ref_iter_dict = []() -> int {
-        if (std::is_same<real_type, float>::value) {
-            return 50;
-        } else if (std::is_same<real_type, double>::value) {
-            return 80;
-        } else {
-            return -1;
-        }
-    };
-    const int ref_iters = ref_iter_dict();
+    const int ref_iters = this->single_iters_regression();
 
     const int *const iter_array = this->logdata_1.iter_counts.get_const_data();
     const real_type *const res_log_array =
@@ -217,6 +234,32 @@ TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
     }
     GKO_ASSERT_BATCH_MTX_NEAR(this->x_m, this->xex_m,
                               1e-6 /*r<value_type>::value*/);
+}
+
+
+TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+
+    const std::vector<int> ref_iters = this->multiple_iters_regression();
+
+    const int *const iter_array = this->logdata_m.iter_counts.get_const_data();
+    const real_type *const res_log_array =
+        this->logdata_m.res_norms->get_const_values();
+    for (size_t i = 0; i < this->nbatch; i++) {
+        // test logger
+        for (size_t j = 0; j < this->nrhs; j++) {
+            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            ASSERT_LE(res_log_array[i * this->nrhs + j] /
+                          this->bnorm_m->get_const_values()[i * this->nrhs + j],
+                      this->opts_m.rel_residual_tol);
+            // The following is satisfied for float but not for double - why?
+            // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
+            // 			rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
+            // 10*r<value_type>::value);
+        }
+    }
 }
 
 
