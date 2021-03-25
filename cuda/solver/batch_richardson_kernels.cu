@@ -59,6 +59,9 @@ constexpr int default_block_size = 128;
 namespace batch_rich {
 
 
+#include "common/components/uninitialized_array.hpp.inc"
+
+
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
