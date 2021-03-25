@@ -583,21 +583,26 @@ void block_approx(std::shared_ptr<const DefaultExecutor> exec,
                   Array<size_type> *row_nnz, size_type block_offset)
 {
     auto block_size = result->get_size()[0];
+    const auto row_ptrs = source->get_const_row_ptrs();
+    const auto col_idxs = source->get_const_col_idxs();
+    const auto values = source->get_const_values();
+    auto res_row_ptrs = result->get_row_ptrs();
 #pragma omp parallel for
     for (size_type row = 0; row < block_size; ++row) {
-        result->get_row_ptrs()[row] = row_nnz->get_data()[row];
+        res_row_ptrs[row] = row_nnz->get_data()[row];
     }
-    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
-    size_type res_nnz = 0;
-    for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
-        if (nnz >= source->get_const_row_ptrs()[block_offset] &&
-            nnz < source->get_const_row_ptrs()[block_offset + block_size] &&
-            (source->get_const_col_idxs()[nnz] < (block_offset + block_size) &&
-             source->get_const_col_idxs()[nnz] >= block_offset)) {
-            result->get_col_idxs()[res_nnz] =
-                source->get_const_col_idxs()[nnz] - block_offset;
-            result->get_values()[res_nnz] = source->get_const_values()[nnz];
-            res_nnz++;
+    components::prefix_sum(exec, res_row_ptrs, block_size + 1);
+#pragma omp parallel for
+    for (size_type row = 0; row < block_size; ++row) {
+        size_type res_nnz = res_row_ptrs[row];
+        for (size_type nnz = row_ptrs[block_offset + row];
+             nnz < row_ptrs[block_offset + row + 1]; ++nnz) {
+            if ((col_idxs[nnz] < (block_offset + block_size) &&
+                 col_idxs[nnz] >= block_offset)) {
+                result->get_col_idxs()[res_nnz] = col_idxs[nnz] - block_offset;
+                result->get_values()[res_nnz] = values[nnz];
+                res_nnz++;
+            }
         }
     }
 }
