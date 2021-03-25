@@ -43,6 +43,7 @@ __global__ void apply_kernel(
     const auto num_rows = mat.num_rows;
     const auto num_rhs = b.num_rhs;
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+    constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
 
     if (batch_config<ValueType>::max_num_rows < num_rows * num_rhs) {
         if (blockIdx.x == 0 && threadIdx.x == 0) {
@@ -52,9 +53,14 @@ __global__ void apply_kernel(
     }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        __shared__ ValueType residual[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType delta_x[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType prec_work[PrecType::work_size];
+        __shared__ UninitializedArray<ValueType, max_nrows> residual_un;
+        __shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
+        __shared__ UninitializedArray<ValueType, PrecType::work_size>
+            prec_work_un;
+        ValueType *const residual = residual_un;
+        ValueType *const delta_x = delta_x_un;
+        ValueType *const prec_work = prec_work_un;
+
         uint32 converged = 0;
 
         const gko::batch_dense::BatchEntry<ValueType> r_b{residual, num_rhs,
