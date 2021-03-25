@@ -31,16 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#ifndef GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
-#define GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
-
-
-namespace gko {
-namespace kernels {
-namespace reference {
 namespace batch_log {
 
 
@@ -82,11 +72,13 @@ public:
      * @param res_norm  Norms of current residuals for each RHS.
      * @param converged  Bitset representing convergence state for each RHS.
      */
-    void log_iteration(const size_type batch_idx, const int iter,
-                       const real_type *const res_norm, const uint32 converged)
+    __device__ __forceinline__ void log_iteration(
+        const size_type batch_idx, const int iter,
+        const real_type *const res_norm, const uint32 converged)
     {
+        // Maybe this can/should be optimized? It might not be worth the effort.
         if (converged != init_converged) {
-            for (int j = 0; j < nrhs; j++) {
+            for (int j = threadIdx.x; j < nrhs; j += blockDim.x) {
                 const uint32 jconv = converged & (1 << j);
                 const uint32 old_jconv = init_converged & (1 << j);
                 if (jconv && (old_jconv != jconv)) {
@@ -108,8 +100,3 @@ private:
 
 
 }  // namespace batch_log
-}  // namespace reference
-}  // namespace kernels
-}  // namespace gko
-
-#endif
