@@ -77,15 +77,26 @@ template <typename ValueType>
 void BatchRichardson<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
+    using real_type = remove_complex<ValueType>;
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const kernels::batch_rich::BatchRichardsonOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
-             parameters_.rel_residual_tol, parameters_.relaxation_factor};
+    const kernels::batch_rich::BatchRichardsonOptions<real_type> opts{
+        parameters_.preconditioner, parameters_.max_iterations,
+        parameters_.rel_residual_tol, parameters_.relaxation_factor};
 
-    exec->run(
-        batch_rich::make_apply(opts, system_matrix_.get(), dense_b, dense_x));
+    log::BatchLogData<ValueType> logdata;
+    // allocate logging arrays assuming uniform size batch
+    const size_type num_rhs = dense_b->get_batch_sizes()[0][1];
+    const size_type num_batches = dense_b->get_num_batches();
+    std::vector<dim<2>> sizes(num_batches, dim<2>{1, num_rhs});
+    logdata.res_norms =
+        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
+    logdata.iter_counts.set_executor(this->get_executor());
+    logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
+
+    exec->run(batch_rich::make_apply(opts, system_matrix_.get(), dense_b,
+                                     dense_x, logdata));
 }
 
 

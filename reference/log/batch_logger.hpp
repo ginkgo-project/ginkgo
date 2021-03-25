@@ -30,101 +30,74 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_BATCH_RICHARDSON_KERNELS_HPP_
-#define GKO_CORE_SOLVER_BATCH_RICHARDSON_KERNELS_HPP_
+
+#ifndef GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
+#define GKO_REFERENCE_LOG_BATCH_LOGGER_HPP_
 
 
-#include <ginkgo/core/matrix/batch_csr.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
-
-#include "core/log/batch_logging.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace batch_rich {
+namespace reference {
+namespace batch_log {
 
 
 /**
- * Options controlling the batch Richardson solver.
+ * Simple logger for final residuals and iteration counts of all
+ * linear systems in a batch.
  */
 template <typename RealType>
-struct BatchRichardsonOptions {
-    std::string preconditioner;
-    int max_its;
-    RealType rel_residual_tol;
-    RealType relax_factor;
+class FinalLogger final {
+public:
+    using real_type = RealType;
+
+    /**
+     * Sets pre-allocated storage for logging.
+     *
+     * @param num_rhs  The number of RHS vectors.
+     * @param batch_residuals  Array of residuals norms of size
+     *                         num_batches x num_rhs. Used as row major.
+     * @param batch_iters  Array of final iteration counts for each
+     *                     linear system and each RHS in the batch.
+     */
+    FinalLogger(const int num_rhs, real_type *const batch_residuals,
+                int *const batch_iters)
+        : nrhs{num_rhs},
+          final_residuals{batch_residuals},
+          final_iters{batch_iters},
+          init_converged(0 - (1 << num_rhs))
+    {}
+
+    void log_iteration(const size_type batch_idx, const int iter,
+                       const real_type *const res_norm, const uint32 converged)
+    {
+        if (converged != init_converged) {
+            for (int j = 0; j < nrhs; j++) {
+                const uint32 jconv = converged & (1 << j);
+                const uint32 old_jconv = init_converged & (1 << j);
+                if (jconv && (old_jconv != jconv)) {
+                    final_iters[batch_idx * nrhs + j] = iter;
+                }
+                final_residuals[batch_idx * nrhs + j] = res_norm[j];
+            }
+
+            init_converged = converged;
+        }
+    }
+
+private:
+    const int nrhs;
+    real_type *const final_residuals;
+    int *const final_iters;
+    uint32 init_converged;
 };
 
 
-#define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)                       \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const gko::kernels::batch_rich::BatchRichardsonOptions<         \
-                   remove_complex<_type>> &options,                            \
-               const LinOp *const a, const matrix::BatchDense<_type> *const b, \
-               matrix::BatchDense<_type> *const x,                             \
-               gko::log::BatchLogData<_type> &logdata)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(ValueType)
-
-
-}  // namespace batch_rich
-
-
-namespace omp {
-namespace batch_rich {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_rich
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_rich {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_rich
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_rich {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_rich
+}  // namespace batch_log
 }  // namespace reference
-
-
-namespace hip {
-namespace batch_rich {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_rich
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_rich {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_rich
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
 
 #endif
