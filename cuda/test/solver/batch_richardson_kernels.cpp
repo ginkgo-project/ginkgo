@@ -73,6 +73,7 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
     using BDense = typename TestFixture::BDense;
     const int nbatch = 1;
     const int nrows = 3;
+    const int nrhs = 1;
     auto rmtx = gko::test::create_poisson1d_batch<value_type>(this->exec, nrows,
                                                               nbatch);
     auto rb =
@@ -84,6 +85,12 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
 
     const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts{
         "jacobi", 500, 1e-6, 1.0};
+    gko::log::BatchLogData<value_type> logdata;
+    std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
+    logdata.res_norms =
+        gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+    logdata.iter_counts.set_executor(this->exec);
+    logdata.iter_counts.resize_and_reset(nrhs * nbatch);
 
     auto mtx = Mtx::create(this->cuexec);
     auto b = BDense::create(this->cuexec);
@@ -93,7 +100,7 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
     x->copy_from(gko::lend(rx));
 
     gko::kernels::cuda::batch_rich::apply<value_type>(
-        this->cuexec, opts, mtx.get(), b.get(), x.get());
+        this->cuexec, opts, mtx.get(), b.get(), x.get(), logdata);
 
     rx->copy_from(gko::lend(x));
     std::unique_ptr<BDense> res = rb->clone();
@@ -144,6 +151,12 @@ TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
 
     const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts{
         "jacobi", 100, 1e-6, 1.0};
+    gko::log::BatchLogData<value_type> logdata;
+    std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
+    logdata.res_norms =
+        gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+    logdata.iter_counts.set_executor(this->exec);
+    logdata.iter_counts.resize_and_reset(nrhs * nbatch);
 
     auto mtx = Mtx::create(this->cuexec);
     auto b = BDense::create(this->cuexec);
@@ -153,7 +166,7 @@ TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
     x->copy_from(gko::lend(rx));
 
     gko::kernels::cuda::batch_rich::apply<value_type>(
-        this->cuexec, opts, mtx.get(), b.get(), x.get());
+        this->cuexec, opts, mtx.get(), b.get(), x.get(), logdata);
 
     rx->copy_from(gko::lend(x));
     std::unique_ptr<BDense> res = rb->clone();
