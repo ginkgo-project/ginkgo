@@ -660,19 +660,16 @@ __global__
         const IndexType *__restrict__ source_row_ptrs,
         const IndexType *__restrict__ source_col_idxs,
         const ValueType *__restrict__ source_values,
+        const IndexType *__restrict__ result_row_ptrs,
         IndexType *__restrict__ result_col_idxs,
         ValueType *__restrict__ result_values)
 {
     const auto tidx = thread::get_thread_id_flat();
-    // if (tidx < num_rows) {
-    //     row_ptrs[tidx] = nnz_per_row[tidx];
-    // }
-    if (tidx == 1) {
-        size_type res_nnz = 0;
-        for (size_type nnz = 0; nnz < num_nnz; ++nnz) {
-            if (nnz >= source_row_ptrs[block_offset] &&
-                nnz < source_row_ptrs[block_offset + block_size] &&
-                (source_col_idxs[nnz] < (block_offset + block_size) &&
+    if (tidx < block_size) {
+        size_type res_nnz = result_row_ptrs[tidx];
+        for (size_type nnz = source_row_ptrs[block_offset + tidx];
+             nnz < source_row_ptrs[block_offset + tidx + 1]; ++nnz) {
+            if ((source_col_idxs[nnz] < (block_offset + block_size) &&
                  source_col_idxs[nnz] >= block_offset)) {
                 result_col_idxs[res_nnz] = source_col_idxs[nnz] - block_offset;
                 result_values[res_nnz] = source_values[nnz];
