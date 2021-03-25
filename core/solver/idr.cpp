@@ -90,10 +90,9 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-template <typename SubspaceType>
+template <typename SubspaceType, typename StorageType>
 void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 {
-    using StorageType = reduce_precision<SubspaceType>;
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -313,7 +312,6 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
             rs->compute_norm2(residual_norm.get());
         }
     }
-
     if (smoothing_) {
         dense_x->copy_from(xs.get());
     }
@@ -329,11 +327,22 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto dense_x = as<matrix::Dense<ValueType>>(x);
         auto complex_b = dense_b->make_complex();
         auto complex_x = dense_x->make_complex();
-        this->iterate<to_complex<ValueType>>(complex_b.get(), complex_x.get());
+        if (mixed_precision_) {
+            this->iterate<to_complex<ValueType>,
+                          next_precision<to_complex<ValueType>>>(
+                complex_b.get(), complex_x.get());
+        } else {
+            this->iterate<to_complex<ValueType>>(complex_b.get(),
+                                                 complex_x.get());
+        }
         complex_x->get_real(
             dynamic_cast<matrix::Dense<remove_complex<ValueType>> *>(dense_x));
     } else {
-        this->iterate<ValueType>(b, x);
+        if (mixed_precision_) {
+            this->iterate<ValueType, next_precision<ValueType>>(b, x);
+        } else {
+            this->iterate<ValueType>(b, x);
+        }
     }
 }
 

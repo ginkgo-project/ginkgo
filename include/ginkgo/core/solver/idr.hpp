@@ -248,6 +248,8 @@ public:
          * The default is true.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(smoothing, true);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(mixed_precision, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -258,7 +260,7 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    template <typename SubspaceType>
+    template <typename SubspaceType, typename StorageType = SubspaceType>
     void iterate(const LinOp *b, LinOp *x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
@@ -290,6 +292,7 @@ protected:
         deterministic_ = parameters_.deterministic;
         complex_subspace_ = parameters_.complex_subspace;
         smoothing_ = parameters_.smoothing;
+        mixed_precision_ = parameters_.mixed_precision;
     }
 
 private:
@@ -300,6 +303,7 @@ private:
     bool deterministic_;
     bool complex_subspace_;
     bool smoothing_;
+    bool mixed_precision_;
 };
 
 

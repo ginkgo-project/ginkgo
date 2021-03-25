@@ -60,9 +60,6 @@ __global__ __launch_bounds__(
     using ValueType = typename Acc::accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat();
 
-    static_assert(std::is_same<ValueType, to_complex<ValueType>>::value,
-                  "Type check");
-
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 

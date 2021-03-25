@@ -288,8 +288,38 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
                                                                       precond);
     } else if (description == "idr") {
         return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build().with_subspace_dim(2u).with_kappa(
+                static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "idr4") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build().with_subspace_dim(4u).with_kappa(
+                static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "idr8") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build().with_subspace_dim(8u).with_kappa(
+                static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "mpidr") {
+        return add_criteria_precond_finalize(
             gko::solver::Idr<etype>::build()
-                .with_subspace_dim(FLAGS_idr_subspace_dim)
+                .with_mixed_precision(true)
+                .with_subspace_dim(2u)
+                .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "mpidr4") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build()
+                .with_mixed_precision(true)
+                .with_subspace_dim(4u)
+                .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
+            exec, precond);
+    } else if (description == "mpidr8") {
+        return add_criteria_precond_finalize(
+            gko::solver::Idr<etype>::build()
+                .with_mixed_precision(true)
+                .with_subspace_dim(8u)
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
             exec, precond);
     } else if (description == "gmres") {

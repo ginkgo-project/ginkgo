@@ -138,7 +138,7 @@ template <typename ValueType>
 void initialize_subspace_vectors(ValueType *subspace_vectors, gko::dim<2> size,
                                  bool deterministic)
 {
-    if (!deterministic || deterministic) {
+    /*if (!deterministic || deterministic) {
         auto dist = std::normal_distribution<>(0.0, 1.0);
         auto gen = std::ranlux48(15);
         for (size_type i = 0; i < size[0]; i++) {
@@ -147,11 +147,10 @@ void initialize_subspace_vectors(ValueType *subspace_vectors, gko::dim<2> size,
                     get_rand_value<ValueType>(dist, gen);
             }
         }
-    } /*else {
-        auto gen =
-            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
-        curand::rand_vector(gen, size[0] * size[1], 0.0, 1.0, subspace_vectors);
-    }*/
+    } else {*/
+    auto gen = curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
+    curand::rand_vector(gen, size[0] * size[1], 0.0, 1.0, subspace_vectors);
+    //}
 }
 
 
@@ -309,9 +308,9 @@ void apply_subspace(std::shared_ptr<const CudaExecutor> exec,
         residual->get_size()[0] * residual->get_size()[1] * config::warp_size,
         default_block_size);
 
-    apply_subspace_kernel<<<grid_dim, default_block_size>>>(
-        subspace_vectors->get_size()[0], subspace_vectors->get_size()[1],
-        residual->get_size()[1], as_cuda_accessor(subspace_vectors),
+    apply_subspace_kernel<config::warp_size><<<grid_dim, default_block_size>>>(
+        f->get_size()[0], residual->get_size()[0], residual->get_size()[1],
+        as_cuda_accessor(subspace_vectors),
         as_cuda_type(residual->get_const_values()),
         as_cuda_type(f->get_values()));
 }

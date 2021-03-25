@@ -74,7 +74,7 @@ protected:
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
+                    gko::stop::Iteration::build().with_max_iters(2u).on(cuda))
                 .on(cuda);
 
         ref_idr_factory =
@@ -298,7 +298,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
                                            d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(omega, d_omega, 1e-14);
-}
+}*/
 
 
 TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
@@ -315,10 +315,12 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
     d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
+    std::cout << "REFERENCE DONE" << std::endl;
     cuda_solver->apply(d_b.get(), d_x.get());
-
+    std::cout << "SOLVER APPLICATION DONE" << std::endl;
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    std::cout << "PASSED" << std::endl;
 }
 
 
@@ -410,7 +412,7 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
-}*/
+}
 
 
 }  // namespace

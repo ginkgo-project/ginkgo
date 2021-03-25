@@ -71,17 +71,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, double, _const float>>));     \
     template _macro(                                                           \
-        double,                                                                \
-        GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<2, double, _const half>>));      \
-    template _macro(                                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, float, _const float>>));      \
     template _macro(                                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<2, float, _const half>>));       \
+            acc::range<acc::reduced_row_major<2, float, _const double>>));     \
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
@@ -93,11 +89,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             acc::range<acc::reduced_row_major<2, std::complex<double>,         \
                                               _const std::complex<float>>>));  \
     template _macro(                                                           \
-        std::complex<double>,                                                  \
-        GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<2, std::complex<double>,         \
-                                              _const std::complex<half>>>));   \
-    template _macro(                                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, std::complex<float>,          \
@@ -106,7 +97,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<2, std::complex<float>,          \
-                                              _const std::complex<half>>>))
+                                              _const std::complex<double>>>))
 
 #define GKO_INSTANTIATE_FOR_EACH_IDR_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_IDR_TYPE_HELPER(_macro, )
