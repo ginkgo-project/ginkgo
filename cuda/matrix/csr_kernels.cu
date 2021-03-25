@@ -838,7 +838,17 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *source, const span &row_span,
-    const span &col_span, Array<size_type> *row_nnz) GKO_NOT_IMPLEMENTED;
+    const span &col_span, Array<size_type> *row_nnz)
+{
+    const auto num_rows = source->get_size()[0];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto col_idxs = source->get_const_col_idxs();
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+
+    kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size>>>(
+        row_span, col_span, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
+        as_cuda_type(row_nnz->get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
@@ -848,8 +858,26 @@ template <typename ValueType, typename IndexType>
 void block_approx(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Csr<ValueType, IndexType> *source,
                   matrix::Csr<ValueType, IndexType> *result,
-                  Array<size_type> *row_nnz,
-                  size_type block_offset) GKO_NOT_IMPLEMENTED;
+                  Array<size_type> *row_nnz, size_type block_offset)
+{
+    auto block_size = result->get_size()[0];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto grid_dim = ceildiv(block_size, default_block_size);
+    kernel::get_row_nnz_data<<<grid_dim, default_block_size>>>(
+        block_size, as_cuda_type(row_nnz->get_data()),
+        as_cuda_type(result->get_row_ptrs()));
+    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
+
+    auto num_nnz = source->get_num_stored_elements();
+    grid_dim = ceildiv(num_nnz, default_block_size);
+    kernel::compute_block_idxs_and_vals<<<grid_dim, default_block_size>>>(
+        block_size, num_nnz, block_offset,
+        as_cuda_type(source->get_const_row_ptrs()),
+        as_cuda_type(source->get_const_col_idxs()),
+        as_cuda_type(source->get_const_values()),
+        as_cuda_type(result->get_col_idxs()),
+        as_cuda_type(result->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
