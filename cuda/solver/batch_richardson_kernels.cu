@@ -62,6 +62,7 @@ namespace batch_rich {
 #include "common/components/uninitialized_array.hpp.inc"
 
 
+#include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
@@ -76,11 +77,11 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
-template <typename BatchMatrixType, typename ValueType>
+template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const CudaExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> opts,
-    const BatchMatrixType &a,
+    LogType logger, const BatchMatrixType &a,
     const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
@@ -90,9 +91,9 @@ static void apply_impl(
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
         apply_kernel<BatchJacobi<ValueType>,
                      stop::RelResidualMaxIter<ValueType>>
-            <<<nbatch, default_block_size>>>(opts.max_its,
-                                             opts.rel_residual_tol,
-                                             opts.relax_factor, a, b, x);
+            <<<nbatch, default_block_size>>>(
+                opts.max_its, opts.rel_residual_tol, opts.relax_factor, logger,
+                a, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -107,6 +108,12 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            log::BatchLogData<ValueType> &logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
+
+    // For now, FinalLogger is the only one available
+    batch_log::FinalLogger<remove_complex<ValueType>> logger(
+        static_cast<int>(b->get_batch_sizes()[0][1]),
+        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
+
     const gko::batch_dense::UniformBatch<const cu_value_type> b_b =
         get_batch_struct(b);
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
@@ -114,7 +121,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<const cu_value_type> m_b =
             get_batch_struct(amat);
-        apply_impl(exec, opts, m_b, b_b, x_b);
+        apply_impl(exec, opts, logger, m_b, b_b, x_b);
     } else {
         GKO_NOT_SUPPORTED(a);
     }
