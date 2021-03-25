@@ -371,7 +371,6 @@ void calculate_nonzeros_per_row_in_span(
     const matrix::Csr<ValueType, IndexType> *source, const span &row_span,
     const span &col_span, Array<size_type> *row_nnz)
 {
-    const auto block_size = row_nnz->get_num_elems();
     size_type res_row = 0;
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
         for (size_type col = source->get_const_row_ptrs()[row];

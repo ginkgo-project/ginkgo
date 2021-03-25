@@ -559,17 +559,16 @@ void calculate_nonzeros_per_row_in_span(
     const matrix::Csr<ValueType, IndexType> *source, const span &row_span,
     const span &col_span, Array<size_type> *row_nnz)
 {
-    const auto block_size = row_nnz->get_num_elems();
-    size_type res_row = 0;
+    const auto row_ptrs = source->get_const_row_ptrs();
+    const auto col_idxs = source->get_const_col_idxs();
+#pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
-        for (size_type col = source->get_const_row_ptrs()[row];
-             col < source->get_const_row_ptrs()[row + 1]; ++col) {
-            if (source->get_const_col_idxs()[col] >= col_span.begin &&
-                source->get_const_col_idxs()[col] < col_span.end) {
-                row_nnz->get_data()[res_row]++;
+        for (size_type col = row_ptrs[row]; col < row_ptrs[row + 1]; ++col) {
+            if (col_idxs[col] >= col_span.begin &&
+                col_idxs[col] < col_span.end) {
+                row_nnz->get_data()[row - row_span.begin]++;
             }
         }
-        res_row++;
     }
 }
 
