@@ -98,12 +98,6 @@ __global__ void apply_kernel(
 
         int iter = 0;
         while (1) {
-            const bool all_converged =
-                stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
-            if (all_converged) {
-                break;
-            }
-
             // r <- r - Adx  This causes instability!
             // batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
             //     gko::batch_dense::to_const(dx_b),
@@ -116,14 +110,23 @@ __global__ void apply_kernel(
                 const int j = iz % num_rhs;
                 r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
             }
+            __syncthreads();
             batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
                                   gko::batch_dense::to_const(x_b),
                                   static_cast<ValueType>(1.0), r_b);
+            __syncthreads();
 
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(r_b), norms_b);
+            __syncthreads();
             for (int j = threadIdx.x; j < num_rhs; j += blockDim.x) {
                 norms[j] = sqrt(norms[j]);
+            }
+
+            const bool all_converged =
+                stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
+            if (all_converged) {
+                break;
             }
 
             prec.apply(gko::batch_dense::to_const(r_b), dx_b);
