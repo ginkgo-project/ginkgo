@@ -160,18 +160,6 @@ protected:
             *stop_status;  // copy_from is not a public member function of Array
     }
 
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 

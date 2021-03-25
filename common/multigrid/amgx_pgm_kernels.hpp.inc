@@ -34,20 +34,6 @@ namespace kernel {
 
 
 template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void replace_kernel(
-    size_type size, const IndexType *__restrict__ source,
-    IndexType *__restrict__ result)
-{
-    auto tidx = thread::get_thread_id_flat();
-    if (tidx >= size) {
-        return;
-    }
-
-    result[tidx] = source[tidx] == -1;
-}
-
-
-template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
     size_type num, const IndexType *__restrict__ strongest_neighbor_vals,
     IndexType *__restrict__ agg_vals)
@@ -60,11 +46,11 @@ __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
         return;
     }
     auto neighbor = strongest_neighbor_vals[tidx];
-    if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx) {
+    if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx &&
+        tidx < neighbor) {
         // Use the smaller index as agg point
-        auto group = min(tidx, neighbor);
-        agg_vals[tidx] = group;
-        agg_vals[neighbor] = group;
+        agg_vals[tidx] = tidx;
+        agg_vals[neighbor] = tidx;
     }
 }
 

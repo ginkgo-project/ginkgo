@@ -67,7 +67,7 @@ protected:
         omp = gko::OmpExecutor::create();
 
         mtx = gen_mtx(123, 123);
-        make_diag_dominant(mtx.get());
+        gko::test::make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(omp);
         d_mtx->copy_from(mtx.get());
         omp_cgs_factory =
@@ -163,18 +163,6 @@ protected:
         // because there is no public function copy_from, use overloaded =
         // operator
         *d_stop_status = *stop_status;
-    }
-
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

@@ -57,24 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename Array, typename ValueDistribution, typename Engine>
-Array generate_random_array(gko::size_type num, ValueDistribution &&value_dist,
-                            Engine &&engine,
-                            std::shared_ptr<const gko::Executor> exec)
-{
-    using value_type = typename Array::value_type;
-    Array array_host(exec->get_master(), num);
-    auto val = array_host.get_data();
-    for (int i = 0; i < num; i++) {
-        val[i] =
-            gko::test::detail::get_rand_value<value_type>(value_dist, engine);
-    }
-    Array array(exec);
-    array = array_host;
-    return array;
-}
-
-
 class AmgxPgm : public ::testing::Test {
 protected:
     using value_type = gko::default_precision;
@@ -101,7 +83,7 @@ protected:
     gko::Array<index_type> gen_array(gko::size_type num, index_type min_val,
                                      index_type max_val)
     {
-        return generate_random_array<gko::Array<index_type>>(
+        return gko::test::generate_random_array<index_type>(
             num, std::uniform_int_distribution<>(min_val, max_val), rand_engine,
             ref);
     }
@@ -122,6 +104,10 @@ protected:
         weight_csr = Csr::create(ref);
         weight->convert_to(weight_csr.get());
         weight_diag = weight_csr->extract_diagonal();
+        auto system_dense = gen_mtx(m, m);
+        gko::test::make_spd(system_dense.get());
+        system_mtx = Csr::create(ref);
+        system_dense->convert_to(system_mtx.get());
 
         d_agg.set_executor(omp);
         d_unfinished_agg.set_executor(omp);
@@ -130,6 +116,7 @@ protected:
         d_fine_vector = Mtx::create(omp);
         d_weight_csr = Csr::create(omp);
         d_weight_diag = Diag::create(omp);
+        d_system_mtx = Csr::create(omp);
         d_agg = agg;
         d_unfinished_agg = unfinished_agg;
         d_strongest_neighbor = strongest_neighbor;
@@ -137,50 +124,15 @@ protected:
         d_fine_vector->copy_from(fine_vector.get());
         d_weight_csr->copy_from(weight_csr.get());
         d_weight_diag->copy_from(weight_diag.get());
-    }
-
-    void make_symetric(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
-                mtx->at(i, j) = mtx->at(j, i);
-            }
-        }
-    }
-
-    // only for real value
-    void make_absoulte(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                mtx->at(i, j) = abs(mtx->at(i, j));
-            }
-        }
-    }
-
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
-
-    void make_spd(Mtx *mtx)
-    {
-        make_symetric(mtx);
-        make_diag_dominant(mtx);
+        d_system_mtx->copy_from(system_mtx.get());
     }
 
     void make_weight(Mtx *mtx)
     {
-        make_symetric(mtx);
-        make_absoulte(mtx);
-        make_diag_dominant(mtx);
+        gko::test::make_symmetric(mtx);
+        // it is only works for realvalue case.
+        mtx->compute_absolute_inplace();
+        gko::test::make_diag_dominant(mtx);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -200,11 +152,13 @@ protected:
     std::unique_ptr<Mtx> fine_vector;
     std::unique_ptr<Diag> weight_diag;
     std::unique_ptr<Csr> weight_csr;
+    std::shared_ptr<Csr> system_mtx;
 
     std::unique_ptr<Mtx> d_coarse_vector;
     std::unique_ptr<Mtx> d_fine_vector;
     std::unique_ptr<Diag> d_weight_diag;
     std::unique_ptr<Csr> d_weight_csr;
+    std::shared_ptr<Csr> d_system_mtx;
 
     gko::size_type n;
 };
@@ -317,6 +271,28 @@ TEST_F(AmgxPgm, GenerateMtxIsEquivalentToRef)
         ref, weight_csr.get(), agg, csr_coarse.get(), csr_temp.get());
 
     GKO_ASSERT_MTX_NEAR(d_csr_coarse, csr_coarse, 1e-14);
+}
+
+
+TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
+{
+    initialize_data();
+    auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                .with_deterministic(true)
+                                .on(ref);
+    auto d_mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                  .with_deterministic(true)
+                                  .on(omp);
+
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
+                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
+                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
 }
 
 

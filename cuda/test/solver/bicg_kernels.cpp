@@ -152,33 +152,6 @@ protected:
         *d_stop_status = *stop_status;
     }
 
-    void make_symetric(Mtx *mtx)
-    {
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            for (int j = i + 1; j < mtx->get_size()[1]; ++j) {
-                mtx->at(i, j) = mtx->at(j, i);
-            }
-        }
-    }
-
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
-
-    void make_spd(Mtx *mtx)
-    {
-        make_symetric(mtx);
-        make_diag_dominant(mtx);
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
 
@@ -285,7 +258,7 @@ TEST_F(Bicg, CudaBicgStep2IsEquivalentToRef)
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50);
-    make_spd(mtx.get());
+    gko::test::make_spd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
     auto d_mtx = Mtx::create(cuda);

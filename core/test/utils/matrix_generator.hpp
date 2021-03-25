@@ -46,28 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/test/utils/value_generator.hpp"
+
+
 namespace gko {
 namespace test {
-namespace detail {
-
-
-template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
-{
-    return dist(gen);
-}
-
-
-template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
-{
-    return ValueType(dist(gen), dist(gen));
-}
-
-
-}  // namespace detail
 
 
 /**

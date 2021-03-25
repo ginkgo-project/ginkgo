@@ -75,12 +75,12 @@ void match_edge(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
         if (agg_vals[i] == -1) {
-            size_type neighbor = strongest_neighbor_vals[i];
-            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i) {
+            auto neighbor = strongest_neighbor_vals[i];
+            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
+                i < neighbor) {
                 // Use the smaller index as agg point
-                auto group = min(i, neighbor);
-                agg_vals[i] = group;
-                agg_vals[neighbor] = group;
+                agg_vals[i] = i;
+                agg_vals[neighbor] = i;
             }
         }
     }
@@ -152,7 +152,7 @@ void find_strongest_neighbor(
                     continue;
                 }
                 auto weight =
-                    vals[idx] / max(abs(diag_vals[col]), abs(diag_vals[col]));
+                    vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
                 if (agg.get_const_data()[col] == -1 &&
                     (weight > max_weight_unagg ||
                      (weight == max_weight_unagg && col > strongest_unagg))) {
@@ -200,7 +200,6 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
                        ? intermediate_agg.get_data()
                        : agg.get_data();
     const auto diag_vals = diag->get_const_values();
-#pragma omp parallel for
     for (IndexType row = 0; row < agg.get_num_elems(); row++) {
         if (agg_const_val[row] != -1) {
             continue;

@@ -71,10 +71,12 @@ void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
         if (agg_vals[i] == -1) {
             auto neighbor = strongest_neighbor_vals[i];
-            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i) {
+            // i < neighbor always holds when neighbor is not -1
+            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
+                i < neighbor) {
+                // Use the smaller index as agg point
                 agg_vals[i] = i;
                 agg_vals[neighbor] = i;
-                // Use the smaller index as agg point
             }
         }
     }
