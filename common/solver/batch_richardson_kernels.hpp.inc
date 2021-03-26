@@ -64,10 +64,10 @@ __global__ void apply_kernel(
 
         uint32 converged = 0;
 
-        const gko::batch_dense::BatchEntry<ValueType> r_b{residual, num_rhs,
-                                                          num_rows, num_rhs};
-        const gko::batch_dense::BatchEntry<ValueType> dx_b{delta_x, num_rhs,
-                                                           num_rows, num_rhs};
+        const gko::batch_dense::BatchEntry<ValueType> r_b{
+            residual, static_cast<size_type>(num_rhs), num_rows, num_rhs};
+        const gko::batch_dense::BatchEntry<ValueType> dx_b{
+            delta_x, static_cast<size_type>(num_rhs), num_rows, num_rhs};
         const typename MatrixType::entry_type a_b =
             gko::batch::batch_entry(mat, ibatch);
         const gko::batch_dense::BatchEntry<const ValueType> b_b =
@@ -83,8 +83,8 @@ __global__ void apply_kernel(
         for (int iz = threadIdx.x; iz < max_nrhs; iz += blockDim.x) {
             norms[iz] = 0.0;
         }
-        const gko::batch_dense::BatchEntry<real_type> norms_b{norms, max_nrhs,
-                                                              1, num_rhs};
+        const gko::batch_dense::BatchEntry<real_type> norms_b{
+            norms, static_cast<size_type>(max_nrhs), 1, num_rhs};
 
         PrecType prec(a_b, prec_work);
 
