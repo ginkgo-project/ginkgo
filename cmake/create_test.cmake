@@ -112,7 +112,7 @@ function(ginkgo_create_hip_test test_name)
     # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here
     # creates a redefinition of all flags. This creates some issues with `nvcc`,
     # but `clang` seems fine with the redefinitions.
-    if (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
         hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
             # If `FindHIP.cmake`, namely `HIP_PARSE_HIPCC_OPTIONS` macro and
             # call gets fixed, uncomment this.

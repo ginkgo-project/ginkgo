@@ -220,26 +220,26 @@ imposed by the `HIP` tool suite. The variables are the following:
 
 #### HIP platform detection of AMD and NVIDIA
 By default, Ginkgo uses the output of `/opt/rocm/hip/bin/hipconfig --platform`
-to select the backend. The accepted values are either `hcc` (AMD) or `nvcc`
-(NVIDIA). When on an AMD or NVIDIA system, this should output the correct
-platform by default. When on a system without GPUs, this should output `hcc` by
-default. To change this value, export the environment variable `HIP_PLATFORM`
-like so:
+to select the backend. The accepted values are either `hcc` (`amd` with ROCM >=
+4.1) or `nvcc` (`nvidia` with ROCM >= 4.1). When on an AMD or NVIDIA system,
+this should output the correct platform by default. When on a system without
+GPUs, this should output `hcc` by default. To change this value, export the
+environment variable `HIP_PLATFORM` like so:
 ```bash
-export HIP_PLATFORM=nvcc
+export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
 ```
 
-When using `HIP_PLATFORM=hcc`, note that two `HIP` compilers can be set, the old
-`hcc` or since ROCm 3.5, `clang`. Ginkgo is only compatible with the `clang`
-based installations. Although this setting should be automatically done, it is
-also possible to manually set the `HIP` compiler to `clang`:
+When using `HIP_PLATFORM=hcc` (or `amd`), note that two `HIP` compilers can be
+set: the old `hcc`, or since ROCm 3.5, `clang`. Ginkgo is only compatible with
+the `clang` based installations. Although this setting should be automatically
+done, it is also possible to manually set the `HIP` compiler to `clang`:
 ```
 export HIP_COMPILER=clang
 ```
 
 #### Setting platform specific compilation flags
-Platform specific compilation flags can be given through the following
-CMake variables:
+Platform specific compilation flags can be given through the following CMake
+variables:
 + `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
 + `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
 + `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.

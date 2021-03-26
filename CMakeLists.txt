@@ -181,6 +181,8 @@ if(MSVC OR WIN32 OR CYGWIN OR APPLE)
     set(GINKGO_HAVE_HWLOC 0)
 endif()
 
+# We keep using NVCC/HCC for consistency with previous releases even if AMD
+# updated everything to use NVIDIA/AMD in ROCM 4.1
 set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
@@ -196,10 +198,12 @@ if(GINKGO_BUILD_HIP)
             "Set and export the environment variable HIP_PLATFORM.")
     endif()
     message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
+    set(HIP_PLATFORM_AMD_REGEX "hcc|amd")
+    set(HIP_PLATFORM_NVIDIA_REGEX "nvcc|nvidia")
 
-    if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
+    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
         set(GINKGO_HIP_PLATFORM_HCC 1)
-    elseif (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+    elseif (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
         set(GINKGO_HIP_PLATFORM_NVCC 1)
     endif()
 endif()
