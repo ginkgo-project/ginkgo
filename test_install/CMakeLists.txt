@@ -43,11 +43,12 @@ if(GINKGO_BUILD_CUDA)
             ginkgo_switch_to_windows_static("CUDA")
         endif()
     endif()
-    set_source_files_properties(test_install.cpp PROPERTIES LANGUAGE CUDA)
-    add_executable(test_install_cuda test_install.cpp)
+    configure_file(test_install.cpp test_install.cu COPYONLY)
+    add_executable(test_install_cuda ${CMAKE_CURRENT_BINARY_DIR}/test_install.cu)
     target_compile_options(test_install_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
     target_compile_definitions(test_install_cuda PRIVATE HAS_CUDA=1)
+    target_compile_definitions(test_install_cuda PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
 endif()
 
@@ -70,6 +71,7 @@ if(GINKGO_BUILD_HIP)
 
     target_link_libraries(test_install_hip PRIVATE Ginkgo::ginkgo)
     target_compile_definitions(test_install_hip PRIVATE HAS_HIP=1)
+    target_compile_definitions(test_install_hip PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
 
     # If we always link with CXX there is no RPATH issue
     set_target_properties(test_install_hip PROPERTIES LINKER_LANGUAGE CXX)

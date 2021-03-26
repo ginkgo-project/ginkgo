@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -59,22 +60,27 @@ void assert_similar_matrices(const gko::matrix::Dense<> *m1,
 
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
-                gko::matrix_data<double> &A_raw, gko::matrix::Dense<> *b,
-                gko::matrix::Dense<> *x)
+                const gko::matrix_data<double> &A_raw,
+                const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
     auto x_clone = gko::clone(x);
     test->read(A_raw);
     test->apply(b, gko::lend(x_clone));
+    // x_clone has the device result if using HIP or CUDA, otherwise it is
+    // reference only
 
 #if defined(HAS_HIP) || defined(HAS_CUDA)
-    auto test_ref = Mtx::create(exec->get_master());
-    auto x_ref = gko::clone(exec->get_master(), x);
+    // If we are on a device, we need to run a reference test to compare against
+    auto exec_ref = exec->get_master();
+    auto test_ref = Mtx::create(exec_ref);
+    auto x_ref = gko::clone(exec_ref, x);
     test_ref->read(A_raw);
     test_ref->apply(b, gko::lend(x_ref));
 
-    auto x_clone_ref = gko::clone(exec->get_master(), gko::lend(x_clone));
+    // Actually check that `x_clone` is similar to `x_ref`
+    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
     assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-14);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
@@ -83,15 +89,12 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
-                  gko::matrix_data<double> &A_raw, gko::matrix::Dense<> *b,
-                  gko::matrix::Dense<> *x)
+                  const gko::matrix_data<double> &A_raw,
+                  const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A =
         gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
-#if HAS_REFERENCE
-    A->read(A_raw);
-#endif  // HAS_REFERENCE
 
     auto num_iters = 20u;
     double reduction_factor = 1e-7;
@@ -105,27 +108,32 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
                     .on(exec))
             .on(exec);
 #if HAS_REFERENCE
+    A->read(A_raw);
     auto x_clone = gko::clone(x);
     solver_gen->generate(A)->apply(b, gko::lend(x_clone));
+    // x_clone has the device result if using HIP or CUDA, otherwise it is
+    // reference only
 
 #if defined(HAS_HIP) || defined(HAS_CUDA)
-    auto A_ref =
-        gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
+    // If we are on a device, we need to run a reference test to compare against
+    auto exec_ref = exec->get_master();
+    auto A_ref = gko::share(
+        Mtx::create(exec_ref, std::make_shared<Mtx::load_balance>()));
     A_ref->read(A_raw);
-    auto refExec = exec->get_master();
     auto solver_gen_ref =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                    exec),
+                    exec_ref),
                 gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(reduction_factor)
-                    .on(refExec))
-            .on(refExec);
-    auto x_ref = gko::clone(exec->get_master(), x);
+                    .on(exec_ref))
+            .on(exec_ref);
+    auto x_ref = gko::clone(exec_ref, x);
     solver_gen->generate(A_ref)->apply(b, gko::lend(x_ref));
 
-    auto x_clone_ref = gko::clone(exec->get_master(), gko::lend(x_clone));
+    // Actually check that `x_clone` is similar to `x_ref`
+    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
     assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-12);
 #endif  // defined(HAS_HIP) || defined(HAS_CUDA)
 #endif  // HAS_REFERENCE
@@ -136,7 +144,7 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 class PolymorphicObjectTest : public gko::PolymorphicObject {};
 
 
-int main(int, char **)
+int main()
 {
 #if defined(HAS_CUDA)
     auto exec = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
@@ -147,10 +155,17 @@ int main(int, char **)
 #endif
 
     using vec = gko::matrix::Dense<>;
+#if HAS_REFERENCE
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
     std::ifstream A_file("data/A.mtx");
     auto A_raw = gko::read_raw<double>(A_file);
+#else
+    // Instantiate dummy data, they will be unused
+    auto b = vec::create(exec);
+    auto x = vec::create(exec);
+    gko::matrix_data<double> A_raw{};
+#endif
 
     // core/base/abstract_factory.hpp
     {
@@ -481,7 +496,7 @@ int main(int, char **)
 #elif defined(HAS_HIP)
     auto extra_info = "(HIP)";
 #else
-    auto extra_info = "";
+    auto extra_info = "(REFERENCE)";
 #endif
     std::cout << "test_install" << extra_info
               << ": the Ginkgo installation was correctly detected "
