@@ -91,10 +91,10 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
                 message(STATUS "Skipping ${_LANG}, not supported by build_type.cmake script")
             endif()
             set(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED FALSE)
-		        continue()
+            continue()
         endif()
         if(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
                 set(CMAKE_${_LANG}_FLAGS_${_TYPE}
                     ${${PROJECT_NAME}_NVCC_${_TYPE}_COMPILER_FLAGS}
                     CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
