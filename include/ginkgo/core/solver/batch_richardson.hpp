@@ -134,14 +134,6 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(BatchRichardson, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    /**
-     * \return  String denoting the selected batch preconditioner.
-     */
-    std::string get_preconditioner() const
-    {
-        return parameters_.preconditioner;
-    }
-
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
