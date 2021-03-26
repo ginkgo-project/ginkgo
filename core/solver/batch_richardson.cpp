@@ -55,6 +55,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> BatchRichardson<ValueType>::transpose() const
 {
     return build()
+        .with_preconditioner(parameters_.preconditioner)
+        .with_max_iterations(parameters_.max_iterations)
+        .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_relaxation_factor(parameters_.relaxation_factor)
         .on(this->get_executor())
         ->generate(
@@ -66,6 +69,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> BatchRichardson<ValueType>::conj_transpose() const
 {
     return build()
+        .with_preconditioner(parameters_.preconditioner)
+        .with_max_iterations(parameters_.max_iterations)
+        .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
         .on(this->get_executor())
         ->generate(share(
