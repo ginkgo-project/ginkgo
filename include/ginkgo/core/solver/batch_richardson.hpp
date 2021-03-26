@@ -42,8 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
 namespace gko {
@@ -135,6 +134,14 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(BatchRichardson, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * \return  String denoting the selected batch preconditioner.
+     */
+    std::string get_preconditioner() const
+    {
+        return parameters_.preconditioner;
+    }
+
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
@@ -147,15 +154,18 @@ protected:
 
     explicit BatchRichardson(const Factory *factory,
                              std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<BatchRichardson>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : EnableLinOp<BatchRichardson>(factory->get_executor(),
+                                       system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
+        if (!preconditioner::batch::is_valid_preconditioner_string(
+                parameters_.preconditioner)) {
+            GKO_NOT_IMPLEMENTED;
+        }
     }
 
 private:
