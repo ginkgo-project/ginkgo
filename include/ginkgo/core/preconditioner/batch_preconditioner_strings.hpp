@@ -43,6 +43,17 @@ const char none_str[] = "none";
 const char jacobi_str[] = "jacobi";
 
 
+inline bool is_valid_preconditioner_string(const std::string preconditioner)
+{
+    if (preconditioner == none_str) {
+        return true;
+    } else if (preconditioner == jacobi_str) {
+        return true;
+    }
+    return false;
+}
+
+
 }  // namespace batch
 }  // namespace preconditioner
 }  // namespace gko
