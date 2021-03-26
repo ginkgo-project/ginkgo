@@ -48,6 +48,12 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_BLOCK_APPROX_COMPUTE_BLOCK_PTRS_KERNEL(IndexType)    \
+    void compute_block_ptrs(std::shared_ptr<const DefaultExecutor> exec, \
+                            const size_type num_blocks,                  \
+                            const size_type *block_sizes,                \
+                            IndexType *block_ptrs)
+
 #define GKO_DECLARE_BLOCK_APPROX_SPMV_KERNEL(ValueType, IndexType)             \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,                     \
               const matrix::BlockApprox<matrix::Csr<ValueType, IndexType>> *a, \
@@ -62,10 +68,12 @@ namespace kernels {
         const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType, typename IndexType>           \
-    GKO_DECLARE_BLOCK_APPROX_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>           \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_BLOCK_APPROX_COMPUTE_BLOCK_PTRS_KERNEL(IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_BLOCK_APPROX_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_BLOCK_APPROX_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
 
 

@@ -65,6 +65,11 @@ public:
 
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
+    const index_type *get_block_ptrs() const
+    {
+        return block_ptrs_.get_const_data();
+    }
+
     std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
     {
         return block_mtxs_;
@@ -79,16 +84,10 @@ protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
                 const Array<size_type> num_blocks, const MatrixType *matrix)
         : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
-          block_mtxs_{}
+          block_mtxs_{},
+          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)}
     {
-        auto block_mtxs = matrix->get_block_approx(num_blocks);
-
-        for (size_type j = 0; j < block_mtxs.size(); ++j) {
-            block_mtxs_.emplace_back(std::move(block_mtxs[j]));
-            block_dims_.emplace_back(block_mtxs_.back()->get_size());
-            block_nnzs_.emplace_back(
-                block_mtxs_.back()->get_num_stored_elements());
-        }
+        this->generate(num_blocks, matrix);
     }
 
 
@@ -97,10 +96,13 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    void generate(const Array<size_type> &num_blocks, const MatrixType *matrix);
+
 private:
     std::vector<size_type> overlap_;
     std::vector<std::shared_ptr<MatrixType>> block_mtxs_;
     std::vector<dim<2>> block_dims_;
+    Array<index_type> block_ptrs_;
     std::vector<size_type> block_nnzs_;
 };
 
