@@ -45,18 +45,18 @@ namespace gko {
 namespace matrix {
 
 
-template <class ConcreteType>
+template <class MatrixType>
 class BlockApprox
-    : public EnableLinOp<BlockApprox<ConcreteType>>,
-      public EnableCreateMethod<BlockApprox<ConcreteType>>,
-      public ReadableFromMatrixData<typename ConcreteType::value_type,
-                                    typename ConcreteType::index_type> {
+    : public EnableLinOp<BlockApprox<MatrixType>>,
+      public EnableCreateMethod<BlockApprox<MatrixType>>,
+      public ReadableFromMatrixData<typename MatrixType::value_type,
+                                    typename MatrixType::index_type> {
     friend class EnableCreateMethod<BlockApprox>;
     friend class EnablePolymorphicObject<BlockApprox, LinOp>;
 
 public:
-    using value_type = typename ConcreteType::value_type;
-    using index_type = typename ConcreteType::index_type;
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
     void read(const matrix_data<value_type, index_type> &data) override {}
 
     size_type get_num_blocks() const { return block_mtxs_.size(); }
@@ -65,7 +65,7 @@ public:
 
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
-    std::vector<std::shared_ptr<ConcreteType>> get_block_mtxs() const
+    std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
     {
         return block_mtxs_;
     }
@@ -73,12 +73,12 @@ public:
 protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
                 const Array<size_type> num_blocks = {})
-        : EnableLinOp<BlockApprox<ConcreteType>>{exec, dim<2>{}}, block_mtxs_{}
+        : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}}, block_mtxs_{}
     {}
 
     BlockApprox(std::shared_ptr<const Executor> exec,
-                const Array<size_type> num_blocks, const ConcreteType *matrix)
-        : EnableLinOp<BlockApprox<ConcreteType>>{exec, matrix->get_size()},
+                const Array<size_type> num_blocks, const MatrixType *matrix)
+        : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
           block_mtxs_{}
     {
         auto block_mtxs = matrix->get_block_approx(num_blocks);
@@ -99,7 +99,7 @@ protected:
 
 private:
     std::vector<size_type> overlap_;
-    std::vector<std::shared_ptr<ConcreteType>> block_mtxs_;
+    std::vector<std::shared_ptr<MatrixType>> block_mtxs_;
     std::vector<dim<2>> block_dims_;
     std::vector<size_type> block_nnzs_;
 };
