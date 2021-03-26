@@ -53,9 +53,28 @@ namespace block_approx {
 
 GKO_REGISTER_OPERATION(spmv, block_approx::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, block_approx::advanced_spmv);
+GKO_REGISTER_OPERATION(compute_block_ptrs, block_approx::compute_block_ptrs);
 
 
 }  // namespace block_approx
+
+
+template <typename MatrixType>
+void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
+                                       const MatrixType *matrix)
+{
+    auto num_blocks = block_sizes.get_num_elems();
+    auto block_mtxs = matrix->get_block_approx(block_sizes);
+
+    this->get_executor()->run(block_approx::make_compute_block_ptrs(
+        num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
+
+    for (size_type j = 0; j < block_mtxs.size(); ++j) {
+        block_mtxs_.emplace_back(std::move(block_mtxs[j]));
+        block_dims_.emplace_back(block_mtxs_.back()->get_size());
+        block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
+    }
+}
 
 
 template <typename MatrixType>
@@ -65,19 +84,9 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
     using index_type = typename MatrixType::index_type;
     using Dense = Dense<value_type>;
 
+    auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
     this->get_executor()->run(block_approx::make_spmv(this, dense_b, dense_x));
-    // size_type offset = 0;
-    // for (size_type i = 0; i < this->get_num_blocks(); ++i) {
-    //     auto loc_size = this->get_block_dimensions()[i];
-    //     auto loc_mtx = this->get_block_mtxs()[i];
-    //     const auto loc_b = dense_b->create_submatrix(
-    //         span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
-    //     auto loc_x = dense_x->create_submatrix(
-    //         span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
-    //     loc_mtx->apply(loc_b.get(), loc_x.get());
-    //     offset += loc_size[0];
-    // }
 }
 
 
@@ -89,22 +98,19 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
     using index_type = typename MatrixType::index_type;
     using Dense = Dense<value_type>;
 
-    auto dense_b = const_cast<Dense *>(as<Dense>(b));
+    auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
     this->get_executor()->run(block_approx::make_advanced_spmv(
         as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
-    // size_type offset = 0;
-    // for (size_type i = 0; i < this->get_num_blocks(); ++i) {
-    //     auto loc_size = this->get_block_dimensions()[i];
-    //     auto loc_mtx = this->get_block_mtxs()[i];
-    //     const auto loc_b = dense_b->create_submatrix(
-    //         span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
-    //     auto loc_x = dense_x->create_submatrix(
-    //         span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
-    //     loc_mtx->apply(alpha, loc_b.get(), beta, loc_x.get());
-    //     offset += loc_size[0];
-    // }
 }
+
+
+#define GKO_DECLARE_BLOCK_APPROX_CSR_GENERATE(ValueType, IndexType) \
+    void BlockApprox<Csr<ValueType, IndexType>>::generate(          \
+        const Array<size_type> &, const Csr<ValueType, IndexType> *x)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_APPROX_CSR_GENERATE);
 
 
 #define GKO_DECLARE_BLOCK_APPROX_CSR_APPLY(ValueType, IndexType)            \

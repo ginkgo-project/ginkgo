@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace omp {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  * @ref Block_Approx
@@ -68,6 +68,7 @@ void compute_block_ptrs(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
                         const size_type *block_sizes, IndexType *block_ptrs)
 {
+#pragma omp parallel for
     for (size_type b = 0; b < num_blocks; ++b) {
         block_ptrs[b] = block_sizes[b];
     }
@@ -84,9 +85,11 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     auto dense_b = const_cast<matrix::Dense<ValueType> *>(b);
-    size_type offset = 0;
+    auto block_ptrs = a->get_block_ptrs();
+#pragma omp parallel for
     for (size_type i = 0; i < a->get_num_blocks(); ++i) {
         auto loc_size = a->get_block_dimensions()[i];
+        size_type offset = block_ptrs[i];
         auto loc_mtx = a->get_block_mtxs()[i];
         auto row_ptrs = loc_mtx->get_const_row_ptrs();
         auto col_idxs = loc_mtx->get_const_col_idxs();
@@ -110,7 +113,6 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
         }
-        offset += loc_size[0];
     }
 }
 
@@ -127,9 +129,11 @@ void advanced_spmv(
     matrix::Dense<ValueType> *c)
 {
     auto dense_b = const_cast<matrix::Dense<ValueType> *>(b);
-    size_type offset = 0;
+    auto block_ptrs = a->get_block_ptrs();
+#pragma omp parallel for
     for (size_type i = 0; i < a->get_num_blocks(); ++i) {
         auto loc_size = a->get_block_dimensions()[i];
+        size_type offset = block_ptrs[i];
         auto loc_mtx = a->get_block_mtxs()[i];
         auto row_ptrs = loc_mtx->get_const_row_ptrs();
         auto col_idxs = loc_mtx->get_const_col_idxs();
@@ -155,7 +159,6 @@ void advanced_spmv(
                 }
             }
         }
-        offset += loc_size[0];
     }
 }
 
@@ -164,6 +167,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace block_approx
-}  // namespace reference
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
