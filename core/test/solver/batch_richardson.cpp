@@ -173,11 +173,9 @@ TYPED_TEST(BatchRich, CanSetCriteria)
                                  .on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
 
-    ASSERT_EQ(batchrich_factory->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(batchrich_factory->get_parameters().rel_residual_tol, 0.25,
-                tol);
-    ASSERT_NE(solver.get(), nullptr);
+    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
 }
 
 
@@ -190,7 +188,7 @@ TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
         Solver::build().with_max_iterations(3).with_preconditioner("none").on(
             this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
-    auto precond = solver->get_preconditioner();
+    auto precond = solver->get_parameters().preconditioner;
 
     ASSERT_NE(precond, "");
     ASSERT_EQ(precond, batchrich_precond);
@@ -219,6 +217,23 @@ TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
     ASSERT_THROW(this->batchrich_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
 }
+
+// TYPED_TEST(BatchRich, SolverTransposeRetainsFactoryParameters)
+// {
+//     using Solver = typename TestFixture::Solver;
+
+//     auto batchrich_factory =
+//         Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
+// 		.with_relaxation_factor(2.0f).with_preconditioner("none").on(this->exec);
+//     auto solver = batchrich_factory->generate(this->mtx);
+// 	auto solver_trans = gko::as<Solver>(solver->transpose());
+// 	auto params = solver_trans->get_parameters();
+
+// 	ASSERT_EQ(params.preconditioner, "none");
+// 	ASSERT_EQ(params.max_iterations, 3);
+// 	ASSERT_EQ(params.rel_residual_tol, 0.25);
+// 	ASSERT_EQ(params.relaxation_factor, 2.0);
+// }
 
 
 }  // namespace
