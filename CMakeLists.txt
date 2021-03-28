@@ -39,6 +39,7 @@ option(GINKGO_EXPORT_BUILD_DIR
     OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
+option(GINKGO_WITH_CCACHE "Use ccache if available to speed up C++ and CUDA rebuilds by caching compilations." ON)
 option(GINKGO_CHECK_CIRCULAR_DEPS
     "Enable compile-time checks detecting circular dependencies between libraries and non-self-sufficient headers."
     OFF)
@@ -77,6 +78,17 @@ option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) 
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
+
+# Use ccache as compilation launcher
+if(GINKGO_WITH_CCACHE)
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        if(GINKGO_BUILD_CUDA)
+            set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        endif()
+    endif()
+endif()
 
 if(GINKGO_BENCHMARK_ENABLE_TUNING)
     # In this state, the tests and examples cannot be compiled without extra
