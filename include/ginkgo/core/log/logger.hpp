@@ -388,6 +388,18 @@ public:                                                              \
         const uint8 &stopping_id, const bool &set_finalized,
         const Array<stopping_status> *status, const bool &one_changed,
         const bool &all_converged)
+protected:
+    virtual void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &it, const LinOp *r,
+        const LinOp *tau, const LinOp *implicit_sq_tau, const LinOp *x,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const
+    {
+        this->on_criterion_check_completed(criterion, it, r, x, tau, x,
+                                           stopping_id, set_finalized, status,
+                                           one_changed, all_converged);
+    }
 
     /**
      * Register the `iteration_complete` event which logs every completed
