@@ -72,6 +72,15 @@ public:
         const bool &set_finalized, const Array<stopping_status> *status,
         const bool &one_changed, const bool &all_converged) const override;
 
+    void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *residual_norm,
+        const LinOp *implicit_sq_resnorm, const LinOp *solution,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const override;
+
+
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
@@ -93,6 +102,13 @@ public:
         return std::unique_ptr<Convergence>(
             new Convergence(exec, enabled_events));
     }
+
+    /**
+     * Returns true if the solver has converged.
+     *
+     * @return the bool flag for convergence status
+     */
+    bool has_converged() const noexcept { return convergence_status_; }
 
     /**
      * Returns the number of iterations
@@ -121,6 +137,16 @@ public:
         return residual_norm_.get();
     }
 
+    /**
+     * Returns the implicit squared residual norm
+     *
+     * @return the implicit squared residual norm
+     */
+    const LinOp *get_implicit_sq_resnorm() const noexcept
+    {
+        return implicit_sq_resnorm_.get();
+    }
+
 protected:
     /**
      * Creates a Convergence logger.
@@ -136,9 +162,11 @@ protected:
     {}
 
 private:
+    mutable bool convergence_status_{false};
     mutable size_type num_iterations_{};
     mutable std::unique_ptr<LinOp> residual_{};
     mutable std::unique_ptr<LinOp> residual_norm_{};
+    mutable std::unique_ptr<LinOp> implicit_sq_resnorm_{};
 };
 
 

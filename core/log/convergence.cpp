@@ -76,6 +76,20 @@ void Convergence<ValueType>::on_criterion_check_completed(
 }
 
 
+template <typename ValueType>
+void Convergence<ValueType>::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &one_changed,
+    const bool &converged) const
+{
+    this->on_criterion_check_completed(
+        criterion, num_iterations, residual, residual_norm, nullptr, solution,
+        stopping_id, set_finalized, status, one_changed, converged);
+}
+
+
 #define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
 
