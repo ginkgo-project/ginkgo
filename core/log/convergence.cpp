@@ -46,15 +46,21 @@ namespace log {
 template <typename ValueType>
 void Convergence<ValueType>::on_criterion_check_completed(
     const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const LinOp *residual, const LinOp *residual_norm,
+    const LinOp *implicit_sq_resnorm, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
+    const Array<stopping_status> *status, const bool &one_changed,
     const bool &converged) const
 {
     if (converged) {
+        this->convergence_status_ = true;
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
             this->residual_.reset(residual->clone().release());
+        }
+        if (implicit_sq_resnorm != nullptr) {
+            this->implicit_sq_resnorm_.reset(
+                implicit_sq_resnorm->clone().release());
         }
         if (residual_norm != nullptr) {
             this->residual_norm_.reset(residual_norm->clone().release());

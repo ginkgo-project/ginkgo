@@ -56,6 +56,7 @@ TYPED_TEST(Convergence, CanGetData)
     auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
+    ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
     ASSERT_EQ(logger->get_residual(), nullptr);
     ASSERT_EQ(logger->get_residual_norm(), nullptr);
