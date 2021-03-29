@@ -11,6 +11,10 @@ Final residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
 5.69384e-06
+Implicit residual norm squared (r^2):
+%%MatrixMarket matrix array real general
+1 1
+1.27043e-15
 CG iteration count:     5
 CG execution time [ms]: 0.080041
 
