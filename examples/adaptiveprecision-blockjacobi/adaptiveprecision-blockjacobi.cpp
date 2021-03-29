@@ -133,6 +133,7 @@ int main(int argc, char *argv[])
                                      .on(exec))
             .on(exec);
     // Create solver
+    solver_gen->add_logger(logger);
     auto solver = solver_gen->generate(A);
 
 
@@ -148,11 +149,14 @@ int main(int argc, char *argv[])
     auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
+    auto impl_res = gko::as<real_vec>(logger->get_implicit_sq_resnorm());
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
     write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
+    std::cout << "Implicit residual norm squared (r^2):\n";
+    write(std::cout, lend(impl_res));
 
     // Print solver statistics
     std::cout << "CG iteration count:     " << logger->get_num_iterations()
