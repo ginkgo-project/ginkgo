@@ -16,6 +16,7 @@ target_sources(ginkgo
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
+	log/batch_convergence.cpp
     log/convergence.cpp
     log/logger.cpp
     log/record.cpp
