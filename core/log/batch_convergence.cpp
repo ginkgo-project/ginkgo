@@ -30,13 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#ifndef GKO_CORE_LOG_BATCH_LOGGING_HPP_
-#define GKO_CORE_LOG_BATCH_LOGGING_HPP_
+#include <ginkgo/core/log/batch_convergence.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
@@ -44,26 +42,28 @@ namespace gko {
 namespace log {
 
 
-/**
- * Stores logging data for batch solver kernels.
- */
 template <typename ValueType>
-struct BatchLogData {
-    /**
-     * Stores residual norm values for every linear system in the batch
-     * for every right-hand side.
-     */
-    std::shared_ptr<matrix::BatchDense<remove_complex<ValueType>>> res_norms;
+void BatchConvergence<ValueType>::on_batch_solver_completed(
+    const Array<int> &num_iterations, const LinOp *const residual_norm) const
+{
+    using Vector = matrix::BatchDense<ValueType>;
+    using NormVector = matrix::BatchDense<real_type>;
+    // this->residual_norm_ = NormVector::create(
+    // 	   residual->get_executor(), dim<2>{1, residual->get_size()[1]});
+    // this->num_iterations_->resize_and_reset();
+    this->num_iterations_ = num_iterations;
+    auto res_norm = as<NormVector>(residual_norm);
+    if (res_norm) {
+        this->residual_norm_->copy_from(residual_norm);
+    } else {
+        GKO_NOT_SUPPORTED(residual_norm);
+    }
+}
 
-    /**
-     * Stores convergence iteration counts for every matrix in the batch and
-     * for every right-hand side.
-     */
-    Array<int> iter_counts;
-};
+
+#define GKO_DECLARE_BATCH_CONVERGENCE(_type) class BatchConvergence<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CONVERGENCE);
 
 
 }  // namespace log
 }  // namespace gko
-
-#endif
