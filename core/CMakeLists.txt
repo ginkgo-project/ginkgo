@@ -25,6 +25,7 @@ target_sources(ginkgo
     matrix/dense.cpp
     matrix/diagonal.cpp
     matrix/ell.cpp
+    matrix/fbcsr.cpp
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/permutation.cpp

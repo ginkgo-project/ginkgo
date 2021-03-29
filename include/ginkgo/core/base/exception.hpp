@@ -422,6 +422,30 @@ public:
 
 
 /**
+ * Error that denotes issues between block sizes and matrix dimensions
+ *
+ * \tparam IndexType  Type of index used by the linear algebra object that is
+ *                    incompatible with the requried block size.
+ */
+template <typename IndexType>
+class BlockSizeError : public Error {
+public:
+    /**
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param block_size  Size of small dense blocks in a matrix
+     * @param size  The size that is not exactly divided by the block size
+     */
+    BlockSizeError(const std::string &file, const int line,
+                   const int block_size, const IndexType size)
+        : Error(file, line,
+                "block size = " + std::to_string(block_size) +
+                    ", size = " + std::to_string(size))
+    {}
+};
+
+
+/**
  * ValueMismatch is thrown if two values are not equal.
  */
 class ValueMismatch : public Error {
