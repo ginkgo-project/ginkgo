@@ -99,6 +99,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/factorization/par_ilut.hpp>
 
+#include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/log/papi.hpp>
