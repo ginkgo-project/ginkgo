@@ -533,6 +533,20 @@ protected:
         this->on_iteration_complete(solver, it, r, x, tau);
     }
 
+    /**
+     * Logs basic convergence information for every linear system in
+     * a batch solver.
+     *
+     * @param its  Array (size number of matrices x number of right-hand sides)
+     *             which stores the iteration count at which each RHS of each
+     *             linear system converged. The convergence iteration count for
+     *             the different RHS are stored contiguously.
+     * @param res_norms  A BatchDense matrix of size num_matrices x 1 x num_RHS,
+     *             which stores the final residual norms.
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, batch_solver_completed, const Array<int>& its,
+                              const LinOp* res_norms)
+
 public:
     /**
      * PolymorphicObject's move started event.
