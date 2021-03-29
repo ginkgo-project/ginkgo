@@ -103,6 +103,11 @@ void BatchRichardson<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(batch_rich::make_apply(opts, system_matrix_.get(), dense_b,
                                      dense_x, logdata));
+
+    // this->template log<log::Logger::iteration_complete>(
+    //     this, iter, r.get(), dense_x, nullptr, rho.get());
+    this->template log<log::Logger::batch_solver_completed>(
+        logdata.iter_counts, logdata.res_norms.get());
 }
 
 

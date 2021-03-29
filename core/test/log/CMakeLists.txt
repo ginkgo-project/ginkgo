@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_convergence)
 ginkgo_create_test(convergence)
 ginkgo_create_test(logger)
 if (GINKGO_HAVE_PAPI_SDE)
