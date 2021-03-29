@@ -162,8 +162,9 @@ public:
             stopping_id, set_finalized, stop_status, one_changed, updater);
         this->template log<log::Logger::criterion_check_completed>(
             this, updater.num_iterations_, updater.residual_,
-            updater.residual_norm_, updater.solution_, stopping_id,
-            set_finalized, stop_status, *one_changed, all_converged);
+            updater.residual_norm_, updater.implicit_sq_residual_norm_,
+            updater.solution_, stopping_id, set_finalized, stop_status,
+            *one_changed, all_converged);
         return all_converged;
     }
 
