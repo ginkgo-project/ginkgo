@@ -80,7 +80,6 @@ public:
         const Array<stopping_status> *status, const bool &one_changed,
         const bool &all_converged) const override;
 
-
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
      * constructs the object and returns an std::unique_ptr to this object.
