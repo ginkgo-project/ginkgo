@@ -122,6 +122,67 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystem)
 }
 
 
+TYPED_TEST(LowerTrs, SolvesTriangularSystemMixed)
+{
+    using other_value_type = typename TestFixture::value_type;
+    using value_type = gko::next_precision<other_value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}),
+                        (r_mixed<value_type, other_value_type>()));
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{-1.0, 2.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemMixedComplex)
+{
+    using other_value_type = typename TestFixture::value_type;
+    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{-1.0, 2.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, other_value_type>()));
+}
+
+
 TYPED_TEST(LowerTrs, SolvesMultipleTriangularSystems)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -167,6 +228,73 @@ TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyMixed)
+{
+    using other_value_type = typename TestFixture::value_type;
+    using value_type = gko::next_precision<other_value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}),
+                        (r_mixed<value_type, other_value_type>()));
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{-1.0, 2.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{-1.0, 2.0},
+                           value_type{3.0, -6.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
+{
+    using other_value_type = typename TestFixture::value_type;
+    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{-1.0, 2.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{-1.0, 2.0},
+                           value_type{3.0, -6.0}}),
+                        (r_mixed<value_type, other_value_type>()));
 }
 
 

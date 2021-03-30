@@ -656,6 +656,71 @@ TYPED_TEST(Jacobi, AppliesToVector)
 }
 
 
+TYPED_TEST(Jacobi, AppliesToMixedVector)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({1.0, 0.0, 0.0, 1.0, 0.0}),
+        (r_mixed<value_type, typename TestFixture::value_type>()));
+}
+
+
+TYPED_TEST(Jacobi, AppliesToComplexVector)
+{
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using value_type = typename Vec::value_type;
+    auto x = gko::initialize<Vec>(
+        {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
+         value_type{-2.0, -4.0}, value_type{3.0, 6.0}},
+        this->exec);
+    auto b = gko::initialize<Vec>(
+        {value_type{4.0, 8.0}, value_type{-1.0, -2.0}, value_type{-2.0, -4.0},
+         value_type{4.0, 8.0}, value_type{-1.0, -2.0}},
+        this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({value_type{1.0, 2.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0},
+           value_type{1.0, 2.0}, value_type{0.0, 0.0}}),
+        r<value_type>::value);
+}
+
+
+TYPED_TEST(Jacobi, AppliesToMixedComplexVector)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Vec = gko::matrix::Dense<value_type>;
+    auto x = gko::initialize<Vec>(
+        {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
+         value_type{-2.0, -4.0}, value_type{3.0, 6.0}},
+        this->exec);
+    auto b = gko::initialize<Vec>(
+        {value_type{4.0, 8.0}, value_type{-1.0, -2.0}, value_type{-2.0, -4.0},
+         value_type{4.0, 8.0}, value_type{-1.0, -2.0}},
+        this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({value_type{1.0, 2.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0},
+           value_type{1.0, 2.0}, value_type{0.0, 0.0}}),
+        (r_mixed<value_type, typename TestFixture::value_type>()));
+}
+
+
 TYPED_TEST(Jacobi, AppliesToVectorWithAdaptivePrecision)
 {
     using Vec = typename TestFixture::Vec;
@@ -791,6 +856,75 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToVector)
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
                         r<value_type>::value);
+}
+
+
+TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
+        (r_mixed<value_type, typename TestFixture::value_type>()));
+}
+
+
+TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
+{
+    using Dense = typename TestFixture::Vec;
+    using DenseComplex = gko::to_complex<Dense>;
+    using value_type = typename TestFixture::value_type;
+    using T = gko::to_complex<value_type>;
+    auto x = gko::initialize<DenseComplex>(
+        {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
+        this->exec);
+    auto b = gko::initialize<DenseComplex>(
+        {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
+        this->exec);
+    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
+                           T{-3.0, -6.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedComplexVector)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using MixedDense = gko::matrix::Dense<value_type>;
+    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using T = gko::to_complex<value_type>;
+    auto x = gko::initialize<MixedDenseComplex>(
+        {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
+        this->exec);
+    auto b = gko::initialize<MixedDenseComplex>(
+        {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
+        this->exec);
+    auto alpha = gko::initialize<MixedDense>({2.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto bj = this->bj_factory->generate(this->mtx);
+
+    bj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
+           T{-3.0, -6.0}}),
+        (r_mixed<value_type, typename TestFixture::value_type>()));
 }
 
 

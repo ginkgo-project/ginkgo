@@ -199,6 +199,68 @@ TYPED_TEST(CbGmres, SolvesStencilSystem)
 }
 
 
+TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({1.0, 3.0, 2.0}),
+        std::max<double>(this->assert_precision(), r<value_type>::value));
+}
+
+
+TYPED_TEST(CbGmres, SolvesStencilSystemComplex)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        this->assert_precision());
+}
+
+
+TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+           value_type{2.0, -4.0}}),
+        std::max<double>(this->assert_precision(), r<value_type>::value));
+}
+
+
 TYPED_TEST(CbGmres, SolvesStencilSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -257,6 +319,76 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), this->assert_precision());
+}
+
+
+TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({1.5, 5.0, 2.0}),
+        std::max<double>(this->assert_precision(), r<value_type>::value));
+}
+
+
+TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        this->assert_precision());
+}
+
+
+TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
+{
+    using Scalar = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cb_gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+           value_type{2.0, -4.0}}),
+        std::max<double>(this->assert_precision(), r<value_type>::value));
 }
 
 
@@ -390,8 +522,8 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
     ASSERT_LE(normC1 / normB1, normS1 / normB1 + this->assert_precision());
     ASSERT_LE(normC2 / normB2, normS2 / normB2 + this->assert_precision());
 
-    // Not sure if this is necessary, the assertions above should cover what is
-    // needed.
+    // Not sure if this is necessary, the assertions above should cover what
+    // is needed.
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, this->assert_precision());
 }
 
