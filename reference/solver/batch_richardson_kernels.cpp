@@ -204,8 +204,8 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            gko::log::BatchLogData<ValueType> &logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        b->get_batch_sizes()[0][1], logdata.res_norms->get_values(),
-        logdata.iter_counts.get_data());
+        b->get_batch_sizes()[0][1], opts.max_its,
+        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
         get_batch_struct(b);
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
