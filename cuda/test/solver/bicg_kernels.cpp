@@ -258,7 +258,7 @@ TEST_F(Bicg, CudaBicgStep2IsEquivalentToRef)
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50);
-    gko::test::make_spd(mtx.get());
+    gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
     auto d_mtx = Mtx::create(cuda);

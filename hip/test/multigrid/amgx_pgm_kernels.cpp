@@ -114,7 +114,7 @@ protected:
         weight->convert_to(weight_csr.get());
         weight_diag = weight_csr->extract_diagonal();
         auto system_dense = gen_mtx(m, m);
-        gko::test::make_spd(system_dense.get());
+        gko::test::make_hpd(system_dense.get());
         system_mtx = Csr::create(ref);
         system_dense->convert_to(system_mtx.get());
 
