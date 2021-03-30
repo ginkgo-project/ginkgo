@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
 
@@ -66,7 +66,7 @@ TEST(DummyLogged, CanAddLogger)
     DummyLoggedClass c;
 
     c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
 
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
@@ -78,7 +78,7 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     DummyLoggedClass c;
 
     c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
 
@@ -125,7 +125,7 @@ TEST(DummyLogged, CanRemoveLogger)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
     auto r = gko::share(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
     c.add_logger(r);
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
