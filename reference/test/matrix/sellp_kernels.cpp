@@ -98,7 +98,8 @@ TYPED_TEST(Sellp, AppliesToDenseVector)
 
 TYPED_TEST(Sellp, AppliesToMixedDenseVector)
 {
-    using Vec = typename TestFixture::Vec;
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
@@ -146,7 +147,8 @@ TYPED_TEST(Sellp, AppliesLinearCombinationToDenseVector)
 
 TYPED_TEST(Sellp, AppliesLinearCombinationToMixedDenseVector)
 {
-    using Vec = typename TestFixture::Vec;
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);

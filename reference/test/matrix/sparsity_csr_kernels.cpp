@@ -176,8 +176,8 @@ TYPED_TEST(SparsityCsr, AppliesToDenseVector)
 
 TYPED_TEST(SparsityCsr, AppliesToMixedDenseVector)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    using T = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<T>;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
@@ -223,8 +223,8 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
 
 TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedDenseVector)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    using T = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<T>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);

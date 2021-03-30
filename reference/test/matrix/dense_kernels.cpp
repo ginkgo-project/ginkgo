@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -2682,6 +2683,50 @@ TYPED_TEST(Dense, GetImagWithGivenResultFailsForWrongDimensions)
 
     auto imag_mtx = RealMtx::create(exec);
     ASSERT_THROW(this->mtx5->get_imag(imag_mtx.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionDoesntConvertOnMatch)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({8.0}, this->exec);
+
+    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha.get()).get(),
+              alpha.get());
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionConvertsBack)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    using MixedT = typename MixedMtx::value_type;
+    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
+
+    {
+        auto conversion = gko::make_temporary_conversion<T>(alpha.get());
+        conversion->at(0, 0) = T{7.0};
+    }
+
+    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
+}
+
+
+TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
+{
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using T = typename TestFixture::value_type;
+    using MixedT = typename MixedMtx::value_type;
+    auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
+
+    {
+        auto conversion = gko::make_temporary_conversion<T>(
+            static_cast<const MixedMtx *>(alpha.get()));
+        alpha->at(0, 0) = MixedT{7.0};
+    }
+
+    ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
 }
 
 
