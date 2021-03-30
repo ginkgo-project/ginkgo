@@ -31,6 +31,7 @@ include:
   BUILD_HIP: "OFF"
   BUILD_HWLOC: "ON"
   FAST_TESTS: "OFF"
+  DPCPP_SINGLE_MODE: "OFF"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
@@ -64,7 +65,6 @@ include:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       export CUDA_VISIBLE_DEVICES=$((RANDOM % 2));
       fi
-    - if [ ! -z ${SYCL_DEVICE_TYPE+x} ]; then export SYCL_DEVICE_TYPE; fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -79,9 +79,9 @@ include:
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
-    - if [ ! -z ${SYCL_DEVICE_TYPE+x} ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
   except:
@@ -98,7 +98,7 @@ include:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       export CUDA_VISIBLE_DEVICES=$((RANDOM % 2));
       fi
-    - if [ ! -z ${SYCL_DEVICE_TYPE+x} ]; then export SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -112,6 +112,7 @@ include:
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
@@ -143,7 +144,7 @@ include:
             ninja validate_all_examples
         fi
       fi
-    - if [ ! -z ${SYCL_DEVICE_TYPE+x} ]; then unset SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
   except:
@@ -680,11 +681,11 @@ build/nocuda/intel/omp/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
-build/dpcpp/cpu/release/static:
+build/dpcpp/igpu/release/static:
   <<: *default_build_with_test
   extends:
-    - .quick_test_condition
-    - .use_gko-oneapi
+    - .full_test_condition
+    - .use_gko-oneapi-igpu
   variables:
     <<: *default_variables
     C_COMPILER: "gcc"
@@ -692,7 +693,23 @@ build/dpcpp/cpu/release/static:
     BUILD_DPCPP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    SYCL_DEVICE_TYPE: "CPU"
+    DPCPP_SINGLE_MODE: "ON"
+    SYCL_DEVICE_FILTER: "GPU"
+
+build/dpcpp/dgpu/debug/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-oneapi
+  extends:
+    - .quick_test_condition
+    - .use_gko-oneapi-dgpu
+  variables:
+    <<: *default_variables
+    C_COMPILER: "gcc"
+    CXX_COMPILER: "dpcpp"
+    BUILD_DPCPP: "ON"
+    BUILD_TYPE: "Debug"
+    DPCPP_SINGLE_MODE: "ON"
+    SYCL_DEVICE_FILTER: "Level_Zero:GPU"
 
 # Job with important warnings as error
 warnings:

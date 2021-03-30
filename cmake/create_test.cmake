@@ -4,6 +4,7 @@ function(ginkgo_create_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
+    target_compile_options("${TEST_TARGET_NAME}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -12,6 +13,9 @@ function(ginkgo_create_test test_name)
         OUTPUT_NAME ${test_name})
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
+    if (GINKGO_COMPILING_DPCPP_TEST AND GINKGO_DPCPP_SINGLE_MODE)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
     endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
@@ -27,6 +31,9 @@ function(ginkgo_create_dpcpp_test test_name)
     add_executable(${TEST_TARGET_NAME} ${test_name}.dp.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_17)
     target_compile_options("${TEST_TARGET_NAME}" PRIVATE "${GINKGO_DPCPP_FLAGS}")
+    if (GINKGO_DPCPP_SINGLE_MODE)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
+    endif()
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -51,6 +58,7 @@ function(ginkgo_create_thread_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
+    target_compile_options("${TEST_TARGET_NAME}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -74,6 +82,7 @@ function(ginkgo_create_test_cpp_cuda_header test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
+    target_compile_options("${TEST_TARGET_NAME}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"

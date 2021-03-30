@@ -60,31 +60,47 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices("cpu"), 0);
-        dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
         if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-            dpcpp2 = gko::DpcppExecutor::create(0, omp, "gpu");
+            dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
+            if (gko::DpcppExecutor::get_num_devices("gpu") > 1) {
+                dpcpp2 = gko::DpcppExecutor::create(1, omp, "gpu");
+            }
+        }
+        else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+            dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+            if (gko::DpcppExecutor::get_num_devices("cpu") > 1)
+            {
+                dpcpp2 = gko::DpcppExecutor::create(1, omp, "cpu");
+            }
+        }
+        else {
+            GKO_NOT_IMPLEMENTED;
         }
     }
 
     void TearDown()
     {
-        if (dpcpp != nullptr) {
-            // ensure that previous calls finished and didn't throw an error
-            ASSERT_NO_THROW(dpcpp->synchronize());
+        // ensure that previous calls finished and didn't throw an error
+        ASSERT_NO_THROW(dpcpp->synchronize());
+        if (dpcpp2 != nullptr)
+        {
+            ASSERT_NO_THROW(dpcpp2->synchronize());
         }
     }
 
-    std::shared_ptr<gko::Executor> omp;
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp2;
+    std::shared_ptr<gko::Executor> omp{};
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp{};
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp2{};
 };
 
 
 TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
     auto dpcpp = gko::DpcppExecutor::create(0, omp);
-    auto dpcpp2 = gko::DpcppExecutor::create(0, omp);
+    if (dpcpp2 != nullptr)
+    {
+        auto dpcpp2 = gko::DpcppExecutor::create(0, omp);
+    }
 
     // We want automatic deinitialization to not create any error
 }
@@ -143,24 +159,12 @@ TEST_F(DpcppExecutor, KnowsNumberOfDevicesOfTypeAccelerator)
 }
 
 
-TEST_F(DpcppExecutor, AllocatesAndFreesMemoryOnCPU)
+TEST_F(DpcppExecutor, AllocatesAndFreesMemory)
 {
     int *ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = dpcpp->alloc<int>(2));
     ASSERT_NO_THROW(dpcpp->free(ptr));
-}
-
-
-TEST_F(DpcppExecutor, AllocatesAndFreesMemoryOnGPU)
-{
-    if (!dpcpp2) {
-        GTEST_SKIP() << "No DPC++ compatible GPU.";
-    }
-    int *ptr = nullptr;
-
-    ASSERT_NO_THROW(ptr = dpcpp2->alloc<int>(2));
-    ASSERT_NO_THROW(dpcpp2->free(ptr));
 }
 
 
@@ -208,30 +212,6 @@ TEST_F(DpcppExecutor, CopiesDataToCPU)
     dpcpp->free(copy);
 }
 
-
-TEST_F(DpcppExecutor, CopiesDataToGPU)
-{
-    if (!dpcpp2) {
-        GTEST_SKIP() << "No DPC++ compatible GPU.";
-    }
-    int orig[] = {3, 8};
-    auto *copy = dpcpp2->alloc<int>(2);
-    gko::Array<bool> is_set(omp, 1);
-
-    dpcpp2->copy_from(omp.get(), 2, orig, copy);
-
-    is_set.set_executor(dpcpp2);
-    ASSERT_NO_THROW(dpcpp2->get_queue()->submit([&](sycl::handler &cgh) {
-        auto *is_set_ptr = is_set.get_data();
-        cgh.single_task([=]() { check_data(copy, is_set_ptr); });
-    }));
-    is_set.set_executor(omp);
-    ASSERT_EQ(*is_set.get_data(), true);
-    ASSERT_NO_THROW(dpcpp2->synchronize());
-    dpcpp2->free(copy);
-}
-
-
 void init_data(int *data)
 {
     data[0] = 3;
@@ -254,30 +234,13 @@ TEST_F(DpcppExecutor, CopiesDataFromCPU)
 }
 
 
-TEST_F(DpcppExecutor, CopiesDataFromGPU)
-{
-    if (!dpcpp2) {
-        GTEST_SKIP() << "No DPC++ compatible GPU.";
-    }
-    int copy[2];
-    auto orig = dpcpp2->alloc<int>(2);
-    dpcpp2->get_queue()->submit([&](sycl::handler &cgh) {
-        cgh.single_task([=]() { init_data(orig); });
-    });
-
-    omp->copy_from(dpcpp2.get(), 2, orig, copy);
-
-    EXPECT_EQ(3, copy[0]);
-    ASSERT_EQ(8, copy[1]);
-    dpcpp2->free(orig);
-}
-
-
 TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
 {
-    if (!dpcpp2) {
-        GTEST_SKIP() << "No DPC++ compatible GPU.";
+    if (dpcpp2 == nullptr)
+    {
+        GTEST_SKIP();
     }
+
     int copy[2];
     gko::Array<bool> is_set(omp, 1);
     auto orig = dpcpp->alloc<int>(2);

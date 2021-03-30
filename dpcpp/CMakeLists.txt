@@ -51,11 +51,15 @@ target_sources(ginkgo_dpcpp
 
 ginkgo_compile_features(ginkgo_dpcpp)
 
-set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl -fsycl-device-lib=libc)
+set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl)
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
+target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
+if (GINKGO_DPCPP_SINGLE_MODE)
+    target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
+endif()
 
 ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
