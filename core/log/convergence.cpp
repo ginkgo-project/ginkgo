@@ -50,10 +50,18 @@ void Convergence<ValueType>::on_criterion_check_completed(
     const LinOp *implicit_sq_resnorm, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
     const Array<stopping_status> *status, const bool &one_changed,
-    const bool &converged) const
+    const bool &stopped) const
 {
-    if (converged) {
+    if (stopped) {
+        Array<stopping_status> tmp(status->get_executor()->get_master(),
+                                   *status);
         this->convergence_status_ = true;
+        for (int i = 0; i < status->get_num_elems(); i++) {
+            if (!tmp.get_data()[i].has_converged()) {
+                this->convergence_status_ = false;
+                break;
+            }
+        }
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
             this->residual_.reset(residual->clone().release());
@@ -82,11 +90,11 @@ void Convergence<ValueType>::on_criterion_check_completed(
     const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
     const Array<stopping_status> *status, const bool &one_changed,
-    const bool &converged) const
+    const bool &stopped) const
 {
     this->on_criterion_check_completed(
         criterion, num_iterations, residual, residual_norm, nullptr, solution,
-        stopping_id, set_finalized, status, one_changed, converged);
+        stopping_id, set_finalized, status, one_changed, stopped);
 }
 
 

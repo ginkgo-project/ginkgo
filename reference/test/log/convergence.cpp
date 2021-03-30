@@ -64,6 +64,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
+    stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
@@ -73,7 +74,65 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
         RelativeStoppingId, true, &stop_status, true, true);
 
     ASSERT_EQ(logger->get_num_iterations(), 1);
+    ASSERT_EQ(logger->has_converged(), false);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
+                        l({1.0, 2.0, 2.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<NormVector>(logger->get_residual_norm()),
+                        l({3.0}), 0.0);
+}
+
+
+TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithConvCheck)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[0].converge(0);
+    using Mtx = gko::matrix::Dense<TypeParam>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
+
+    logger->template on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 3, residual.get(), nullptr, nullptr,
+        RelativeStoppingId, true, &stop_status, true, true);
+
+    ASSERT_EQ(logger->get_num_iterations(), 3);
     ASSERT_EQ(logger->has_converged(), true);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
+                        l({1.0, 2.0, 2.0}), 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<NormVector>(logger->get_residual_norm()),
+                        l({3.0}), 0.0);
+}
+
+
+TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithStopCheck)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Convergence<TypeParam>::create(
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    stop_status.get_data()[0].reset();
+    stop_status.get_data()[0].stop(0);
+    using Mtx = gko::matrix::Dense<TypeParam>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
+
+    logger->template on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 3, residual.get(), nullptr, nullptr,
+        RelativeStoppingId, true, &stop_status, true, true);
+
+    ASSERT_EQ(logger->get_num_iterations(), 3);
+    ASSERT_EQ(logger->has_converged(), false);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
                         l({1.0, 2.0, 2.0}), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<NormVector>(logger->get_residual_norm()),
@@ -91,6 +150,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
+    stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
@@ -101,7 +161,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
         nullptr, RelativeStoppingId, true, &stop_status, true, true);
 
     ASSERT_EQ(logger->get_num_iterations(), 1);
-    ASSERT_EQ(logger->has_converged(), true);
+    ASSERT_EQ(logger->has_converged(), false);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_implicit_sq_resnorm()),
                         l({4.0}), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
