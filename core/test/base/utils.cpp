@@ -422,6 +422,19 @@ TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 }
 
 
+TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
+{
+    {
+        auto clone = make_temporary_clone(
+            omp, static_cast<const DummyObject *>(gko::lend(obj)));
+        obj->data = 7;
+    }
+
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
 TEST_F(TemporaryClone, AvoidsCopyOnSameExecutor)
 {
     auto clone = make_temporary_clone(ref, gko::lend(obj));

@@ -112,7 +112,7 @@ public:
  *
  * Helper type that attempts to statically find the dynamic type of a given
  * LinOp from a list of ConversionCandidates and, on the first match, converts
- * it to TargetType with an appropriate .
+ * it to TargetType with an appropriate convert_back_deleter.
  *
  * @tparam ConversionCandidates  list of potential dynamic types of the input
  *                               object to be checked.

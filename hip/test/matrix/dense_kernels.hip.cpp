@@ -61,9 +61,12 @@ protected:
     using itype = int;
     using vtype = double;
     using Mtx = gko::matrix::Dense<vtype>;
+    using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
+    using MixedComplexMtx =
+        gko::matrix::Dense<gko::next_precision<std::complex<vtype>>>;
 
     Dense() : rand_engine(15) {}
 
@@ -149,6 +152,14 @@ protected:
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
         rgather_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
+    }
+
+    template <typename ConvertedType, typename InputType>
+    std::unique_ptr<ConvertedType> convert(InputType &&input)
+    {
+        auto result = ConvertedType::create(input->get_executor());
+        input->convert_to(result.get());
+        return result;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -342,6 +353,17 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, SimpleApplyMixedIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    x->apply(convert<MixedMtx>(y).get(), convert<MixedMtx>(expected).get());
+    dx->apply(convert<MixedMtx>(dy).get(), convert<MixedMtx>(dresult).get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-7);
+}
+
+
 TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -350,6 +372,19 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, AdvancedApplyMixedIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    x->apply(convert<MixedMtx>(alpha).get(), convert<MixedMtx>(y).get(),
+             convert<MixedMtx>(beta).get(), convert<MixedMtx>(expected).get());
+    dx->apply(convert<MixedMtx>(dalpha).get(), convert<MixedMtx>(dy).get(),
+              convert<MixedMtx>(dbeta).get(), convert<MixedMtx>(dresult).get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-7);
 }
 
 
@@ -370,6 +405,23 @@ TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
+    auto dcomplex_b = MixedComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<MixedComplexMtx>(65, 1);
+    auto dcomplex_x = MixedComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(complex_b.get(), complex_x.get());
+    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+}
+
+
 TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -384,6 +436,25 @@ TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
     dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
+    auto dcomplex_b = MixedComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<MixedComplexMtx>(65, 1);
+    auto dcomplex_x = MixedComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(convert<MixedMtx>(alpha).get(), complex_b.get(),
+             convert<MixedMtx>(beta).get(), complex_x.get());
+    dx->apply(convert<MixedMtx>(dalpha).get(), dcomplex_b.get(),
+              convert<MixedMtx>(dbeta).get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
 }
 
 

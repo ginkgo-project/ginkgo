@@ -96,7 +96,7 @@ TYPED_TEST(Combination, AppliesToMixedVector)
               [ 5 4 ]
     */
     using value_type = gko::next_precision<TypeParam>;
-    using Mtx = typename TestFixture::Mtx;
+    using Mtx = gko::matrix::Dense<value_type>;
     auto cmb = gko::Combination<TypeParam>::create(
         this->coefficients[0], this->operators[0], this->coefficients[1],
         this->operators[1]);
@@ -182,7 +182,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedVector)
               [ 5 4 ]
     */
     using value_type = gko::next_precision<TypeParam>;
-    using Mtx = typename TestFixture::Mtx;
+    using Mtx = gko::matrix::Dense<value_type>;
     auto cmb = gko::Combination<TypeParam>::create(
         this->coefficients[0], this->operators[0], this->coefficients[1],
         this->operators[1]);
