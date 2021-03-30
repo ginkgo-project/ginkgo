@@ -144,7 +144,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply(dense_b, x_clone.get());
+            this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
