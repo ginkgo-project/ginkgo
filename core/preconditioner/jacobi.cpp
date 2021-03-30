@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -71,11 +72,14 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using dense = matrix::Dense<ValueType>;
-    this->get_executor()->run(jacobi::make_simple_apply(
-        num_blocks_, parameters_.max_block_size, storage_scheme_,
-        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
-        blocks_, as<dense>(b), as<dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(jacobi::make_simple_apply(
+                num_blocks_, parameters_.max_block_size, storage_scheme_,
+                parameters_.storage_optimization.block_wise,
+                parameters_.block_pointers, blocks_, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -84,12 +88,15 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                               const LinOp *b, const LinOp *beta,
                                               LinOp *x) const
 {
-    using dense = matrix::Dense<ValueType>;
-    this->get_executor()->run(jacobi::make_apply(
-        num_blocks_, parameters_.max_block_size, storage_scheme_,
-        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
-        blocks_, as<dense>(alpha), as<dense>(b), as<dense>(beta),
-        as<dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(jacobi::make_apply(
+                num_blocks_, parameters_.max_block_size, storage_scheme_,
+                parameters_.storage_optimization.block_wise,
+                parameters_.block_pointers, blocks_, dense_alpha, dense_b,
+                dense_beta, dense_x));
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -220,8 +227,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
 
     const auto all_block_opt = parameters_.storage_optimization.of_all_blocks;
     auto &precisions = parameters_.storage_optimization.block_wise;
-    // if adaptive version is used, make sure that the precision array is of the
-    // correct size by replicating it multiple times if needed
+    // if adaptive version is used, make sure that the precision array is of
+    // the correct size by replicating it multiple times if needed
     if (parameters_.storage_optimization.is_block_wise ||
         all_block_opt != precision_reduction(0, 0)) {
         if (!parameters_.storage_optimization.is_block_wise) {

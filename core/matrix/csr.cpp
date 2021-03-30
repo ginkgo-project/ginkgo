@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -102,16 +103,12 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
     } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
-        if (dynamic_cast<const Dense<ValueType> *>(b)) {
-            this->get_executor()->run(csr::make_spmv(
-                this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
-        } else {
-            auto dense_b = as<ComplexDense>(b);
-            auto dense_x = as<ComplexDense>(x);
-            this->apply(dense_b->create_real_view().get(),
-                        dense_x->create_real_view().get());
-        }
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, dense_x));
+            },
+            b, x);
     }
 }
 
@@ -138,19 +135,13 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
             csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
                              as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
     } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
-        if (dynamic_cast<const Dense<ValueType> *>(b)) {
-            this->get_executor()->run(csr::make_advanced_spmv(
-                as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-                as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
-        } else {
-            auto dense_b = as<ComplexDense>(b);
-            auto dense_x = as<ComplexDense>(x);
-            auto dense_alpha = as<RealDense>(alpha);
-            auto dense_beta = as<RealDense>(beta);
-            this->apply(dense_alpha, dense_b->create_real_view().get(),
-                        dense_beta, dense_x->create_real_view().get());
-        }
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                this->get_executor()->run(csr::make_advanced_spmv(
+                    dense_alpha, this, dense_b, dense_beta, dense_x));
+            },
+            alpha, b, beta, x);
     }
 }
 
