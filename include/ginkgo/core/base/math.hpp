@@ -98,6 +98,20 @@ using std::sqrt;
 }  // namespace kernels
 
 
+namespace dpcpp {
+namespace reference {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace reference
+}  // namespace kernels
+
+
 namespace test {
 
 
@@ -913,13 +927,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
                                                       remove_complex<T>>
 abs(const T &x)
 {
-#ifdef CL_SYCL_LANGUAGE_VERSION
-    // FIXME: This implementation is due to a DPC++ issue:
-    // plain `sqrt` call evaluates to `std::sqrt` which fails on GPUs
-    return cl::sycl::sqrt(squared_norm(x));
-#else
     return sqrt(squared_norm(x));
-#endif
 }
 
 
@@ -977,11 +985,7 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_finite(const T &value)
 {
     constexpr T infinity{detail::infinity_impl<T>::value};
-#ifdef CL_SYCL_LANGUAGE_VERSION
-    return ::gko::abs(value) < infinity;
-#else
     return abs(value) < infinity;
-#endif
 }
 
 
@@ -1002,25 +1006,6 @@ is_finite(const T &value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }
-
-
-namespace kernels {
-namespace dpcpp {
-
-
-// For now this seems to be useless. Somehow, DPC++ doesn't use this
-// declaration and anyway always replace calls to `abs` by `std::abs`. To
-// reference this declaration, use `dpcpp::abs`.
-using ::gko::abs;
-
-
-#ifdef CL_SYCL_LANGUAGE_VERSION
-using cl::sycl::sqrt;
-#endif
-
-
-}  // namespace dpcpp
-}  // namespace kernels
 
 
 }  // namespace gko
