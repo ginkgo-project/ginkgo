@@ -111,7 +111,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 
     // For now, FinalLogger is the only one available
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_batch_sizes()[0][1]),
+        static_cast<int>(b->get_batch_sizes()[0][1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<const cu_value_type> b_b =
