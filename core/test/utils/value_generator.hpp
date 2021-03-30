@@ -46,19 +46,35 @@ namespace test {
 namespace detail {
 
 
-template <typename ValueType, typename Distribution, typename Generator>
+/**
+ * Generate a random value.
+ *
+ * @tparam ValueType  valuetype of the value
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param value_dist  distribution of array values
+ * @param engine  a random engine
+ *
+ * @return ValueType
+ */
+template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
 {
-    return dist(gen);
+    return value_dist(gen);
 }
 
-
-template <typename ValueType, typename Distribution, typename Generator>
+/**
+ * Specialization for complex types.
+ *
+ * @copydoc get_rand_value
+ */
+template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
 {
-    return ValueType(dist(gen), dist(gen));
+    return ValueType(value_dist(gen), value_dist(gen));
 }
 
 

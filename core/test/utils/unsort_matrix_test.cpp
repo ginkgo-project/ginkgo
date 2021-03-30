@@ -55,18 +55,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename ValueIndexType>
 class UnsortMatrix : public ::testing::Test {
 protected:
-    using value_type = double;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     UnsortMatrix()
         : exec(gko::ReferenceExecutor::create()),
           rand_engine(42),
-          /*
-           */
           csr_empty(Csr::create(exec, gko::dim<2>(0, 0))),
           coo_empty(Coo::create(exec, gko::dim<2>(0, 0)))
     {}
@@ -148,54 +149,58 @@ protected:
     std::unique_ptr<Coo> coo_empty;
 };
 
+TYPED_TEST_SUITE(UnsortMatrix, gko::test::ValueIndexTypes);
 
-TEST_F(UnsortMatrix, CsrWorks)
+
+TYPED_TEST(UnsortMatrix, CsrWorks)
 {
-    auto csr = get_sorted_csr();
-    const auto ref_mtx = get_sorted_csr();
-    bool was_sorted = is_csr_matrix_sorted(gko::lend(csr));
+    auto csr = this->get_sorted_csr();
+    const auto ref_mtx = this->get_sorted_csr();
+    bool was_sorted = this->is_csr_matrix_sorted(gko::lend(csr));
 
-    gko::test::unsort_matrix(gko::lend(csr), rand_engine);
+    gko::test::unsort_matrix(gko::lend(csr), this->rand_engine);
 
-    ASSERT_FALSE(is_csr_matrix_sorted(gko::lend(csr)));
+    ASSERT_FALSE(this->is_csr_matrix_sorted(gko::lend(csr)));
     ASSERT_TRUE(was_sorted);
     GKO_ASSERT_MTX_NEAR(csr, ref_mtx, 0.);
 }
 
 
-TEST_F(UnsortMatrix, CsrWorksWithEmpty)
+TYPED_TEST(UnsortMatrix, CsrWorksWithEmpty)
 {
-    const bool was_sorted = is_csr_matrix_sorted(gko::lend(csr_empty));
+    const bool was_sorted =
+        this->is_csr_matrix_sorted(gko::lend(this->csr_empty));
 
-    gko::test::unsort_matrix(gko::lend(csr_empty), rand_engine);
+    gko::test::unsort_matrix(gko::lend(this->csr_empty), this->rand_engine);
 
     ASSERT_TRUE(was_sorted);
-    ASSERT_EQ(csr_empty->get_num_stored_elements(), 0);
+    ASSERT_EQ(this->csr_empty->get_num_stored_elements(), 0);
 }
 
 
-TEST_F(UnsortMatrix, CooWorks)
+TYPED_TEST(UnsortMatrix, CooWorks)
 {
-    auto coo = get_sorted_coo();
-    const auto ref_mtx = get_sorted_coo();
-    const bool was_sorted = is_coo_matrix_sorted(gko::lend(coo));
+    auto coo = this->get_sorted_coo();
+    const auto ref_mtx = this->get_sorted_coo();
+    const bool was_sorted = this->is_coo_matrix_sorted(gko::lend(coo));
 
-    gko::test::unsort_matrix(gko::lend(coo), rand_engine);
+    gko::test::unsort_matrix(gko::lend(coo), this->rand_engine);
 
-    ASSERT_FALSE(is_coo_matrix_sorted(gko::lend(coo)));
+    ASSERT_FALSE(this->is_coo_matrix_sorted(gko::lend(coo)));
     ASSERT_TRUE(was_sorted);
     GKO_ASSERT_MTX_NEAR(coo, ref_mtx, 0.);
 }
 
 
-TEST_F(UnsortMatrix, CooWorksWithEmpty)
+TYPED_TEST(UnsortMatrix, CooWorksWithEmpty)
 {
-    const bool was_sorted = is_coo_matrix_sorted(gko::lend(coo_empty));
+    const bool was_sorted =
+        this->is_coo_matrix_sorted(gko::lend(this->coo_empty));
 
-    gko::test::unsort_matrix(gko::lend(coo_empty), rand_engine);
+    gko::test::unsort_matrix(gko::lend(this->coo_empty), this->rand_engine);
 
     ASSERT_TRUE(was_sorted);
-    ASSERT_EQ(coo_empty->get_num_stored_elements(), 0);
+    ASSERT_EQ(this->coo_empty->get_num_stored_elements(), 0);
 }
 
 

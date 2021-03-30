@@ -46,6 +46,20 @@ namespace gko {
 namespace test {
 
 
+/**
+ * Generate a random array
+ *
+ * @tparam ValueType  valuetype of the array to generate
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param num  the number of elements of array
+ * @param value_dist  distribution of array values
+ * @param engine  a random engine
+ * @param exec  executor where the array should be allocated
+ *
+ * @return Array<ValueType>
+ */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 Array<ValueType> generate_random_array(size_type num,
                                        ValueDistribution &&value_dist,

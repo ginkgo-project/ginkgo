@@ -200,6 +200,7 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
                        ? intermediate_agg.get_data()
                        : agg.get_data();
     const auto diag_vals = diag->get_const_values();
+#pragma omp parallel for
     for (IndexType row = 0; row < agg.get_num_elems(); row++) {
         if (agg_const_val[row] != -1) {
             continue;
