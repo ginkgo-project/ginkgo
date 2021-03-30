@@ -63,6 +63,7 @@ protected:
     using Mtx = gko::matrix::Ell<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
@@ -119,6 +120,18 @@ TYPED_TEST(Ell, AppliesToDenseVector)
 }
 
 
+TYPED_TEST(Ell, AppliesToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
 TYPED_TEST(Ell, AppliesToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
@@ -148,6 +161,20 @@ TYPED_TEST(Ell, AppliesLinearCombinationToDenseVector)
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, AppliesLinearCombinationToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
 
     this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
@@ -642,7 +669,7 @@ TYPED_TEST(Ell, AppliesToComplex)
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Mtx = typename TestFixture::Mtx;
-    using Vec = typename gko::matrix::Dense<complex_type>;
+    using Vec = gko::matrix::Dense<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
 
     // clang-format off
@@ -663,25 +690,51 @@ TYPED_TEST(Ell, AppliesToComplex)
 }
 
 
+TYPED_TEST(Ell, AppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{13.0, 14.0}, mixed_complex_type{19.0, 20.0}},
+           {mixed_complex_type{10.0, 10.0}, mixed_complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
 TYPED_TEST(Ell, AdvancedAppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Mtx = typename TestFixture::Mtx;
-    using Scal = typename gko::matrix::Dense<value_type>;
-    using Vec = typename gko::matrix::Dense<complex_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using DenseComplex = gko::matrix::Dense<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
 
     // clang-format off
-    auto b = gko::initialize<Vec>(
+    auto b = gko::initialize<DenseComplex>(
         {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
          {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
          {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
-    auto x = gko::initialize<Vec>(
+    auto x = gko::initialize<DenseComplex>(
         {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
          {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
-    auto alpha = gko::initialize<Scal>({-1.0}, this->exec);
-    auto beta = gko::initialize<Scal>({2.0}, this->exec);
+    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
+    auto beta = gko::initialize<Dense>({2.0}, this->exec);
     // clang-format on
 
     this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
@@ -690,6 +743,37 @@ TYPED_TEST(Ell, AdvancedAppliesToComplex)
         x,
         l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
            {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Ell, AdvancedAppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using MixedDense = gko::matrix::Dense<mixed_value_type>;
+    using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{-11.0, -14.0}, mixed_complex_type{-15.0, -18.0}},
+           {mixed_complex_type{-6.0, -6.0}, mixed_complex_type{-9.0, -9.0}}}),
         0.0);
 }
 

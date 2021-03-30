@@ -113,15 +113,72 @@ TYPED_TEST_SUITE(Cgs, gko::test::ValueTypes);
 TYPED_TEST(Cgs, SolvesDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto half_tol = std::sqrt(r<T>::value);
+    using value_type = typename TestFixture::value_type;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemComplex)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
+                           value_type{4.0, -8.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
+                           value_type{4.0, -8.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -148,7 +205,6 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -157,7 +213,73 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), half_tol);
+    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}),
+                        (r_mixed<value_type, TypeParam>()) * 1e1);
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
+                           value_type{6.0, -12.0}}),
+                        r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
+{
+    using Scalar = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->cgs_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
+                           value_type{6.0, -12.0}}),
+                        (r_mixed<value_type, TypeParam>()) * 1e1);
 }
 
 

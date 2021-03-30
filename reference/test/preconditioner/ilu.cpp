@@ -357,6 +357,60 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMtx)
 }
 
 
+TYPED_TEST(Ilu, SolvesSingleRhsWithMixedMtx)
+{
+    using Mtx = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
+    auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
+
+    auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x.get(), l({-0.125, 0.25, 1.0}),
+        (r_mixed<TypeParam, typename Mtx::value_type>()) * 1e+1);
+}
+
+
+TYPED_TEST(Ilu, SolvesSingleRhsWithComplexMtx)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using T = typename Mtx::value_type;
+    const auto b = gko::initialize<Mtx>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
+
+    auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(),
+                        l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
+                        r<TypeParam>::value * 1e+1);
+}
+
+
+TYPED_TEST(Ilu, SolvesSingleRhsWithMixedComplexMtx)
+{
+    using Mtx = gko::matrix::Dense<
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>>;
+    using T = typename Mtx::value_type;
+    const auto b = gko::initialize<Mtx>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
+
+    auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x.get(), l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
+        (r_mixed<TypeParam, typename Mtx::value_type>()) * 1e+1);
+}
+
+
 TYPED_TEST(Ilu, SolvesReverseSingleRhs)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -390,6 +444,90 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
                           x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({-7.0, 2.0, -1.0}), r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    const value_type alpha{2.0};
+    const auto alpha_linop = gko::initialize<Mtx>({alpha}, this->exec);
+    const value_type beta{-1};
+    const auto beta_linop = gko::initialize<Mtx>({beta}, this->exec);
+    const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, this->exec);
+    auto preconditioner =
+        this->ilu_pre_factory->generate(this->l_u_composition);
+
+    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
+                          x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.0, 2.0, -1.0}),
+                        (r_mixed<TypeParam, typename Mtx::value_type>()));
+}
+
+
+TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Dense = typename TestFixture::Mtx;
+    using DenseComplex = gko::to_complex<Dense>;
+    const value_type alpha{2.0};
+    const auto alpha_linop = gko::initialize<Dense>({alpha}, this->exec);
+    const value_type beta{-1};
+    const auto beta_linop = gko::initialize<Dense>({beta}, this->exec);
+    const auto b = gko::initialize<DenseComplex>(
+        {complex_type{-3.0, 6.0}, complex_type{6.0, -12.0},
+         complex_type{9.0, -18.0}},
+        this->exec);
+    auto x = gko::initialize<DenseComplex>(
+        {complex_type{1.0, -2.0}, complex_type{2.0, -4.0},
+         complex_type{3.0, -6.0}},
+        this->exec);
+    auto preconditioner =
+        this->ilu_pre_factory->generate(this->l_u_composition);
+
+    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
+                          x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(),
+                        l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
+                           complex_type{-1.0, 2.0}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using complex_type = gko::to_complex<value_type>;
+    using MixedDense = gko::matrix::Dense<value_type>;
+    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    const value_type alpha{2.0};
+    const auto alpha_linop = gko::initialize<MixedDense>({alpha}, this->exec);
+    const value_type beta{-1};
+    const auto beta_linop = gko::initialize<MixedDense>({beta}, this->exec);
+    const auto b = gko::initialize<MixedDenseComplex>(
+        {complex_type{-3.0, 6.0}, complex_type{6.0, -12.0},
+         complex_type{9.0, -18.0}},
+        this->exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {complex_type{1.0, -2.0}, complex_type{2.0, -4.0},
+         complex_type{3.0, -6.0}},
+        this->exec);
+    auto preconditioner =
+        this->ilu_pre_factory->generate(this->l_u_composition);
+
+    preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
+                          x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x.get(),
+        l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
+           complex_type{-1.0, 2.0}}),
+        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()));
 }
 
 

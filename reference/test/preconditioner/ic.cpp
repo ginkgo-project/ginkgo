@@ -276,6 +276,139 @@ TYPED_TEST(Ic, SolvesSingleRhs)
 }
 
 
+TYPED_TEST(Ic, SolvesSingleRhsMixed)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using T = typename TestFixture::value_type;
+    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    const auto b = gko::initialize<Vec>({1.0, 3.0, 6.0}, this->exec);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({3.0, -2.0, 4.0}), this->tol);
+}
+
+
+TYPED_TEST(Ic, SolvesSingleRhsComplex)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using T = typename Vec::value_type;
+    const auto b = gko::initialize<Vec>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({T{3.0, 6.0}, T{-2.0, -4.0}, T{4.0, 8.0}}),
+                        this->tol);
+}
+
+
+TYPED_TEST(Ic, SolvesSingleRhsComplexMixed)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using Vec = gko::matrix::Dense<
+        gko::next_precision<gko::to_complex<typename TestFixture::value_type>>>;
+    using T = typename Vec::value_type;
+    const auto b = gko::initialize<Vec>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({T{3.0, 6.0}, T{-2.0, -4.0}, T{4.0, 8.0}}),
+                        this->tol);
+}
+
+
+TYPED_TEST(Ic, AdvancedSolvesSingleRhs)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using Vec = typename TestFixture::Vec;
+    const auto b = gko::initialize<Vec>({1.0, 3.0, 6.0}, this->exec);
+    const auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0, 3.0}, this->exec);
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({5.0, -6.0, 5.0}), this->tol);
+}
+
+
+TYPED_TEST(Ic, AdvancedSolvesSingleRhsMixed)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using T = typename TestFixture::value_type;
+    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    const auto b = gko::initialize<Vec>({1.0, 3.0, 6.0}, this->exec);
+    const auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0, 3.0}, this->exec);
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({5.0, -6.0, 5.0}), this->tol);
+}
+
+
+TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplex)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using Dense = typename TestFixture::Vec;
+    using DenseComplex = gko::to_complex<Dense>;
+    using T = typename DenseComplex::value_type;
+    const auto b = gko::initialize<DenseComplex>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    const auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    const auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto x = gko::initialize<DenseComplex>(
+        {T{1.0, 2.0}, T{2.0, 4.0}, T{3.0, 6.0}}, this->exec);
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({T{5.0, 10.0}, T{-6.0, -12.0}, T{5.0, 10.0}}),
+                        this->tol);
+}
+
+
+TYPED_TEST(Ic, AdvancedSolvesSingleRhsComplexMixed)
+{
+    using ic_prec_type = typename TestFixture::ic_prec_type;
+    using MixedDense = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using T = typename MixedDenseComplex::value_type;
+    const auto b = gko::initialize<MixedDenseComplex>(
+        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
+    const auto alpha = gko::initialize<MixedDense>({2.0}, this->exec);
+    const auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {T{1.0, 2.0}, T{2.0, 4.0}, T{3.0, 6.0}}, this->exec);
+    auto preconditioner =
+        ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({T{5.0, 10.0}, T{-6.0, -12.0}, T{5.0, 10.0}}),
+                        this->tol);
+}
+
+
 TYPED_TEST(Ic, SolvesMultipleRhs)
 {
     using ic_prec_type = typename TestFixture::ic_prec_type;

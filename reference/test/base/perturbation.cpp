@@ -87,6 +87,70 @@ TYPED_TEST(Perturbation, AppliesToVector)
 }
 
 
+TYPED_TEST(Perturbation, AppliesToMixedVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using Mtx = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using value_type = typename Mtx::value_type;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = Mtx::create_with_config_of(gko::lend(x));
+
+    cmp->apply(gko::lend(x), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({29.0, 16.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Perturbation, AppliesToComplexVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using value_type = gko::to_complex<TypeParam>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = Mtx::create_with_config_of(gko::lend(x));
+
+    cmp->apply(gko::lend(x), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{29.0, -58.0}, value_type{16.0, -32.0}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Perturbation, AppliesToMixedComplexVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using value_type = gko::to_complex<gko::next_precision<TypeParam>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = Mtx::create_with_config_of(gko::lend(x));
+
+    cmp->apply(gko::lend(x), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{29.0, -58.0}, value_type{16.0, -32.0}}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
 TYPED_TEST(Perturbation, AppliesLinearCombinationToVector)
 {
     /*
@@ -104,6 +168,78 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToVector)
     cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}), r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using value_type = gko::next_precision<TypeParam>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = gko::clone(x);
+
+    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Perturbation, AppliesLinearCombinationToComplexVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using Dense = typename TestFixture::Mtx;
+    using DenseComplex = gko::to_complex<Dense>;
+    using value_type = typename DenseComplex::value_type;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto alpha = gko::initialize<Dense>({3.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto x = gko::initialize<DenseComplex>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = gko::clone(x);
+
+    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{86.0, -172.0}, value_type{46.0, -92.0}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedComplexVector)
+{
+    /*
+        cmp = I + 2 * [ 2 ] * [ 3 2 ]
+                      [ 1 ]
+    */
+    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using value_type = typename MixedDenseComplex::value_type;
+    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto alpha = gko::initialize<MixedDense>({3.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = gko::clone(x);
+
+    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{86.0, -172.0}, value_type{46.0, -92.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
