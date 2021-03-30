@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/perturbation.hpp>
 
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -46,15 +47,18 @@ void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // temp = projector * b                 : projector->apply(b, temp)
     // x = b                                : x->copy_from(b)
     // x = 1 * x + scalar * basis * temp    : basis->apply(scalar, temp, 1, x)
-    using vec = gko::matrix::Dense<ValueType>;
-    auto exec = this->get_executor();
-    auto intermediate_size =
-        gko::dim<2>(projector_->get_size()[0], b->get_size()[1]);
-    cache_.allocate(exec, intermediate_size);
-    projector_->apply(b, lend(cache_.intermediate));
-    x->copy_from(b);
-    basis_->apply(lend(scalar_), lend(cache_.intermediate), lend(cache_.one),
-                  x);
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            auto exec = this->get_executor();
+            auto intermediate_size =
+                gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
+            cache_.allocate(exec, intermediate_size);
+            projector_->apply(dense_b, lend(cache_.intermediate));
+            dense_x->copy_from(dense_b);
+            basis_->apply(lend(scalar_), lend(cache_.intermediate),
+                          lend(cache_.one), dense_x);
+        },
+        b, x);
 }
 
 
@@ -69,18 +73,20 @@ void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
     //                            x->add_scaled(alpha, b)
     // x = x + alpha * scalar * basis * temp
     //                          : basis->apply(alpha * scalar, temp, 1, x)
-    using vec = gko::matrix::Dense<ValueType>;
-    auto exec = this->get_executor();
-    auto intermediate_size =
-        gko::dim<2>(projector_->get_size()[0], b->get_size()[1]);
-    cache_.allocate(exec, intermediate_size);
-    projector_->apply(b, lend(cache_.intermediate));
-    auto vec_x = as<vec>(x);
-    vec_x->scale(beta);
-    vec_x->add_scaled(alpha, b);
-    alpha->apply(lend(scalar_), lend(cache_.alpha_scalar));
-    basis_->apply(lend(cache_.alpha_scalar), lend(cache_.intermediate),
-                  lend(cache_.one), vec_x);
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto exec = this->get_executor();
+            auto intermediate_size =
+                gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
+            cache_.allocate(exec, intermediate_size);
+            projector_->apply(dense_b, lend(cache_.intermediate));
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, dense_b);
+            dense_alpha->apply(lend(scalar_), lend(cache_.alpha_scalar));
+            basis_->apply(lend(cache_.alpha_scalar), lend(cache_.intermediate),
+                          lend(cache_.one), dense_x);
+        },
+        alpha, b, beta, x);
 }
 
 

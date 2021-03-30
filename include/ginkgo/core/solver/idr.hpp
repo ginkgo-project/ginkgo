@@ -251,7 +251,8 @@ protected:
                     LinOp *x) const override;
 
     template <typename SubspaceType>
-    void iterate(const LinOp *b, LinOp *x) const;
+    void iterate(const matrix::Dense<SubspaceType> *dense_b,
+                 matrix::Dense<SubspaceType> *dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Idr>(std::move(exec))

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -68,9 +69,12 @@ template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *b,
                                                    LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        sparsity_csr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(
+                sparsity_csr::make_spmv(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -80,9 +84,12 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                                    const LinOp *beta,
                                                    LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(sparsity_csr::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(sparsity_csr::make_advanced_spmv(
+                dense_alpha, this, dense_b, dense_beta, dense_x));
+        },
+        alpha, b, beta, x);
 }
 
 

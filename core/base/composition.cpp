@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -164,12 +165,17 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    if (operators_.size() > 1) {
-        operators_[0]->apply(
-            lend(apply_inner_operators(operators_, storage_, b)), x);
-    } else {
-        operators_[0]->apply(b, x);
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            if (operators_.size() > 1) {
+                operators_[0]->apply(
+                    lend(apply_inner_operators(operators_, storage_, dense_b)),
+                    dense_x);
+            } else {
+                operators_[0]->apply(dense_b, dense_x);
+            }
+        },
+        b, x);
 }
 
 
@@ -177,13 +183,18 @@ template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                         const LinOp *beta, LinOp *x) const
 {
-    if (operators_.size() > 1) {
-        operators_[0]->apply(
-            alpha, lend(apply_inner_operators(operators_, storage_, b)), beta,
-            x);
-    } else {
-        operators_[0]->apply(alpha, b, beta, x);
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            if (operators_.size() > 1) {
+                operators_[0]->apply(
+                    dense_alpha,
+                    lend(apply_inner_operators(operators_, storage_, dense_b)),
+                    dense_beta, dense_x);
+            } else {
+                operators_[0]->apply(dense_alpha, dense_b, dense_beta, dense_x);
+            }
+        },
+        alpha, b, beta, x);
 }
 
 
