@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "accessor/block_col_major.hpp"
+#include "core/base/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 
 
@@ -52,6 +54,7 @@ namespace {
 class BlockMatrixGenerator : public ::testing::Test {
 protected:
     using real_type = float;
+    using value_type = std::complex<real_type>;
 
     BlockMatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
@@ -63,19 +66,10 @@ protected:
           rbmtx(gko::test::generate_fbcsr_from_csr(exec, mtx.get(), blk_sz,
                                                    false, std::ranlux48(42))),
           rbmtx_dd(gko::test::generate_fbcsr_from_csr(exec, mtx.get(), blk_sz,
-                                                      true, std::ranlux48(42)))
-    {
-        const int nnz = mtx->get_num_stored_elements();
-        auto cmtx = gko::matrix::Csr<std::complex<float>, int>::create(
-            exec, mtx->get_size(), nnz);
-        exec->copy(mtx->get_size()[0] + 1, mtx->get_const_row_ptrs(),
-                   cmtx->get_row_ptrs());
-        exec->copy(nnz, mtx->get_const_col_idxs(), cmtx->get_col_idxs());
-        std::copy(mtx->get_const_values(), mtx->get_const_values() + nnz,
-                  cmtx->get_values());
-        cbmtx = gko::test::generate_fbcsr_from_csr(exec, cmtx.get(), blk_sz,
-                                                   false, std::ranlux48(42));
-    }
+                                                      true, std::ranlux48(42))),
+          cbmtx(gko::test::generate_random_fbcsr<value_type>(
+              exec, std::ranlux48(42), nbrows, nbcols, blk_sz, true, false))
+    {}
 
     const int nbrows = 100;
     const int nbcols = nbrows;
@@ -130,15 +124,15 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
     }
 }
 
-TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
+TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
 {
     using Dbv_t =
-        gko::range<gko::accessor::block_col_major<const real_type, 3>>;
-    const auto nbnz = rbmtx_dd->get_num_stored_blocks();
-    const Dbv_t vals(rbmtx_dd->get_const_values(),
-                     gko::dim<3>(nbnz, blk_sz, blk_sz));
-    const int *const row_ptrs = rbmtx_dd->get_const_row_ptrs();
-    const int *const col_idxs = rbmtx_dd->get_const_col_idxs();
+        gko::acc::range<gko::acc::block_col_major<const value_type, 3>>;
+    const auto nbnz = cbmtx->get_num_stored_blocks();
+    const Dbv_t vals(gko::to_array<gko::size_type>(nbnz, blk_sz, blk_sz),
+                     cbmtx->get_const_values());
+    const int *const row_ptrs = cbmtx->get_const_row_ptrs();
+    const int *const col_idxs = cbmtx->get_const_col_idxs();
 
     real_type min_diag_dom{1000.0}, avg_diag_dom{};
 
@@ -168,7 +162,9 @@ TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
             avg_diag_dom += diag_dom[i];
         }
         auto min_it = std::min_element(diag_dom.begin(), diag_dom.end());
-        if (*min_it < min_diag_dom) min_diag_dom = *min_it;
+        if (*min_it < min_diag_dom) {
+            min_diag_dom = *min_it;
+        }
 
         ASSERT_TRUE(diagfound);
         for (int i = 0; i < blk_sz; i++) {
@@ -176,9 +172,9 @@ TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
         }
     }
 
-    std::cout << "\t\tMin diag dom = " << min_diag_dom
-              << ", avg diag dom = " << avg_diag_dom / (nbrows * blk_sz)
-              << std::endl;
+    // std::cout << "\t\tMin diag dom = " << min_diag_dom
+    //           << ", avg diag dom = " << avg_diag_dom / (nbrows * blk_sz)
+    //           << std::endl;
 }
 
 
