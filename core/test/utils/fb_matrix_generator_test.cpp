@@ -132,7 +132,8 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
 
 TEST_F(BlockMatrixGenerator, OutputIsRowDiagonalDominantWhenRequested)
 {
-    using Dbv_t = gko::range<gko::accessor::col_major<const real_type, 3>>;
+    using Dbv_t =
+        gko::range<gko::accessor::block_col_major<const real_type, 3>>;
     const auto nbnz = rbmtx_dd->get_num_stored_blocks();
     const Dbv_t vals(rbmtx_dd->get_const_values(),
                      gko::dim<3>(nbnz, blk_sz, blk_sz));
