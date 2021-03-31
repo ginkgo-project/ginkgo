@@ -296,6 +296,103 @@ public:
     }
 };
 
+template <typename ValueType, typename IndexType>
+class BlockDiagSample {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
+
+
+    const size_type nbrows = 5;
+    const size_type nbcols = 5;
+    const int bs = 3;
+    const size_type nrows = nbrows * bs;
+    const size_type ncols = nbrows * bs;
+    const std::shared_ptr<const gko::Executor> exec;
+
+
+    BlockDiagSample(std::shared_ptr<const gko::ReferenceExecutor> rexec)
+        : exec(rexec)
+    {}
+
+    /**
+     * @return The sample matrix in FBCSR format
+     */
+    std::unique_ptr<Fbcsr> generate_test_1() const
+    {
+        const size_type nbnz = 8;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 1;
+        r[2] = 4;
+        r[3] = 5;
+        r[4] = 7;
+        r[5] = 8;
+        c[0] = 1;
+        c[1] = 0;
+        c[2] = 1;
+        c[3] = 3;
+        c[4] = 2;
+        c[5] = 2;
+        c[6] = 3;
+        c[7] = 4;
+
+        // gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs,
+        // bs);
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz + 1.0;
+
+        return mtx;
+    }
+
+    std::unique_ptr<Fbcsr> generate_ref_1() const
+    {
+        const size_type nbnz = 9;
+        const size_type nnz = nbnz * bs * bs;
+        std::unique_ptr<Fbcsr> mtx =
+            Fbcsr::create(exec,
+                          gko::dim<2>{static_cast<size_type>(nrows),
+                                      static_cast<size_type>(ncols)},
+                          nnz, bs);
+
+        value_type *const v = mtx->get_values();
+        index_type *const c = mtx->get_col_idxs();
+        index_type *const r = mtx->get_row_ptrs();
+        r[0] = 0;
+        r[1] = 2;
+        r[2] = 5;
+        r[3] = 6;
+        r[4] = 8;
+        r[5] = 9;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 0;
+        c[3] = 1;
+        c[4] = 3;
+        c[5] = 2;
+        c[6] = 2;
+        c[7] = 3;
+        c[8] = 4;
+
+        // gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs,
+        // bs);
+        for (IndexType ibz = 0; ibz < nbnz; ibz++)
+            for (int i = 0; i < bs * bs; i++) v[ibz * bs * bs + i] = ibz;
+
+        return mtx;
+    }
+};
+
 }  // namespace testing
 }  // namespace gko
 
