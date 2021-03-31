@@ -103,11 +103,16 @@ public:
     }
 
     /**
-     * Returns true if the solver has stopped.
+     * Returns true if the solver has converged.
      *
      * @return the bool flag for convergence status
      */
     bool has_converged() const noexcept { return convergence_status_; }
+
+    /**
+     * Resets the convergence status to false.
+     */
+    void reset_convergence_status() { this->convergence_status_ = false; }
 
     /**
      * Returns the number of iterations
