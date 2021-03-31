@@ -53,7 +53,9 @@ template <typename ValueType>
 class array;
 class Executor;
 class LinOp;
+class BatchLinOp;
 class LinOpFactory;
+class BatchLinOpFactory;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
@@ -111,10 +113,10 @@ public:
      * call only if the user activates this event through the mask. If the
      * event is activated, we rely on polymorphism and the virtual method
      * `on_##_event_name()` to either call the Logger class's function,
-     * which does nothing, or the overridden version in the derived class if
+     * which does nothing, or the overriden version in the derived class if
      * any. Therefore, to support a new event in any Logger (i.e. class
      * which derive from this class), the function `on_##_event_name()`
-     * should be overridden and implemented.
+     * should be overriden and implemented.
      *
      * @param _id  the unique id of the event
      *
@@ -349,6 +351,79 @@ public:                                                              \
                               const LinOp* output)
 
     /**
+     * BatchLinOp's apply started event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(19, batch_linop_apply_started,
+                              const BatchLinOp* A, const BatchLinOp* b,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's apply completed event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(20, batch_linop_apply_completed,
+                              const BatchLinOp* A, const BatchLinOp* b,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply started event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(21, batch_linop_advanced_apply_started,
+                              const BatchLinOp* A, const BatchLinOp* alpha,
+                              const BatchLinOp* b, const BatchLinOp* beta,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply completed event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, batch_linop_advanced_apply_completed,
+                              const BatchLinOp* A, const BatchLinOp* alpha,
+                              const BatchLinOp* b, const BatchLinOp* beta,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, batch_linop_factory_generate_started,
+                              const BatchLinOpFactory* factory,
+                              const BatchLinOp* input)
+
+    /**
+     * BatchLinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     * @param output  the generated BatchLinOp object
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, batch_linop_factory_generate_completed,
+                              const BatchLinOpFactory* factory,
+                              const BatchLinOp* input, const BatchLinOp* output)
+
+    /**
      * stop::Criterion's check started event.
      *
      * @param criterion  the criterion used
@@ -359,7 +434,7 @@ public:                                                              \
      * @param stopping_id  the id of the stopping criterion
      * @param set_finalized  whether this finalizes the iteration
      */
-    GKO_LOGGER_REGISTER_EVENT(19, criterion_check_started,
+    GKO_LOGGER_REGISTER_EVENT(25, criterion_check_started,
                               const stop::Criterion* criterion,
                               const size_type& it, const LinOp* r,
                               const LinOp* tau, const LinOp* x,
@@ -387,7 +462,7 @@ public:                                                              \
      * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(
-        20, criterion_check_completed, const stop::Criterion* criterion,
+        26, criterion_check_completed, const stop::Criterion* criterion,
         const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* x,
         const uint8& stopping_id, const bool& set_finalized,
         const array<stopping_status>* status, const bool& one_changed,
@@ -408,7 +483,7 @@ protected:
      * @param set_finalized  whether this finalizes the iteration
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
-     * @param all_converged  whether all right hand sides are converged
+     * @param all_converged  whether all right hand sides
      */
     virtual void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& it, const LinOp* r,
@@ -422,19 +497,23 @@ protected:
                                            one_changed, all_converged);
     }
 
-public:
-    static constexpr size_type iteration_complete{21};
-    static constexpr mask_type iteration_complete_mask{mask_type{1} << 21};
-
-    template <size_type Event, typename... Params>
-    std::enable_if_t<Event == 21 && (21 < event_count_max)> on(
-        Params&&... params) const
-    {
-        if (enabled_events_ & (mask_type{1} << 21)) {
-            this->on_iteration_complete(std::forward<Params>(params)...);
-        }
-    }
-
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     *
+     * @note The on_iteration_complete function that this macro declares is
+     * deprecated. Please use the one with the additional implicit_tau_sq
+     * parameter as below.
+     */
+    GKO_LOGGER_REGISTER_EVENT(27, iteration_complete, const LinOp* solver,
+                              const size_type& it, const LinOp* r,
+                              const LinOp* x = nullptr,
+                              const LinOp* tau = nullptr)
 protected:
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -444,98 +523,14 @@ protected:
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
-     *
-     * @warning This on_iteration_complete function that this macro declares is
-     * deprecated. Please use the version with the stopping information.
-     */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x = nullptr,
-                          const LinOp* tau = nullptr) const
-    {}
-
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param it  the current iteration count
-     * @param r  the residual
-     * @param x  the solution vector (optional)
-     * @param tau  the residual norm (optional)
      * @param implicit_tau_sq  the implicit residual norm squared (optional)
-     *
-     * @warning This on_iteration_complete function that this macro declares is
-     * deprecated. Please use the version with the stopping information.
      */
-    [[deprecated(
-        "Please use the version with the additional stopping "
-        "information.")]] virtual void
-    on_iteration_complete(const LinOp* solver, const size_type& it,
-                          const LinOp* r, const LinOp* x, const LinOp* tau,
-                          const LinOp* implicit_tau_sq) const
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x,
+                                       const LinOp* tau,
+                                       const LinOp* implicit_tau_sq) const
     {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif
         this->on_iteration_complete(solver, it, r, x, tau);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-    }
-
-    /**
-     * Register the `iteration_complete` event which logs every completed
-     * iterations.
-     *
-     * @param solver  the solver executing the iteration
-     * @param b  the right-hand-side vector
-     * @param x  the solution vector
-     * @param it  the current iteration count
-     * @param r  the residual (optional)
-     * @param tau  the implicit residual norm squared (optional)
-     * @param implicit_tau_sq  the residual norm (optional)
-     * @param status  the stopping status of the right hand sides (optional)
-     * @param stopped  whether all right hand sides have stopped (invalid if
-     *                 status is not provided)
-     */
-    virtual void on_iteration_complete(const LinOp* solver, const LinOp* b,
-                                       const LinOp* x, const size_type& it,
-                                       const LinOp* r, const LinOp* tau,
-                                       const LinOp* implicit_tau_sq,
-                                       const array<stopping_status>* status,
-                                       bool stopped) const
-    {
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_suppress 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 5211, 4973, 4974)
-#endif  // _MSC_VER
-        this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif  // defined(__GNUC__) || defined(__clang__)
-#ifdef __NVCOMPILER
-#pragma diag_warning 1445
-#endif  // __NVCOMPILER
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif  // _MSC_VER
     }
 
 public:
