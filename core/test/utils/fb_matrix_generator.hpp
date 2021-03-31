@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/factorization/factorization_kernels.hpp"
+#include "core/test/utils/matrix_generator.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace gko {
@@ -147,6 +149,30 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     }
 
     return fmtx;
+}
+
+
+template <typename ValueType, typename IndexType, typename RandEngine>
+std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>>
+generate_random_square_fbcsr(std::shared_ptr<ReferenceExecutor> ref,
+                             RandEngine engine, const IndexType nbrows,
+                             const int mat_blk_sz, const bool diag_dominant,
+                             const bool unsort)
+{
+    using real_type = gko::remove_complex<ValueType>;
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>> rand_csr_ref =
+        generate_random_matrix<matrix::Csr<ValueType, IndexType>>(
+            nbrows, nbrows,
+            std::uniform_int_distribution<IndexType>(0, nbrows - 1),
+            std::normal_distribution<real_type>(0.0, 1.0), std::move(engine),
+            ref);
+    gko::kernels::reference::factorization::add_diagonal_elements(
+        ref, gko::lend(rand_csr_ref), false);
+    if (unsort && rand_csr_ref->is_sorted_by_column_index()) {
+        unsort_matrix(rand_csr_ref.get(), engine);
+    }
+    return generate_fbcsr_from_csr(ref, rand_csr_ref.get(), mat_blk_sz,
+                                   diag_dominant, std::move(engine));
 }
 
 
