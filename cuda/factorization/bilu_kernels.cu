@@ -60,7 +60,7 @@ void compute_bilu(const std::shared_ptr<const DefaultExecutor> exec,
     const auto id = exec->get_device_id();
     auto handle = exec->get_cusparse_handle();
     gko::cuda::device_guard g{id};
-    auto desc = cusparse::create_bsr_mat_descr();
+    auto desc = cusparse::create_mat_descr();
     auto info = cusparse::create_bilu0_info();
 
     // get buffer size for ILU
