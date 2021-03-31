@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -60,7 +60,7 @@ class BatchCsr;
  * An additional column index array is used to identify the column of each
  * nonzero element.
  *
- * The BatchCsr LinOp supports different operations:
+ * The BatchCsr BatchLinOp supports different operations:
  *
  * ```cpp
  * matrix::BatchCsr *A, *B, *C;      // matrices
@@ -87,18 +87,18 @@ class BatchCsr;
  *
  * @ingroup batch_csr
  * @ingroup mat_formats
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class BatchCsr
-    : public EnableLinOp<BatchCsr<ValueType, IndexType>>,
+    : public EnableBatchLinOp<BatchCsr<ValueType, IndexType>>,
       public EnableCreateMethod<BatchCsr<ValueType, IndexType>>,
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public Transposable {
+      public BatchTransposable {
     friend class EnableCreateMethod<BatchCsr>;
-    friend class EnablePolymorphicObject<BatchCsr, LinOp>;
+    friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;
 
 public:
@@ -123,7 +123,7 @@ public:
     void move_to(BatchCsr<ValueType, IndexType> *result) override
     {
         bool same_executor = this->get_executor() == result->get_executor();
-        EnableLinOp<BatchCsr>::move_to(result);
+        EnableBatchLinOp<BatchCsr>::move_to(result);
     }
     friend class BatchCsr<next_precision<ValueType>, IndexType>;
 
@@ -137,9 +137,9 @@ public:
 
     void write(std::vector<mat_data> &data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     std::vector<std::unique_ptr<unbatch_type>> unbatch() const
     {
@@ -276,7 +276,7 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batches = {}, const dim<2> &size = dim<2>{},
              size_type num_nonzeros = {})
-        : EnableLinOp<BatchCsr>(
+        : EnableBatchLinOp<BatchCsr>(
               exec,
               compute_cumulative_size(std::vector<dim<2>>(num_batches, size))),
           batch_sizes_(std::vector<dim<2>>(num_batches, size)),
@@ -310,7 +310,7 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec, const size_type num_batches,
              const dim<2> &size, ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableLinOp<BatchCsr>(
+        : EnableBatchLinOp<BatchCsr>(
               exec,
               compute_cumulative_size(std::vector<dim<2>>(num_batches, size))),
           batch_sizes_(std::vector<dim<2>>(num_batches, size)),
@@ -324,8 +324,8 @@ protected:
                       row_ptrs_.get_num_elems());
     }
 
-    virtual void validate_application_parameters(const LinOp *b,
-                                                 const LinOp *x) const override
+    virtual void validate_application_parameters(
+        const BatchLinOp *b, const BatchLinOp *x) const override
     {
         auto batch_this = as<BatchCsr<ValueType, IndexType>>(this);
         auto batch_x = as<BatchDense<ValueType>>(x);
@@ -338,10 +338,9 @@ protected:
         GKO_ASSERT_BATCH_EQUAL_COLS(batch_b, batch_x);
     }
 
-    virtual void validate_application_parameters(const LinOp *alpha,
-                                                 const LinOp *b,
-                                                 const LinOp *beta,
-                                                 const LinOp *x) const override
+    virtual void validate_application_parameters(
+        const BatchLinOp *alpha, const BatchLinOp *b, const BatchLinOp *beta,
+        const BatchLinOp *x) const override
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
@@ -352,10 +351,10 @@ protected:
             std::vector<dim<2>>(get_num_batches(), dim<2>(1, 1)));
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
 private:
     std::vector<dim<2>> batch_sizes_;
