@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -70,10 +70,10 @@ class BatchCsr;
  *       is often suitable to store vectors, and sets of vectors.
  * @ingroup batch_dense
  * @ingroup mat_formats
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchDense : public EnableLinOp<BatchDense<ValueType>>,
+class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
                    public EnableCreateMethod<BatchDense<ValueType>>,
                    public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
                    public ConvertibleTo<BatchCsr<ValueType, int32>>,
@@ -82,16 +82,16 @@ class BatchDense : public EnableLinOp<BatchDense<ValueType>>,
                    public BatchReadableFromMatrixData<ValueType, int64>,
                    public BatchWritableToMatrixData<ValueType, int32>,
                    public BatchWritableToMatrixData<ValueType, int64>,
-                   public Transposable {
+                   public BatchTransposable {
     friend class EnableCreateMethod<BatchDense>;
-    friend class EnablePolymorphicObject<BatchDense, LinOp>;
+    friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
     friend class BatchCsr<ValueType, int32>;
     friend class BatchCsr<ValueType, int64>;
 
 public:
-    using EnableLinOp<BatchDense>::convert_to;
-    using EnableLinOp<BatchDense>::move_to;
+    using EnableBatchLinOp<BatchDense>::convert_to;
+    using EnableBatchLinOp<BatchDense>::move_to;
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
 
@@ -145,9 +145,9 @@ public:
 
     void write(std::vector<mat_data32> &data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Unbatches the batched dense and creates a std::vector of Dense matrices
@@ -316,7 +316,7 @@ public:
      * column of the matrix is scaled with the i-th element of alpha (the number
      * of columns of alpha has to match the number of columns of the matrix).
      */
-    void scale(const LinOp *alpha)
+    void scale(const BatchLinOp *alpha)
     {
         auto exec = this->get_executor();
         this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -331,7 +331,7 @@ public:
      * of columns of alpha has to match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const LinOp *alpha, const LinOp *b)
+    void add_scaled(const BatchLinOp *alpha, const BatchLinOp *b)
     {
         auto exec = this->get_executor();
         this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -347,7 +347,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp *b, LinOp *result) const
+    void compute_dot(const BatchLinOp *b, BatchLinOp *result) const
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -361,7 +361,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp *result) const
+    void compute_norm2(BatchLinOp *result) const
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
@@ -463,7 +463,7 @@ protected:
     BatchDense(std::shared_ptr<const Executor> exec,
                const std::vector<dim<2>> sizes,
                const std::vector<size_type> strides)
-        : EnableLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
+        : EnableBatchLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
           values_(exec, compute_batch_mem(sizes, strides)),
           batch_sizes_(sizes),
           strides_(strides)
@@ -493,7 +493,7 @@ protected:
     BatchDense(std::shared_ptr<const Executor> exec,
                const std::vector<dim<2>> sizes, ValuesArray &&values,
                const std::vector<size_type> strides)
-        : EnableLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
+        : EnableBatchLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
           values_{exec, std::forward<ValuesArray>(values)},
           batch_sizes_(sizes),
           strides_{strides},
@@ -512,7 +512,7 @@ protected:
      */
     BatchDense(std::shared_ptr<const Executor> exec,
                const std::vector<Dense<ValueType> *> &matrices)
-        : EnableLinOp<BatchDense>(
+        : EnableBatchLinOp<BatchDense>(
               exec, compute_cumulative_size(get_sizes_from_mtxs(matrices))),
           batch_sizes_(get_sizes_from_mtxs(matrices)),
           strides_{get_strides_from_mtxs(matrices)},
@@ -529,8 +529,8 @@ protected:
         }
     }
 
-    virtual void validate_application_parameters(const LinOp *b,
-                                                 const LinOp *x) const override
+    virtual void validate_application_parameters(
+        const BatchLinOp *b, const BatchLinOp *x) const override
     {
         auto batch_this = as<BatchDense<ValueType>>(this);
         auto batch_x = as<BatchDense<ValueType>>(x);
@@ -543,10 +543,9 @@ protected:
         GKO_ASSERT_BATCH_EQUAL_COLS(batch_b, batch_x);
     }
 
-    virtual void validate_application_parameters(const LinOp *alpha,
-                                                 const LinOp *b,
-                                                 const LinOp *beta,
-                                                 const LinOp *x) const override
+    virtual void validate_application_parameters(
+        const BatchLinOp *alpha, const BatchLinOp *b, const BatchLinOp *beta,
+        const BatchLinOp *x) const override
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
@@ -570,41 +569,43 @@ protected:
     }
 
     /**
-     * @copydoc scale(const LinOp *)
+     * @copydoc scale(const BatchLinOp *)
      *
      * @note  Other implementations of batch_dense should override this function
-     *        instead of scale(const LinOp *alpha).
+     *        instead of scale(const BatchLinOp *alpha).
      */
-    virtual void scale_impl(const LinOp *alpha);
+    virtual void scale_impl(const BatchLinOp *alpha);
 
     /**
-     * @copydoc add_scaled(const LinOp *, const LinOp *)
+     * @copydoc add_scaled(const BatchLinOp *, const BatchLinOp *)
      *
      * @note  Other implementations of batch_dense should override this function
-     *        instead of add_scale(const LinOp *alpha, const LinOp *b).
+     *        instead of add_scale(const BatchLinOp *alpha, const BatchLinOp
+     * *b).
      */
-    virtual void add_scaled_impl(const LinOp *alpha, const LinOp *b);
+    virtual void add_scaled_impl(const BatchLinOp *alpha, const BatchLinOp *b);
 
     /**
-     * @copydoc compute_dot(const LinOp *, LinOp *) const
+     * @copydoc compute_dot(const BatchLinOp *, BatchLinOp *) const
      *
      * @note  Other implementations of batch_dense should override this function
-     *        instead of compute_dot(const LinOp *b, LinOp *result).
+     *        instead of compute_dot(const BatchLinOp *b, BatchLinOp *result).
      */
-    virtual void compute_dot_impl(const LinOp *b, LinOp *result) const;
+    virtual void compute_dot_impl(const BatchLinOp *b,
+                                  BatchLinOp *result) const;
 
     /**
-     * @copydoc compute_norm2(LinOp *) const
+     * @copydoc compute_norm2(BatchLinOp *) const
      *
      * @note  Other implementations of batch_dense should override this function
-     *        instead of compute_norm2(LinOp *result).
+     *        instead of compute_norm2(BatchLinOp *result).
      */
-    virtual void compute_norm2_impl(LinOp *result) const;
+    virtual void compute_norm2_impl(BatchLinOp *result) const;
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
@@ -647,7 +648,7 @@ private:
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -700,7 +701,7 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -733,7 +734,7 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -795,7 +796,7 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -837,7 +838,7 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
@@ -890,7 +891,7 @@ std::unique_ptr<Matrix> batch_initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>

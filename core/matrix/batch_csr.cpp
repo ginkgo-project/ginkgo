@@ -72,7 +72,8 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *b,
+                                                BatchLinOp *x) const
 {
     this->get_executor()->run(batch_csr::make_spmv(
         this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
@@ -80,10 +81,10 @@ void BatchCsr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                                const LinOp *b,
-                                                const LinOp *beta,
-                                                LinOp *x) const
+void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *alpha,
+                                                const BatchLinOp *b,
+                                                const BatchLinOp *beta,
+                                                BatchLinOp *x) const
 {
     this->get_executor()->run(batch_csr::make_advanced_spmv(
         as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
@@ -157,7 +158,7 @@ void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
 {
-    std::unique_ptr<const LinOp> op{};
+    std::unique_ptr<const BatchLinOp> op{};
     const BatchCsr *tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
@@ -188,7 +189,7 @@ void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> BatchCsr<ValueType, IndexType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
 //{
 //    auto exec = this->get_executor();
@@ -203,8 +204,8 @@ std::unique_ptr<LinOp> BatchCsr<ValueType, IndexType>::transpose() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> BatchCsr<ValueType, IndexType>::conj_transpose() const
-    GKO_NOT_IMPLEMENTED;
+std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::conj_transpose()
+    const GKO_NOT_IMPLEMENTED;
 //{
 //    auto exec = this->get_executor();
 //    auto trans_cpy =
