@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -93,12 +93,9 @@ protected:
             FAIL() << "Could not find the file \"" << file_name
                    << "\", which is required for this test.\n";
         }
-        const gko::matrix_data<value_type, index_type> mdata =
-            gko::read_raw(input_file);
+        const int block_size = 4;
+        auto ref_temp = gko::read<Fbcsr>(input_file, ref, block_size);
         input_file.close();
-        std::unique_ptr<Fbcsr> ref_temp = Fbcsr::create(ref);
-        ref_temp->set_block_size(4);
-        ref_temp->read(mdata);
         auto cuda_temp = Fbcsr::create(cuda);
         cuda_temp->copy_from(gko::lend(ref_temp));
         // Make sure there are diagonal elements present
