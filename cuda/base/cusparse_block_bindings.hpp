@@ -34,14 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_CUSPARSE_BLOCK_BINDINGS_HPP_
 
 
-#include <cuda.h>
-#include <cusparse.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
-#include "cuda/base/types.hpp"
+#include "cuda/base/cusparse_bindings.hpp"
 
 
 namespace gko {
@@ -53,38 +46,7 @@ namespace cuda {
  * @ingroup cusparse
  */
 namespace cusparse {
-/**
- * @brief The detail namespace.
- *
- * @ingroup detail
- */
-namespace detail {
 
-
-template <typename... Args>
-inline int64 not_implemented(Args...)
-{
-    return static_cast<int64>(CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
-}
-
-
-}  // namespace detail
-
-
-template <typename ValueType, typename IndexType>
-struct is_supported : std::false_type {};
-
-template <>
-struct is_supported<float, int32> : std::true_type {};
-
-template <>
-struct is_supported<double, int32> : std::true_type {};
-
-template <>
-struct is_supported<std::complex<float>, int32> : std::true_type {};
-
-template <>
-struct is_supported<std::complex<double>, int32> : std::true_type {};
 
 /// Default storage layout within each small dense block
 constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
@@ -107,15 +69,16 @@ constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-#define GKO_BIND_CUSPARSE64_BSRMV(ValueType, CusparseName)                    \
-    inline void bsrmv(                                                        \
-        cusparseHandle_t handle, cusparseOperation_t transA, int64 mb,        \
-        int64 nb, int64 nnzb, const ValueType *alpha,                         \
-        const cusparseMatDescr_t descrA, const ValueType *csrValA,            \
-        const int64 *csrRowPtrA, const int64 *csrColIndA, const ValueType *x, \
-        const ValueType *beta, ValueType *y) GKO_NOT_IMPLEMENTED;             \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
+#define GKO_BIND_CUSPARSE64_BSRMV(ValueType, CusparseName)                     \
+    inline void bsrmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
+                      int64 mb, int64 nb, int64 nnzb, const ValueType *alpha,  \
+                      const cusparseMatDescr_t descrA,                         \
+                      const ValueType *csrValA, const int64 *csrRowPtrA,       \
+                      const int64 *csrColIndA, int block_size,                 \
+                      const ValueType *x, const ValueType *beta, ValueType *y) \
+        GKO_NOT_IMPLEMENTED;                                                   \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 GKO_BIND_CUSPARSE32_BSRMV(float, cusparseSbsrmv);
@@ -138,15 +101,13 @@ GKO_BIND_CUSPARSE64_BSRMV(ValueType, detail::not_implemented);
 
 #define GKO_BIND_CUSPARSE32_BSRMM(ValueType, CusparseName)                     \
     inline void bsrmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                      int32 mb, int32 n, int32 kb, int32 nnzb,                 \
-                      const ValueType *alpha, const cusparseMatDescr_t descrA, \
-                      const ValueType *valA, const int32 *rowPtrA,             \
-                      const int32 *colIndA, int block_size,                    \
-                      const ValueType *B, int32 ldb, const ValueType *beta,    \
-                      ValueType *C, int32 ldc)                                 \
+                      cusparseOperation_t transB, int32 mb, int32 n, int32 kb, \
+                      int32 nnzb, const ValueType *alpha,                      \
+                      const cusparseMatDescr_t descrA, const ValueType *valA,  \
+                      const int32 *rowPtrA, const int32 *colIndA,              \
+                      int block_size, const ValueType *B, int32 ldb,           \
+                      const ValueType *beta, ValueType *C, int32 ldc)          \
     {                                                                          \
-        constexpr cusparseOperation_t transB =                                 \
-            CUSPARSE_OPERATION_NON_TRANSPOSE;                                  \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, transA, transB, mb, n, kb, nnzb,    \
                          as_culibs_type(alpha), descrA, as_culibs_type(valA),  \
@@ -157,16 +118,16 @@ GKO_BIND_CUSPARSE64_BSRMV(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-#define GKO_BIND_CUSPARSE64_BSRMM(ValueType, CusparseName)                     \
-    inline void bsrmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                      int64 mb, int64 n, int64 kb, int64 nnzb,                 \
-                      const ValueType *alpha, const cusparseMatDescr_t descrA, \
-                      const ValueType *valA, const int64 *rowPtrA,             \
-                      const int64 *colIndA, const ValueType *B, int64 ldb,     \
-                      const ValueType *beta, ValueType *C, int64 ldc)          \
-        GKO_NOT_IMPLEMENTED;                                                   \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_BIND_CUSPARSE64_BSRMM(ValueType, CusparseName)                    \
+    inline void bsrmm(                                                        \
+        cusparseHandle_t handle, cusparseOperation_t transA,                  \
+        cusparseOperation_t transB, int64 mb, int64 n, int64 kb, int64 nnzb,  \
+        const ValueType *alpha, const cusparseMatDescr_t descrA,              \
+        const ValueType *valA, const int64 *rowPtrA, const int64 *colIndA,    \
+        int block_size, const ValueType *B, int64 ldb, const ValueType *beta, \
+        ValueType *C, int64 ldc) GKO_NOT_IMPLEMENTED;                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 GKO_BIND_CUSPARSE32_BSRMM(float, cusparseSbsrmm);
@@ -246,20 +207,6 @@ GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32(std::complex<double>, cusparseZgebsr2gebsc);
 #undef GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32
 
 
-inline cusparseMatDescr_t create_bsr_mat_descr()
-{
-    cusparseMatDescr_t descr{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&descr));
-    return descr;
-}
-
-
-inline void destroy(cusparseMatDescr_t descr)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
-}
-
-
 inline bsrsm2Info_t create_bsr_trsm_info()
 {
     bsrsm2Info_t info{};
@@ -307,8 +254,9 @@ inline void destroy(bsrilu02Info_t info)
                   "semi-colon warnings")
 
 #define GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, CusparseName)        \
-    inline size_type bsrsm2_buffer_size(                                     \
-        cusparseHandle_t handle, size_type mb, size_type n, size_type nnzb,  \
+    inline int64 bsrsm2_buffer_size(                                         \
+        cusparseHandle_t handle, cusparseOperation_t transA,                 \
+        cusparseOperation_t transX, int64 mb, int64 n, int64 nnzb,           \
         const cusparseMatDescr_t descr, ValueType *val, const int64 *rowPtr, \
         const int64 *colInd, int block_size, bsrsm2Info_t factor_info)       \
         GKO_NOT_IMPLEMENTED;                                                 \
@@ -359,9 +307,9 @@ GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, detail::not_implemented);
         cusparseHandle_t handle, cusparseOperation_t trans1,                   \
         cusparseOperation_t trans2, size_type mb, size_type n, size_type nnzb, \
         const cusparseMatDescr_t descr, const ValueType *val,                  \
-        const int64 *rowPtr, const int64 *colInd, bsrsm2Info_t factor_info,    \
-        cusparseSolvePolicy_t policy, void *factor_work_vec)                   \
-        GKO_NOT_IMPLEMENTED;                                                   \
+        const int64 *rowPtr, const int64 *colInd, int block_size,              \
+        bsrsm2Info_t factor_info, cusparseSolvePolicy_t policy,                \
+        void *factor_work_vec) GKO_NOT_IMPLEMENTED;                            \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
@@ -386,36 +334,35 @@ GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS
 
 
-#define GKO_BIND_CUSPARSE32_BSRSM2_SOLVE(ValueType, CusparseName)              \
-    inline void bsrsm2_solve(                                                  \
-        cusparseHandle_t handle, cusparseDirection_t dirA,                     \
-        cusparseOperation_t transA, cusparseOperation_t transX, int32 mb,      \
-        int32 n, int32 nnzb, const ValueType *alpha,                           \
-        const cusparseMatDescr_t descrA, const ValueType *valA,                \
-        const int32 *rowPtrA, const int32 *colIndA, int blockSizeA,            \
-        bsrsm2Info_t factor_info, const ValueType *B, int32 ldb, ValueType *X, \
-        int32 ldx, cusparseSolvePolicy_t policy, void *factor_work_vec)        \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
-            handle, dirA, transA, transX, mb, n, nnzb, as_culibs_type(alpha),  \
-            descrA, as_culibs_type(valA), rowPtrA, colIndA, blockSizeA,        \
-            factor_info, as_culibs_type(B), ldb, as_culibs_type(X), ldx,       \
-            policy, factor_work_vec));                                         \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_BIND_CUSPARSE32_BSRSM2_SOLVE(ValueType, CusparseName)            \
+    inline void bsrsm2_solve(                                                \
+        cusparseHandle_t handle, cusparseOperation_t transA,                 \
+        cusparseOperation_t transX, int32 mb, int32 n, int32 nnzb,           \
+        const ValueType *alpha, const cusparseMatDescr_t descrA,             \
+        const ValueType *valA, const int32 *rowPtrA, const int32 *colIndA,   \
+        int blockSizeA, bsrsm2Info_t factor_info, const ValueType *B,        \
+        int32 ldb, ValueType *X, int32 ldx, cusparseSolvePolicy_t policy,    \
+        void *factor_work_vec)                                               \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                          \
+            handle, blockDir, transA, transX, mb, n, nnzb,                   \
+            as_culibs_type(alpha), descrA, as_culibs_type(valA), rowPtrA,    \
+            colIndA, blockSizeA, factor_info, as_culibs_type(B), ldb,        \
+            as_culibs_type(X), ldx, policy, factor_work_vec));               \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 #define GKO_BIND_CUSPARSE64_BSRSM2_SOLVE(ValueType, CusparseName)              \
     inline void bsrsm2_solve(                                                  \
-        cusparseHandle_t handle, cusparseDirection_t dirA,                     \
-        cusparseOperation_t trans1, cusparseOperation_t trans2, size_type mb,  \
-        size_type n, size_type nnzb, const ValueType *alpha,                   \
-        const cusparseMatDescr_t descr, const ValueType *val,                  \
-        const int64 *rowPtr, const int64 *colInd, int block_size,              \
-        bsrsm2Info_t factor_info, const ValueType *B, int64 ldb, ValueType *X, \
-        int64 ldx, cusparseSolvePolicy_t policy, void *factor_work_vec)        \
-        GKO_NOT_IMPLEMENTED;                                                   \
+        cusparseHandle_t handle, cusparseOperation_t trans1,                   \
+        cusparseOperation_t trans2, size_type mb, size_type n, size_type nnzb, \
+        const ValueType *alpha, const cusparseMatDescr_t descr,                \
+        const ValueType *val, const int64 *rowPtr, const int64 *colInd,        \
+        int block_size, bsrsm2Info_t factor_info, const ValueType *B,          \
+        int64 ldb, ValueType *X, int64 ldx, cusparseSolvePolicy_t policy,      \
+        void *factor_work_vec) GKO_NOT_IMPLEMENTED;                            \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
