@@ -49,7 +49,7 @@ namespace cusparse {
 
 
 /// Default storage layout within each small dense block
-constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
+constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_COLUMN;
 
 
 #define GKO_BIND_CUSPARSE32_BSRMV(ValueType, CusparseName)                    \
