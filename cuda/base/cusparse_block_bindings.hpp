@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -99,10 +99,10 @@ constexpr cusparseDirection_t blockDir = CUSPARSE_DIRECTION_ROW;
                       int blocksize, const ValueType *x,                      \
                       const ValueType *beta, ValueType *y)                    \
     {                                                                         \
-        const int32 mb = blockutils::getNumBlocks(blocksize, m);              \
-        const int32 nb = blockutils::getNumBlocks(blocksize, n);              \
+        const int32 mb = blockutils::get_num_blocks(blocksize, m);            \
+        const int32 nb = blockutils::get_num_blocks(blocksize, n);            \
         const int32 nnzb =                                                    \
-            blockutils::getNumBlocks(blocksize * blocksize, nnz);             \
+            blockutils::get_num_blocks(blocksize * blocksize, nnz);           \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                           \
             handle, blockDir, transA, mb, nb, nnzb, as_culibs_type(alpha),    \
             descrA, as_culibs_type(valA), rowPtrA, colIndA, blocksize,        \
@@ -150,10 +150,10 @@ GKO_BIND_CUSPARSE64_BSRMV(ValueType, detail::not_implemented);
                       const ValueType *B, int32 ldb, const ValueType *beta,    \
                       ValueType *C, int32 ldc)                                 \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_size, m);              \
-        const int32 kb = blockutils::getNumBlocks(block_size, k);              \
+        const int32 mb = blockutils::get_num_blocks(block_size, m);            \
+        const int32 kb = blockutils::get_num_blocks(block_size, k);            \
         const int32 nnzb =                                                     \
-            blockutils::getNumBlocks(block_size * block_size, nnz);            \
+            blockutils::get_num_blocks(block_size * block_size, nnz);          \
         constexpr cusparseOperation_t transB =                                 \
             CUSPARSE_OPERATION_NON_TRANSPOSE;                                  \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
@@ -226,10 +226,10 @@ GKO_NOT_IMPLEMENTED;
         const ValueType *OrigValA, const int32 *OrigRowPtrA,                   \
         const int32 *OrigColIndA, int rowblocksize, int colblocksize)          \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(rowblocksize, m);            \
-        const int32 nb = blockutils::getNumBlocks(colblocksize, n);            \
+        const int32 mb = blockutils::get_num_blocks(rowblocksize, m);          \
+        const int32 nb = blockutils::get_num_blocks(colblocksize, n);          \
         const int32 nnzb =                                                     \
-            blockutils::getNumBlocks(rowblocksize * colblocksize, nnz);        \
+            blockutils::get_num_blocks(rowblocksize * colblocksize, nnz);      \
         int pBufferSize = -1;                                                  \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName##_buffersize(               \
             handle, mb, nb, nnzb, as_culibs_type(OrigValA), OrigRowPtrA,       \
@@ -245,10 +245,10 @@ GKO_NOT_IMPLEMENTED;
         cusparseAction_t copyValues, cusparseIndexBase_t idxBase,              \
         void *pBuffer)                                                         \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(rowblocksize, m);            \
-        const int32 nb = blockutils::getNumBlocks(colblocksize, n);            \
+        const int32 mb = blockutils::get_num_blocks(rowblocksize, m);          \
+        const int32 nb = blockutils::get_num_blocks(colblocksize, n);          \
         const int32 nnzb =                                                     \
-            blockutils::getNumBlocks(rowblocksize * colblocksize, nnz);        \
+            blockutils::get_num_blocks(rowblocksize * colblocksize, nnz);      \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, mb, nb, nnz, as_culibs_type(OrigValA),        \
                          OrigRowPtrA, OrigColIndA, rowblocksize, colblocksize, \
@@ -317,8 +317,9 @@ inline void destroy(bsrilu02Info_t info)
         const cusparseMatDescr_t descr, ValueType *val, const int32 *rowPtr,   \
         const int32 *colInd, int block_sz, bsrsm2Info_t factor_info)           \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_sz, m);                \
-        const int32 nnzb = blockutils::getNumBlocks(block_sz * block_sz, nnz); \
+        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
+        const int32 nnzb =                                                     \
+            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         int factor_work_size = -1;                                             \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, transA, transX, mb, n, nnzb, descr, \
@@ -369,9 +370,9 @@ GKO_BIND_CUSPARSE64_BSRSM_BUFFERSIZE(ValueType, detail::not_implemented);
         bsrsm2Info_t factor_info, cusparseSolvePolicy_t policy,                \
         void *factor_work_vec)                                                 \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_size, m);              \
+        const int32 mb = blockutils::get_num_blocks(block_size, m);            \
         const int32 nnzb =                                                     \
-            blockutils::getNumBlocks(block_size * block_size, nnz);            \
+            blockutils::get_num_blocks(block_size * block_size, nnz);          \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, trans1, trans2, mb, n, nnzb, descr, \
                          as_culibs_type(val), rowPtr, colInd, block_size,      \
@@ -423,9 +424,9 @@ GKO_BIND_CUSPARSE64_BSRSM2_ANALYSIS(ValueType, detail::not_implemented);
         bsrsm2Info_t factor_info, const ValueType *B, int32 ldb, ValueType *X, \
         int32 ldx, cusparseSolvePolicy_t policy, void *factor_work_vec)        \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(blockSizeA, m);              \
+        const int32 mb = blockutils::get_num_blocks(blockSizeA, m);            \
         const int32 nnzb =                                                     \
-            blockutils::getNumBlocks(blockSizeA * blockSizeA, nnz);            \
+            blockutils::get_num_blocks(blockSizeA * blockSizeA, nnz);          \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, dirA, transA, transX, mb, n, nnzb, as_culibs_type(alpha),  \
             descrA, as_culibs_type(valA), rowPtrA, colIndA, blockSizeA,        \
@@ -480,8 +481,9 @@ int bilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info)                                                   \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_sz, m);                \
-        const int32 nnzb = blockutils::getNumBlocks(block_sz * block_sz, nnz); \
+        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
+        const int32 nnzb =                                                     \
+            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         int tmp_buffer_sz{};                                                   \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
             CusparseName(handle, blockDir, mb, nnzb, descr,                    \
@@ -519,8 +521,9 @@ inline void bilu0_analysis(cusparseHandle_t handle, IndexType m, IndexType nnz,
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info, cusparseSolvePolicy_t policy, void *buffer)       \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_sz, m);                \
-        const int32 nnzb = blockutils::getNumBlocks(block_sz * block_sz, nnz); \
+        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
+        const int32 nnzb =                                                     \
+            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, blockDir, mb, nnzb, descr, as_culibs_type(vals), row_ptrs, \
             col_idxs, block_sz, info, policy, buffer));                        \
@@ -554,8 +557,9 @@ void bilu0(cusparseHandle_t handle, IndexType m, IndexType nnz,
         const int32 *row_ptrs, const int32 *col_idxs, int block_sz,            \
         bsrilu02Info_t info, cusparseSolvePolicy_t policy, void *buffer)       \
     {                                                                          \
-        const int32 mb = blockutils::getNumBlocks(block_sz, m);                \
-        const int32 nnzb = blockutils::getNumBlocks(block_sz * block_sz, nnz); \
+        const int32 mb = blockutils::get_num_blocks(block_sz, m);              \
+        const int32 nnzb =                                                     \
+            blockutils::get_num_blocks(block_sz * block_sz, nnz);              \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
             handle, blockDir, mb, nnzb, descr, as_culibs_type(vals), row_ptrs, \
             col_idxs, block_sz, info, policy, buffer));                        \
