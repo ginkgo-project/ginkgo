@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
 
 
 #include "core/components/prefix_sum.hpp"
@@ -60,6 +61,7 @@ namespace factorization {
 constexpr int default_block_size{512};
 
 
+#include "common/factorization/block_factorization_kernels.hpp.inc"
 #include "common/factorization/factorization_kernels.hpp.inc"
 
 
@@ -68,13 +70,14 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Fbcsr<ValueType, IndexType> *const mtx,
                          const bool is_sorted)
 {
-    // TODO: Runtime can be optimized by choosing a appropriate size for the
-    //       subwarp dependent on the matrix properties
     constexpr int subwarp_size = config::warp_size;
-    auto mtx_size = mtx->get_size();
-    auto num_rows = static_cast<IndexType>(mtx_size[0]);
-    auto num_cols = static_cast<IndexType>(mtx_size[1]);
-    size_type row_ptrs_size = num_rows + 1;
+    const auto mtx_size = mtx->get_size();
+    const int bs = mtx->get_block_size();
+    const auto num_rows = static_cast<IndexType>(mtx_size[0]);
+    const auto num_cols = static_cast<IndexType>(mtx_size[1]);
+    const IndexType num_brows = mtx->get_num_block_rows();
+    const IndexType num_bcols = mtx->get_num_block_cols();
+    const IndexType row_ptrs_size = num_brows + 1;
 
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
     Array<bool> needs_change_host{exec->get_master(), 1};
@@ -89,21 +92,31 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
 
     const dim3 block_dim{default_block_size, 1, 1};
     const dim3 grid_dim{
-        static_cast<uint32>(ceildiv(num_rows, block_dim.x / subwarp_size)), 1,
+        static_cast<uint32>(ceildiv(num_brows, block_dim.x / subwarp_size)), 1,
         1};
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>
             <<<grid_dim, block_dim>>>(
-                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                num_brows, num_bcols, cuda_old_col_idxs, cuda_old_row_ptrs,
                 cuda_row_ptrs_add,
                 as_cuda_type(needs_change_device.get_data()));
     } else {
         kernel::find_missing_diagonal_elements<false, subwarp_size>
             <<<grid_dim, block_dim>>>(
-                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                num_brows, num_bcols, cuda_old_col_idxs, cuda_old_row_ptrs,
                 cuda_row_ptrs_add,
                 as_cuda_type(needs_change_device.get_data()));
     }
+    // DEBUG:
+    Array<IndexType> host_row_addn(exec->get_master(), row_ptrs_size);
+    printf(" Num block cols = %d\n", num_bcols);
+    host_row_addn = row_ptrs_addition;
+    for (int i = 0; i < row_ptrs_size; i++)
+        printf("%d ", host_row_addn.get_const_data()[i]);
+    printf("\n");
+    fflush(stdout);
+    // END DEBUG
+
     needs_change_host = needs_change_device;
     if (!needs_change_host.get_const_data()[0]) {
         return;
@@ -114,24 +127,42 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
 
     auto total_additions =
         exec->copy_val_to_host(cuda_row_ptrs_add + row_ptrs_size - 1);
-    size_type new_num_elems = static_cast<size_type>(total_additions) +
-                              mtx->get_num_stored_elements();
+    const auto new_num_blocks =
+        static_cast<IndexType>(total_additions) +
+        blockutils::getNumBlocks(bs * bs, mtx->get_num_stored_elements());
 
 
-    Array<ValueType> new_values{exec, new_num_elems};
-    Array<IndexType> new_col_idxs{exec, new_num_elems};
+    Array<ValueType> new_values{exec, new_num_blocks * bs * bs};
+    Array<IndexType> new_col_idxs{exec, new_num_blocks};
     auto cuda_new_values = as_cuda_type(new_values.get_data());
     auto cuda_new_col_idxs = as_cuda_type(new_col_idxs.get_data());
 
-    kernel::add_missing_diagonal_elements<subwarp_size>
-        <<<grid_dim, block_dim>>>(num_rows, cuda_old_values, cuda_old_col_idxs,
-                                  cuda_old_row_ptrs, cuda_new_values,
-                                  cuda_new_col_idxs, cuda_row_ptrs_add);
+    if (bs == 2)
+        kernel::add_missing_diagonal_blocks<subwarp_size, 2>
+            <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
+                                      cuda_old_col_idxs, cuda_old_row_ptrs,
+                                      cuda_new_values, cuda_new_col_idxs,
+                                      cuda_row_ptrs_add);
+    else if (bs == 3)
+        kernel::add_missing_diagonal_blocks<subwarp_size, 3>
+            <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
+                                      cuda_old_col_idxs, cuda_old_row_ptrs,
+                                      cuda_new_values, cuda_new_col_idxs,
+                                      cuda_row_ptrs_add);
+    else if (bs == 4)
+        kernel::add_missing_diagonal_blocks<subwarp_size, 4>
+            <<<grid_dim, block_dim>>>(num_brows, cuda_old_values,
+                                      cuda_old_col_idxs, cuda_old_row_ptrs,
+                                      cuda_new_values, cuda_new_col_idxs,
+                                      cuda_row_ptrs_add);
+    else
+        throw ::gko::NotImplemented(__FILE__, __LINE__,
+                                    "add_missing_diaginal_blocks bs>4");
 
     const dim3 grid_dim_row_ptrs_update{
-        static_cast<uint32>(ceildiv(num_rows, block_dim.x)), 1, 1};
+        static_cast<uint32>(ceildiv(num_brows, block_dim.x)), 1, 1};
     kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim>>>(
-        num_rows + 1, cuda_old_row_ptrs, cuda_row_ptrs_add);
+        num_brows + 1, cuda_old_row_ptrs, cuda_row_ptrs_add);
 
     matrix::FbcsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values);
@@ -150,12 +181,12 @@ void initialize_row_ptrs_BLU(
 {
     const size_type num_rows{system_matrix->get_size()[0]};
 
-    const dim3 block_size{default_block_size, 1, 1};
-    const uint32 number_blocks =
-        ceildiv(num_rows, static_cast<size_type>(block_size.x));
-    const dim3 grid_dim{number_blocks, 1, 1};
+    const dim3 thrblock_size{default_block_size, 1, 1};
+    const uint32 number_thrblocks =
+        ceildiv(num_rows, static_cast<size_type>(thrblock_size.x));
+    const dim3 grid_dim{number_thrblocks, 1, 1};
 
-    kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
+    kernel::count_nnz_per_l_u_row<<<grid_dim, thrblock_size, 0, 0>>>(
         num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
         as_cuda_type(system_matrix->get_const_col_idxs()),
         as_cuda_type(system_matrix->get_const_values()),
