@@ -65,25 +65,27 @@ IndexType count_missing_elements(const IndexType num_rows,
                                  const IndexType num_cols,
                                  const IndexType *const col_idxs,
                                  const IndexType *const row_ptrs,
-                                 int *const brow_diag_add)
+                                 IndexType *const brow_diag_add)
 {
     IndexType missing_elements{};
-    // if row >= num_cols, diagonal elements no longer exist
     const IndexType min_dim = std::min(num_rows, num_cols);
 #pragma omp parallel for reduction(+ : missing_elements)
-    for (IndexType row = 0; row < min_dim; ++row) {
-        bool was_diagonal_found{false};
+    for (IndexType row = 0; row < num_rows; ++row) {
         brow_diag_add[row] = 0;
-        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
-            const auto col = col_idxs[idx];
-            if (col == row) {
-                was_diagonal_found = true;
-                break;
+        if (row < min_dim) {
+            bool was_diagonal_found{false};
+            for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1];
+                 ++idx) {
+                const auto col = col_idxs[idx];
+                if (col == row) {
+                    was_diagonal_found = true;
+                    break;
+                }
             }
-        }
-        if (!was_diagonal_found) {
-            ++missing_elements;
-            brow_diag_add[row] = 1;
+            if (!was_diagonal_found) {
+                ++missing_elements;
+                brow_diag_add[row] = 1;
+            }
         }
     }
     return missing_elements;
@@ -97,7 +99,7 @@ void add_missing_diagonal_blocks(const IndexType num_b_rows,
                                  const IndexType *const old_row_ptrs,
                                  ValueType *const new_values,
                                  IndexType *const new_col_idxs,
-                                 const int *const row_ptrs_addition)
+                                 const IndexType *const row_ptrs_addition)
 {
     constexpr int mat_blk_sz_2 = mat_blk_sz * mat_blk_sz;
 #pragma omp parallel for
@@ -172,11 +174,11 @@ void add_diagonal_blocks(const std::shared_ptr<const OmpExecutor> exec,
     const IndexType num_bcols = mtx->get_num_block_cols();
     const IndexType row_ptrs_size = num_brows + 1;
 
-    Array<int> row_ptrs_addition(exec, row_ptrs_size);
+    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
 
     auto old_values = mtx->get_const_values();
     auto old_col_idxs = mtx->get_const_col_idxs();
-    auto old_row_ptrs = mtx->get_row_ptrs();
+    auto old_row_ptrs = mtx->get_const_row_ptrs();
     auto row_ptrs_add = row_ptrs_addition.get_data();
 
     const auto missing_elems = kernel::count_missing_elements(
@@ -189,10 +191,8 @@ void add_diagonal_blocks(const std::shared_ptr<const OmpExecutor> exec,
     components::prefix_sum(exec, row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
-    auto total_additions = row_ptrs_add[num_brows];
-    const auto new_num_blocks =
-        static_cast<IndexType>(total_additions) + mtx->get_num_stored_blocks();
-
+    const auto total_additions = row_ptrs_add[num_brows];
+    const auto new_num_blocks = total_additions + mtx->get_num_stored_blocks();
 
     Array<ValueType> new_values_arr{exec, new_num_blocks * bs * bs};
     Array<IndexType> new_col_idxs_arr{exec, new_num_blocks};
@@ -220,9 +220,10 @@ void add_diagonal_blocks(const std::shared_ptr<const OmpExecutor> exec,
                                     "add_missing_diaginal_blocks bs>4");
     }
 
+    const auto new_row_ptrs = mtx->get_row_ptrs();
 #pragma omp parallel for simd
     for (IndexType i = 0; i < num_brows + 1; i++) {
-        old_row_ptrs[i] += row_ptrs_add[i];
+        new_row_ptrs[i] += row_ptrs_add[i];
     }
 
     matrix::FbcsrBuilder<ValueType, IndexType> mtx_builder{mtx};
