@@ -79,7 +79,7 @@ constexpr int wsize = config::warp_size;
 namespace fbcsr {
 
 
-// constexpr int default_block_size{512};
+constexpr int default_block_size{512};
 
 
 #include "common/components/uninitialized_array.hpp.inc"
@@ -180,6 +180,8 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             transpose_blocks_impl<3>(trans);
         } else if (bs == 4) {
             transpose_blocks_impl<4>(trans);
+        } else if (bs == 7) {
+            transpose_blocks_impl<7>(trans);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
