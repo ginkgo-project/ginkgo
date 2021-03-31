@@ -1,3 +1,5 @@
+ginkgo_create_test(block_factorization_kernels)
+ginkgo_create_test(par_bilu_kernels)
 ginkgo_create_test(par_ic_kernels)
 ginkgo_create_test(par_ict_kernels)
 ginkgo_create_test(par_ilu_kernels)
