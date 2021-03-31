@@ -80,6 +80,15 @@ complexify_if_possible(const ValueType x)
 /**
  * Generates a block CSR matrix having the same sparsity pattern as
  * a given CSR matrix.
+ *
+ * @param exec  Reference executor.
+ * @param csrmat  The CSR matrix to use for the block sparsity pattern of the
+ *                generated FBCSR matrix.
+ * @param block_size  Block size of output Fbcsr matrix.
+ * @param row_diag_dominant  If true, a row-diagonal-dominant Fbcsr matrix is
+ *                           generated. Note that in this case, the intput Csr
+ *                           matrix must have diagonal entries in all rows.
+ * @param rand_engine  Random number engine to use, such as std::ranlux48.
  */
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
@@ -149,7 +158,23 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     return fmtx;
 }
 
-
+/**
+ * Generates a random block CSR matrix.
+ *
+ * The block sparsity pattern of the generated matrix always has the diagonal
+ * entry in each block-row.
+ *
+ * @param exec  Reference executor.
+ * @param engine  Random number engine to use, such as std::ranlux48.
+ * @param nbrows  The number of block-rows in the generated matrix.
+ * @param nbcols  The number of block-columns in the generated matrix.
+ * @param mat_blk_sz  Block size of the generated matrix.
+ * @param diag_dominant  If true, a row-diagonal-dominant Fbcsr matrix is
+ *                       generated.
+ * @param unsort  If true, the blocks of the generated matrix within each
+ *                block-row are ordered randomly. Otherwise, blocks in each row
+ *                are ordered by block-column index.
+ */
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
     std::shared_ptr<const ReferenceExecutor> ref, RandEngine engine,
