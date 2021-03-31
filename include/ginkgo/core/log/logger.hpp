@@ -53,7 +53,9 @@ template <typename ValueType>
 class array;
 class Executor;
 class LinOp;
+class BatchLinOp;
 class LinOpFactory;
+class BatchLinOpFactory;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
@@ -349,6 +351,79 @@ public:                                                              \
                               const LinOp* output)
 
     /**
+     * BatchLinOp's apply started event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(19, batch_linop_apply_started,
+                              const BatchLinOp* A, const BatchLinOp* b,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's apply completed event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(20, batch_linop_apply_completed,
+                              const BatchLinOp* A, const BatchLinOp* b,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply started event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(21, batch_linop_advanced_apply_started,
+                              const BatchLinOp* A, const BatchLinOp* alpha,
+                              const BatchLinOp* b, const BatchLinOp* beta,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp's advanced apply completed event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, batch_linop_advanced_apply_completed,
+                              const BatchLinOp* A, const BatchLinOp* alpha,
+                              const BatchLinOp* b, const BatchLinOp* beta,
+                              const BatchLinOp* x)
+
+    /**
+     * BatchLinOp Factory's generate started event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, batch_linop_factory_generate_started,
+                              const BatchLinOpFactory* factory,
+                              const BatchLinOp* input)
+
+    /**
+     * BatchLinOp Factory's generate completed event.
+     *
+     * @param factory  the factory used
+     * @param input  the BatchLinOp object used as input for the generation
+     * (usually a system matrix)
+     * @param output  the generated BatchLinOp object
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, batch_linop_factory_generate_completed,
+                              const BatchLinOpFactory* factory,
+                              const BatchLinOp* input, const BatchLinOp* output)
+
+    /**
      * stop::Criterion's check started event.
      *
      * @param criterion  the criterion used
@@ -359,7 +434,7 @@ public:                                                              \
      * @param stopping_id  the id of the stopping criterion
      * @param set_finalized  whether this finalizes the iteration
      */
-    GKO_LOGGER_REGISTER_EVENT(19, criterion_check_started,
+    GKO_LOGGER_REGISTER_EVENT(25, criterion_check_started,
                               const stop::Criterion* criterion,
                               const size_type& it, const LinOp* r,
                               const LinOp* tau, const LinOp* x,
@@ -387,7 +462,7 @@ public:                                                              \
      * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(
-        20, criterion_check_completed, const stop::Criterion* criterion,
+        26, criterion_check_completed, const stop::Criterion* criterion,
         const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* x,
         const uint8& stopping_id, const bool& set_finalized,
         const array<stopping_status>* status, const bool& one_changed,
@@ -435,7 +510,7 @@ protected:
      * deprecated. Please use the one with the additional implicit_tau_sq
      * parameter as below.
      */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
+    GKO_LOGGER_REGISTER_EVENT(27, iteration_complete, const LinOp* solver,
                               const size_type& it, const LinOp* r,
                               const LinOp* x = nullptr,
                               const LinOp* tau = nullptr)
