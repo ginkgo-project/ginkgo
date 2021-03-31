@@ -119,8 +119,7 @@ void add_diagonal_blocks(std::shared_ptr<const CudaExecutor> exec,
     auto total_additions =
         exec->copy_val_to_host(cuda_row_ptrs_add + row_ptrs_size - 1);
     const auto new_num_blocks =
-        static_cast<IndexType>(total_additions) +
-        blockutils::get_num_blocks(bs * bs, mtx->get_num_stored_elements());
+        static_cast<IndexType>(total_additions) + mtx->get_num_stored_blocks();
 
 
     Array<ValueType> new_values{exec, new_num_blocks * bs * bs};
