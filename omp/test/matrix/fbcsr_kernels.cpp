@@ -67,7 +67,7 @@ protected:
     using ComplexVec = gko::matrix::Dense<std::complex<real_type>>;
     using ComplexMtx = gko::matrix::Fbcsr<std::complex<real_type>>;
 
-    Fbcsr() : num_brows{232}, num_bcols{131}, blk_sz{3}, rand_engine(42) {}
+    Fbcsr() : num_brows{112}, num_bcols{31}, blk_sz{3}, rand_engine(42) {}
 
     void SetUp()
     {
@@ -215,7 +215,6 @@ TEST_F(Fbcsr, SortSortedMatrixIsEquivalentToRef)
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
 
-    // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
 }
 
@@ -227,7 +226,6 @@ TEST_F(Fbcsr, SortUnsortedMatrixIsEquivalentToRef)
     uns_mtx.ref->sort_by_column_index();
     uns_mtx.omp->sort_by_column_index();
 
-    // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.omp, 0);
 }
 
