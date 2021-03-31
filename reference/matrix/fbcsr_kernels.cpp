@@ -456,6 +456,8 @@ void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
         sort_by_column_index_impl<3>(to_sort);
     } else if (bs == 4) {
         sort_by_column_index_impl<4>(to_sort);
+    } else if (bs == 7) {
+        sort_by_column_index_impl<7>(to_sort);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
