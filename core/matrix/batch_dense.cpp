@@ -110,7 +110,7 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
     this->get_executor()->run(batch_dense::make_simple_apply(
         this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
@@ -118,8 +118,10 @@ void BatchDense<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                       const LinOp *beta, LinOp *x) const
+void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                       const BatchLinOp *b,
+                                       const BatchLinOp *beta,
+                                       BatchLinOp *x) const
 {
     this->get_executor()->run(batch_dense::make_apply(
         as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
@@ -128,7 +130,7 @@ void BatchDense<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::scale_impl(const LinOp *alpha)
+void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
@@ -146,7 +148,8 @@ void BatchDense<ValueType>::scale_impl(const LinOp *alpha)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
+void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
+                                            const BatchLinOp *b)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     auto batch_b = as<BatchDense<ValueType>>(b);
@@ -177,8 +180,8 @@ inline const std::vector<dim<2>> get_col_sizes(const std::vector<dim<2>> &sizes)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::compute_dot_impl(const LinOp *b,
-                                             LinOp *result) const
+void BatchDense<ValueType>::compute_dot_impl(const BatchLinOp *b,
+                                             BatchLinOp *result) const
 {
     auto batch_result = as<BatchDense<ValueType>>(result);
     auto batch_b = as<BatchDense<ValueType>>(b);
@@ -191,7 +194,7 @@ void BatchDense<ValueType>::compute_dot_impl(const LinOp *b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::compute_norm2_impl(LinOp *result) const
+void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
 {
     using NormVector = BatchDense<remove_complex<ValueType>>;
     auto batch_result = as<NormVector>(result);
@@ -311,7 +314,7 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
 {
-    std::unique_ptr<const LinOp> op{};
+    std::unique_ptr<const BatchLinOp> op{};
     const MatrixType *tmp{};
     if (mtx->get_executor()->get_master() != mtx->get_executor()) {
         op = mtx->clone(mtx->get_executor()->get_master());
@@ -354,7 +357,7 @@ void BatchDense<ValueType>::write(std::vector<mat_data32> &data) const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchDense<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
     auto trans_cpy =
@@ -367,7 +370,7 @@ std::unique_ptr<LinOp> BatchDense<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchDense<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchDense<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
     auto trans_cpy =
