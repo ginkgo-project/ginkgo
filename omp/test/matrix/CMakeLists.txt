@@ -1,5 +1,6 @@
 ginkgo_create_test(coo_kernels)
 ginkgo_create_test(csr_kernels)
+ginkgo_create_test(fbcsr_kernels)
 ginkgo_create_test(dense_kernels)
 ginkgo_create_test(diagonal_kernels)
 ginkgo_create_test(ell_kernels)
