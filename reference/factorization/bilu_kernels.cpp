@@ -170,14 +170,19 @@ void compute_bilu(const std::shared_ptr<const ReferenceExecutor> exec,
 {
     const int bs = sysmat->get_block_size();
 
-    if (bs == 2) compute_bilu_impl<ValueType, IndexType, 2>(exec, sysmat);
-    if (bs == 3)
+    if (bs == 2) {
+        compute_bilu_impl<ValueType, IndexType, 2>(exec, sysmat);
+    }
+    if (bs == 3) {
         compute_bilu_impl<ValueType, IndexType, 3>(exec, sysmat);
-    else if (bs == 4)
+    } else if (bs == 4) {
         compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat);
-    else
+    } else if (bs == 7) {
+        compute_bilu_impl<ValueType, IndexType, 4>(exec, sysmat);
+    } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            " block size = " + std::to_string(bs));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

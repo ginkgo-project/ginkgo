@@ -30,8 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/block_factorization_kernels.hpp"
-//#include "core/factorization/par_bilu_kernels.hpp"
+#include "core/factorization/par_bilu_kernels.hpp"
 
 
 #include <algorithm>
@@ -52,9 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/factorization/factorization_kernels.hpp"
+#include "core/factorization/bilu_kernels.hpp"
+#include "core/factorization/block_factorization_kernels.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
-#include "core/test/utils/unsort_matrix.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
 #include "reference/test/factorization/bilu_sample.hpp"
@@ -70,22 +69,19 @@ protected:
     using index_type = gko::int32;
     using Fbcsr = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Bds = gko::testing::BlockDiagSample<value_type, index_type>;
+    using BILUSample = gko::testing::Bilu0Sample<value_type, index_type>;
 
     std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::unique_ptr<const Fbcsr> cyl2d_ref;
-    // std::unique_ptr<const Fbcsr> cyl2d_cuda;
     std::unique_ptr<const Fbcsr> rand_ref;
-    std::unique_ptr<const Fbcsr> rand_unsrt_ref;
-    const value_type tol;
+    const value_type tol = std::numeric_limits<real_type>::epsilon();
 
     ParBilu()
         : rand_engine(18),
           ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref)),
-          tol{std::numeric_limits<value_type>::epsilon()}
+          cuda(gko::CudaExecutor::create(0, ref))
     {}
 
     void SetUp() override
@@ -97,209 +93,115 @@ protected:
             FAIL() << "Could not find the file \"" << file_name
                    << "\", which is required for this test.\n";
         }
-        const int block_size = 4;
-        auto ref_temp = gko::read<Fbcsr>(input_file, ref, block_size);
+        auto ref_temp = gko::read<Fbcsr>(input_file, ref, 4);
         input_file.close();
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_blocks(
             ref, gko::lend(ref_temp), false);
         cyl2d_ref = gko::give(ref_temp);
 
-        const index_type rand_dim = 200;
-        std::unique_ptr<Csr> rand_csr_ref =
-            gko::test::generate_random_matrix<Csr>(
-                rand_dim, rand_dim,
-                std::uniform_int_distribution<index_type>(0, rand_dim - 1),
-                std::normal_distribution<real_type>(0.0, 1.0),
-                std::ranlux48(47), ref);
-        gko::kernels::reference::factorization::add_diagonal_elements(
-            ref, gko::lend(rand_csr_ref), false);
-        auto rand_ref_temp = gko::test::generate_fbcsr_from_csr(
-            ref, rand_csr_ref.get(), 3, false, std::ranlux48(43));
-        rand_ref = gko::give(rand_ref_temp);
-
-        auto rand_unsrt_csr_ref = Csr::create(ref);
-        rand_unsrt_csr_ref->copy_from(rand_csr_ref.get());
-        if (rand_unsrt_csr_ref->is_sorted_by_column_index()) {
-            gko::test::unsort_matrix(rand_unsrt_csr_ref.get(),
-                                     std::ranlux48(43));
-        }
-        auto rand_unsrt_ref_temp = gko::test::generate_fbcsr_from_csr(
-            ref, rand_unsrt_csr_ref.get(), 3, false, std::ranlux48(43));
-        rand_unsrt_ref = gko::give(rand_unsrt_ref_temp);
+        rand_ref =
+            gko::test::generate_random_square_fbcsr<value_type, index_type>(
+                ref, std::ranlux48(43), 150, 3, true, false);
     }
 
-    void test_initializeBLU(const Fbcsr *const a_ref)
+    /*
+     * Initialize L and U factor matrices
+     */
+    void initialize_bilu(const Fbcsr *const ref_mat,
+                         std::shared_ptr<Fbcsr> *const l_factor,
+                         std::shared_ptr<Fbcsr> *const u_factor)
     {
-        auto a_cuda = Fbcsr::create(cuda);
-        a_cuda->copy_from(gko::lend(a_ref));
-
-        const int bs = a_ref->get_block_size();
-        const gko::size_type num_row_ptrs = a_ref->get_num_block_rows() + 1;
-        gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> l_row_ptrs_cuda{cuda, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_cuda{cuda, num_row_ptrs};
-
+        const auto exec = ref;
+        const gko::size_type num_brows = ref_mat->get_num_block_rows();
+        const int bs = ref_mat->get_block_size();
+        gko::Array<index_type> l_row_ptrs{exec, num_brows + 1};
+        gko::Array<index_type> u_row_ptrs{exec, num_brows + 1};
         gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
-            ref, gko::lend(a_ref), l_row_ptrs_ref.get_data(),
-            u_row_ptrs_ref.get_data());
-
-        l_row_ptrs_cuda = l_row_ptrs_ref;
-        u_row_ptrs_cuda = u_row_ptrs_ref;
-
-        const index_type l_nnz =
-            l_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
-        const index_type u_nnz =
-            u_row_ptrs_ref.get_const_data()[num_row_ptrs - 1];
-
-        auto test_L =
-            Fbcsr::create(cuda, a_cuda->get_size(), l_nnz * bs * bs, bs);
-        auto ref_L = Fbcsr::create(ref, a_ref->get_size(), l_nnz * bs * bs, bs);
-        auto test_U =
-            Fbcsr::create(cuda, a_cuda->get_size(), u_nnz * bs * bs, bs);
-        auto ref_U = Fbcsr::create(ref, a_ref->get_size(), u_nnz * bs * bs, bs);
-
-        ref->copy(num_row_ptrs, l_row_ptrs_ref.get_const_data(),
-                  ref_L->get_row_ptrs());
-        ref->copy(num_row_ptrs, u_row_ptrs_ref.get_const_data(),
-                  ref_U->get_row_ptrs());
-        cuda->copy(num_row_ptrs, l_row_ptrs_cuda.get_const_data(),
-                   test_L->get_row_ptrs());
-        cuda->copy(num_row_ptrs, u_row_ptrs_cuda.get_const_data(),
-                   test_U->get_row_ptrs());
-
+            exec, ref_mat, l_row_ptrs.get_data(), u_row_ptrs.get_data());
+        const auto l_nbnz = l_row_ptrs.get_data()[num_brows];
+        const auto u_nbnz = u_row_ptrs.get_data()[num_brows];
+        gko::Array<index_type> l_col_idxs(exec, l_nbnz);
+        gko::Array<value_type> l_vals(exec, l_nbnz * bs * bs);
+        gko::Array<index_type> u_col_idxs(exec, u_nbnz);
+        gko::Array<value_type> u_vals(exec, u_nbnz * bs * bs);
+        *l_factor =
+            Fbcsr::create(exec, ref_mat->get_size(), bs, std::move(l_vals),
+                          std::move(l_col_idxs), std::move(l_row_ptrs));
+        *u_factor =
+            Fbcsr::create(exec, ref_mat->get_size(), bs, std::move(u_vals),
+                          std::move(u_col_idxs), std::move(u_row_ptrs));
         gko::kernels::reference::factorization::initialize_BLU(
-            ref, a_ref, ref_L.get(), ref_U.get());
-        gko::kernels::cuda::factorization::initialize_BLU(
-            cuda, a_cuda.get(), test_L.get(), test_U.get());
+            ref, ref_mat, l_factor->get(), u_factor->get());
+    }
 
-        GKO_ASSERT_MTX_EQ_SPARSITY(test_L, ref_L);
-        GKO_ASSERT_MTX_EQ_SPARSITY(test_U, ref_U);
-        GKO_ASSERT_MTX_NEAR(test_L, ref_L, tol);
-        GKO_ASSERT_MTX_NEAR(test_U, ref_U, tol);
+    template <typename ToType, typename FromType>
+    static std::unique_ptr<ToType> static_unique_ptr_cast(
+        std::unique_ptr<FromType> &&from)
+    {
+        return std::unique_ptr<ToType>{static_cast<ToType *>(from.release())};
+    }
+
+
+    void compute_bilu(const Fbcsr *const mat_ref, const int iterations,
+                      std::shared_ptr<Fbcsr> *const l_ref,
+                      std::shared_ptr<Fbcsr> *const u_ref,
+                      std::shared_ptr<Fbcsr> *const l_cuda,
+                      std::shared_ptr<Fbcsr> *const u_cuda)
+    {
+        auto mat_cuda = Fbcsr::create(cuda);
+        mat_ref->convert_to(gko::lend(mat_cuda));
+        std::shared_ptr<Fbcsr> l_init_ref, u_init_ref;
+        initialize_bilu(mat_ref, &l_init_ref, &u_init_ref);
+        *l_cuda = Fbcsr::create(cuda);
+        l_init_ref->convert_to(l_cuda->get());
+        auto u_transpose_ref = gko::as<Fbcsr>(u_init_ref->transpose());
+        auto u_transpose_cuda = Fbcsr::create(cuda);
+        u_transpose_cuda->copy_from(gko::lend(u_transpose_ref));
+
+        auto mat_ref_copy = Fbcsr::create(ref);
+        mat_ref_copy->copy_from(mat_ref);
+        gko::kernels::reference::bilu_factorization::compute_bilu(
+            ref, gko::lend(mat_ref_copy));
+        initialize_bilu(mat_ref_copy.get(), l_ref, u_ref);
+
+        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors(
+            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
+            gko::lend(u_transpose_cuda));
+        auto u_lin_op_cuda = u_transpose_cuda->transpose();
+        *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
     }
 };
 
 
-TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedStartingBlockMissing)
+TEST_F(ParBilu, CudaKernelBLUSortedSampleBS3)
 {
-    Bds bds(ref);
-    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_1();
-    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
-    answer_cuda->copy_from(gko::lend(answer_ref));
-    auto mtxstart_ref = bds.gen_test_1();
-    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
-    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
+    BILUSample bilusample(ref);
+    auto refmat = bilusample.generate_fbcsr();
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 1;
 
-    gko::kernels::cuda::factorization::add_diagonal_blocks(
-        cuda, gko::lend(mtxstart_cuda), true);
+    compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    ASSERT_TRUE(mtxstart_ref->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
-    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, tol);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, tol);
 }
 
-TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedEndingBlockMissing)
+TEST_F(ParBilu, CudaKernelBLUSortedRandomBS3)
 {
-    Bds bds(ref);
-    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_lastblock();
-    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
-    answer_cuda->copy_from(gko::lend(answer_ref));
-    auto mtxstart_ref = bds.gen_test_lastblock();
-    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
-    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
-    ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());
+    auto refmat = Fbcsr::create(ref);
+    refmat->copy_from(rand_ref.get());
+    std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
+    const int iterations = 10;
 
-    gko::kernels::cuda::factorization::add_diagonal_blocks(
-        cuda, gko::lend(mtxstart_cuda), true);
+    compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    ASSERT_TRUE(mtxstart_ref->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
-    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
-}
-
-TEST_F(ParBilu, CudaKernelAddDiagonalBlocksSortedTwoBlocksMissing)
-{
-    Bds bds(ref);
-    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_2();
-    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
-    answer_cuda->copy_from(gko::lend(answer_ref));
-    auto mtxstart_ref = bds.gen_test_2();
-    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
-    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
-    ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());
-
-    gko::kernels::cuda::factorization::add_diagonal_blocks(
-        cuda, gko::lend(mtxstart_cuda), true);
-
-    ASSERT_TRUE(mtxstart_ref->is_sorted_by_column_index());
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
-    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
-}
-
-TEST_F(ParBilu, CudaKernelAddDiagonalBlocksUnsortedTwoBlocksMissing)
-{
-    Bds bds(ref);
-    std::unique_ptr<const Fbcsr> answer_ref = bds.gen_ref_2_unsorted();
-    std::unique_ptr<Fbcsr> answer_cuda = Fbcsr::create(cuda);
-    answer_cuda->copy_from(gko::lend(answer_ref));
-    auto mtxstart_ref = bds.gen_test_2_unsorted();
-    std::unique_ptr<Fbcsr> mtxstart_cuda = Fbcsr::create(cuda);
-    mtxstart_cuda->copy_from(gko::lend(mtxstart_ref));
-    ASSERT_EQ(mtxstart_ref->get_block_size(), mtxstart_cuda->get_block_size());
-
-    gko::kernels::cuda::factorization::add_diagonal_blocks(
-        cuda, gko::lend(mtxstart_cuda), true);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtxstart_cuda, answer_cuda);
-    GKO_ASSERT_MTX_NEAR(mtxstart_cuda, answer_cuda, 0.);
-}
-
-
-TEST_F(ParBilu, CudaKernelInitializeRowPtrsBLUUnsorted)
-{
-    auto a_cuda = Fbcsr::create(cuda);
-    a_cuda->copy_from(gko::lend(rand_unsrt_ref));
-    const gko::size_type nbrowsp1 = rand_unsrt_ref->get_num_block_rows() + 1;
-    gko::Array<index_type> l_row_ptrs(ref, nbrowsp1);
-    gko::Array<index_type> u_row_ptrs(ref, nbrowsp1);
-    gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
-        ref, rand_unsrt_ref.get(), l_row_ptrs.get_data(),
-        u_row_ptrs.get_data());
-
-    gko::Array<index_type> d_test_l_row_ptrs(cuda, nbrowsp1);
-    gko::Array<index_type> d_test_u_row_ptrs(cuda, nbrowsp1);
-    gko::kernels::cuda::factorization::initialize_row_ptrs_BLU(
-        cuda, a_cuda.get(), d_test_l_row_ptrs.get_data(),
-        d_test_u_row_ptrs.get_data());
-
-    gko::Array<index_type> test_l_row_ptrs(ref, d_test_l_row_ptrs);
-    gko::Array<index_type> test_u_row_ptrs(ref, d_test_u_row_ptrs);
-    for (index_type i = 0; i < nbrowsp1; i++) {
-        ASSERT_EQ(l_row_ptrs.get_const_data()[i],
-                  test_l_row_ptrs.get_const_data()[i]);
-        ASSERT_EQ(u_row_ptrs.get_const_data()[i],
-                  test_u_row_ptrs.get_const_data()[i]);
-    }
-}
-
-
-TEST_F(ParBilu, CudaKernelInitializeBLUSorted4)
-{
-    EXPECT_TRUE(cyl2d_ref->is_sorted_by_column_index());
-    test_initializeBLU(cyl2d_ref.get());
-}
-
-
-TEST_F(ParBilu, CudaKernelInitializeBLUSortedRandom3)
-{
-    // printf(" Block-col idxs of block-row 13:");
-    // for (int i = rand_ref->get_const_row_ptrs()[13];
-    //      i < rand_ref->get_const_row_ptrs()[14]; i++)
-    //     printf(" %d, ", rand_ref->get_const_col_idxs()[i]);
-    // printf("\n");
-    test_initializeBLU(rand_ref.get());
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-6);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-6);
 }
 
 

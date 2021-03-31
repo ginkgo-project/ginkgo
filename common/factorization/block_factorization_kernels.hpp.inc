@@ -40,7 +40,7 @@ namespace kernel {
  * Each subwarp works on one row.
  * \tparam matBlkSz  Fixed size of the dense blocks the matrix is made up of.
  */
-template <int subwarpSize, int matBlkSz, typename ValueType, typename IndexType>
+template <int matBlkSz, int subwarpSize, typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void add_missing_diagonal_blocks(
         const IndexType num_b_rows,
@@ -223,7 +223,7 @@ __device__ BRowPos<IndexType> getBRowPos(
 }  // namespace detail
 
 
-template <int subwarpSize, int matBlkSz, typename ValueType, typename IndexType>
+template <int matBlkSz, int subwarpSize, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void initialize_BLU(
     const size_type num_b_rows, const IndexType *const __restrict__ row_ptrs,
     const IndexType *const __restrict__ col_idxs,
