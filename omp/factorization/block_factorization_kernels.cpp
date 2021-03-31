@@ -276,7 +276,7 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    using Dbv = range<accessor::col_major<ValueType, 3>>;
+    using Dbv = range<accessor::block_col_major<ValueType, 3>>;
 
     const int bs = system_matrix->get_block_size();
     const auto row_ptrs = system_matrix->get_const_row_ptrs();

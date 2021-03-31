@@ -90,7 +90,7 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
     IndexType *const row_ptrs = mtx->get_row_ptrs();
     const int bs = mtx->get_block_size();
     const size_type nbnz = mtx->get_num_stored_blocks();
-    range<accessor::col_major<const ValueType, 3>> values(
+    range<accessor::block_col_major<const ValueType, 3>> values(
         mtx->get_const_values(), dim<3>(nbnz, bs, bs));
     const auto num_brows = static_cast<IndexType>(mtx->get_num_block_rows());
     const auto num_bcols = static_cast<IndexType>(mtx->get_num_block_cols());
@@ -106,7 +106,7 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
     const auto new_nbnz = old_nbnz + missing_blocks;
     Array<ValueType> new_values_array{exec, new_nbnz * bs * bs};
     Array<IndexType> new_col_idxs_array{exec, new_nbnz};
-    range<accessor::col_major<ValueType, 3>> new_values(
+    range<accessor::block_col_major<ValueType, 3>> new_values(
         new_values_array.get_data(), dim<3>(new_nbnz, bs, bs));
     auto new_col_idxs = new_col_idxs_array.get_data();
     IndexType added_blocks{};
@@ -210,8 +210,8 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    using Dbv = range<accessor::col_major<ValueType, 3>>;
-    using CDbv = range<accessor::col_major<const ValueType, 3>>;
+    using Dbv = range<accessor::block_col_major<ValueType, 3>>;
+    using CDbv = range<accessor::block_col_major<const ValueType, 3>>;
 
     const int bs = system_matrix->get_block_size();
     const auto nbnz = system_matrix->get_num_stored_blocks();
