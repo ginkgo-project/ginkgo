@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -101,32 +102,36 @@ void LowerTrs<ValueType, IndexType>::generate()
 template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Vector = matrix::Dense<ValueType>;
-    const auto exec = this->get_executor();
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            using Vector = matrix::Dense<ValueType>;
+            const auto exec = this->get_executor();
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
-
-    // This kernel checks if a transpose is needed for the multiple rhs case.
-    // Currently only the algorithm for CUDA version <=9.1 needs this
-    // transposition due to the limitation in the cusparse algorithm. The other
-    // executors (omp and reference) do not use the transpose (trans_x and
-    // trans_b) and hence are passed in empty pointers.
-    bool do_transpose = false;
-    std::shared_ptr<Vector> trans_b;
-    std::shared_ptr<Vector> trans_x;
-    this->get_executor()->run(
-        lower_trs::make_should_perform_transpose(do_transpose));
-    if (do_transpose) {
-        trans_b = Vector::create(exec, gko::transpose(dense_b->get_size()));
-        trans_x = Vector::create(exec, gko::transpose(dense_x->get_size()));
-    } else {
-        trans_b = Vector::create(exec);
-        trans_x = Vector::create(exec);
-    }
-    exec->run(lower_trs::make_solve(
-        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-        gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
+            // This kernel checks if a transpose is needed for the multiple rhs
+            // case. Currently only the algorithm for CUDA version <=9.1 needs
+            // this transposition due to the limitation in the cusparse
+            // algorithm. The other executors (omp and reference) do not use the
+            // transpose (trans_x and trans_b) and hence are passed in empty
+            // pointers.
+            bool do_transpose = false;
+            std::shared_ptr<Vector> trans_b;
+            std::shared_ptr<Vector> trans_x;
+            this->get_executor()->run(
+                lower_trs::make_should_perform_transpose(do_transpose));
+            if (do_transpose) {
+                trans_b =
+                    Vector::create(exec, gko::transpose(dense_b->get_size()));
+                trans_x =
+                    Vector::create(exec, gko::transpose(dense_x->get_size()));
+            } else {
+                trans_b = Vector::create(exec);
+                trans_x = Vector::create(exec);
+            }
+            exec->run(lower_trs::make_solve(
+                gko::lend(system_matrix_), gko::lend(this->solve_struct_),
+                gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -136,12 +141,14 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                                 const LinOp *beta,
                                                 LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, gko::lend(x_clone));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

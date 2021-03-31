@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -101,10 +102,14 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    auto ell_mtx = this->get_ell();
-    auto coo_mtx = this->get_coo();
-    ell_mtx->apply(b, x);
-    coo_mtx->apply2(b, x);
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            auto ell_mtx = this->get_ell();
+            auto coo_mtx = this->get_coo();
+            ell_mtx->apply(dense_b, dense_x);
+            coo_mtx->apply2(dense_b, dense_x);
+        },
+        b, x);
 }
 
 
@@ -113,10 +118,14 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                               const LinOp *b, const LinOp *beta,
                                               LinOp *x) const
 {
-    auto ell_mtx = this->get_ell();
-    auto coo_mtx = this->get_coo();
-    ell_mtx->apply(alpha, b, beta, x);
-    coo_mtx->apply2(alpha, b, x);
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto ell_mtx = this->get_ell();
+            auto coo_mtx = this->get_coo();
+            ell_mtx->apply(dense_alpha, dense_b, dense_beta, dense_x);
+            coo_mtx->apply2(dense_alpha, dense_b, dense_x);
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -127,7 +136,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
     this->ell_->convert_to(result->ell_.get());
     this->coo_->convert_to(result->coo_.get());
     // TODO set strategy correctly
-    // There is no way to correctly clone the strategy like in Csr::convert_to
+    // There is no way to correctly clone the strategy like in
+    // Csr::convert_to
     result->set_size(this->get_size());
 }
 

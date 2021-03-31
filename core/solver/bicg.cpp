@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -110,6 +111,18 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
 template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                       matrix::Dense<ValueType> *dense_x) const
+{
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     constexpr uint8 RelativeStoppingId{1};
@@ -119,8 +132,6 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
     auto r2 = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
@@ -179,8 +190,9 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     r2->copy_from(r.get());
     // r2 = r
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
 
     int iter = -1;
 
@@ -234,12 +246,14 @@ template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                  const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

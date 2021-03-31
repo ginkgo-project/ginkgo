@@ -128,6 +128,67 @@ TYPED_TEST(Composition, AppliesSingleToVector)
 }
 
 
+TYPED_TEST(Composition, AppliesSingleToMixedVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using Mtx = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using value_type = typename Mtx::value_type;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({-13.0, 79.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Composition, AppliesSingleToComplexVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using value_type = gko::to_complex<TypeParam>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Composition, AppliesSingleToMixedComplexVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using value_type = gko::next_precision<gko::to_complex<TypeParam>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto x = gko::initialize<Mtx>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
 TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
 {
     /*
@@ -144,6 +205,75 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
     cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}), r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using value_type = gko::next_precision<TypeParam>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using Dense = typename TestFixture::Mtx;
+    using DenseComplex = gko::to_complex<Dense>;
+    using value_type = typename DenseComplex::value_type;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto alpha = gko::initialize<Dense>({3.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto x = gko::initialize<DenseComplex>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
+                        r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedComplexVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using value_type = typename MixedDenseComplex::value_type;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto alpha = gko::initialize<MixedDense>({3.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res,
+                        l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 

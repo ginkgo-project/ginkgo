@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -67,12 +68,8 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                                as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-               dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+        dynamic_cast<Csr<ValueType, int32> *>(x)) {
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
     } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
@@ -80,7 +77,12 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
-        GKO_NOT_IMPLEMENTED;
+        precision_dispatch_real_complex<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(
+                    diagonal::make_apply_to_dense(this, dense_b, dense_x));
+            },
+            b, x);
     }
 }
 
@@ -90,12 +92,8 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        exec->run(diagonal::make_right_apply_to_dense(
-            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-               dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+        dynamic_cast<Csr<ValueType, int32> *>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
     } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
@@ -103,7 +101,14 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
-        GKO_NOT_IMPLEMENTED;
+        // no real-to-complex conversion, as this would require doubling the
+        // diagonal entries for the complex-to-real columns
+        precision_dispatch<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(diagonal::make_right_apply_to_dense(this, dense_b,
+                                                              dense_x));
+            },
+            b, x);
     }
 }
 
@@ -112,14 +117,14 @@ template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                      const LinOp *beta, LinOp *x) const
 {
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        auto dense_x = as<Dense<ValueType>>(x);
-        dense_x->scale(beta);
-        dense_x->add_scaled(alpha, b);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

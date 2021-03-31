@@ -174,6 +174,20 @@ TYPED_TEST(SparsityCsr, AppliesToDenseVector)
 }
 
 
+TYPED_TEST(SparsityCsr, AppliesToMixedDenseVector)
+{
+    using T = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<T>;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T{7.0});
+    EXPECT_EQ(y->at(1), T{1.0});
+}
+
+
 TYPED_TEST(SparsityCsr, AppliesToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
@@ -207,6 +221,22 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
 }
 
 
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedDenseVector)
+{
+    using T = gko::next_precision<typename TestFixture::value_type>;
+    using Vec = gko::matrix::Dense<T>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T{-5.0});
+    EXPECT_EQ(y->at(1), T{3.0});
+}
+
+
 TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
@@ -224,6 +254,76 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseMatrix)
     EXPECT_EQ(y->at(1, 0), T{3.0});
     EXPECT_EQ(y->at(0, 1), T{-3.0});
     EXPECT_EQ(y->at(1, 1), T{-1.5});
+}
+
+
+TYPED_TEST(SparsityCsr, AppliesToComplex)
+{
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using T = gko::to_complex<typename TestFixture::value_type>;
+    auto x = gko::initialize<Vec>({T{2.0, 4.0}, T{1.0, 2.0}, T{4.0, 8.0}},
+                                  this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T(7.0, 14.0));
+    EXPECT_EQ(y->at(1), T(1.0, 2.0));
+}
+
+
+TYPED_TEST(SparsityCsr, AppliesToMixedComplex)
+{
+    using T =
+        gko::next_precision<gko::to_complex<typename TestFixture::value_type>>;
+    using Vec = gko::matrix::Dense<T>;
+    auto x = gko::initialize<Vec>({T{2.0, 4.0}, T{1.0, 2.0}, T{4.0, 8.0}},
+                                  this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T(7.0, 14.0));
+    EXPECT_EQ(y->at(1), T(1.0, 2.0));
+}
+
+
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToComplex)
+{
+    using Vec = typename TestFixture::Vec;
+    using ComplexVec = gko::to_complex<Vec>;
+    using T = gko::to_complex<typename TestFixture::value_type>;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<ComplexVec>(
+        {T{2.0, 4.0}, T{1.0, 2.0}, T{4.0, 8.0}}, this->exec);
+    auto y =
+        gko::initialize<ComplexVec>({T{1.0, 2.0}, T{2.0, 4.0}}, this->exec);
+
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T(-5.0, -10.0));
+    EXPECT_EQ(y->at(1), T(3.0, 6.0));
+}
+
+
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedComplex)
+{
+    using Vec = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using ComplexVec = gko::to_complex<Vec>;
+    using T = typename ComplexVec::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<ComplexVec>(
+        {T{2.0, 4.0}, T{1.0, 2.0}, T{4.0, 8.0}}, this->exec);
+    auto y =
+        gko::initialize<ComplexVec>({T{1.0, 2.0}, T{2.0, 4.0}}, this->exec);
+
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0), T(-5.0, -10.0));
+    EXPECT_EQ(y->at(1), T(3.0, 6.0));
 }
 
 

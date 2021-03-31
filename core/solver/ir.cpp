@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/ir.hpp>
 
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -81,6 +82,18 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                     matrix::Dense<ValueType> *dense_x) const
+{
     using Vector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
 
@@ -88,8 +101,6 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
     auto inner_solution = Vector::create_with_config_of(dense_b);
 
@@ -102,8 +113,9 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                           lend(residual));
 
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, lend(residual));
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        lend(residual));
 
     int iter = -1;
     while (true) {
@@ -152,12 +164,14 @@ template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

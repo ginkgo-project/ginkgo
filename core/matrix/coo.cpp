@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -77,17 +78,11 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(coo::make_spmv(this, as<Dense<ValueType>>(b),
-                                                 as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        this->apply(dense_b->create_real_view().get(),
-                    dense_x->create_real_view().get());
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(coo::make_spmv(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -95,38 +90,23 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(coo::make_advanced_spmv(
-            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-            as<Dense<ValueType>>(beta), as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        auto dense_alpha = as<RealDense>(alpha);
-        auto dense_beta = as<RealDense>(beta);
-        this->apply(dense_alpha, dense_b->create_real_view().get(), dense_beta,
-                    dense_x->create_real_view().get());
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(coo::make_advanced_spmv(
+                dense_alpha, this, dense_b, dense_beta, dense_x));
+        },
+        alpha, b, beta, x);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(coo::make_spmv2(this, as<Dense<ValueType>>(b),
-                                                  as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        this->apply2(dense_b->create_real_view().get(),
-                     dense_x->create_real_view().get());
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(coo::make_spmv2(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -134,20 +114,12 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
                                             LinOp *x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
-
-    if (dynamic_cast<const Dense<ValueType> *>(b)) {
-        this->get_executor()->run(coo::make_advanced_spmv2(
-            as<Dense<ValueType>>(alpha), this, as<Dense<ValueType>>(b),
-            as<Dense<ValueType>>(x)));
-    } else {
-        auto dense_b = as<ComplexDense>(b);
-        auto dense_x = as<ComplexDense>(x);
-        auto dense_alpha = as<RealDense>(alpha);
-        this->apply2(dense_alpha, dense_b->create_real_view().get(),
-                     dense_x->create_real_view().get());
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_x) {
+            this->get_executor()->run(
+                coo::make_advanced_spmv2(dense_alpha, this, dense_b, dense_x));
+        },
+        alpha, b, x);
 }
 
 

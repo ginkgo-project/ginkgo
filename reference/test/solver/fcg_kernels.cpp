@@ -126,6 +126,64 @@ TYPED_TEST(Fcg, SolvesStencilSystem)
 }
 
 
+TYPED_TEST(Fcg, SolvesStencilSystemMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemComplex)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemMixedComplex)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
 TYPED_TEST(Fcg, SolvesMultipleStencilSystems)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -156,7 +214,73 @@ TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
+{
+    using Scalar = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 

@@ -116,6 +116,13 @@ template <typename Precision, typename OutputType = Precision>
 using r = typename gko::test::reduction_factor<Precision, OutputType>;
 
 
+template <typename Precision1, typename Precision2>
+constexpr double r_mixed()
+{
+    return std::max<double>(r<Precision1>::value, r<Precision2>::value);
+}
+
+
 template <typename T>
 using I = std::initializer_list<T>;
 

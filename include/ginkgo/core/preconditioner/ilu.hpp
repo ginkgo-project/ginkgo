@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -208,33 +209,44 @@ public:
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        set_cache_to(b);
-        if (!ReverseApply) {
-            l_solver_->apply(b, cache_.intermediate.get());
-            if (u_solver_->apply_uses_initial_guess()) {
-                x->copy_from(cache_.intermediate.get());
-            }
-            u_solver_->apply(cache_.intermediate.get(), x);
-        } else {
-            u_solver_->apply(b, cache_.intermediate.get());
-            if (l_solver_->apply_uses_initial_guess()) {
-                x->copy_from(cache_.intermediate.get());
-            }
-            l_solver_->apply(cache_.intermediate.get(), x);
-        }
+        // take care of real-to-complex apply
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_b, auto dense_x) {
+                this->set_cache_to(dense_b);
+                if (!ReverseApply) {
+                    l_solver_->apply(dense_b, cache_.intermediate.get());
+                    if (u_solver_->apply_uses_initial_guess()) {
+                        dense_x->copy_from(cache_.intermediate.get());
+                    }
+                    u_solver_->apply(cache_.intermediate.get(), dense_x);
+                } else {
+                    u_solver_->apply(dense_b, cache_.intermediate.get());
+                    if (l_solver_->apply_uses_initial_guess()) {
+                        dense_x->copy_from(cache_.intermediate.get());
+                    }
+                    l_solver_->apply(cache_.intermediate.get(), dense_x);
+                }
+            },
+            b, x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        set_cache_to(b);
-        if (!ReverseApply) {
-            l_solver_->apply(b, cache_.intermediate.get());
-            u_solver_->apply(alpha, cache_.intermediate.get(), beta, x);
-        } else {
-            u_solver_->apply(b, cache_.intermediate.get());
-            l_solver_->apply(alpha, cache_.intermediate.get(), beta, x);
-        }
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+                this->set_cache_to(dense_b);
+                if (!ReverseApply) {
+                    l_solver_->apply(dense_b, cache_.intermediate.get());
+                    u_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                                     dense_beta, dense_x);
+                } else {
+                    u_solver_->apply(dense_b, cache_.intermediate.get());
+                    l_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                                     dense_beta, dense_x);
+                }
+            },
+            alpha, b, beta, x);
     }
 
     explicit Ilu(std::shared_ptr<const Executor> exec)

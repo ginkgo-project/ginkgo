@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -188,8 +189,21 @@ struct helper<std::complex<T>> {
 template <typename ValueType>
 void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // Current workaround to get a lambda with a template argument (only the
-    // type of `value` matters, the content does not)
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void CbGmres<ValueType>::apply_dense_impl(
+    const matrix::Dense<ValueType> *dense_b,
+    matrix::Dense<ValueType> *dense_x) const
+{
+    // Current workaround to get a lambda with a template argument (only
+    // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
@@ -207,8 +221,6 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto one_op = initialize<Vector>({one<ValueType>()}, exec);
         auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-        auto dense_b = as<const Vector>(b);
-        auto dense_x = as<Vector>(x);
         auto residual = Vector::create_with_config_of(dense_b);
         /* The dimensions {x, y, z} explained for the krylov_bases:
          * - x: selects the krylov vector (which has krylov_dim + 1 vectors)
@@ -287,8 +299,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         auto stop_criterion = stop_criterion_factory_->generate(
             system_matrix_,
-            std::shared_ptr<const LinOp>(b, [](const LinOp *) {}), x,
-            residual.get());
+            std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
+            dense_x, residual.get());
 
         int total_iter = -1;
         size_type restart_iter = 0;
@@ -493,15 +505,16 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 void CbGmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                    const LinOp *residual_norm_collection,
-                                    LinOp *x) const
+                                    const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(residual_norm_collection);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 #define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>

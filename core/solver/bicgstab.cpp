@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -87,6 +88,19 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Bicgstab<ValueType>::apply_dense_impl(
+    const matrix::Dense<ValueType> *dense_b,
+    matrix::Dense<ValueType> *dense_x) const
+{
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     using AbsVector = matrix::Dense<remove_complex<ValueType>>;
@@ -98,8 +112,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
     auto y = Vector::create_with_config_of(dense_b);
@@ -132,8 +144,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
     rr->copy_from(r.get());
 
     int iter = -1;
@@ -205,18 +218,21 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             beta.get(), gamma.get(), omega.get(), &stop_status));
         swap(prev_rho, rho);
     }
-}  // namespace solver
+}
 
 
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                      const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -88,7 +89,8 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 template <typename SubspaceType>
-void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
+void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
+                             matrix::Dense<SubspaceType> *dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
@@ -101,9 +103,6 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
     auto neg_one_op =
         initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
     auto subspace_neg_one_op = initialize<Vector>({-one<SubspaceType>()}, exec);
-
-    auto dense_b = as<Vector>(b);
-    auto dense_x = as<Vector>(x);
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -272,18 +271,22 @@ void Idr<ValueType>::iterate(const LinOp *b, LinOp *x) const
 template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // If ValueType is complex, the subspace matrix P will be complex anyway.
-    if (!is_complex<ValueType>() && complex_subspace_) {
-        auto dense_b = as<matrix::Dense<ValueType>>(b);
-        auto dense_x = as<matrix::Dense<ValueType>>(x);
-        auto complex_b = dense_b->make_complex();
-        auto complex_x = dense_x->make_complex();
-        this->iterate<to_complex<ValueType>>(complex_b.get(), complex_x.get());
-        complex_x->get_real(
-            dynamic_cast<matrix::Dense<remove_complex<ValueType>> *>(dense_x));
-    } else {
-        this->iterate<ValueType>(b, x);
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            // If ValueType is complex, the subspace matrix P will be complex
+            // anyway.
+            if (!is_complex<ValueType>() && complex_subspace_) {
+                auto complex_b = dense_b->make_complex();
+                auto complex_x = dense_x->make_complex();
+                this->iterate(complex_b.get(), complex_x.get());
+                complex_x->get_real(
+                    dynamic_cast<matrix::Dense<remove_complex<ValueType>> *>(
+                        dense_x));
+            } else {
+                this->iterate(dense_b, dense_x);
+            }
+        },
+        b, x);
 }
 
 
@@ -291,12 +294,14 @@ template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 
