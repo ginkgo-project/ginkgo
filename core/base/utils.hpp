@@ -219,6 +219,20 @@ std::shared_ptr<const Dest> convert_to_with_sorting(
                                                             skip_sorting);
 }
 
+/**
+ * Converts the given arguments into an array of entries of the requested
+ * template type.
+ *
+ * @tparam T  The requested type of entries in the output array.
+ *
+ * @param args  Entities to be filled into an array after casting to type T.
+ */
+template <typename T, typename... Args>
+inline std::array<T, sizeof...(Args)> to_array(Args &&... args)
+{
+    return {static_cast<T>(args)...};
+}
+
 
 }  // namespace gko
 
