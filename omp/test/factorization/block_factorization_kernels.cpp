@@ -66,8 +66,8 @@ TYPED_TEST(BlockFactorizationRowPtrs,
     using Fbcsr = typename TestFixture::Fbcsr;
     const int nbrows = 50, bs = 4;
     std::shared_ptr<const Fbcsr> origmat =
-        gko::test::generate_random_square_fbcsr<value_type, index_type>(
-            this->refexec, std::ranlux48(42), nbrows, bs, false, true);
+        gko::test::generate_random_fbcsr<value_type, index_type>(
+            this->refexec, std::ranlux48(42), nbrows, nbrows, bs, false, true);
     std::vector<index_type> l_row_ptrs(nbrows + 1);
     std::vector<index_type> u_row_ptrs(nbrows + 1);
     std::vector<index_type> ref_l_row_ptrs(nbrows + 1);
@@ -194,8 +194,8 @@ TYPED_TEST(BlockFactorization, KernelInitializeBLUSorted)
     const index_type nbrows = 50;
     const int bs = 3;
     std::unique_ptr<const Fbcsr> matrixx =
-        gko::test::generate_random_square_fbcsr<value_type, index_type>(
-            this->refexec, std::ranlux48(42), nbrows, bs, true, false);
+        gko::test::generate_random_fbcsr<value_type, index_type>(
+            this->refexec, std::ranlux48(42), nbrows, nbrows, bs, true, false);
     gko::Array<index_type> l_row_ptrs(this->refexec, nbrows + 1);
     gko::Array<index_type> u_row_ptrs(this->refexec, nbrows + 1);
     gko::kernels::reference::factorization::initialize_row_ptrs_BLU(
