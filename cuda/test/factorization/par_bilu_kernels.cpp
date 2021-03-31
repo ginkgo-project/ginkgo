@@ -111,41 +111,11 @@ protected:
         return std::unique_ptr<ToType>{static_cast<ToType *>(from.release())};
     }
 
-
     void compute_bilu(const Fbcsr *const mat_ref, const int iterations,
                       std::shared_ptr<Fbcsr> *const l_ref,
                       std::shared_ptr<Fbcsr> *const u_ref,
                       std::shared_ptr<Fbcsr> *const l_cuda,
                       std::shared_ptr<Fbcsr> *const u_cuda)
-    {
-        auto mat_cuda = Fbcsr::create(cuda);
-        mat_ref->convert_to(gko::lend(mat_cuda));
-        std::shared_ptr<Fbcsr> l_init_ref, u_init_ref;
-        gko::test::initialize_bilu(mat_ref, &l_init_ref, &u_init_ref);
-        *l_cuda = Fbcsr::create(cuda);
-        l_init_ref->convert_to(l_cuda->get());
-        auto u_transpose_ref = gko::as<Fbcsr>(u_init_ref->transpose());
-        auto u_transpose_cuda = Fbcsr::create(cuda);
-        u_transpose_cuda->copy_from(gko::lend(u_transpose_ref));
-
-        auto mat_ref_copy = Fbcsr::create(ref);
-        mat_ref_copy->copy_from(mat_ref);
-        gko::kernels::reference::bilu_factorization::compute_bilu(
-            ref, gko::lend(mat_ref_copy));
-        gko::test::initialize_bilu(mat_ref_copy.get(), l_ref, u_ref);
-
-        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors(
-            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
-            gko::lend(u_transpose_cuda));
-        auto u_lin_op_cuda = u_transpose_cuda->transpose();
-        *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
-    }
-
-    void compute_bilu_2(const Fbcsr *const mat_ref, const int iterations,
-                        std::shared_ptr<Fbcsr> *const l_ref,
-                        std::shared_ptr<Fbcsr> *const u_ref,
-                        std::shared_ptr<Fbcsr> *const l_cuda,
-                        std::shared_ptr<Fbcsr> *const u_cuda)
     {
         auto mat_cuda = Fbcsr::create(cuda);
         mat_cuda->copy_from(gko::lend(mat_ref));
@@ -196,29 +166,6 @@ protected:
         auto u_lin_op_cuda = u_transpose_cuda->transpose();
         *u_cuda = static_unique_ptr_cast<Fbcsr>(std::move(u_lin_op_cuda));
     }
-
-    void jacobi_bilu_notrans(const Fbcsr *const mat_ref, const int iterations,
-                             std::shared_ptr<Fbcsr> *const l_ref,
-                             std::shared_ptr<Fbcsr> *const u_ref,
-                             std::shared_ptr<Fbcsr> *const l_cuda,
-                             std::shared_ptr<Fbcsr> *const u_cuda)
-    {
-        auto mat_cuda = Fbcsr::create(cuda);
-        mat_cuda->copy_from(gko::lend(mat_ref));
-        gko::test::initialize_bilu(mat_ref, l_ref, u_ref);
-        *l_cuda = Fbcsr::create(cuda);
-        *u_cuda = Fbcsr::create(cuda);
-        (*l_ref)->convert_to(l_cuda->get());
-        (*u_ref)->convert_to(u_cuda->get());
-
-        gko::kernels::reference::par_bilu_factorization::
-            compute_bilu_factors_jacobi(ref, iterations, mat_ref, l_ref->get(),
-                                        u_ref->get());
-
-        gko::kernels::cuda::par_bilu_factorization::compute_bilu_factors_jacobi(
-            cuda, iterations, gko::lend(mat_cuda), gko::lend(*l_cuda),
-            gko::lend(*u_cuda));
-    }
 };
 
 using SomeTypes =
@@ -237,14 +184,15 @@ TYPED_TEST(ParBilu, CudaKernelBLUSortedSampleBS3)
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 1;
 
-    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
-                         &u_cuda);
+    this->compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                       &u_cuda);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_cuda);
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, this->tol);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, this->tol);
 }
+
 
 TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS4)
 {
@@ -257,8 +205,8 @@ TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS4)
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 8;
 
-    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
-                         &u_cuda);
+    this->compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                       &u_cuda);
 
     const double ttol = 10 * this->tol;
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_cuda);
@@ -266,6 +214,7 @@ TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS4)
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
 }
+
 
 TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS7)
 {
@@ -281,8 +230,8 @@ TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS7)
     std::shared_ptr<Fbcsr> l_ref, u_ref, l_cuda, u_cuda;
     const int iterations = 50;
 
-    this->compute_bilu_2(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
-                         &u_cuda);
+    this->compute_bilu(refmat.get(), iterations, &l_ref, &u_ref, &l_cuda,
+                       &u_cuda);
 
     // For BS 7, initial error in L (reported by the macro) is ~1.0
     const double ttol = 10 * this->tol;
@@ -291,6 +240,7 @@ TYPED_TEST(ParBilu, CudaKernelBLUSortedRandomBS7)
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
 }
+
 
 TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedSampleBS3)
 {
@@ -310,7 +260,7 @@ TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedSampleBS3)
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, this->tol);
 }
 
-// This test passes for block sizes upto 4, but not 7.
+
 TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedRandomBS4)
 {
     using value_type = typename TestFixture::value_type;
@@ -335,6 +285,7 @@ TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedRandomBS4)
     GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, ttol);
     GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, ttol);
 }
+
 
 TYPED_TEST(ParBilu, CudaKernelBLUJacobiSortedRandomBS7)
 {
