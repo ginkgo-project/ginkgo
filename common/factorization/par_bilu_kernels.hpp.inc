@@ -33,6 +33,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
+/// Column-major square block
+template <typename ValueType, int bs>
+class FixedBlock {
+public:
+    __device__ const ValueType &operator()(const int i, const int j) const
+    {
+        return vals[i + j * bs];
+    }
+
+    __device__ ValueType &operator()(const int i, const int j)
+    {
+        return vals[i + j * bs];
+    }
+
+private:
+    ValueType vals[bs * bs];
+};
+
+
 /*
  * One sweep of iterative parallel block ILU factorization using a simple
  * strategy - one warp per row for each block-row of the original matrix.
@@ -72,7 +91,7 @@ __global__
 
     constexpr int mat_blk_sz_2{mat_blk_sz * mat_blk_sz};
     constexpr int entries_per_thread{(mat_blk_sz_2 - 1) / subwarp_size + 1};
-    using Blk_t = blockutils::FixedBlock<ValueType, mat_blk_sz, mat_blk_sz>;
+    using Blk_t = FixedBlock<ValueType, mat_blk_sz>;
     const auto Lvals = reinterpret_cast<const Blk_t *>(l_values);
     const auto Utvals = reinterpret_cast<const Blk_t *>(u_values);
 

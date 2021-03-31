@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/components/fixed_block.hpp"
 #include "reference/components/fixed_block_operations.hpp"
 
 
@@ -74,6 +73,14 @@ static void compute_bilu_impl(
         reinterpret_cast<const Blk_t *>(sysmat->get_const_values());
     const auto vals_l = reinterpret_cast<Blk_t *>(l_factor->get_values());
     const auto vals_ut = reinterpret_cast<Blk_t *>(u_factor_t->get_values());
+    // const auto a_nbnz = sysmat->get_num_stored_blocks();
+    // const auto l_nbnz = l_factor->get_num_stored_blocks();
+    // const auto u_nbnz = u_factor_t->get_num_stored_blocks();
+    // using Dbv = range<accessor::col_major<ValueType, 3>>;
+    // using CDbv = range<accessor::col_major<const ValueType, 3>>;
+    // const Cdbv vals(sysmat->get_const_values(), dim<3>(a_nbnz,bs,bs));
+    // const Dbv vals_l(l_factor->get_values(), dim<3>(l_nbnz,bs,bs));
+    // const Dbv vals_ut(u_factor_t->get_values(), dim<3>(u_nbnz,bs,bs));
 
     for (int iter = 0; iter < iterations; ++iter) {
         for (IndexType ibrow = 0; ibrow < sysmat->get_num_block_rows();

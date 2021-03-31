@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/components/fixed_block.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
 
@@ -87,12 +86,12 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
                          matrix::Fbcsr<ValueType, IndexType> *const mtx,
                          bool /*is_sorted*/)
 {
-    // const auto values = mtx->get_const_values();
     const auto col_idxs = mtx->get_const_col_idxs();
     IndexType *const row_ptrs = mtx->get_row_ptrs();
     const int bs = mtx->get_block_size();
-    const blockutils::DenseBlocksView<const ValueType, IndexType> values(
-        mtx->get_const_values(), bs, bs);
+    const size_type nbnz = mtx->get_num_stored_blocks();
+    range<accessor::col_major<const ValueType, 3>> values(
+        mtx->get_const_values(), dim<3>(nbnz, bs, bs));
     const auto num_brows = static_cast<IndexType>(mtx->get_num_block_rows());
     const auto num_bcols = static_cast<IndexType>(mtx->get_num_block_cols());
 
@@ -107,9 +106,8 @@ void add_diagonal_blocks(const std::shared_ptr<const ReferenceExecutor> exec,
     const auto new_nbnz = old_nbnz + missing_blocks;
     Array<ValueType> new_values_array{exec, new_nbnz * bs * bs};
     Array<IndexType> new_col_idxs_array{exec, new_nbnz};
-    // auto new_values = new_values_array.get_data();
-    blockutils::DenseBlocksView<ValueType, IndexType> new_values(
-        new_values_array.get_data(), bs, bs);
+    range<accessor::col_major<ValueType, 3>> new_values(
+        new_values_array.get_data(), dim<3>(new_nbnz, bs, bs));
     auto new_col_idxs = new_col_idxs_array.get_data();
     IndexType added_blocks{};
     // row_ptrs will be updated in-place
@@ -212,21 +210,24 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    using Dbv = blockutils::DenseBlocksView<ValueType, IndexType>;
-    using CDbv = blockutils::DenseBlocksView<const ValueType, IndexType>;
+    using Dbv = range<accessor::col_major<ValueType, 3>>;
+    using CDbv = range<accessor::col_major<const ValueType, 3>>;
 
     const int bs = system_matrix->get_block_size();
+    const auto nbnz = system_matrix->get_num_stored_blocks();
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
-    const CDbv vals(system_matrix->get_const_values(), bs, bs);
+    const CDbv vals(system_matrix->get_const_values(), dim<3>(nbnz, bs, bs));
 
     const auto row_ptrs_l = fb_l->get_const_row_ptrs();
     auto const col_idxs_l = fb_l->get_col_idxs();
-    Dbv vals_l(fb_l->get_values(), bs, bs);
+    const auto l_nbnz = fb_l->get_num_stored_blocks();
+    Dbv vals_l(fb_l->get_values(), dim<3>(l_nbnz, bs, bs));
 
     const auto row_ptrs_u = fb_u->get_const_row_ptrs();
     auto const col_idxs_u = fb_u->get_col_idxs();
-    Dbv vals_u(fb_u->get_values(), bs, bs);
+    const auto u_nbnz = fb_u->get_num_stored_blocks();
+    Dbv vals_u(fb_u->get_values(), dim<3>(u_nbnz, bs, bs));
 
     for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {
         IndexType current_index_l = row_ptrs_l[row];

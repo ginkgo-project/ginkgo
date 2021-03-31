@@ -39,9 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/components/fixed_block.hpp"
-
-
 namespace gko {
 namespace testing {
 
@@ -77,8 +74,8 @@ public:
         Array<index_type> carr(exec, {0, 1, 2, 1, 2, 0, 2});
 
         Array<value_type> varr(exec, nnz);
-        blockutils::DenseBlocksView<value_type, index_type> vb(varr.get_data(),
-                                                               bs, bs);
+        range<accessor::col_major<value_type, 3>> vb(varr.get_data(),
+                                                     dim<3>(nbnz, bs, bs));
         // clang-format off
         vb(0, 0, 0) = 2.0;  vb(0, 0, 1) = -1.0; vb(0, 0, 2) = 0.0;
         vb(0, 1, 0) = -1.0; vb(0, 1, 1) = 2.0;  vb(0, 1, 2) = -1.0;
@@ -119,7 +116,7 @@ public:
         auto mtx = generate_fbcsr();
         value_type *const v = mtx->get_values();
         index_type *const c = mtx->get_col_idxs();
-        gko::blockutils::DenseBlocksView<value_type, index_type> vb(v, bs, bs);
+        range<accessor::col_major<value_type, 3>> vb(v, dim<3>(nbnz, bs, bs));
         std::swap(c[0], c[1]);
         std::swap(c[3], c[4]);
         std::swap(c[5], c[6]);
@@ -138,18 +135,20 @@ public:
      */
     std::unique_ptr<Composition<ValueType>> generate_factors() const
     {
+        const index_type l_nbnz = 4;
+        const index_type u_nbnz = 6;
         const std::shared_ptr<Fbcsr> fb_l =
-            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 4 * 9, bs);
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, l_nbnz * 9, bs);
         const std::shared_ptr<Fbcsr> fb_u =
-            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 6 * 9, bs);
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, u_nbnz * 9, bs);
         const std::unique_ptr<const Fbcsr> A = generate_fbcsr();
 
-        blockutils::DenseBlocksView<value_type, index_type> vl(
-            fb_l->get_values(), bs, bs);
-        blockutils::DenseBlocksView<value_type, index_type> vu(
-            fb_u->get_values(), bs, bs);
-        blockutils::DenseBlocksView<const value_type, index_type> vA(
-            A->get_const_values(), bs, bs);
+        range<accessor::col_major<value_type, 3>> vl(fb_l->get_values(),
+                                                     dim<3>(l_nbnz, bs, bs));
+        range<accessor::col_major<value_type, 3>> vu(fb_u->get_values(),
+                                                     dim<3>(u_nbnz, bs, bs));
+        range<accessor::col_major<const value_type, 3>> vA(
+            A->get_const_values(), dim<3>(nbnz, bs, bs));
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
@@ -220,18 +219,19 @@ public:
      */
     std::unique_ptr<Composition<ValueType>> generate_initial_values() const
     {
+        const index_type l_nbnz = 4;
+        const index_type u_nbnz = 6;
         const std::shared_ptr<Fbcsr> fb_l =
-            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 4 * 9, bs);
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, l_nbnz * 9, bs);
         const std::shared_ptr<Fbcsr> fb_u =
-            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, 6 * 9, bs);
+            Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, u_nbnz * 9, bs);
         const std::unique_ptr<const Fbcsr> A = generate_fbcsr();
-
-        blockutils::DenseBlocksView<value_type, index_type> vl(
-            fb_l->get_values(), bs, bs);
-        blockutils::DenseBlocksView<value_type, index_type> vu(
-            fb_u->get_values(), bs, bs);
-        blockutils::DenseBlocksView<const value_type, index_type> vA(
-            A->get_const_values(), bs, bs);
+        range<accessor::col_major<value_type, 3>> vl(fb_l->get_values(),
+                                                     dim<3>(l_nbnz, bs, bs));
+        range<accessor::col_major<value_type, 3>> vu(fb_u->get_values(),
+                                                     dim<3>(u_nbnz, bs, bs));
+        range<accessor::col_major<const value_type, 3>> vA(
+            A->get_const_values(), dim<3>(nbnz, bs, bs));
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {

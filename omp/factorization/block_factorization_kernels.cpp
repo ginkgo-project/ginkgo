@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/components/fixed_block.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
@@ -277,24 +276,24 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    using Dbv = blockutils::DenseBlocksView<ValueType, IndexType>;
-    // using CDbv = blockutils::DenseBlocksView<const ValueType, IndexType>;
+    using Dbv = range<accessor::col_major<ValueType, 3>>;
 
     const int bs = system_matrix->get_block_size();
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
     const ValueType *const sys_v_arr = system_matrix->get_const_values();
-    // const CDbv vals(sys_v_arr, bs, bs);
 
     const auto row_ptrs_l = fb_l->get_const_row_ptrs();
     const auto col_idxs_l = fb_l->get_col_idxs();
     ValueType *const l_v_arr = fb_l->get_values();
-    Dbv vals_l(l_v_arr, bs, bs);
+    const auto l_nbnz = fb_l->get_num_stored_blocks();
+    Dbv vals_l(l_v_arr, dim<3>(l_nbnz, bs, bs));
 
     const auto row_ptrs_u = fb_u->get_const_row_ptrs();
     const auto col_idxs_u = fb_u->get_col_idxs();
     ValueType *const u_v_arr = fb_u->get_values();
-    Dbv vals_u(u_v_arr, bs, bs);
+    const auto u_nbnz = fb_u->get_num_stored_blocks();
+    Dbv vals_u(u_v_arr, dim<3>(u_nbnz, bs, bs));
 
 #pragma omp parallel for
     for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {
