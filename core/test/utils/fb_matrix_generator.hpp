@@ -57,7 +57,7 @@ namespace test {
 
 
 template <typename ValueType>
-std::enable_if_t<gko::is_complex<ValueType>(), ValueType>
+inline std::enable_if_t<gko::is_complex<ValueType>(), ValueType>
 complexify_if_possible(const ValueType x)
 {
     using namespace std::complex_literals;
@@ -72,7 +72,7 @@ complexify_if_possible(const ValueType x)
 }
 
 template <typename ValueType>
-std::enable_if_t<!gko::is_complex<ValueType>(), ValueType>
+inline std::enable_if_t<!gko::is_complex<ValueType>(), ValueType>
 complexify_if_possible(const ValueType x)
 {
     return x;
