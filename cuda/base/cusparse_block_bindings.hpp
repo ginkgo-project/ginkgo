@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
-#include <ginkgo/core/base/blockutils.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/components/fixed_block.hpp"
 #include "cuda/base/types.hpp"
 
 
