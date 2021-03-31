@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
-#include "core/factorization/block_factorization_kernels.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 
 
 namespace gko {
@@ -101,10 +101,7 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     exec->copy(nbrows + 1, csrmat->get_const_row_ptrs(), fmtx->get_row_ptrs());
     exec->copy(nbnz_temp, csrmat->get_const_col_idxs(), fmtx->get_col_idxs());
 
-    // Add diagonal blocks if need be for the diagonally-dominant case
-    if (row_diag_dominant)
-        kernels::reference::factorization::add_diagonal_blocks(
-            exec, fmtx.get(), csrmat->is_sorted_by_column_index());
+    // We assume diagonal blocks are present for the diagonally-dominant case
 
     const IndexType nbnz = fmtx->get_num_stored_elements() / bs2;
 
