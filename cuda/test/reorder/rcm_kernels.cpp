@@ -52,7 +52,8 @@ protected:
 
 
     Rcm()
-        : exec(gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true)),
+        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
+                                         true)),
           // clang-format off
           p_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, -1.3, 2.1},
                                          {2.0, 5.0, 1.5, 0.0, 0.0},

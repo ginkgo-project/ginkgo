@@ -61,9 +61,9 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     return std::shared_ptr<CudaExecutor>(
         new CudaExecutor(device_id, std::move(master), device_reset),
         [device_id](CudaExecutor *exec) {
+            auto device_reset = exec->get_device_reset();
             delete exec;
-            if (!CudaExecutor::get_num_execs(device_id) &&
-                exec->get_device_reset()) {
+            if (!CudaExecutor::get_num_execs(device_id) && device_reset) {
                 cuda::device_guard g(device_id);
                 cudaDeviceReset();
             }
@@ -76,9 +76,9 @@ void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetPCIBusId(
-            const_cast<char *>(this->get_exec_info().pci_bus_id.data()), 13,
-            this->get_device_id()));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaDeviceGetPCIBusId(&(this->get_exec_info().pci_bus_id.front()),
+                                  13, this->get_device_id()));
 
         auto cuda_hwloc_obj =
             mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
@@ -230,7 +230,7 @@ void CudaExecutor::set_gpu_property()
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &max_threads_per_block, cudaDevAttrMaxThreadsPerBlock,
             this->get_device_id()));
-        std::vector<int> max_threads_per_block_dim{3, 0};
+        std::vector<int> max_threads_per_block_dim(3, 0);
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &max_threads_per_block_dim[0], cudaDevAttrMaxBlockDimX,
             this->get_device_id()));
