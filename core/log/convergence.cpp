@@ -46,15 +46,29 @@ namespace log {
 template <typename ValueType>
 void Convergence<ValueType>::on_criterion_check_completed(
     const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const LinOp *residual, const LinOp *residual_norm,
+    const LinOp *implicit_sq_resnorm, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
-    const bool &converged) const
+    const Array<stopping_status> *status, const bool &one_changed,
+    const bool &stopped) const
 {
-    if (converged) {
+    if (stopped) {
+        Array<stopping_status> tmp(status->get_executor()->get_master(),
+                                   *status);
+        this->convergence_status_ = true;
+        for (int i = 0; i < status->get_num_elems(); i++) {
+            if (!tmp.get_data()[i].has_converged()) {
+                this->convergence_status_ = false;
+                break;
+            }
+        }
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
             this->residual_.reset(residual->clone().release());
+        }
+        if (implicit_sq_resnorm != nullptr) {
+            this->implicit_sq_resnorm_.reset(
+                implicit_sq_resnorm->clone().release());
         }
         if (residual_norm != nullptr) {
             this->residual_norm_.reset(residual_norm->clone().release());
@@ -67,6 +81,20 @@ void Convergence<ValueType>::on_criterion_check_completed(
             dense_r->compute_norm2(this->residual_norm_.get());
         }
     }
+}
+
+
+template <typename ValueType>
+void Convergence<ValueType>::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &one_changed,
+    const bool &stopped) const
+{
+    this->on_criterion_check_completed(
+        criterion, num_iterations, residual, residual_norm, nullptr, solution,
+        stopping_id, set_finalized, status, one_changed, stopped);
 }
 
 

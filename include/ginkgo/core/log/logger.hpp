@@ -381,6 +381,10 @@ public:                                                              \
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
      * @param all_converged  whether all right hand sides
+     *
+     * @note The on_criterion_check_completed function that this macro declares
+     * is deprecated. Please use the one with the additional implicit_tau_sq
+     * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(
         20, criterion_check_completed, const stop::Criterion *criterion,
@@ -388,6 +392,35 @@ public:                                                              \
         const uint8 &stopping_id, const bool &set_finalized,
         const Array<stopping_status> *status, const bool &one_changed,
         const bool &all_converged)
+protected:
+    /**
+     * stop::Criterion's check completed event. Parameters are the Criterion,
+     * the stoppingId, the finalized boolean, the stopping status, plus the
+     * output one_changed boolean and output all_converged boolean.
+     *
+     * @param criterion  the criterion used
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param tau  the residual norm
+     * @param implicit_tau_sq  the implicit residual norm squared
+     * @param x  the solution
+     * @param stopping_id  the id of the stopping criterion
+     * @param set_finalized  whether this finalizes the iteration
+     * @param status  the stopping status of the right hand sides
+     * @param one_changed  whether at least one right hand side converged or not
+     * @param all_converged  whether all right hand sides
+     */
+    virtual void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &it, const LinOp *r,
+        const LinOp *tau, const LinOp *implicit_tau_sq, const LinOp *x,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const
+    {
+        this->on_criterion_check_completed(criterion, it, r, x, tau, x,
+                                           stopping_id, set_finalized, status,
+                                           one_changed, all_converged);
+    }
 
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -397,12 +430,26 @@ public:                                                              \
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
+     *
+     * @note The on_iteration_complete function that this macro declares is
+     * deprecated. Please use the one with the additional implicit_tau_sq
+     * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp *solver,
                               const size_type &it, const LinOp *r,
                               const LinOp *x = nullptr,
                               const LinOp *tau = nullptr)
 protected:
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     */
     virtual void on_iteration_complete(const LinOp *solver, const size_type &it,
                                        const LinOp *r, const LinOp *x,
                                        const LinOp *tau,
