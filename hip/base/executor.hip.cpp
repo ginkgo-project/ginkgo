@@ -61,9 +61,9 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
     return std::shared_ptr<HipExecutor>(
         new HipExecutor(device_id, std::move(master), device_reset),
         [device_id](HipExecutor *exec) {
+            auto device_reset = exec->get_device_reset();
             delete exec;
-            if (!HipExecutor::get_num_execs(device_id) &&
-                exec->get_device_reset()) {
+            if (!HipExecutor::get_num_execs(device_id) && device_reset) {
                 hip::device_guard g(device_id);
                 hipDeviceReset();
             }
@@ -76,9 +76,9 @@ void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetPCIBusId(
-            const_cast<char *>(this->get_exec_info().pci_bus_id.data()), 13,
-            this->get_device_id()));
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipDeviceGetPCIBusId(&(this->get_exec_info().pci_bus_id.front()),
+                                 13, this->get_device_id()));
 
         auto hip_hwloc_obj =
             mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
@@ -232,7 +232,7 @@ void HipExecutor::set_gpu_property()
             this->get_device_id()));
         this->get_exec_info().max_workitem_sizes.push_back(
             max_threads_per_block);
-        std::vector<int> max_threads_per_block_dim{3, 0};
+        std::vector<int> max_threads_per_block_dim(3, 0);
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
             &max_threads_per_block_dim[0], hipDeviceAttributeMaxBlockDimX,
             this->get_device_id()));

@@ -71,7 +71,7 @@ protected:
         : mtx_size(585, 585),
           rand_engine(10667),
           ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, gko::OmpExecutor::create()))
+          hip(gko::HipExecutor::create(0, gko::ReferenceExecutor::create()))
     {
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], mtx_size[0], false,

@@ -71,7 +71,7 @@ protected:
         : mtx_size(624, 624),
           rand_engine(43456),
           ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, gko::OmpExecutor::create()))
+          cuda(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create()))
     {
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], mtx_size[0], false,
