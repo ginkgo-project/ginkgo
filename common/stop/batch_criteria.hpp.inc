@@ -134,17 +134,31 @@ private:
     const real_type *const rhs_norms;
     static constexpr uint32 all_true = detail::pow(2, 32) - 1;
 
+    /**
+     * Check the relative residuals.
+     *
+     * The residual norms and rhs norms are assumed to be in shared memory.
+     * However, the other option is for them to duplicated in registers across
+     * all threads. This function should also work in that case, though it
+     * will then be a little inefficient.
+     *
+     * @param res_norms  Unscaled residual norms of all RHS.
+     * @param converged  Bitset with bits denoting convergence of the
+     *                   different RHS.
+     */
     __device__ __forceinline__ void check_norms(
         const real_type *const res_norms, bitset_type &converged) const
     {
         auto thread_block = group::this_thread_block();
         auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
-        for (int i = threadIdx.x; i < nrhs; i += max_nrhs) {
+        for (int i = subwarp_grp.thread_rank(); i < nrhs; i += max_nrhs) {
             const int ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
             const bitset_type wchk = subwarp_grp.ballot(ichk);
             converged |= wchk;
         }
-        // Todo if necessary: reduce over the warps in the thread block
+        // copy the converged value to all threads in the warp
+        converged = subwarp_grp.shfl(converged, 0);
+        // note that every warp does all this redundantly
     }
 };
 
