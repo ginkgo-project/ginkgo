@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
@@ -277,7 +279,7 @@ void initialize_BLU(
     matrix::Fbcsr<ValueType, IndexType> *const fb_l,
     matrix::Fbcsr<ValueType, IndexType> *const fb_u)
 {
-    using Dbv = range<accessor::block_col_major<ValueType, 3>>;
+    using Dbv = acc::range<acc::block_col_major<ValueType, 3>>;
 
     const int bs = system_matrix->get_block_size();
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
@@ -288,13 +290,13 @@ void initialize_BLU(
     const auto col_idxs_l = fb_l->get_col_idxs();
     ValueType *const l_v_arr = fb_l->get_values();
     const auto l_nbnz = fb_l->get_num_stored_blocks();
-    Dbv vals_l(l_v_arr, dim<3>(l_nbnz, bs, bs));
+    Dbv vals_l(to_array<size_type>(l_nbnz, bs, bs), l_v_arr);
 
     const auto row_ptrs_u = fb_u->get_const_row_ptrs();
     const auto col_idxs_u = fb_u->get_col_idxs();
     ValueType *const u_v_arr = fb_u->get_values();
     const auto u_nbnz = fb_u->get_num_stored_blocks();
-    Dbv vals_u(u_v_arr, dim<3>(u_nbnz, bs, bs));
+    Dbv vals_u(to_array<size_type>(u_nbnz, bs, bs), u_v_arr);
 
 #pragma omp parallel for
     for (IndexType row = 0; row < system_matrix->get_num_block_rows(); ++row) {

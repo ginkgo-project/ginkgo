@@ -39,6 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "core/base/utils.hpp"
+
+
 namespace gko {
 namespace testing {
 
@@ -74,8 +78,8 @@ public:
         Array<index_type> carr(exec, {0, 1, 2, 1, 2, 0, 2});
 
         Array<value_type> varr(exec, nnz);
-        range<accessor::block_col_major<value_type, 3>> vb(
-            varr.get_data(), dim<3>(nbnz, bs, bs));
+        acc::range<acc::block_col_major<value_type, 3>> vb(
+            to_array<size_type>(nbnz, bs, bs), varr.get_data());
         // clang-format off
         vb(0, 0, 0) = 2.0;  vb(0, 0, 1) = -1.0; vb(0, 0, 2) = 0.0;
         vb(0, 1, 0) = -1.0; vb(0, 1, 1) = 2.0;  vb(0, 1, 2) = -1.0;
@@ -116,8 +120,8 @@ public:
         auto mtx = generate_fbcsr();
         value_type *const v = mtx->get_values();
         index_type *const c = mtx->get_col_idxs();
-        range<accessor::block_col_major<value_type, 3>> vb(
-            v, dim<3>(nbnz, bs, bs));
+        acc::range<acc::block_col_major<value_type, 3>> vb(
+            to_array<size_type>(nbnz, bs, bs), v);
         std::swap(c[0], c[1]);
         std::swap(c[3], c[4]);
         std::swap(c[5], c[6]);
@@ -144,12 +148,12 @@ public:
             Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, u_nbnz * 9, bs);
         const std::unique_ptr<const Fbcsr> A = generate_fbcsr();
 
-        range<accessor::block_col_major<value_type, 3>> vl(
-            fb_l->get_values(), dim<3>(l_nbnz, bs, bs));
-        range<accessor::block_col_major<value_type, 3>> vu(
-            fb_u->get_values(), dim<3>(u_nbnz, bs, bs));
-        range<accessor::block_col_major<const value_type, 3>> vA(
-            A->get_const_values(), dim<3>(nbnz, bs, bs));
+        acc::range<acc::block_col_major<value_type, 3>> vl(
+            to_array<size_type>(l_nbnz, bs, bs), fb_l->get_values());
+        acc::range<acc::block_col_major<value_type, 3>> vu(
+            to_array<size_type>(u_nbnz, bs, bs), fb_u->get_values());
+        acc::range<acc::block_col_major<const value_type, 3>> vA(
+            to_array<size_type>(nbnz, bs, bs), A->get_const_values());
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
@@ -227,12 +231,12 @@ public:
         const std::shared_ptr<Fbcsr> fb_u =
             Fbcsr::create(exec, gko::dim<2>{nrows, ncols}, u_nbnz * 9, bs);
         const std::unique_ptr<const Fbcsr> A = generate_fbcsr();
-        range<accessor::block_col_major<value_type, 3>> vl(
-            fb_l->get_values(), dim<3>(l_nbnz, bs, bs));
-        range<accessor::block_col_major<value_type, 3>> vu(
-            fb_u->get_values(), dim<3>(u_nbnz, bs, bs));
-        range<accessor::block_col_major<const value_type, 3>> vA(
-            A->get_const_values(), dim<3>(nbnz, bs, bs));
+        acc::range<acc::block_col_major<value_type, 3>> vl(
+            to_array<size_type>(l_nbnz, bs, bs), fb_l->get_values());
+        acc::range<acc::block_col_major<value_type, 3>> vu(
+            to_array<size_type>(u_nbnz, bs, bs), fb_u->get_values());
+        acc::range<acc::block_col_major<const value_type, 3>> vA(
+            to_array<size_type>(nbnz, bs, bs), A->get_const_values());
 
         for (int i = 0; i < bs; i++) {
             for (int j = 0; j < bs; j++) {
