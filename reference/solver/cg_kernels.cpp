@@ -39,9 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
-#include "reference/base/kernel_launch.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -103,7 +100,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const DefaultExecutor> exec,
+void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
@@ -111,16 +108,18 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    exec->run_kernel(
-        [](auto &x, auto &r, auto p, auto q, auto beta, auto rho, auto stop) {
-            if (!stop[col].has_stopped() &&
-                beta(0, col) != zero(beta(0, col))) {
-                auto tmp = rho(0, col) / beta(0, col);
-                x(row, col) += tmp * p(row, col);
-                r(row, col) -= tmp * q(row, col);
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
+                continue;
             }
-        },
-        x->get_size(), x, r, p, q, beta, rho, stop_status);
+            if (beta->at(j) != zero<ValueType>()) {
+                auto tmp = rho->at(j) / beta->at(j);
+                x->at(i, j) += tmp * p->at(i, j);
+                r->at(i, j) -= tmp * q->at(i, j);
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
