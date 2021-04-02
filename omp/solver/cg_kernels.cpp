@@ -40,10 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/synthesizer/kernels.hpp>
-
-
-#include "omp/base/kernel_launch.hpp"
 
 
 namespace gko {
@@ -118,16 +114,19 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    exec->run_kernel(syn::kernel_2d(
-        [](auto &x, auto &r, auto p, auto q, auto beta, auto rho, auto stop) {
-            if (!stop.has_stopped() && beta != zero(beta)) {
-                auto tmp = rho / beta;
-                x += tmp * p;
-                r -= tmp * q;
+#pragma omp parallel for
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            if (stop_status->get_const_data()[j].has_stopped()) {
+                continue;
             }
-        },
-        x->get_size(), syn::pointwise(x, r, p, q),
-        syn::colwise(beta, rho, stop_status)));
+            if (beta->at(j) != zero<ValueType>()) {
+                auto tmp = rho->at(j) / beta->at(j);
+                x->at(i, j) += tmp * p->at(i, j);
+                r->at(i, j) -= tmp * q->at(i, j);
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

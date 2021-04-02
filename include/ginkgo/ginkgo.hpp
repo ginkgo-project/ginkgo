@@ -122,7 +122,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 #include <ginkgo/core/synthesizer/containers.hpp>
-#include <ginkgo/core/synthesizer/kernels.hpp>
 
 
 #endif  // GKO_GINKGO_HPP_
