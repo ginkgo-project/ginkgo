@@ -33,13 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 
 
-#include <omp.h>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+
+
+#include "omp/base/kernel_launch.hpp"
 
 
 namespace gko {
@@ -61,19 +58,20 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::Dense<ValueType> *rho,
                 Array<stopping_status> *stop_status)
 {
-#pragma omp parallel for
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        rho->at(j) = zero<ValueType>();
-        prev_rho->at(j) = one<ValueType>();
-        stop_status->get_data()[j].reset();
-    }
-#pragma omp parallel for
-    for (size_type i = 0; i < b->get_size()[0]; ++i) {
-        for (size_type j = 0; j < b->get_size()[1]; ++j) {
-            r->at(i, j) = b->at(i, j);
-            z->at(i, j) = p->at(i, j) = q->at(i, j) = zero<ValueType>();
-        }
-    }
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                      auto q, auto prev_rho, auto rho, auto stop) {
+            if (row == 0) {
+                rho[col] = zero(rho[col]);
+                prev_rho[col] = one(prev_rho[col]);
+                stop[col].reset();
+            }
+            r(row, col) = b(row, col);
+            z(row, col) = zero(z(row, col));
+            p(row, col) = zero(p(row, col));
+            q(row, col) = zero(q(row, col));
+        },
+        p->get_size(), b, r, z, p, q, prev_rho, rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -86,20 +84,16 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-#pragma omp parallel for
-    for (size_type i = 0; i < p->get_size()[0]; ++i) {
-        for (size_type j = 0; j < p->get_size()[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
-                continue;
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
+                      auto prev_rho, auto stop) {
+            if (!stop[col].has_stopped() &&
+                prev_rho[col] != zero(prev_rho[col])) {
+                auto tmp = rho[col] / prev_rho[col];
+                p(row, col) = z(row, col) + tmp * p(row, col);
             }
-            if (prev_rho->at(j) == zero<ValueType>()) {
-                p->at(i, j) = z->at(i, j);
-            } else {
-                auto tmp = rho->at(j) / prev_rho->at(j);
-                p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
-            }
-        }
-    }
+        },
+        p->get_size(), p, z, rho, prev_rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -114,19 +108,16 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-#pragma omp parallel for
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
-                continue;
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
+                      auto beta, auto rho, auto stop) {
+            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+                auto tmp = rho[col] / beta[col];
+                x(row, col) += tmp * p(row, col);
+                r(row, col) -= tmp * q(row, col);
             }
-            if (beta->at(j) != zero<ValueType>()) {
-                auto tmp = rho->at(j) / beta->at(j);
-                x->at(i, j) += tmp * p->at(i, j);
-                r->at(i, j) -= tmp * q->at(i, j);
-            }
-        }
-    }
+        },
+        x->get_size(), x, r, p, q, beta, rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
