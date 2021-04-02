@@ -39,16 +39,16 @@ class FixedBlock {
 public:
     __device__ const ValueType &operator()(const int i, const int j) const
     {
-        return vals[i + j * bs];
+        return reinterpret_cast<const ValueType *>(vals_)[i + j * bs];
     }
 
     __device__ ValueType &operator()(const int i, const int j)
     {
-        return vals[i + j * bs];
+        return reinterpret_cast<ValueType *>(vals_)[i + j * bs];
     }
 
 private:
-    ValueType vals[bs * bs];
+    unsigned char vals_[sizeof(ValueType) / sizeof(unsigned char) * bs * bs];
 };
 
 
@@ -307,7 +307,9 @@ __global__
             //  while computing the sparse block dot product below.
             const IndexType l_out_ibz = l_row_ptrs[brow] + ibz - row_ptrs[brow];
 
-            __shared__ ValueType sum[mat_blk_sz_2 * warps_in_block];
+            __shared__
+                UninitializedArray<ValueType, mat_blk_sz_2 * warps_in_block>
+                    sum;
             for (int ipos = sw_threadidx; ipos < mat_blk_sz_2;
                  ipos += subwarp_size) {
                 sum[sw_id_in_threadblock * mat_blk_sz_2 + ipos] =

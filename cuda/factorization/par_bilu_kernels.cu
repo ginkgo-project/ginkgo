@@ -58,6 +58,7 @@ constexpr int default_block_size{512};
 
 
 #include "common/components/reduction.hpp.inc"
+#include "common/components/uninitialized_array.hpp.inc"
 #include "common/components/warp_blas.hpp.inc"
 #include "common/factorization/par_bilu_kernels.hpp.inc"
 
