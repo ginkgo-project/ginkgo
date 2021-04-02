@@ -251,8 +251,8 @@ __global__ __launch_bounds__(default_block_size) void initialize_BLU(
         // we treat the diagonal separately
         __shared__ UninitializedArray<ValueType, warps_in_block * matBlkSz_2>
             diag_val;
-        if (sw_threadidx < matBlkSz_2) {
-            diag_val[sw_id_in_threadblock * matBlkSz_2 + sw_threadidx] =
+        for (int iz = sw_threadidx; iz < matBlkSz_2; iz += subwarpSize) {
+            diag_val[sw_id_in_threadblock * matBlkSz_2 + iz] =
                 zero<ValueType>();
         }
         bool encountered_diag{false};
