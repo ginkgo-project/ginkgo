@@ -249,9 +249,11 @@ __global__ __launch_bounds__(default_block_size) void initialize_BLU(
     for (auto brow = begin_row; brow < num_b_rows;
          brow += total_subwarp_count) {
         // we treat the diagonal separately
-        __shared__ ValueType diag_val[warps_in_block][matBlkSz_2];
+        __shared__ UninitializedArray<ValueType, warps_in_block * matBlkSz_2>
+            diag_val;
         if (sw_threadidx < matBlkSz_2) {
-            diag_val[sw_id_in_threadblock][sw_threadidx] = zero<ValueType>();
+            diag_val[sw_id_in_threadblock * matBlkSz_2 + sw_threadidx] =
+                zero<ValueType>();
         }
         bool encountered_diag{false};
         int first_diag_iz = -1;
@@ -294,7 +296,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_BLU(
 
             // save diagonal block for later
             if (diag) {
-                diag_val[sw_id_in_threadblock][iz - first_diag_iz] = val;
+                ValueType *const diag_val_arr = diag_val;
+                diag_val_arr[sw_id_in_threadblock * matBlkSz_2 + iz -
+                             first_diag_iz] = val;
             } else if (bcol < brow) {
                 const IndexType l_idx =
                     l_row_ptrs[brow] + lowpos.cur_iz / matBlkSz_2;
@@ -338,7 +342,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_BLU(
             const int bcrd1 = iz % matBlkSz;
             l_values[l_giz] =
                 static_cast<ValueType>(static_cast<float>(bcrd0 == bcrd1));
-            u_values[u_giz] = diag_val[sw_id_in_threadblock][iz];
+            u_values[u_giz] = diag_val[sw_id_in_threadblock * matBlkSz_2 + iz];
         }
     }
 }

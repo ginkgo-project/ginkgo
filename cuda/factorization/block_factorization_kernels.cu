@@ -61,6 +61,7 @@ namespace factorization {
 constexpr int default_block_size{512};
 
 
+#include "common/components/uninitialized_array.hpp.inc"
 #include "common/factorization/block_factorization_kernels.hpp.inc"
 #include "common/factorization/factorization_kernels.hpp.inc"
 
