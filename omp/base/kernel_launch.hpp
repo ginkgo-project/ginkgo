@@ -126,7 +126,7 @@ void OmpExecutor::run_kernel(KernelFunction fn, size_type size,
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
-        fn(i, kernels::omp::map_to_device(args)...);
+        [&]() { fn(i, kernels::omp::map_to_device(args)...); }();
     }
 }
 
@@ -139,7 +139,7 @@ void OmpExecutor::run_kernel(KernelFunction fn, dim<2> size,
     for (size_type i = 0; i < size[0] * size[1]; i++) {
         auto row = i / size[1];
         auto col = i % size[1];
-        fn(row, col, kernels::omp::map_to_device(args)...);
+        [&]() { fn(row, col, kernels::omp::map_to_device(args)...); }();
     }
 }
 
