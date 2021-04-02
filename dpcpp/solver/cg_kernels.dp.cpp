@@ -33,13 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 
 
-#include <CL/sycl.hpp>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include "dpcpp/base/kernel_launch.dp.hpp"
 
 
 namespace gko {
@@ -59,7 +53,23 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
                 matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
+{
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                      auto q, auto prev_rho, auto rho, auto stop) {
+            if (row == 0) {
+                rho[col] = zero(rho[col]);
+                prev_rho[col] = one(prev_rho[col]);
+                stop[col].reset();
+            }
+            r(row, col) = b(row, col);
+            z(row, col) = zero(z(row, col));
+            p(row, col) = zero(p(row, col));
+            q(row, col) = zero(q(row, col));
+        },
+        p->get_size(), b, r, z, p, q, prev_rho, rho, *stop_status);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
@@ -69,7 +79,19 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
+                      auto prev_rho, auto stop) {
+            if (!stop[col].has_stopped() &&
+                prev_rho[col] != zero(prev_rho[col])) {
+                auto tmp = rho[col] / prev_rho[col];
+                p(row, col) = z(row, col) + tmp * p(row, col);
+            }
+        },
+        p->get_size(), p, z, rho, prev_rho, *stop_status);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
@@ -81,7 +103,19 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType> *q,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
+                      auto beta, auto rho, auto stop) {
+            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+                auto tmp = rho[col] / beta[col];
+                x(row, col) += tmp * p(row, col);
+                r(row, col) -= tmp * q(row, col);
+            }
+        },
+        x->get_size(), x, r, p, q, beta, rho, *stop_status);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 

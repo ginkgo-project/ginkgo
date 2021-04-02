@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion.hpp"
 
 
+#include "omp/base/kernel_launch.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -43,10 +46,9 @@ template <typename SourceType, typename TargetType>
 void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
                        size_type size, const SourceType *in, TargetType *out)
 {
-#pragma omp parallel for
-    for (size_type i = 0; i < size; ++i) {
-        out[i] = in[i];
-    }
+    exec->run_kernel(
+        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        size, in, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);

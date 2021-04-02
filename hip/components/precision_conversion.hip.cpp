@@ -33,8 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion.hpp"
 
 
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "hip/base/kernel_launch.hip.hpp"
 
 
 namespace gko {
@@ -43,20 +42,13 @@ namespace hip {
 namespace components {
 
 
-constexpr int default_block_size = 512;
-
-
-#include "common/components/precision_conversion.hpp.inc"
-
-
 template <typename SourceType, typename TargetType>
 void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
                        size_type size, const SourceType *in, TargetType *out)
 {
-    auto num_blocks = ceildiv(size, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(convert_precision), num_blocks,
-                       default_block_size, 0, 0, size, as_hip_type(in),
-                       as_hip_type(out));
+    exec->run_kernel(
+        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        size, in, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);

@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion.hpp"
 
 
-#include <CL/sycl.hpp>
+#include "dpcpp/base/kernel_launch.dp.hpp"
 
 
 namespace gko {
@@ -46,12 +46,9 @@ template <typename SourceType, typename TargetType>
 void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
                        size_type size, const SourceType *in, TargetType *out)
 {
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
-            const auto idx = idx_id[0];
-            out[idx] = in[idx];
-        });
-    });
+    exec->run_kernel(
+        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        size, in, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);

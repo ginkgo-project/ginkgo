@@ -33,13 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cg_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include "cuda/base/kernel_launch.hpp"
 
 
 namespace gko {
@@ -53,12 +50,6 @@ namespace cuda {
 namespace cg {
 
 
-constexpr int default_block_size = 512;
-
-
-#include "common/solver/cg_kernels.hpp.inc"
-
-
 template <typename ValueType>
 void initialize(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
@@ -67,16 +58,20 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
                 matrix::Dense<ValueType> *rho,
                 Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
-
-    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_size()[0], b->get_size()[1], b->get_stride(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()), as_cuda_type(stop_status->get_data()));
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                      auto q, auto prev_rho, auto rho, auto stop) {
+            if (row == 0) {
+                rho[col] = zero(rho[col]);
+                prev_rho[col] = one(prev_rho[col]);
+                stop[col].reset();
+            }
+            r(row, col) = b(row, col);
+            z(row, col) = zero(z(row, col));
+            p(row, col) = zero(p(row, col));
+            q(row, col) = zero(q(row, col));
+        },
+        p->get_size(), b, r, z, p, q, prev_rho, rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -89,16 +84,16 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(),
-        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(prev_rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
+                      auto prev_rho, auto stop) {
+            if (!stop[col].has_stopped() &&
+                prev_rho[col] != zero(prev_rho[col])) {
+                auto tmp = rho[col] / prev_rho[col];
+                p(row, col) = z(row, col) + tmp * p(row, col);
+            }
+        },
+        p->get_size(), p, z, rho, prev_rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -113,18 +108,16 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
-        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(p->get_const_values()),
-        as_cuda_type(q->get_const_values()),
-        as_cuda_type(beta->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    exec->run_kernel(
+        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
+                      auto beta, auto rho, auto stop) {
+            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+                auto tmp = rho[col] / beta[col];
+                x(row, col) += tmp * p(row, col);
+                r(row, col) -= tmp * q(row, col);
+            }
+        },
+        x->get_size(), x, r, p, q, beta, rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

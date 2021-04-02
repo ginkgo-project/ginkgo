@@ -1,0 +1,176 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2021, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_DPCPP_BASE_KERNEL_LAUNCH_DP_HPP_
+#define GKO_DPCPP_BASE_KERNEL_LAUNCH_DP_HPP_
+
+
+#include <CL/sycl.hpp>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+#ifdef GKO_KERNEL
+#error "Only one kernel_launch.hpp file can be included at a time."
+#else
+#define GKO_KERNEL
+#endif
+
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+
+
+constexpr auto default_block_size = 512;
+
+
+template <typename ValueType>
+struct matrix_accessor {
+    ValueType *data;
+    size_type stride;
+
+    ValueType &operator()(size_type row, size_type col)
+    {
+        return data[row * stride + col];
+    }
+
+    ValueType &operator[](size_type idx) { return data[idx]; }
+};
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
+                       KernelArgs... args)
+{
+    cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
+        fn(static_cast<size_type>(idx_id[0]), args...);
+    });
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
+                       KernelFunction fn, KernelArgs... args)
+{
+    cgh.parallel_for(sycl::range<1>{rows * cols}, [=](sycl::id<1> idx_id) {
+        auto idx = static_cast<size_type>(idx_id[0]);
+        auto row = idx / cols;
+        auto col = idx % cols;
+        fn(row, col, args...);
+    });
+}
+
+
+template <typename ValueType>
+matrix_accessor<ValueType> map_to_device(matrix::Dense<ValueType> *mtx)
+{
+    return {mtx->get_values(), mtx->get_stride()};
+}
+
+
+template <typename ValueType>
+matrix_accessor<const ValueType> map_to_device(
+    const matrix::Dense<ValueType> *mtx)
+{
+    return {mtx->get_const_values(), mtx->get_stride()};
+}
+
+
+template <typename ValueType>
+typename std::enable_if<std::is_arithmetic<ValueType>::value, ValueType>::type *
+map_to_device(ValueType *data)
+{
+    return data;
+}
+
+
+template <typename ValueType>
+std::complex<ValueType> *map_to_device(std::complex<ValueType> *data)
+{
+    return data;
+}
+
+
+template <typename ValueType>
+const std::complex<ValueType> *map_to_device(
+    const std::complex<ValueType> *data)
+{
+    return data;
+}
+
+
+template <typename ValueType>
+ValueType *map_to_device(Array<ValueType> &mtx)
+{
+    return mtx.get_data();
+}
+
+
+template <typename ValueType>
+const ValueType *map_to_device(const Array<ValueType> &mtx)
+{
+    return mtx.get_const_data();
+}
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void DpcppExecutor::run_kernel(KernelFunction fn, size_type size,
+                               KernelArgs &&... args) const
+{
+    this->get_queue()->submit([&](sycl::handler &cgh) {
+        kernels::dpcpp::generic_kernel_1d(
+            cgh, size, fn, kernels::dpcpp::map_to_device(args)...);
+    });
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void DpcppExecutor::run_kernel(KernelFunction fn, dim<2> size,
+                               KernelArgs &&... args) const
+{
+    this->get_queue()->submit([&](sycl::handler &cgh) {
+        kernels::dpcpp::generic_kernel_2d(
+            cgh, size[0], size[1], fn, kernels::dpcpp::map_to_device(args)...);
+    });
+}
+
+
+}  // namespace gko
+
+#endif  // GKO_DPCPP_BASE_KERNEL_LAUNCH_DP_HPP_
