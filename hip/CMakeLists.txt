@@ -205,7 +205,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     endif()
 
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "--expt-relaxed-constexpr")
+    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
 
     if (GINKGO_HIP_PLATFROM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
             AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
