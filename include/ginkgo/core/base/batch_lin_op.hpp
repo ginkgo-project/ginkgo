@@ -55,6 +55,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+class batch_dim {
+public:
+    bool stores_equal_sizes() const { return equal_sizes_; }
+
+    size_type get_num_batches() const { return num_batches_; }
+
+    const std::vector<dim<2>> &get_batch_sizes() const
+    {
+        if (!equal_sizes_) {
+            return sizes_;
+        } else {
+            return std::vector<dim<2>>(num_batches_, common_size_);
+        }
+    }
+
+    const dim<2> &get_size_at(const size_type batch = 0) const
+    {
+        if (equal_sizes_) {
+            return common_size_;
+        } else {
+            GKO_ASSERT(batch < num_batches_);
+            return sizes_[batch];
+        }
+    }
+
+protected:
+    batch_dim(const size_type num_batches, const dim<2> &size)
+        : equal_sizes_(true),
+          common_size_(size),
+          num_batches_(num_batches),
+          sizes_()
+    {}
+
+    batch_dim(const std::vector<dim<2>> &batch_sizes)
+        : equal_sizes_(false),
+          common_size_(dim<2>{}),
+          num_batches_(size.size()),
+          sizes_(batch_sizes)
+    {}
+
+private:
+    bool equal_sizes_{};
+    size_type num_batches_{};
+    dim<2> common_size_{};
+    std::vector<dim<2>> sizes_{};
+};
+
+
 /**
  * @addtogroup BatchLinOp
  *
@@ -225,7 +273,27 @@ public:
      *
      * @return size of the operator
      */
-    const dim<2> &get_size() const noexcept { return size_; }
+    const size_type &get_num_batches() const noexcept
+    {
+        return size_.get_num_batches();
+    }
+
+    /**
+     * Returns the size of the operator.
+     *
+     * @return size of the operator
+     */
+    const batch_dim &get_size() const noexcept { return size_; }
+
+    /**
+     * Returns the size of the operator.
+     *
+     * @return size of the operator
+     */
+    const dim<2> &get_size_at(const size_type batch = 0) const noexcept
+    {
+        return size_.get_size_at(batch);
+    }
 
     /**
      * Returns true if the linear operator uses the data given in x as
@@ -244,16 +312,23 @@ protected:
      * @param size  the size of the operator
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
+                        const size_type num_batches = 0,
                         const dim<2> &size = dim<2>{})
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{size}
+        : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
+          size_{num_batches > 0 ? batch_dim(num_batches, size) : {}}
     {}
 
     /**
-     * Sets the size of the operator.
+     * Creates a linear operator.
      *
-     * @param value  the new size of the operator
+     * @param exec  the executor where all the operations are performed
+     * @param size  the size of the operator
      */
-    void set_size(const dim<2> &value) noexcept { size_ = value; }
+    explicit BatchLinOp(std::shared_ptr<const Executor> exec,
+                        const std::vector<dim<2>> &batch_sizes)
+        : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
+          size_{batch_dim(batch_sizes)}
+    {}
 
     /**
      * Implementers of BatchLinOp should override this function instead
@@ -289,9 +364,9 @@ protected:
     virtual void validate_application_parameters(const BatchLinOp *b,
                                                  const BatchLinOp *x) const
     {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
+        GKO_ASSERT_BATCH_CONFORMANT(this, b);
+        GKO_ASSERT_BATCH_EQUAL_ROWS(this, x);
+        GKO_ASSERT_BATCH_EQUAL_COLS(b, x);
     }
 
     /**
@@ -309,12 +384,14 @@ protected:
                                                  const BatchLinOp *x) const
     {
         this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            alpha, batch_dim(b->get_num_batches(), dim<2>(1, 1)));
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+            beta, batch_dim(b->get_num_batches(), dim<2>(1, 1)));
     }
 
 private:
-    dim<2> size_{};
+    batch_dim size_{};
 };
 
 
