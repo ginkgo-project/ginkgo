@@ -55,22 +55,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-class batch_dim {
+template <class storage_type>
+class batch_storage {
 public:
     bool stores_equal_sizes() const { return equal_sizes_; }
 
     size_type get_num_batches() const { return num_batches_; }
 
-    const std::vector<dim<2>> &get_batch_sizes() const
+    const std::vector<storage_type> &get_batch_sizes() const
     {
         if (!equal_sizes_) {
             return sizes_;
         } else {
-            return std::vector<dim<2>>(num_batches_, common_size_);
+            return std::vector<storage_type>(num_batches_, common_size_);
         }
     }
 
-    const dim<2> &get_size_at(const size_type batch = 0) const
+    const storage_type &at(const size_type batch = 0) const
     {
         if (equal_sizes_) {
             return common_size_;
@@ -81,16 +82,16 @@ public:
     }
 
 protected:
-    batch_dim(const size_type num_batches, const dim<2> &size)
+    batch_dim(const size_type num_batches, const storage_type &size)
         : equal_sizes_(true),
           common_size_(size),
           num_batches_(num_batches),
           sizes_()
     {}
 
-    batch_dim(const std::vector<dim<2>> &batch_sizes)
+    batch_dim(const std::vector<storage_type> &batch_sizes)
         : equal_sizes_(false),
-          common_size_(dim<2>{}),
+          common_size_(storage_type{}),
           num_batches_(size.size()),
           sizes_(batch_sizes)
     {}
@@ -98,9 +99,12 @@ protected:
 private:
     bool equal_sizes_{};
     size_type num_batches_{};
-    dim<2> common_size_{};
-    std::vector<dim<2>> sizes_{};
+    storage_type common_size_{};
+    std::vector<storage_type> sizes_{};
 };
+
+
+using batch_dim = batch_storage<dim<2>>;
 
 
 /**
