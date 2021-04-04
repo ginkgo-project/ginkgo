@@ -94,6 +94,7 @@ public:
     using EnableBatchLinOp<BatchDense>::move_to;
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
+    using batch_stride = batch_storage<size_type>;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -218,21 +219,7 @@ public:
      *
      * @return the stride of the matrix.
      */
-    const std::vector<size_type> &get_strides() const noexcept
-    {
-        return strides_;
-    }
-
-    /**
-     * Returns the stride of the matrix.
-     *
-     * @return the stride of the matrix.
-     */
-    const size_type &get_stride(size_type batch) const noexcept
-    {
-        GKO_ASSERT(batch < this->get_num_batches());
-        return strides_[batch];
-    }
+    const batch_stride &get_stride() const noexcept { return stride_; }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -367,76 +354,61 @@ public:
         this->compute_norm2_impl(make_temporary_clone(exec, result).get());
     }
 
-    size_type get_num_batches() const { return batch_sizes_.size(); }
-
-    std::vector<dim<2>> get_batch_sizes() const { return batch_sizes_; }
-
-    void set_batch_sizes(const std::vector<dim<2>> sizes)
-    {
-        batch_sizes_ = sizes;
-    }
-
 private:
-    inline size_type compute_batch_mem(const std::vector<dim<2>> &sizes,
-                                       const std::vector<size_type> &strides)
+    inline size_type compute_batch_mem(const batch_dim &sizes,
+                                       const batch_stride &strides)
     {
-        GKO_ASSERT(sizes.size() == strides.size());
+        GKO_ASSERT(sizes.get_num_batches() == strides.get_num_batches());
+        if (sizes.stores_equal_sizes() && strides.stores_equal_sizes()) {
+            return (sizes.at(0))[0] * strides.at(0);
+        }
         size_type mem_req = 0;
-        for (auto i = 0; i < sizes.size(); ++i) {
-            mem_req += (sizes[i])[0] * strides[i];
+        for (auto i = 0; i < sizes.get_num_batches(); ++i) {
+            mem_req += (sizes.at(i))[0] * strides.at(i);
         }
         return mem_req;
     }
 
-    inline std::vector<size_type> extract_nth_dim(
-        const int dim, const std::vector<gko::dim<2>> &sizes)
+    inline batch_stride extract_nth_dim(const int dim, const batch_dim &size)
     {
-        auto ndim_vec = std::vector<size_type>(sizes.size());
-        for (auto i = 0; i < sizes.size(); ++i) {
-            ndim_vec[i] = (sizes[i])[dim];
+        if (size.stores_equal_sizes()) {
+            return batch_stride(size.get_num_batches(), size.at(0)[dim]);
         }
-        return ndim_vec;
+        std::vector<size_type> stride(size.get_num_batches(), 0);
+        for (auto i = 0; i < size.get_num_batches(); ++i) {
+            stride[i] = (size.at(i)[dim];
+        }
+        return batch_stride(stride);
     }
 
-    inline std::vector<size_type> get_strides_from_mtxs(
+    inline batch_stride get_strides_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
         auto strides = std::vector<size_type>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
             strides[i] = mtxs[i]->get_stride();
         }
-        return strides;
+        return batch_stride(strides);
     }
 
-    inline std::vector<dim<2>> get_sizes_from_mtxs(
+    inline batch_dim get_sizes_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
             sizes[i] = mtxs[i]->get_size();
         }
-        return sizes;
+        return batch_dim(sizes);
     }
 
     inline std::vector<size_type> compute_num_elems_per_batch_cumul(
-        const std::vector<gko::dim<2>> &sizes,
-        const std::vector<size_type> &strides)
+        const batch_dim &sizes, const batch_stride &strides)
     {
-        auto num_elems = std::vector<size_type>(sizes.size() + 1, 0);
+        auto num_elems = std::vector<size_type>(sizes.get_num_batches() + 1, 0);
         for (auto i = 0; i < sizes.size(); ++i) {
-            num_elems[i + 1] = num_elems[i] + (sizes[i])[0] * strides[i];
+            num_elems[i + 1] = num_elems[i] + (sizes.at(i))[0] * strides.at(i);
         }
         return num_elems;
-    }
-
-    inline dim<2> compute_cumulative_size(const std::vector<gko::dim<2>> &sizes)
-    {
-        auto cumul_size = dim<2>{};
-        for (auto i = 0; i < sizes.size(); ++i) {
-            cumul_size[0] += (sizes[i])[0];
-            cumul_size[1] += (sizes[i])[1];
-        }
-        return cumul_size;
     }
 
 protected:
@@ -446,9 +418,8 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const std::vector<dim<2>> sizes = std::vector<dim<2>>{})
-        : BatchDense(std::move(exec), sizes, extract_nth_dim(1, sizes))
+    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size = {})
+        : BatchDense(std::move(exec), size, extract_nth_dim(1, sizes))
     {}
 
     /**
@@ -460,16 +431,14 @@ protected:
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const std::vector<dim<2>> sizes,
-               const std::vector<size_type> strides)
-        : EnableBatchLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
-          values_(exec, compute_batch_mem(sizes, strides)),
-          batch_sizes_(sizes),
-          strides_(strides)
+    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size,
+               const batch_stride &stride)
+        : EnableBatchLinOp<BatchDense>(exec, size),
+          values_(exec, compute_batch_mem(size, stride)),
+          stride_(stride)
     {
         num_elems_per_batch_cumul_ =
-            compute_num_elems_per_batch_cumul(sizes, strides);
+            compute_num_elems_per_batch_cumul(this->get_size(), strides);
     }
 
     /**
@@ -490,15 +459,13 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    BatchDense(std::shared_ptr<const Executor> exec,
-               const std::vector<dim<2>> sizes, ValuesArray &&values,
-               const std::vector<size_type> strides)
-        : EnableBatchLinOp<BatchDense>(exec, compute_cumulative_size(sizes)),
+    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size,
+               ValuesArray &&values, const batch_stride &stride)
+        : EnableBatchLinOp<BatchDense>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
-          batch_sizes_(sizes),
-          strides_{strides},
+          stride_{stride},
           num_elems_per_batch_cumul_(
-              compute_num_elems_per_batch_cumul(sizes, strides))
+              compute_num_elems_per_batch_cumul(this->get_size(), stride))
     {
         GKO_ENSURE_IN_BOUNDS(num_elems_per_batch_cumul_.back() - 1,
                              values_.get_num_elems());
@@ -512,14 +479,12 @@ protected:
      */
     BatchDense(std::shared_ptr<const Executor> exec,
                const std::vector<Dense<ValueType> *> &matrices)
-        : EnableBatchLinOp<BatchDense>(
-              exec, compute_cumulative_size(get_sizes_from_mtxs(matrices))),
-          batch_sizes_(get_sizes_from_mtxs(matrices)),
-          strides_{get_strides_from_mtxs(matrices)},
-          values_(exec, compute_batch_mem(this->get_batch_sizes(), strides_))
+        : EnableBatchLinOp<BatchDense>(exec, get_sizes_from_mtxs(matrices)),
+          stride_{get_strides_from_mtxs(matrices)},
+          values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
-        num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
-            this->get_batch_sizes(), strides_);
+        num_elems_per_batch_cumul_ =
+            compute_num_elems_per_batch_cumul(this->get_size(), stride_);
         for (size_type i = 0; i < this->get_num_batches(); ++i) {
             auto local_exec = matrices[i]->get_executor();
             exec->copy_from(local_exec.get(),
@@ -527,33 +492,6 @@ protected:
                             matrices[i]->get_const_values(),
                             this->get_values() + num_elems_per_batch_cumul_[i]);
         }
-    }
-
-    virtual void validate_application_parameters(
-        const BatchLinOp *b, const BatchLinOp *x) const override
-    {
-        auto batch_this = as<BatchDense<ValueType>>(this);
-        auto batch_x = as<BatchDense<ValueType>>(x);
-        auto batch_b = as<BatchDense<ValueType>>(b);
-        GKO_ASSERT_CONFORMANT(batch_this, batch_b);
-        GKO_ASSERT_EQUAL_ROWS(batch_this, batch_x);
-        GKO_ASSERT_EQUAL_COLS(batch_b, batch_x);
-        GKO_ASSERT_BATCH_CONFORMANT(batch_this, batch_b);
-        GKO_ASSERT_BATCH_EQUAL_ROWS(batch_this, batch_x);
-        GKO_ASSERT_BATCH_EQUAL_COLS(batch_b, batch_x);
-    }
-
-    virtual void validate_application_parameters(
-        const BatchLinOp *alpha, const BatchLinOp *b, const BatchLinOp *beta,
-        const BatchLinOp *x) const override
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
-            as<BatchDense<ValueType>>(alpha),
-            std::vector<dim<2>>(get_num_batches(), dim<2>(1, 1)));
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
-            as<BatchDense<ValueType>>(beta),
-            std::vector<dim<2>>(get_num_batches(), dim<2>(1, 1)));
     }
 
     /**
@@ -564,8 +502,8 @@ protected:
      */
     virtual std::unique_ptr<BatchDense> create_with_same_config() const
     {
-        return BatchDense::create(this->get_executor(), this->get_batch_sizes(),
-                                  this->get_strides());
+        return BatchDense::create(this->get_executor(), this->get_size(),
+                                  this->get_stride());
     }
 
     /**
@@ -610,18 +548,18 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return num_elems_per_batch_cumul_[batch] + row * strides_[batch] + col;
+        return num_elems_per_batch_cumul_[batch] + row * stride_.at(batch) +
+               col;
     }
 
     size_type linearize_index(size_type batch, size_type idx) const noexcept
     {
-        return linearize_index(batch, idx / this->get_batch_sizes()[batch][1],
-                               idx % this->get_batch_sizes()[batch][1]);
+        return linearize_index(batch, idx / this->get_size().at(batch)[1],
+                               idx % this->get_size().at(batch)[1]);
     }
 
 private:
-    std::vector<size_type> strides_;
-    std::vector<dim<2>> batch_sizes_;
+    batch_stride stride_;
     std::vector<size_type> num_elems_per_batch_cumul_;
     Array<value_type> values_;
 };
