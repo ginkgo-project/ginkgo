@@ -342,7 +342,20 @@ public:
           common_size_(dim<2>{}),
           num_batches_(batch_sizes.size()),
           sizes_(batch_sizes)
-    {}
+    {
+        check_size_equality();
+    }
+
+    void check_size_equality()
+    {
+        for (size_type i = 0; i < num_batches_; ++i) {
+            if (!(sizes_[i] == sizes_[0])) {
+                return;
+            }
+        }
+        common_size_ = sizes_[0];
+        equal_sizes_ = true;
+    }
 
 private:
     bool equal_sizes_{};

@@ -85,16 +85,21 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
 {
     auto exec = source->get_executor();
 
-    Array<size_type> num_stored_nonzeros{exec, source->get_num_batches()};
     auto batch_size = source->get_size();
-    size_type num_nnz = 0;
+    Array<size_type> num_stored_nonzeros{exec->get_master()};
     gko::dim<2> main_size = dim<2>{};
     if (!batch_size.stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     } else {
-        num_nnz = source->get_num_stored_elements(0);
+        num_stored_nonzeros =
+            Array<size_type>{exec->get_master(), source->get_num_batches()};
+
+        exec->get_master()->run(batch_dense::make_count_nonzeros(
+            source, num_stored_nonzeros.get_data()));
         main_size = source->get_size().at(0);
     }
+    size_type num_nnz =
+        num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
     auto tmp = BatchCsr<ValueType, IndexType>::create(
         exec, source->get_num_batches(), main_size, num_nnz);
     exec->run(op(source, tmp.get()));
