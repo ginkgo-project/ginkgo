@@ -86,18 +86,14 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
     auto exec = source->get_executor();
 
     Array<size_type> num_stored_nonzeros{exec, source->get_num_batches()};
-
-    exec->run(batch_dense::make_count_nonzeros(source,
-                                               num_stored_nonzeros.get_data()));
-    num_stored_nonzeros.set_executor(exec->get_master());
-    size_type num_nnz =
-        num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
-    gko::dim<2> main_size = source->get_batch_sizes().data()
-                                ? source->get_batch_sizes()[0]
-                                : gko::dim<2>{};
-    for (size_type i = 1; i < source->get_num_batches(); ++i) {
-        GKO_ASSERT(num_nnz == num_stored_nonzeros.get_data()[i]);
-        GKO_ASSERT(main_size == source->get_batch_sizes()[i]);
+    auto batch_size = source->get_size();
+    size_type num_nnz = 0;
+    gko::dim<2> main_size = dim<2>{};
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    } else {
+        num_nnz = source->get_num_stored_elements(0);
+        main_size = source->get_size().at(0);
     }
     auto tmp = BatchCsr<ValueType, IndexType>::create(
         exec, source->get_num_batches(), main_size, num_nnz);
@@ -134,10 +130,9 @@ void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha,
-        std::vector<dim<2>>(this->get_num_batches(), dim<2>(1, 1)));
+        batch_alpha, batch_dim(this->get_num_batches(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
-        if (batch_alpha->get_batch_sizes()[b][1] != 1) {
+        if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
             GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
         }
@@ -154,10 +149,9 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     auto batch_b = as<BatchDense<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha,
-        std::vector<dim<2>>(this->get_num_batches(), dim<2>(1, 1)));
+        batch_alpha, batch_dim(this->get_num_batches(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
-        if (batch_alpha->get_batch_sizes()[b][1] != 1) {
+        if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
             GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
         }
@@ -169,13 +163,13 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
 }
 
 
-inline const std::vector<dim<2>> get_col_sizes(const std::vector<dim<2>> &sizes)
+inline const batch_dim get_col_sizes(const batch_dim &sizes)
 {
-    auto col_sizes = std::vector<dim<2>>(sizes.size());
-    for (size_type i = 0; i < sizes.size(); ++i) {
-        col_sizes[i] = dim<2>(1, sizes[i][1]);
+    auto col_sizes = std::vector<dim<2>>(sizes.get_num_batches());
+    for (size_type i = 0; i < col_sizes.size(); ++i) {
+        col_sizes[i] = dim<2>(1, sizes.at(i)[1]);
     }
-    return col_sizes;
+    return batch_dim(col_sizes);
 }
 
 
@@ -187,7 +181,7 @@ void BatchDense<ValueType>::compute_dot_impl(const BatchLinOp *b,
     auto batch_b = as<BatchDense<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_b);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
-                                      get_col_sizes(this->get_batch_sizes()));
+                                      get_col_sizes(this->get_size()));
     auto exec = this->get_executor();
     exec->run(batch_dense::make_compute_dot(this, batch_b, batch_result));
 }
@@ -199,7 +193,7 @@ void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
     using NormVector = BatchDense<remove_complex<ValueType>>;
     auto batch_result = as<NormVector>(result);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
-                                      get_col_sizes(this->get_batch_sizes()));
+                                      get_col_sizes(this->get_size()));
     auto exec = this->get_executor();
     exec->run(batch_dense::make_compute_norm2(as<BatchDense<ValueType>>(this),
                                               batch_result));
@@ -211,9 +205,9 @@ void BatchDense<ValueType>::convert_to(
     BatchDense<next_precision<ValueType>> *result) const
 {
     result->values_ = this->values_;
-    result->strides_ = this->strides_;
+    result->stride_ = this->stride_;
     result->num_elems_per_batch_cumul_ = this->num_elems_per_batch_cumul_;
-    result->set_batch_sizes(this->get_batch_sizes());
+    result->set_size(this->get_size());
 }
 
 
@@ -269,8 +263,8 @@ inline void read_impl(MatrixType *mtx, const std::vector<MatrixData> &data)
         batch_sizes[ind] = b.size;
         ++ind;
     }
-    auto tmp =
-        MatrixType::create(mtx->get_executor()->get_master(), batch_sizes);
+    auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
+                                  batch_dim(batch_sizes));
     for (size_type b = 0; b < data.size(); ++b) {
         size_type ind = 0;
         for (size_type row = 0; row < data[b].size[0]; ++row) {
@@ -325,7 +319,7 @@ inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
 
     data = std::vector<MatrixData>(mtx->get_num_batches());
     for (size_type b = 0; b < mtx->get_num_batches(); ++b) {
-        data[b] = {mtx->get_batch_sizes()[b], {}};
+        data[b] = {mtx->get_size().at(b), {}};
         for (size_type row = 0; row < data[b].size[0]; ++row) {
             for (size_type col = 0; col < data[b].size[1]; ++col) {
                 if (tmp->at(b, row, col) !=
@@ -360,8 +354,7 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDense<ValueType>::transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy =
-        BatchDense::create(exec, gko::batch_transpose(this->get_batch_sizes()));
+    auto trans_cpy = BatchDense::create(exec, gko::transpose(this->get_size()));
 
     exec->run(batch_dense::make_transpose(this, trans_cpy.get()));
 
@@ -373,8 +366,7 @@ template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchDense<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto trans_cpy =
-        BatchDense::create(exec, gko::batch_transpose(this->get_batch_sizes()));
+    auto trans_cpy = BatchDense::create(exec, gko::transpose(this->get_size()));
 
     exec->run(batch_dense::make_conj_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
