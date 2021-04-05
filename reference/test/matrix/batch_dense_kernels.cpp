@@ -331,9 +331,9 @@ TYPED_TEST(BatchDense, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto result = Mtx::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 3}});
+    auto result =
+        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 3}}));
 
     auto ures = result->unbatch();
 
@@ -357,9 +357,10 @@ TYPED_TEST(BatchDense, ComputesNorm2)
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
-    auto result = NormVector::create(
-        this->exec,
+    auto batch_size = gko::batch_dim(
         std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
+    auto result =
+        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
 
     mtx->compute_norm2(result.get());
 
@@ -373,9 +374,9 @@ TYPED_TEST(BatchDense, ComputesNorm2)
 TYPED_TEST(BatchDense, ComputDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto result = Mtx::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 3}});
+    auto result =
+        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 3}}));
 
     ASSERT_THROW(this->mtx_1->compute_dot(this->mtx_2.get(), result.get()),
                  gko::DimensionMismatch);
@@ -385,9 +386,9 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongInputSize)
 TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto result = Mtx::create(
-        this->exec,
-        std::vector<gko::dim<2>>{gko::dim<2>{1, 3}, gko::dim<2>{1, 3}});
+    auto result =
+        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+                                    gko::dim<2>{1, 3}, gko::dim<2>{1, 3}}));
 
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result.get()),
                  gko::DimensionMismatch);
@@ -452,8 +453,8 @@ TYPED_TEST(BatchDense, ConvertsToCsr32)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -489,8 +490,8 @@ TYPED_TEST(BatchDense, MovesToCsr32)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -526,8 +527,8 @@ TYPED_TEST(BatchDense, ConvertsToCsr64)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -563,8 +564,8 @@ TYPED_TEST(BatchDense, MovesToCsr64)
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[0], gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_batch_sizes()[1], gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 2);
@@ -599,7 +600,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
 
     empty->convert_to(res.get());
 
-    ASSERT_FALSE(res->get_batch_sizes().size());
+    ASSERT_FALSE(res->get_num_batches());
 }
 
 
@@ -614,7 +615,7 @@ TYPED_TEST(BatchDense, MovesEmptyToPrecision)
 
     empty->move_to(res.get());
 
-    ASSERT_FALSE(res->get_batch_sizes().size());
+    ASSERT_FALSE(res->get_num_batches());
 }
 
 
@@ -630,7 +631,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_batch_sizes().size());
+    ASSERT_FALSE(res->get_num_batches());
 }
 
 
@@ -646,7 +647,7 @@ TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_batch_sizes().size());
+    ASSERT_FALSE(res->get_num_batches());
 }
 
 
