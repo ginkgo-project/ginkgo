@@ -55,7 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/fb_matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "cuda/test/utils.hpp"
-#include "matrices/config.hpp"
 #include "reference/test/factorization/bilu_sample.hpp"
 
 
@@ -75,8 +74,6 @@ protected:
     std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
-    std::unique_ptr<const Fbcsr> cyl2d_ref;
-    // std::unique_ptr<const Fbcsr> cyl2d_cuda;
     std::unique_ptr<const Fbcsr> rand_ref;
     std::unique_ptr<const Fbcsr> rand_unsrt_ref;
     const value_type tol;
@@ -90,21 +87,6 @@ protected:
 
     void SetUp() override
     {
-        std::string file_name(gko::matrices::location_2dcyl1_prefix);
-        file_name += ".mtx";
-        auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
-        const int block_size = 4;
-        auto ref_temp = gko::read<Fbcsr>(input_file, ref, block_size);
-        input_file.close();
-        // Make sure there are diagonal elements present
-        gko::kernels::reference::factorization::add_diagonal_blocks(
-            ref, gko::lend(ref_temp), false);
-        cyl2d_ref = gko::give(ref_temp);
-
         const bool diagdom = false;
         const index_type rand_dim = 40;
         const int bs = 7;
@@ -275,8 +257,13 @@ TEST_F(BlockFactor, CudaKernelInitializeRowPtrsBLUUnsorted)
 
 TEST_F(BlockFactor, CudaKernelInitializeBLUSorted4)
 {
-    EXPECT_TRUE(cyl2d_ref->is_sorted_by_column_index());
-    test_initializeBLU(cyl2d_ref.get());
+    const bool diagdom = false;
+    const index_type rand_dim = 41;
+    const int bs = 4;
+    auto rand2_ref = gko::test::generate_random_fbcsr<value_type>(
+        ref, std::ranlux48(43), rand_dim, rand_dim, bs, diagdom, false);
+
+    test_initializeBLU(rand2_ref.get());
 }
 
 

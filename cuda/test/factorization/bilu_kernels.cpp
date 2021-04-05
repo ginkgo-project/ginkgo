@@ -49,9 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/factorization/bilu_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
+#include "core/test/utils/fb_matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "cuda/test/utils.hpp"
-#include "matrices/config.hpp"
 
 
 namespace {
@@ -82,19 +82,12 @@ protected:
 
     void SetUp() override
     {
-        const std::string file_name =
-            gko::matrices::location_2dcyl1_prefix + std::string(".mtx");
-        auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
-        const gko::matrix_data<value_type, index_type> matdata =
-            gko::read_raw(input_file);
-        input_file.close();
-        mat_ref = Fbcsr::create(ref);
-        mat_ref->set_block_size(4);
-        mat_ref->read(matdata);
+        const bool diagdom = true;
+        const bool unsort = false;
+        const index_type rand_dim = 40;
+        const int bs = 7;
+        mat_ref = gko::test::generate_random_fbcsr<value_type>(
+            ref, std::ranlux48(43), rand_dim, rand_dim, bs, diagdom, unsort);
         mat_cuda = Fbcsr::create(cuda);
         mat_cuda->copy_from(gko::lend(mat_ref));
 

@@ -193,7 +193,7 @@ TYPED_TEST(BlockFactorization, KernelAddDiagonalElementsNonSquareUnsorted)
 }
 
 
-TYPED_TEST(BlockFactorization, KernelInitializeBLUSorted)
+TYPED_TEST(BlockFactorization, KernelInitializeBLUSortedEquivalentToReference)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;

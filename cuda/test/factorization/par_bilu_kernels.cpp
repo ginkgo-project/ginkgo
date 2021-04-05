@@ -57,7 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/factorization/block_factorization_test_utils.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
 #include "cuda/test/utils.hpp"
-#include "matrices/config.hpp"
 #include "reference/test/factorization/bilu_sample.hpp"
 
 
@@ -78,7 +77,6 @@ protected:
     std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
-    std::unique_ptr<const Fbcsr> cyl2d_ref;
     const real_type tol = std::numeric_limits<real_type>::epsilon();
 
     ParBilu()
@@ -86,23 +84,6 @@ protected:
           ref(gko::ReferenceExecutor::create()),
           cuda(gko::CudaExecutor::create(0, ref))
     {}
-
-    void SetUp() override
-    {
-        std::string file_name(gko::matrices::location_2dcyl1_prefix);
-        file_name += ".mtx";
-        auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
-        auto ref_temp = gko::read<Fbcsr>(input_file, ref, 4);
-        input_file.close();
-        // Make sure there are diagonal elements present
-        gko::kernels::reference::factorization::add_diagonal_blocks(
-            ref, gko::lend(ref_temp), false);
-        cyl2d_ref = gko::give(ref_temp);
-    }
 
     template <typename ToType, typename FromType>
     static std::unique_ptr<ToType> static_unique_ptr_cast(
