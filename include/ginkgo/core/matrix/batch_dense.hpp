@@ -413,7 +413,7 @@ private:
     {
         GKO_ASSERT(sizes.get_num_batches() == strides.get_num_batches());
         if (sizes.stores_equal_sizes() && strides.stores_equal_sizes()) {
-            return (sizes.at(0))[0] * strides.at(0);
+            return (sizes.at(0))[0] * strides.at(0) * sizes.get_num_batches();
         }
         size_type mem_req = 0;
         for (auto i = 0; i < sizes.get_num_batches(); ++i) {
@@ -427,7 +427,7 @@ private:
         if (size.stores_equal_sizes()) {
             return batch_stride(size.get_num_batches(), size.at(0)[dim]);
         }
-        std::vector<size_type> stride(size.get_num_batches(), 0);
+        std::vector<size_type> stride(size.get_num_batches());
         for (auto i = 0; i < size.get_num_batches(); ++i) {
             stride[i] = (size.at(i))[dim];
         }
@@ -460,6 +460,7 @@ private:
     {
         auto num_elems =
             Array<size_type>(exec->get_master(), sizes.get_num_batches() + 1);
+        num_elems.get_data()[0] = 0;
         for (auto i = 0; i < sizes.get_num_batches(); ++i) {
             num_elems.get_data()[i + 1] =
                 num_elems.get_data()[i] + (sizes.at(i))[0] * strides.at(i);
@@ -475,8 +476,11 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size = {})
-        : BatchDense(std::move(exec), size, extract_nth_dim(1, size))
+    BatchDense(std::shared_ptr<const Executor> exec,
+               const batch_dim &size = batch_dim{})
+        : BatchDense(std::move(exec), size,
+                     size.get_num_batches() > 0 ? extract_nth_dim(1, size)
+                                                : batch_stride{})
     {}
 
     /**
@@ -529,7 +533,8 @@ protected:
         auto num_elems =
             num_elems_per_batch_cumul_
                 .get_const_data()[num_elems_per_batch_cumul_.get_num_elems() -
-                                  1];
+                                  1] -
+            1;
         GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems());
     }
 
