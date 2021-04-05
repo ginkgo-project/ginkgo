@@ -24,4 +24,3 @@ configure_file("test/isai_spd_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/is
 configure_file("test/isai_spd_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess_rhs.mtx")
 configure_file("test/isai_spd_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv.mtx")
 configure_file("test/isai_spd_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv_partial.mtx")
-configure_file("test/2dcyl1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/2dcyl1.mtx" COPYONLY)
