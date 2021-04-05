@@ -60,17 +60,16 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::BatchDense<ValueType> *c)
 {
     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
-        for (size_type row = 0; row < c->get_batch_sizes()[batch][0]; ++row) {
-            for (size_type col = 0; col < c->get_batch_sizes()[batch][1];
-                 ++col) {
+        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
+            for (size_type col = 0; col < c->get_size().at(batch)[1]; ++col) {
                 c->at(batch, row, col) = zero<ValueType>();
             }
         }
 
-        for (size_type row = 0; row < c->get_batch_sizes()[batch][0]; ++row) {
-            for (size_type inner = 0; inner < a->get_batch_sizes()[batch][1];
+        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
+            for (size_type inner = 0; inner < a->get_size().at(batch)[1];
                  ++inner) {
-                for (size_type col = 0; col < c->get_batch_sizes()[batch][1];
+                for (size_type col = 0; col < c->get_size().at(batch)[1];
                      ++col) {
                     c->at(batch, row, col) +=
                         a->at(batch, row, inner) * b->at(batch, inner, col);
@@ -94,27 +93,25 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
         if (beta->at(batch, 0, 0) != zero<ValueType>()) {
-            for (size_type row = 0; row < c->get_batch_sizes()[batch][0];
-                 ++row) {
-                for (size_type col = 0; col < c->get_batch_sizes()[batch][1];
+            for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
+                for (size_type col = 0; col < c->get_size().at(batch)[1];
                      ++col) {
                     c->at(batch, row, col) *= beta->at(batch, 0, 0);
                 }
             }
         } else {
-            for (size_type row = 0; row < c->get_batch_sizes()[batch][0];
-                 ++row) {
-                for (size_type col = 0; col < c->get_batch_sizes()[batch][1];
+            for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
+                for (size_type col = 0; col < c->get_size().at(batch)[1];
                      ++col) {
                     c->at(batch, row, col) *= zero<ValueType>();
                 }
             }
         }
 
-        for (size_type row = 0; row < c->get_batch_sizes()[batch][0]; ++row) {
-            for (size_type inner = 0; inner < a->get_batch_sizes()[batch][1];
+        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
+            for (size_type inner = 0; inner < a->get_size().at(batch)[1];
                  ++inner) {
-                for (size_type col = 0; col < c->get_batch_sizes()[batch][1];
+                for (size_type col = 0; col < c->get_size().at(batch)[1];
                      ++col) {
                     c->at(batch, row, col) += alpha->at(batch, 0, 0) *
                                               a->at(batch, row, inner) *
@@ -134,15 +131,15 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
            matrix::BatchDense<ValueType> *x)
 {
     for (size_type batch = 0; batch < x->get_num_batches(); ++batch) {
-        if (alpha->get_batch_sizes()[batch][1] == 1) {
-            for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-                for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        if (alpha->get_size().at(batch)[1] == 1) {
+            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                     x->at(batch, i, j) *= alpha->at(batch, 0, 0);
                 }
             }
         } else {
-            for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-                for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                     x->at(batch, i, j) *= alpha->at(batch, 0, j);
                 }
             }
@@ -160,16 +157,16 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::BatchDense<ValueType> *y)
 {
     for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
-        if (alpha->get_batch_sizes()[batch][1] == 1) {
-            for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-                for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        if (alpha->get_size().at(batch)[1] == 1) {
+            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                     y->at(batch, i, j) +=
                         alpha->at(batch, 0, 0) * x->at(batch, i, j);
                 }
             }
         } else {
-            for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-                for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                     y->at(batch, i, j) +=
                         alpha->at(batch, 0, j) * x->at(batch, i, j);
                 }
@@ -189,7 +186,7 @@ void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
 // {
 // for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
 //     const auto diag_values = x->get_const_values();
-//     for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; i++) {
+//     for (size_type i = 0; i < x->get_size().at(batch)[0]; i++) {
 //         y->at(batch,i, i) += alpha->at(batch,0, 0) * diag_values[i];
 //     }
 // }
@@ -206,11 +203,11 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::BatchDense<ValueType> *result)
 {
     for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
-        for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
             result->at(batch, 0, j) = zero<ValueType>();
         }
-        for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-            for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+            for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                 result->at(batch, 0, j) +=
                     conj(x->at(batch, i, j)) * y->at(batch, i, j);
             }
@@ -227,15 +224,15 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
 {
     for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
-        for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
             result->at(batch, 0, j) = zero<remove_complex<ValueType>>();
         }
-        for (size_type i = 0; i < x->get_batch_sizes()[batch][0]; ++i) {
-            for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
+            for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
                 result->at(batch, 0, j) += squared_norm(x->at(batch, i, j));
             }
         }
-        for (size_type j = 0; j < x->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
             result->at(batch, 0, j) = sqrt(result->at(batch, 0, j));
         }
     }
@@ -250,10 +247,9 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
                           matrix::BatchCsr<ValueType, IndexType> *result)
 {
-    auto num_rows =
-        result->get_batch_sizes().data() ? result->get_batch_sizes()[0][0] : 0;
-    auto num_cols =
-        result->get_batch_sizes().data() ? result->get_batch_sizes()[1][1] : 0;
+    GKO_ASSERT(source->get_size().stores_equal_sizes() == true);
+    auto num_rows = result->get_size().at(0)[0];
+    auto num_cols = result->get_size().at(0)[1];
     auto num_batches = result->get_num_batches();
 
     auto row_ptrs = result->get_row_ptrs();
@@ -297,8 +293,8 @@ void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
                     size_type *result)
 {
     for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
-        auto num_rows = source->get_batch_sizes()[batch][0];
-        auto num_cols = source->get_batch_sizes()[batch][1];
+        auto num_rows = source->get_size().at(batch)[0];
+        auto num_cols = source->get_size().at(batch)[1];
         auto num_nonzeros = 0;
 
         for (size_type row = 0; row < num_rows; ++row) {
@@ -321,8 +317,8 @@ void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                size_type *result)
 {
     for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
-        auto num_rows = source->get_batch_sizes()[batch][0];
-        auto num_cols = source->get_batch_sizes()[batch][1];
+        auto num_rows = source->get_size().at(batch)[0];
+        auto num_cols = source->get_size().at(batch)[1];
         size_type num_stored_elements_per_row = 0;
         size_type num_nonzeros = 0;
         for (size_type row = 0; row < num_rows; ++row) {
@@ -348,8 +344,8 @@ void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                 Array<size_type> *result)
 {
     for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
-        auto num_rows = source->get_batch_sizes()[batch][0];
-        auto num_cols = source->get_batch_sizes()[batch][1];
+        auto num_rows = source->get_size().at(batch)[0];
+        auto num_cols = source->get_size().at(batch)[1];
         auto row_nnz_val = result->get_data();
         size_type offset = 0;
         for (size_type row = 0; row < num_rows; ++row) {
@@ -375,8 +371,8 @@ void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
                           size_type *slice_size)
 {
     for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
-        auto num_rows = source->get_batch_sizes()[batch][0];
-        auto num_cols = source->get_batch_sizes()[batch][1];
+        auto num_rows = source->get_size().at(batch)[0];
+        auto num_cols = source->get_size().at(batch)[1];
         auto slice_num = ceildiv(num_rows, slice_size[batch]);
         auto total_cols = 0;
         auto temp = 0, slice_temp = 0;
@@ -410,8 +406,8 @@ void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                matrix::BatchDense<ValueType> *trans)
 {
     for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
-        for (size_type i = 0; i < orig->get_batch_sizes()[batch][0]; ++i) {
-            for (size_type j = 0; j < orig->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
+            for (size_type j = 0; j < orig->get_size().at(batch)[1]; ++j) {
                 trans->at(batch, j, i) = orig->at(batch, i, j);
             }
         }
@@ -427,8 +423,8 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::BatchDense<ValueType> *trans)
 {
     for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
-        for (size_type i = 0; i < orig->get_batch_sizes()[batch][0]; ++i) {
-            for (size_type j = 0; j < orig->get_batch_sizes()[batch][1]; ++j) {
+        for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
+            for (size_type j = 0; j < orig->get_size().at(batch)[1]; ++j) {
                 trans->at(batch, j, i) = conj(orig->at(batch, i, j));
             }
         }
