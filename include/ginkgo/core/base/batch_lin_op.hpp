@@ -55,58 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-template <class storage_type>
-class batch_storage {
-public:
-    bool stores_equal_sizes() const { return equal_sizes_; }
-
-    size_type get_num_batches() const { return num_batches_; }
-
-    const std::vector<storage_type> &get_batch_sizes() const
-    {
-        if (!equal_sizes_) {
-            return sizes_;
-        } else {
-            return std::vector<storage_type>(num_batches_, common_size_);
-        }
-    }
-
-    const storage_type &at(const size_type batch = 0) const
-    {
-        if (equal_sizes_) {
-            return common_size_;
-        } else {
-            GKO_ASSERT(batch < num_batches_);
-            return sizes_[batch];
-        }
-    }
-
-protected:
-    batch_dim(const size_type num_batches, const storage_type &size)
-        : equal_sizes_(true),
-          common_size_(size),
-          num_batches_(num_batches),
-          sizes_()
-    {}
-
-    batch_dim(const std::vector<storage_type> &batch_sizes)
-        : equal_sizes_(false),
-          common_size_(storage_type{}),
-          num_batches_(size.size()),
-          sizes_(batch_sizes)
-    {}
-
-private:
-    bool equal_sizes_{};
-    size_type num_batches_{};
-    storage_type common_size_{};
-    std::vector<storage_type> sizes_{};
-};
-
-
-using batch_dim = batch_storage<dim<2>>;
-
-
 /**
  * @addtogroup BatchLinOp
  *
@@ -277,7 +225,7 @@ public:
      *
      * @return size of the operator
      */
-    const size_type &get_num_batches() const noexcept
+    size_type get_num_batches() const noexcept
     {
         return size_.get_num_batches();
     }
@@ -287,17 +235,14 @@ public:
      *
      * @return size of the operator
      */
-    const batch_dim &get_size() const noexcept { return size_; }
+    void set_size(const batch_dim &size) { size_ = size; }
 
     /**
      * Returns the size of the operator.
      *
      * @return size of the operator
      */
-    const dim<2> &get_size_at(const size_type batch = 0) const noexcept
-    {
-        return size_.get_size_at(batch);
-    }
+    const batch_dim &get_size() const noexcept { return size_; }
 
     /**
      * Returns true if the linear operator uses the data given in x as
@@ -319,7 +264,7 @@ protected:
                         const size_type num_batches = 0,
                         const dim<2> &size = dim<2>{})
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
-          size_{num_batches > 0 ? batch_dim(num_batches, size) : {}}
+          size_{num_batches > 0 ? batch_dim(num_batches, size) : batch_dim{}}
     {}
 
     /**
@@ -332,6 +277,17 @@ protected:
                         const std::vector<dim<2>> &batch_sizes)
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
           size_{batch_dim(batch_sizes)}
+    {}
+
+    /**
+     * Creates a linear operator.
+     *
+     * @param exec  the executor where all the operations are performed
+     * @param size  the size of the operator
+     */
+    explicit BatchLinOp(std::shared_ptr<const Executor> exec,
+                        const batch_dim &batch_sizes)
+        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_sizes}
     {}
 
     /**
