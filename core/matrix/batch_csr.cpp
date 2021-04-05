@@ -99,7 +99,7 @@ void BatchCsr<ValueType, IndexType>::convert_to(
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
-    result->set_batch_sizes(this->get_batch_sizes());
+    result->set_size(this->get_size());
 }
 
 
@@ -172,9 +172,9 @@ void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
         tmp->get_num_stored_elements() / tmp->get_num_batches();
     size_type offset = 0;
     for (size_type batch = 0; batch < tmp->get_num_batches(); ++batch) {
-        data[batch] = {tmp->get_batch_sizes()[batch], {}};
+        data[batch] = {tmp->get_size().at(batch), {}};
 
-        for (size_type row = 0; row < tmp->get_batch_sizes()[0][0]; ++row) {
+        for (size_type row = 0; row < tmp->get_size().at(0)[0]; ++row) {
             const auto start = tmp->row_ptrs_.get_const_data()[row];
             const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
             for (auto i = start; i < end; ++i) {
