@@ -254,6 +254,106 @@ private:
 };
 
 
+template <class storage_type>
+class batch_storage {
+public:
+    bool stores_equal_sizes() const { return equal_sizes_; }
+
+    size_type get_num_batches() const { return num_batches_; }
+
+    const std::vector<storage_type> &get_batch_sizes() const
+    {
+        if (!equal_sizes_) {
+            return sizes_;
+        } else {
+            return std::vector<storage_type>(num_batches_, common_size_);
+        }
+    }
+
+    const storage_type &at(const size_type batch = 0) const
+    {
+        if (equal_sizes_) {
+            return common_size_;
+        } else {
+            GKO_ASSERT(batch < num_batches_);
+            return sizes_[batch];
+        }
+    }
+
+    batch_storage(const size_type num_batches = 0,
+                  const storage_type &size = storage_type{})
+        : equal_sizes_(true),
+          common_size_(size),
+          num_batches_(num_batches),
+          sizes_()
+    {}
+
+    batch_storage(const std::vector<storage_type> &batch_sizes)
+        : equal_sizes_(false),
+          common_size_(storage_type{}),
+          num_batches_(batch_sizes.size()),
+          sizes_(batch_sizes)
+    {}
+
+private:
+    bool equal_sizes_{};
+    size_type num_batches_{};
+    storage_type common_size_{};
+    std::vector<storage_type> sizes_{};
+};
+
+
+template <>
+class batch_storage<dim<2>> {
+public:
+    bool stores_equal_sizes() const { return equal_sizes_; }
+
+    size_type get_num_batches() const { return num_batches_; }
+
+    std::vector<dim<2>> get_batch_sizes() const
+    {
+        if (!equal_sizes_) {
+            return sizes_;
+        } else {
+            return std::vector<dim<2>>(num_batches_, common_size_);
+        }
+    }
+
+    const dim<2> &at(const size_type batch = 0) const
+    {
+        if (equal_sizes_) {
+            return common_size_;
+        } else {
+            GKO_ASSERT(batch < num_batches_);
+            return sizes_[batch];
+        }
+    }
+
+    batch_storage(const size_type num_batches = 0,
+                  const dim<2> &size = dim<2>{})
+        : equal_sizes_(true),
+          common_size_(size),
+          num_batches_(num_batches),
+          sizes_()
+    {}
+
+    batch_storage(const std::vector<dim<2>> &batch_sizes)
+        : equal_sizes_(false),
+          common_size_(dim<2>{}),
+          num_batches_(batch_sizes.size()),
+          sizes_(batch_sizes)
+    {}
+
+private:
+    bool equal_sizes_{};
+    size_type num_batches_{};
+    dim<2> common_size_{};
+    std::vector<dim<2>> sizes_{};
+};
+
+using batch_dim = batch_storage<dim<2>>;
+
+
 /**
  * Checks if two dim objects are different.
  *
@@ -300,15 +400,18 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
  *
  * @return a std::vector<dim<2>> object with its dimensions swapped
  */
-template <typename DimensionType>
-GKO_ATTRIBUTES GKO_INLINE std::vector<dim<2, DimensionType>> batch_transpose(
-    const std::vector<dim<2, DimensionType>> &dimensions)
+inline batch_dim transpose(const batch_dim &input)
 {
-    auto trans = std::vector<dim<2, DimensionType>>(dimensions.size());
-    for (size_type i = 0; i < trans.size(); ++i) {
-        trans[i] = transpose(dimensions[i]);
+    batch_dim out{};
+    if (input.stores_equal_sizes()) {
+        out = batch_dim(input.get_num_batches(), gko::transpose(input.at(0)));
+        return out;
     }
-    return trans;
+    auto trans = std::vector<dim<2>>(input.get_num_batches());
+    for (size_type i = 0; i < trans.size(); ++i) {
+        trans[i] = transpose(input.at(i));
+    }
+    return batch_dim(trans);
 }
 
 
