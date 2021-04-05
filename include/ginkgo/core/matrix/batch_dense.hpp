@@ -49,6 +49,57 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+template <>
+class batch_storage<size_type> {
+public:
+    bool stores_equal_sizes() const { return equal_sizes_; }
+
+    size_type get_num_batches() const { return num_batches_; }
+
+    std::vector<size_type> get_batch_sizes() const
+    {
+        if (!equal_sizes_) {
+            return sizes_;
+        } else {
+            return std::vector<size_type>(num_batches_, common_size_);
+        }
+    }
+
+    const size_type &at(const size_type batch = 0) const
+    {
+        if (equal_sizes_) {
+            return common_size_;
+        } else {
+            GKO_ASSERT(batch < num_batches_);
+            return sizes_[batch];
+        }
+    }
+
+    batch_storage(const size_type num_batches = 0, const size_type &size = 0)
+        : equal_sizes_(true),
+          common_size_(size),
+          num_batches_(num_batches),
+          sizes_()
+    {}
+
+    batch_storage(const std::vector<size_type> &batch_sizes)
+        : equal_sizes_(false),
+          common_size_(size_type{}),
+          num_batches_(batch_sizes.size()),
+          sizes_(batch_sizes)
+    {}
+
+private:
+    bool equal_sizes_{};
+    size_type num_batches_{};
+    size_type common_size_{};
+    std::vector<size_type> sizes_{};
+};
+
+using batch_stride = batch_storage<size_type>;
+
 namespace matrix {
 
 
@@ -160,12 +211,12 @@ public:
         auto exec = this->get_executor();
         auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
         for (size_type b = 0; b < this->get_num_batches(); ++b) {
-            auto mat = unbatch_type::create(exec, this->get_batch_sizes()[b],
-                                            this->get_strides()[b]);
-            exec->copy_from(
-                exec.get(), mat->get_num_stored_elements(),
-                this->get_const_values() + num_elems_per_batch_cumul_[b],
-                mat->get_values());
+            auto mat = unbatch_type::create(exec, this->get_size().at(b),
+                                            this->get_stride().at(b));
+            exec->copy_from(exec.get(), mat->get_num_stored_elements(),
+                            this->get_const_values() +
+                                num_elems_per_batch_cumul_.get_const_data()[b],
+                            mat->get_values());
             unbatch_mats.emplace_back(std::move(mat));
         }
         return unbatch_mats;
@@ -186,7 +237,8 @@ public:
     value_type *get_values(size_type batch) noexcept
     {
         GKO_ASSERT(batch < this->get_num_batches());
-        return values_.get_data() + num_elems_per_batch_cumul_[batch];
+        return values_.get_data() +
+               num_elems_per_batch_cumul_.get_const_data()[batch];
     }
 
     /**
@@ -211,7 +263,8 @@ public:
     const value_type *get_const_values(size_type batch) const noexcept
     {
         GKO_ASSERT(batch < this->get_num_batches());
-        return values_.get_const_data() + num_elems_per_batch_cumul_[batch];
+        return values_.get_const_data() +
+               num_elems_per_batch_cumul_.get_const_data()[batch];
     }
 
     /**
@@ -239,8 +292,8 @@ public:
     size_type get_num_stored_elements(size_type batch) const noexcept
     {
         GKO_ASSERT(batch < this->get_num_batches());
-        return num_elems_per_batch_cumul_[batch + 1] -
-               num_elems_per_batch_cumul_[batch];
+        return num_elems_per_batch_cumul_.get_const_data()[batch + 1] -
+               num_elems_per_batch_cumul_.get_const_data()[batch];
     }
 
     /**
@@ -376,7 +429,7 @@ private:
         }
         std::vector<size_type> stride(size.get_num_batches(), 0);
         for (auto i = 0; i < size.get_num_batches(); ++i) {
-            stride[i] = (size.at(i)[dim];
+            stride[i] = (size.at(i))[dim];
         }
         return batch_stride(stride);
     }
@@ -401,13 +454,17 @@ private:
         return batch_dim(sizes);
     }
 
-    inline std::vector<size_type> compute_num_elems_per_batch_cumul(
-        const batch_dim &sizes, const batch_stride &strides)
+    inline Array<size_type> compute_num_elems_per_batch_cumul(
+        std::shared_ptr<const Executor> exec, const batch_dim &sizes,
+        const batch_stride &strides)
     {
-        auto num_elems = std::vector<size_type>(sizes.get_num_batches() + 1, 0);
-        for (auto i = 0; i < sizes.size(); ++i) {
-            num_elems[i + 1] = num_elems[i] + (sizes.at(i))[0] * strides.at(i);
+        auto num_elems =
+            Array<size_type>(exec->get_master(), sizes.get_num_batches() + 1);
+        for (auto i = 0; i < sizes.get_num_batches(); ++i) {
+            num_elems.get_data()[i + 1] =
+                num_elems.get_data()[i] + (sizes.at(i))[0] * strides.at(i);
         }
+        num_elems.set_executor(exec);
         return num_elems;
     }
 
@@ -419,7 +476,7 @@ protected:
      * @param size  size of the matrix
      */
     BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size = {})
-        : BatchDense(std::move(exec), size, extract_nth_dim(1, sizes))
+        : BatchDense(std::move(exec), size, extract_nth_dim(1, size))
     {}
 
     /**
@@ -438,7 +495,7 @@ protected:
           stride_(stride)
     {
         num_elems_per_batch_cumul_ =
-            compute_num_elems_per_batch_cumul(this->get_size(), strides);
+            compute_num_elems_per_batch_cumul(exec, this->get_size(), stride);
     }
 
     /**
@@ -465,10 +522,15 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride},
           num_elems_per_batch_cumul_(
-              compute_num_elems_per_batch_cumul(this->get_size(), stride))
+              exec->get_master(),
+              compute_num_elems_per_batch_cumul(exec->get_master(),
+                                                this->get_size(), stride))
     {
-        GKO_ENSURE_IN_BOUNDS(num_elems_per_batch_cumul_.back() - 1,
-                             values_.get_num_elems());
+        auto num_elems =
+            num_elems_per_batch_cumul_
+                .get_const_data()[num_elems_per_batch_cumul_.get_num_elems() -
+                                  1];
+        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems());
     }
 
     /**
@@ -483,14 +545,15 @@ protected:
           stride_{get_strides_from_mtxs(matrices)},
           values_(exec, compute_batch_mem(this->get_size(), stride_))
     {
-        num_elems_per_batch_cumul_ =
-            compute_num_elems_per_batch_cumul(this->get_size(), stride_);
+        num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
+            exec->get_master(), this->get_size(), stride_);
         for (size_type i = 0; i < this->get_num_batches(); ++i) {
             auto local_exec = matrices[i]->get_executor();
             exec->copy_from(local_exec.get(),
                             matrices[i]->get_num_stored_elements(),
                             matrices[i]->get_const_values(),
-                            this->get_values() + num_elems_per_batch_cumul_[i]);
+                            this->get_values() +
+                                num_elems_per_batch_cumul_.get_const_data()[i]);
         }
     }
 
@@ -548,8 +611,8 @@ protected:
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept
     {
-        return num_elems_per_batch_cumul_[batch] + row * stride_.at(batch) +
-               col;
+        return num_elems_per_batch_cumul_.get_const_data()[batch] +
+               row * stride_.at(batch) + col;
     }
 
     size_type linearize_index(size_type batch, size_type idx) const noexcept
@@ -560,7 +623,7 @@ protected:
 
 private:
     batch_stride stride_;
-    std::vector<size_type> num_elems_per_batch_cumul_;
+    Array<size_type> num_elems_per_batch_cumul_;
     Array<value_type> values_;
 };
 
@@ -606,7 +669,9 @@ std::unique_ptr<Matrix> batch_initialize(
         sizes[b] = dim<2>(num_rows[b], 1);
         vals_begin++;
     }
-    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    auto b_size = batch_dim(sizes);
+    auto b_stride = batch_stride(stride);
+    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto &b : vals) {
         size_type idx = 0;
@@ -695,7 +760,9 @@ std::unique_ptr<Matrix> batch_initialize(
         sizes[ind] = dim<2>(num_rows[ind], num_cols[ind]);
         ++ind;
     }
-    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    auto b_size = batch_dim(sizes);
+    auto b_stride = batch_stride(stride);
+    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (const auto &b : vals) {
         size_type ridx = 0;
@@ -793,7 +860,9 @@ std::unique_ptr<Matrix> batch_initialize(
         num_rows[b] = vals.size();
         sizes[b] = dim<2>(vals.size(), 1);
     }
-    auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
+    auto b_size = batch_dim(sizes);
+    auto b_stride = batch_stride(stride);
+    auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
