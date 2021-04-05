@@ -93,7 +93,7 @@ protected:
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
         ASSERT_EQ(m->get_num_batches(), 2);
-        ASSERT_EQ(m->get_batch_sizes()[0], gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 8);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(r[1], 3);
@@ -115,7 +115,7 @@ protected:
     void assert_empty(const Mtx *m)
     {
         ASSERT_EQ(m->get_num_batches(), 0);
-        ASSERT_FALSE(m->get_batch_sizes().size());
+        ASSERT_FALSE(m->get_num_batches());
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
@@ -128,8 +128,8 @@ TYPED_TEST_SUITE(BatchCsr, gko::test::ValueIndexTypes);
 
 TYPED_TEST(BatchCsr, KnowsItsSize)
 {
-    ASSERT_EQ(this->mtx->get_batch_sizes()[0], gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx->get_batch_sizes()[1], gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx->get_size().at(0), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx->get_size().at(1), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx->get_num_stored_elements(), 8);
 }
 
