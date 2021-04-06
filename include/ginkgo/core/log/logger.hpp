@@ -544,7 +544,7 @@ protected:
      * @param res_norms  A BatchDense matrix of size num_matrices x 1 x num_RHS,
      *             which stores the final residual norms.
      */
-    GKO_LOGGER_REGISTER_EVENT(22, batch_solver_completed, const Array<int>& its,
+    GKO_LOGGER_REGISTER_EVENT(28, batch_solver_completed, const Array<int>& its,
                               const LinOp* res_norms)
 
 public:
