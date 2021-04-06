@@ -51,54 +51,69 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-template <>
-class batch_storage<size_type> {
+class batch_stride {
 public:
-    bool stores_equal_sizes() const { return equal_sizes_; }
+    bool stores_equal_strides() const { return equal_strides_; }
 
     size_type get_num_batches() const { return num_batches_; }
 
-    std::vector<size_type> get_batch_sizes() const
+    std::vector<size_type> get_batch_strides() const
     {
-        if (!equal_sizes_) {
-            return sizes_;
+        if (!equal_strides_) {
+            return strides_;
         } else {
-            return std::vector<size_type>(num_batches_, common_size_);
+            return std::vector<size_type>(num_batches_, common_stride_);
         }
     }
 
     const size_type &at(const size_type batch = 0) const
     {
-        if (equal_sizes_) {
-            return common_size_;
+        if (equal_strides_) {
+            return common_stride_;
         } else {
             GKO_ASSERT(batch < num_batches_);
-            return sizes_[batch];
+            return strides_[batch];
         }
     }
 
-    batch_storage(const size_type num_batches = 0, const size_type &size = 0)
-        : equal_sizes_(true),
-          common_size_(size),
+    /**
+     * Checks if two batch_stride objects are equal.
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return true if and only if all dimensions of both objects are equal.
+     */
+    friend const bool operator==(const batch_stride &x, const batch_stride &y)
+    {
+        if (x.equal_strides_ && y.equal_strides_) {
+            return x.num_batches_ == y.num_batches_ &&
+                   x.common_stride_ == y.common_stride_;
+        } else {
+            return x.strides_ == y.strides_;
+        }
+    }
+
+    batch_stride(const size_type num_batches = 0, const size_type &stride = 0)
+        : equal_strides_(true),
+          common_stride_(stride),
           num_batches_(num_batches),
-          sizes_()
+          strides_()
     {}
 
-    batch_storage(const std::vector<size_type> &batch_sizes)
-        : equal_sizes_(false),
-          common_size_(size_type{}),
-          num_batches_(batch_sizes.size()),
-          sizes_(batch_sizes)
+    batch_stride(const std::vector<size_type> &batch_strides)
+        : equal_strides_(false),
+          common_stride_(size_type{}),
+          num_batches_(batch_strides.size()),
+          strides_(batch_strides)
     {}
 
 private:
-    bool equal_sizes_{};
+    bool equal_strides_{};
     size_type num_batches_{};
-    size_type common_size_{};
-    std::vector<size_type> sizes_{};
+    size_type common_stride_{};
+    std::vector<size_type> strides_{};
 };
-
-using batch_stride = batch_storage<size_type>;
 
 namespace matrix {
 
@@ -145,7 +160,6 @@ public:
     using EnableBatchLinOp<BatchDense>::move_to;
     using BatchReadableFromMatrixData<ValueType, int32>::read;
     using BatchReadableFromMatrixData<ValueType, int64>::read;
-    using batch_stride = batch_storage<size_type>;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -412,7 +426,7 @@ private:
                                        const batch_stride &strides)
     {
         GKO_ASSERT(sizes.get_num_batches() == strides.get_num_batches());
-        if (sizes.stores_equal_sizes() && strides.stores_equal_sizes()) {
+        if (sizes.stores_equal_sizes() && strides.stores_equal_strides()) {
             return (sizes.at(0))[0] * strides.at(0) * sizes.get_num_batches();
         }
         size_type mem_req = 0;
