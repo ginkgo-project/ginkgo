@@ -4,7 +4,7 @@
 LIBRARY_DIRS="core core/device_hooks reference omp cuda hip"
 LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_omp ginkgo_cuda ginkgo_hip ginkgo_dpcpp"
 SUFFIXES=".so .dylib .dll d.so d.dylib d.dll"
-VERSION="1.3.0"
+VERSION="1.4.0"
 for prefix in ${LIBRARY_DIRS}; do
     for name in ${LIBRARY_NAMES}; do
         for suffix in ${SUFFIXES}; do
