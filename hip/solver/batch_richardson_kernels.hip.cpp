@@ -51,7 +51,8 @@ using BatchRichardsonOptions =
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-           const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
+           const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
 
