@@ -64,7 +64,7 @@ namespace cuda {
 namespace batch_dense {
 
 
-constexpr auto default_block_size = 512;
+// constexpr auto default_block_size = 512;
 
 
 template <typename ValueType>
