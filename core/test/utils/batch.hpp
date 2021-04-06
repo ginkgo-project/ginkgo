@@ -149,9 +149,10 @@ std::shared_ptr<matrix::BatchCsr<ValueType, int>> create_poisson1d_batch(
         va[lrstart + 1] = 2.0;
     }
     using Mtx = matrix::BatchCsr<ValueType, int>;
-    return Mtx::create(exec, nbatch, gko::dim<2>{(size_t)nrows, (size_t)nrows},
-                       std::move(vals), std::move(col_idxs),
-                       std::move(row_ptrs));
+    return Mtx::create(
+        exec, nbatch,
+        gko::dim<2>{static_cast<size_t>(nrows), static_cast<size_t>(nrows)},
+        std::move(vals), std::move(col_idxs), std::move(row_ptrs));
 }
 
 
