@@ -546,7 +546,7 @@ protected:
      *             which stores the final residual norms.
      */
     GKO_LOGGER_REGISTER_EVENT(28, batch_solver_completed, const Array<int> &its,
-                              const LinOp *res_norms)
+                              const BatchLinOp *res_norms)
 
 public:
 #undef GKO_LOGGER_REGISTER_EVENT
