@@ -99,7 +99,7 @@ Ginkgo adds the following additional switches to control what is being built:
     list of architectures. Supported values are:
 
     *   `Auto`
-    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`, `Ampere`
+    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`, `Turing` `Ampere`
     *   `CODE`, `CODE(COMPUTE)`, `(COMPUTE)`
 
     `Auto` will automatically detect the present CUDA-enabled GPU architectures
@@ -137,7 +137,7 @@ Depending on the configuration settings, some manual work might be required:
 * Build Ginkgo as shared library:
   Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
   `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default. More Details are available in the [Installation page](./INSTALL.md).
-  * cmd: `set PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;%PATH%"`
+  * cmd: `set PATH=<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;%PATH%`
   * powershell: `$env:PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;$env:PATH"`
 
   CMake will give the following error message if the path is not correct.
@@ -147,16 +147,16 @@ Depending on the configuration settings, some manual work might be required:
   where `<path>` is the needed `<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>`.
 * Build Ginkgo with Debug mode:
   Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
-  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
+  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `/bigobj` or `-Wa,-mbig-obj`
   2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
 
   The following are the details for different environments:
   * _Microsoft Visual Studio_:
     1. `bigobj` issue
-      * `cmake -DCMAKE_CXX_FLAGS=\bigobj <other parameters> <source_folder>` which might overwrite the default settings.
-      * add `\bigobj` into the environment variable `CXXFLAGS` (only available in the first cmake configuration)
-        * cmd: `set CXXFLAGS=\bigobj`
-        * powershell: `$env:CXXFLAGS=\bigobj`
+      * `cmake -DCMAKE_CXX_FLAGS=/bigobj <other parameters> <source_folder>` which might overwrite the default settings.
+      * add `/bigobj` into the environment variable `CXXFLAGS` (only available in the first cmake configuration)
+        * cmd: `set CXXFLAGS=/bigobj`
+        * powershell: `$env:CXXFLAGS=/bigobj`
     2. `ld` issue (_Microsoft Visual Studio_ does not have this issue)
   * _Cygwin_:
     1. `bigobj` issue
