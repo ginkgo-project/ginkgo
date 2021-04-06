@@ -254,57 +254,7 @@ private:
 };
 
 
-template <class storage_type>
-class batch_storage {
-public:
-    bool stores_equal_sizes() const { return equal_sizes_; }
-
-    size_type get_num_batches() const { return num_batches_; }
-
-    const std::vector<storage_type> &get_batch_sizes() const
-    {
-        if (!equal_sizes_) {
-            return sizes_;
-        } else {
-            return std::vector<storage_type>(num_batches_, common_size_);
-        }
-    }
-
-    const storage_type &at(const size_type batch = 0) const
-    {
-        if (equal_sizes_) {
-            return common_size_;
-        } else {
-            GKO_ASSERT(batch < num_batches_);
-            return sizes_[batch];
-        }
-    }
-
-    batch_storage(const size_type num_batches = 0,
-                  const storage_type &size = storage_type{})
-        : equal_sizes_(true),
-          common_size_(size),
-          num_batches_(num_batches),
-          sizes_()
-    {}
-
-    batch_storage(const std::vector<storage_type> &batch_sizes)
-        : equal_sizes_(false),
-          common_size_(storage_type{}),
-          num_batches_(batch_sizes.size()),
-          sizes_(batch_sizes)
-    {}
-
-private:
-    bool equal_sizes_{};
-    size_type num_batches_{};
-    storage_type common_size_{};
-    std::vector<storage_type> sizes_{};
-};
-
-
-template <>
-class batch_storage<dim<2>> {
+class batch_dim {
 public:
     bool stores_equal_sizes() const { return equal_sizes_; }
 
@@ -329,15 +279,32 @@ public:
         }
     }
 
-    batch_storage(const size_type num_batches = 0,
-                  const dim<2> &size = dim<2>{})
+    /**
+     * Checks if two batch_dim objects are equal.
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return true if and only if all dimensions of both objects are equal.
+     */
+    friend const bool operator==(const batch_dim &x, const batch_dim &y)
+    {
+        if (x.equal_sizes_ && y.equal_sizes_) {
+            return x.num_batches_ == y.num_batches_ &&
+                   x.common_size_ == y.common_size_;
+        } else {
+            return x.sizes_ == y.sizes_;
+        }
+    }
+
+    batch_dim(const size_type num_batches = 0, const dim<2> &size = dim<2>{})
         : equal_sizes_(true),
           common_size_(size),
           num_batches_(num_batches),
           sizes_()
     {}
 
-    batch_storage(const std::vector<dim<2>> &batch_sizes)
+    batch_dim(const std::vector<dim<2>> &batch_sizes)
         : equal_sizes_(false),
           common_size_(dim<2>{}),
           num_batches_(batch_sizes.size()),
@@ -363,8 +330,6 @@ private:
     dim<2> common_size_{};
     std::vector<dim<2>> sizes_{};
 };
-
-using batch_dim = batch_storage<dim<2>>;
 
 
 /**
