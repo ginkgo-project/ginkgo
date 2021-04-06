@@ -44,13 +44,11 @@ namespace log {
 
 template <typename ValueType>
 void BatchConvergence<ValueType>::on_batch_solver_completed(
-    const Array<int> &num_iterations, const LinOp *const residual_norm) const
+    const Array<int> &num_iterations,
+    const BatchLinOp *const residual_norm) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     using NormVector = matrix::BatchDense<real_type>;
-    // this->residual_norm_ = NormVector::create(
-    // 	   residual->get_executor(), dim<2>{1, residual->get_size()[1]});
-    // this->num_iterations_->resize_and_reset();
     this->num_iterations_ = num_iterations;
     auto res_norm = as<NormVector>(residual_norm);
     if (res_norm) {

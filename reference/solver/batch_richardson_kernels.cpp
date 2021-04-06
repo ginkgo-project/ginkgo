@@ -199,13 +199,14 @@ void apply_select_prec(
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-           const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
+           const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            gko::log::BatchLogData<ValueType> &logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        b->get_batch_sizes()[0][1], opts.max_its,
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
+        b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
+        logdata.iter_counts.get_data());
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
         get_batch_struct(b);
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
