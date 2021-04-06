@@ -287,7 +287,7 @@ public:
      *
      * @return true if and only if all dimensions of both objects are equal.
      */
-    friend const bool operator==(const batch_dim &x, const batch_dim &y)
+    friend bool operator==(const batch_dim &x, const batch_dim &y)
     {
         if (x.equal_sizes_ && y.equal_sizes_) {
             return x.num_batches_ == y.num_batches_ &&
