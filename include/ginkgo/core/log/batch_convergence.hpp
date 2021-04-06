@@ -75,8 +75,9 @@ public:
      * @param residual_norm  A BatchDense matrix of size
      *     num_matrices x 1 x num_RHS, which stores the final residual norms.
      */
-    void on_batch_solver_completed(const Array<int> &num_iterations,
-                                   const LinOp *residual_norm) const override;
+    void on_batch_solver_completed(
+        const Array<int> &num_iterations,
+        const BatchLinOp *residual_norm) const override;
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,

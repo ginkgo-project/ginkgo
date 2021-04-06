@@ -73,10 +73,9 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     const gko::size_type nbatch = 3;
     const int nrows = 5;
-    const gko::size_type cumul_sz = nbatch * nrows;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchrich_factory;
-    std::unique_ptr<gko::LinOp> solver;
+    std::unique_ptr<gko::BatchLinOp> solver;
     const int def_max_iters = 10;
     const real_type def_rel_res_tol = 1e-4;
 };
@@ -93,8 +92,10 @@ TYPED_TEST(BatchRich, FactoryKnowsItsExecutor)
 TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
-    ASSERT_EQ(this->solver->get_size(),
-              gko::dim<2>(this->cumul_sz, this->cumul_sz));
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(this->solver->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
     auto batchrich_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(batchrich_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(batchrich_solver->get_system_matrix(), this->mtx);
@@ -109,7 +110,10 @@ TYPED_TEST(BatchRich, CanBeCopied)
 
     copy->copy_from(this->solver.get());
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(this->cumul_sz, this->cumul_sz));
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(copy->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
@@ -124,7 +128,10 @@ TYPED_TEST(BatchRich, CanBeMoved)
 
     copy->copy_from(std::move(this->solver));
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(this->cumul_sz, this->cumul_sz));
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(copy->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
@@ -137,7 +144,10 @@ TYPED_TEST(BatchRich, CanBeCloned)
     using Solver = typename TestFixture::Solver;
     auto clone = this->solver->clone();
 
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(this->cumul_sz, this->cumul_sz));
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(clone->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
@@ -147,9 +157,11 @@ TYPED_TEST(BatchRich, CanBeCloned)
 TYPED_TEST(BatchRich, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
+
     this->solver->clear();
 
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->solver->get_num_batches(), 0);
+    ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
     auto solver_mtx =
         static_cast<Solver *>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
