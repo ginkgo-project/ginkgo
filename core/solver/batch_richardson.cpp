@@ -52,7 +52,7 @@ GKO_REGISTER_OPERATION(apply, batch_rich::apply);
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchRichardson<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -60,13 +60,13 @@ std::unique_ptr<LinOp> BatchRichardson<ValueType>::transpose() const
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_relaxation_factor(parameters_.relaxation_factor)
         .on(this->get_executor())
-        ->generate(
-            share(as<Transposable>(this->get_system_matrix())->transpose()));
+        ->generate(share(
+            as<BatchTransposable>(this->get_system_matrix())->transpose()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchRichardson<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -74,13 +74,14 @@ std::unique_ptr<LinOp> BatchRichardson<ValueType>::conj_transpose() const
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
         .on(this->get_executor())
-        ->generate(share(
-            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+        ->generate(share(as<BatchTransposable>(this->get_system_matrix())
+                             ->conj_transpose()));
 }
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *b,
+                                            BatchLinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
@@ -93,9 +94,9 @@ void BatchRichardson<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     log::BatchLogData<ValueType> logdata;
     // allocate logging arrays assuming uniform size batch
-    const size_type num_rhs = dense_b->get_batch_sizes()[0][1];
+    const size_type num_rhs = dense_b->get_size().at(0)[1];
     const size_type num_batches = dense_b->get_num_batches();
-    std::vector<dim<2>> sizes(num_batches, dim<2>{1, num_rhs});
+    batch_dim sizes(num_batches, dim<2>{1, num_rhs});
     logdata.res_norms =
         matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
     logdata.iter_counts.set_executor(this->get_executor());
@@ -104,16 +105,16 @@ void BatchRichardson<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     exec->run(batch_rich::make_apply(opts, system_matrix_.get(), dense_b,
                                      dense_x, logdata));
 
-    // this->template log<log::Logger::iteration_complete>(
-    //     this, iter, r.get(), dense_x, nullptr, rho.get());
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
 }
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                            const LinOp *beta, LinOp *x) const
+void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                            const BatchLinOp *b,
+                                            const BatchLinOp *beta,
+                                            BatchLinOp *x) const
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 
