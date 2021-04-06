@@ -255,6 +255,25 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
 }
 
 
+inline std::tuple<bool, int> check_batch_square(const batch_dim &size)
+{
+    if (size.stores_equal_sizes()) {
+        if (size.at(0)[0] != size.at(0)[1]) {
+            return std::tuple<bool, int>{false, 0};
+        } else {
+            return std::tuple<bool, int>{true, 0};
+        }
+    }
+
+    for (auto i = 0; i < size.get_num_batches(); ++i) {
+        if (size.at(i)[1] != size.at(i)[1]) {
+            return std::tuple<bool, int>{false, i};
+        }
+    }
+    return std::tuple<bool, int>{true, 0};
+}
+
+
 }  // namespace detail
 
 
@@ -524,9 +543,28 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
                 "expected equal dimensions");                                  \
         }                                                                      \
     }
+/**
+ *Asserts that _op is a batch made up of square matrices.
+ *
+ *@throw DimensionMismatch  if the number of rows of _op is different from the
+ *                          number of columns of _op.
+ */
+#define GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(_op)                              \
+    auto comp =                                                                \
+        ::gko::detail::check_batch_square(::gko::detail::get_batch_size(_op)); \
+    if (!std::get<0>(comp)) {                                                  \
+        throw ::gko::DimensionMismatch(                                        \
+            __FILE__, __LINE__, __func__, #_op,                                \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[0],       \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[1], #_op, \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[0],       \
+            ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[1],       \
+            "expected square matrices in batch");                              \
+    }
 
 
 /**
+<<<<<<< HEAD
  * Instantiates a MpiError.
  *
  * @param errcode  The error code returned from the MPI routine.
