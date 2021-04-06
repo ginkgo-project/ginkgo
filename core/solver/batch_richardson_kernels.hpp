@@ -58,12 +58,13 @@ struct BatchRichardsonOptions {
 };
 
 
-#define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)                       \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const gko::kernels::batch_rich::BatchRichardsonOptions<         \
-                   remove_complex<_type>> &options,                            \
-               const LinOp *const a, const matrix::BatchDense<_type> *const b, \
-               matrix::BatchDense<_type> *const x,                             \
+#define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)               \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,            \
+               const gko::kernels::batch_rich::BatchRichardsonOptions< \
+                   remove_complex<_type>> &options,                    \
+               const BatchLinOp *const a,                              \
+               const matrix::BatchDense<_type> *const b,               \
+               matrix::BatchDense<_type> *const x,                     \
                gko::log::BatchLogData<_type> &logdata)
 
 

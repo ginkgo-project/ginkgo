@@ -75,13 +75,13 @@ namespace solver {
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchRichardson : public EnableLinOp<BatchRichardson<ValueType>>,
-                        public Transposable {
-    friend class EnableLinOp<BatchRichardson>;
-    friend class EnablePolymorphicObject<BatchRichardson, LinOp>;
+class BatchRichardson : public EnableBatchLinOp<BatchRichardson<ValueType>>,
+                        public BatchTransposable {
+    friend class EnableBatchLinOp<BatchRichardson>;
+    friend class EnablePolymorphicObject<BatchRichardson, BatchLinOp>;
 
 public:
     using value_type = ValueType;
@@ -93,14 +93,14 @@ public:
      *
      * @return the system operator (matrix)
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
+    std::shared_ptr<const BatchLinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -131,27 +131,28 @@ public:
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor, real_type{1});
     };
-    GKO_ENABLE_LIN_OP_FACTORY(BatchRichardson, parameters, Factory);
+    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchRichardson, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
     explicit BatchRichardson(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<BatchRichardson>(std::move(exec))
+        : EnableBatchLinOp<BatchRichardson>(std::move(exec))
     {}
 
     explicit BatchRichardson(const Factory *factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<BatchRichardson>(factory->get_executor(),
-                                       system_matrix->get_size()),
+                             std::shared_ptr<const BatchLinOp> system_matrix)
+        : EnableBatchLinOp<BatchRichardson>(factory->get_executor(),
+                                            system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+        // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
         if (!preconditioner::batch::is_valid_preconditioner_string(
@@ -161,7 +162,7 @@ protected:
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };
 
