@@ -1,4 +1,5 @@
-if (GINKGO_HIP_PLATFORM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
+    AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
     message(FATAL_ERROR "Ginkgo HIP backend requires CUDA >= 9.2.")
 endif()
 
@@ -95,19 +96,20 @@ execute_process(
             )
 set(GINKGO_HIP_VERSION ${GINKGO_HIP_VERSION} PARENT_SCOPE)
 
-if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+    # ensure ENV{CUDA_PATH} is set by the user
     if (NOT DEFINED ENV{CUDA_PATH})
         find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
         if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
-            message(FATAL_ERROR "HIP nvcc backend was requested but CUDA could not be located. "
-                "Set and export the environment variable CUDA_PATH.")
+            message(FATAL_ERROR "HIP nvidia backend was requested but CUDA could not be "
+                "located. Set and export the environment variable CUDA_PATH.")
          endif()
      endif()
 endif()
 
 ## Setup all CMAKE variables to find HIP and its dependencies
 list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
-if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}/lib/cmake")
 endif()
 list(APPEND CMAKE_PREFIX_PATH
@@ -192,7 +194,7 @@ set(GINKGO_HIP_SOURCES
     stop/residual_norm_kernels.hip.cpp)
 
 set(GINKGO_HIP_NVCC_ARCH "")
-if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
         set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE STRING "" FORCE)
     elseif(GINKGO_CUDA_DEFAULT_HOST_COMPILER)
@@ -205,8 +207,9 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
     list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "--expt-relaxed-constexpr")
 
-    if (GINKGO_HIP_PLATFROM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION
-            MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+    if (GINKGO_HIP_PLATFROM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
+            AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
+            AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
         ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
 
         if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
@@ -255,7 +258,7 @@ target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hipran
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 
-if(GINKGO_HIP_PLATFORM MATCHES "hcc")
+if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     find_package(hip REQUIRED)
     # To save a bit of pain, we directly link against the `library` instead of
     # linking against the target.
@@ -266,14 +269,14 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
         get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_RELEASE)
     endif()
     target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
-elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
+elseif(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     find_package(CUDA 9.2 REQUIRED)
     target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
 endif()
 
 # Try to find everything in /opt/rocm/lib first.
 set(GKO_HIP_RPATH "${ROCM_PATH}/lib" )
-if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     list(GET CUDA_LIBRARIES 0 CUDA_FIRST_LIB)
     get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
     list(APPEND GKO_HIP_RPATH "${GKO_CUDA_LIBDIR}")
