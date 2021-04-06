@@ -63,7 +63,7 @@ struct DummyLogged : gko::log::EnableLogging<DummyLogged> {
     {
         gko::Array<int> iter_counts(exec, nbatch * nrhs);
         int *const itervals = iter_counts.get_data();
-        const std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>{1, nrhs});
+        const gko::batch_dim sizes(nbatch, gko::dim<2>{1, nrhs});
         auto res_norms =
             gko::matrix::BatchDense<value_type>::create(exec, sizes);
         // value_type *const resnormvals = res_norms->get_values();
@@ -88,7 +88,8 @@ TEST(BatchConvergence, CanGetEmptyData)
     auto logger = gko::log::BatchConvergence<value_type>::create(exec);
 
     ASSERT_EQ(logger->get_num_iterations().get_num_elems(), 0);
-    ASSERT_EQ(logger->get_residual_norm()->get_size(), (gko::dim<2>{0, 0}));
+    ASSERT_EQ(logger->get_residual_norm()->get_size().at(0),
+              (gko::dim<2>{0, 0}));
 }
 
 TEST(BatchConvergence, CanGetLogData)
@@ -107,9 +108,9 @@ TEST(BatchConvergence, CanGetLogData)
     ASSERT_EQ(logger->get_num_iterations().get_num_elems(),
               dum.nbatch * dum.nrhs);
     ASSERT_EQ(logger->get_residual_norm()->get_num_batches(), dum.nbatch);
-    ASSERT_EQ(logger->get_residual_norm()->get_batch_sizes()[0],
+    ASSERT_EQ(logger->get_residual_norm()->get_size().at(0),
               (gko::dim<2>{1, dum.nrhs}));
-    ASSERT_EQ(logger->get_residual_norm()->get_batch_sizes()[1],
+    ASSERT_EQ(logger->get_residual_norm()->get_size().at(1),
               (gko::dim<2>{1, dum.nrhs}));
     ASSERT_EQ(iters[0], 10);
     ASSERT_EQ(iters[1], 9);
