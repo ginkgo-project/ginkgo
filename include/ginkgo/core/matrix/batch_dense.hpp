@@ -84,7 +84,7 @@ public:
      *
      * @return true if and only if all dimensions of both objects are equal.
      */
-    friend const bool operator==(const batch_stride &x, const batch_stride &y)
+    friend bool operator==(const batch_stride &x, const batch_stride &y)
     {
         if (x.equal_strides_ && y.equal_strides_) {
             return x.num_batches_ == y.num_batches_ &&
