@@ -149,7 +149,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         r.get());
     r_tld->copy_from(r.get());
 
-    int iter = 0;
+    int iter = -1;
     /* Memory movement summary:
      * 28n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
