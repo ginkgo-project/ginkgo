@@ -149,7 +149,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         r.get());
     r_tld->copy_from(r.get());
 
-    int iter = 0;
+    int iter = -1;
     /* Memory movement summary:
      * 28n * values + 2 * matrix/preconditioner storage
      * 2x SpMV:                4n * values + 2 * storage
@@ -162,6 +162,19 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
      */
     while (true) {
         r->compute_dot(r_tld.get(), rho.get());
+
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            break;
+        }
+
         // beta = rho / rho_prev
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
@@ -184,18 +197,6 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         // x = x + alpha * u_hat
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
                                    alpha.get(), &stop_status));
-
-        ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            break;
-        }
 
         swap(rho_prev, rho);
     }
