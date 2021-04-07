@@ -1,4 +1,5 @@
 stages:
+  - init-status
   - sync
   - build
   - code_quality
@@ -8,6 +9,7 @@ stages:
   - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
+  - on-success
   - on-failure
 
 # Templates with reasonable defaults for builds and tests
@@ -140,6 +142,70 @@ stages:
   dependencies: []
   except:
       - schedules
+
+status_pending:
+  stage: init-status
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  variables:
+    STATUS_CONTEXT: "quick"
+  script: |
+    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+    -d "{\"state\":\"pending\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
+  only:
+    variables:
+      - $RUN_CI_TAG
+  except:
+    refs:
+      - develop
+      - master
+      - tags    
+  tags:
+    - private_ci
+    - cpu
+
+status_success:
+  stage: on-success
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  variables:
+    STATUS_CONTEXT: "quick"
+  script: |
+    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+    -d "{\"state\":\"success\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
+  only:
+    variables:
+      - $RUN_CI_TAG
+  except:
+    refs:
+      - develop
+      - master
+      - tags
+  tags:
+    - private_ci
+    - cpu
+
+status_failure:
+  stage: on-failure
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  variables:
+    STATUS_CONTEXT: "quick"
+  script: |
+    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+    -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
+  when: on_failure
+  only:
+    variables:
+      - $RUN_CI_TAG
+  except:
+    refs:
+      - develop
+      - master
+      - tags
+  tags:
+    - private_ci
+    - cpu
 
 sync:
   stage: sync
