@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
-#include "core/test/utils.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {

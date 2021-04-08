@@ -43,9 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+// Visual Studio does not define the constructor of std::mutex as constexpr,
+// causing it to not be initialized when creating this executor (which uses
+// the mutex)
+#if !defined(_MSC_VER)
 // prevent device reset after each test
 auto no_reset_exec =
     gko::HipExecutor::create(0, gko::ReferenceExecutor::create(), true);
+#endif
 
 
 }  // namespace
