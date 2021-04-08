@@ -44,54 +44,18 @@ namespace kernels {
 namespace reference {
 
 
-/**
- * Identity preconditioner for batch solvers.(Effectively unpreconditioned
- * solver)
- */
+#include "core/preconditioner/batch_identity.hpp"
+
 template <typename ValueType>
-class BatchIdentity final {
-public:
-    /**
-     * The size of the work vector required in case of static allocation.
-     */
-    static constexpr int work_size = 0;
-
-    /**
-     * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Identity preconditioner, this is unnecessary, but this function
-     * is part of a 'batch preconditioner interface' because other
-     * preconditioners may need it.
-     */
-    static int dynamic_work_size(int, int) { return 0; }
-
-    /**
-     * Sets the input and generates identity preconditioner(In reality, it
-     * generates nothing (work size array is 0) as application of identity
-     * preconditioner is trivial)
-     *
-     * @param mat  Matrix for which to build an Identity preconditioner.
-     * @param work  A 'work-vector', which is unnecessary here. It is not
-     * actually required, nor does it store anything.
-     */
-    BatchIdentity(const gko::batch_csr::BatchEntry<const ValueType> &mat,
-                  ValueType *const work)
-        : matrix_{mat}, work_{work}
-    {}
-
-    void apply(const gko::batch_dense::BatchEntry<const ValueType> &r,
-               const gko::batch_dense::BatchEntry<ValueType> &z) const
-    {
-        for (int i = 0; i < matrix_.num_rows; i++) {
-            for (int j = 0; j < r.num_rhs; j++)
-                z.values[i * z.stride + j] = r.values[i * r.stride + j];
-        }
+GKO_ATTRIBUTES GKO_INLINE void BatchIdentity<ValueType>::apply(
+    const gko::batch_dense::BatchEntry<const ValueType> &r,
+    const gko::batch_dense::BatchEntry<ValueType> &z) const
+{
+    for (int i = 0; i < matrix_.num_rows; i++) {
+        for (int j = 0; j < r.num_rhs; j++)
+            z.values[i * z.stride + j] = r.values[i * r.stride + j];
     }
-
-private:
-    ValueType *const work_;
-    const gko::batch_csr::BatchEntry<const ValueType> &matrix_;
-};
+}
 
 
 }  // namespace reference
