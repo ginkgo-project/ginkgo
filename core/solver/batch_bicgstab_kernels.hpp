@@ -62,7 +62,7 @@ struct BatchBicgstabOptions {
     void apply(std::shared_ptr<const DefaultExecutor> exec,                    \
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions<       \
                    remove_complex<_type>> &options,                            \
-               const LinOp *const a, const matrix::BatchDense<_type> *const b, \
+               const BatchLinOp *const a, const matrix::BatchDense<_type> *const b, \
                matrix::BatchDense<_type> *const x)
 
 
