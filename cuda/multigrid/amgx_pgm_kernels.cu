@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda.h>
 #include <cusparse.h>
+#include <thrust/tuple.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>

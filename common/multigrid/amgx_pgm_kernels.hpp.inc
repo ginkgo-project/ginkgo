@@ -122,13 +122,13 @@ __global__
         }
         auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
         if (agg[col] == -1 &&
-            (weight > max_weight_unagg ||
-             (weight == max_weight_unagg && col > strongest_unagg))) {
+            thrust::tie(weight, col) >
+                thrust::tie(max_weight_unagg, strongest_unagg)) {
             max_weight_unagg = weight;
             strongest_unagg = col;
         } else if (agg[col] != -1 &&
-                   (weight > max_weight_agg ||
-                    (weight == max_weight_agg && col > strongest_agg))) {
+                   thrust::tie(weight, col) >
+                       thrust::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
@@ -173,8 +173,8 @@ __global__
         }
         auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
         if (agg_const_val[col] != -1 &&
-            (weight > max_weight_agg ||
-             (weight == max_weight_agg && col > strongest_agg))) {
+            thrust::tie(weight, col) >
+                thrust::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
@@ -209,8 +209,8 @@ __global__
         }
         auto weight = weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
         if (agg_val[col] != -1 &&
-            (weight > max_weight_agg ||
-             (weight == max_weight_agg && col > strongest_agg))) {
+            thrust::tie(weight, col) >
+                thrust::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
@@ -238,6 +238,7 @@ __global__ __launch_bounds__(default_block_size) void get_source_row_map_kernel(
     // atomic_add returns the old value, so it can be the starting point.
     row_map[row] = atomic_add(result_row_ptrs + result_idx, num_elems);
 }
+
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void move_row_kernel(
@@ -316,10 +317,10 @@ __global__ __launch_bounds__(default_block_size) void copy_to_coarse_kernel(
         return;
     }
     auto temp_i = temp_row_ptrs[row];
-    for (auto i = coarse_row_ptrs[row]; i < coarse_row_ptrs[row + 1];
-         i++, temp_i++) {
+    for (auto i = coarse_row_ptrs[row]; i < coarse_row_ptrs[row + 1]; i++) {
         coarse_col_idxs[i] = temp_col_idxs[temp_i];
         coarse_values[i] = temp_values[temp_i];
+        temp_i++;
     }
 }
 

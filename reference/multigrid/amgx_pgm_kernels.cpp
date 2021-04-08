@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <tuple>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -148,14 +149,13 @@ void find_strongest_neighbor(
                 auto weight =
                     vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
                 if (agg.get_const_data()[col] == -1 &&
-                    (weight > max_weight_unagg ||
-                     (weight == max_weight_unagg && col > strongest_unagg))) {
+                    std::tie(weight, col) >
+                        std::tie(max_weight_unagg, strongest_unagg)) {
                     max_weight_unagg = weight;
                     strongest_unagg = col;
                 } else if (agg.get_const_data()[col] != -1 &&
-                           (weight > max_weight_agg ||
-                            (weight == max_weight_agg &&
-                             col > strongest_agg))) {
+                           std::tie(weight, col) >
+                               std::tie(max_weight_agg, strongest_agg)) {
                     max_weight_agg = weight;
                     strongest_agg = col;
                 }
@@ -208,8 +208,8 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
             auto weight =
                 vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
             if (agg_const_val[col] != -1 &&
-                (weight > max_weight_agg ||
-                 (weight == max_weight_agg && col > strongest_agg))) {
+                std::tie(weight, col) >
+                    std::tie(max_weight_agg, strongest_agg)) {
                 max_weight_agg = weight;
                 strongest_agg = col;
             }

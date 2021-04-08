@@ -96,7 +96,7 @@ void make_hermitian(matrix::Dense<ValueType> *mtx)
  * the summation among the absoulue value of the row's elements. When ratio is
  * larger than 1, the result will be strictly diagonal dominant matrix except
  * for the empty row. When ratio is 1, the result will be diagonal dominant
- * matirx.
+ * matrix.
  *
  * @tparam ValueType  valuetype of Dense matrix to process
  *
