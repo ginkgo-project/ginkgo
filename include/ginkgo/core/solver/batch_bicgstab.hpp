@@ -141,8 +141,8 @@ public:
 protected:
     void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b, const BatchLinOp *beta,
-                    BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                    const BatchLinOp *beta, BatchLinOp *x) const override;
 
     explicit BatchBicgstab(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchBicgstab>(std::move(exec))
@@ -150,13 +150,15 @@ protected:
 
     explicit BatchBicgstab(const Factory *factory,
                            std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<BatchBicgstab>(factory->get_executor(),
-                                     gko::transpose(system_matrix->get_size())),
+        : EnableBatchLinOp<BatchBicgstab>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-        //to check if each small matrix in the batch is square
+        // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_); //won't work as
+        // get_size() is not there in BatchLinop to check if each small matrix
+        // in the batch is square
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
     }
 
