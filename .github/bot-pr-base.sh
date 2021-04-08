@@ -66,7 +66,7 @@ bot_get_all_changed_files() {
   while true; do
     # this api allows 100 items per page
     # github action uses `bash -e`. The last empty page will leads jq error, use `|| :` to ignore the error.
-    local pr_page_files=$(api_get "$pr_url/files?&per_page=100&page=${page}" | jq -er '.[] | .filename' || :)
+    local pr_page_files=$(api_get "$pr_url/files?&per_page=100&page=${page}" | jq -er '.[] | select(.status != "removed") | .filename' || :)
     if [ "${pr_page_files}" = "" ]; then
       break
     fi
