@@ -605,7 +605,7 @@ void apply_select_prec(
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-           const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
+           const BatchLinOp *const a, const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x)
 {
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
