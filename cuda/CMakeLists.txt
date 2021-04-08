@@ -25,8 +25,8 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
-    matrix/batch_dense_kernels.cu
     matrix/batch_csr_kernels.cu
+    matrix/batch_dense_kernels.cu
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
@@ -44,8 +44,10 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
-	solver/batch_richardson_kernels.cu
+    solver/batch_bicgstab_kernels.cu
+    solver/batch_richardson_kernels.cu
     solver/cb_gmres_kernels.cu
+    solver/gmres_kernels.cu
     solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
     solver/multigrid_kernels.cu
