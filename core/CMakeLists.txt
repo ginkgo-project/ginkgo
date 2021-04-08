@@ -20,14 +20,14 @@ target_sources(ginkgo
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
-	log/batch_convergence.cpp
+    log/batch_convergence.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
     log/record.cpp
     log/stream.cpp
-    matrix/batch_dense.cpp
     matrix/batch_csr.cpp
+    matrix/batch_dense.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -46,7 +46,8 @@ target_sources(ginkgo
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp
-	solver/batch_richardson.cpp
+    solver/batch_bicgstab.cpp
+    solver/batch_richardson.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
