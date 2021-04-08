@@ -30,6 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
+template <typename ValueType>
+using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
+
+
+/**
+ *
+ *   Scales the vectors in global or shared memory with a factor of alpha(alpha
+ * is in global memory or shared memory or even the thread's local memory)
+ *
+ */
+template <typename ValueType>
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
+                                      const BatchEntry<ValueType> &x)
+{
+    int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        int row = li / x.num_rhs;
+        int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &alpha,
@@ -147,5 +178,28 @@ __device__ __forceinline__ void copy(
         const int i = iz / in.num_rhs;
         const int j = iz % in.num_rhs;
         out.values[i * out.stride + j] = in.values[i * in.stride + j];
+    }
+}
+
+
+/**
+ * Computes the dot product of some column vectors in global or shared memory.
+ *
+ * @param result  Holds dot product value for vector in x and y.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void compute_dot_product(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const BatchEntry<ValueType> &result)
+{
+    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
+        result.values[j] = zero<remove_complex<ValueType>>();
+    }
+
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] +=
+                x.values[r * x.stride + c] * y.values[r * y.stride + c];
+        }
     }
 }
