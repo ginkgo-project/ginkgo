@@ -68,13 +68,13 @@ namespace solver {
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers
- * @ingroup LinOp
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchBicgstab : public EnableLinOp<BatchBicgstab<ValueType>>,
-                      public Transposable {
-    friend class EnableLinOp<BatchBicgstab>;
-    friend class EnablePolymorphicObject<BatchBicgstab, LinOp>;
+class BatchBicgstab : public EnableBatchLinOp<BatchBicgstab<ValueType>>,
+                      public BatchTransposable {
+    friend class EnableBatchLinOp<BatchBicgstab>;
+    friend class EnablePolymorphicObject<BatchBicgstab, BatchLinOp>;
 
 public:
     using value_type = ValueType;
@@ -86,14 +86,14 @@ public:
      *
      * @return the system operator (matrix)
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
+    std::shared_ptr<const BatchLinOp> get_system_matrix() const
     {
         return system_matrix_;
     }
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<BatchLinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -135,42 +135,38 @@ public:
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(BatchBicgstab, parameters, Factory);
+    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchBicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b, const BatchLinOp *beta,
+                    BatchLinOp *x) const override;
 
     explicit BatchBicgstab(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<BatchBicgstab>(std::move(exec))
+        : EnableBatchLinOp<BatchBicgstab>(std::move(exec))
     {}
 
     explicit BatchBicgstab(const Factory *factory,
-                           std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<BatchBicgstab>(factory->get_executor(),
+                           std::shared_ptr<const BatchLinOp> system_matrix)
+        : EnableBatchLinOp<BatchBicgstab>(factory->get_executor(),
                                      gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-        // GKO_ASSERT_BATCH_IS_SQUARE_MATRIX(system_matrix_); //to check if each
-        // small matrix in the batch is square
+        //to check if each small matrix in the batch is square
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const BatchLinOp> system_matrix_{};
 };
-
-
-// template <typename ValueType = default_precision>
-// using BatchRichardson = BatchRichardson<ValueType>;
 
 
 }  // namespace solver
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_IR_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_BATCH_BICGSTAB_HPP_
