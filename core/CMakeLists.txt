@@ -37,8 +37,8 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
-    matrix/batch_dense.cpp
     matrix/batch_csr.cpp
+    matrix/batch_dense.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -58,7 +58,8 @@ target_sources(ginkgo
     preconditioner/jacobi.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
-	solver/batch_richardson.cpp
+    solver/batch_bicgstab.cpp
+    solver/batch_richardson.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp

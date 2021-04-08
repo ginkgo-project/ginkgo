@@ -1,0 +1,111 @@
+
+###Summary:
+Created solver file
+core/solver/batch_bicgstab.cpp
+	This is where the batch_bicgstab algorithm needs to be implemented.
+
+Created class header
+include/ginkgo/core/solver/batch_bicgstab.hpp
+	This is where the batch_bicgstab class functions need to be implemented.
+
+Created kernel header
+core/solver/batch_bicgstab_kernels.hpp
+	This is where the algorithm-specific kernels need to be added.
+
+Created Reference kernel file
+reference/solver/batch_bicgstab_kernels.cpp
+	Reference kernels for batch_bicgstab need to be implemented here.
+
+Created OpenMP kernel file
+omp/solver/batch_bicgstab_kernels.cpp
+	OMP kernels for batch_bicgstab need to be implemented here.
+
+Created CUDA kernel file
+cuda/solver/batch_bicgstab_*.[ch]*
+	CUDA kernels for batch_bicgstab need to be implemented here.
+
+Created HIP kernel file
+hip/solver/batch_bicgstab_kernels.hip.cpp
+	HIP kernels for batch_bicgstab need to be implemented here.
+
+Created DPC++ kernel file
+dpcpp/solver/batch_bicgstab_kernels.dp.cpp
+	DPC++ kernels for batch_bicgstab need to be implemented here.
+
+Created unit tests for batch_bicgstab solver
+core/test/solver/batch_bicgstab.cpp
+	This is where core related unit tests should be implemented, i.e. relating to the interface without executor usage.
+
+Created unit tests for batch_bicgstab reference kernels
+reference/test/solver/batch_bicgstab_kernels.cpp
+	This is where tests with the Reference executor should be implemented. Usually, this means comparing against previously known values.
+
+Created unit tests for batch_bicgstab OMP kernels
+omp/test/solver/batch_bicgstab_kernels.cpp
+	This is where tests with the OpenMP executor should be implemented. Usually, this means comparing against a Reference execution.
+
+Created unit tests for batch_bicgstab CUDA kernels
+cuda/test/solver/batch_bicgstab_kernels.cpp
+	This is where tests with the CUDA executor should be implemented. Usually, this means comparing against a Reference execution.
+
+Created unit tests for batch_bicgstab HIP kernels
+hip/test/solver/batch_bicgstab_kernels.*
+	This is where tests with the HIP executor should be implemented. Usually, this means comparing against a Reference execution.
+
+Created unit tests for batch_bicgstab DPC++ kernels
+dpcpp/test/solver/batch_bicgstab_kernels.*
+	This is where tests with the DPC++ executor should be implemented. Usually, this means comparing against a Reference execution.
+
+Modified core/CMakeLists.txt
+Modified reference/CMakeLists.txt
+Modified omp/CMakeLists.txt
+Modified cuda/CMakeLists.txt
+Modified hip/CMakeLists.txt
+Modified dpcpp/CMakeLists.txt
+Modified core/test/solver/CMakeLists.txt
+Modified reference/test/solver/CMakeLists.txt
+Modified omp/test/solver/CMakeLists.txt
+Modified cuda/test/solver/CMakeLists.txt
+Modified hip/test/solver/CMakeLists.txt
+Modified dpcpp/test/solver/CMakeLists.txt
+Modified core/device_hooks/common_kernels.inc.cpp
+
+
+
+### TODO:
+In all of the previous files batch_richardson was automatically replaced into batch_bicgstab. Ensure there is no inconsistency.
+
+All the imported code was commented and TODO items were generated in the new files.
+Check all the modified files for "// TODO (script:batch_bicgstab):" items
+e.g. by using  grep -nR "// TODO (script:batch_bicgstab):" /home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../.. | grep -v "create_new_algorithm.sh" | grep -v "todo_batch_bicgstab.txt".
+
+A tentative list of relevant TODO items follows:
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:89:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:97:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:112:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:132:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:152:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:170:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:186:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:194:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:213:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:231:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/test/solver/batch_bicgstab.cpp:245:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/solver/batch_bicgstab.cpp:58:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/solver/batch_bicgstab.cpp:74:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/solver/batch_bicgstab.cpp:91:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/solver/batch_bicgstab.cpp:126:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../core/device_hooks/common_kernels.inc.cpp:3:// TODO (script:batch_bicgstab): adapt this block as needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/test/solver/batch_bicgstab_kernels.cpp:245:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/test/solver/batch_bicgstab_kernels.cpp:259:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/test/solver/batch_bicgstab_kernels.cpp:284:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/test/solver/batch_bicgstab_kernels.cpp:300:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/solver/batch_bicgstab_kernels.cu:88:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../cuda/solver/batch_bicgstab_kernels.cu:113:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/test/solver/batch_bicgstab_kernels.cpp:195:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/test/solver/batch_bicgstab_kernels.cpp:208:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/test/solver/batch_bicgstab_kernels.cpp:233:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/test/solver/batch_bicgstab_kernels.cpp:249:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/solver/batch_bicgstab_kernels.cpp:79:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/solver/batch_bicgstab_kernels.cpp:194:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
+/home/isha/Desktop/MyFork/ginkgo/dev_tools/scripts/../../reference/solver/batch_bicgstab_kernels.cpp:212:// TODO (script:batch_bicgstab): change the code imported from solver/batch_richardson if needed
