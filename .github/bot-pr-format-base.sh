@@ -34,7 +34,7 @@ cp /tmp/format_header.sh dev_tools/scripts/
 cp /tmp/update_ginkgo_header.sh dev_tools/scripts/
 
 # format files
-CLANG_FORMAT=clang-format-8
+CLANG_FORMAT=clang-format-9
 dev_tools/scripts/add_license.sh
 dev_tools/scripts/update_ginkgo_header.sh
 for f in $(echo "$TO_FORMAT" | grep -E $FORMAT_HEADER_REGEX); do dev_tools/scripts/format_header.sh "$f"; done
