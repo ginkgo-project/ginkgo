@@ -241,12 +241,14 @@ int main(int argc, char *argv[])
 
     bool is_scaled = true;
 
-    int scale_info = std::stoi(argv[3]);
+    int scale_info = std::stoi(argv[4]);
 
     if (scale_info == 1)
         is_scaled = true;
     else
         is_scaled = false;
+
+    std::cout << "\n\nScaling option: " << is_scaled << std::endl;
 
     std::cout << "\n\nStart reading the matrices and their rhs..." << std::endl;
 
