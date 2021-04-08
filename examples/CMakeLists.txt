@@ -16,6 +16,7 @@ set(EXAMPLES_EXEC_LIST
     poisson-solver
     preconditioned-solver
     simple-solver
+    temp-example
     three-pt-stencil-solver)
 
 set(EXAMPLES_LIST
