@@ -79,7 +79,7 @@ struct batch_config {
     /**
      * Max number of rows per matrix in a batch of (small) sparse matrices.
      */
-    static constexpr int max_num_rows = 128;
+    static constexpr int max_num_rows = 60;
 
     /**
      * Max number of RHS vectors in a linear system. This can be at most
