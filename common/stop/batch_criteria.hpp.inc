@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace stop {
 
+// TODO
+enum class ToleranceType { absolute, relative };
+
 
 /**
  * A stopping criterion for batch solvers that comprises a
@@ -148,5 +151,122 @@ private:
         converged = __shfl_sync(all_true, converged, 0);
     }
 };
+
+
+/**
+ * A stopping criterion for batch solvers that comprises a
+ * maximum iteration count as well as relative residual/absolute residual
+ * tolerance.
+ *
+ * At most 32 right-hand-side vectors are supported.
+ */
+template <typename ValueType>
+class AbsAndRelResidualMaxIter {
+public:
+    using real_type = remove_complex<ValueType>;
+    //  using tolerance = gko::stop::batch::ToleranceType;
+    using bitset_type = uint32;
+    static constexpr int max_nrhs = 32;
+
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param num_rhs  The number of right-hand-sides in the linear systems.
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param converged_bitset  A bit-set representing the state of convergence
+     *                          of each RHS: 1 for converged and 0 otherwise.
+     *                          It is initialized appropriately here, and must
+     *                          be passed to the \ref check_converged function.
+     * @param rhs_b_norms  The reference RHS norms.
+     */
+    __device__ __forceinline__ AbsAndRelResidualMaxIter(
+        const int num_rhs, const int max_iters, const real_type abs_res_tol,
+        const real_type rel_res_tol, const ToleranceType type_of_tol,
+        bitset_type &converge_bitset, const real_type *const rhs_b_norms)
+        : nrhs{num_rhs},
+          rel_tol{rel_res_tol},
+          abs_tol{abs_res_tol},
+          tol_type{type_of_tol},
+          max_its{max_iters},
+          rhs_norms{rhs_b_norms}
+    {
+        if (nrhs > max_nrhs) {
+            printf("Batch stopping criterion: Too many right hand sides!\n");
+        }
+        converge_bitset = 0 - (1 << num_rhs);
+    }
+
+    /**
+     * Checks whether the different right hand sides have converged.
+     *
+     * @param iter  The current iteration count.
+     * @param residual_norms  (Optional) current residual norm of each RHS.
+     * @param residual  Current residual vectors. Unused if residual_norms
+     *                  are provided.
+     * @param converged  Bits representing converged (1) or not (0) for each
+     *                   RHS. The 'right-most' bit corresponds to the first RHS.
+     *
+     * @return  True if all RHS have converged, false otherwise.
+     */
+    __device__ __forceinline__ bool check_converged(
+        const int iter, const real_type *const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType> &residual,
+        bitset_type &converged) const
+    {
+        if (iter >= max_its - 1) {
+            return true;
+        }
+
+        if (residual_norms) {
+            check_norms(residual_norms, converged);
+        } else {
+            __shared__ real_type norms[32];
+            batch_dense::compute_norm2<ValueType>(residual,
+                                                  {norms, 32, 1, nrhs});
+            __syncthreads();
+
+            check_norms(norms, converged);
+        }
+
+        if (converged == all_true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+private:
+    int nrhs;
+    int max_its;
+    const real_type rel_tol;
+    const real_type abs_tol;
+    const ToleranceType tol_type;
+    const real_type *const rhs_norms;
+    static constexpr uint32 all_true = detail::pow(2, 32) - 1;
+
+    __device__ __forceinline__ void check_norms(
+        const real_type *const res_norms, bitset_type &converged) const
+    {
+        auto thread_block = group::this_thread_block();
+        auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
+        for (int i = subwarp_grp.thread_rank(); i < nrhs; i += max_nrhs) {
+            int ichk = 0;
+
+            if (tol_type == ToleranceType::relative) {
+                ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
+            } else if (tol_type == ToleranceType::absolute) {
+                ichk = (res_norms[i] < abs_tol);
+            }
+
+            const bitset_type wchk = subwarp_grp.ballot(ichk);
+            converged |= wchk;
+        }
+
+        // copy the converged value to all threads in the warp
+        converged = subwarp_grp.shfl(converged, 0);
+        // note that every warp does all this redundantly
+    }
+};
+
 
 }  // namespace stop
