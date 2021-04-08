@@ -106,7 +106,7 @@ static void apply_impl(
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-           const LinOp *const a, const matrix::BatchDense<ValueType> *const b,
+           const BatchLinOp *const a, const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x)
 {
     using cu_value_type = cuda_type<ValueType>;
