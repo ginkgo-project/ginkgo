@@ -125,10 +125,10 @@ protected:
         diag = gen_diag(mtx_size[0]);
         ddiag = Diag::create(cuda);
         ddiag->copy_from(diag.get());
-        dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
-        dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
-        denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
-        denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
+        dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
+        dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
+        denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
+        denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
         ddense1 = Dense::create(cuda);
         ddense1->copy_from(dense1.get());
         ddense2 = Dense::create(cuda);
