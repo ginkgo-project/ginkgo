@@ -47,239 +47,247 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename T>
-class BatchRich : public ::testing::Test {
-protected:
-    using value_type = T;
-    using real_type = gko::remove_complex<value_type>;
-    using Mtx = gko::matrix::BatchCsr<value_type, int>;
-    using BDense = gko::matrix::BatchDense<value_type>;
-    using RBDense = gko::matrix::BatchDense<real_type>;
+// template <typename T>
+// class BatchBicgstab : public ::testing::Test {
+// protected:
+//     using value_type = T;
+//     using real_type = gko::remove_complex<value_type>;
+//     using Mtx = gko::matrix::BatchCsr<value_type, int>;
+//     using BDense = gko::matrix::BatchDense<value_type>;
+//     using RBDense = gko::matrix::BatchDense<real_type>;
 
-    BatchRich() : exec(gko::ReferenceExecutor::create())
-    {
-        solve_poisson_uniform_1();
-        solve_poisson_uniform_mult();
-    }
+//     BatchRich() : exec(gko::ReferenceExecutor::create())
+//     {
+//         solve_poisson_uniform_1();
+//         solve_poisson_uniform_mult();
+//     }
 
-    std::shared_ptr<const gko::ReferenceExecutor> exec;
+//     std::shared_ptr<const gko::ReferenceExecutor> exec;
 
-    const size_t nbatch = 2;
-    std::shared_ptr<BDense> x_1;
-    std::shared_ptr<BDense> xex_1;
-    std::shared_ptr<RBDense> resnorm_1;
-    std::shared_ptr<RBDense> bnorm_1;
-    gko::log::BatchLogData<value_type> logdata_1;
-    const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts_1{
-        "jacobi", 500, 1e-6, 1.0};
+//     const size_t nbatch = 2;
+//     std::shared_ptr<BDense> x_1;
+//     std::shared_ptr<BDense> xex_1;
+//     std::shared_ptr<RBDense> resnorm_1;
+//     std::shared_ptr<RBDense> bnorm_1;
+//     gko::log::BatchLogData<value_type> logdata_1;
+//     const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts_1{
+//         "jacobi", 500, 1e-6, 1.0};
 
-    const int nrhs = 2;
-    std::shared_ptr<BDense> x_m;
-    std::shared_ptr<BDense> xex_m;
-    std::shared_ptr<RBDense> resnorm_m;
-    std::shared_ptr<RBDense> bnorm_m;
-    gko::log::BatchLogData<value_type> logdata_m;
-    const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts_m{
-        "jacobi", 100, 1e-6, 1.0};
+//     const int nrhs = 2;
+//     std::shared_ptr<BDense> x_m;
+//     std::shared_ptr<BDense> xex_m;
+//     std::shared_ptr<RBDense> resnorm_m;
+//     std::shared_ptr<RBDense> bnorm_m;
+//     gko::log::BatchLogData<value_type> logdata_m;
+//     const gko::kernels::batch_rich::BatchRichardsonOptions<real_type> opts_m{
+//         "jacobi", 100, 1e-6, 1.0};
 
-    void solve_poisson_uniform_1()
-    {
-        const int nrows = 3;
-        const int nrhs_1 = 1;
-        auto mtx = gko::test::create_poisson1d_batch<value_type>(this->exec,
-                                                                 nrows, nbatch);
-        auto b =
-            gko::batch_initialize<BDense>(nbatch, {-1.0, 3.0, 1.0}, this->exec);
-        x_1 =
-            gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
-        xex_1 =
-            gko::batch_initialize<BDense>(nbatch, {1.0, 3.0, 2.0}, this->exec);
+//     void solve_poisson_uniform_1()
+//     {
+//         const int nrows = 3;
+//         const int nrhs_1 = 1;
+//         auto mtx = gko::test::create_poisson1d_batch<value_type>(this->exec,
+//                                                                  nrows,
+//                                                                  nbatch);
+//         auto b =
+//             gko::batch_initialize<BDense>(nbatch, {-1.0, 3.0, 1.0},
+//             this->exec);
+//         x_1 =
+//             gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0},
+//             this->exec);
+//         xex_1 =
+//             gko::batch_initialize<BDense>(nbatch, {1.0, 3.0, 2.0},
+//             this->exec);
 
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs_1));
-        logdata_1.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        logdata_1.iter_counts.set_executor(this->exec);
-        logdata_1.iter_counts.resize_and_reset(nrhs_1 * nbatch);
+//         std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs_1));
+//         logdata_1.res_norms =
+//             gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+//         logdata_1.iter_counts.set_executor(this->exec);
+//         logdata_1.iter_counts.resize_and_reset(nrhs_1 * nbatch);
 
-        gko::kernels::reference::batch_rich::apply<value_type>(
-            this->exec, opts_1, mtx.get(), b.get(), x_1.get(), logdata_1);
+//         gko::kernels::reference::batch_rich::apply<value_type>(
+//             this->exec, opts_1, mtx.get(), b.get(), x_1.get(), logdata_1);
 
-        std::unique_ptr<BDense> res = b->clone();
-        bnorm_1 = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
-            nbatch, {0.0}, this->exec);
-        b->compute_norm2(bnorm_1.get());
-        resnorm_1 = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
-            nbatch, {0.0}, this->exec);
-        auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0}, this->exec);
-        auto beta = gko::batch_initialize<BDense>(nbatch, {1.0}, this->exec);
-        mtx->apply(alpha.get(), x_1.get(), beta.get(), res.get());
-        res->compute_norm2(resnorm_1.get());
-    }
+//         std::unique_ptr<BDense> res = b->clone();
+//         bnorm_1 = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
+//             nbatch, {0.0}, this->exec);
+//         b->compute_norm2(bnorm_1.get());
+//         resnorm_1 =
+//         gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
+//             nbatch, {0.0}, this->exec);
+//         auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0},
+//         this->exec); auto beta = gko::batch_initialize<BDense>(nbatch, {1.0},
+//         this->exec); mtx->apply(alpha.get(), x_1.get(), beta.get(),
+//         res.get()); res->compute_norm2(resnorm_1.get());
+//     }
 
-    int single_iters_regression() const
-    {
-        if (std::is_same<real_type, float>::value) {
-            return 50;
-        } else if (std::is_same<real_type, double>::value) {
-            return 80;
-        } else {
-            return -1;
-        }
-    }
+//     int single_iters_regression() const
+//     {
+//         if (std::is_same<real_type, float>::value) {
+//             return 50;
+//         } else if (std::is_same<real_type, double>::value) {
+//             return 80;
+//         } else {
+//             return -1;
+//         }
+//     }
 
-    void solve_poisson_uniform_mult()
-    {
-        const int nrows = 3;
-        auto mtx = gko::test::create_poisson1d_batch<value_type>(this->exec,
-                                                                 nrows, nbatch);
-        auto b = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
-            this->exec);
-        x_m = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
-            this->exec);
-        xex_m = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
-            this->exec);
+//     void solve_poisson_uniform_mult()
+//     {
+//         const int nrows = 3;
+//         auto mtx = gko::test::create_poisson1d_batch<value_type>(this->exec,
+//                                                                  nrows,
+//                                                                  nbatch);
+//         auto b = gko::batch_initialize<BDense>(
+//             nbatch,
+//             std::initializer_list<std::initializer_list<value_type>>{
+//                 {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
+//             this->exec);
+//         x_m = gko::batch_initialize<BDense>(
+//             nbatch,
+//             std::initializer_list<std::initializer_list<value_type>>{
+//                 {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
+//             this->exec);
+//         xex_m = gko::batch_initialize<BDense>(
+//             nbatch,
+//             std::initializer_list<std::initializer_list<value_type>>{
+//                 {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
+//             this->exec);
 
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
-        logdata_m.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        logdata_m.iter_counts.set_executor(this->exec);
-        logdata_m.iter_counts.resize_and_reset(nrhs * nbatch);
+//         std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
+//         logdata_m.res_norms =
+//             gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+//         logdata_m.iter_counts.set_executor(this->exec);
+//         logdata_m.iter_counts.resize_and_reset(nrhs * nbatch);
 
-        gko::kernels::reference::batch_rich::apply<value_type>(
-            this->exec, opts_m, mtx.get(), b.get(), x_m.get(), logdata_m);
+//         gko::kernels::reference::batch_rich::apply<value_type>(
+//             this->exec, opts_m, mtx.get(), b.get(), x_m.get(), logdata_m);
 
-        std::unique_ptr<BDense> res = b->clone();
-        bnorm_m = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
-            nbatch, {{0.0, 0.0}}, this->exec);
-        b->compute_norm2(bnorm_m.get());
-        resnorm_m = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
-            nbatch, {{0.0, 0.0}}, this->exec);
-        auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0}, this->exec);
-        auto beta = gko::batch_initialize<BDense>(nbatch, {1.0}, this->exec);
-        mtx->apply(alpha.get(), x_m.get(), beta.get(), res.get());
-        res->compute_norm2(resnorm_m.get());
-    }
+//         std::unique_ptr<BDense> res = b->clone();
+//         bnorm_m = gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
+//             nbatch, {{0.0, 0.0}}, this->exec);
+//         b->compute_norm2(bnorm_m.get());
+//         resnorm_m =
+//         gko::batch_initialize<gko::matrix::BatchDense<real_type>>(
+//             nbatch, {{0.0, 0.0}}, this->exec);
+//         auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0},
+//         this->exec); auto beta = gko::batch_initialize<BDense>(nbatch, {1.0},
+//         this->exec); mtx->apply(alpha.get(), x_m.get(), beta.get(),
+//         res.get()); res->compute_norm2(resnorm_m.get());
+//     }
 
-    std::vector<int> multiple_iters_regression() const
-    {
-        std::vector<int> iters(2);
-        if (std::is_same<real_type, float>::value) {
-            iters[0] = 50;
-            iters[1] = 63;
-        } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 80;
-            iters[1] = 79;
-        } else {
-            iters[0] = -1;
-            iters[1] = -1;
-        }
-        return iters;
-    }
-};
+//     std::vector<int> multiple_iters_regression() const
+//     {
+//         std::vector<int> iters(2);
+//         if (std::is_same<real_type, float>::value) {
+//             iters[0] = 50;
+//             iters[1] = 63;
+//         } else if (std::is_same<real_type, double>::value) {
+//             iters[0] = 80;
+//             iters[1] = 79;
+//         } else {
+//             iters[0] = -1;
+//             iters[1] = -1;
+//         }
+//         return iters;
+//     }
+// };
 
-TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
+// TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_bicgstab): change the code imported from
+// TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
+// GKO_NOT_IMPLEMENTED;
+// //{
+// // TODO (script:batch_bicgstab): change the code imported from
 // solver/batch_richardson if needed
-//    for (size_t i = 0; i < this->nbatch; i++) {
-//        ASSERT_LE(this->resnorm_1->get_const_values()[i] /
-//                      this->bnorm_1->get_const_values()[i],
-//                  this->opts_1.rel_residual_tol);
-//    }
-//    GKO_ASSERT_BATCH_MTX_NEAR(this->x_1, this->xex_1,
-//                              1e-6 /*r<value_type>::value*/);
-//}
+// //    for (size_t i = 0; i < this->nbatch; i++) {
+// //        ASSERT_LE(this->resnorm_1->get_const_values()[i] /
+// //                      this->bnorm_1->get_const_values()[i],
+// //                  this->opts_1.rel_residual_tol);
+// //    }
+// //    GKO_ASSERT_BATCH_MTX_NEAR(this->x_1, this->xex_1,
+// //                              1e-6 /*r<value_type>::value*/);
+// //}
 
-TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_bicgstab): change the code imported from
+// TYPED_TEST(BatchBicgstab, StencilSystemJacobiLoggerIsCorrect)
+// GKO_NOT_IMPLEMENTED;
+// //{
+// // TODO (script:batch_bicgstab): change the code imported from
 // solver/batch_richardson if needed
-//    using value_type = typename TestFixture::value_type;
-//    using real_type = gko::remove_complex<value_type>;
-//
-//    const int ref_iters = this->single_iters_regression();
-//
-//    const int *const iter_array =
-//    this->logdata_1.iter_counts.get_const_data(); const real_type *const
-//    res_log_array =
-//        this->logdata_1.res_norms->get_const_values();
-//    for (size_t i = 0; i < this->nbatch; i++) {
-//        // test logger
-//        ASSERT_EQ(iter_array[i], ref_iters);
-//        ASSERT_LE(res_log_array[i] / this->bnorm_1->get_const_values()[i],
-//                  this->opts_1.rel_residual_tol);
-//        // The following is satisfied for float but not for double - why?
-//        // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
-//        //
-//        rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
-//        // 10*r<value_type>::value);
-//    }
-//}
+// //    using value_type = typename TestFixture::value_type;
+// //    using real_type = gko::remove_complex<value_type>;
+// //
+// //    const int ref_iters = this->single_iters_regression();
+// //
+// //    const int *const iter_array =
+// this->logdata_1.iter_counts.get_const_data();
+// //    const real_type *const res_log_array =
+// //        this->logdata_1.res_norms->get_const_values();
+// //    for (size_t i = 0; i < this->nbatch; i++) {
+// //        // test logger
+// //        ASSERT_EQ(iter_array[i], ref_iters);
+// //        ASSERT_LE(res_log_array[i] / this->bnorm_1->get_const_values()[i],
+// //                  this->opts_1.rel_residual_tol);
+// //        // The following is satisfied for float but not for double - why?
+// //        // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
+// //        //
+// rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
+// //        // 10*r<value_type>::value);
+// //    }
+// //}
 
 
-TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_bicgstab): change the code imported from
+// TYPED_TEST(BatchBicgstab, SolvesStencilMultipleSystemJacobi)
+// GKO_NOT_IMPLEMENTED;
+// //{
+// // TODO (script:batch_bicgstab): change the code imported from
 // solver/batch_richardson if needed
-//    for (size_t i = 0; i < this->nbatch; i++) {
-//        for (size_t j = 0; j < this->nrhs; j++) {
-//            ASSERT_LE(this->resnorm_m->get_const_values()[i * this->nrhs + j]
-//            /
-//                          this->bnorm_m->get_const_values()[i * this->nrhs +
-//                          j],
-//                      this->opts_m.rel_residual_tol);
-//        }
-//    }
-//    GKO_ASSERT_BATCH_MTX_NEAR(this->x_m, this->xex_m,
-//                              1e-6 /*r<value_type>::value*/);
-//}
+// //    for (size_t i = 0; i < this->nbatch; i++) {
+// //        for (size_t j = 0; j < this->nrhs; j++) {
+// //            ASSERT_LE(this->resnorm_m->get_const_values()[i * this->nrhs +
+// j] /
+// //                          this->bnorm_m->get_const_values()[i * this->nrhs
+// + j],
+// //                      this->opts_m.rel_residual_tol);
+// //        }
+// //    }
+// //    GKO_ASSERT_BATCH_MTX_NEAR(this->x_m, this->xex_m,
+// //                              1e-6 /*r<value_type>::value*/);
+// //}
 
 
-TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_bicgstab): change the code imported from
+// TYPED_TEST(BatchBicgatb, StencilMultipleSystemJacobiLoggerIsCorrect)
+// GKO_NOT_IMPLEMENTED;
+// //{
+// // TODO (script:batch_bicgstab): change the code imported from
 // solver/batch_richardson if needed
-//    using value_type = typename TestFixture::value_type;
-//    using real_type = gko::remove_complex<value_type>;
-//
-//    const std::vector<int> ref_iters = this->multiple_iters_regression();
-//
-//    const int *const iter_array =
-//    this->logdata_m.iter_counts.get_const_data(); const real_type *const
-//    res_log_array =
-//        this->logdata_m.res_norms->get_const_values();
-//    for (size_t i = 0; i < this->nbatch; i++) {
-//        // test logger
-//        for (size_t j = 0; j < this->nrhs; j++) {
-//            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
-//            ASSERT_LE(res_log_array[i * this->nrhs + j] /
-//                          this->bnorm_m->get_const_values()[i * this->nrhs +
-//                          j],
-//                      this->opts_m.rel_residual_tol);
-//            // The following is satisfied for float but not for double - why?
-//            // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
-//            //
-//            rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
-//            // 10*r<value_type>::value);
-//        }
-//    }
-//}
+// //    using value_type = typename TestFixture::value_type;
+// //    using real_type = gko::remove_complex<value_type>;
+// //
+// //    const std::vector<int> ref_iters = this->multiple_iters_regression();
+// //
+// //    const int *const iter_array =
+// this->logdata_m.iter_counts.get_const_data();
+// //    const real_type *const res_log_array =
+// //        this->logdata_m.res_norms->get_const_values();
+// //    for (size_t i = 0; i < this->nbatch; i++) {
+// //        // test logger
+// //        for (size_t j = 0; j < this->nrhs; j++) {
+// //            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+// //            ASSERT_LE(res_log_array[i * this->nrhs + j] /
+// //                          this->bnorm_m->get_const_values()[i * this->nrhs
+// + j],
+// //                      this->opts_m.rel_residual_tol);
+// //            // The following is satisfied for float but not for double -
+// why?
+// //            // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
+// //            //
+// rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
+// //            // 10*r<value_type>::value);
+// //        }
+// //    }
+// //}
 
 
 }  // namespace
