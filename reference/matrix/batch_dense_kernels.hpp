@@ -213,6 +213,24 @@ inline void copy(const gko::batch_dense::BatchEntry<const ValueType> &in,
 }
 
 
+template <typename ValueType>
+inline void compute_dot_product(const BatchEntry<const ValueType> &x,
+                                const BatchEntry<const ValueType> &y,
+                                const BatchEntry<ValueType> &result)
+{
+    for (int c = 0; c < result.num_rhs; c++) {
+        result.values[c] = zero<ValueType>();
+    }
+
+    for (int r = 0; r < x.num_rows; r++) {
+        for (int c = 0; c < x.num_rhs; c++) {
+            result.values[c] +=
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+        }
+    }
+}
+
+
 }  // namespace batch_dense
 }  // namespace reference
 }  // namespace kernels
