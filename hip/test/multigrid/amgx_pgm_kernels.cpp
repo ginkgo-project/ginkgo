@@ -139,7 +139,7 @@ protected:
     void make_weight(Mtx *mtx)
     {
         gko::test::make_symmetric(mtx);
-        // only works for realvalue cases
+        // only works for real value cases
         mtx->compute_absolute_inplace();
         gko::test::make_diag_dominant(mtx);
     }
@@ -212,7 +212,7 @@ TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
 
     ASSERT_EQ(d_num_agg, num_agg);
     GKO_ASSERT_ARRAY_EQ(d_agg, agg);
-    ASSERT_LE(num_agg, 300);
+    ASSERT_LE(num_agg, n);
 }
 
 
