@@ -52,7 +52,7 @@ GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchBicgstab<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -61,12 +61,12 @@ std::unique_ptr<LinOp> BatchBicgstab<ValueType>::transpose() const
         .with_abs_residual_tol(parameters_.abs_residual_tol)
         .on(this->get_executor())
         ->generate(
-            share(as<Transposable>(this->get_system_matrix())->transpose()));
+            share(as<BatchTransposable>(this->get_system_matrix())->transpose()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> BatchBicgstab<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -75,12 +75,12 @@ std::unique_ptr<LinOp> BatchBicgstab<ValueType>::conj_transpose() const
         .with_abs_residual_tol(parameters_.abs_residual_tol)
         .on(this->get_executor())
         ->generate(share(
-            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+            as<BatchTransposable>(this->get_system_matrix())->conj_transpose()));
 }
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     auto exec = this->get_executor();
@@ -97,8 +97,8 @@ void BatchBicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                          const LinOp *beta, LinOp *x) const
+void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
+                                          const BatchLinOp *beta, BatchLinOp *x) const
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 
