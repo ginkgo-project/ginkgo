@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
+#include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
@@ -332,11 +333,11 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-template <typename PrecType, typename StopType, typename BatchMatrixType,
-          typename ValueType>
+template <typename PrecType, typename StopType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
+    const BatchBicgstabOptions<remove_complex<ValueType>> &opts, LogType logger,
     const BatchMatrixType *const a,
     const gko::batch_dense::UniformBatch<const ValueType> *const b,
     const gko::batch_dense::UniformBatch<ValueType> *const x)
@@ -472,6 +473,9 @@ static void apply_impl(
             bool all_converged = stop.check_converged(
                 iter, res_norms_entry.values, {NULL, 0, 0, 0}, converged);
 
+            logger.log_iteration(ibatch, iter, res_norms_entry.values,
+                                 converged);
+
             if (all_converged) {
                 break;
             }
@@ -532,6 +536,9 @@ static void apply_impl(
                             gko::batch_dense::to_const(p_hat_entry),
                             converged_recent);
 
+            logger.log_iteration(ibatch, iter, res_norms_entry.values,
+                                 converged);
+
             if (all_converged) {
                 break;
             }
@@ -579,23 +586,23 @@ static void apply_impl(
 }
 
 
-template <typename BatchType, typename ValueType>
+template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-    const BatchType *const a,
+    const LoggerType logger, const BatchType *const a,
     const gko::batch_dense::UniformBatch<const ValueType> *const b,
     const gko::batch_dense::UniformBatch<ValueType> *const x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::none_str) {
         apply_impl<BatchIdentity<ValueType>,
-                   stop::AbsAndRelResidualMaxIter<ValueType>>(exec, opts, a, b,
-                                                              x);
+                   stop::AbsAndRelResidualMaxIter<ValueType>>(exec, opts,
+                                                              logger, a, b, x);
 
     } else if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
         apply_impl<BatchJacobi<ValueType>,
-                   stop::AbsAndRelResidualMaxIter<ValueType>>(exec, opts, a, b,
-                                                              x);
+                   stop::AbsAndRelResidualMaxIter<ValueType>>(exec, opts,
+                                                              logger, a, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -605,16 +612,21 @@ void apply_select_prec(
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a, const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x)
+           const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const b,
+           matrix::BatchDense<ValueType> *const x,
+           gko::log::BatchLogData<ValueType> &logdata)
 {
+    batch_log::FinalLogger<remove_complex<ValueType>> logger(
+        b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
+        logdata.iter_counts.get_data());
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
         get_batch_struct(b);
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<const ValueType> a_b =
             get_batch_struct(a_mat);
-        apply_select_prec(exec, opts, &a_b, &b_b, &x_b);
+        apply_select_prec(exec, opts, logger, &a_b, &b_b, &x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

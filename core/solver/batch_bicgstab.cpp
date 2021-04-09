@@ -60,8 +60,8 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
         .on(this->get_executor())
-        ->generate(
-            share(as<BatchTransposable>(this->get_system_matrix())->transpose()));
+        ->generate(share(
+            as<BatchTransposable>(this->get_system_matrix())->transpose()));
 }
 
 
@@ -74,15 +74,18 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
         .on(this->get_executor())
-        ->generate(share(
-            as<BatchTransposable>(this->get_system_matrix())->conj_transpose()));
+        ->generate(share(as<BatchTransposable>(this->get_system_matrix())
+                             ->conj_transpose()));
 }
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
+                                          BatchLinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
+    using real_type = remove_complex<ValueType>;
+
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
@@ -91,14 +94,33 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) co
         opts{parameters_.preconditioner, parameters_.max_iterations,
              parameters_.rel_residual_tol, parameters_.abs_residual_tol};
 
+    log::BatchLogData<ValueType> logdata;
+
+    // allocate logging arrays assuming uniform size batch
+    // GKO_ASSERT(dense_b->stores_equal_sizes());
+
+    const size_type num_rhs = dense_b->get_size().at(0)[1];
+    const size_type num_batches = dense_b->get_num_batches();
+    batch_dim sizes(num_batches, dim<2>{1, num_rhs});
+
+    logdata.res_norms =
+        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
+    logdata.iter_counts.set_executor(this->get_executor());
+    logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
+
     exec->run(batch_bicgstab::make_apply(opts, system_matrix_.get(), dense_b,
-                                         dense_x));
+                                         dense_x, logdata));
+
+    this->template log<log::Logger::batch_solver_completed>(
+        logdata.iter_counts, logdata.res_norms.get());
 }
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                                          const BatchLinOp *beta, BatchLinOp *x) const
+void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                          const BatchLinOp *b,
+                                          const BatchLinOp *beta,
+                                          BatchLinOp *x) const
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 
