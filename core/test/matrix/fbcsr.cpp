@@ -460,6 +460,24 @@ TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
 }
 
 
+TYPED_TEST(Fbcsr, CanBeReadFromEmptyMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MtxData = typename TestFixture::MtxData;
+    auto m = Mtx::create(this->exec);
+    m->set_block_size(this->fbsample.bs);
+    MtxData mdata;
+    mdata.size = gko::dim<2>{0, 0};
+
+    m->read(mdata);
+
+    ASSERT_EQ(m->get_size(), (gko::dim<2>{0, 0}));
+    ASSERT_EQ(m->get_const_row_ptrs()[0], 0);
+    ASSERT_EQ(m->get_const_col_idxs(), nullptr);
+    ASSERT_EQ(m->get_const_values(), nullptr);
+}
+
+
 TYPED_TEST(Fbcsr, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;

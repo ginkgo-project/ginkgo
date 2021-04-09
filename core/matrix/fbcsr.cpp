@@ -336,6 +336,11 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
                              blocks.size() * bs * bs, bs);
 
     tmp->row_ptrs_.get_data()[0] = 0;
+    if (data.nonzeros.size() == 0) {
+        tmp->move_to(this);
+        return;
+    }
+
     index_type cur_brow = 0;
     index_type cur_bnz = 0;
     index_type cur_bcol = blocks.begin()->first.block_column;
