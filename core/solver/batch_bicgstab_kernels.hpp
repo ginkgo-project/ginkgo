@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
-
+#include "core/log/batch_logging.hpp"
 
 namespace gko {
 namespace kernels {
@@ -58,12 +58,14 @@ struct BatchBicgstabOptions {
 };
 
 
-#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                         \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const gko::kernels::batch_bicgstab::BatchBicgstabOptions<       \
-                   remove_complex<_type>> &options,                            \
-               const BatchLinOp *const a, const matrix::BatchDense<_type> *const b, \
-               matrix::BatchDense<_type> *const x)
+#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                   \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,              \
+               const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
+                   remove_complex<_type>> &options,                      \
+               const BatchLinOp *const a,                                \
+               const matrix::BatchDense<_type> *const b,                 \
+               matrix::BatchDense<_type> *const x,                       \
+               gko::log::BatchLogData<_type> &logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
