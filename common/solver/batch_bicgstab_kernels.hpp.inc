@@ -184,7 +184,10 @@ __device__ __forceinline__ void compute_alpha(
 {
     const auto nrhs = rho_new_shared_entry.num_rhs;
 
-    __shared__ ValueType temp_sh[batch_config<ValueType>::max_num_rhs];
+
+    __shared__
+        UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+            temp_sh;
 
     const gko::batch_dense::BatchEntry<ValueType> temp_shared_entry{
         temp_sh, static_cast<size_type>(nrhs), 1, nrhs};
@@ -242,11 +245,17 @@ __device__ __forceinline__ void compute_omega_new(
 {
     const auto nrhs = omega_new_shared_entry.num_rhs;
 
-    __shared__ ValueType t_s_sh[batch_config<ValueType>::max_num_rhs];
+
+    __shared__
+        UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+            t_s_sh;
     const gko::batch_dense::BatchEntry<ValueType> t_s_shared_entry{
         t_s_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-    __shared__ ValueType t_t_sh[batch_config<ValueType>::max_num_rhs];
+
+    __shared__
+        UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+            t_t_sh;
     const gko::batch_dense::BatchEntry<ValueType> t_t_shared_entry{
         t_t_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
@@ -380,12 +389,13 @@ __device__ __forceinline__ void update_rho_old_and_omega_old(
 }  // unnamed namespace
 
 
-template <typename PrecType, typename StopType, typename BatchMatrixType,
-          typename ValueType>
+template <typename PrecType, typename StopType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> abs_tol,
     const gko::remove_complex<ValueType> rel_tol,
-    const gko::stop::batch::ToleranceType tol_type, const BatchMatrixType a,
+    const gko::stop::batch::ToleranceType tol_type, LogType logger,
+    const BatchMatrixType a,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
@@ -422,27 +432,54 @@ __global__ void apply_kernel(
     }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        __shared__ ValueType r_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType r_hat_sh[batch_config<ValueType>::max_num_rows *
-                                      batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType p_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType p_hat_sh[batch_config<ValueType>::max_num_rows *
-                                      batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType v_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType s_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType s_hat_sh[batch_config<ValueType>::max_num_rows *
-                                      batch_config<ValueType>::max_num_rhs];
-        __shared__ ValueType t_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            r_sh;
 
-        __shared__ ValueType x_sh[batch_config<ValueType>::max_num_rows *
-                                  batch_config<ValueType>::max_num_rhs];
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            r_hat_sh;
 
-        __shared__ ValueType prec_work_sh[PrecType::work_size];
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            p_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            p_hat_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            v_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            s_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            s_hat_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            t_sh;
+
+        __shared__ UninitializedArray<ValueType,
+                                      batch_config<ValueType>::max_num_rows *
+                                          batch_config<ValueType>::max_num_rhs>
+            x_sh;
+
+        __shared__ UninitializedArray<ValueType, PrecType::work_size>
+            prec_work_sh;
+
 
         uint32 converged = 0;
 
@@ -484,35 +521,58 @@ __global__ void apply_kernel(
             t_sh, static_cast<size_type>(nrhs), nrows, nrhs};
 
 
-        __shared__ ValueType rho_old_sh[batch_config<ValueType>::max_num_rhs];
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                rho_old_sh;
         const gko::batch_dense::BatchEntry<ValueType> rho_old_shared_entry{
             rho_old_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ ValueType rho_new_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                rho_new_sh;
         const gko::batch_dense::BatchEntry<ValueType> rho_new_shared_entry{
             rho_new_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ ValueType omega_old_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                omega_old_sh;
         const gko::batch_dense::BatchEntry<ValueType> omega_old_shared_entry{
             omega_old_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ ValueType omega_new_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                omega_new_sh;
         const gko::batch_dense::BatchEntry<ValueType> omega_new_shared_entry{
             omega_new_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ ValueType alpha_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                alpha_sh;
         const gko::batch_dense::BatchEntry<ValueType> alpha_shared_entry{
             alpha_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ ValueType beta_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                beta_sh;
         const gko::batch_dense::BatchEntry<ValueType> beta_shared_entry{
             beta_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ real_type norms_rhs_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_rhs_sh;
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_shared_entry{
             norms_rhs_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__ real_type norms_res_sh[batch_config<ValueType>::max_num_rhs];
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_sh;
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
@@ -552,7 +612,8 @@ __global__ void apply_kernel(
             bool all_converged =
                 stop.check_converged(iter, res_norms_shared_entry.values,
                                      {NULL, 0, 0, 0}, converged);
-
+            logger.log_iteration(ibatch, iter, res_norms_shared_entry.values,
+                                 converged);
             if (all_converged) {
                 break;
             }
@@ -643,6 +704,8 @@ __global__ void apply_kernel(
 
             __syncthreads();
 
+            logger.log_iteration(ibatch, iter, res_norms_shared_entry.values,
+                                 converged);
 
             if (all_converged) {
                 break;
