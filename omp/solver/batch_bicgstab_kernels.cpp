@@ -55,7 +55,8 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
            const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType> *const x,
+           log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
 
