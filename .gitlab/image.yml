@@ -83,13 +83,13 @@
     - cpu
 
 .use_gko-oneapi-igpu:
-  image: localhost:5000/gko-oneapi
+  image: ginkgohub/oneapi:latest
   tags:
     - private_ci
     - intel-igpu
 
 .use_gko-oneapi-dgpu:
-  image: localhost:5000/gko-oneapi
+  image: ginkgohub/oneapi:latest
   tags:
     - private_ci
     - intel-dgpu

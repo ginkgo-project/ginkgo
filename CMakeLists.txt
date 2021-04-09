@@ -56,7 +56,7 @@ elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
     # For now always use `-ffp-model=precise` with DPC++. This can be removed when
     # the floating point issues are fixed.
     set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
-        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-fp-model strict`")
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-ffp-model=precise`")
 else()
     set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
