@@ -681,6 +681,21 @@ build/nocuda/intel/omp/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
+
+build/dpcpp/cpu/release/static:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko-oneapi-igpu
+  variables:
+    <<: *default_variables
+    C_COMPILER: "gcc"
+    CXX_COMPILER: "dpcpp"
+    BUILD_DPCPP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "ON"
+    SYCL_DEVICE_FILTER: "CPU"
+
 build/dpcpp/igpu/release/static:
   <<: *default_build_with_test
   extends:
@@ -710,6 +725,7 @@ build/dpcpp/dgpu/debug/shared:
     BUILD_TYPE: "Debug"
     DPCPP_SINGLE_MODE: "ON"
     SYCL_DEVICE_FILTER: "Level_Zero:GPU"
+
 
 # Job with important warnings as error
 warnings:
