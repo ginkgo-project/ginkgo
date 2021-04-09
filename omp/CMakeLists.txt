@@ -44,6 +44,17 @@ target_sources(ginkgo_omp
 
 ginkgo_compile_features(ginkgo_omp)
 
+# The dependency to OpenMP's potential pthread dependency needs to be public
+# because well, it's a long story:
+# std::shared_ptr decides whether we need to increment/decrement the reference
+# counters atomically by calling the pthread function __gthread_active_p, i.e.
+# checking whether there are multiple active threads. Linking against OpenMP
+# also links against pthread on Linux. Due to issues with static initialization
+# order for pthread_key_create, it may happen that ginkgo_omp assumes that a
+# piece of code is being executed sequentially, causing race conditions in the
+# reference counters.
+find_package(Threads REQUIRED)
+target_link_libraries(ginkgo_omp PUBLIC Threads::Threads)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 # We first separate the arguments, otherwise, the target_compile_options adds it as a string
