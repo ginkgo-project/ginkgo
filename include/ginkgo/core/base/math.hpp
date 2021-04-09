@@ -98,8 +98,8 @@ using std::sqrt;
 }  // namespace kernels
 
 
+namespace kernels {
 namespace dpcpp {
-namespace reference {
 
 
 using std::abs;
@@ -108,7 +108,7 @@ using std::abs;
 using std::sqrt;
 
 
-}  // namespace reference
+}  // namespace dpcpp
 }  // namespace kernels
 
 
