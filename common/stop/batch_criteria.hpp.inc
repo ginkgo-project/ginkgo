@@ -162,7 +162,7 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
     if (residual_norms) {
         check_norms(residual_norms, converged);
     } else {
-        __shared__ real_type norms[32];
+        __shared__ UninitializedArray<real_type, 32> norms;
 
         batch_dense::compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
 
@@ -173,9 +173,10 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
 
     if (converged == all_true) {
         return true;
-    } else {
-        return false;
     }
+
+    return false;
+
 
 #endif
 }
