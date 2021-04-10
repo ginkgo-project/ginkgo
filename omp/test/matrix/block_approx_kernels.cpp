@@ -70,10 +70,23 @@ protected:
                                            exec)),
           csr_mtx1(gko::initialize<CsrMtx>(
               {{2.5, 1.5, 0.0}, {1.0, 2.0, 4.0}, {2.0, 1.5, 3.0}}, exec)),
+          ov_csr_mtx0(gko::initialize<CsrMtx>(
+              {I<T>({1.0, 2.0, 0.0}), I<T>({0.0, 3.0, 0.0}),
+               I<T>({0.0, 3.0, 2.5})},
+              exec)),
+          ov_csr_mtx1(gko::initialize<CsrMtx>({{3.0, 0.0, 0.0, 0.0},
+                                               {3.0, 2.5, 1.5, 0.0},
+                                               {0.0, 1.0, 2.0, 4.0},
+                                               {1.0, 2.0, 1.5, 3.0}},
+                                              exec)),
           b(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
+          ov_b0(gko::initialize<Dense>({2.0, 1.0, -1.0}, exec)),
+          ov_b1(gko::initialize<Dense>({1.0, -1.0, 3.0, 0.0}, exec)),
           b0(gko::initialize<Dense>({2.0, 1.0}, exec)),
           b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
           x(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
+          ov_x0(gko::initialize<Dense>({2.0, 1.0, -1.0}, exec)),
+          ov_x1(gko::initialize<Dense>({1.0, -1.0, 3.0, 0.0}, exec)),
           x0(gko::initialize<Dense>({2.0, 1.0}, exec)),
           x1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
           mtx(Mtx::create(exec))
@@ -83,13 +96,19 @@ protected:
     std::unique_ptr<CsrMtx> csr_mtx;
     std::unique_ptr<CsrMtx> csr_mtx0;
     std::unique_ptr<CsrMtx> csr_mtx1;
+    std::unique_ptr<CsrMtx> ov_csr_mtx0;
+    std::unique_ptr<CsrMtx> ov_csr_mtx1;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Dense> b;
     std::unique_ptr<Dense> b0;
     std::unique_ptr<Dense> b1;
+    std::unique_ptr<Dense> ov_b0;
+    std::unique_ptr<Dense> ov_b1;
     std::unique_ptr<Dense> x;
     std::unique_ptr<Dense> x0;
     std::unique_ptr<Dense> x1;
+    std::unique_ptr<Dense> ov_x0;
+    std::unique_ptr<Dense> ov_x1;
 };
 
 TYPED_TEST_SUITE(BlockApprox, gko::test::ValueIndexTypes);
@@ -103,7 +122,7 @@ TYPED_TEST(BlockApprox, CanApplyToDense)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
 
     mtx->apply(this->b.get(), this->x.get());
     this->csr_mtx0->apply(this->b0.get(), this->x0.get());
@@ -118,11 +137,47 @@ TYPED_TEST(BlockApprox, CanApplyToDense)
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
                         r<value_type>::value);
-    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+    EXPECT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+}
+
+
+TYPED_TEST(BlockApprox, CanApplyToDenseWithOverlap)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
+    auto block_overlaps = gko::Overlap<gko::size_type>(
+        this->exec, gko::Array<gko::size_type>{this->exec, {1, 1}},
+        gko::Array<bool>{this->exec, {true, true}},
+        gko::Array<bool>{this->exec, {false, true}});
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes,
+                           block_overlaps);
+
+    mtx->apply(this->b.get(), this->x.get());
+    this->ov_csr_mtx0->apply(this->ov_b0.get(), this->ov_x0.get());
+    this->ov_csr_mtx1->apply(this->ov_b1.get(), this->ov_x1.get());
+
+    ASSERT_EQ(mtx->get_num_blocks(), 2);
+    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(3));
+    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(4));
+    ASSERT_EQ(mtx->get_block_nonzeros()[0], 5);
+    ASSERT_EQ(mtx->get_block_nonzeros()[1], 11);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->ov_csr_mtx0,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->ov_csr_mtx1,
+                        r<value_type>::value);
+    EXPECT_EQ(this->x->get_values()[0], this->ov_x0->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[1], this->ov_x0->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[2], this->ov_x1->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[3], this->ov_x1->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[4], this->ov_x1->get_values()[2]);
 }
 
 
@@ -134,7 +189,7 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
 

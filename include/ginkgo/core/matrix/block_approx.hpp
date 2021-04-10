@@ -70,6 +70,8 @@ public:
         return block_ptrs_.get_const_data();
     }
 
+    const Overlap<size_type> &get_overlaps() const { return block_overlaps_; }
+
     std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
     {
         return block_mtxs_;
@@ -77,33 +79,40 @@ public:
 
 protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
-                const Array<size_type> num_blocks = {})
-        : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}}, block_mtxs_{}
+                const Array<size_type> &num_blocks = {},
+                const Overlap<size_type> &block_overlaps = {})
+        : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}},
+          block_overlaps_{block_overlaps},
+          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
+          block_mtxs_{}
     {}
 
-    BlockApprox(std::shared_ptr<const Executor> exec,
-                const Array<size_type> num_blocks, const MatrixType *matrix)
+    BlockApprox(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
+                const Array<size_type> &num_blocks = {},
+                const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
-          block_mtxs_{},
-          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)}
+          block_overlaps_{block_overlaps},
+          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
+          block_mtxs_{}
     {
-        this->generate(num_blocks, matrix);
+        this->generate(num_blocks, block_overlaps, matrix);
     }
-
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    void generate(const Array<size_type> &num_blocks, const MatrixType *matrix);
+    void generate(const Array<size_type> &num_blocks,
+                  const Overlap<size_type> &block_overlaps,
+                  const MatrixType *matrix);
 
 private:
-    std::vector<size_type> overlap_;
-    std::vector<std::shared_ptr<MatrixType>> block_mtxs_;
+    Overlap<size_type> block_overlaps_;
     std::vector<dim<2>> block_dims_;
     Array<index_type> block_ptrs_;
     std::vector<size_type> block_nnzs_;
+    std::vector<std::shared_ptr<MatrixType>> block_mtxs_;
 };
 
 

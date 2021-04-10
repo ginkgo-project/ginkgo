@@ -167,6 +167,12 @@ TEST(Dim, AddsDimensions)
 }
 
 
+TEST(Dim, AddsDimensions2)
+{
+    ASSERT_EQ(gko::dim<2>(2, 3) + 2, gko::dim<2>(4, 5));
+}
+
+
 TEST(Dim, MultipliesDimensions)
 {
     ASSERT_EQ(gko::dim<2>(2, 3) * gko::dim<2>(4, 5), gko::dim<2>(8, 15));
