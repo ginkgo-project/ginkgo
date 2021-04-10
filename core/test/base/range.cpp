@@ -67,6 +67,17 @@ TEST(Span, KnowsItsLength)
 }
 
 
+TEST(Span, CanCheckIfInSpan)
+{
+    gko::span s{3, 5};
+    ASSERT_FALSE(s.in_span(2));
+    ASSERT_TRUE(s.in_span(3));
+    ASSERT_TRUE(s.in_span(4));
+    ASSERT_FALSE(s.in_span(5));
+    ASSERT_FALSE(s.in_span(8));
+}
+
+
 TEST(Span, LessThanEvaluatesToTrue)
 {
     ASSERT_TRUE(gko::span(2, 3) < gko::span(4, 7));

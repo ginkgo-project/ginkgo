@@ -103,7 +103,7 @@ TYPED_TEST(BlockApprox, CanApplyToDense)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
 
     mtx->apply(this->b.get(), this->x.get());
     this->csr_mtx0->apply(this->b0.get(), this->x0.get());
@@ -134,7 +134,7 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
 

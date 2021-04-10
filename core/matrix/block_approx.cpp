@@ -61,10 +61,11 @@ GKO_REGISTER_OPERATION(compute_block_ptrs, block_approx::compute_block_ptrs);
 
 template <typename MatrixType>
 void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
+                                       const Overlap<size_type> &block_overlaps,
                                        const MatrixType *matrix)
 {
     auto num_blocks = block_sizes.get_num_elems();
-    auto block_mtxs = matrix->get_block_approx(block_sizes);
+    auto block_mtxs = matrix->get_block_approx(block_sizes, block_overlaps);
 
     this->get_executor()->run(block_approx::make_compute_block_ptrs(
         num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
@@ -107,7 +108,8 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 #define GKO_DECLARE_BLOCK_APPROX_CSR_GENERATE(ValueType, IndexType) \
     void BlockApprox<Csr<ValueType, IndexType>>::generate(          \
-        const Array<size_type> &, const Csr<ValueType, IndexType> *x)
+        const Array<size_type> &, const Overlap<size_type> &,       \
+        const Csr<ValueType, IndexType> *x)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_APPROX_CSR_GENERATE);

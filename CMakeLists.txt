@@ -105,6 +105,11 @@ set(GINKGO_FORCE_CUDA_AWARE_MPI "" CACHE STRING
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
+if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
+    message(STATUS "Debug build: Micro benchmarks will be switched off.")
+    set(GINKGO_BUILD_MICRO_BENCHMARKS OFF)
+endif()
+
 # Use ccache as compilation launcher
 if(GINKGO_WITH_CCACHE)
     find_program(CCACHE_PROGRAM ccache)

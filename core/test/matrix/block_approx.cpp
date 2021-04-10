@@ -97,7 +97,7 @@ TYPED_TEST(BlockApprox, CanBeCreatedFromCsr)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
 
     ASSERT_EQ(mtx->get_num_blocks(), 2);
     ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
@@ -117,7 +117,7 @@ TYPED_TEST(BlockApprox, CanBeCopied)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto copy = Mtx::create(this->exec);
 
     copy->copy_from(mtx.get());
@@ -140,7 +140,7 @@ TYPED_TEST(BlockApprox, CanBeMoved)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto copy = Mtx::create(this->exec);
 
     copy->copy_from(std::move(mtx.get()));
@@ -163,7 +163,7 @@ TYPED_TEST(BlockApprox, CanBeCloned)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto clone = mtx->clone();
 
     ASSERT_EQ(clone->get_num_blocks(), 2);
@@ -184,7 +184,7 @@ TYPED_TEST(BlockApprox, CanBeCleared)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto block_sizes = gko::Array<gko::size_type>{this->exec, {2, 3}};
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     ASSERT_NE(mtx->get_num_blocks(), 0);
 
     mtx->clear();
