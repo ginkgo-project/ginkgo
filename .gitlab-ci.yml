@@ -1,6 +1,7 @@
 stages:
   - init-status
   - sync
+  - trigger_pipeline
   - build
   - code_quality
   - deploy
@@ -9,8 +10,11 @@ stages:
   - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
-  - on-success
   - on-failure
+  - finalize-status
+
+include:
+  - local: '.gitlab-condition.yml'
 
 # Templates with reasonable defaults for builds and tests
 .variables_template: &default_variables
@@ -152,20 +156,15 @@ status_pending:
     curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"pending\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-  only:
-    variables:
-      - $RUN_CI_TAG
-  except:
-    refs:
-      - develop
-      - master
-      - tags    
+  extends:
+    - .pr_condition
+  dependencies: []
   tags:
     - private_ci
     - cpu
 
 status_success:
-  stage: on-success
+  stage: finalize-status
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     STATUS_CONTEXT: "quick"
@@ -173,20 +172,15 @@ status_success:
     curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"success\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-  only:
-    variables:
-      - $RUN_CI_TAG
-  except:
-    refs:
-      - develop
-      - master
-      - tags
+  extends:
+    - .pr_condition
+  dependencies: []
   tags:
     - private_ci
     - cpu
 
 status_failure:
-  stage: on-failure
+  stage: finalize-status
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     STATUS_CONTEXT: "quick"
@@ -195,14 +189,9 @@ status_failure:
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
   when: on_failure
-  only:
-    variables:
-      - $RUN_CI_TAG
-  except:
-    refs:
-      - develop
-      - master
-      - tags
+  extends:
+    - .pr_condition
+  dependencies: []
   tags:
     - private_ci
     - cpu
@@ -230,6 +219,40 @@ sync:
     - private_ci
     - cpu
 
+trigger_pipeline:
+  stage: trigger_pipeline
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  variables:
+    STATUS_CONTEXT: "quick"
+  script:
+    - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
+      | jq '.items[0].number')
+    - |
+      if [[ "${PR_ID}" != "null" ]]; then
+        echo "Find the corresponding Pull Request - ${PR_ID}"
+        echo "Check whether the PR contains ST:ready-to-merge or ST:run-full-test label"
+        ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
+          'any( [.labels | .[] | .name ] | .[] ; . == "ST:ready-to-merge" or . == "ST:run-full-test")')
+        if [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
+          echo "trigger full pipeline"
+          curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
+            https://gitlab.com/api/v4/projects/6431537/trigger/pipeline
+        else
+          echo "does not contain required label"
+        fi
+      else
+        echo "Can not find the corresponding Pull Request"
+      fi
+  extends:
+    - .pr_condition
+  only:
+    variables:
+      - $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
+  dependencies: []
+  tags:
+    - private_ci
+    - cpu
 
 # Build jobs
 # Job with example runs.
@@ -244,9 +267,8 @@ build/cuda90/gcc/all/debug/shared:
     FAST_TESTS: "ON"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -264,9 +286,8 @@ build/cuda90/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -284,9 +305,8 @@ build/cuda91/gcc/all/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -303,9 +323,8 @@ build/cuda91/clang/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -323,9 +342,8 @@ build/cuda92/gcc/all/release/debug:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -346,9 +364,8 @@ build/cuda92/intel/cuda/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -388,9 +405,8 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -409,9 +425,8 @@ build/cuda100/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -428,9 +443,8 @@ build/cuda100/intel/cuda/release/shared:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -448,9 +462,8 @@ build/cuda101/gcc/all/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -469,9 +482,8 @@ build/cuda101/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -489,9 +501,8 @@ build/clang-cuda101/gcc/all/release/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -511,9 +522,8 @@ build/clang-cuda101/clang/cuda/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -534,9 +544,8 @@ build/cuda102/gcc/all/debug/shared:
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -556,9 +565,8 @@ build/cuda102/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -577,9 +585,8 @@ build/cuda102/intel/cuda/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -596,9 +603,8 @@ build/cuda110/gcc/cuda/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -616,9 +622,8 @@ build/cuda110/clang/cuda/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cuda
@@ -637,9 +642,8 @@ build/cuda110/intel/cuda/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -656,9 +660,8 @@ build/amd/gcc/hip/debug/shared:
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - amd
@@ -675,9 +678,8 @@ build/amd/clang/hip/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - amd
@@ -712,9 +714,8 @@ build/nocuda/gcc/core/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     BUILD_HWLOC: "OFF"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cpu
@@ -728,9 +729,8 @@ build/nocuda/clang/core/release/shared:
     CXX_COMPILER: "clang++"
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Release"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cpu
@@ -745,9 +745,8 @@ build/nocuda/intel/core/debug/shared:
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -760,9 +759,8 @@ build/nocuda/gcc/omp/release/shared:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cpu
@@ -778,9 +776,8 @@ build/nocuda/clang/omp/debug/static:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   tags:
     - private_ci
     - cpu
@@ -795,9 +792,8 @@ build/nocuda/intel/omp/release/static:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -814,9 +810,8 @@ build/dpcpp/cpu/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     SYCL_DEVICE_TYPE: "CPU"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -833,9 +828,8 @@ warnings:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: yes
   tags:
@@ -854,9 +848,8 @@ no-circular-deps:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: no
   tags:
@@ -873,9 +866,8 @@ subdir-build:
     <<: *default_variables
     BUILD_OMP: "ON"
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: no
   tags:
@@ -891,9 +883,8 @@ export-build:
     <<: *default_variables
     BUILD_OMP: "ON"
     EXPORT_BUILD_DIR: "ON"
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: no
   tags:
@@ -911,9 +902,8 @@ clang-tidy:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: yes
   tags:
@@ -931,9 +921,8 @@ iwyu:
     BUILD_CUDA: "ON"
     BUILD_CUDA: "HIP"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .full_test_condition
   dependencies: []
   allow_failure: yes
   tags:
@@ -974,9 +963,8 @@ sonarqube_cov_:
       - develop
       - master
       - tags
-  only:
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .quick_test_condition
   tags:
     - private_ci
     - cuda
@@ -997,13 +985,8 @@ sonarqube_cov:
       -Dsonar.branch.name=${CI_COMMIT_REF_NAME}
     - bash <(curl -s https://codecov.io/bash) -f "\!*examples*" -f "\!*third_party*" -f "\!*c\\+\\+*" -f "\!*benchmark*"
   dependencies: []
-  only:
-    refs:
-      - develop
-      - master
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
@@ -1044,15 +1027,8 @@ gh-pages:
     - git diff --quiet HEAD ||
       (git commit -m "Update documentation from ${CURRENT_SHA}" && git push)
   dependencies: []
-  only:
-    refs:
-      - develop
-      - master
-      - tags
-    variables:
-      - $RUN_CI_TAG
-  except:
-      - schedules
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cpu
@@ -1070,13 +1046,8 @@ threadsanitizer:
         -DCTEST_MEMORYCHECK_SANITIZER_OPTIONS=ignore_noninstrumented_modules=1
         --timeout 6000
   dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
@@ -1090,13 +1061,8 @@ leaksanitizer:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
       -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
   dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
@@ -1110,13 +1076,8 @@ addresssanitizer:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
       -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
   dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
@@ -1132,13 +1093,8 @@ undefinedsanitizer:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=UBSAN
       -DCTEST_MEMORYCHECK_TYPE=UndefinedBehaviorSanitizer
   dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
@@ -1152,13 +1108,8 @@ cudamemcheck:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
       -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck
   dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
+  extends:
+    - .deploy_condition
   tags:
     - private_ci
     - cuda
