@@ -71,7 +71,11 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     ParIct()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 152),
+#else
         : mtx_size(532, 532),
+#endif
           rand_engine(567321),
           ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create())

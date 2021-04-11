@@ -10,6 +10,9 @@ function(ginkgo_create_test test_name)
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
+    if (GINKGO_FAST_TESTS)
+        target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -30,6 +33,9 @@ function(ginkgo_create_dpcpp_test test_name)
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
+    if (GINKGO_FAST_TESTS)
+        target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -51,6 +57,9 @@ function(ginkgo_create_thread_test test_name)
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
+    if (GINKGO_FAST_TESTS)
+        target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -72,6 +81,9 @@ function(ginkgo_create_test_cpp_cuda_header test_name)
         )
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
+    if (GINKGO_FAST_TESTS)
+        target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -93,7 +105,9 @@ function(ginkgo_create_cuda_test test_name)
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
-
+    if (GINKGO_FAST_TESTS)
+        target_compile_definitions(${TEST_TARGET_NAME} PRIVATE GINKGO_FAST_TESTS)
+    endif()
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
@@ -108,6 +122,10 @@ function(ginkgo_create_hip_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
 
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
+    set(GINKGO_TEST_HIP_DEFINES)
+    if (GINKGO_FAST_TESTS)
+        set(GINKGO_TEST_HIP_DEFINES -DGINKGO_FAST_TESTS)
+    endif()
 
     # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here
     # creates a redefinition of all flags. This creates some issues with `nvcc`,
@@ -116,13 +134,13 @@ function(ginkgo_create_hip_test test_name)
         hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
             # If `FindHIP.cmake`, namely `HIP_PARSE_HIPCC_OPTIONS` macro and
             # call gets fixed, uncomment this.
-            # HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
-            # NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
-            # CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+            HIPCC_OPTIONS ${GINKGO_TEST_HIP_DEFINES} # ${GINKGO_HIPCC_OPTIONS}
+            # NVCC_OPTIONS  ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_NVCC_OPTIONS}
+            # CLANG_OPTIONS ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_CLANG_OPTIONS}
             )
     else() # hcc/clang
         hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
-            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} ${GINKGO_TEST_HIP_DEFINES}
             NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
             CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
             )

@@ -72,7 +72,11 @@ protected:
     using ComplexCsr = gko::matrix::Csr<std::complex<value_type>, index_type>;
 
     ParIlut()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 231),
+#else
         : mtx_size(500, 700),
+#endif
           rand_engine(1337),
           ref(gko::ReferenceExecutor::create()),
           hip(gko::HipExecutor::create(0, ref))
