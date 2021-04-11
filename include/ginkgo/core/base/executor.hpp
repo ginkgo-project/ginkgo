@@ -342,7 +342,7 @@ private:                                                                     \
             ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;       \
                                                                               \
     public:                                                                   \
-        explicit _name##_operation(Args &&...args)                            \
+        explicit _name##_operation(Args &&... args)                           \
             : data(std::forward<Args>(args)...)                               \
         {}                                                                    \
                                                                               \
@@ -368,7 +368,7 @@ private:                                                                     \
     };                                                                        \
                                                                               \
     template <typename... Args>                                               \
-    static _name##_operation<Args...> make_##_name(Args &&...args)            \
+    static _name##_operation<Args...> make_##_name(Args &&... args)           \
     {                                                                         \
         return _name##_operation<Args...>(std::forward<Args>(args)...);       \
     }                                                                         \
