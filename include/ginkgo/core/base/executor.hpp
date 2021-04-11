@@ -317,9 +317,9 @@ private:                                                                     \
  * int main() {
  *     // create executors
  *     auto omp = OmpExecutor::create();
- *     auto cuda = CudaExecutor::create(omp, 0);
- *     auto hip = HipExecutor::create(omp, 0);
- *     auto dpcpp = DpcppExecutor::create(omp, 0);
+ *     auto cuda = CudaExecutor::create(0, omp);
+ *     auto hip = HipExecutor::create(0, omp);
+ *     auto dpcpp = DpcppExecutor::create(0, omp);
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation

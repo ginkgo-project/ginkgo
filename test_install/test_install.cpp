@@ -34,21 +34,139 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <chrono>
+#include <cmath>
+#include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 
+void assert_similar_matrices(const gko::matrix::Dense<> *m1,
+                             const gko::matrix::Dense<> *m2, double prec)
+{
+    assert(m1->get_size()[0] == m2->get_size()[0]);
+    assert(m1->get_size()[1] == m2->get_size()[1]);
+    for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
+        for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
+            assert(std::abs(m1->at(i, j) - m2->at(i, j)) < prec);
+        }
+    }
+}
+
+
+template <typename Mtx>
+void check_spmv(std::shared_ptr<gko::Executor> exec,
+                const gko::matrix_data<double> &A_raw,
+                const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+{
+    auto test = Mtx::create(exec);
+#if HAS_REFERENCE
+    auto x_clone = gko::clone(x);
+    test->read(A_raw);
+    test->apply(b, gko::lend(x_clone));
+    // x_clone has the device result if using HIP or CUDA, otherwise it is
+    // reference only
+
+#if defined(HAS_HIP) || defined(HAS_CUDA)
+    // If we are on a device, we need to run a reference test to compare against
+    auto exec_ref = exec->get_master();
+    auto test_ref = Mtx::create(exec_ref);
+    auto x_ref = gko::clone(exec_ref, x);
+    test_ref->read(A_raw);
+    test_ref->apply(b, gko::lend(x_ref));
+
+    // Actually check that `x_clone` is similar to `x_ref`
+    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
+    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-14);
+#endif  // defined(HAS_HIP) || defined(HAS_CUDA)
+#endif  // HAS_REFERENCE
+}
+
+
+template <typename Solver>
+void check_solver(std::shared_ptr<gko::Executor> exec,
+                  const gko::matrix_data<double> &A_raw,
+                  const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+{
+    using Mtx = gko::matrix::Csr<>;
+    auto A =
+        gko::share(Mtx::create(exec, std::make_shared<Mtx::load_balance>()));
+
+    auto num_iters = 20u;
+    double reduction_factor = 1e-7;
+    auto solver_gen =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec))
+            .on(exec);
+#if HAS_REFERENCE
+    A->read(A_raw);
+    auto x_clone = gko::clone(x);
+    solver_gen->generate(A)->apply(b, gko::lend(x_clone));
+    // x_clone has the device result if using HIP or CUDA, otherwise it is
+    // reference only
+
+#if defined(HAS_HIP) || defined(HAS_CUDA)
+    // If we are on a device, we need to run a reference test to compare against
+    auto exec_ref = exec->get_master();
+    auto A_ref = gko::share(
+        Mtx::create(exec_ref, std::make_shared<Mtx::load_balance>()));
+    A_ref->read(A_raw);
+    auto solver_gen_ref =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                    exec_ref),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(reduction_factor)
+                    .on(exec_ref))
+            .on(exec_ref);
+    auto x_ref = gko::clone(exec_ref, x);
+    solver_gen->generate(A_ref)->apply(b, gko::lend(x_ref));
+
+    // Actually check that `x_clone` is similar to `x_ref`
+    auto x_clone_ref = gko::clone(exec_ref, gko::lend(x_clone));
+    assert_similar_matrices(gko::lend(x_clone_ref), gko::lend(x_ref), 1e-12);
+#endif  // defined(HAS_HIP) || defined(HAS_CUDA)
+#endif  // HAS_REFERENCE
+}
+
+
 // core/base/polymorphic_object.hpp
 class PolymorphicObjectTest : public gko::PolymorphicObject {};
 
 
-int main(int, char **)
+int main()
 {
-    auto refExec = gko::ReferenceExecutor::create();
+#if defined(HAS_CUDA)
+    auto exec = gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
+#elif defined(HAS_HIP)
+    auto exec = gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
+#else
+    auto exec = gko::ReferenceExecutor::create();
+#endif
+
+    using vec = gko::matrix::Dense<>;
+#if HAS_REFERENCE
+    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    std::ifstream A_file("data/A.mtx");
+    auto A_raw = gko::read_raw<double>(A_file);
+#else
+    // Instantiate dummy data, they will be unused
+    auto b = vec::create(exec);
+    auto x = vec::create(exec);
+    gko::matrix_data<double> A_raw{};
+#endif
+
     // core/base/abstract_factory.hpp
     {
         using type1 = int;
@@ -177,12 +295,12 @@ int main(int, char **)
 
     // core/factorization/par_ilu.hpp
     {
-        auto test = gko::factorization::ParIlu<>::build().on(refExec);
+        auto test = gko::factorization::ParIlu<>::build().on(exec);
     }
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        auto test = gko::log::Convergence<>::create(exec);
     }
 
     // core/log/record.hpp
@@ -192,202 +310,177 @@ int main(int, char **)
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(refExec);
+        auto test = gko::log::Stream<>::create(exec);
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        auto test = gko::log::Papi<>::create(refExec);
+        auto test = gko::log::Papi<>::create(exec);
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2,
-                                std::make_shared<Mtx::load_balance>(2));
+        auto test = Mtx::create(exec, std::make_shared<Mtx::load_balance>());
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2, 2, 1);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
-        auto test = Mtx::create(refExec);
+        auto test = Mtx::create(exec);
     }
 
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        check_spmv<Mtx>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/matrix/sparsity_csr.hpp
     {
         using Mtx = gko::matrix::SparsityCsr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
     // core/multigrid/amgx_pgm.hpp
     {
-        auto test = gko::multigrid::AmgxPgm<>::build().on(refExec);
+        auto test = gko::multigrid::AmgxPgm<>::build().on(exec);
     }
 
     // core/preconditioner/ilu.hpp
     {
-        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
+        auto test = gko::preconditioner::Ilu<>::build().on(exec);
     }
 
     // core/preconditioner/isai.hpp
     {
-        auto test_l = gko::preconditioner::LowerIsai<>::build().on(refExec);
-        auto test_u = gko::preconditioner::UpperIsai<>::build().on(refExec);
+        auto test_l = gko::preconditioner::LowerIsai<>::build().on(exec);
+        auto test_u = gko::preconditioner::UpperIsai<>::build().on(exec);
     }
 
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
-        auto test = Bj::build().with_max_block_size(1u).on(refExec);
+        auto test = Bj::build().with_max_block_size(1u).on(exec);
     }
 
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cb_gmres.hpp
     {
         using Solver = gko::solver::CbGmres<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        check_solver<Solver>(exec, A_raw, gko::lend(b), gko::lend(x));
     }
 
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/lower_trs.hpp
     {
         using Solver = gko::solver::LowerTrs<>;
-        auto test = Solver::build().on(refExec);
+        auto test = Solver::build().on(exec);
     }
 
     // core/stop/
     {
         // iteration.hpp
         auto iteration =
-            gko::stop::Iteration::build().with_max_iters(1u).on(refExec);
+            gko::stop::Iteration::build().with_max_iters(1u).on(exec);
 
         // time.hpp
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
-                        .on(refExec);
+                        .on(exec);
 
         // residual_norm.hpp
         auto main_res = gko::stop::ResidualNorm<>::build()
                             .with_reduction_factor(1e-10)
                             .with_baseline(gko::stop::mode::absolute)
-                            .on(refExec);
+                            .on(exec);
 
         auto implicit_res = gko::stop::ImplicitResidualNorm<>::build()
                                 .with_reduction_factor(1e-10)
                                 .with_baseline(gko::stop::mode::absolute)
-                                .on(refExec);
+                                .on(exec);
 
         auto res_red = gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(1e-10)
-                           .on(refExec);
+                           .on(exec);
 
         auto rel_res =
             gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
-                refExec);
+                exec);
 
         auto abs_res =
             gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
-                refExec);
+                exec);
 
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};
@@ -396,10 +489,17 @@ int main(int, char **)
         auto combined =
             gko::stop::Combined::build()
                 .with_criteria(std::move(time), std::move(iteration))
-                .on(refExec);
+                .on(exec);
     }
-
-    std::cout << "test_install: the Ginkgo installation was correctly detected "
+#if defined(HAS_CUDA)
+    auto extra_info = "(CUDA)";
+#elif defined(HAS_HIP)
+    auto extra_info = "(HIP)";
+#else
+    auto extra_info = "(REFERENCE)";
+#endif
+    std::cout << "test_install" << extra_info
+              << ": the Ginkgo installation was correctly detected "
                  "and is complete."
               << std::endl;
 

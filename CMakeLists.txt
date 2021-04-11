@@ -351,12 +351,15 @@ else()
         set(GINKGO_TEST_INSTALL_HIP_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_hip")
     endif()
 endif()
+
+file(MAKE_DIRECTORY ${Ginkgo_BINARY_DIR}/test_install)
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
     -B${Ginkgo_BINARY_DIR}/test_install
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    WORKING_DIRECTORY ${Ginkgo_BINARY_DIR}/test_install
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
