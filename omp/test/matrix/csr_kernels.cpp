@@ -67,7 +67,14 @@ protected:
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
-    Csr() : mtx_size(532, 231), rand_engine(42) {}
+    Csr()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 185),
+#else
+        : mtx_size(532, 231),
+#endif
+          rand_engine(42)
+    {}
 
     void SetUp()
     {
@@ -285,10 +292,10 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(3);
-    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
     dcomplex_b->copy_from(complex_b.get());
-    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
     auto dcomplex_x = ComplexVec::create(omp);
     dcomplex_x->copy_from(complex_x.get());
 
@@ -302,10 +309,10 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(3);
-    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
     dcomplex_b->copy_from(complex_b.get());
-    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
     auto dcomplex_x = ComplexVec::create(omp);
     dcomplex_x->copy_from(complex_x.get());
 

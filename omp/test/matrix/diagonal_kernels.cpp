@@ -62,7 +62,14 @@ protected:
     using Dense = gko::matrix::Dense<ValueType>;
     using ComplexDiag = gko::matrix::Diagonal<ComplexValueType>;
 
-    Diagonal() : mtx_size(532, 231), rand_engine(42) {}
+    Diagonal()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 185),
+#else
+        : mtx_size(532, 231),
+#endif
+          rand_engine(42)
+    {}
 
     void SetUp()
     {
