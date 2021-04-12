@@ -71,7 +71,7 @@ protected:
           block_mtx(
               gko::matrix::
                   BlockApprox<gko::matrix::Csr<value_type, index_type>>::create(
-                      exec, block_sizes, csr_mtx.get())),
+                      exec, csr_mtx.get(), block_sizes)),
           ras_factory(
               Ras::build()
                   .with_solver(Cg::build()

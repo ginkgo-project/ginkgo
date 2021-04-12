@@ -73,9 +73,10 @@ int main(int argc, char *argv[])
     }
 
     gko::size_type num_subdomains = argc >= 2 ? std::atoi(argv[1]) : 1;
-    ValueType relax_fac = argc >= 3 ? std::atof(argv[2]) : 1.0;
-    const auto mat_string = argc >= 4 ? argv[3] : "A.mtx";
-    const auto executor_string = argc >= 5 ? argv[4] : "omp";
+    gko::size_type overlap = argc >= 3 ? std::atoi(argv[2]) : 0;
+    ValueType relax_fac = argc >= 4 ? std::atof(argv[3]) : 1.0;
+    const auto mat_string = argc >= 5 ? argv[4] : "A.mtx";
+    const auto executor_string = argc >= 6 ? argv[5] : "omp";
     RealValueType inner_reduction_factor =
         argc >= 6 ? std::atof(argv[5]) : 1e-3;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -142,12 +143,15 @@ int main(int argc, char *argv[])
     tol_stop->add_logger(logger);
 
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
+    auto block_overlaps =
+        gko::Overlap<gko::size_type>(exec, num_subdomains, overlap);
     block_sizes.fill(size / num_subdomains);
     if (size % num_subdomains != 0) {
         block_sizes.get_data()[num_subdomains - 1] =
             size / num_subdomains + size % num_subdomains;
     }
-    auto block_A = block_approx::create(exec, block_sizes, A.get());
+    auto block_A =
+        block_approx::create(exec, A.get(), block_sizes, block_overlaps);
     // Create solver factory
     auto ras_precond =
         ras::build()
@@ -169,7 +173,7 @@ int main(int argc, char *argv[])
     auto solver_gen =
         ir::build()
             .with_generated_solver(share(ras_precond))
-            .with_relaxation_factor(relax_fac)
+            // .with_relaxation_factor(relax_fac)
             // .with_solver(
             //     cg::build()
             //         .with_criteria(
