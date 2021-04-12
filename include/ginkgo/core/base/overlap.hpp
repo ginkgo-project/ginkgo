@@ -104,14 +104,22 @@ public:
     explicit Overlap(std::shared_ptr<const Executor> exec, size_type num_blocks,
                      ValueType overlap, bool is_unidirectional = false,
                      bool overlap_at_start = true)
-        : is_unidirectional_{exec, num_blocks},
-          overlaps_{exec, num_blocks},
+        : is_unidirectional_{exec->get_master(), num_blocks},
+          overlaps_{exec->get_master(), num_blocks},
           overlap_at_start_{exec, num_blocks}
     {
         // TODO move to a core function. and update to unidir and overlap_start
         // to have different values at start and end of arrays
         is_unidirectional_.fill(bool{is_unidirectional});
+        is_unidirectional_.get_data()[0] = true;
+        is_unidirectional_.get_data()[num_blocks - 1] = true;
+        is_unidirectional_.set_executor(exec);
+
         overlap_at_start_.fill(bool{overlap_at_start});
+        overlap_at_start_.get_data()[0] = false;
+        overlap_at_start_.get_data()[num_blocks - 1] = true;
+        overlap_at_start_.set_executor(exec);
+
         overlaps_.fill(ValueType{overlap});
     }
 
