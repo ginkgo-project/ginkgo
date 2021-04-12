@@ -20,6 +20,8 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `OFF`.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
+*   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests
+    to speed them up, default is `OFF`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
     (will download gflags and rapidjson), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
