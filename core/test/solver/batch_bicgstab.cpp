@@ -47,241 +47,215 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// template <typename T>
-// class BatchRich : public ::testing::Test {
-// protected:
-//     using value_type = T;
-//     using real_type = gko::remove_complex<T>;
-//     using Mtx = gko::matrix::BatchCsr<value_type>;
-//     using Dense = gko::matrix::BatchDense<value_type>;
-//     using Solver = gko::solver::BatchRichardson<value_type>;
+template <typename T>
+class BatchBicgstab : public ::testing::Test {
+protected:
+    using value_type = T;
+    using real_type = gko::remove_complex<T>;
+    using Mtx = gko::matrix::BatchCsr<value_type>;
+    using Dense = gko::matrix::BatchDense<value_type>;
+    using Solver = gko::solver::BatchBicgstab<value_type>;
 
-//     BatchRich()
-//         : exec(gko::ReferenceExecutor::create()),
-//           mtx(gko::test::create_poisson1d_batch<value_type>(
-//               std::static_pointer_cast<const gko::ReferenceExecutor>(
-//                   this->exec),
-//               nrows, nbatch)),
-//           batchrich_factory(Solver::build()
-//                                 .with_max_iterations(def_max_iters)
-//                                 .with_rel_residual_tol(def_rel_res_tol)
-//                                 .with_preconditioner("jacobi")
-//                                 .on(exec)),
-//           solver(batchrich_factory->generate(mtx))
-//     {}
+    BatchBicgstab()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx(gko::test::create_poisson1d_batch<value_type>(
+              std::static_pointer_cast<const gko::ReferenceExecutor>(
+                  this->exec),
+              nrows, nbatch)),
+          batchbicgstab_factory(Solver::build()
+                                    .with_max_iterations(def_max_iters)
+                                    .with_abs_residual_tol(def_abs_res_tol)
+                                    .with_tolerance_type(def_tol_type)
+                                    .with_preconditioner("none")
+                                    .on(exec)),
+          solver(batchbicgstab_factory->generate(mtx))
+    {}
 
-//     std::shared_ptr<const gko::Executor> exec;
-//     const gko::size_type nbatch = 3;
-//     const int nrows = 5;
-//     std::shared_ptr<Mtx> mtx;
-//     std::unique_ptr<typename Solver::Factory> batchrich_factory;
-//     std::unique_ptr<gko::BatchLinOp> solver;
-//     const int def_max_iters = 10;
-//     const real_type def_rel_res_tol = 1e-4;
-// };
+    std::shared_ptr<const gko::Executor> exec;
+    const gko::size_type nbatch = 3;
+    const int nrows = 5;
+    std::shared_ptr<Mtx> mtx;
+    std::unique_ptr<typename Solver::Factory> batchbicgstab_factory;
+    const int def_max_iters = 100;
+    const real_type def_abs_res_tol = 1e-11;
+    const gko::stop::batch::ToleranceType def_tol_type =
+        gko::stop::batch::ToleranceType::absolute;
+    std::unique_ptr<gko::BatchLinOp> solver;
+};
 
-// TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
-
-
-// TYPED_TEST(BatchRich, FactoryKnowsItsExecutor)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    ASSERT_EQ(this->batchrich_factory->get_executor(), this->exec);
-// //}
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes);
 
 
-// TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Solver = typename TestFixture::Solver;
-// //    for (size_t i = 0; i < this->nbatch; i++) {
-// //        ASSERT_EQ(this->solver->get_size().at(i),
-// //                  gko::dim<2>(this->nrows, this->nrows));
-// //    }
-// //    auto batchrich_solver = static_cast<Solver *>(this->solver.get());
-// //    ASSERT_NE(batchrich_solver->get_system_matrix(), nullptr);
-// //    ASSERT_EQ(batchrich_solver->get_system_matrix(), this->mtx);
-// //}
+TYPED_TEST(BatchBicgstab, FactoryKnowsItsExecutor)
+{
+    ASSERT_EQ(this->batchbicgstab_factory->get_executor(), this->exec);
+}
 
 
-// TYPED_TEST(BatchRich, CanBeCopied)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Mtx = typename TestFixture::Mtx;
-// //    using Solver = typename TestFixture::Solver;
-// //    auto copy = this->batchrich_factory->generate(Mtx::create(this->exec));
-// //
-// //    copy->copy_from(this->solver.get());
-// //
-// //    for (size_t i = 0; i < this->nbatch; i++) {
-// //        ASSERT_EQ(copy->get_size().at(i),
-// //                  gko::dim<2>(this->nrows, this->nrows));
-// //    }
-// //    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-// //    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
-// //    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
-// //}
+TYPED_TEST(BatchBicgstab, FactoryCreatesCorrectSolver)
+{
+    using Solver = typename TestFixture::Solver;
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(this->solver->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
+    auto batchbicgstab_solver = static_cast<Solver *>(this->solver.get());
+    ASSERT_NE(batchbicgstab_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(batchbicgstab_solver->get_system_matrix(), this->mtx);
+}
 
 
-// TYPED_TEST(BatchRich, CanBeMoved)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Mtx = typename TestFixture::Mtx;
-// //    using Solver = typename TestFixture::Solver;
-// //    auto copy = this->batchrich_factory->generate(Mtx::create(this->exec));
-// //
-// //    copy->copy_from(std::move(this->solver));
-// //
-// //    for (size_t i = 0; i < this->nbatch; i++) {
-// //        ASSERT_EQ(copy->get_size().at(i),
-// //                  gko::dim<2>(this->nrows, this->nrows));
-// //    }
-// //    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-// //    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
-// //    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
-// //}
+TYPED_TEST(BatchBicgstab, CanBeCopied)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->batchbicgstab_factory->generate(Mtx::create(this->exec));
+
+    copy->copy_from(this->solver.get());
+
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(copy->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+}
 
 
-// TYPED_TEST(BatchRich, CanBeCloned)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Mtx = typename TestFixture::Mtx;
-// //    using Solver = typename TestFixture::Solver;
-// //    auto clone = this->solver->clone();
-// //
-// //    for (size_t i = 0; i < this->nbatch; i++) {
-// //        ASSERT_EQ(clone->get_size().at(i),
-// //                  gko::dim<2>(this->nrows, this->nrows));
-// //    }
-// //    auto clone_mtx = static_cast<Solver
-// *>(clone.get())->get_system_matrix();
-// //    const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
-// //    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
-// //}
+TYPED_TEST(BatchBicgstab, CanBeMoved)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->batchbicgstab_factory->generate(Mtx::create(this->exec));
+
+    copy->copy_from(std::move(this->solver));
+
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(copy->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+}
 
 
-// TYPED_TEST(BatchRich, CanBeCleared)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Solver = typename TestFixture::Solver;
-// //
-// //    this->solver->clear();
-// //
-// //    ASSERT_EQ(this->solver->get_num_batches(), 0);
-// //    ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
-// //    auto solver_mtx =
-// //        static_cast<Solver *>(this->solver.get())->get_system_matrix();
-// //    ASSERT_EQ(solver_mtx, nullptr);
-// //}
+TYPED_TEST(BatchBicgstab, CanBeCloned)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto clone = this->solver->clone();
+
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_EQ(clone->get_size().at(i),
+                  gko::dim<2>(this->nrows, this->nrows));
+    }
+    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
+    const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
+}
 
 
-// TYPED_TEST(BatchRich, ApplyUsesInitialGuessReturnsTrue)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
-// //}
+TYPED_TEST(BatchBicgstab, CanBeCleared)
+{
+    using Solver = typename TestFixture::Solver;
+
+    this->solver->clear();
+
+    ASSERT_EQ(this->solver->get_num_batches(), 0);
+    // ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->solver->get_size().get_num_batches(), 0);
+    auto solver_mtx =
+        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+    ASSERT_EQ(solver_mtx, nullptr);
+}
 
 
-// TYPED_TEST(BatchRich, CanSetCriteria)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Solver = typename TestFixture::Solver;
-// //    using RT = typename TestFixture::real_type;
-// //
-// //    auto batchrich_factory = Solver::build()
-// //                                 .with_max_iterations(22)
-// // .with_rel_residual_tol(static_cast<RT>(0.25))
-// //                                 .on(this->exec);
-// //    auto solver = batchrich_factory->generate(this->mtx);
-// //
-// //    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
-// //    const RT tol = std::numeric_limits<RT>::epsilon();
-// //    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
-// //}
+TYPED_TEST(BatchBicgstab, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
 
 
-// TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Solver = typename TestFixture::Solver;
-// //    const std::string batchrich_precond = "none";
-// //
-// //    auto batchrich_factory =
-// // Solver::build().with_max_iterations(3).with_preconditioner("none").on(
-// //            this->exec);
-// //    auto solver = batchrich_factory->generate(this->mtx);
-// //    auto precond = solver->get_parameters().preconditioner;
-// //
-// //    ASSERT_NE(precond, "");
-// //    ASSERT_EQ(precond, batchrich_precond);
-// //}
+TYPED_TEST(BatchBicgstab, CanSetCriteria)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(22)
+            .with_rel_residual_tol(static_cast<RT>(0.25))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(this->exec);
+    auto solver = batchbicgstab_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    const RT tol = std::numeric_limits<RT>::epsilon();
+    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
+    ASSERT_EQ(solver->get_parameters().tolerance_type,
+              gko::stop::batch::ToleranceType::relative);
+}
 
 
-// TYPED_TEST(BatchRich, ThrowsOnWrongPreconditionerInFactory)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Mtx = typename TestFixture::Mtx;
-// //    using Solver = typename TestFixture::Solver;
-// //    std::string unavailable_prec = "smoothed_aggregation";
-// //    auto batchrich_factory =
-// // Solver::build().with_preconditioner(unavailable_prec).on(this->exec);
-// //
-// //    ASSERT_THROW(batchrich_factory->generate(this->mtx),
-// gko::NotImplemented);
-// //}
+TYPED_TEST(BatchBicgstab, CanSetPreconditionerInFactory)
+{
+    using Solver = typename TestFixture::Solver;
+    const std::string batchbicgstab_precond = "none";
+
+    auto batchbicgstab_factory =
+        Solver::build().with_max_iterations(3).with_preconditioner("none").on(
+            this->exec);
+    auto solver = batchbicgstab_factory->generate(this->mtx);
+    auto precond = solver->get_parameters().preconditioner;
+
+    ASSERT_NE(precond, "");
+    ASSERT_EQ(precond, batchbicgstab_precond);
+}
 
 
-// TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_bicgstab): change the code imported from
-// solver/batch_richardson if needed
-// //    using Mtx = typename TestFixture::Mtx;
-// //    using Solver = typename TestFixture::Solver;
-// //    std::shared_ptr<Mtx> rectangular_mtx =
-// //        Mtx::create(this->exec, 2, gko::dim<2>{3, 5}, 3);
-// //
-// //    ASSERT_THROW(this->batchrich_factory->generate(rectangular_mtx),
-// //                 gko::DimensionMismatch);
-// //}
+TYPED_TEST(BatchBicgstab, ThrowsOnWrongPreconditionerInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::string unavailable_prec = "smoothed_aggregation";
+    auto batchbicgstab_factory =
+        Solver::build().with_preconditioner(unavailable_prec).on(this->exec);
 
-// // TYPED_TEST(BatchRich, SolverTransposeRetainsFactoryParameters)
-// // {
-// //     using Solver = typename TestFixture::Solver;
+    ASSERT_THROW(batchbicgstab_factory->generate(this->mtx),
+                 gko::NotImplemented);
+}
 
-// //     auto batchrich_factory =
-// // Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
-// //
-// .with_relaxation_factor(2.0f).with_preconditioner("none").on(this->exec);
-// //     auto solver = batchrich_factory->generate(this->mtx);
-// // 	auto solver_trans = gko::as<Solver>(solver->transpose());
-// // 	auto params = solver_trans->get_parameters();
 
-// // 	ASSERT_EQ(params.preconditioner, "none");
-// // 	ASSERT_EQ(params.max_iterations, 3);
-// // 	ASSERT_EQ(params.rel_residual_tol, 0.25);
-// // 	ASSERT_EQ(params.relaxation_factor, 2.0);
-// // }
+TYPED_TEST(BatchBicgstab, ThrowsOnRectangularMatrixInFactory)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> rectangular_mtx =
+        Mtx::create(this->exec, 2, gko::dim<2>{3, 5}, 3);
+
+    ASSERT_THROW(this->batchbicgstab_factory->generate(rectangular_mtx),
+                 gko::DimensionMismatch);
+}
+
+// TYPED_TEST(BatchBicgstab, SolverTransposeRetainsFactoryParameters)
+// {
+//     using Solver = typename TestFixture::Solver;
+
+//     auto batchbicgstab_factory =
+// Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
+// .with_tolerance_type(gko::stop::batch::ToleranceType::relative).with_preconditioner("none").on(this->exec);
+//     auto solver = batchbicgstab_factory->generate(this->mtx);
+// 	auto solver_trans = gko::as<Solver>(solver->transpose());
+// 	auto params = solver_trans->get_parameters();
+
+// 	ASSERT_EQ(params.preconditioner, "none");
+// 	ASSERT_EQ(params.max_iterations, 3);
+// 	ASSERT_EQ(params.rel_residual_tol, 0.25);
+// 	ASSERT_EQ(params.tolerance_type,
+// gko::stop::batch::ToleranceType::relative);
+// }
 
 
 }  // namespace
