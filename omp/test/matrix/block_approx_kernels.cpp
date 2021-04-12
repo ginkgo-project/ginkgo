@@ -173,6 +173,7 @@ TYPED_TEST(BlockApprox, CanApplyToDenseWithOverlap)
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->ov_csr_mtx1,
                         r<value_type>::value);
+    ASSERT_EQ(this->x->get_num_stored_elements(), 5);
     EXPECT_EQ(this->x->get_values()[0], this->ov_x0->get_values()[0]);
     EXPECT_EQ(this->x->get_values()[1], this->ov_x0->get_values()[1]);
     EXPECT_EQ(this->x->get_values()[2], this->ov_x1->get_values()[0]);
@@ -213,6 +214,46 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
     ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
     ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
     ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+}
+
+
+TYPED_TEST(BlockApprox, CanAdvancedApplyToDenseWithOverlap)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
+    auto block_overlaps = gko::Overlap<gko::size_type>(
+        this->exec, gko::Array<gko::size_type>{this->exec, {1, 1}},
+        gko::Array<bool>{this->exec, {true, true}},
+        gko::Array<bool>{this->exec, {false, true}});
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes,
+                           block_overlaps);
+    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+
+    mtx->apply(alpha.get(), this->b.get(), beta.get(), this->x.get());
+    this->ov_csr_mtx0->apply(alpha.get(), this->ov_b0.get(), beta.get(),
+                             this->ov_x0.get());
+    this->ov_csr_mtx1->apply(alpha.get(), this->ov_b1.get(), beta.get(),
+                             this->ov_x1.get());
+
+    ASSERT_EQ(mtx->get_num_blocks(), 2);
+    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(3));
+    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(4));
+    ASSERT_EQ(mtx->get_block_nonzeros()[0], 5);
+    ASSERT_EQ(mtx->get_block_nonzeros()[1], 11);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->ov_csr_mtx0,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->ov_csr_mtx1,
+                        r<value_type>::value);
+    EXPECT_EQ(this->x->get_values()[0], this->ov_x0->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[1], this->ov_x0->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[2], this->ov_x1->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[3], this->ov_x1->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[4], this->ov_x1->get_values()[2]);
 }
 
 
