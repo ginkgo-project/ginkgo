@@ -27,6 +27,17 @@ run the following from the build folder:
 
 where `path/to/test` is the path returned by `make test`.
 
+#### Using make quick_test
+After compiling Ginkgo, use the following command inside the build folder to run
+a small subset of tests that should execute quickly:
+
+```sh
+make quick_test
+```
+
+These tests do not use GPU features except for a few device property queries, so
+they may still fail if Ginkgo was compiled with GPU support, but no such GPU is
+available. The output is equivalent to `make test`.
 
 #### Using CTest 
 The tests can also be ran through CTest from the command line, for example when

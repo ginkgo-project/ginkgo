@@ -143,6 +143,7 @@ if(GINKGO_BUILD_TESTS)
 
     enable_testing()
     include(CTest)
+    add_custom_target(quick_test "${CMAKE_CTEST_COMMAND}" -R 'core|reference')
 endif()
 
 if(GINKGO_WITH_CLANG_TIDY)
