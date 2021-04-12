@@ -65,15 +65,12 @@ protected:
             if (gko::DpcppExecutor::get_num_devices("gpu") > 1) {
                 dpcpp2 = gko::DpcppExecutor::create(1, omp, "gpu");
             }
-        }
-        else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+        } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
             dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-            if (gko::DpcppExecutor::get_num_devices("cpu") > 1)
-            {
+            if (gko::DpcppExecutor::get_num_devices("cpu") > 1) {
                 dpcpp2 = gko::DpcppExecutor::create(1, omp, "cpu");
             }
-        }
-        else {
+        } else {
             GKO_NOT_IMPLEMENTED;
         }
     }
@@ -82,8 +79,7 @@ protected:
     {
         // ensure that previous calls finished and didn't throw an error
         ASSERT_NO_THROW(dpcpp->synchronize());
-        if (dpcpp2 != nullptr)
-        {
+        if (dpcpp2 != nullptr) {
             ASSERT_NO_THROW(dpcpp2->synchronize());
         }
     }
@@ -97,8 +93,7 @@ protected:
 TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
     auto dpcpp = gko::DpcppExecutor::create(0, omp);
-    if (dpcpp2 != nullptr)
-    {
+    if (dpcpp2 != nullptr) {
         auto dpcpp2 = gko::DpcppExecutor::create(0, omp);
     }
 
@@ -236,8 +231,7 @@ TEST_F(DpcppExecutor, CopiesDataFromCPU)
 
 TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
 {
-    if (dpcpp2 == nullptr)
-    {
+    if (dpcpp2 == nullptr) {
         GTEST_SKIP();
     }
 
