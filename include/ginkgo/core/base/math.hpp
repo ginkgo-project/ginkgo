@@ -109,7 +109,7 @@ using std::sqrt;
 
 
 }  // namespace reference
-}  // namespace kernels
+}  // namespace dpcpp
 
 
 namespace test {

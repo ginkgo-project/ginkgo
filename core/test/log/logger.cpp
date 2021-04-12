@@ -65,8 +65,8 @@ TEST(DummyLogged, CanAddLogger)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
 
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
@@ -77,8 +77,8 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
 
@@ -90,8 +90,8 @@ TEST(DummyLogged, CanRemoveLogger)
 {
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
-    auto r = gko::share(
-        gko::log::Convergence<>::create(exec, gko::log::Logger::all_events_mask));
+    auto r = gko::share(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
     c.add_logger(r);
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
