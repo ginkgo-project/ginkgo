@@ -325,6 +325,25 @@ inline void update_r(
     }
 }
 
+template <typename ValueType>
+inline void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
+    const uint32 &converged)
+{
+    for (int r = 0; r < source_entry.num_rhs; r++) {
+        for (int c = 0; c < source_entry.num_rhs; c++) {
+            const uint32 conv = converged & (1 << c);
+
+            if (conv) {
+                continue;
+            }
+
+            destination_entry.values[r * destination_entry.stride + c] =
+                source_entry.values[r * source_entry.stride + c];
+        }
+    }
+}
 
 }  // unnamed namespace
 
@@ -442,6 +461,10 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
             norms_res, static_cast<size_type>(nrhs), 1, nrhs};
 
+        real_type norms_res_temp[max_nrhs];
+        const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
+            norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
+
         // generate preconditioner
         PrecType prec(A_entry, prec_work);
 
@@ -519,7 +542,11 @@ static void apply_impl(
                      gko::batch_dense::to_const(v_entry), s_entry, converged);
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(s_entry),
-                res_norms_entry);  // an estimate of residual norms
+                res_norms_temp_entry);  // an estimate of residual norms
+            copy(gko::batch_dense::to_const(res_norms_temp_entry),
+                 res_norms_entry,
+                 converged);  // copy into res_norms entry only for those RHSs
+                              // which have not yet converged.
 
             const uint32 converged_prev = converged;
 
@@ -567,20 +594,18 @@ static void apply_impl(
                      gko::batch_dense::to_const(t_entry), r_entry, converged);
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(r_entry),
-                res_norms_entry);  // residual norms
+                res_norms_temp_entry);  // store residual norms in temp entry
+            copy(gko::batch_dense::to_const(res_norms_temp_entry),
+                 res_norms_entry,
+                 converged);  // copy into res_norms entry only for those RHSs
+                              // which have not yet converged.
 
             // rho_old = rho_new
             // omega_old = omega_new
-            for (int c = 0; c < rho_old_entry.num_rhs; c++) {
-                const uint32 conv = converged & (1 << c);
-
-                if (conv) {
-                    continue;
-                }
-
-                rho_old_entry.values[c] = rho_new_entry.values[c];
-                omega_old_entry.values[c] = omega_new_entry.values[c];
-            }
+            copy(gko::batch_dense::to_const(rho_new_entry), rho_old_entry,
+                 converged);
+            copy(gko::batch_dense::to_const(omega_new_entry), omega_old_entry,
+                 converged);
         }
     }
 }
