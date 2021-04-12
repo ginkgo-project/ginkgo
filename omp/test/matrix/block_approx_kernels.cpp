@@ -153,10 +153,7 @@ TYPED_TEST(BlockApprox, CanApplyToDenseWithOverlap)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto block_overlaps = gko::Overlap<gko::size_type>(
-        this->exec, gko::Array<gko::size_type>{this->exec, {1, 1}},
-        gko::Array<bool>{this->exec, {true, true}},
-        gko::Array<bool>{this->exec, {false, true}});
+    auto block_overlaps = gko::Overlap<gko::size_type>(this->exec, 2, 1);
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes,
                            block_overlaps);
 
@@ -225,10 +222,7 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDenseWithOverlap)
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto block_overlaps = gko::Overlap<gko::size_type>(
-        this->exec, gko::Array<gko::size_type>{this->exec, {1, 1}},
-        gko::Array<bool>{this->exec, {true, true}},
-        gko::Array<bool>{this->exec, {false, true}});
+    auto block_overlaps = gko::Overlap<gko::size_type>(this->exec, 2, 1);
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes,
                            block_overlaps);
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
