@@ -42,9 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
+
 
 namespace gko {
 namespace solver {
@@ -160,6 +160,10 @@ protected:
         // get_size() is not there in BatchLinop to check if each small matrix
         // in the batch is square
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
+        if (!gko::preconditioner::batch::is_valid_preconditioner_string(
+                parameters_.preconditioner)) {
+            GKO_NOT_IMPLEMENTED;
+        }
     }
 
 private:
