@@ -119,7 +119,11 @@ protected:
 
     void initialize_data()
     {
+#ifdef GINKGO_FAST_TESTS
+        int m = 123;
+#else
         int m = 597;
+#endif
         int n = 43;
         x = gen_mtx(m, n);
         y = gen_mtx(default_krylov_dim_mixed, n);

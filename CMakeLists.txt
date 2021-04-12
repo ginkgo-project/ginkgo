@@ -32,6 +32,7 @@ option(GINKGO_BUILD_DPCPP
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
+option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be time-intensive" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
 option(GINKGO_EXPORT_BUILD_DIR
@@ -142,6 +143,7 @@ if(GINKGO_BUILD_TESTS)
 
     enable_testing()
     include(CTest)
+    add_custom_target(quick_test "${CMAKE_CTEST_COMMAND}" -R 'core|reference')
 endif()
 
 if(GINKGO_WITH_CLANG_TIDY)

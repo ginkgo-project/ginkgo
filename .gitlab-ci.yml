@@ -23,6 +23,7 @@ stages:
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
   BUILD_HWLOC: "ON"
+  FAST_TESTS: "OFF"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
@@ -33,7 +34,7 @@ stages:
 .before_script_template: &default_before_script
   - export NUM_CORES=${CI_PARALLELISM}
   - export OMP_NUM_THREADS=${NUM_CORES}
-  - export CUDA_VISIBLE_DEVICES=0
+  - export CUDA_VISIBLE_DEVICES=$((RANDOM % 2))
   - export CCACHE_DIR=${CCACHE_DIR}
   - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
 
@@ -68,6 +69,7 @@ stages:
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
@@ -100,6 +102,7 @@ stages:
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
@@ -172,6 +175,7 @@ build/cuda90/gcc/all/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
   only:
@@ -211,6 +215,7 @@ build/cuda91/gcc/all/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
@@ -295,6 +300,7 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     CUDA_ARCH: 35
   only:
     variables:
@@ -354,6 +360,7 @@ build/cuda101/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     CUDA_ARCH: 35
   only:
     variables:
@@ -415,6 +422,7 @@ build/clang-cuda101/clang/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
@@ -437,6 +445,7 @@ build/cuda102/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
     CUDA_ARCH: 35
   only:
@@ -479,6 +488,7 @@ build/cuda102/intel/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
@@ -498,6 +508,7 @@ build/cuda110/gcc/cuda/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     CUDA_ARCH: 35
   only:
     variables:
@@ -537,6 +548,7 @@ build/cuda110/intel/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
@@ -557,6 +569,7 @@ build/amd/gcc/hip/debug/shared:
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
   only:
     variables:
       - $RUN_CI_TAG
@@ -592,6 +605,7 @@ build/nocuda/gcc/core/debug/static:
     <<: *default_variables
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
     BUILD_HWLOC: "OFF"
   only:
@@ -626,6 +640,7 @@ build/nocuda/intel/core/debug/shared:
     CXX_COMPILER: "icpc"
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
   only:
     variables:
       - $RUN_CI_TAG
@@ -657,6 +672,7 @@ build/nocuda/clang/omp/debug/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
   only:
     variables:
