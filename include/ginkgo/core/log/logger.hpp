@@ -130,7 +130,7 @@ protected:                                                           \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
     std::enable_if_t<Event == _id && (_id < event_count_max)> on(    \
-        Params &&...params) const                                    \
+        Params &&... params) const                                   \
     {                                                                \
         if (enabled_events_ & (mask_type{1} << _id)) {               \
             this->on_##_event_name(std::forward<Params>(params)...); \
@@ -615,7 +615,7 @@ public:
 
 protected:
     template <size_type Event, typename... Params>
-    void log(Params &&...params) const
+    void log(Params &&... params) const
     {
         for (auto &logger : loggers_) {
             logger->template on<Event>(std::forward<Params>(params)...);
