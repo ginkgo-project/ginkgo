@@ -386,6 +386,30 @@ __device__ __forceinline__ void update_rho_old_and_omega_old(
 }
 
 
+template <typename ValueType>
+__device__ __forceinline__ void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
+    const uint32 &converged)
+{
+    for (int li = threadIdx.x;
+         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
+         li += blockDim.x) {
+        int r = li / dest_shared_entry.num_rhs;
+        int c = li % dest_shared_entry.num_rhs;
+
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
+            src_shared_entry.values[r * src_shared_entry.stride + c];
+    }
+}
+
+
 }  // unnamed namespace
 
 
@@ -399,6 +423,11 @@ __global__ void apply_kernel(
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        printf("\n Hello\n");
+    }
+
+
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
     const auto nrows = a.num_rows;
@@ -410,7 +439,12 @@ __global__ void apply_kernel(
             batch_config<ValueType>::max_num_rhs <
         nrows * nrhs) {
         if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(" Static vector size not enough!\n");
+            printf(
+                " Static vector size not enough!, allocated: %d , required: %d "
+                "\n",
+                batch_config<ValueType>::max_num_rows *
+                    batch_config<ValueType>::max_num_rhs,
+                nrows * nrhs);
         }
         return;
     }
@@ -431,11 +465,23 @@ __global__ void apply_kernel(
         return;
     }
 
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        printf("line: %d\n", __LINE__);
+    }
+
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d\n", __LINE__);
+        }
         __shared__ UninitializedArray<ValueType,
                                       batch_config<ValueType>::max_num_rows *
                                           batch_config<ValueType>::max_num_rhs>
             r_sh;
+
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d\n", __LINE__);
+        }
 
         __shared__ UninitializedArray<ValueType,
                                       batch_config<ValueType>::max_num_rows *
@@ -481,6 +527,11 @@ __global__ void apply_kernel(
             prec_work_sh;
 
 
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d\n", __LINE__);
+        }
+
+
         uint32 converged = 0;
 
         const typename BatchMatrixType::entry_type A_global_entry =
@@ -519,6 +570,12 @@ __global__ void apply_kernel(
 
         const gko::batch_dense::BatchEntry<ValueType> t_shared_entry{
             t_sh, static_cast<size_type>(nrhs), nrows, nrhs};
+
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
+        __syncthreads();
 
 
         __shared__
@@ -576,8 +633,27 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_temp_sh;
+        const gko::batch_dense::BatchEntry<real_type>
+            res_norms_temp_shared_entry{norms_res_temp_sh,
+                                        static_cast<size_type>(nrhs), 1, nrhs};
+
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
+        __syncthreads();
+
+
         // generate preconditioner
         PrecType prec_shared(A_global_entry, prec_work_sh);
+
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
 
 
         // initialization
@@ -599,6 +675,11 @@ __global__ void apply_kernel(
 
         __syncthreads();
 
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
+
         // stopping criterion object
         StopType stop(nrhs, max_iter, abs_tol, rel_tol,
                       static_cast<stop::tolerance>(tol_type), converged,
@@ -606,12 +687,44 @@ __global__ void apply_kernel(
 
         int iter = -1;
 
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
+
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("line: %d", __LINE__);
+        }
+
+
         while (1) {
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf("line: %d", __LINE__);
+            }
+
+
             ++iter;
 
             bool all_converged =
                 stop.check_converged(iter, res_norms_shared_entry.values,
                                      {NULL, 0, 0, 0}, converged);
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf("line: %d", __LINE__);
+            }
+
+
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf(
+                    "\n iter: %d , full:  ibatch : %d , 0th:  %lf , 1st: %lf ",
+                    iter, blockIdx.x, res_norms_shared_entry.values[0],
+                    res_norms_shared_entry.values[1]);
+            }
+
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf("line: %d", __LINE__);
+            }
+
+
             logger.log_iteration(ibatch, iter, res_norms_shared_entry.values,
                                  converged);
             if (all_converged) {
@@ -679,7 +792,12 @@ __global__ void apply_kernel(
 
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(s_shared_entry),
-                res_norms_shared_entry);  // an estimate of residual norms
+                res_norms_temp_shared_entry);  // an estimate of residual norms
+            __syncthreads();
+            copy(gko::batch_dense::to_const(res_norms_temp_shared_entry),
+                 res_norms_shared_entry,
+                 converged);  // update res norms only for those RHSs which have
+                              // not yet converged.
 
             __syncthreads();
 
@@ -703,6 +821,14 @@ __global__ void apply_kernel(
                             converged_recent);
 
             __syncthreads();
+
+
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf(
+                    "\n iter: %d , middle: ibatch: %d  0th:  %lf , 1st: %lf ",
+                    iter, ibatch, res_norms_shared_entry.values[0],
+                    res_norms_shared_entry.values[1]);
+            }
 
             logger.log_iteration(ibatch, iter, res_norms_shared_entry.values,
                                  converged);
@@ -750,16 +876,24 @@ __global__ void apply_kernel(
 
             batch_dense::compute_norm2<ValueType>(
                 gko::batch_dense::to_const(r_shared_entry),
-                res_norms_shared_entry);  // residual norms
-
+                res_norms_temp_shared_entry);  // residual norms
+            __syncthreads();
+            copy(gko::batch_dense::to_const(res_norms_temp_shared_entry),
+                 res_norms_shared_entry,
+                 converged);  // update res norms only for those RHSs which have
+                              // not yet converged.
             __syncthreads();
 
             // rho_old = rho_new
             // omega_old = omega_new
-            update_rho_old_and_omega_old(
-                gko::batch_dense::to_const(rho_new_shared_entry),
-                gko::batch_dense::to_const(omega_new_shared_entry),
-                rho_old_shared_entry, omega_old_shared_entry, converged);
+            // update_rho_old_and_omega_old(
+            // gko::batch_dense::to_const(rho_new_shared_entry),
+            // gko::batch_dense::to_const(omega_new_shared_entry),
+            // rho_old_shared_entry, omega_old_shared_entry, converged);
+            copy(gko::batch_dense::to_const(rho_new_shared_entry),
+                 rho_old_shared_entry, converged);
+            copy(gko::batch_dense::to_const(omega_new_shared_entry),
+                 omega_old_shared_entry, converged);
 
             __syncthreads();
         }
