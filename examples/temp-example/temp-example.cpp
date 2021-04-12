@@ -252,13 +252,15 @@ int main(int argc, char *argv[])
 
     std::cout << "\n\nStart reading the matrices and their rhs..." << std::endl;
 
+    using ValueType = std::complex<float>;
+
     std::vector<gko::int32> batch_row_pointers;
     std::vector<gko::int32> batch_column_indices;
-    std::vector<double> batch_values;
+    std::vector<ValueType> batch_values;
     gko::dim<2> sz;
 
-    using vec = gko::matrix::Dense<double>;
-    using csr_mat = gko::matrix::Csr<double, int>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using csr_mat = gko::matrix::Csr<ValueType, int>;
 
     std::vector<std::unique_ptr<vec>> batch_b;
     std::vector<std::unique_ptr<vec>> batch_x;
@@ -345,6 +347,7 @@ int main(int argc, char *argv[])
         batch_initial_guess.push_back(batch_x[i].get());
     }
 
+    std::cout << "\n Read -- in raw format\n";
 
     // Also convert these vectors: batch_row_pointers , batch_column_indices,
     // batch_values --> to arrays
@@ -353,7 +356,7 @@ int main(int argc, char *argv[])
                                     batch_row_pointers.size()};
     gko::Array<gko::int32> col_idxs{exec->get_master(),
                                     batch_column_indices.size()};
-    gko::Array<double> vals{exec->get_master(), batch_values.size()};
+    gko::Array<ValueType> vals{exec->get_master(), batch_values.size()};
 
     for (int i = 0; i < row_ptrs.get_num_elems(); i++) {
         row_ptrs.get_data()[i] = batch_row_pointers[i];
@@ -368,21 +371,22 @@ int main(int argc, char *argv[])
     }
 
 
-    std::shared_ptr<gko::matrix::BatchCsr<double, gko::int32>> A_csr_batch =
-        share(gko::matrix::BatchCsr<double, int>::create(
+    std::shared_ptr<gko::matrix::BatchCsr<ValueType, gko::int32>> A_csr_batch =
+        share(gko::matrix::BatchCsr<ValueType, int>::create(
             exec, num_batches, sz, std::move(vals), std::move(col_idxs),
             std::move(row_ptrs)));
 
 
-    std::unique_ptr<gko::matrix::BatchDense<double>> x_dense_batch =
-        gko::matrix::BatchDense<double>::create(exec, batch_initial_guess);
+    std::unique_ptr<gko::matrix::BatchDense<ValueType>> x_dense_batch =
+        gko::matrix::BatchDense<ValueType>::create(exec, batch_initial_guess);
 
 
-    std::unique_ptr<gko::matrix::BatchDense<double>> b_dense_batch =
-        gko::matrix::BatchDense<double>::create(exec, batch_rhs);
+    std::unique_ptr<gko::matrix::BatchDense<ValueType>> b_dense_batch =
+        gko::matrix::BatchDense<ValueType>::create(exec, batch_rhs);
 
+    std::cout << "\n Read -- in batched format\n";
 
-    auto solver_fac = gko::solver::BatchBicgstab<double>::build()
+    auto solver_fac = gko::solver::BatchBicgstab<ValueType>::build()
                           .with_rel_residual_tol(1e-11)
                           .with_max_iterations(150)
                           .with_preconditioner("jacobi")
@@ -396,6 +400,8 @@ int main(int argc, char *argv[])
     // std::cout << A_csr_batch->get_num_batches() << std::endl;
 
     auto solver = solver_fac->generate(A_csr_batch);
+
+    std::cout << "\n Start solving\n" << std::endl;
 
     solver->apply(b_dense_batch.get(), x_dense_batch.get());
 
