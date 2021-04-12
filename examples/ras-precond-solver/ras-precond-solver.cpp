@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     b->copy_from(host_x.get());
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     block_sizes.fill(size / num_subdomains);
-    auto block_A = block_approx::create(exec, block_sizes, A.get());
+    auto block_A = block_approx::create(exec, A.get(), block_sizes);
 
     const RealValueType inner_reduction_factor{1e-5};
     auto ras_precond =
