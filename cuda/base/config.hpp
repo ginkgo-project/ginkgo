@@ -79,13 +79,13 @@ struct batch_config {
     /**
      * Max number of rows per matrix in a batch of (small) sparse matrices.
      */
-    static constexpr int max_num_rows = 60;
+    static constexpr int max_num_rows = 55;
 
     /**
      * Max number of RHS vectors in a linear system. This can be at most
      * `config::warp_size`.
      */
-    static constexpr int max_num_rhs = 5;
+    static constexpr int max_num_rhs = 3;
 };
 
 
