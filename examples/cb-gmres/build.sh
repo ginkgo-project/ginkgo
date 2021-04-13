@@ -10,6 +10,9 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 
 source ${THIS_DIR}/../build-setup.sh
 
+mkdir -p data
+cp ${THIS_DIR}/../../matrices/test/ani1.mtx data/A.mtx
+
 # build
 ${CXX} -std=c++14 -o ${THIS_DIR}/cb-gmres ${THIS_DIR}/cb-gmres.cpp \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
