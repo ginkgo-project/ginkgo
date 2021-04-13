@@ -76,6 +76,9 @@ void Ras<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = const_cast<Dense *>(as<Dense>(b));
     auto dense_x = as<Dense>(x);
     const auto num_subdomains = this->inner_solvers_.size();
+    const auto overlaps = this->overlaps_.get_overlaps();
+    const auto unidir = this->overlaps_.get_unidirectional_array();
+    const auto overlap_at_start = this->overlaps_.get_overlap_at_start_array();
     size_type offset = 0;
     for (size_type i = 0; i < num_subdomains; ++i) {
         auto loc_size = this->inner_solvers_[i]->get_size();
@@ -126,6 +129,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
     using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     auto block_mtxs = as<block_t>(system_matrix)->get_block_mtxs();
+    this->overlaps_ = as<block_t>(system_matrix)->get_overlaps();
     const auto num_subdomains = block_mtxs.size();
     for (size_type i = 0; i < num_subdomains; ++i) {
         this->inner_solvers_.emplace_back(

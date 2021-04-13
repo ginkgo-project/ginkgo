@@ -156,6 +156,7 @@ protected:
 
 private:
     std::vector<std::shared_ptr<LinOp>> inner_solvers_;
+    Overlap<size_type> overlaps_;
 };
 
 
