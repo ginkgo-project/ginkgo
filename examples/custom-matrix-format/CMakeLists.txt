@@ -9,9 +9,7 @@ endif()
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_executable(custom-matrix-format
-    custom-matrix-format.cpp
-        stencil_kernel.cu)
+add_executable(custom-matrix-format custom-matrix-format.cpp stencil_kernel.cu)
 target_link_libraries(custom-matrix-format Ginkgo::ginkgo)
 
 # workaround for clang-cuda/g++ interaction
