@@ -3,7 +3,7 @@ project(papi-logging)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
-    find_package(Ginkgo 1.3.0 REQUIRED)
+    find_package(Ginkgo 1.4.0 REQUIRED)
 endif()
 
 add_executable(papi-logging papi-logging.cpp)
