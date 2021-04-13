@@ -31,6 +31,8 @@ function(ginkgo_compile_features name)
         RUNTIME_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}")
     set_property(TARGET "${name}" PROPERTY
         ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}")
+    set_property(TARGET "${name}" PROPERTY
+        LIBRARY_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}")
 
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries("${name}" PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
