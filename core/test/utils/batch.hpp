@@ -101,15 +101,15 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
  * @param nrows  The size (number of rows) of the generated matrix
  * @param nbatch  The number of Poisson matrices in the batch
  */
-template <typename ValueType>
-std::unique_ptr<matrix::BatchCsr<ValueType, int>> create_poisson1d_batch(
+template <typename ValueType, typename IndexType = int>
+std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> create_poisson1d_batch(
     std::shared_ptr<const ReferenceExecutor> exec, const int nrows,
     const size_type nbatch)
 {
     const int nnz = 3 * (nrows - 2) + 4;
-    gko::Array<int> row_ptrs(exec, nrows + 1);
+    gko::Array<IndexType> row_ptrs(exec, nrows + 1);
     {
-        int *const ra = row_ptrs.get_data();
+        const auto ra = row_ptrs.get_data();
         ra[0] = 0;
         ra[1] = 2;
         for (int i = 2; i < nrows; i++) {
@@ -118,9 +118,9 @@ std::unique_ptr<matrix::BatchCsr<ValueType, int>> create_poisson1d_batch(
         ra[nrows] = ra[nrows - 1] + 2;
         GKO_ASSERT(ra[nrows] == nnz);
     }
-    gko::Array<int> col_idxs(exec, nnz);
+    gko::Array<IndexType> col_idxs(exec, nnz);
     {
-        int *const ca = col_idxs.get_data();
+        const auto ca = col_idxs.get_data();
         ca[0] = 0;
         ca[1] = 1;
         for (int i = 1; i < nrows - 1; i++) {
@@ -129,7 +129,7 @@ std::unique_ptr<matrix::BatchCsr<ValueType, int>> create_poisson1d_batch(
             ca[rstart + 1] = i;
             ca[rstart + 2] = i + 1;
         }
-        const int lrstart = row_ptrs.get_const_data()[nrows - 1];
+        const auto lrstart = row_ptrs.get_const_data()[nrows - 1];
         ca[lrstart] = nrows - 2;
         ca[lrstart + 1] = nrows - 1;
     }
@@ -144,11 +144,11 @@ std::unique_ptr<matrix::BatchCsr<ValueType, int>> create_poisson1d_batch(
             va[rstart + 1] = 2.0;
             va[rstart + 2] = -1.0;
         }
-        const int lrstart = row_ptrs.get_const_data()[nrows - 1];
+        const auto lrstart = row_ptrs.get_const_data()[nrows - 1];
         va[lrstart] = -1.0;
         va[lrstart + 1] = 2.0;
     }
-    using Mtx = matrix::BatchCsr<ValueType, int>;
+    using Mtx = matrix::BatchCsr<ValueType, IndexType>;
     return Mtx::create(
         exec, nbatch,
         gko::dim<2>{static_cast<size_t>(nrows), static_cast<size_t>(nrows)},
