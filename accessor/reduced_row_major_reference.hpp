@@ -170,13 +170,15 @@ constexpr GKO_ACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
     return abs(static_cast<ArithmeticType>(ref));
 }
 
-#define GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(func_)            \
-    template <typename ArithmeticType, typename StorageType>      \
-    constexpr GKO_ACC_ATTRIBUTES auto func_(                      \
-        const reduced_storage<ArithmeticType, StorageType> &ref)  \
-    {                                                             \
-        using gko::acc::func_;                                    \
-        return func_(detail::to_value_type<ArithmeticType>(ref)); \
+#define GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(func_)                   \
+    template <typename ArithmeticType, typename StorageType>             \
+    constexpr GKO_ACC_ATTRIBUTES auto func_(                             \
+        const reduced_storage<ArithmeticType, StorageType> &ref)         \
+        ->decltype(                                                      \
+            gko::acc::func_(detail::to_value_type<ArithmeticType>(ref))) \
+    {                                                                    \
+        using gko::acc::func_;                                           \
+        return func_(detail::to_value_type<ArithmeticType>(ref));        \
     }
 
 GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(real)
