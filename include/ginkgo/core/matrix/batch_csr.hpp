@@ -73,7 +73,8 @@ class BatchCsr
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public BatchTransposable {
+      public BatchTransposable,
+      public EnableBatchScaling<ValueType> {
     friend class EnableCreateMethod<BatchCsr>;
     friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;

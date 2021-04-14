@@ -86,6 +86,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void batch_scale(std::shared_ptr<const OmpExecutor> exec,
+                 const matrix::BatchCsr<ValueType, IndexType> *orig,
+                 const matrix::BatchDense<ValueType> *left_scale,
+                 const matrix::BatchDense<ValueType> *right_scale,
+                 matrix::BatchCsr<ValueType, IndexType> *scaled)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
