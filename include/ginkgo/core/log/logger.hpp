@@ -417,7 +417,7 @@ protected:
         const Array<stopping_status> *status, const bool &one_changed,
         const bool &all_converged) const
     {
-        this->on_criterion_check_completed(criterion, it, r, x, tau, x,
+        this->on_criterion_check_completed(criterion, it, r, tau, x,
                                            stopping_id, set_finalized, status,
                                            one_changed, all_converged);
     }

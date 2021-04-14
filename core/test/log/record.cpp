@@ -464,7 +464,7 @@ TEST(Record, CatchesCriterionCheckStarted)
 }
 
 
-TEST(Record, CatchesCriterionCheckCompleted)
+TEST(Record, CatchesCriterionCheckCompletedOld)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
@@ -478,6 +478,36 @@ TEST(Record, CatchesCriterionCheckCompleted)
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
         &stop_status, true, true);
+
+    stop_status.get_data()->reset();
+    stop_status.get_data()->stop(RelativeStoppingId);
+    auto &data = logger->get().criterion_check_completed.back();
+    ASSERT_NE(data->criterion, nullptr);
+    ASSERT_EQ(data->stopping_id, RelativeStoppingId);
+    ASSERT_EQ(data->set_finalized, true);
+    ASSERT_EQ(data->status->get_const_data()->has_stopped(), true);
+    ASSERT_EQ(data->status->get_const_data()->get_id(),
+              stop_status.get_const_data()->get_id());
+    ASSERT_EQ(data->status->get_const_data()->is_finalized(), true);
+    ASSERT_EQ(data->oneChanged, true);
+    ASSERT_EQ(data->converged, true);
+}
+
+
+TEST(Record, CatchesCriterionCheckCompleted)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Record::create(
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+
+    logger->on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 1, nullptr, nullptr, nullptr, nullptr,
+        RelativeStoppingId, true, &stop_status, true, true);
 
     stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
