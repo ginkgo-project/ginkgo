@@ -58,6 +58,7 @@ GKO_REGISTER_OPERATION(convert_to_dense, batch_csr::convert_to_dense);
 GKO_REGISTER_OPERATION(calculate_total_cols, batch_csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, batch_csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, batch_csr::conj_transpose);
+GKO_REGISTER_OPERATION(batch_scale, batch_csr::batch_scale);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        batch_csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -235,6 +236,31 @@ bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 //    exec->run(batch_csr::make_is_sorted_by_column_index(this, &is_sorted));
 //    return is_sorted;
 //}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::batch_scale() const
+{
+    GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(this, this->left_scale_,
+                                        this->right_scale_);
+    auto exec = this->get_executor();
+    const auto nrows_entry = this->get_size().at(0)[0];
+    const auto nnz_entry = this->get_const_row_ptrs()[nrows_entry];
+    auto scaled_mat = BatchCsr<ValueType, IndexType>::create(
+        exec, this->get_num_batches(), this->get_size().at(0), nnz_entry);
+    exec->copy(nrows_entry + 1, this->get_const_row_ptrs(),
+               scaled_mat->get_row_ptrs());
+    exec->copy(nnz_entry, this->get_const_col_idxs(),
+               scaled_mat->get_col_idxs());
+
+    const auto left =
+        static_cast<const BatchDense<ValueType> *>(this->left_scale_);
+    const auto right =
+        static_cast<const BatchDense<ValueType> *>(this->right_scale_);
+    exec->run(batch_csr::make_batch_scale(this, left, right, scaled_mat.get()));
+
+    return scaled_mat;
+}
 
 
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class BatchCsr<ValueType, int32>
