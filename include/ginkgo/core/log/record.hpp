@@ -366,6 +366,14 @@ public:
     void on_criterion_check_completed(
         const stop::Criterion *criterion, const size_type &num_iterations,
         const LinOp *residual, const LinOp *residual_norm,
+        const LinOp *implicit_residual_norm_sq, const LinOp *solution,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const override;
+
+    void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *residual_norm,
         const LinOp *solution, const uint8 &stopping_id,
         const bool &set_finalized, const Array<stopping_status> *status,
         const bool &one_changed, const bool &all_converged) const override;
