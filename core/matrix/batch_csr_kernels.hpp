@@ -106,6 +106,13 @@ namespace kernels {
         const matrix::BatchCsr<ValueType, IndexType> *to_check,               \
         bool *is_sorted)
 
+#define GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)                \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,        \
+                     const matrix::BatchCsr<ValueType, IndexType> *orig, \
+                     const matrix::BatchDense<ValueType> *left_scale,    \
+                     const matrix::BatchDense<ValueType> *right_scale,   \
+                     matrix::BatchCsr<ValueType, IndexType> *scaled)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL(ValueType, IndexType);                 \
@@ -128,7 +135,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+    GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)
 
 
 namespace omp {
