@@ -515,8 +515,61 @@ public:
 
 
 /**
- * A BatchLinOp implementing this interface can read its data from a std::vector
- * of matrix_data objects.
+ * A batch made up of entities that can scaled from the left and right by
+ * scaling vectors.
+ */
+class BatchScalable {
+public:
+    virtual ~BatchScalable() = default;
+
+    /**
+     * Generates a scaled object from the original object and scaling vectors.
+     *
+     * @return  The scaled batch object.
+     */
+    virtual std::unique_ptr<BatchLinOp> batch_scale() const = 0;
+
+    /**
+     * Sets the scaling vectors to use.
+     *
+     * @param left_scale  The left scaling batch vector.
+     * @param right_scale  The right scaling batch vector.
+     */
+    virtual void set_scaling_vectors(const BatchLinOp *left_scale,
+                                     const BatchLinOp *right_scale) = 0;
+};
+
+
+/**
+ * Abstract class that represents batch scalable objects.
+ * Only implements setting of scaling vectors as BatchDense pointers.
+ *
+ * @see BatchScalable
+ */
+template <typename ValueType>
+class EnableBatchScaling : public BatchScalable {
+public:
+    /**
+     * Sets the scaling vectors to use.
+     *
+     * @param left_scale  The left scaling batch vector.
+     * @param right_scale  The right scaling batch vector.
+     *
+     * @throw gko::NotSupported  If the arguments do not point to BatchDense
+     * objects.
+     */
+    void set_scaling_vectors(const BatchLinOp *left_scale,
+                             const BatchLinOp *right_scale) override;
+
+protected:
+    const BatchLinOp *left_scale_ = nullptr;
+    const BatchLinOp *right_scale_ = nullptr;
+};
+
+
+/**
+ * A BatchLinOp implementing this interface can read its data from a matrix_data
+ * structure.
  *
  * @ingroup BatchLinOp
  */
