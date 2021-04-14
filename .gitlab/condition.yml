@@ -7,6 +7,7 @@
       - develop
       - master
       - tags
+  dependencies: []
 
 .full_test_condition:
   only:
@@ -14,11 +15,13 @@
         - $RUN_CI_TAG && $STATUS_CONTEXT == "full"
         - $RUN_CI_TAG && ($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop")
         - $RUN_CI_TAG && $CI_COMMIT_TAG
+  dependencies: []
 
 .quick_test_condition:
   only:
     variables:
       - $RUN_CI_TAG && $STATUS_CONTEXT == null
+  dependencies: []
 
 .deploy_condition:
   only:
@@ -30,3 +33,4 @@
       - $RUN_CI_TAG
   except:
       - schedules
+  dependencies: []
