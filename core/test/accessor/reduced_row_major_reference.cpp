@@ -404,6 +404,7 @@ TYPED_TEST(ReducedRowMajorReference, Abs)
 TYPED_TEST(ReducedRowMajorReference, Real)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::real;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = real(this->get_ref());
@@ -417,6 +418,7 @@ TYPED_TEST(ReducedRowMajorReference, Real)
 TYPED_TEST(ReducedRowMajorReference, Imag)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::imag;  // required by some compilers, so ADL works properly
     const ar_type expected_res{0};
 
     auto res1 = imag(this->get_ref());
@@ -430,6 +432,7 @@ TYPED_TEST(ReducedRowMajorReference, Imag)
 TYPED_TEST(ReducedRowMajorReference, Conj)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::conj;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = conj(this->get_ref());
@@ -443,6 +446,8 @@ TYPED_TEST(ReducedRowMajorReference, Conj)
 TYPED_TEST(ReducedRowMajorReference, SquaredNorm)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::squared_norm;  // required by some compilers, so ADL works
+                                   // properly
     const auto expected_res =
         this->get_conv_storage() * this->get_conv_storage();
 
@@ -518,6 +523,7 @@ TYPED_TEST(ComplexReducedRowMajorReference, Abs)
 TYPED_TEST(ComplexReducedRowMajorReference, Real)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::real;  // required by some compilers, so ADL works properly
     const auto expected_res = std::real(this->get_conv_storage());
 
     auto res1 = real(this->get_ref());
@@ -531,6 +537,7 @@ TYPED_TEST(ComplexReducedRowMajorReference, Real)
 TYPED_TEST(ComplexReducedRowMajorReference, Imag)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::imag;  // required by some compilers, so ADL works properly
     const auto expected_res = std::imag(this->get_conv_storage());
 
     auto res1 = imag(this->get_ref());
@@ -544,6 +551,7 @@ TYPED_TEST(ComplexReducedRowMajorReference, Imag)
 TYPED_TEST(ComplexReducedRowMajorReference, Conj)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::conj;  // required by some compilers, so ADL works properly
     const auto expected_res = std::conj(this->get_conv_storage());
 
     auto res1 = conj(this->get_ref());
@@ -560,6 +568,8 @@ TYPED_TEST(ComplexReducedRowMajorReference, SquaredNorm)
 {
     using ar_type = typename TestFixture::ar_type;
     using rc_ar_type = typename TestFixture::rc_ar_type;
+    using gko::acc::squared_norm;  // required by some compilers, so ADL works
+                                   // properly
     const auto curr_val = this->get_conv_storage();
     const rc_ar_type expected_res{std::real(
         this->get_conv_storage() * std::conj(this->get_conv_storage()))};

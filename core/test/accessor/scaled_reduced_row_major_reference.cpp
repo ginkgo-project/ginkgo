@@ -435,6 +435,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Abs)
 TYPED_TEST(ScaledReducedRowMajorReference, Real)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::real;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = real(this->get_ref());
@@ -448,6 +449,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Real)
 TYPED_TEST(ScaledReducedRowMajorReference, Imag)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::imag;  // required by some compilers, so ADL works properly
     const ar_type expected_res{0};
 
     auto res1 = imag(this->get_ref());
@@ -461,6 +463,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Imag)
 TYPED_TEST(ScaledReducedRowMajorReference, Conj)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::conj;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = conj(this->get_ref());
@@ -474,6 +477,8 @@ TYPED_TEST(ScaledReducedRowMajorReference, Conj)
 TYPED_TEST(ScaledReducedRowMajorReference, squared_norm)
 {
     using ar_type = typename TestFixture::ar_type;
+    using gko::acc::squared_norm;  // required by some compilers, so ADL works
+                                   // properly
     const auto expected_res =
         this->get_conv_storage() * this->get_conv_storage();
 
