@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#if defined(__HIPCC__)
+#if defined(__HIPCC__) || defined(__CUDACC__)
 #include <thrust/complex.h>
 #endif
 
@@ -89,12 +89,12 @@ struct hip_type<T &&> {
 
 
 // Transform std::complex to thrust::complex iff thrust::complex is included
-#if defined(__HIPCC__)
+#if defined(__HIPCC__) || defined(__CUDACC__)
 template <typename T>
 struct hip_type<std::complex<T>> {
     using type = thrust::complex<T>;
 };
-#endif  // defined(__HIPCC__)
+#endif  // defined(__HIPCC__) || defined(__CUDACC__)
 
 
 }  // namespace detail
