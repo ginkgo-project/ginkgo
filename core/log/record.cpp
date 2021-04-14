@@ -244,7 +244,8 @@ void Record::on_criterion_check_started(
 
 void Record::on_criterion_check_completed(
     const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const LinOp *residual, const LinOp *residual_norm,
+    const LinOp *implicit_residual_norm_sq, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
     const Array<stopping_status> *status, const bool &oneChanged,
     const bool &converged) const
@@ -254,6 +255,19 @@ void Record::on_criterion_check_completed(
         (std::unique_ptr<criterion_data>(new criterion_data{
             criterion, num_iterations, residual, residual_norm, solution,
             stopping_id, set_finalized, status, oneChanged, converged})));
+}
+
+
+void Record::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &oneChanged,
+    const bool &converged) const
+{
+    this->on_criterion_check_completed(
+        criterion, num_iterations, residual, residual_norm, nullptr, solution,
+        stopping_id, set_finalized, status, oneChanged, converged);
 }
 
 
