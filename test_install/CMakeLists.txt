@@ -7,6 +7,12 @@ find_package(Ginkgo REQUIRED
     # Alternatively, use `cmake -DCMAKE_PREFIX_PATH=<ginkgo_install_dir>` to specify the install directory
     )
 
+
+# Manage RPATH. This needs to be before the targets.
+set(CMAKE_SKIP_BUILD_RPATH OFF)
+set(CMAKE_SKIP_INSTALL_RPATH OFF)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+
 # Copy the data to the build directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
 configure_file(data/b.mtx data/b.mtx COPYONLY)
@@ -86,16 +92,13 @@ endif()
 # Installation step
 set(TESTINSTALL_INSTALL_DIR "${GINKGO_INSTALL_PREFIX}/smoke_tests")
 set(TESTINSTALL_INSTALL_DATADIR "${TESTINSTALL_INSTALL_DIR}/data")
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
-set_target_properties(test_install PROPERTIES INSTALL_RPATH "${GINKGO_INSTALL_LIBRARY_DIR}")
+# Install the binaries and data
 install(TARGETS test_install RUNTIME DESTINATION ${TESTINSTALL_INSTALL_DIR})
 if(GINKGO_BUILD_CUDA)
-    set_target_properties(test_install_cuda PROPERTIES INSTALL_RPATH "${GINKGO_INSTALL_LIBRARY_DIR}")
     install(TARGETS test_install_cuda RUNTIME DESTINATION ${TESTINSTALL_INSTALL_DIR})
 endif()
 if(GINKGO_BUILD_HIP)
-    set_target_properties(test_install_hip PROPERTIES INSTALL_RPATH "${GINKGO_INSTALL_LIBRARY_DIR}")
     install(TARGETS test_install_hip RUNTIME DESTINATION ${TESTINSTALL_INSTALL_DIR})
 endif()
 install(DIRECTORY "${TestInstall_BINARY_DIR}/data/"
