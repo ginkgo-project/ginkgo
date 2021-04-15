@@ -138,16 +138,16 @@ protected:
         bnorm_1 = std::move(bnorm);
     }
 
-    // int single_iters_regression()
-    // {
-    //     if (std::is_same<real_type, float>::value) {
-    //         return 50;
-    //     } else if (std::is_same<real_type, double>::value) {
-    //         return 80;
-    //     } else {
-    //         return -1;
-    //     }
-    // }
+    int single_iters_regression()
+    {
+        if (std::is_same<real_type, float>::value) {
+            return 4;
+        } else if (std::is_same<real_type, double>::value) {
+            return 2;
+        } else {
+            return -1;
+        }
+    }
 
     void solve_poisson_uniform_mult()
     {
@@ -177,9 +177,7 @@ protected:
             gko::matrix::BatchDense<real_type>::create(this->cuexec, sizes);
         logdata.iter_counts.set_executor(this->cuexec);
         logdata.iter_counts.resize_and_reset(nrhs * nbatch);
-        // for(int i = 0; i < nbatch*nrhs; i++) {
-        // 	logdata.iter_counts.get_data()[i] = -1;
-        // }
+
 
         auto mtx = Mtx::create(this->cuexec);
         auto b = BDense::create(this->cuexec);
@@ -214,21 +212,21 @@ protected:
         bnorm_m = std::move(bnorm);
     }
 
-    // std::vector<int> multiple_iters_regression()
-    // {
-    //     std::vector<int> iters(2);
-    //     if (std::is_same<real_type, float>::value) {
-    //         iters[0] = 50;
-    //         iters[1] = 63;
-    //     } else if (std::is_same<real_type, double>::value) {
-    //         iters[0] = 80;
-    //         iters[1] = 79;
-    //     } else {
-    //         iters[0] = -1;
-    //         iters[1] = -1;
-    //     }
-    //     return iters;
-    // }
+    std::vector<int> multiple_iters_regression()
+    {
+        std::vector<int> iters(2);
+        if (std::is_same<real_type, float>::value) {
+            iters[0] = 4;
+            iters[1] = 5;
+        } else if (std::is_same<real_type, double>::value) {
+            iters[0] = 2;
+            iters[1] = 2;
+        } else {
+            iters[0] = -1;
+            iters[1] = -1;
+        }
+        return iters;
+    }
 };
 
 TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes);
@@ -252,14 +250,14 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
     this->solve_poisson_uniform_1();
     this->cuexec->synchronize();
 
-    // const int ref_iters = this->single_iters_regression();
+    const int ref_iters = this->single_iters_regression();
 
     const int *const iter_array = this->logdata_1.iter_counts.get_const_data();
     const real_type *const res_log_array =
         this->logdata_1.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        // ASSERT_EQ(iter_array[i], ref_iters);
+        ASSERT_EQ(iter_array[i], ref_iters);
         ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
     }
 }
@@ -284,7 +282,7 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
     this->solve_poisson_uniform_mult();
     this->cuexec->synchronize();
 
-    // const std::vector<int> ref_iters = this->multiple_iters_regression();
+    const std::vector<int> ref_iters = this->multiple_iters_regression();
 
     const int *const iter_array = this->logdata_m.iter_counts.get_const_data();
     const real_type *const res_log_array =
@@ -292,7 +290,7 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            // ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
         }
