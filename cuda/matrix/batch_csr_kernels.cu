@@ -67,6 +67,10 @@ namespace kernels {
 namespace cuda {
 
 
+#include "common/matrix/batch_csr_kernels.hpp.inc"
+#include "common/matrix/batch_dense_kernels.hpp.inc"
+
+
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
@@ -212,7 +216,28 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::BatchDense<ValueType> *left_scale,
                  const matrix::BatchDense<ValueType> *right_scale,
                  matrix::BatchCsr<ValueType, IndexType> *scaled)
-    GKO_NOT_IMPLEMENTED;
+{
+    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+
+    const auto num_rows = static_cast<int>(orig->get_size().at(0)[0]);
+    const ValueType *const left_vals = left_scale->get_const_values();
+    const ValueType *const right_vals = right_scale->get_const_values();
+    const size_type nbatches = orig->get_num_batches();
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto col_idxs = orig->get_const_col_idxs();
+    const auto origvals = orig->get_const_values();
+    const auto scaledvals = scaled->get_values();
+    const int nnz = static_cast<int>(orig->get_num_stored_elements() /
+                                     orig->get_num_batches());
+
+    constexpr int block_size = 512;
+    const int num_blocks = exec->get_num_multiprocessor();
+    uniform_batch_scale<<<num_blocks, block_size>>>(
+        as_cuda_type(left_vals), as_cuda_type(right_vals), row_ptrs, col_idxs,
+        nbatches, num_rows, nnz, as_cuda_type(origvals),
+        as_cuda_type(scaledvals));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
 
