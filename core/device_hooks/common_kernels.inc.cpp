@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"

@@ -18,6 +18,10 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
     default is `OFF`.
+*   `-DGINKGO_MIXED_PRECISION={ON, OFF}` compiles true mixed-precision kernels
+    instead of converting data on the fly, default is `OFF`.
+    Enabling this flag increases the library size, but improves performance of
+    mixed-precision kernels.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
 *   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests
