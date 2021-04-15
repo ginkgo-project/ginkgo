@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
+#include <ginkgo/core/matrix/dense.hpp>
+
+
 #include <random>
 
 
@@ -55,10 +58,12 @@ namespace {
 class BatchCsr : public ::testing::Test {
 protected:
     using value_type = float;
+    using real_type = gko::remove_complex<value_type>;
     using Vec = gko::matrix::BatchDense<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
     using ComplexVec = gko::matrix::BatchDense<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::BatchCsr<std::complex<value_type>>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     BatchCsr() : mtx_size(10, gko::dim<2>(62, 47)), rand_engine(42) {}
 
@@ -67,6 +72,9 @@ protected:
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         cuda = gko::CudaExecutor::create(0, ref);
+        mtx = gko::test::create_poisson1d_batch<value_type>(ref, nrows, nbatch);
+        dmtx = Mtx::create(cuda);
+        dmtx->copy_from(mtx.get());
     }
 
     void TearDown()
@@ -220,6 +228,40 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
                         dcomplex_y.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dcomplex_y, complex_y, eps);
+}
+
+
+TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
+{
+    std::vector<std::unique_ptr<Dense>> leftvecs, rightvecs;
+    std::vector<Dense *> leftptrs(batch_size), rightptrs(batch_size);
+    for (size_t i = 0; i < batch_size; i++) {
+        leftvecs.push_back(gko::test::generate_random_matrix<Dense>(
+            this->nrows, 1, std::uniform_int_distribution<>(1, 1),
+            std::normal_distribution<real_type>(-1.0, 1.0), std::ranlux48(),
+            this->ref));
+        rightvecs.push_back(gko::test::generate_random_matrix<Dense>(
+            this->nrows, 1, std::uniform_int_distribution<>(0, 0),
+            std::normal_distribution<real_type>(-1.0, 1.0), std::ranlux48(),
+            this->ref));
+        leftptrs[i] = leftvecs[i].get();
+        rightptrs[i] = rightvecs[i].get();
+    }
+    auto ref_left_scale = Vec::create(this->ref, leftptrs);
+    auto ref_right_scale = Vec::create(this->ref, rightptrs);
+    auto d_left_scale = Vec::create(this->cuda, leftptrs);
+    auto d_right_scale = Vec::create(this->cuda, rightptrs);
+    auto square_mtx = Mtx::create(ref);
+    sq_mtx->copy_from(gen_mtx<Vec>(batch_size, nrows, nrows, 1));
+    auto sq_dmtx = Mtx::create(cuda);
+    sq_dmtx->copy_from(sq_mtx.get());
+    sq_mtx->set_scaling_vectors(ref_left_scale.get(), ref_right_scale.get());
+    sq_dmtx->set_scaling_vectors(d_left_scale.get(), d_right_scale.get());
+
+    auto scaled_mtx = gko::as<Mtx>(sq_mtx->batch_scale());
+    auto d_scaled_mtx = gko::as<Mtx>(sq_dmtx->batch_scale());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(scaled_mtx, d_scaled_mtx, 0.0);
 }
 
 
