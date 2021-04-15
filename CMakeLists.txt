@@ -73,7 +73,11 @@ set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+if(MSVC OR WIN32 OR CYGWIN OR APPLE)
+    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" OFF)
+else()
+    option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
+endif()
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
@@ -169,6 +173,11 @@ if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
 
+# Switch off HWLOC for Windows and MacOS
+if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
+    set(GINKGO_BUILD_HWLOC OFF CACHE BOOL "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS" FORCE)
+    message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
+endif()
 if(GINKGO_BUILD_HWLOC)
     # By default always use external HWLOC
     set(GINKGO_USE_EXTERNAL_HWLOC 1)
@@ -177,10 +186,6 @@ else()
     set(GINKGO_USE_EXTERNAL_HWLOC 0)
     set(GINKGO_HAVE_HWLOC 0)
     message(STATUS "HWLOC is being forcibly switched off")
-endif()
-# Switch off HWLOC for Windows and MacOS
-if(MSVC OR WIN32 OR CYGWIN OR APPLE)
-    set(GINKGO_HAVE_HWLOC 0)
 endif()
 
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
@@ -211,6 +216,21 @@ if(GINKGO_BUILD_HIP)
 endif()
 
 
+if(MSVC)
+    # This is modified from
+    # https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+    include(cmake/windows_helpers.cmake)
+    if(BUILD_SHARED_LIBS)
+        ginkgo_switch_to_windows_dynamic("CXX")
+        ginkgo_switch_to_windows_dynamic("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    else()
+        ginkgo_switch_to_windows_static("CXX")
+        ginkgo_switch_to_windows_static("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
+    endif()
+endif()
+
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
@@ -222,26 +242,12 @@ if(GINKGO_HAVE_HWLOC)
         set(GINKGO_USE_EXTERNAL_HWLOC 0)
     endif()
 endif()
+# third_party needs to be after flag modification.
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
-include(cmake/windows_helpers.cmake)
-
-# This is modified from
-# https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
-if(MSVC)
-    if(BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CXX")
-        ginkgo_switch_to_windows_dynamic("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-    else()
-        ginkgo_switch_to_windows_static("CXX")
-        ginkgo_switch_to_windows_static("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    endif()
-endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)

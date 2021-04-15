@@ -288,6 +288,26 @@ build/cuda92/intel/cuda/release/static:
     - cuda
     - gpu
 
+# Build CUDA NVIDIA without omp
+build/cuda92/intel/cuda_wo_omp/release/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
+  variables:
+    <<: *default_variables
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
 # cuda 10.0 and friends
 # Make sure that our jobs run when using self-installed
 # third-party HWLOC.
@@ -589,6 +609,24 @@ build/amd/clang/hip/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - amd
+    - gpu
+
+# Build HIP AMD without omp
+build/amd/clang/hip_wo_omp/release/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-amd-gnu8-llvm7
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Release"
   only:
     variables:
       - $RUN_CI_TAG
