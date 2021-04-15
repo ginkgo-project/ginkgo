@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "accessor/reduced_row_major.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "omp/components/format_conversion.hpp"
 
 

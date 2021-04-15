@@ -226,6 +226,100 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
 }
 
 
+/**
+ * Calls the given function with each given argument LinOp
+ * converted into matrix::Dense<ValueType> as parameters.
+ *
+ * If GINKGO_MIXED_PRECISION is defined, this means that the function will be
+ * called with its dynamic type with its static type, so the (templated/generic)
+ * function will be instantiated with all pairs of Dense<ValueType> and
+ * Dense<next_precision<ValueType>> parameter types, and the appropriate
+ * overload will be called based on the dynamic type of the parameter.
+ *
+ * If GINKGO_MIXED_PRECISION is not defined, it will behave exactly like
+ * precision_dispatch.
+ *
+ *
+ * @param fn  the given function. It will be passed one (potentially const)
+ *            matrix::Dense<...>* parameter per parameter in the parameter
+ *            pack `linops`.
+ * @param linops  the given arguments to be converted and passed on to fn.
+ *
+ * @tparam ValueType  the value type to use for the parameters of `fn`.
+ * @tparam Function  the function pointer, lambda or other functor type to call
+ *                   with the converted arguments.
+ * @tparam Args  the argument type list.
+ */
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = matrix::Dense<ValueType>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    if (auto dense_in = dynamic_cast<const fst_type *>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else if (auto dense_in = dynamic_cast<const snd_type *>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else {
+        GKO_NOT_SUPPORTED(in);
+    }
+#else
+    precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
+
+/**
+ * Calls the given function with the given LinOps cast to their dynamic type
+ * matrix::Dense<ValueType>* as parameters.
+ * If ValueType is real and both `in` and `out` are complex, uses
+ * matrix::Dense::get_real_view() to convert them into real matrices after
+ * precision conversion.
+ *
+ * @see mixed_precision_dispatch()
+ */
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
+                                           LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    // do we need to convert complex Dense to real Dense?
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
+    if (complex_to_real) {
+        mixed_precision_dispatch<to_complex<ValueType>>(
+            [&fn](auto dense_in, auto dense_out) {
+                using Dense = matrix::Dense<ValueType>;
+                // These dynamic_casts are only needed to make the code compile
+                // If ValueType is complex, this branch will never be taken
+                // If ValueType is real, the cast is a no-op
+                fn(dynamic_cast<const Dense *>(
+                       dense_in->create_real_view().get()),
+                   dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+            },
+            in, out);
+    } else {
+        mixed_precision_dispatch<ValueType>(fn, in, out);
+    }
+#else
+    precision_dispatch_real_complex<ValueType>(fn, in, out);
+#endif
+}
+
+
 }  // namespace gko
 
 
