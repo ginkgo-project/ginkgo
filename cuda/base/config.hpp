@@ -85,7 +85,10 @@ struct batch_config {
      * Max number of RHS vectors in a linear system. This can be at most
      * `config::warp_size`.
      */
-    static constexpr int max_num_rhs = 3;
+    static constexpr int max_num_rhs =
+        4;  // NOTE: max_num_rhs has to be an even number to avoid cuda
+            // misaligned address issues while using complex datatypes(in
+            // reference to the shared memory in solver kernels)
 };
 
 
