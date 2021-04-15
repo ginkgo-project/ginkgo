@@ -79,7 +79,7 @@ public:
 
     // Allow move construction, so perfect forwarding is possible (required
     // for `range` support)
-    reduced_storage(reduced_storage &&) = default;
+    reduced_storage(reduced_storage &&) noexcept = default;
 
     reduced_storage() = delete;
 
@@ -100,7 +100,7 @@ public:
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
+    operator=(arithmetic_type val) &&
     {
         storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
@@ -135,7 +135,7 @@ public:
     using storage_type = const StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    reduced_storage(reduced_storage &&) = default;
+    reduced_storage(reduced_storage &&) noexcept = default;
 
     reduced_storage() = delete;
 
