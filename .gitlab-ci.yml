@@ -30,11 +30,12 @@ stages:
   EXTRA_CMAKE_FLAGS: ""
   EXPORT_BUILD_DIR: "OFF"
   CI_PROJECT_DIR_SUFFIX: ""
+  CUDA_DEVICES: "$((RANDOM % 2))"
 
 .before_script_template: &default_before_script
   - export NUM_CORES=${CI_PARALLELISM}
   - export OMP_NUM_THREADS=${NUM_CORES}
-  - export CUDA_VISIBLE_DEVICES=$((RANDOM % 2))
+  - export CUDA_VISIBLE_DEVICES=${CUDA_DEVICES}
   - export CCACHE_DIR=${CCACHE_DIR}
   - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
 
@@ -570,6 +571,7 @@ build/amd/gcc/hip/debug/shared:
     RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
+    CUDA_DEVICES: "0"
   only:
     variables:
       - $RUN_CI_TAG
@@ -589,6 +591,7 @@ build/amd/clang/hip/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+    CUDA_DEVICES: "0"
   only:
     variables:
       - $RUN_CI_TAG
