@@ -119,3 +119,40 @@ __global__
                              c_b);
     }
 }
+
+
+/**
+ * Scales an entire batch of uniform CSR matrices with common dense
+ * vectors for row and column scaling.
+ *
+ * One warp is assigned to each row.
+ */
+template <typename ValueType, typename IndexType>
+__global__ void uniform_batch_scale(
+    const ValueType *const left_scale, const ValueType *const right_scale,
+    const IndexType *const row_ptrs, const IndexType *const col_idxs,
+    const size_type num_batch, const int num_rows, const int num_nnz,
+    const ValueType *const orig_vals, ValueType *const scaled_vals)
+{
+    constexpr auto warp_size = config::warp_size;
+    const size_type global_row = thread::get_subwarp_id_flat<warp_size>();
+    const size_type num_warps = thread::get_subwarp_num_flat<warp_size>();
+
+    const size_type num_global_rows = num_batch * num_rows;
+
+    for (size_type i_g_row = global_row; i_g_row < num_global_rows;
+         i_g_row += num_warps) {
+        const size_type ibatch = i_g_row / num_rows;
+        const int row = static_cast<int>(i_g_row % num_rows);
+
+        const ValueType *const origv = orig_vals + ibatch * num_nnz;
+        ValueType *const scaledv = scaled_vals + ibatch * num_nnz;
+
+        const ValueType rowscale = left_scale[row];
+        const auto local_tidx = threadIdx.x % warp_size;
+        for (IndexType iz = row_ptrs[row] + local_tidx; iz < row_ptrs[row + 1];
+             iz += warp_size) {
+            scaledv[iz] = origv[iz] * rowscale * right_scale[col_idxs[iz]];
+        }
+    }
+}
