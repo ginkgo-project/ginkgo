@@ -302,13 +302,24 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
     if (complex_to_real) {
         mixed_precision_dispatch<to_complex<ValueType>>(
             [&fn](auto dense_in, auto dense_out) {
-                using Dense = matrix::Dense<ValueType>;
+                using DenseIn = typename std::decay_t<decltype(*dense_in)>;
+                using DenseOut = typename std::decay_t<decltype(*dense_out)>;
+                using DenseDummy = matrix::Dense<ValueType>;
+                using RealIn = remove_complex<typename DenseIn::value_type>;
+                using RealOut = remove_complex<typename DenseOut::value_type>;
+                using CastIn =
+                    std::conditional_t<is_complex<ValueType>(), DenseDummy,
+                                       matrix::Dense<RealIn>>;
+                using CastOut =
+                    std::conditional_t<is_complex<ValueType>(), DenseDummy,
+                                       matrix::Dense<RealOut>>;
                 // These dynamic_casts are only needed to make the code compile
                 // If ValueType is complex, this branch will never be taken
                 // If ValueType is real, the cast is a no-op
-                fn(dynamic_cast<const Dense *>(
+                fn(dynamic_cast<const CastIn *>(
                        dense_in->create_real_view().get()),
-                   dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+                   dynamic_cast<CastOut *>(
+                       dense_out->create_real_view().get()));
             },
             in, out);
     } else {
