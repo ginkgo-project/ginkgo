@@ -80,7 +80,7 @@ public:
     using storage_type = StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) = default;
+    scaled_reduced_storage(scaled_reduced_storage &&) noexcept = default;
 
     scaled_reduced_storage() = delete;
 
@@ -101,7 +101,7 @@ public:
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
+    operator=(arithmetic_type val) &&
     {
         storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
@@ -138,7 +138,7 @@ public:
     using storage_type = const StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) = default;
+    scaled_reduced_storage(scaled_reduced_storage &&) noexcept = default;
 
     scaled_reduced_storage() = delete;
 

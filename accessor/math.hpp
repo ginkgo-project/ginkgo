@@ -53,15 +53,14 @@ namespace acc {
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
-    std::enable_if_t<!is_complex<T>::value, T>
-    real(const T &x)
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> real(
+    const T &x)
 {
     return x;
 }
 
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+constexpr GKO_ACC_ATTRIBUTES
     std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
     real(const T &x)
 {
@@ -79,15 +78,14 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
  * @return imag part of the object (by default, zero)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
-    std::enable_if_t<!is_complex<T>::value, T>
-    imag(const T &x)
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> imag(
+    const T &)
 {
     return T{};
 }
 
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+constexpr GKO_ACC_ATTRIBUTES
     std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
     imag(const T &x)
 {
@@ -103,17 +101,15 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
-    std::enable_if_t<!is_complex<T>::value, T>
-    conj(const T &x)
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> conj(
+    const T &x)
 {
     return x;
 }
 
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
-    std::enable_if_t<is_complex<T>::value, T>
-    conj(const T &x)
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<is_complex<T>::value, T> conj(
+    const T &x)
 {
     return T{real(x), -imag(x)};
 }
@@ -127,8 +123,7 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
  * @return  The squared norm of the object.
  */
 template <typename T>
-constexpr GKO_ACC_INLINE GKO_ACC_ATTRIBUTES auto squared_norm(const T &x)
-    -> decltype(real(conj(x) * x))
+constexpr GKO_ACC_ATTRIBUTES auto squared_norm(const T &x)
 {
     return real(conj(x) * x);
 }
