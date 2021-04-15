@@ -176,10 +176,6 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
         check_norms(norms, converged);
     }
 
-    //  std::cout << std::endl << " Repeat: iter value is: " << iter <<  " res
-    //  norm[0]: " <<  residual_norms[0] <<  "    res norm[1]: " <<
-    //  residual_norms[1] << std::endl;
-
     if (converged == all_true) {
         return true;
     } else {
@@ -196,7 +192,6 @@ GKO_ATTRIBUTES GKO_INLINE void AbsAndRelResidualMaxIter<ValueType>::check_norms(
         if (converged & (1 << i)) {
             continue;
         }
-
 
         if (tol_type == tolerance::absolute) {
             if (res_norms[i] < abs_tol) {
