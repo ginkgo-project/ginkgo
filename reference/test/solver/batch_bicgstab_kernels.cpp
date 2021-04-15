@@ -120,9 +120,9 @@ protected:
     int single_iters_regression() const
     {
         if (std::is_same<real_type, float>::value) {
-            return 50;
+            return 5;
         } else if (std::is_same<real_type, double>::value) {
-            return 80;
+            return 2;
         } else {
             return -1;
         }
@@ -175,11 +175,11 @@ protected:
     {
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
-            iters[0] = 50;
-            iters[1] = 63;
+            iters[0] = 5;
+            iters[1] = 5;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 80;
-            iters[1] = 79;
+            iters[0] = 2;
+            iters[1] = 2;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -195,12 +195,6 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
 {
     this->solve_poisson_uniform_1();
 
-    // GKO_ASSERT(this->opts_m.tol_type ==
-    // gko::stop::batch::ToleranceType::absolute);
-    //    for (size_t i = 0; i < this->nbatch; i++) {
-    //        ASSERT_LE(this->resnorm_1->get_const_values()[i] ,
-    //        this->opts_1.abs_residual_tol);
-    //    }
     GKO_ASSERT_BATCH_MTX_NEAR(this->x_1, this->xex_1,
                               1e-6 /*r<value_type>::value*/);
 }
@@ -219,7 +213,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
         this->logdata_1.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        // ASSERT_EQ(iter_array[i], ref_iters);
+        ASSERT_EQ(iter_array[i], ref_iters);
         ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
     }
 }
@@ -229,14 +223,6 @@ TYPED_TEST(BatchBicgstab, SolvesStencilMultipleSystem)
 {
     this->solve_poisson_uniform_mult();
 
-    // GKO_ASSERT(this->opts_m.tol_type ==
-    // gko::stop::batch::ToleranceType::absolute);
-    //     for (size_t i = 0; i < this->nbatch; i++) {
-    //         for (size_t j = 0; j < this->nrhs; j++) {
-    //             ASSERT_LE(this->resnorm_m->get_const_values()[i * this->nrhs
-    //             + j] , this->opts_m.abs_residual_tol);
-    //        }
-    //    }
     GKO_ASSERT_BATCH_MTX_NEAR(this->x_m, this->xex_m,
                               1e-6 /*r<value_type>::value*/);
 }
@@ -257,7 +243,7 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            //     ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
         }

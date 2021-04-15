@@ -194,6 +194,10 @@ AbsAndRelResidualMaxIter<ValueType>::check_norms(
     for (int i = subwarp_grp.thread_rank(); i < nrhs; i += max_nrhs) {
         int ichk = 0;
 
+        if (converged & (1 << i)) {  // don't check for convergence again for
+                                     // RHSs which have already converged.
+            ichk = 1;
+        }
 
         if (tol_type == tolerance::relative) {
             ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
