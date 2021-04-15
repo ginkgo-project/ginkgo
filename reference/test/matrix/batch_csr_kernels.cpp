@@ -500,11 +500,9 @@ TYPED_TEST(BatchCsr, CanBeBatchScaled)
     }
 
     mtx->set_scaling_vectors(left.get(), right.get());
-    const std::unique_ptr<const Mtx> scaled_mtx(
-        static_cast<const Mtx *>(mtx->batch_scale().release()));
+    const auto scaled_mtx = gko::as<const Mtx>(mtx->batch_scale());
 
-
-    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, scaled_mtx, r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, scaled_mtx, 0.0);
 }
 
 
