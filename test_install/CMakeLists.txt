@@ -64,10 +64,13 @@ if(GINKGO_BUILD_HIP)
     if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         set(TESTINSTALL_CUDA_ARCH_FLAGS "${GINKGO_CUDA_ARCH_FLAGS}")
     endif()
+    if (CMAKE_CUDA_HOST_COMPILER)
+        set(TESTINSTALL_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
+    endif()
     hip_add_executable(test_install_hip test_install.cpp
         HIPCC_OPTIONS "-std=c++14"
         CLANG_OPTIONS "${GINKGO_PIC_OPTION}"
-        NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}" "${TESTINSTALL_CUDA_ARCH_FLAGS}")
+        NVCC_OPTIONS "${GINKGO_CUDA_PIC_OPTION}" "${TESTINSTALL_CUDA_ARCH_FLAGS}" "${TESTINSTALL_CUDA_HOST_COMPILER}")
 
     target_link_libraries(test_install_hip PRIVATE Ginkgo::ginkgo)
     target_compile_definitions(test_install_hip PRIVATE HAS_HIP=1)
