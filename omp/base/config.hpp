@@ -30,36 +30,36 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/batch_bicgstab_kernels.hpp"
+
+#ifndef GKO_OMP_BASE_CONFIG_HPP_
+#define GKO_OMP_BASE_CONFIG_HPP_
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
-/**
- * @brief The batch Bicgstab solver namespace.
- *
- * @ingroup batch_bicgstab
- */
-namespace batch_bicgstab {
+namespace omp {
 
-
-template <typename T>
-using BatchBicgstabOptions =
-    gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
 template <typename ValueType>
-void apply(std::shared_ptr<const DpcppExecutor> exec,
-           const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+struct batch_config {
+    /**
+     * Max number of rows per matrix in a batch of (small) sparse matrices
+     */
+    static constexpr int max_num_rows = 200;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+    /**
+     * Max number of RHS vectors in a linear system
+     */
+    static constexpr int max_num_rhs = 5;
+};
 
 
-}  // namespace batch_bicgstab
-}  // namespace dpcpp
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_OMP_BASE_CONFIG_HPP_
