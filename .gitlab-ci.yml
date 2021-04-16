@@ -224,12 +224,12 @@ trigger_pipeline:
   variables:
     STATUS_CONTEXT: "quick"
   script:
-    - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
+    - PR_ID=$(curl -s "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
       | jq '.items[0].number')
     - |
       if [[ "${PR_ID}" != "null" ]]; then
-        echo "Find the corresponding Pull Request - ${PR_ID}"
-        echo "Check whether the PR contains ST:ready-to-merge or ST:run-full-test label"
+        echo "Finding the corresponding Pull Request - ${PR_ID}"
+        echo "Checking whether the PR contains ST:ready-to-merge or ST:run-full-test labels"
         ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
           "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
           'any( [.labels | .[] | .name ] | .[] ; . == "ST:ready-to-merge" or . == "ST:run-full-test")')
@@ -238,7 +238,7 @@ trigger_pipeline:
           curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
             https://gitlab.com/api/v4/projects/6431537/trigger/pipeline
         else
-          echo "does not contain required label"
+          echo "does not contain required labels"
         fi
       else
         echo "Can not find the corresponding Pull Request"
@@ -328,7 +328,7 @@ build/cuda92/gcc/all/release/shared:
 build/cuda92/intel/cuda/release/static:
   <<: *default_build_with_test
   extends:
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
@@ -344,22 +344,18 @@ build/cuda92/intel/cuda/release/static:
 # Build CUDA NVIDIA without omp
 build/cuda92/intel/cuda_wo_omp/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
+  extends:
+    - .quick_test_condition
+    - .use_gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
 
 # cuda 10.0 and friends
 # Make sure that our jobs run when using self-installed
@@ -598,20 +594,15 @@ build/amd/clang/hip/release/static:
 # Build HIP AMD without omp
 build/amd/clang/hip_wo_omp/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu8-llvm7
+  extends:
+    - .full_test_condition
+    - .use_gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - amd
-    - gpu
 
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
@@ -797,10 +788,10 @@ sonarqube_cov_:
     - .use_gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
-    - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
+    - PR_ID=$(curl -s "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
       | jq '.items[0].number')
     - if [[ "${PR_ID}" != "null" ]]; then
-        target_branch=$(curl
+        target_branch=$(curl -s
           "https://api.github.com/repos/ginkgo-project/ginkgo/pulls/${PR_ID}" | jq
           '.base.ref' | sed 's/"//g');
         sonar_branching="-Dsonar.pullrequest.branch=${CI_COMMIT_REF_NAME}
