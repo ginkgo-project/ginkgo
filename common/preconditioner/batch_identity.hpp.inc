@@ -37,7 +37,7 @@ GKO_ATTRIBUTES GKO_INLINE void BatchIdentity<ValueType>::apply(
     const gko::batch_dense::BatchEntry<const ValueType> &r,
     const gko::batch_dense::BatchEntry<ValueType> &z) const
 {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_ARCH__)
 
 
     for (int li = threadIdx.x; li < r.num_rows * r.num_rhs; li += blockDim.x) {
