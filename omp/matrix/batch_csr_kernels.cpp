@@ -68,7 +68,33 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType> *a,
           const matrix::BatchDense<ValueType> *b,
-          matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          matrix::BatchDense<ValueType> *c)
+{
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+
+    size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
+#pragma omp parallel for
+    for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
+        size_type offset = batch * num_nnz;
+#pragma omp parallel for
+        for (size_type row = 0; row < a->get_size().at(0)[0]; ++row) {
+            for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+                c->at(batch, row, j) = zero<ValueType>();
+            }
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = vals[offset + k];
+                auto col = col_idxs[k];
+                for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+                    c->at(batch, row, j) += val * b->at(batch, col, j);
+                }
+            }
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
@@ -80,7 +106,37 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::BatchCsr<ValueType, IndexType> *a,
                    const matrix::BatchDense<ValueType> *b,
                    const matrix::BatchDense<ValueType> *beta,
-                   matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   matrix::BatchDense<ValueType> *c)
+{
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+
+    size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
+
+
+#pragma omp parallel for
+    for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
+        auto valpha = alpha->at(batch, 0, 0);
+        auto vbeta = beta->at(batch, 0, 0);
+        size_type offset = batch * num_nnz;
+
+#pragma omp parallel for
+        for (size_type row = 0; row < a->get_size().at(0)[0]; ++row) {
+            for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+                c->at(batch, row, j) *= vbeta;
+            }
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = vals[offset + k];
+                auto col = col_idxs[k];
+                for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+                    c->at(batch, row, j) += valpha * val * b->at(batch, col, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
