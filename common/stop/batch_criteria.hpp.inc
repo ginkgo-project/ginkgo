@@ -152,7 +152,7 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
     const gko::batch_dense::BatchEntry<const ValueType> &residual,
     bitset_type &converged) const
 {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_ARCH__)
 
 
     if (iter >= max_its - 1) {
@@ -187,7 +187,7 @@ __device__ __forceinline__ void
 AbsAndRelResidualMaxIter<ValueType>::check_norms(
     const real_type *const res_norms, bitset_type &converged) const
 {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_ARCH__)
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
