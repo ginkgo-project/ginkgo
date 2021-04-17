@@ -61,7 +61,9 @@ protected:
     using Vec2 = gko::matrix::Dense<float>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
-    Ell() : rand_engine(42) {}
+    Ell()
+        : rand_engine(42), size{532, 231}, num_els_rowwise{300}, ell_stride{600}
+    {}
 
     void SetUp()
     {
@@ -127,6 +129,9 @@ protected:
     std::shared_ptr<const gko::HipExecutor> hip;
 
     std::ranlux48 rand_engine;
+    gko::dim<2> size;
+    gko::size_type num_els_rowwise;
+    gko::size_type ell_stride;
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Vec> expected;
@@ -240,7 +245,7 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef3)
 
 TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -251,7 +256,7 @@ TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
     dmtx->apply(dy2.get(), dresult2.get());
@@ -262,7 +267,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
     dmtx->apply(dy2.get(), dresult.get());
@@ -273,7 +278,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef3)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
     dmtx->apply(dy.get(), dresult2.get());
@@ -284,7 +289,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef3)
 
 TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
@@ -294,7 +299,7 @@ TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
@@ -305,7 +310,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
@@ -316,7 +321,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 {
-    set_up_apply_data(532, 231, 1, 300, 600);
+    set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
@@ -327,7 +332,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 
 TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -338,7 +343,7 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
     dmtx->apply(dy2.get(), dresult2.get());
@@ -349,7 +354,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
     dmtx->apply(dy2.get(), dresult.get());
@@ -360,7 +365,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
     dmtx->apply(dy.get(), dresult2.get());
@@ -371,7 +376,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 
 TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -382,7 +387,7 @@ TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
@@ -393,7 +398,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
@@ -404,7 +409,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(532, 231, 3, 300, 600);
+    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
@@ -504,10 +509,10 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixIsEquivalentToRef)
 TEST_F(Ell, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
     auto dcomplex_b = ComplexVec::create(hip);
     dcomplex_b->copy_from(complex_b.get());
-    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
     auto dcomplex_x = ComplexVec::create(hip);
     dcomplex_x->copy_from(complex_x.get());
 
@@ -521,10 +526,10 @@ TEST_F(Ell, ApplyToComplexIsEquivalentToRef)
 TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
     auto dcomplex_b = ComplexVec::create(hip);
     dcomplex_b->copy_from(complex_b.get());
-    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
     auto dcomplex_x = ComplexVec::create(hip);
     dcomplex_x->copy_from(complex_x.get());
 

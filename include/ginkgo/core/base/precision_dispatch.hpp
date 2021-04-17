@@ -231,7 +231,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
  * converted into matrix::Dense<ValueType> as parameters.
  *
  * If GINKGO_MIXED_PRECISION is defined, this means that the function will be
- * called with its dynamic type with its static type, so the (templated/generic)
+ * called with its dynamic type as a static type, so the (templated/generic)
  * function will be instantiated with all pairs of Dense<ValueType> and
  * Dense<next_precision<ValueType>> parameter types, and the appropriate
  * overload will be called based on the dynamic type of the parameter.
@@ -239,16 +239,21 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
  * If GINKGO_MIXED_PRECISION is not defined, it will behave exactly like
  * precision_dispatch.
  *
+ * @param fn  the given function. It will be called with one const and one
+ *            non-const matrix::Dense<...> parameter based on the dynamic type
+ *            of the inputs (GINKGO_MIXED_PRECISION) or of type
+ *            matrix::Dense<ValueType> (no GINKGO_MIXED_PRECISION).
+ * @param in  The first parameter to be cast (GINKGO_MIXED_PRECISION) or
+ *            converted (no GINKGO_MIXED_PRECISION) and used to call `fn`.
+ * @param out  The second parameter to be cast (GINKGO_MIXED_PRECISION) or
+ *             converted (no GINKGO_MIXED_PRECISION) and used to call `fn`.
  *
- * @param fn  the given function. It will be passed one (potentially const)
- *            matrix::Dense<...>* parameter per parameter in the parameter
- *            pack `linops`.
- * @param linops  the given arguments to be converted and passed on to fn.
- *
- * @tparam ValueType  the value type to use for the parameters of `fn`.
+ * @tparam ValueType  the value type to use for the parameters of `fn` (no
+ *                    GINKGO_MIXED_PRECISION). With GINKGO_MIXED_PRECISION
+ *                    enabled, it only matters whether this type is complex or
+ *                    real.
  * @tparam Function  the function pointer, lambda or other functor type to call
  *                   with the converted arguments.
- * @tparam Args  the argument type list.
  */
 template <typename ValueType, typename Function>
 void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
@@ -290,36 +295,30 @@ void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
  *
  * @see mixed_precision_dispatch()
  */
-template <typename ValueType, typename Function>
+template <typename ValueType, typename Function,
+          std::enable_if_t<is_complex<ValueType>()> * = nullptr>
 void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
                                            LinOp *out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    // do we need to convert complex Dense to real Dense?
-    auto complex_to_real =
-        !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
-    if (complex_to_real) {
+    mixed_precision_dispatch<ValueType>(fn, in, out);
+#else
+    precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
+
+template <typename ValueType, typename Function,
+          std::enable_if_t<!is_complex<ValueType>()> * = nullptr>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
+                                           LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in)) {
         mixed_precision_dispatch<to_complex<ValueType>>(
             [&fn](auto dense_in, auto dense_out) {
-                using DenseIn = typename std::decay_t<decltype(*dense_in)>;
-                using DenseOut = typename std::decay_t<decltype(*dense_out)>;
-                using DenseDummy = matrix::Dense<ValueType>;
-                using RealIn = remove_complex<typename DenseIn::value_type>;
-                using RealOut = remove_complex<typename DenseOut::value_type>;
-                using CastIn =
-                    std::conditional_t<is_complex<ValueType>(), DenseDummy,
-                                       matrix::Dense<RealIn>>;
-                using CastOut =
-                    std::conditional_t<is_complex<ValueType>(), DenseDummy,
-                                       matrix::Dense<RealOut>>;
-                // These dynamic_casts are only needed to make the code compile
-                // If ValueType is complex, this branch will never be taken
-                // If ValueType is real, the cast is a no-op
-                fn(dynamic_cast<const CastIn *>(
-                       dense_in->create_real_view().get()),
-                   dynamic_cast<CastOut *>(
-                       dense_out->create_real_view().get()));
+                fn(dense_in->create_real_view().get(),
+                   dense_out->create_real_view().get());
             },
             in, out);
     } else {

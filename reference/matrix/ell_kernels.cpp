@@ -69,7 +69,6 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
-    const auto num_rows = b->get_size()[0];
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<size_type, 1>{num_stored_elements_per_row * stride},
         a->get_const_values());
@@ -112,7 +111,6 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
-    const auto num_rows = b->get_size()[0];
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<size_type, 1>{num_stored_elements_per_row * stride},
         a->get_const_values());
