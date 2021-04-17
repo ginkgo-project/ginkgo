@@ -127,7 +127,10 @@ foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP;GINKGO_MIXED_PRECISION")
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
+    ginkgo_print_module_footer(${${log_type}} "  Enabled features:")
+    ginkgo_print_foreach_variable(${${log_type}}
+        "GINKGO_MIXED_PRECISION")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
     ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_BUILD_TESTS;GINKGO_FAST_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING")
