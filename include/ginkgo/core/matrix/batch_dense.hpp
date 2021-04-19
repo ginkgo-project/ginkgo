@@ -143,7 +143,6 @@ class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
                    public EnableCreateMethod<BatchDense<ValueType>>,
                    public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
                    public ConvertibleTo<BatchCsr<ValueType, int32>>,
-                   public ConvertibleTo<BatchCsr<ValueType, int64>>,
                    public BatchReadableFromMatrixData<ValueType, int32>,
                    public BatchReadableFromMatrixData<ValueType, int64>,
                    public BatchWritableToMatrixData<ValueType, int32>,
@@ -153,7 +152,6 @@ class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
     friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
     friend class BatchCsr<ValueType, int32>;
-    friend class BatchCsr<ValueType, int64>;
 
 public:
     using EnableBatchLinOp<BatchDense>::convert_to;
@@ -162,7 +160,7 @@ public:
     using BatchReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
-    using index_type = int64;
+    using index_type = int32;
     using transposed_type = BatchDense<ValueType>;
     using unbatch_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
@@ -195,13 +193,9 @@ public:
 
     void move_to(BatchDense<next_precision<ValueType>> *result) override;
 
-    void convert_to(BatchCsr<ValueType, int32> *result) const override;
+    void convert_to(BatchCsr<ValueType, index_type> *result) const override;
 
-    void move_to(BatchCsr<ValueType, int32> *result) override;
-
-    void convert_to(BatchCsr<ValueType, int64> *result) const override;
-
-    void move_to(BatchCsr<ValueType, int64> *result) override;
+    void move_to(BatchCsr<ValueType, index_type> *result) override;
 
     void read(const std::vector<mat_data> &data) override;
 
