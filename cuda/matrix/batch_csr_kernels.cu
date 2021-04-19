@@ -369,7 +369,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
 
 
@@ -492,7 +492,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -536,7 +536,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 //        as_cuda_type(vals), stride, as_cuda_type(result->get_values()));
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
 
 
@@ -588,7 +588,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
 //    *result = exec->copy_val_to_host(d_result.get_const_data());
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
@@ -640,7 +640,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_TRANSPOSE_KERNEL);
 
 
@@ -700,7 +700,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -735,7 +735,7 @@ void calculate_max_nnz_per_row(
 //    *result = exec->copy_val_to_host(d_result.get_const_data());
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
@@ -754,7 +754,7 @@ void calculate_nonzeros_per_row(
 //        num_rows, as_cuda_type(row_ptrs), as_cuda_type(result->get_data()));
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
@@ -812,7 +812,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -835,7 +835,7 @@ void is_sorted_by_column_index(
 //    cpu_array = gpu_array;
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
