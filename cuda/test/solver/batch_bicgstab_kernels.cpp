@@ -140,8 +140,10 @@ protected:
 
     int single_iters_regression()
     {
-        if (std::is_same<real_type, float>::value) {
+        if (std::is_same<value_type, float>::value) {
             return 4;
+        } else if (std::is_same<value_type, std::complex<float>>::value) {
+            return 3;
         } else if (std::is_same<real_type, double>::value) {
             return 2;
         } else {
@@ -215,8 +217,12 @@ protected:
     std::vector<int> multiple_iters_regression()
     {
         std::vector<int> iters(2);
-        if (std::is_same<real_type, float>::value) {
+
+        if (std::is_same<value_type, float>::value) {
             iters[0] = 4;
+            iters[1] = 5;
+        } else if (std::is_same<value_type, std::complex<float>>::value) {
+            iters[0] = 3;
             iters[1] = 5;
         } else if (std::is_same<real_type, double>::value) {
             iters[0] = 2;
