@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 
     std::cout << "\n\nStart reading the matrices and their rhs..." << std::endl;
 
-    using ValueType = std::complex<float>;
+    using ValueType = double;
 
     std::vector<gko::int32> batch_row_pointers;
     std::vector<gko::int32> batch_column_indices;
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
     std::cout << "\n Read -- in batched format\n";
 
-    auto solver_fac = gko::solver::BatchBicgstab<ValueType>::build()
+    auto solver_fac = gko::solver::BatchRichardson<ValueType>::build()
                           .with_rel_residual_tol(1e-11)
                           .with_max_iterations(150)
                           .with_preconditioner("jacobi")
