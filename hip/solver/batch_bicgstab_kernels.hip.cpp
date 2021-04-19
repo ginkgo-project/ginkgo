@@ -93,15 +93,17 @@ static void apply_impl(
 
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
         hipLaunchKernelGGL(
-            apply_kernel<BatchJacobi<ValueType>,
-                         stop::AbsAndRelResidualMaxIter<ValueType>>,
+            HIP_KERNEL_NAME(
+                apply_kernel<BatchJacobi<ValueType>,
+                             stop::AbsAndRelResidualMaxIter<ValueType>>),
             dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
             opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
             a, b, x);
     } else if (opts.preconditioner == gko::preconditioner::batch::none_str) {
         hipLaunchKernelGGL(
-            apply_kernel<BatchIdentity<ValueType>,
-                         stop::AbsAndRelResidualMaxIter<ValueType>>,
+            HIP_KERNEL_NAME(
+                apply_kernel<BatchIdentity<ValueType>,
+                             stop::AbsAndRelResidualMaxIter<ValueType>>),
             dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
             opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
             a, b, x);
