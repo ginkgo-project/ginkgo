@@ -146,13 +146,13 @@ private:
 namespace stop {
 
 template <typename ValueType>
-__device__ __forceinline__ bool
+GKO_ATTRIBUTES GKO_INLINE bool
 AbsAndRelResidualMaxIter<ValueType>::check_converged(
     const int iter, const real_type *const residual_norms,
     const gko::batch_dense::BatchEntry<const ValueType> &residual,
     bitset_type &converged) const
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_ARCH__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 
 
     if (iter >= max_its - 1) {
@@ -183,11 +183,10 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void
-AbsAndRelResidualMaxIter<ValueType>::check_norms(
+GKO_ATTRIBUTES GKO_INLINE void AbsAndRelResidualMaxIter<ValueType>::check_norms(
     const real_type *const res_norms, bitset_type &converged) const
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_ARCH__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
