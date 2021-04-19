@@ -626,6 +626,45 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
+/**
+ * Instantiates a template for each non-complex value type compiled by
+ * Ginkgo while using int32 as the index type.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_AND_INT32_INDEX( \
+    _macro)                                                              \
+    template _macro(float, int32);                                       \
+    template _macro(double, int32)
+
+
+/**
+ * Instantiates a template for each value type compiled by Ginkgo while
+ * using int32 as the index type.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_AND_INT32_INDEX(_macro); \
+    template _macro(std::complex<float>, int32);                             \
+    template _macro(std::complex<double>, int32)
+
+
+/**
+ * Instantiates a template for each value type conversion pair compiled by
+ * Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination value type.
+ */
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
     template <>                                                            \
