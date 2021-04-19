@@ -59,7 +59,7 @@ namespace formats {
 
 
 std::string available_format =
-    "coo, csr, ell, fell, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
+    "coo, csr, ell, ell-mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
@@ -91,7 +91,7 @@ std::string format_description =
     "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
     "Matrix-Vector Multiplication on CUDA.\n"
-    "fell: Mixed Precision Ellpack format according to Bell and Garland: "
+    "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland: "
     "Efficient Sparse Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
     "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
@@ -207,7 +207,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<etype>>},
-        {"ell_mixed",
+        {"ell-mixed",
          [](std::shared_ptr<const gko::Executor> exec,
             const gko::matrix_data<etype> &data) {
              gko::matrix_data<gko::next_precision<etype>> conv_data;
