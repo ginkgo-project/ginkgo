@@ -135,6 +135,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace {
 
 
+/**
+ * @internal
+ *
+ * Entry in a heap storing a column index and associated non-zero index
+ * (and row end) from a matrix.
+ *
+ * @tparam ValueType  The value type for matrices.
+ * @tparam IndexType  The index type for matrices.
+ */
 template <typename ValueType, typename IndexType>
 struct col_heap_element {
     using value_type = ValueType;
@@ -153,6 +162,15 @@ struct col_heap_element {
 };
 
 
+/**
+ * @internal
+ *
+ * Entry in a heap storing a entry (value and column index) and associated
+ * non-zero index (and row end) from a matrix.
+ *
+ * @tparam ValueType  The value type for matrices.
+ * @tparam IndexType  The index type for matrices.
+ */
 template <typename ValueType, typename IndexType>
 struct val_heap_element {
     using value_type = ValueType;
@@ -172,6 +190,20 @@ struct val_heap_element {
 };
 
 
+/**
+ * @internal
+ *
+ * Restores the binary heap condition downwards from a given index.
+ *
+ * The heap condition is: col(child) >= col(parent)
+ *
+ * @param heap  a pointer to the array containing the heap elements.
+ * @param idx  the index of the starting heap node that potentially
+ *             violates the heap condition.
+ * @param size  the number of elements in the heap.
+ * @tparam HeapElement  the element type in the heap. See col_heap_element and
+ *                      val_heap_element
+ */
 template <typename HeapElement>
 void sift_down(HeapElement *heap, typename HeapElement::index_type idx,
                typename HeapElement::index_type size)
@@ -193,6 +225,36 @@ void sift_down(HeapElement *heap, typename HeapElement::index_type idx,
 }
 
 
+/**
+ * @internal
+ *
+ * Generic SpGEMM implementation for a single output row of A * B using binary
+ * heap-based multiway merging.
+ *
+ * @param row  The row for which to compute the SpGEMM
+ * @param a  The input matrix A
+ * @param b  The input matrix B (its column indices must be sorted within each
+ *           row!)
+ * @param heap  The heap to use for this implementation. It must have as many
+ *              entries as the input row has non-zeros.
+ * @param init_cb  function to initialize the state for a single row. Its return
+ *                 value will be updated by subsequent calls of other callbacks,
+ *                 and then returned by this function. Its signature must be
+ *                 compatible with `return_type state = init_cb(row)`.
+ * @param step_cb  function that will be called for each accumulation from an
+ *                 entry of B into the output state. Its signature must be
+ *                 compatible with `step_cb(value, column, state)`.
+ * @param col_cb  function that will be called once for each output column after
+ *                all accumulations into it are completed. Its signature must be
+ *                compatible with `col_cb(column, state)`.
+ * @return the value initializaed by init_cb and updated by step_cb and col_cb
+ *
+ * @tparam HeapElement  the heap element type. See col_heap_element and
+ *                      val_heap_element
+ * @tparam InitCallback  functor type for init_cb
+ * @tparam StepCallback  functor type for step_cb
+ * @tparam ColCallback  functor type for col_cb
+ */
 template <typename HeapElement, typename InitCallback, typename StepCallback,
           typename ColCallback>
 auto spgemm_multiway_merge(size_type row,
