@@ -67,19 +67,17 @@ __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<ValueType> &y)
 {
-    if (alpha.num_rhs == 1) {
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] +=
-                    alpha.values[0] * x.values[i * x.stride + j];
-            }
-        }
-    } else {
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] +=
-                    alpha.values[j] * x.values[i * x.stride + j];
-            }
+    int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        int row = li / x.num_rhs;
+        int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
         }
     }
 }
@@ -110,22 +108,16 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
-        result.values[j] = zero<remove_complex<ValueType>>();
-    }
-    __syncthreads();
-    // TODO: replace this with a parallel reduce below
-    if (threadIdx.x == 0) {
-        for (int i = 0; i < x.num_rows; i++) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                result.values[j] += squared_norm(x.values[i * x.stride + j]);
-            }
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        result.values[c] = zero<remove_complex<ValueType>>();
+
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] += squared_norm(x.values[r * x.stride + c]);
         }
+
+        result.values[c] = sqrt(result.values[c]);
     }
-    __syncthreads();
-    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
-        result.values[j] = sqrt(result.values[j]);
-    }
+    // TODO: put a parallel reduce here
 }
 
 template <typename ValueType>
@@ -192,14 +184,13 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result)
 {
-    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
-        result.values[j] = zero<remove_complex<ValueType>>();
-    }
-
     for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        result.values[c] = zero<ValueType>();
+
         for (int r = 0; r < x.num_rows; r++) {
             result.values[c] +=
-                x.values[r * x.stride + c] * y.values[r * y.stride + c];
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
         }
     }
+    // TODO: put a parallel reduce here
 }
