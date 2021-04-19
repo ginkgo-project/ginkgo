@@ -237,9 +237,8 @@ bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 //}
 
 
-#define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType, IndexType) \
-    class BatchCsr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
+#define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class BatchCsr<ValueType, int32>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
 
 
 }  // namespace matrix
