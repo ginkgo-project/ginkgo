@@ -515,78 +515,78 @@ TYPED_TEST(BatchDense, MovesToCsr32)
 }
 
 
-TYPED_TEST(BatchDense, ConvertsToCsr64)
-{
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
-    auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
+// TYPED_TEST(BatchDense, ConvertsToCsr64)
+// {
+//     using T = typename TestFixture::value_type;
+//     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
+//     auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
 
-    this->mtx_6->convert_to(batch_csr_mtx.get());
+//     this->mtx_6->convert_to(batch_csr_mtx.get());
 
-    auto v = batch_csr_mtx->get_const_values();
-    auto c = batch_csr_mtx->get_const_col_idxs();
-    auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 2);
-    EXPECT_EQ(r[2], 3);
-    EXPECT_EQ(r[3], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 2);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(v[0], T{1.0});
-    EXPECT_EQ(v[1], T{3.0});
-    EXPECT_EQ(v[2], T{3.0});
-    EXPECT_EQ(v[3], T{1.0});
-    EXPECT_EQ(v[4], T{5.0});
-    EXPECT_EQ(v[5], T{2.0});
-    EXPECT_EQ(v[6], T{5.0});
-    EXPECT_EQ(v[7], T{1.0});
-    EXPECT_EQ(v[8], T{-1.0});
-    EXPECT_EQ(v[9], T{8.0});
-}
+//     auto v = batch_csr_mtx->get_const_values();
+//     auto c = batch_csr_mtx->get_const_col_idxs();
+//     auto r = batch_csr_mtx->get_const_row_ptrs();
+//     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
+//     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+//     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
+//     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
+//     EXPECT_EQ(r[0], 0);
+//     EXPECT_EQ(r[1], 2);
+//     EXPECT_EQ(r[2], 3);
+//     EXPECT_EQ(r[3], 5);
+//     EXPECT_EQ(c[0], 0);
+//     EXPECT_EQ(c[1], 2);
+//     EXPECT_EQ(c[2], 1);
+//     EXPECT_EQ(c[3], 1);
+//     EXPECT_EQ(c[4], 2);
+//     EXPECT_EQ(v[0], T{1.0});
+//     EXPECT_EQ(v[1], T{3.0});
+//     EXPECT_EQ(v[2], T{3.0});
+//     EXPECT_EQ(v[3], T{1.0});
+//     EXPECT_EQ(v[4], T{5.0});
+//     EXPECT_EQ(v[5], T{2.0});
+//     EXPECT_EQ(v[6], T{5.0});
+//     EXPECT_EQ(v[7], T{1.0});
+//     EXPECT_EQ(v[8], T{-1.0});
+//     EXPECT_EQ(v[9], T{8.0});
+// }
 
 
-TYPED_TEST(BatchDense, MovesToCsr64)
-{
-    using T = typename TestFixture::value_type;
-    using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
-    auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
+// TYPED_TEST(BatchDense, MovesToCsr64)
+// {
+//     using T = typename TestFixture::value_type;
+//     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
+//     auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
 
-    this->mtx_6->move_to(batch_csr_mtx.get());
+//     this->mtx_6->move_to(batch_csr_mtx.get());
 
-    auto v = batch_csr_mtx->get_const_values();
-    auto c = batch_csr_mtx->get_const_col_idxs();
-    auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-    ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-    ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 2);
-    EXPECT_EQ(r[2], 3);
-    EXPECT_EQ(r[3], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 2);
-    EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(v[0], T{1.0});
-    EXPECT_EQ(v[1], T{3.0});
-    EXPECT_EQ(v[2], T{3.0});
-    EXPECT_EQ(v[3], T{1.0});
-    EXPECT_EQ(v[4], T{5.0});
-    EXPECT_EQ(v[5], T{2.0});
-    EXPECT_EQ(v[6], T{5.0});
-    EXPECT_EQ(v[7], T{1.0});
-    EXPECT_EQ(v[8], T{-1.0});
-    EXPECT_EQ(v[9], T{8.0});
-}
+//     auto v = batch_csr_mtx->get_const_values();
+//     auto c = batch_csr_mtx->get_const_col_idxs();
+//     auto r = batch_csr_mtx->get_const_row_ptrs();
+//     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
+//     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
+//     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
+//     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
+//     EXPECT_EQ(r[0], 0);
+//     EXPECT_EQ(r[1], 2);
+//     EXPECT_EQ(r[2], 3);
+//     EXPECT_EQ(r[3], 5);
+//     EXPECT_EQ(c[0], 0);
+//     EXPECT_EQ(c[1], 2);
+//     EXPECT_EQ(c[2], 1);
+//     EXPECT_EQ(c[3], 1);
+//     EXPECT_EQ(c[4], 2);
+//     EXPECT_EQ(v[0], T{1.0});
+//     EXPECT_EQ(v[1], T{3.0});
+//     EXPECT_EQ(v[2], T{3.0});
+//     EXPECT_EQ(v[3], T{1.0});
+//     EXPECT_EQ(v[4], T{5.0});
+//     EXPECT_EQ(v[5], T{2.0});
+//     EXPECT_EQ(v[6], T{5.0});
+//     EXPECT_EQ(v[7], T{1.0});
+//     EXPECT_EQ(v[8], T{-1.0});
+//     EXPECT_EQ(v[9], T{8.0});
+// }
 
 
 TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)

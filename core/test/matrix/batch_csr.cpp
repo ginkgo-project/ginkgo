@@ -123,7 +123,11 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(BatchCsr, gko::test::ValueIndexTypes);
+using valuetypes =
+    ::testing::Types<std::tuple<float, int>, std::tuple<double, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<std::complex<double>, gko::int32>>;
+TYPED_TEST_SUITE(BatchCsr, valuetypes);
 
 
 TYPED_TEST(BatchCsr, KnowsItsSize)
