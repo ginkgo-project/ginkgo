@@ -240,20 +240,21 @@ void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32> *result)
 }
 
 
-template <typename ValueType>
-void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int64> *result) const
-{
-    conversion_helper(result, this,
-                      batch_dense::template make_convert_to_batch_csr<
-                          const BatchDense<ValueType> *&, decltype(result)>);
-}
+// template <typename ValueType>
+// void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int64> *result)
+// const
+// {
+//     conversion_helper(result, this,
+//                       batch_dense::template make_convert_to_batch_csr<
+//                           const BatchDense<ValueType> *&, decltype(result)>);
+// }
 
 
-template <typename ValueType>
-void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int64> *result)
-{
-    this->convert_to(result);
-}
+// template <typename ValueType>
+// void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int64> *result)
+// {
+//     this->convert_to(result);
+// }
 
 
 namespace {
