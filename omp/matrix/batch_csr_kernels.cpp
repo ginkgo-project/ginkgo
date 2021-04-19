@@ -91,7 +91,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL);
 
 
@@ -126,7 +126,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -165,7 +165,7 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_DENSE_KERNEL);
 
 
@@ -225,7 +225,7 @@ void transpose(std::shared_ptr<const OmpExecutor> exec,
 //                            [](const ValueType x) { return x; });
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_TRANSPOSE_KERNEL);
 
 
@@ -240,7 +240,7 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
 //                            [](const ValueType x) { return conj(x); });
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -250,7 +250,7 @@ void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                           size_type *result, size_type stride_factor,
                           size_type slice_size) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
@@ -260,7 +260,7 @@ void calculate_max_nnz_per_row(
     const matrix::BatchCsr<ValueType, IndexType> *source,
     size_type *result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
@@ -280,7 +280,7 @@ void calculate_nonzeros_per_row(
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
@@ -304,7 +304,7 @@ void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
 //    }
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -334,7 +334,7 @@ void is_sorted_by_column_index(
 //    *is_sorted = local_is_sorted;
 //}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 

@@ -283,7 +283,7 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL);
 
 
