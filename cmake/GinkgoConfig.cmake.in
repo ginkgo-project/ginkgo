@@ -152,7 +152,7 @@ endif()
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
 
-# propagate CUDA_HOST_COMPILER if Ginkgo needed
+# propagate CUDA_HOST_COMPILER if needed
 if (GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP
     AND GINKGO_HIP_PLATFORM MATCHES "${GINKGO_HIP_PLATFORM_NVIDIA_REGEX}"))
     if (GINKGO_CUDA_HOST_COMPILER AND NOT CMAKE_CUDA_HOST_COMPILER
