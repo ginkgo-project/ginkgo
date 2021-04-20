@@ -4,7 +4,6 @@ add_library(ginkgo "")
 target_sources(ginkgo
     PRIVATE
     base/array.cpp
-	base/batch_lin_op.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
