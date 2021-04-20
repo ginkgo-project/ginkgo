@@ -294,6 +294,9 @@ protected:
     void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
                     const BatchLinOp *beta, BatchLinOp *x) const override;
 
+    void batch_scale_impl(const BatchLinOp *left_scale,
+                          const BatchLinOp *right_scale) override;
+
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
