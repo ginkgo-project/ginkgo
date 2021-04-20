@@ -106,12 +106,11 @@ namespace kernels {
         const matrix::BatchCsr<ValueType, IndexType> *to_check,               \
         bool *is_sorted)
 
-#define GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)                \
-    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,        \
-                     const matrix::BatchCsr<ValueType, IndexType> *orig, \
-                     const matrix::BatchDense<ValueType> *left_scale,    \
-                     const matrix::BatchDense<ValueType> *right_scale,   \
-                     matrix::BatchCsr<ValueType, IndexType> *scaled)
+#define GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)              \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,      \
+                     const matrix::BatchDense<ValueType> *left_scale,  \
+                     const matrix::BatchDense<ValueType> *right_scale, \
+                     matrix::BatchCsr<ValueType, IndexType> *mat)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \

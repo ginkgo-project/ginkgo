@@ -258,10 +258,10 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
     sq_mtx->set_scaling_vectors(ref_left_scale.get(), ref_right_scale.get());
     sq_dmtx->set_scaling_vectors(d_left_scale.get(), d_right_scale.get());
 
-    auto scaled_mtx = gko::as<Mtx>(sq_mtx->batch_scale());
-    auto d_scaled_mtx = gko::as<Mtx>(sq_dmtx->batch_scale());
+    sq_mtx->batch_scale(ref_left_scale.get(), ref_right_scale.get());
+    sq_dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(scaled_mtx, d_scaled_mtx, 0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(sq_mtx, sq_dmtx, 0.0);
 }
 
 
