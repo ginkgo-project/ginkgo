@@ -113,39 +113,38 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
-                 const matrix::BatchCsr<ValueType, IndexType> *const orig,
                  const matrix::BatchDense<ValueType> *const left_scale,
                  const matrix::BatchDense<ValueType> *const right_scale,
-                 matrix::BatchCsr<ValueType, IndexType> *const scaled)
+                 matrix::BatchCsr<ValueType, IndexType> *const mat)
 {
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto num_rows = static_cast<int>(orig->get_size().at(0)[0]);
+    const auto num_rows = static_cast<int>(mat->get_size().at(0)[0]);
     const ValueType *const left_vals = left_scale->get_const_values();
     const ValueType *const right_vals = right_scale->get_const_values();
-    const size_type nbatches = orig->get_num_batches();
-    const auto row_ptrs = orig->get_const_row_ptrs();
-    const auto col_idxs = orig->get_const_col_idxs();
-    const auto origvals = orig->get_const_values();
-    const auto scaledvals = scaled->get_values();
-    const int nnz = static_cast<int>(orig->get_num_stored_elements() /
-                                     orig->get_num_batches());
+    const size_type left_stride = left_scale->get_stride().at();
+    const size_type right_stride = right_scale->get_stride().at();
+    const size_type nbatches = mat->get_num_batches();
+    const auto row_ptrs = mat->get_const_row_ptrs();
+    const auto col_idxs = mat->get_const_col_idxs();
+    const auto vals = mat->get_values();
+    const int nnz = static_cast<int>(mat->get_num_stored_elements() /
+                                     mat->get_num_batches());
 
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        const ValueType *const orig_vb = origvals + ibatch * nnz;
-        ValueType *const scaled_vb = scaledvals + ibatch * nnz;
-        for (IndexType irow = 0; irow < num_rows; irow++) {
-            const ValueType rowscale = left_vals[irow];
-            for (IndexType iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
-                scaled_vb[iz] =
-                    orig_vb[iz] * rowscale * right_vals[col_idxs[iz]];
-            }
-        }
+        const gko::batch_csr::BatchEntry<ValueType> a = {
+            vals + ibatch * nnz, col_idxs, row_ptrs, num_rows, nnz};
+        const gko::batch_dense::BatchEntry<const ValueType> left = {
+            left_vals, left_stride, num_rows, 1};
+        const gko::batch_dense::BatchEntry<const ValueType> right = {
+            right_vals, right_stride, num_rows, 1};
+        batch_scale(left, right, a);
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_SCALE);
 
 
 template <typename IndexType>
