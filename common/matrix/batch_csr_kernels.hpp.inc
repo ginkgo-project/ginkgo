@@ -90,11 +90,12 @@ __device__ __forceinline__ void spmv_ker(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const auto subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                      static_cast<double>(tile_size));
+    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
+                                     static_cast<double>(tile_size));
 
-    const auto num_subwarp_grps_per_block =
+    const int num_subwarp_grps_per_block =
         ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+
 
     for (int row_and_rhs_combination = subwarp_grp_id;
          row_and_rhs_combination < a.num_rows * b.num_rhs;
@@ -106,6 +107,7 @@ __device__ __forceinline__ void spmv_ker(
         int row_end = a.row_ptrs[row + 1];
 
         ValueType temp = zero<ValueType>();
+
 
         for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
              i += subwarp_grp.size()) {
@@ -122,61 +124,6 @@ __device__ __forceinline__ void spmv_ker(
 
         if (subwarp_grp.thread_rank() == 0) {
             c.values[row * c.stride + rhs] = temp;
-        }
-    }
-}
-
-/**
- * Device kernel for SpMV of one CSR matrix in a batch.
- *
- * Assumes the input and output multi-vectors are stored row-major.
- */
-template <typename ValueType>
-__device__ __forceinline__ void spmv_ker_2(
-    const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const gko::batch_dense::BatchEntry<ValueType> &c)
-{
-    constexpr auto tile_size = config::warp_size;
-
-    auto thread_block = group::this_thread_block();
-
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
-    const auto subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                      static_cast<double>(tile_size));
-
-    const auto num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
-
-    for (int row = subwarp_grp_id; row < a.num_rows * b.num_rhs;
-         row += num_subwarp_grps_per_block) {
-        int row_start = a.row_ptrs[row];
-        int row_end = a.row_ptrs[row + 1];
-
-        ValueType temp[batch_config<ValueType>::max_num_rhs];  // all initialize
-                                                               // to zero
-
-        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
-             i += subwarp_grp.size()) {
-            int col = a.col_idxs[i];
-            ValueType val = a.values[i];
-
-            for (int rhs = 0; rhs < b.num_rhs; rhs++) {
-                temp[rhs] += val * b.values[col * b.stride + rhs];
-            }
-        }
-
-
-        for (int rhs = 0; rhs < b.num_rhs; rhs++) {
-            // subwarp_grp level reduction
-            for (int i = subwarp_grp.size() / 2; i > 0; i /= 2) {
-                temp[rhs] += subwarp_grp.shfl_down(temp[rhs], i);
-            }
-
-            if (subwarp_grp.thread_rank() == 0) {
-                c.values[row * c.stride + rhs] = temp[rhs];
-            }
         }
     }
 }
@@ -296,11 +243,12 @@ __device__ __forceinline__ void adv_spmv_ker(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const auto subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                      static_cast<double>(tile_size));
+    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
+                                     static_cast<double>(tile_size));
 
-    const auto num_subwarp_grps_per_block =
+    const int num_subwarp_grps_per_block =
         ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+
 
     for (int row_and_rhs_combination = subwarp_grp_id;
          row_and_rhs_combination < a.num_rows * b.num_rhs;
@@ -312,6 +260,7 @@ __device__ __forceinline__ void adv_spmv_ker(
         int row_end = a.row_ptrs[row + 1];
 
         ValueType temp = zero<ValueType>();
+
 
         for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
              i += subwarp_grp.size()) {
