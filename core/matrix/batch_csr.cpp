@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
+//#include <ginkgo/core/matrix/identity.hpp>
 
 
 #include "core/components/absolute_array.hpp"
@@ -239,27 +239,17 @@ bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::batch_scale() const
+void BatchCsr<ValueType, IndexType>::batch_scale_impl(
+    const BatchLinOp *const left_scale_op,
+    const BatchLinOp *const right_scale_op)
 {
-    GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(this, this->left_scale_,
-                                        this->right_scale_);
     auto exec = this->get_executor();
     const auto nrows_entry = this->get_size().at(0)[0];
     const auto nnz_entry = this->get_const_row_ptrs()[nrows_entry];
-    auto scaled_mat = BatchCsr<ValueType, IndexType>::create(
-        exec, this->get_num_batches(), this->get_size().at(0), nnz_entry);
-    exec->copy(nrows_entry + 1, this->get_const_row_ptrs(),
-               scaled_mat->get_row_ptrs());
-    exec->copy(nnz_entry, this->get_const_col_idxs(),
-               scaled_mat->get_col_idxs());
-
-    const auto left =
-        static_cast<const BatchDense<ValueType> *>(this->left_scale_);
+    const auto left = static_cast<const BatchDense<ValueType> *>(left_scale_op);
     const auto right =
-        static_cast<const BatchDense<ValueType> *>(this->right_scale_);
-    exec->run(batch_csr::make_batch_scale(this, left, right, scaled_mat.get()));
-
-    return scaled_mat;
+        static_cast<const BatchDense<ValueType> *>(right_scale_op);
+    exec->run(batch_csr::make_batch_scale(left, right, this));
 }
 
 
