@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
     std::cout << "\n Read -- in batched format\n";
 
-    auto solver_fac = gko::solver::BatchRichardson<ValueType>::build()
+    auto solver_fac = gko::solver::BatchBicgstab<ValueType>::build()
                           .with_rel_residual_tol(1e-11)
                           .with_max_iterations(150)
                           .with_preconditioner("jacobi")
