@@ -112,7 +112,7 @@ protected:
         b->copy_from(gko::lend(rb));
         x->copy_from(gko::lend(rx));
 
-        gko::kernels::cuda::batch_bicgstab::apply<value_type>(
+        gko::kernels::hip::batch_bicgstab::apply<value_type>(
             this->hipexec, opts_1, mtx.get(), b.get(), x.get(), logdata);
 
         rx->copy_from(gko::lend(x));
@@ -186,7 +186,7 @@ protected:
         b->copy_from(gko::lend(rb));
         x->copy_from(gko::lend(rx));
 
-        gko::kernels::cuda::batch_bicgstab::apply<value_type>(
+        gko::kernels::hip::batch_bicgstab::apply<value_type>(
             this->hipexec, opts_m, mtx.get(), b.get(), x.get(), logdata);
 
         rx->copy_from(gko::lend(x));
