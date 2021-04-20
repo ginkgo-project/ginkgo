@@ -79,7 +79,8 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class BatchRichardson : public EnableBatchLinOp<BatchRichardson<ValueType>>,
-                        public BatchTransposable {
+                        public BatchTransposable,
+                        public EnableBatchScaledSolver<ValueType> {
     friend class EnableBatchLinOp<BatchRichardson>;
     friend class EnablePolymorphicObject<BatchRichardson, BatchLinOp>;
 
@@ -165,10 +166,6 @@ private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };
-
-
-// template <typename ValueType = default_precision>
-// using BatchRichardson = BatchRichardson<ValueType>;
 
 
 }  // namespace solver

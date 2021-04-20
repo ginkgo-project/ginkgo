@@ -80,8 +80,8 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *b,
-                                            BatchLinOp *x) const
+void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
+                                            BatchLinOp *const x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
