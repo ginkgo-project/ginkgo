@@ -127,32 +127,72 @@ __global__
  *
  * One warp is assigned to each row.
  */
-template <typename ValueType, typename IndexType>
-__global__ void uniform_batch_scale(
-    const ValueType *const left_scale, const ValueType *const right_scale,
-    const IndexType *const row_ptrs, const IndexType *const col_idxs,
-    const size_type num_batch, const int num_rows, const int num_nnz,
-    const ValueType *const orig_vals, ValueType *const scaled_vals)
+template <typename ValueType>
+__device__ void batch_scale(
+    const gko::batch_dense::BatchEntry<const ValueType> &left_scale,
+    const gko::batch_dense::BatchEntry<const ValueType> &right_scale,
+    const gko::batch_csr::BatchEntry<ValueType> &a)
 {
     constexpr auto warp_size = config::warp_size;
-    const size_type global_row = thread::get_subwarp_id_flat<warp_size>();
-    const size_type num_warps = thread::get_subwarp_num_flat<warp_size>();
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
 
-    const size_type num_global_rows = num_batch * num_rows;
-
-    for (size_type i_g_row = global_row; i_g_row < num_global_rows;
-         i_g_row += num_warps) {
-        const size_type ibatch = i_g_row / num_rows;
-        const int row = static_cast<int>(i_g_row % num_rows);
-
-        const ValueType *const origv = orig_vals + ibatch * num_nnz;
-        ValueType *const scaledv = scaled_vals + ibatch * num_nnz;
-
-        const ValueType rowscale = left_scale[row];
-        const auto local_tidx = threadIdx.x % warp_size;
-        for (IndexType iz = row_ptrs[row] + local_tidx; iz < row_ptrs[row + 1];
-             iz += warp_size) {
-            scaledv[iz] = origv[iz] * rowscale * right_scale[col_idxs[iz]];
+    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
+        const ValueType rowscale = left_scale.values[i_row];
+        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
+             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
+            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
         }
     }
+}
+
+
+/**
+ * Scales an entire batch of uniform CSR matrices with common dense
+ * vectors for row and column scaling.
+ *
+ * One warp is assigned to each row.
+ */
+template <typename ValueType, typename IndexType>
+__global__ void uniform_batch_scale(
+    const ValueType *const left_scale, const size_type left_stride,
+    const ValueType *const right_scale, const size_type right_stride,
+    const IndexType *const row_ptrs, const IndexType *const col_idxs,
+    const size_type num_batch, const int num_rows, const int num_nnz,
+    ValueType *const vals)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch;
+         batch_id += gridDim.x) {
+        const gko::batch_csr::BatchEntry<ValueType> a = {
+            vals + batch_id * num_nnz, col_idxs, row_ptrs, num_rows, num_nnz};
+        const gko::batch_dense::BatchEntry<const ValueType> left = {
+            left_scale, left_stride, num_rows, 1};
+        const gko::batch_dense::BatchEntry<const ValueType> right = {
+            right_scale, right_stride, num_rows, 1};
+        batch_scale(left, right, a);
+    }
+    // constexpr auto warp_size = config::warp_size;
+    // const size_type global_row = thread::get_subwarp_id_flat<warp_size>();
+    // const size_type num_warps = thread::get_subwarp_num_flat<warp_size>();
+
+    // const size_type num_global_rows = num_batch * num_rows;
+
+    // for (size_type i_g_row = global_row; i_g_row < num_global_rows;
+    //      i_g_row += num_warps) {
+    //     const size_type ibatch = i_g_row / num_rows;
+    //     const int row = static_cast<int>(i_g_row % num_rows);
+
+    //     const ValueType *const origv = orig_vals + ibatch * num_nnz;
+    //     ValueType *const scaledv = scaled_vals + ibatch * num_nnz;
+
+    //     const ValueType rowscale = left_scale[row];
+    //     const auto local_tidx = threadIdx.x % warp_size;
+    //     for (IndexType iz = row_ptrs[row] + local_tidx; iz < row_ptrs[row +
+    //     1];
+    //          iz += warp_size) {
+    //         scaledv[iz] = origv[iz] * rowscale * right_scale[col_idxs[iz]];
+    //     }
+    // }
 }

@@ -499,10 +499,10 @@ TYPED_TEST(BatchCsr, CanBeBatchScaled)
         refvals[i + 7] = refvals[i];
     }
 
-    mtx->set_scaling_vectors(left.get(), right.get());
-    const auto scaled_mtx = gko::as<const Mtx>(mtx->batch_scale());
+    auto to_scale_mtx = gko::as<Mtx>(mtx->clone());
+    to_scale_mtx->batch_scale(left.get(), right.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, scaled_mtx, 0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, to_scale_mtx, 0.0);
 }
 
 
