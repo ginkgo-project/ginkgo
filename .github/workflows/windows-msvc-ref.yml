@@ -1,0 +1,45 @@
+name: Windows-MSVC-Reference
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  windows_ref:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
+        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
+        # Debug static needs too much storage
+        # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
+    name: msvc/${{ matrix.config.name }}
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
+    - name: configure
+      run: |
+        $env:PATH="$env:PATH;$pwd\build\windows_shared_library"
+        mkdir build
+        cd build
+        cmake  -DCMAKE_CXX_FLAGS=/bigobj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG="/MDd /Zi /Ob1 /Od /RTC1" -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
+        cmake --build . -j4 --config ${{ matrix.config.build_type }}
+        ctest . -C ${{ matrix.config.build_type }} --output-on-failure
+
+    - name: install
+      run: |
+        $env:PATH="$env:PATH;C:\Program Files (x86)\Ginkgo\lib"
+        cd build
+        cmake --install . --config ${{ matrix.config.build_type }}
+        cmake --build . --target test_install --config ${{ matrix.config.build_type }}
