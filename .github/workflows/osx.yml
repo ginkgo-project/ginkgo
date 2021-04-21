@@ -1,6 +1,13 @@
 name: OSX-build
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   osx-clang-omp:
@@ -15,13 +22,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: setup
       run: |
         brew install libomp
+
     - name: info
       run: |
         g++ -v
         cmake --version
+
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
     - name: configure
       run: |
         mkdir build
@@ -29,6 +43,7 @@ jobs:
         cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
         make -j8
         ctest -j10 --output-on-failure
+
     - name: install
       run: |
         cd build
