@@ -114,115 +114,14 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
 
-    // batch of four 3X3 matrices
-    /*
-        matrix A
-
-        1 3 0        1 4  0        1 3 0       1 2 0
-        5 0 9        5 0 10        1 0 1       5 0 2
-        0 0 1        0 0  1        0 0 1       0 0 2
-
-
-    */
-
-    /*
-        matrix b
-
-        0           1               1               1
-        1.2         1.2             1.2             1
-        -5          -5              1               1
-    */
-
-    /* matrix x
-
-        0           0               0               0
-        0           0               0               0
-        0           0               0               0
-
-    */
-    /*
-     using gko::size_type;
-
-     gko::Array<gko::int32> row_ptrs{exec->get_master(), 4,
-                                     new gko::int32[4]{0, 2, 4, 5}};
-
-     gko::Array<gko::int32> col_idxs{exec->get_master(), 5,
-                                     new gko::int32[5]{0, 1, 0, 2, 2}};
-
-     gko::Array<double> vals{exec->get_master(), 20,
-                             new double[20]{1, 3, 5, 9, 1, 1, 4, 5, 10, 1,
-                                            1, 3, 1, 1, 1, 1, 2, 5, 2,  2}};
-
-     gko::Array<double> b_vals{
-         exec->get_master(), 12,
-         new double[12]{0, 1.2, -5, 1, 1.2, -5, 1, 1.2, 1, 1, 1, 1}};
-
-     gko::Array<double> x_vals{
-         exec->get_master(), 12,
-         new double[12]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
-
-
-     row_ptrs.set_executor(exec);
-     col_idxs.set_executor(exec);
-     vals.set_executor(exec);
-
-     std::shared_ptr<gko::matrix::BatchCsr<double, gko::int32>> A =
-         gko::share(gko::matrix::BatchCsr<double>::create(
-             exec, 4, gko::dim<2>{3, 3}, std::move(vals), std::move(col_idxs),
-             std::move(row_ptrs)));
-
-     std::unique_ptr<gko::matrix::BatchDense<double>> b =
-         gko::matrix::BatchDense<double>::create(
-             exec,
-             std::vector<gko::dim<2>>{gko::dim<2>{3, 1}, gko::dim<2>{3, 1},
-                                      gko::dim<2>{3, 1}, gko::dim<2>{3, 1}},
-             std::move(b_vals), std::vector<gko::size_type>{1, 1, 1, 1});
-
-
-     std::unique_ptr<gko::matrix::BatchDense<double>> x =
-         gko::matrix::BatchDense<double>::create(
-             exec,
-             std::vector<gko::dim<2>>{gko::dim<2>{3, 1}, gko::dim<2>{3, 1},
-                                      gko::dim<2>{3, 1}, gko::dim<2>{3, 1}},
-             std::move(x_vals), std::vector<gko::size_type>{1, 1, 1, 1});
-
-
-     auto fac = gko::solver::BatchBicgstab<double>::build()
-                    .with_rel_residual_tol(1e-11)
-                    .with_max_iterations(150)
-                    .on(exec);
-
-
-     // auto fac =
-     gko::solver::BatchRichardson<double>::build().with_rel_residual_tol(1e-11).with_max_iterations(150).on(exec);
-
-     auto solver = fac->generate(A);
-
-     solver->apply(b.get(), x.get());
-
-
-     std::cout << std::endl;
-
-     auto x_cpu = gko::clone(exec->get_master(), x);
-
-     const double *cpu_arr = x_cpu->get_const_values();
-
-     for (int i = 0; i < 12; i++) {
-         std::cout << i << "  :  " << cpu_arr[i] << std::endl;
-     }
-
-     */
-
-
     if (argc < 5) {
         printf(
-            "\nFormat: ./a.out [executor name] [category name] [problemsize] "
-            "[1 for scaled] \n");
+            "\nFormat: ./a.out [executor name] [category name] [Number of "
+            "batches] [1 for scaled] \n");
         exit(0);
     }
 
     const std::string category = argv[2];
-
 
     const std::string dir =
         "/home/isha/Desktop/Pele_Matrices_market/" + category + "/";
@@ -231,13 +130,13 @@ int main(int argc, char *argv[])
 
     FillSubdir(dir, subdir);
 
-    std::cout << "\nNumber of small problems in category - " << category
-              << " is: " << subdir.size() << std::endl;
+    std::cout << "\nNumber of small problems in one batch of the category - "
+              << category << " is: " << subdir.size() << std::endl;
 
-    int Problem_Size = std::stoi(argv[3]);
+    int problem_size = std::stoi(argv[3]);
 
-    std::cout << "\nSo, the number of small problems to be solved: "
-              << Problem_Size * subdir.size() << std::endl;
+    std::cout << "\nSo, the total number of small problems to be solved: "
+              << problem_size * subdir.size() << std::endl;
 
     bool is_scaled = true;
 
@@ -248,24 +147,27 @@ int main(int argc, char *argv[])
     else
         is_scaled = false;
 
-    std::cout << "\n\nScaling option: " << is_scaled << std::endl;
+    std::cout << "\n\nIs Scaling turned on : " << is_scaled << std::endl;
 
     std::cout << "\n\nStart reading the matrices and their rhs..." << std::endl;
 
-    using ValueType = double;
-
-    std::vector<gko::int32> batch_row_pointers;
-    std::vector<gko::int32> batch_column_indices;
-    std::vector<ValueType> batch_values;
-    gko::dim<2> sz;
+    using ValueType = std::complex<double>;
 
     using vec = gko::matrix::Dense<ValueType>;
     using csr_mat = gko::matrix::Csr<ValueType, int>;
 
+    std::vector<gko::int32> batch_row_pointers_common;
+    std::vector<gko::int32> batch_column_indices_common;
+    std::vector<ValueType> batch_values;
+    gko::dim<2> size_common;
+    int num_nz_common;
+
+
     std::vector<std::unique_ptr<vec>> batch_b;
     std::vector<std::unique_ptr<vec>> batch_x;
 
-    const int num_batches = Problem_Size * subdir.size();
+
+    const int num_batches = problem_size * subdir.size();
 
     for (int problem_id = 0; problem_id < num_batches; problem_id++) {
         const std::string subdir_path = subdir[problem_id % subdir.size()];
@@ -285,36 +187,38 @@ int main(int argc, char *argv[])
 
         if (problem_id == 0) {
             for (int i = 0; i < A->get_num_stored_elements(); i++) {
-                batch_column_indices.push_back(A->get_const_col_idxs()[i]);
+                batch_column_indices_common.push_back(
+                    A->get_const_col_idxs()[i]);
             }
 
             for (int i = 0; i < A->get_size()[0] + 1; i++) {
-                batch_row_pointers.push_back(A->get_const_row_ptrs()[i]);
+                batch_row_pointers_common.push_back(A->get_const_row_ptrs()[i]);
             }
 
-            sz = A->get_size();
+            size_common = A->get_size();
+
+            num_nz_common = A->get_num_stored_elements();
 
         } else {
-            // GKO_ASSERT_EQ(sz , A->get_size());
+            // GKO_ASSERT_EQ(size_common , A->get_size());
 
-            GKO_ASSERT_EQ(sz[0], A->get_size()[0]);
-            GKO_ASSERT_EQ(sz[1], A->get_size()[1]);
-            GKO_ASSERT_EQ(batch_column_indices.size(),
-                          A->get_num_stored_elements());
+            GKO_ASSERT_EQ(size_common[0], A->get_size()[0]);
+            GKO_ASSERT_EQ(size_common[1], A->get_size()[1]);
+            GKO_ASSERT_EQ(num_nz_common, A->get_num_stored_elements());
 
-            for (int i = 0; i < sz[0] + 1; i++) {
-                GKO_ASSERT_EQ(batch_row_pointers[i],
+            for (int i = 0; i < size_common[0] + 1; i++) {
+                GKO_ASSERT_EQ(batch_row_pointers_common[i],
                               A->get_const_row_ptrs()[i]);
             }
 
-            for (int i = 0; i < batch_column_indices.size(); i++) {
-                GKO_ASSERT_EQ(batch_column_indices[i],
+            for (int i = 0; i < num_nz_common; i++) {
+                GKO_ASSERT_EQ(batch_column_indices_common[i],
                               A->get_const_col_idxs()[i]);
             }
         }
 
 
-        for (int i = 0; i < A->get_num_stored_elements(); i++) {
+        for (int i = 0; i < num_nz_common; i++) {
             batch_values.push_back(A->get_const_values()[i]);
         }
 
@@ -347,23 +251,23 @@ int main(int argc, char *argv[])
         batch_initial_guess.push_back(batch_x[i].get());
     }
 
-    std::cout << "\n Read -- in raw format\n";
+    std::cout << "\n Create batched matrices objects\n";
 
     // Also convert these vectors: batch_row_pointers , batch_column_indices,
     // batch_values --> to arrays
 
-    gko::Array<gko::int32> row_ptrs{exec->get_master(),
-                                    batch_row_pointers.size()};
-    gko::Array<gko::int32> col_idxs{exec->get_master(),
-                                    batch_column_indices.size()};
+    gko::Array<gko::int32> row_ptrs_common{exec->get_master(),
+                                           batch_row_pointers_common.size()};
+    gko::Array<gko::int32> col_idxs_common{exec->get_master(),
+                                           batch_column_indices_common.size()};
     gko::Array<ValueType> vals{exec->get_master(), batch_values.size()};
 
-    for (int i = 0; i < row_ptrs.get_num_elems(); i++) {
-        row_ptrs.get_data()[i] = batch_row_pointers[i];
+    for (int i = 0; i < row_ptrs_common.get_num_elems(); i++) {
+        row_ptrs_common.get_data()[i] = batch_row_pointers_common[i];
     }
 
-    for (int i = 0; i < col_idxs.get_num_elems(); i++) {
-        col_idxs.get_data()[i] = batch_column_indices[i];
+    for (int i = 0; i < col_idxs_common.get_num_elems(); i++) {
+        col_idxs_common.get_data()[i] = batch_column_indices_common[i];
     }
 
     for (int i = 0; i < vals.get_num_elems(); i++) {
@@ -372,47 +276,52 @@ int main(int argc, char *argv[])
 
 
     std::shared_ptr<gko::matrix::BatchCsr<ValueType, gko::int32>> A_csr_batch =
-        share(gko::matrix::BatchCsr<ValueType, int>::create(
-            exec, num_batches, sz, std::move(vals), std::move(col_idxs),
-            std::move(row_ptrs)));
+        share(gko::matrix::BatchCsr<ValueType, gko::int32>::create(
+            exec, num_batches, size_common, std::move(vals),
+            std::move(col_idxs_common), std::move(row_ptrs_common)));
 
 
     std::unique_ptr<gko::matrix::BatchDense<ValueType>> x_dense_batch =
         gko::matrix::BatchDense<ValueType>::create(exec, batch_initial_guess);
 
-
     std::unique_ptr<gko::matrix::BatchDense<ValueType>> b_dense_batch =
         gko::matrix::BatchDense<ValueType>::create(exec, batch_rhs);
 
-    std::cout << "\n Read -- in batched format\n";
+    // x_dense_batch->get_size().check_size_equality(); //not allowed as
+    // get_size() retuns a const reference to batch_dim object - part of the
+    // batch matrix class (- which is a batchlinop ), and check_size_equality()
+    // is a non const member function of batch_dim class
+    gko::batch_dim batch_sz_x = x_dense_batch->get_size();
+    batch_sz_x.check_size_equality();
+    x_dense_batch->set_size(batch_sz_x);
 
-    auto solver_fac = gko::solver::BatchBicgstab<ValueType>::build()
-                          .with_rel_residual_tol(1e-11)
-                          .with_max_iterations(150)
-                          .with_preconditioner("jacobi")
-                          .on(exec);
+    gko::batch_dim batch_sz_b = b_dense_batch->get_size();
+    batch_sz_b.check_size_equality();
+    b_dense_batch->set_size(batch_sz_b);
 
 
-    // std::cout << A_csr_batch->get_num_stored_elements() << std::endl;
-    // std::cout << "r: " << A_csr_batch->get_batch_sizes()[0][0]
-    //           << "    c:" << A_csr_batch->get_batch_sizes()[0][1] <<
-    //           std::endl;
-    // std::cout << A_csr_batch->get_num_batches() << std::endl;
+    auto solver_fac =
+        gko::solver::BatchBicgstab<ValueType>::build()
+            .with_abs_residual_tol(1e-11)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
+            .with_max_iterations(150)
+            .with_preconditioner("jacobi")
+            .on(exec);
+
 
     auto solver = solver_fac->generate(A_csr_batch);
 
-    std::cout << "\n Start solving\n" << std::endl;
+    std::cout << "\n Start solving the batched system \n" << std::endl;
 
     solver->apply(b_dense_batch.get(), x_dense_batch.get());
 
     std::cout << std::endl << "Solved" << std::endl;
 
-    // auto x_cpu = gko::clone(exec->get_master(), x_dense_batch);
-
     std::vector<std::unique_ptr<vec>> vector_of_solution =
         x_dense_batch->unbatch();
 
-    std::cout << "\n\nNow Write solution into the file" << std::endl;
+    std::cout << "\n\nNow Writing batch of solutions into the files..."
+              << std::endl;
 
     for (int p_id = 0; p_id < subdir.size(); p_id++) {
         const std::string subdir_path = subdir[p_id];
