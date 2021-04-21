@@ -64,16 +64,13 @@ __global__ void apply_kernel(
 
         uint32 converged = 0;
 
+        const auto a_b = gko::batch::batch_entry(mat, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
         const gko::batch_dense::BatchEntry<ValueType> r_b{
             residual, static_cast<size_type>(num_rhs), num_rows, num_rhs};
         const gko::batch_dense::BatchEntry<ValueType> dx_b{
             delta_x, static_cast<size_type>(num_rhs), num_rows, num_rhs};
-        const typename MatrixType::entry_type a_b =
-            gko::batch::batch_entry(mat, ibatch);
-        const gko::batch_dense::BatchEntry<const ValueType> b_b =
-            gko::batch::batch_entry(b, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> x_b =
-            gko::batch::batch_entry(x, ibatch);
 
         // These need to be duplicated across threads
         const ValueType one[] = {1.0};
@@ -94,7 +91,7 @@ __global__ void apply_kernel(
             const int j = iz % num_rhs;
             r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
         }
-        batch_dense::compute_norm2<ValueType>(gko::batch_dense::to_const(r_b),
+        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
                                               norms_b);
         __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
@@ -106,7 +103,7 @@ __global__ void apply_kernel(
         int iter = 0;
         while (1) {
             // r <- r - Adx  This causes instability!
-            // batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
+            // adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
             //     gko::batch_dense::to_const(dx_b),
             //     static_cast<ValueType>(1.0), r_b);
 
@@ -118,13 +115,13 @@ __global__ void apply_kernel(
                 r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
             }
             __syncthreads();
-            batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
-                                  gko::batch_dense::to_const(x_b),
-                                  static_cast<ValueType>(1.0), r_b);
+            adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
+                         gko::batch::to_const(x_b), static_cast<ValueType>(1.0),
+                         r_b);
             __syncthreads();
 
-            batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(r_b), norms_b);
+            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
+                                                  norms_b);
             __syncthreads();
             for (int j = threadIdx.x; j < num_rhs; j += blockDim.x) {
                 norms[j] = sqrt(norms[j]);
@@ -137,7 +134,7 @@ __global__ void apply_kernel(
                 break;
             }
 
-            prec.apply(gko::batch_dense::to_const(r_b), dx_b);
+            prec.apply(gko::batch::to_const(r_b), dx_b);
             __syncthreads();
 
             // zero out dx for rhs's which do not need to be updated,
@@ -152,8 +149,7 @@ __global__ void apply_kernel(
             }
             __syncthreads();
 
-            batch_dense::add_scaled(one_b, gko::batch_dense::to_const(dx_b),
-                                    x_b);
+            batch_dense::add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
             __syncthreads();
             iter++;
         }
