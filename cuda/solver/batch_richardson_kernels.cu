@@ -67,7 +67,6 @@ namespace batch_rich {
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
-#include "core/matrix/batch_sparse_ops.hpp.inc"
 
 
 #include "common/solver/batch_richardson_kernels.hpp.inc"
