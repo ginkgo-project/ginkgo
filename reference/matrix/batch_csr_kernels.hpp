@@ -43,12 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
-/**
- * @brief The Compressed sparse row matrix format namespace.
- * @ref BatchCsr
- * @ingroup batch_csr
- */
-namespace batch_csr {
 
 
 /**
@@ -103,11 +97,8 @@ inline void advanced_spmv_kernel(
     }
 }
 
-}  // namespace batch_csr
 }  // namespace reference
 }  // namespace kernels
-
-
 }  // namespace gko
 
 #endif  // GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_
