@@ -79,14 +79,6 @@ struct UniformBatch {
 };
 
 
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE BatchEntry<const ValueType> to_const(
-    const BatchEntry<ValueType> &b)
-{
-    return {b.values, b.col_idxs, b.row_ptrs, b.num_rows, b.num_nnz};
-}
-
-
 }  // namespace batch_csr
 
 
@@ -123,18 +115,35 @@ struct UniformBatch {
 };
 
 
+}  // namespace batch_dense
+
+
+namespace batch {
+
+
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE BatchEntry<const ValueType> to_const(
-    const BatchEntry<ValueType> &b)
+GKO_ATTRIBUTES GKO_INLINE gko::batch_dense::BatchEntry<const ValueType>
+to_const(const gko::batch_dense::BatchEntry<ValueType> &b)
 {
     return {b.values, b.stride, b.num_rows, b.num_rhs};
 }
 
 
-}  // namespace batch_dense
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE gko::batch_csr::BatchEntry<const ValueType> to_const(
+    const gko::batch_csr::BatchEntry<ValueType> &b)
+{
+    return {b.values, b.col_idxs, b.row_ptrs, b.num_rows, b.num_nnz};
+}
 
 
-namespace batch {
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE gko::batch_csr::UniformBatch<const ValueType>
+to_const(const gko::batch_csr::UniformBatch<ValueType> &ub)
+{
+    return {ub.values,    ub.col_idxs, ub.row_ptrs,
+            ub.num_batch, ub.num_rows, ub.num_nnz};
+}
 
 
 /**
