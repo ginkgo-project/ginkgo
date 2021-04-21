@@ -51,9 +51,6 @@ namespace kernels {
 namespace reference {
 
 
-#include "core/matrix/batch_sparse_ops.hpp.inc"
-
-
 /**
  * @brief The batch Richardson solver namespace.
  *
@@ -71,18 +68,18 @@ template <typename PrecType, typename StopType, typename LogType,
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-    LogType logger, const BatchMatrixType *const a,
-    const gko::batch_dense::UniformBatch<const ValueType> *const b,
-    const gko::batch_dense::UniformBatch<ValueType> *const x)
+    LogType logger, const BatchMatrixType &a,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
+    const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a->num_batch;
-    const auto nrows = a->num_rows;
-    const auto nrhs = b->num_rhs;
+    const size_type nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+    const auto nrhs = b.num_rhs;
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
-    const auto stride = b->stride;
+    const auto stride = b.stride;
 
-    GKO_ASSERT((nrhs == x->num_rhs));
+    GKO_ASSERT((nrhs == x.num_rhs));
     GKO_ASSERT((batch_config<ValueType>::max_num_rows >= nrows * nrhs));
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
@@ -91,12 +88,9 @@ static void apply_impl(
         ValueType prec_work[PrecType::work_size];
         uint32 converged = 0;
 
-        const typename BatchMatrixType::entry_type a_b =
-            gko::batch::batch_entry(*a, ibatch);
-        const gko::batch_dense::BatchEntry<const ValueType> b_b =
-            gko::batch::batch_entry(*b, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> x_b =
-            gko::batch::batch_entry(*x, ibatch);
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
         const gko::batch_dense::BatchEntry<ValueType> r_b{
             residual, static_cast<size_type>(nrhs), nrows, nrhs};
         const gko::batch_dense::BatchEntry<ValueType> dx_b{
@@ -119,7 +113,7 @@ static void apply_impl(
             const int j = iz % nrhs;
             r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
         }
-        batch_dense::compute_norm2<ValueType>(gko::batch_dense::to_const(r_b),
+        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
                                               norms_b);
 
         real_type init_rel_res_norm[max_nrhs];
@@ -133,8 +127,8 @@ static void apply_impl(
         int iter = 0;
         while (1) {
             // r <- r - Adx  This causes instability!
-            // batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
-            // 					  gko::batch_dense::to_const(dx_b),
+            // adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
+            // 					  gko::batch::to_const(dx_b),
             // static_cast<ValueType>(1.0), r_b);
 
             // r <- b - Ax
@@ -143,12 +137,12 @@ static void apply_impl(
                 const int j = iz % nrhs;
                 r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
             }
-            batch_adv_spmv_single(static_cast<ValueType>(-1.0), a_b,
-                                  gko::batch_dense::to_const(x_b),
-                                  static_cast<ValueType>(1.0), r_b);
+            adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
+                         gko::batch::to_const(x_b), static_cast<ValueType>(1.0),
+                         r_b);
 
-            batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(r_b), norms_b);
+            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
+                                                  norms_b);
             for (int j = 0; j < nrhs; j++) {
                 norms_b.values[j] = sqrt(norms_b.values[j]);
             }
@@ -160,7 +154,7 @@ static void apply_impl(
                 break;
             }
 
-            prec.apply(gko::batch_dense::to_const(r_b), dx_b);
+            prec.apply(gko::batch::to_const(r_b), dx_b);
 
             // zero out dx for rhs's which do not need to be updated,
             //  though this is unnecessary for this solver.
@@ -173,8 +167,7 @@ static void apply_impl(
                 }
             }
 
-            batch_dense::add_scaled(one_b, gko::batch_dense::to_const(dx_b),
-                                    x_b);
+            batch_dense::add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
             iter++;
         }
     }
@@ -184,9 +177,9 @@ template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-    const LoggerType logger, const BatchType *const a,
-    const gko::batch_dense::UniformBatch<const ValueType> *const b,
-    const gko::batch_dense::UniformBatch<ValueType> *const x)
+    const LoggerType logger, const BatchType &a,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
+    const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
         apply_impl<BatchJacobi<ValueType>, stop::RelResidualMaxIter<ValueType>>(
@@ -213,7 +206,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<const ValueType> a_b =
             get_batch_struct(a_mat);
-        apply_select_prec(exec, opts, logger, &a_b, &b_b, &x_b);
+        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
