@@ -84,6 +84,7 @@ __device__ __forceinline__ void compute_norm2(
     }
     __syncthreads();
     // TODO: put a parallel reduce here
+    __syncthreads();
     if (threadIdx.x == 0) {
         for (int i = 0; i < x.num_rows; i++) {
             for (int j = 0; j < x.num_rhs; ++j) {
@@ -110,3 +111,24 @@ __global__
         compute_norm2(x_b, r_b);
     }
 }
+
+
+/**
+ * 'Scales' a dense matrix or set of vectors with a dense vector.
+ * It is equivalent to multiplication by a diagonal matrix whose diagonal
+ * entries are given by the scaling vector.
+ *
+ * One thread is assigned to each entry.
+ */
+template <typename ValueType>
+__device__ void batch_scale(
+    const gko::batch_dense::BatchEntry<const ValueType> &scale_vec,
+    const gko::batch_dense::BatchEntry<ValueType> &a)
+{
+    for (int iz = threadIdx.x; iz < a.num_rows * a.num_rhs; iz += blockDim.x) {
+        const int row = iz / a.num_rhs;
+        const int col = iz % a.num_rhs;
+        a.values[row * a.stride + col] *= scale_vec.values[row];
+    }
+}
+
