@@ -117,7 +117,6 @@ inline void batch_scale(
     }
 }
 
-}  // namespace batch_csr
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
