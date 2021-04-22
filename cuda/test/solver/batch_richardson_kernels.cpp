@@ -169,7 +169,8 @@ protected:
         x->copy_from(gko::lend(rx));
 
         gko::kernels::cuda::batch_rich::apply<value_type>(
-            this->cuexec, opts_1, mtx.get(), b.get(), x.get(), logdata);
+            this->cuexec, opts_1, mtx.get(), nullptr, nullptr, b.get(), x.get(),
+            logdata);
 
         rx->copy_from(gko::lend(x));
         Norms norms =
@@ -224,7 +225,8 @@ protected:
         x->copy_from(gko::lend(rx));
 
         gko::kernels::cuda::batch_rich::apply<value_type>(
-            this->cuexec, opts_m, mtx.get(), b.get(), x.get(), logdata);
+            this->cuexec, opts_m, mtx.get(), nullptr, nullptr, b.get(), x.get(),
+            logdata);
 
         rx->copy_from(gko::lend(x));
         Norms norms =
