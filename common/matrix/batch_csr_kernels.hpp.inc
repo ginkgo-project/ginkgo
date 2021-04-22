@@ -122,8 +122,8 @@ __global__
 
 
 /**
- * Scales an entire batch of uniform CSR matrices with common dense
- * vectors for row and column scaling.
+ * Scales one uniform CSR matrix two dense
+ * vectors for row and column scaling respectively.
  *
  * One warp is assigned to each row.
  */
