@@ -281,6 +281,3 @@ __device__ __forceinline__ void adv_spmv_ker(
         }
     }
 }
-
-
-}  // namespace batch_csr

@@ -32,8 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*
-  Temporary file.
-  Has to be removed.
+  Temporary file- Has to be removed
+  Illustrating the usage of batched solvers
+  (Data used is : Pele Matrices)
+
 */
 
 // @sect3{Include files}
@@ -49,10 +51,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 // Add the string manipulation header to handle strings.
 #include <string>
-
+// Add the dirent header to be able to read in file names from directories.
 #include <dirent.h>
+// Add the memory header file to handle smart pointers
 #include <memory>
 
+
+namespace {
 
 void FillSubdir(const std::string &main_dir, std::vector<std::string> &subdir)
 {
@@ -79,9 +84,18 @@ void FillSubdir(const std::string &main_dir, std::vector<std::string> &subdir)
     closedir(dr);
 }
 
+}  // namespace
 
 int main(int argc, char *argv[])
 {
+    // Some Shortcuts
+    using ValueType = std::complex<double>;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using csr_mat = gko::matrix::Csr<ValueType, gko::int32>;
+
+
+    // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
@@ -89,6 +103,7 @@ int main(int argc, char *argv[])
         std::exit(-1);
     }
 
+    // Figure out where to run the code
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -113,26 +128,34 @@ int main(int argc, char *argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-
+    // The command line arguments the user is expected to pass, which provide
+    // information about the batched system to be solved
     if (argc < 5) {
         printf(
             "\nFormat: ./a.out [executor name] [category name] [Number of "
-            "batches] [1 for scaled] \n");
+            "batches] [1 to use scaling, 0 for unscaled] \n");
         exit(0);
     }
 
+    // get the Pele Matrices category
     const std::string category = argv[2];
 
+    // Directory path where Pele Matrices data is located
     const std::string dir =
         "/home/isha/Desktop/Pele_Matrices_market/" + category + "/";
 
+    // A vector of strings to store the names of all subdirectories related to
+    // the category passed in by the user
     std::vector<std::string> subdir{};
-
     FillSubdir(dir, subdir);
 
     std::cout << "\nNumber of small problems in one batch of the category - "
               << category << " is: " << subdir.size() << std::endl;
 
+    // Problem size here refers to the number of batches the user wants to be
+    // solved. Pls note the name "problem_size" might be misleading here as this
+    // does not refer to the
+    // total number of the small problems to be solved by the batched kernels.
     int problem_size = std::stoi(argv[3]);
 
     std::cout << "\nSo, the total number of small problems to be solved: "
@@ -151,11 +174,7 @@ int main(int argc, char *argv[])
 
     std::cout << "\n\nStart reading the matrices and their rhs..." << std::endl;
 
-    using ValueType = std::complex<double>;
-
-    using vec = gko::matrix::Dense<ValueType>;
-    using csr_mat = gko::matrix::Csr<ValueType, int>;
-
+    // Read data and create batch dense and batch csr matrix class objects.
     std::vector<gko::int32> batch_row_pointers_common;
     std::vector<gko::int32> batch_column_indices_common;
     std::vector<ValueType> batch_values;
@@ -166,6 +185,14 @@ int main(int argc, char *argv[])
     std::vector<std::unique_ptr<vec>> batch_b;
     std::vector<std::unique_ptr<vec>> batch_x;
 
+    // Read data from individual files in the subdirectories and keep
+    // accumulating it to form batched objets later
+
+    // Currently, batch csr class supports only a uniform batch ( a batch of
+    // sparse matrices where all the matrices have equal sizes and same sparsity
+    // pattern) -
+    // so pls ensure that all the individual matrices in the batch follow the
+    // above conditions.
 
     const int num_batches = problem_size * subdir.size();
 
@@ -253,8 +280,9 @@ int main(int argc, char *argv[])
 
     std::cout << "\n Create batched matrices objects\n";
 
-    // Also convert these vectors: batch_row_pointers , batch_column_indices,
-    // batch_values --> to arrays
+    // convert these vectors: batch_row_pointers_common ,
+    // batch_column_indices_common, batch_values to arrays in order to be able
+    // to create a batch csr matrix object
 
     gko::Array<gko::int32> row_ptrs_common{exec->get_master(),
                                            batch_row_pointers_common.size()};
@@ -274,18 +302,24 @@ int main(int argc, char *argv[])
         vals.get_data()[i] = batch_values[i];
     }
 
-
     std::shared_ptr<gko::matrix::BatchCsr<ValueType, gko::int32>> A_csr_batch =
         share(gko::matrix::BatchCsr<ValueType, gko::int32>::create(
             exec, num_batches, size_common, std::move(vals),
             std::move(col_idxs_common), std::move(row_ptrs_common)));
 
 
+    // Pass in the vector of pointers to dense matrices  to the constructor of
+    // batch dense class via the create function to form batch dense class
+    // objects
     std::unique_ptr<gko::matrix::BatchDense<ValueType>> x_dense_batch =
         gko::matrix::BatchDense<ValueType>::create(exec, batch_initial_guess);
 
     std::unique_ptr<gko::matrix::BatchDense<ValueType>> b_dense_batch =
         gko::matrix::BatchDense<ValueType>::create(exec, batch_rhs);
+
+
+    // Checks if the sizes of all matrices in the batch are the same and if so
+    // convert the batches to uniform batches
 
     // x_dense_batch->get_size().check_size_equality(); //not allowed as
     // get_size() retuns a const reference to batch_dim object - part of the
@@ -299,7 +333,7 @@ int main(int argc, char *argv[])
     batch_sz_b.check_size_equality();
     b_dense_batch->set_size(batch_sz_b);
 
-
+    // generate the solver factory object
     auto solver_fac =
         gko::solver::BatchBicgstab<ValueType>::build()
             .with_abs_residual_tol(1e-11)
@@ -308,15 +342,16 @@ int main(int argc, char *argv[])
             .with_preconditioner("jacobi")
             .on(exec);
 
-
+    // generate the solver object
     auto solver = solver_fac->generate(A_csr_batch);
 
     std::cout << "\n Start solving the batched system \n" << std::endl;
 
     solver->apply(b_dense_batch.get(), x_dense_batch.get());
 
-    std::cout << std::endl << "Solved" << std::endl;
+    std::cout << std::endl << " Solved" << std::endl;
 
+    // Unbatch the dense batch to get pointers to individual dense matrices
     std::vector<std::unique_ptr<vec>> vector_of_solution =
         x_dense_batch->unbatch();
 
