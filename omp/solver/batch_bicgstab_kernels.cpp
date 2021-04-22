@@ -51,7 +51,6 @@ namespace gko {
 namespace kernels {
 namespace omp {
 
-#include "core/matrix/batch_sparse_ops.hpp.inc"
 
 /**
  * @brief The batch Bicgstab solver namespace.
@@ -102,10 +101,10 @@ inline void initialize(
         }
     }
     // r = b - A*x
-    batch_adv_spmv_single(static_cast<ValueType>(-1.0), A_entry,
-                          gko::batch_dense::to_const(x_entry),
-                          static_cast<ValueType>(1.0), r_entry);
-    batch_dense::compute_norm2<ValueType>(gko::batch_dense::to_const(r_entry),
+    adv_spmv_ker(static_cast<ValueType>(-1.0), A_entry,
+                 gko::batch::to_const(x_entry), static_cast<ValueType>(1.0),
+                 r_entry);
+    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
 #pragma omp parallel for
@@ -366,14 +365,14 @@ template <typename PrecType, typename StopType, typename LogType,
 static void apply_impl(
     std::shared_ptr<const OmpExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> &opts, LogType logger,
-    const BatchMatrixType *const a,
-    const gko::batch_dense::UniformBatch<const ValueType> *const b,
-    const gko::batch_dense::UniformBatch<ValueType> *const x)
+    const BatchMatrixType &a,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
+    const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a->num_batch;
-    const auto nrows = a->num_rows;
-    const auto nrhs = b->num_rhs;
+    const size_type nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+    const auto nrhs = b.num_rhs;
 
 
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
@@ -409,13 +408,13 @@ static void apply_impl(
         uint32 converged = 0;
 
         const typename BatchMatrixType::entry_type A_entry =
-            gko::batch::batch_entry(*a, ibatch);
+            gko::batch::batch_entry(a, ibatch);
 
         const gko::batch_dense::BatchEntry<const ValueType> b_entry =
-            gko::batch::batch_entry(*b, ibatch);
+            gko::batch::batch_entry(b, ibatch);
 
         const gko::batch_dense::BatchEntry<ValueType> x_entry =
-            gko::batch::batch_entry(*x, ibatch);
+            gko::batch::batch_entry(x, ibatch);
 
         const gko::batch_dense::BatchEntry<ValueType> r_entry{
             r, static_cast<size_type>(nrhs), nrows, nrhs};
@@ -489,9 +488,8 @@ static void apply_impl(
         // p = 0
         // v = 0
         initialize(rho_old_entry, omega_old_entry, alpha_entry, A_entry,
-                   b_entry, gko::batch_dense::to_const(x_entry), r_entry,
-                   r_hat_entry, p_entry, v_entry, rhs_norms_entry,
-                   res_norms_entry);
+                   b_entry, gko::batch::to_const(x_entry), r_entry, r_hat_entry,
+                   p_entry, v_entry, rhs_norms_entry, res_norms_entry);
 
         // stopping criterion object
         StopType stop(nrhs, opts.max_its, opts.abs_residual_tol,
@@ -519,46 +517,44 @@ static void apply_impl(
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             batch_dense::compute_dot_product<ValueType>(
-                gko::batch_dense::to_const(r_hat_entry),
-                gko::batch_dense::to_const(r_entry), rho_new_entry);
+                gko::batch::to_const(r_hat_entry),
+                gko::batch::to_const(r_entry), rho_new_entry);
 
 
             // beta = (rho_new / rho_old)*(alpha / omega_old)
-            compute_beta(gko::batch_dense::to_const(rho_new_entry),
-                         gko::batch_dense::to_const(rho_old_entry),
-                         gko::batch_dense::to_const(alpha_entry),
-                         gko::batch_dense::to_const(omega_old_entry),
-                         beta_entry, converged);
+            compute_beta(gko::batch::to_const(rho_new_entry),
+                         gko::batch::to_const(rho_old_entry),
+                         gko::batch::to_const(alpha_entry),
+                         gko::batch::to_const(omega_old_entry), beta_entry,
+                         converged);
 
             // p = r + beta*(p - omega_old * v)
-            update_p(gko::batch_dense::to_const(r_entry),
-                     gko::batch_dense::to_const(beta_entry),
-                     gko::batch_dense::to_const(omega_old_entry),
-                     gko::batch_dense::to_const(v_entry), p_entry, converged);
+            update_p(gko::batch::to_const(r_entry),
+                     gko::batch::to_const(beta_entry),
+                     gko::batch::to_const(omega_old_entry),
+                     gko::batch::to_const(v_entry), p_entry, converged);
 
             // p_hat = precond * p
-            prec.apply(gko::batch_dense::to_const(p_entry), p_hat_entry);
+            prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
 
             // v = A * p_hat
-            batch_spmv_single(A_entry, gko::batch_dense::to_const(p_hat_entry),
-                              v_entry);
+            spmv_ker(A_entry, gko::batch::to_const(p_hat_entry), v_entry);
 
             // alpha = rho_new / < r_hat , v>
-            compute_alpha(gko::batch_dense::to_const(rho_new_entry),
-                          gko::batch_dense::to_const(r_hat_entry),
-                          gko::batch_dense::to_const(v_entry), alpha_entry,
+            compute_alpha(gko::batch::to_const(rho_new_entry),
+                          gko::batch::to_const(r_hat_entry),
+                          gko::batch::to_const(v_entry), alpha_entry,
                           converged);
 
 
             // s = r - alpha*v
-            update_s(gko::batch_dense::to_const(r_entry),
-                     gko::batch_dense::to_const(alpha_entry),
-                     gko::batch_dense::to_const(v_entry), s_entry, converged);
+            update_s(gko::batch::to_const(r_entry),
+                     gko::batch::to_const(alpha_entry),
+                     gko::batch::to_const(v_entry), s_entry, converged);
             batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(s_entry),
+                gko::batch::to_const(s_entry),
                 res_norms_temp_entry);  // an estimate of residual norms
-            copy(gko::batch_dense::to_const(res_norms_temp_entry),
-                 res_norms_entry,
+            copy(gko::batch::to_const(res_norms_temp_entry), res_norms_entry,
                  converged);  // copy into res_norms entry only for those RHSs
                               // which have not yet converged.
 
@@ -573,8 +569,8 @@ static void apply_impl(
             // note bits could change from 0 to 1, not the other way round, so
             // we can use xor to get info about recent convergence...
             const uint32 converged_recent = converged_prev ^ converged;
-            update_x_middle(x_entry, gko::batch_dense::to_const(alpha_entry),
-                            gko::batch_dense::to_const(p_hat_entry),
+            update_x_middle(x_entry, gko::batch::to_const(alpha_entry),
+                            gko::batch::to_const(p_hat_entry),
                             converged_recent);
 
 
@@ -588,40 +584,37 @@ static void apply_impl(
             }
 
             // s_hat = precond * s
-            prec.apply(gko::batch_dense::to_const(s_entry), s_hat_entry);
+            prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
 
             // t = A * s_hat
-            batch_spmv_single(A_entry, gko::batch_dense::to_const(s_hat_entry),
-                              t_entry);
+            spmv_ker(A_entry, gko::batch::to_const(s_hat_entry), t_entry);
 
             // omega_new = <t,s> / <t,t>
-            compute_omega_new(gko::batch_dense::to_const(t_entry),
-                              gko::batch_dense::to_const(s_entry),
-                              omega_new_entry, converged);
+            compute_omega_new(gko::batch::to_const(t_entry),
+                              gko::batch::to_const(s_entry), omega_new_entry,
+                              converged);
 
             // x = x + alpha*p_hat + omega_new*s_hat
-            update_x(x_entry, gko::batch_dense::to_const(p_hat_entry),
-                     gko::batch_dense::to_const(s_hat_entry),
-                     gko::batch_dense::to_const(alpha_entry),
-                     gko::batch_dense::to_const(omega_new_entry), converged);
+            update_x(x_entry, gko::batch::to_const(p_hat_entry),
+                     gko::batch::to_const(s_hat_entry),
+                     gko::batch::to_const(alpha_entry),
+                     gko::batch::to_const(omega_new_entry), converged);
 
             // r = s - omega_new*t
-            update_r(gko::batch_dense::to_const(s_entry),
-                     gko::batch_dense::to_const(omega_new_entry),
-                     gko::batch_dense::to_const(t_entry), r_entry, converged);
+            update_r(gko::batch::to_const(s_entry),
+                     gko::batch::to_const(omega_new_entry),
+                     gko::batch::to_const(t_entry), r_entry, converged);
             batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(r_entry),
+                gko::batch::to_const(r_entry),
                 res_norms_temp_entry);  // store residual norms in temp entry
-            copy(gko::batch_dense::to_const(res_norms_temp_entry),
-                 res_norms_entry,
+            copy(gko::batch::to_const(res_norms_temp_entry), res_norms_entry,
                  converged);  // copy into res_norms entry only for those RHSs
                               // which have not yet converged.
 
             // rho_old = rho_new
             // omega_old = omega_new
-            copy(gko::batch_dense::to_const(rho_new_entry), rho_old_entry,
-                 converged);
-            copy(gko::batch_dense::to_const(omega_new_entry), omega_old_entry,
+            copy(gko::batch::to_const(rho_new_entry), rho_old_entry, converged);
+            copy(gko::batch::to_const(omega_new_entry), omega_old_entry,
                  converged);
         }
     }
@@ -632,9 +625,9 @@ template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(
     std::shared_ptr<const OmpExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-    const LoggerType logger, const BatchType *const a,
-    const gko::batch_dense::UniformBatch<const ValueType> *const b,
-    const gko::batch_dense::UniformBatch<ValueType> *const x)
+    const LoggerType logger, const BatchType &a,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
+    const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::none_str) {
         apply_impl<BatchIdentity<ValueType>,
@@ -668,7 +661,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<const ValueType> a_b =
             get_batch_struct(a_mat);
-        apply_select_prec(exec, opts, logger, &a_b, &b_b, &x_b);
+        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
