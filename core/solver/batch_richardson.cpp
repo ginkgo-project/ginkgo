@@ -102,8 +102,9 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
     logdata.iter_counts.set_executor(this->get_executor());
     logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    exec->run(batch_rich::make_apply(opts, system_matrix_.get(), dense_b,
-                                     dense_x, logdata));
+    exec->run(batch_rich::make_apply(opts, system_matrix_.get(),
+                                     this->left_scale_, this->right_scale_,
+                                     dense_b, dense_x, logdata));
 
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());

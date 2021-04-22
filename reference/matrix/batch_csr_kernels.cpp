@@ -139,7 +139,7 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
             left_vals, left_stride, num_rows, 1};
         const gko::batch_dense::BatchEntry<const ValueType> right = {
             right_vals, right_stride, num_rows, 1};
-        batch_scale(left, right, a);
+        gko::kernels::reference::batch_scale(left, right, a);
     }
 }
 
