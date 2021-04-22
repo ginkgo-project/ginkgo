@@ -91,13 +91,13 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    batch_adv_spmv_single(static_cast<ValueType>(-1.0), A_global_entry,
-                          gko::batch_dense::to_const(x_shared_entry),
-                          static_cast<ValueType>(1.0), r_shared_entry);
+    adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
+                 gko::batch::to_const(x_shared_entry),
+                 static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
-    batch_dense::compute_norm2<ValueType>(
-        gko::batch_dense::to_const(r_shared_entry), res_norms_shared_entry);
+    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
+                                          res_norms_shared_entry);
 
 
     for (int li = threadIdx.x;
@@ -467,7 +467,7 @@ __global__ void apply_kernel(
         const gko::batch_csr::BatchEntry<const ValueType> mat_shared_entry{
             a_vals_sh, a_col_idxs_sh, a_row_ptrs_sh, 2, 2};
 
-        batch_spmv_single(mat_shared_entry, b_shared_entry, sol_shared_entry);
+        spmv_ker(mat_shared_entry, b_shared_entry, sol_shared_entry);
 
         __syncthreads();
 
@@ -615,8 +615,8 @@ __global__ void apply_kernel(
 
         const ValueType beta = static_cast<ValueType>(-1);
 
-        batch_adv_spmv_single(alpha, mat_shared_entry, b_shared_entry, beta,
-                              sol_shared_entry);
+        adv_spmv_ker(alpha, mat_shared_entry, b_shared_entry, beta,
+                     sol_shared_entry);
 
         __syncthreads();
 
@@ -847,7 +847,7 @@ __global__ void apply_kernel(
         // v = 0
         initialize(rho_old_shared_entry, omega_old_shared_entry,
                    alpha_shared_entry, A_global_entry, b_global_entry,
-                   gko::batch_dense::to_const(x_global_entry), x_shared_entry,
+                   gko::batch::to_const(x_global_entry), x_shared_entry,
                    r_shared_entry, r_hat_shared_entry, p_shared_entry,
                    v_shared_entry, rhs_norms_shared_entry,
                    res_norms_shared_entry);
@@ -881,67 +881,65 @@ __global__ void apply_kernel(
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             batch_dense::compute_dot_product<ValueType>(
-                gko::batch_dense::to_const(r_hat_shared_entry),
-                gko::batch_dense::to_const(r_shared_entry),
-                rho_new_shared_entry);
+                gko::batch::to_const(r_hat_shared_entry),
+                gko::batch::to_const(r_shared_entry), rho_new_shared_entry);
 
 
             __syncthreads();
 
             // beta = (rho_new / rho_old)*(alpha / omega_old)
-            compute_beta(gko::batch_dense::to_const(rho_new_shared_entry),
-                         gko::batch_dense::to_const(rho_old_shared_entry),
-                         gko::batch_dense::to_const(alpha_shared_entry),
-                         gko::batch_dense::to_const(omega_old_shared_entry),
+            compute_beta(gko::batch::to_const(rho_new_shared_entry),
+                         gko::batch::to_const(rho_old_shared_entry),
+                         gko::batch::to_const(alpha_shared_entry),
+                         gko::batch::to_const(omega_old_shared_entry),
                          beta_shared_entry, converged);
 
             __syncthreads();
 
 
             // p = r + beta*(p - omega_old * v)
-            update_p(gko::batch_dense::to_const(r_shared_entry),
-                     gko::batch_dense::to_const(beta_shared_entry),
-                     gko::batch_dense::to_const(omega_old_shared_entry),
-                     gko::batch_dense::to_const(v_shared_entry), p_shared_entry,
+            update_p(gko::batch::to_const(r_shared_entry),
+                     gko::batch::to_const(beta_shared_entry),
+                     gko::batch::to_const(omega_old_shared_entry),
+                     gko::batch::to_const(v_shared_entry), p_shared_entry,
                      converged);
 
             __syncthreads();
 
             // p_hat = precond * p
-            prec_shared.apply(gko::batch_dense::to_const(p_shared_entry),
+            prec_shared.apply(gko::batch::to_const(p_shared_entry),
                               p_hat_shared_entry);
 
 
             __syncthreads();
 
             // v = A * p_hat
-            batch_spmv_single(A_global_entry,
-                              gko::batch_dense::to_const(p_hat_shared_entry),
-                              v_shared_entry);
+            spmv_ker(A_global_entry, gko::batch::to_const(p_hat_shared_entry),
+                     v_shared_entry);
 
             __syncthreads();
 
             // alpha = rho_new / < r_hat , v>
-            compute_alpha(gko::batch_dense::to_const(rho_new_shared_entry),
-                          gko::batch_dense::to_const(r_hat_shared_entry),
-                          gko::batch_dense::to_const(v_shared_entry),
+            compute_alpha(gko::batch::to_const(rho_new_shared_entry),
+                          gko::batch::to_const(r_hat_shared_entry),
+                          gko::batch::to_const(v_shared_entry),
                           alpha_shared_entry, converged);
 
             __syncthreads();
 
             // s = r - alpha*v
-            update_s(gko::batch_dense::to_const(r_shared_entry),
-                     gko::batch_dense::to_const(alpha_shared_entry),
-                     gko::batch_dense::to_const(v_shared_entry), s_shared_entry,
+            update_s(gko::batch::to_const(r_shared_entry),
+                     gko::batch::to_const(alpha_shared_entry),
+                     gko::batch::to_const(v_shared_entry), s_shared_entry,
                      converged);
 
             __syncthreads();
 
             batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(s_shared_entry),
+                gko::batch::to_const(s_shared_entry),
                 res_norms_temp_shared_entry);  // an estimate of residual norms
             __syncthreads();
-            copy(gko::batch_dense::to_const(res_norms_temp_shared_entry),
+            copy(gko::batch::to_const(res_norms_temp_shared_entry),
                  res_norms_shared_entry,
                  converged);  // update res norms only for those RHSs which have
                               // not yet converged.
@@ -962,10 +960,9 @@ __global__ void apply_kernel(
             // we can use xor to get info about recent convergence...
             const uint32 converged_recent = converged_prev ^ converged;
 
-            update_x_middle(x_shared_entry,
-                            gko::batch_dense::to_const(alpha_shared_entry),
-                            gko::batch_dense::to_const(p_hat_shared_entry),
-                            converged_recent);
+            update_x_middle(
+                x_shared_entry, gko::batch::to_const(alpha_shared_entry),
+                gko::batch::to_const(p_hat_shared_entry), converged_recent);
 
             __syncthreads();
 
@@ -978,46 +975,44 @@ __global__ void apply_kernel(
 
 
             // s_hat = precond * s
-            prec_shared.apply(gko::batch_dense::to_const(s_shared_entry),
+            prec_shared.apply(gko::batch::to_const(s_shared_entry),
                               s_hat_shared_entry);
 
             __syncthreads();
 
 
             // t = A * s_hat
-            batch_spmv_single(A_global_entry,
-                              gko::batch_dense::to_const(s_hat_shared_entry),
-                              t_shared_entry);
+            spmv_ker(A_global_entry, gko::batch::to_const(s_hat_shared_entry),
+                     t_shared_entry);
             __syncthreads();
 
             // omega_new = <t,s> / <t,t>
-            compute_omega_new(gko::batch_dense::to_const(t_shared_entry),
-                              gko::batch_dense::to_const(s_shared_entry),
+            compute_omega_new(gko::batch::to_const(t_shared_entry),
+                              gko::batch::to_const(s_shared_entry),
                               omega_new_shared_entry, converged);
 
             __syncthreads();
 
             // x = x + alpha*p_hat + omega_new*s_hat
-            update_x(
-                x_shared_entry, gko::batch_dense::to_const(p_hat_shared_entry),
-                gko::batch_dense::to_const(s_hat_shared_entry),
-                gko::batch_dense::to_const(alpha_shared_entry),
-                gko::batch_dense::to_const(omega_new_shared_entry), converged);
+            update_x(x_shared_entry, gko::batch::to_const(p_hat_shared_entry),
+                     gko::batch::to_const(s_hat_shared_entry),
+                     gko::batch::to_const(alpha_shared_entry),
+                     gko::batch::to_const(omega_new_shared_entry), converged);
 
 
             // r = s - omega_new*t
-            update_r(gko::batch_dense::to_const(s_shared_entry),
-                     gko::batch_dense::to_const(omega_new_shared_entry),
-                     gko::batch_dense::to_const(t_shared_entry), r_shared_entry,
+            update_r(gko::batch::to_const(s_shared_entry),
+                     gko::batch::to_const(omega_new_shared_entry),
+                     gko::batch::to_const(t_shared_entry), r_shared_entry,
                      converged);
 
             __syncthreads();
 
             batch_dense::compute_norm2<ValueType>(
-                gko::batch_dense::to_const(r_shared_entry),
+                gko::batch::to_const(r_shared_entry),
                 res_norms_temp_shared_entry);  // residual norms
             __syncthreads();
-            copy(gko::batch_dense::to_const(res_norms_temp_shared_entry),
+            copy(gko::batch::to_const(res_norms_temp_shared_entry),
                  res_norms_shared_entry,
                  converged);  // update res norms only for those RHSs which have
                               // not yet converged.
@@ -1025,9 +1020,9 @@ __global__ void apply_kernel(
 
             // rho_old = rho_new
             // omega_old = omega_new
-            copy(gko::batch_dense::to_const(rho_new_shared_entry),
+            copy(gko::batch::to_const(rho_new_shared_entry),
                  rho_old_shared_entry, converged);
-            copy(gko::batch_dense::to_const(omega_new_shared_entry),
+            copy(gko::batch::to_const(omega_new_shared_entry),
                  omega_old_shared_entry, converged);
 
             __syncthreads();
