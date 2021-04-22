@@ -653,8 +653,8 @@ protected:
             static_cast<const matrix::BatchDense<ValueType> *>(right_scale_op);
     }
 
-    const matrix::BatchDense<value_type> *left_scale_;
-    const matrix::BatchDense<value_type> *right_scale_;
+    const matrix::BatchDense<value_type> *left_scale_ = nullptr;
+    const matrix::BatchDense<value_type> *right_scale_ = nullptr;
 };
 
 
