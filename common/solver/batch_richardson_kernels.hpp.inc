@@ -36,7 +36,9 @@ __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> rel_tol,
     const gko::remove_complex<ValueType> relax_factor, LogType logger,
     const MatrixType mat,
-    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> left,
+    const gko::batch_dense::UniformBatch<const ValueType> right,
+    const gko::batch_dense::UniformBatch<ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -53,6 +55,11 @@ __global__ void apply_kernel(
         return;
     }
 
+    const gko::batch_dense::BatchEntry<const ValueType> left_b = {
+        left.values, left.stride, left.num_rows, 1};
+    const gko::batch_dense::BatchEntry<const ValueType> right_b = {
+        right.values, right.stride, right.num_rows, 1};
+
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         __shared__ UninitializedArray<ValueType, max_nrows> residual_un;
         __shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
@@ -64,8 +71,17 @@ __global__ void apply_kernel(
 
         uint32 converged = 0;
 
-        const auto a_b = gko::batch::batch_entry(mat, ibatch);
-        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        if (left.values) {
+            const auto a_b = gko::batch::batch_entry(mat, ibatch);
+            const auto b_b = gko::batch::batch_entry(b, ibatch);
+            batch_scale(left_b, right_b, a_b);
+            batch_dense::batch_scale(left_b, b_b);
+        }
+
+        const auto a_b =
+            gko::batch::batch_entry(gko::batch::to_const(mat), ibatch);
+        const auto b_b =
+            gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const gko::batch_dense::BatchEntry<ValueType> r_b{
             residual, static_cast<size_type>(num_rhs), num_rows, num_rhs};
@@ -152,6 +168,10 @@ __global__ void apply_kernel(
             batch_dense::add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
             __syncthreads();
             iter++;
+        }
+
+        if (left.values) {
+            batch_dense::batch_scale(right_b, x_b);
         }
     }
 }
