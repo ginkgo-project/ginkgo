@@ -24,6 +24,8 @@ jobs:
     - name: Debug over SSH (tmate)
       uses: mxschmitt/action-tmate@v3.5
       if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
 
     - name: configure
     # Use cmd to remove the path easily
