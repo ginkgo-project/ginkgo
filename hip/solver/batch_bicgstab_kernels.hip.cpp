@@ -70,7 +70,6 @@ namespace batch_bicgstab {
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
-#include "core/matrix/batch_sparse_ops.hpp.inc"
 
 
 #include "common/solver/batch_bicgstab_kernels.hpp.inc"
