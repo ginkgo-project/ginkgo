@@ -189,19 +189,24 @@ GKO_ATTRIBUTES GKO_INLINE void AbsAndRelResidualMaxIter<ValueType>::check_norms(
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 
     auto thread_block = group::this_thread_block();
+
     auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
-    for (int i = subwarp_grp.thread_rank(); i < nrhs; i += max_nrhs) {
+
+    int rhs_index = subwarp_grp.thread_rank();
+
+    if (rhs_index < nrhs) {
         int ichk = 0;
 
-        if (converged & (1 << i)) {  // don't check for convergence again for
-                                     // RHSs which have already converged.
+        if (converged &
+            (1 << rhs_index)) {  // don't check for convergence again for
+                                 // RHSs which have already converged.
             ichk = 1;
         }
 
         if (tol_type == tolerance::relative) {
-            ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
+            ichk = (res_norms[rhs_index] / rhs_norms[rhs_index] < rel_tol);
         } else if (tol_type == tolerance::absolute) {
-            ichk = (res_norms[i] < abs_tol);
+            ichk = (res_norms[rhs_index] < abs_tol);
         }
 
         const bitset_type wchk = subwarp_grp.ballot(ichk);
@@ -211,6 +216,7 @@ GKO_ATTRIBUTES GKO_INLINE void AbsAndRelResidualMaxIter<ValueType>::check_norms(
     // copy the converged value to all threads in the warp
     converged = subwarp_grp.shfl(converged, 0);
     // note that every warp does all this redundantly
+
 
 #endif
 }
