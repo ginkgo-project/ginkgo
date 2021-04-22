@@ -1,4 +1,4 @@
-name: Windows-CygWin
+name: Windows-Cygwin
 
 on:
   push:
