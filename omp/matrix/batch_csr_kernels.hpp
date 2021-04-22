@@ -44,12 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
-/**
- * @brief The Compressed sparse row matrix format namespace.
- * @ref BatchCsr
- * @ingroup batch_csr
- */
-namespace batch_csr {
 
 
 /**
@@ -107,7 +101,7 @@ inline void adv_spmv_ker(const ValueType alpha,
     }
 }
 
-}  // namespace batch_csr
+
 }  // namespace omp
 }  // namespace kernels
 
