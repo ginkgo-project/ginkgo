@@ -104,6 +104,8 @@ template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const left_scale,
+           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            log::BatchLogData<ValueType> &logdata)
@@ -114,6 +116,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
+
+    // TODO: Scale
 
     const gko::batch_dense::UniformBatch<const cu_value_type> b_b =
         get_batch_struct(b);

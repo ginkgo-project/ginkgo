@@ -130,6 +130,14 @@ to_const(const gko::batch_dense::BatchEntry<ValueType> &b)
 
 
 template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE gko::batch_dense::UniformBatch<const ValueType>
+to_const(const gko::batch_dense::UniformBatch<ValueType> &ub)
+{
+    return {ub.values, ub.num_batch, ub.stride, ub.num_rows, ub.num_rhs};
+}
+
+
+template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE gko::batch_csr::BatchEntry<const ValueType> to_const(
     const gko::batch_csr::BatchEntry<ValueType> &b)
 {
