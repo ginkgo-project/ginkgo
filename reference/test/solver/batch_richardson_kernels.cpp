@@ -326,30 +326,4 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
 }
 
 
-// TYPED_TEST(BatchRich, ScalingGivesCorrectResult)
-// {
-// 	using Result = typename TestFixture::Result;
-// 	using BDense = typename TestFixture::BDense;
-// 	auto left_scale = gko::batch_initialize<BDense>(1, {1.0,2.0,-1.0},
-// this->exec); 	auto right_scale = gko::batch_initialize<BDense>(1,
-// {0.5,-3.0,1.0}, this->exec); 	auto res = BDense::create(this->exec,
-// gko::batch_dim(this->nbatch, gko::dim<2>(this->nrows,1)) ); 	auto xex =
-// BDense::create(this->exec, gko::batch_dim(this->nbatch,
-// gko::dim<2>(this->nrows,1)) ); res->copy_from(this->r_1.residual.get());
-// 	xex->copy_from(this->xex_1.get());
-// 	auto res_vals = res->get_values();
-
-// 	Result result = this->solve_poisson_uniform_1(left_scale.get(),
-// right_scale.get());
-
-//     for (size_t i = 0; i < this->nbatch; i++) {
-//         ASSERT_LE(result.resnorm->get_const_values()[i] /
-// 				  this->bnorm_1->get_const_values()[i],
-//                   this->opts_1.rel_residual_tol);
-//     }
-//     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-//                               1e-6 /*r<value_type>::value*/);
-// }
-
-
 }  // namespace
