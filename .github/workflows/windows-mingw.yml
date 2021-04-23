@@ -1,0 +1,51 @@
+name: Windows-MinGW
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  windows_mingw:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
+    name: mingw/${{ matrix.config.name }}
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+
+    - name: configure
+    # Use cmd to remove the path easily
+      run: |
+        bcdedit /set IncreaseUserVa 3072
+        editbin /LARGEADDRESSAWARE "C:\Program Files\Git\mingw64\bin\cc1plus.exe"
+        path %PATH:C:\Program Files\Git\bin;=%
+        path %PATH:C:\Program Files\Git\usr\bin;=%;%GITHUB_WORKSPACE%\build\windows_shared_library
+        mkdir build
+        cd build
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
+        cmake --build . -j4
+        ctest . --output-on-failure
+      shell: cmd
+
+    - name: install
+      run: |
+        set PATH=%PATH:C:\Program Files\Git\bin;=%
+        set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\Program Files (x86)\Ginkgo\lib
+        cd build
+        cmake --install .
+        cmake --build . --target test_install
+      shell: cmd
