@@ -78,6 +78,7 @@ __device__ __forceinline__ void compute_norm2(
     for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
         result.values[j] = zero<remove_complex<ValueType>>();
     }
+    __syncthreads();
     // TODO: put a parallel reduce here
     if (threadIdx.x == 0) {
         for (int i = 0; i < x.num_rows; i++) {
@@ -86,6 +87,7 @@ __device__ __forceinline__ void compute_norm2(
             }
         }
     }
+    __syncthreads();
     for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
         result.values[j] = sqrt(result.values[j]);
     }
