@@ -42,6 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -55,11 +59,18 @@ namespace batch_dense {
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::BatchDense<ValueType> *a,
-                  const matrix::BatchDense<ValueType> *b,
-                  matrix::BatchDense<ValueType> *c)
+                  const matrix::BatchDense<ValueType> *const a,
+                  const matrix::BatchDense<ValueType> *const b,
+                  matrix::BatchDense<ValueType> *const c)
 {
+    // const auto a_ub = get_batch_struct(a);
+    // const auto b_ub = get_batch_struct(b);
+    // const auto c_ub = get_batch_struct(c);
     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
+        // const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        // const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        // const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        // simple_apply(a_b, b_b, c_b);
         for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
             for (size_type col = 0; col < c->get_size().at(batch)[1]; ++col) {
                 c->at(batch, row, col) = zero<ValueType>();
