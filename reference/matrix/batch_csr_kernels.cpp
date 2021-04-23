@@ -47,9 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum.hpp"
 #include "reference/components/format_conversion.hpp"
 
+
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
 
 namespace gko {
 namespace kernels {
@@ -64,31 +66,38 @@ namespace batch_csr {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::BatchCsr<ValueType, IndexType> *a,
-          const matrix::BatchDense<ValueType> *b,
-          matrix::BatchDense<ValueType> *c)
+          const matrix::BatchCsr<ValueType, IndexType> *const a,
+          const matrix::BatchDense<ValueType> *const b,
+          matrix::BatchDense<ValueType> *const c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    // auto row_ptrs = a->get_const_row_ptrs();
+    // auto col_idxs = a->get_const_col_idxs();
+    // auto vals = a->get_const_values();
 
-    size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
-    size_type offset = 0;
+    // size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
+    // size_type offset = 0;
     for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
-        for (size_type row = 0; row < a->get_size().at(0)[0]; ++row) {
-            for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
-                c->at(batch, row, j) = zero<ValueType>();
-            }
-            for (size_type k = row_ptrs[row];
-                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                auto val = vals[offset + k];
-                auto col = col_idxs[k];
-                for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
-                    c->at(batch, row, j) += val * b->at(batch, col, j);
-                }
-            }
-        }
-        offset += num_nnz;
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        spmv_ker(a_b, b_b, c_b);
+        // for (size_type row = 0; row < a->get_size().at(0)[0]; ++row) {
+        //     for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+        //         c->at(batch, row, j) = zero<ValueType>();
+        //     }
+        //     for (size_type k = row_ptrs[row];
+        //          k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+        //         auto val = vals[offset + k];
+        //         auto col = col_idxs[k];
+        //         for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
+        //             c->at(batch, row, j) += val * b->at(batch, col, j);
+        //         }
+        //     }
+        // }
+        // offset += num_nnz;
     }
 }
 
@@ -98,35 +107,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::BatchDense<ValueType> *alpha,
-                   const matrix::BatchCsr<ValueType, IndexType> *a,
-                   const matrix::BatchDense<ValueType> *b,
-                   const matrix::BatchDense<ValueType> *beta,
-                   matrix::BatchDense<ValueType> *c)
+                   const matrix::BatchDense<ValueType> *const alpha,
+                   const matrix::BatchCsr<ValueType, IndexType> *const a,
+                   const matrix::BatchDense<ValueType> *const b,
+                   const matrix::BatchDense<ValueType> *const beta,
+                   matrix::BatchDense<ValueType> *const c)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
-
-    size_type num_nnz = a->get_num_stored_elements() / a->get_num_batches();
-    size_type offset = 0;
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
     for (size_type batch = 0; batch < a->get_num_batches(); ++batch) {
-        auto valpha = alpha->at(batch, 0, 0);
-        auto vbeta = beta->at(batch, 0, 0);
-        for (size_type row = 0; row < a->get_size().at(0)[0]; ++row) {
-            for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
-                c->at(batch, row, j) *= vbeta;
-            }
-            for (size_type k = row_ptrs[row];
-                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                auto val = vals[offset + k];
-                auto col = col_idxs[k];
-                for (size_type j = 0; j < c->get_size().at(batch)[1]; ++j) {
-                    c->at(batch, row, j) += valpha * val * b->at(batch, col, j);
-                }
-            }
-        }
-        offset += num_nnz;
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
+        adv_spmv_ker(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
 }
 
