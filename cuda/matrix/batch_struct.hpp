@@ -65,8 +65,8 @@ inline gko::batch_dense::UniformBatch<const cuda_type<ValueType>>
 get_batch_struct(const matrix::BatchDense<ValueType> *const op)
 {
     return {as_cuda_type(op->get_const_values()), op->get_num_batches(),
-            op->get_stride(0), static_cast<int>(op->get_batch_sizes()[0][0]),
-            static_cast<int>(op->get_batch_sizes()[0][1])};
+            op->get_stride().at(), static_cast<int>(op->get_size().at(0)[0]),
+            static_cast<int>(op->get_size().at(0)[1])};
 }
 
 /**
@@ -77,8 +77,8 @@ inline gko::batch_dense::UniformBatch<cuda_type<ValueType>> get_batch_struct(
     matrix::BatchDense<ValueType> *const op)
 {
     return {as_cuda_type(op->get_values()), op->get_num_batches(),
-            op->get_stride(0), static_cast<int>(op->get_batch_sizes()[0][0]),
-            static_cast<int>(op->get_batch_sizes()[0][1])};
+            op->get_stride().at(), static_cast<int>(op->get_size().at(0)[0]),
+            static_cast<int>(op->get_size().at(0)[1])};
 }
 
 /**
@@ -92,7 +92,7 @@ get_batch_struct(const matrix::BatchCsr<ValueType> *const op)
             op->get_const_col_idxs(),
             op->get_const_row_ptrs(),
             op->get_num_batches(),
-            static_cast<int>(op->get_batch_sizes()[0][0]),
+            static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
                              op->get_num_batches())};
 }

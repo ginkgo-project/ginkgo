@@ -70,9 +70,9 @@ void simple_apply(const BatchEntry<const ValueType> &a,
     for (int row = 0; row < c.num_rows; ++row) {
         for (int inner = 0; inner < a.num_rhs; ++inner) {
             for (int col = 0; col < c.num_rhs; ++col) {
-                c.values[row * c->stride + col] +=
-                    a.values[row * a->stride + inner] *
-                    b.values[inner * b->stride + col];
+                c.values[row * c.stride + col] +=
+                    a.values[row * a.stride + inner] *
+                    b.values[inner * b.stride + col];
             }
         }
     }
