@@ -31,8 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-namespace batch_csr {
-
 /**
  * Device kernel for SpMV of one CSR matrix in a batch.
  *
@@ -45,17 +43,32 @@ __device__ __forceinline__ void spmv_ker(
     const gko::batch_dense::BatchEntry<ValueType> &c)
 {
     for (int row = threadIdx.x; row < a.num_rows; row += blockDim.x) {
-        for (int j = 0; j < b.num_rhs; ++j) {
+        for (int j = 0; j < c.num_rhs; ++j) {
             c.values[row * c.stride + j] = zero<ValueType>();
         }
         for (auto k = a.row_ptrs[row]; k < a.row_ptrs[row + 1]; ++k) {
             auto val = a.values[k];
             auto col = a.col_idxs[k];
-            for (int j = 0; j < b->num_rhs; ++j) {
+            for (int j = 0; j < b.num_rhs; ++j) {
                 c.values[row * c.stride + j] +=
                     val * b.values[col * b.stride + j];
             }
         }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
+    const gko::batch_csr::UniformBatch<const ValueType> a,
+    const batch_dense::UniformBatch<const ValueType> b,
+    const batch_dense::UniformBatch<ValueType> c)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
+         ibatch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto c_b = gko::batch::batch_entry(c, ibatch);
+        spmv_ker(a_b, b_b, c_b);
     }
 }
 
@@ -86,4 +99,22 @@ __device__ __forceinline__ void adv_spmv_ker(
     }
 }
 
-}  // namespace batch_csr
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size, sm_multiplier) void advanced_spmv(
+        const batch_dense::UniformBatch<const ValueType> alpha,
+        const gko::batch_csr::UniformBatch<const ValueType> a,
+        const batch_dense::UniformBatch<const ValueType> b,
+        const batch_dense::UniformBatch<const ValueType> beta,
+        const batch_dense::UniformBatch<ValueType> c)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
+         ibatch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto c_b = gko::batch::batch_entry(c, ibatch);
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto beta_b = gko::batch::batch_entry(beta, ibatch);
+        adv_spmv_ker(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
+    }
+}
