@@ -150,17 +150,17 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 template <typename T>
-inline batch_dim get_batch_size(const T &op)
+inline batch_dim<2> get_batch_size(const T &op)
 {
     return op->get_size();
 }
 
 
-inline batch_dim get_batch_size(const batch_dim &size) { return size; }
+inline batch_dim<2> get_batch_size(const batch_dim<2> &size) { return size; }
 
 
-inline std::tuple<bool, int> compare_batch_inner(const batch_dim &size1,
-                                                 const batch_dim &size2)
+inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
+                                                 const batch_dim<2> &size2)
 {
     if (size1.get_num_batches() != size2.get_num_batches()) {
         return std::tuple<bool, int>{false, -1};
@@ -183,8 +183,8 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_outer(const batch_dim &size1,
-                                                 const batch_dim &size2)
+inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
+                                                 const batch_dim<2> &size2)
 {
     if (size1.get_num_batches() != size2.get_num_batches()) {
         return std::tuple<bool, int>{false, -1};
@@ -207,8 +207,8 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_rows(const batch_dim &size1,
-                                                const batch_dim &size2)
+inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
+                                                const batch_dim<2> &size2)
 {
     if (size1.get_num_batches() != size2.get_num_batches()) {
         return std::tuple<bool, int>{false, -1};
@@ -231,8 +231,8 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_cols(const batch_dim &size1,
-                                                const batch_dim &size2)
+inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
+                                                const batch_dim<2> &size2)
 {
     if (size1.get_num_batches() != size2.get_num_batches()) {
         return std::tuple<bool, int>{false, -1};
