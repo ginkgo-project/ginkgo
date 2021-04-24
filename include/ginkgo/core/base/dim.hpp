@@ -254,22 +254,36 @@ private:
 };
 
 
-class batch_dim {
-public:
+/**
+ * A type representing the dimensions of a multidimensional batch object.
+ *
+ * @tparam Dimensionality  number of dimensions of the object
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
+ * @ingroup batch_dim
+ */
+template <size_type Dimensionality = 2, typename DimensionType = size_type>
+struct batch_dim {
+    static constexpr size_type dimensionality = Dimensionality;
+
+    using dimension_type = DimensionType;
+
     bool stores_equal_sizes() const { return equal_sizes_; }
 
     size_type get_num_batches() const { return num_batches_; }
 
-    std::vector<dim<2>> get_batch_sizes() const
+    std::vector<dim<dimensionality, dimension_type>> get_batch_sizes() const
     {
         if (!equal_sizes_) {
             return sizes_;
         } else {
-            return std::vector<dim<2>>(num_batches_, common_size_);
+            return std::vector<dim<dimensionality, dimension_type>>(
+                num_batches_, common_size_);
         }
     }
 
-    const dim<2> &at(const size_type batch = 0) const
+    const dim<dimensionality, dimension_type> &at(
+        const size_type batch = 0) const
     {
         if (equal_sizes_) {
             return common_size_;
@@ -297,16 +311,19 @@ public:
         }
     }
 
-    batch_dim(const size_type num_batches = 0, const dim<2> &size = dim<2>{})
+    batch_dim(const size_type num_batches = 0,
+              const dim<dimensionality, dimension_type> &size =
+                  dim<dimensionality, dimension_type>{})
         : equal_sizes_(true),
           common_size_(size),
           num_batches_(num_batches),
           sizes_()
     {}
 
-    batch_dim(const std::vector<dim<2>> &batch_sizes)
+    batch_dim(
+        const std::vector<dim<dimensionality, dimension_type>> &batch_sizes)
         : equal_sizes_(false),
-          common_size_(dim<2>{}),
+          common_size_(dim<dimensionality, dimension_type>{}),
           num_batches_(batch_sizes.size()),
           sizes_(batch_sizes)
     {
@@ -327,8 +344,8 @@ public:
 private:
     bool equal_sizes_{};
     size_type num_batches_{};
-    dim<2> common_size_{};
-    std::vector<dim<2>> sizes_{};
+    dim<dimensionality, dimension_type> common_size_{};
+    std::vector<dim<dimensionality, dimension_type>> sizes_{};
 };
 
 
@@ -370,26 +387,30 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
 
 
 /**
- * Returns a dim<2> object with its dimensions swapped for batched operators
+ * Returns a batch_dim object with its dimensions swapped for batched operators
  *
  * @tparam DimensionType  datatype used to represent each dimension
  *
  * @param dimensions original object
  *
- * @return a std::vector<dim<2>> object with its dimensions swapped
+ * @return a batch_dim object with the individual batches having their
+ *         dimensions swapped
  */
-inline batch_dim transpose(const batch_dim &input)
+template <typename DimensionType>
+inline batch_dim<2, DimensionType> transpose(
+    const batch_dim<2, DimensionType> &input)
 {
-    batch_dim out{};
+    batch_dim<2, DimensionType> out{};
     if (input.stores_equal_sizes()) {
-        out = batch_dim(input.get_num_batches(), gko::transpose(input.at(0)));
+        out = batch_dim<2, DimensionType>(input.get_num_batches(),
+                                          gko::transpose(input.at(0)));
         return out;
     }
-    auto trans = std::vector<dim<2>>(input.get_num_batches());
+    auto trans = std::vector<dim<2, DimensionType>>(input.get_num_batches());
     for (size_type i = 0; i < trans.size(); ++i) {
         trans[i] = transpose(input.at(i));
     }
-    return batch_dim(trans);
+    return batch_dim<2, DimensionType>(trans);
 }
 
 
