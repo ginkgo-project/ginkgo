@@ -416,7 +416,7 @@ public:
     }
 
 private:
-    inline size_type compute_batch_mem(const batch_dim &sizes,
+    inline size_type compute_batch_mem(const batch_dim<2> &sizes,
                                        const batch_stride &strides)
     {
         GKO_ASSERT(sizes.get_num_batches() == strides.get_num_batches());
@@ -430,7 +430,7 @@ private:
         return mem_req;
     }
 
-    inline batch_stride extract_nth_dim(const int dim, const batch_dim &size)
+    inline batch_stride extract_nth_dim(const int dim, const batch_dim<2> &size)
     {
         if (size.stores_equal_sizes()) {
             return batch_stride(size.get_num_batches(), size.at(0)[dim]);
@@ -452,18 +452,18 @@ private:
         return batch_stride(strides);
     }
 
-    inline batch_dim get_sizes_from_mtxs(
+    inline batch_dim<2> get_sizes_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
         auto sizes = std::vector<dim<2>>(mtxs.size());
         for (auto i = 0; i < mtxs.size(); ++i) {
             sizes[i] = mtxs[i]->get_size();
         }
-        return batch_dim(sizes);
+        return batch_dim<2>(sizes);
     }
 
     inline Array<size_type> compute_num_elems_per_batch_cumul(
-        std::shared_ptr<const Executor> exec, const batch_dim &sizes,
+        std::shared_ptr<const Executor> exec, const batch_dim<2> &sizes,
         const batch_stride &strides)
     {
         auto num_elems =
@@ -485,7 +485,7 @@ protected:
      * @param size  size of the matrix
      */
     BatchDense(std::shared_ptr<const Executor> exec,
-               const batch_dim &size = batch_dim{})
+               const batch_dim<2> &size = batch_dim<2>{})
         : BatchDense(std::move(exec), size,
                      size.get_num_batches() > 0 ? extract_nth_dim(1, size)
                                                 : batch_stride{})
@@ -500,7 +500,7 @@ protected:
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size,
+    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim<2> &size,
                const batch_stride &stride)
         : EnableBatchLinOp<BatchDense>(exec, size),
           values_(exec, compute_batch_mem(size, stride)),
@@ -528,7 +528,7 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim &size,
+    BatchDense(std::shared_ptr<const Executor> exec, const batch_dim<2> &size,
                ValuesArray &&values, const batch_stride &stride)
         : EnableBatchLinOp<BatchDense>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -682,7 +682,7 @@ std::unique_ptr<Matrix> batch_initialize(
         sizes[b] = dim<2>(num_rows[b], 1);
         vals_begin++;
     }
-    auto b_size = batch_dim(sizes);
+    auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
     auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
@@ -773,7 +773,7 @@ std::unique_ptr<Matrix> batch_initialize(
         sizes[ind] = dim<2>(num_rows[ind], num_cols[ind]);
         ++ind;
     }
-    auto b_size = batch_dim(sizes);
+    auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
     auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
@@ -873,7 +873,7 @@ std::unique_ptr<Matrix> batch_initialize(
         num_rows[b] = vals.size();
         sizes[b] = dim<2>(vals.size(), 1);
     }
-    auto b_size = batch_dim(sizes);
+    auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
     auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
     size_type batch = 0;
