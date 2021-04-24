@@ -65,12 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-#include "common/matrix/batch_csr_kernels.hpp.inc"
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-
-
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
