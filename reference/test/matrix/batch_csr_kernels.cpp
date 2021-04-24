@@ -270,7 +270,7 @@ TYPED_TEST(BatchCsr, AppliesToDenseVector)
     auto x = gko::batch_initialize<Vec>({{2.0, 1.0, 4.0}, {1.0, -1.0, 3.0}},
                                         this->exec);
     auto y =
-        Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                     gko::dim<2>{2, 1}, gko::dim<2>{2, 1}}));
 
     this->mtx->apply(x.get(), y.get());
@@ -290,7 +290,7 @@ TYPED_TEST(BatchCsr, AppliesToDenseMatrix)
         {{I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}},
          {I<T>{1.0, 3.0}, I<T>{-1.0, -1.5}, I<T>{3.0, 2.5}}},
         this->exec);
-    auto y = Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                          gko::dim<2>{2}, gko::dim<2>{2}}));
 
     this->mtx->apply(x.get(), y.get());
@@ -387,9 +387,9 @@ TYPED_TEST(BatchCsr, AppliesLinearCombinationToDenseMatrix)
 TYPED_TEST(BatchCsr, ApplyFailsOnWrongInnerDimension)
 {
     using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                          gko::dim<2>{2}, gko::dim<2>{2}}));
-    auto y = Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                          gko::dim<2>{2}, gko::dim<2>{2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
@@ -400,10 +400,10 @@ TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfRows)
 {
     using Vec = typename TestFixture::Vec;
     auto x =
-        Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                     gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
     auto y =
-        Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                     gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
@@ -413,9 +413,9 @@ TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfRows)
 TYPED_TEST(BatchCsr, ApplyFailsOnWrongNumberOfCols)
 {
     using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                          gko::dim<2>{3}, gko::dim<2>{3}}));
-    auto y = Vec::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                          gko::dim<2>{2}, gko::dim<2>{2}}));
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
