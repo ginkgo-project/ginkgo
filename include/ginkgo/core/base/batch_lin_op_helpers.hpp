@@ -57,14 +57,13 @@ namespace gko {
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of LinOpFactory.
+ * template parameters to enable a subclass of BatchLinOpFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
- * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
- *                        needs to have a constructor which takes a
- *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LinOp> as parameters.
+ * @tparam ConcreteLinOp  the concrete BatchLinOp type which this factory
+ * produces, needs to have a constructor which takes a const ConcreteFactory *,
+ * and an std::shared_ptr<const BatchLinOp> as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
@@ -80,8 +79,8 @@ using EnableDefaultBatchLinOpFactory =
 
 
 /**
- * This macro will generate a default implementation of a LinOpFactory for the
- * LinOp subclass it is defined in.
+ * This macro will generate a default implementation of a BatchLinOpFactory for
+ * the BatchLinOp subclass it is defined in.
  *
  * It is required to first call the macro #GKO_CREATE_FACTORY_PARAMETERS()
  * before this one in order to instantiate the parameters type first.
@@ -90,14 +89,14 @@ using EnableDefaultBatchLinOpFactory =
  * after the macro definition, and should contain a list of
  * GKO_FACTORY_PARAMETER_* declarations. The class should provide a constructor
  * with signature
- * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
+ * _batch_lin_op(const _factory_name *, std::shared_ptr<const BatchLinOp>)
  * which the factory will use a callback to construct the object.
  *
- * A minimal example of a linear operator is the following:
+ * A minimal example of a batch linear operator is the following:
  *
  * ```c++
- * struct MyLinOp : public EnableLinOp<MyLinOp> {
- *     GKO_ENABLE_LIN_OP_FACTORY(MyLinOp, my_parameters, Factory) {
+ * struct MyBatchLinOp : public EnableBatchLinOp<MyBatchLinOp> {
+ *     GKO_ENABLE_BATCH_LIN_OP_FACTORY(MyBatchLinOp, my_parameters, Factory) {
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
  *         int GKO_FACTORY_PARAMETER_SCALAR(my_value, 5);
@@ -105,35 +104,36 @@ using EnableDefaultBatchLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by EnableLinOp
- *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
- *         : EnableLinOp<MyLinOp>(exec) {}
+ *     // constructor needed by EnableBatchLinOp
+ *     explicit MyBatchLinOp(std::shared_ptr<const Executor> exec) {
+ *         : EnableBatchLinOp<MyBatchLinOp>(exec) {}
  *     // constructor needed by the factory
- *     explicit MyLinOp(const Factory *factory,
- *                      std::shared_ptr<const LinOp> matrix)
- *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *     explicit MyBatchLinOp(const Factory *factory,
+ *                      std::shared_ptr<const BatchLinOp> matrix)
+ *         : EnableBatchLinOp<MyBatchLinOp>(factory->get_executor()),
+ *                                          matrix->get_size()),
  *           // store factory's parameters locally
- *           my_parameters_{factory->get_parameters()},
+ *           my_parameters_{factory->get_parameters()}
  *     {
  *          int value = my_parameters_.my_value;
  *          // do something with value
  *     }
  * ```
  *
- * MyLinOp can then be created as follows:
+ * MyBatchLinOp can then be created as follows:
  *
  * ```c++
  * auto exec = gko::ReferenceExecutor::create();
  * // create a factory with default `my_value` parameter
- * auto fact = MyLinOp::build().on(exec);
+ * auto fact = MyBatchLinOp::build().on(exec);
  * // create a operator using the factory:
- * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
+ * auto my_op = fact->generate(gko::matrix::BatchIdentity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 5
  *
  * // create a factory with custom `my_value` parameter
  * auto fact = MyLinOp::build().with_my_value(0).on(exec);
  * // create a operator using the factory:
- * auto my_op = fact->generate(gko::matrix::Identity::create(exec, 2));
+ * auto my_op = fact->generate(gko::matrix::BatchIdentity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
  * ```
  *
