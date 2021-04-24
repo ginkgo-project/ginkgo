@@ -332,7 +332,8 @@ TYPED_TEST(BatchDense, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto result = Mtx::create(this->exec, gko::batch_dim(2, gko::dim<2>{1, 3}));
+    auto result =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
 
     auto ures = result->unbatch();
 
@@ -356,7 +357,7 @@ TYPED_TEST(BatchDense, ComputesNorm2)
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
-    auto batch_size = gko::batch_dim(
+    auto batch_size = gko::batch_dim<2>(
         std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
     auto result =
         NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
@@ -374,7 +375,7 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongInputSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
-        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+        Mtx::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                     gko::dim<2>{1, 2}, gko::dim<2>{1, 3}}));
 
     ASSERT_THROW(this->mtx_1->compute_dot(this->mtx_2.get(), result.get()),
@@ -386,10 +387,10 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
 {
     using Mtx = typename TestFixture::Mtx;
     auto result =
-        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
+        Mtx::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
                                     gko::dim<2>{1, 2}, gko::dim<2>{1, 2}}));
     auto result2 =
-        Mtx::create(this->exec, gko::batch_dim(2, gko::dim<2>{1, 2}));
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 2}));
 
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result.get()),
                  gko::DimensionMismatch);

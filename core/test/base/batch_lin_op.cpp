@@ -146,8 +146,8 @@ TEST_F(EnableBatchLinOp, KnowsNumBatches)
 TEST_F(EnableBatchLinOp, KnowsItsSizes)
 {
     auto op1_sizes =
-        gko::batch_dim(std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
-    auto op2_sizes = gko::batch_dim(
+        gko::batch_dim<2>(std::vector<gko::dim<2>>{gko::dim<2>{3, 5}});
+    auto op2_sizes = gko::batch_dim<2>(
         std::vector<gko::dim<2>>{gko::dim<2>{3, 5}, gko::dim<2>{3, 5}});
     ASSERT_EQ(op->get_size(), op1_sizes);
     ASSERT_EQ(op2->get_size(), op2_sizes);

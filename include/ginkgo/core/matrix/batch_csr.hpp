@@ -256,7 +256,7 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batches = {}, const dim<2> &size = dim<2>{},
              size_type num_nonzeros = {})
-        : EnableBatchLinOp<BatchCsr>(exec, batch_dim(num_batches, size)),
+        : EnableBatchLinOp<BatchCsr>(exec, batch_dim<2>(num_batches, size)),
           values_(exec, num_nonzeros * num_batches),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, (size[0]) + 1)
@@ -287,7 +287,7 @@ protected:
     BatchCsr(std::shared_ptr<const Executor> exec, const size_type num_batches,
              const dim<2> &size, ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableBatchLinOp<BatchCsr>(exec, batch_dim(num_batches, size)),
+        : EnableBatchLinOp<BatchCsr>(exec, batch_dim<2>(num_batches, size)),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}

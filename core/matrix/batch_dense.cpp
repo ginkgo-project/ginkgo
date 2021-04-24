@@ -135,7 +135,7 @@ void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha, batch_dim(this->get_num_batches(), dim<2>(1, 1)));
+        batch_alpha, batch_dim<2>(this->get_num_batches(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
         if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
@@ -154,7 +154,7 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     auto batch_b = as<BatchDense<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha, batch_dim(this->get_num_batches(), dim<2>(1, 1)));
+        batch_alpha, batch_dim<2>(this->get_num_batches(), dim<2>(1, 1)));
     for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
         if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
@@ -168,13 +168,13 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
 }
 
 
-inline const batch_dim get_col_sizes(const batch_dim &sizes)
+inline const batch_dim<2> get_col_sizes(const batch_dim<2> &sizes)
 {
     auto col_sizes = std::vector<dim<2>>(sizes.get_num_batches());
     for (size_type i = 0; i < col_sizes.size(); ++i) {
         col_sizes[i] = dim<2>(1, sizes.at(i)[1]);
     }
-    return batch_dim(col_sizes);
+    return batch_dim<2>(col_sizes);
 }
 
 
@@ -270,7 +270,7 @@ inline void read_impl(MatrixType *mtx, const std::vector<MatrixData> &data)
         ++ind;
     }
     auto tmp = MatrixType::create(mtx->get_executor()->get_master(),
-                                  batch_dim(batch_sizes));
+                                  batch_dim<2>(batch_sizes));
     for (size_type b = 0; b < data.size(); ++b) {
         size_type ind = 0;
         for (size_type row = 0; row < data[b].size[0]; ++row) {
