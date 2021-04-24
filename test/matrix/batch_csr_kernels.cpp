@@ -72,9 +72,6 @@ protected:
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         cuda = gko::CudaExecutor::create(0, ref);
-        mtx = gko::test::create_poisson1d_batch<value_type>(ref, nrows, nbatch);
-        dmtx = Mtx::create(cuda);
-        dmtx->copy_from(mtx.get());
     }
 
     void TearDown()
@@ -233,35 +230,21 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 
 TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
 {
-    std::vector<std::unique_ptr<Dense>> leftvecs, rightvecs;
-    std::vector<Dense *> leftptrs(batch_size), rightptrs(batch_size);
-    for (size_t i = 0; i < batch_size; i++) {
-        leftvecs.push_back(gko::test::generate_random_matrix<Dense>(
-            this->nrows, 1, std::uniform_int_distribution<>(1, 1),
-            std::normal_distribution<real_type>(-1.0, 1.0), std::ranlux48(),
-            this->ref));
-        rightvecs.push_back(gko::test::generate_random_matrix<Dense>(
-            this->nrows, 1, std::uniform_int_distribution<>(0, 0),
-            std::normal_distribution<real_type>(-1.0, 1.0), std::ranlux48(),
-            this->ref));
-        leftptrs[i] = leftvecs[i].get();
-        rightptrs[i] = rightvecs[i].get();
-    }
-    auto ref_left_scale = Vec::create(this->ref, leftptrs);
-    auto ref_right_scale = Vec::create(this->ref, rightptrs);
-    auto d_left_scale = Vec::create(this->cuda, leftptrs);
-    auto d_right_scale = Vec::create(this->cuda, rightptrs);
-    auto square_mtx = Mtx::create(ref);
-    sq_mtx->copy_from(gen_mtx<Vec>(batch_size, nrows, nrows, 1));
-    auto sq_dmtx = Mtx::create(cuda);
-    sq_dmtx->copy_from(sq_mtx.get());
-    sq_mtx->set_scaling_vectors(ref_left_scale.get(), ref_right_scale.get());
-    sq_dmtx->set_scaling_vectors(d_left_scale.get(), d_right_scale.get());
+    set_up_apply_data();
+    const size_t batch_size = mtx_size.get_num_batches();
+    const size_t nrows = mtx_size.at()[0];
+    const size_t ncols = mtx_size.at()[1];
+    auto ref_left_scale = gen_mtx<Vec>(1, nrows, 1, 1);
+    auto ref_right_scale = gen_mtx<Vec>(1, ncols, 1, 1);
+    auto d_left_scale = Vec::create(cuda);
+    d_left_scale->copy_from(ref_left_scale.get());
+    auto d_right_scale = Vec::create(cuda);
+    d_right_scale->copy_from(ref_right_scale.get());
 
-    sq_mtx->batch_scale(ref_left_scale.get(), ref_right_scale.get());
-    sq_dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
+    mtx->batch_scale(ref_left_scale.get(), ref_right_scale.get());
+    dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(sq_mtx, sq_dmtx, 0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
 }
 
 

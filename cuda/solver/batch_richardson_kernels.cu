@@ -50,6 +50,7 @@ namespace cuda {
 
 
 constexpr int default_block_size = 128;
+constexpr int sm_multiplier = 4;
 
 
 /**
