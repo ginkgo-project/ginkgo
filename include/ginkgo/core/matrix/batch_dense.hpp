@@ -145,9 +145,24 @@ public:
           common_stride_(size_type{}),
           num_batches_(batch_strides.size()),
           strides_(batch_strides)
-    {}
+    {
+        check_equal_strides();
+    }
 
 private:
+    inline void check_equal_strides()
+    {
+        for (size_type b = 1; b < num_batches_; ++b) {
+            if (strides_[0] != strides_[b]) {
+                equal_strides_ = false;
+                common_stride_ = 0;
+                return;
+            }
+        }
+        equal_strides_ = true;
+        common_stride_ = strides_[0];
+    }
+
     bool equal_strides_{};
     size_type num_batches_{};
     size_type common_stride_{};

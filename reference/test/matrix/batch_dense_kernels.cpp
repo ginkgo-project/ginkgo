@@ -199,6 +199,27 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongInnerDimension)
 }
 
 
+TYPED_TEST(BatchDense, ApplyFailsForNonUniformBatches)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto mat1 = gko::batch_initialize<Mtx>(
+        std::vector<gko::size_type>{4, 4},
+        {{I<T>({1.0, -1.0}), I<T>({1.0, -1.0}), I<T>({2.0, -0.5})},
+         {{1.0, 2.5, 3.0}, {1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+        this->exec);
+    auto mat2 = gko::batch_initialize<Mtx>(
+        std::vector<gko::size_type>{4, 4},
+        {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+         {{1.0, 2.5, -3.0}, {1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+        this->exec);
+    auto res = Mtx::create(
+        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{3}});
+
+    ASSERT_THROW(mat2->apply(mat1.get(), res.get()), gko::NotImplemented);
+}
+
+
 TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfRows)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -229,7 +250,8 @@ TYPED_TEST(BatchDense, ScalesData)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch_initialize<Mtx>(
-        {{I<T>({2.0, -2.0, 1.5})}, {I<T>({3.0, -1.0, 0.25})}}, this->exec);
+        std::vector<gko::size_type>{3, 3},
+        {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
 
     auto ualpha = alpha->unbatch();
 
