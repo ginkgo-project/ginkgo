@@ -30,22 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/**
- * @brief The BatchDense matrix format namespace.
- * @ref BatchDense
- * @ingroup batch_dense
- */
-namespace batch_dense {
-
-
-template <typename ValueType>
-using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
-
-
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
-    const BatchEntry<const ValueType> &alpha,
-    const BatchEntry<const ValueType> &x, const BatchEntry<ValueType> &y)
+    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<ValueType> &y)
 {
     if (alpha.num_rhs == 1) {
         for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
@@ -64,6 +53,21 @@ __device__ __forceinline__ void add_scaled(
     }
 }
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<const ValueType> x,
+    const gko::batch_dense::UniformBatch<ValueType> y)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto y_b = gko::batch::batch_entry(y, ibatch);
+        add_scaled(alpha_b, x_b, y_b);
+    }
+}
+
 
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
@@ -72,8 +76,8 @@ __device__ __forceinline__ void add_scaled(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_norm2(
-    const BatchEntry<const ValueType> &x,
-    const BatchEntry<remove_complex<ValueType>> &result)
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
     for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
         result.values[j] = zero<remove_complex<ValueType>>();
@@ -93,5 +97,16 @@ __device__ __forceinline__ void compute_norm2(
     }
 }
 
-
-}  // namespace batch_dense
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
+        const gko::batch_dense::UniformBatch<const ValueType> x,
+        const gko::batch_dense::UniformBatch<remove_complex<ValueType>> result)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto r_b = gko::batch::batch_entry(result, ibatch);
+        compute_norm2(x_b, r_b);
+    }
+}
