@@ -265,13 +265,27 @@ private:
 template <size_type Dimensionality = 2, typename DimensionType = size_type>
 struct batch_dim {
     static constexpr size_type dimensionality = Dimensionality;
-
     using dimension_type = DimensionType;
 
+    /**
+     * Checks if the batch_dim object stores equal sizes.
+     *
+     * @return bool representing whether equal sizes are being stored
+     */
     bool stores_equal_sizes() const { return equal_sizes_; }
 
+    /**
+     * Get the number of batches stored
+     *
+     * @return num_batches
+     */
     size_type get_num_batches() const { return num_batches_; }
 
+    /**
+     * Get the batch sizes as a std::vector.
+     *
+     * @return  the std::vector of batch sizes
+     */
     std::vector<dim<dimensionality, dimension_type>> get_batch_sizes() const
     {
         if (equal_sizes_) {
@@ -279,14 +293,21 @@ struct batch_dim {
                 return std::vector<dim<dimensionality, dimension_type>>(
                     num_batches_, common_size_);
             } else {
-                return std::vector<dim<dimensionality, dimension_type>>(
-                    1, common_size_);
+                return std::vector<dim<dimensionality, dimension_type>>{
+                    common_size_};
             }
         } else {
             return sizes_;
         }
     }
 
+    /**
+     * Get the batch size at a particular index.
+     *
+     * @param batch the index whose size is needed
+     *
+     * @return  the size of the batch at the requested index
+     */
     const dim<dimensionality, dimension_type> &at(
         const size_type batch = 0) const
     {
@@ -316,6 +337,14 @@ struct batch_dim {
         }
     }
 
+    /**
+     * Creates a batch_dim object which stores uniform batch sizes.
+     *
+     * @param num_batches  number of batches to be stored
+     * @param size  the size of all the batches stored
+     *
+     * @note  Use this constructor when uniform batches need to be stored.
+     */
     batch_dim(const size_type num_batches = 0,
               const dim<dimensionality, dimension_type> &size =
                   dim<dimensionality, dimension_type>{})
@@ -325,6 +354,13 @@ struct batch_dim {
           sizes_()
     {}
 
+    /**
+     * Creates a batch_dim object which stores possibly non-uniform batch sizes.
+     *
+     * @param batch_sizes  the std::vector object that stores the batch_sizes
+     *
+     * @note  Use this constructor when non-uniform batches need to be stored.
+     */
     batch_dim(
         const std::vector<dim<dimensionality, dimension_type>> &batch_sizes)
         : equal_sizes_(false),
@@ -335,6 +371,7 @@ struct batch_dim {
         check_size_equality();
     }
 
+private:
     void check_size_equality()
     {
         for (size_type i = 0; i < num_batches_; ++i) {
@@ -346,7 +383,6 @@ struct batch_dim {
         equal_sizes_ = true;
     }
 
-private:
     bool equal_sizes_{};
     size_type num_batches_{};
     dim<dimensionality, dimension_type> common_size_{};
