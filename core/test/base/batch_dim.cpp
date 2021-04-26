@@ -55,22 +55,13 @@ TEST(BatchDim, ConstructsCorrectUniformObject)
 
 TEST(BatchDim, ConstructsCorrectNonUniformObject)
 {
-    gko::batch_dim<3> d{std::vector<gko::dim<3>>(gko::dim<2>(1), gko::dim<2>(5),
-                                                 gko::dim<2>(2))};
+    gko::batch_dim<3> d{std::vector<gko::dim<3>>{gko::dim<3>(1), gko::dim<3>(5),
+                                                 gko::dim<3>(2)}};
 
     ASSERT_EQ(d.stores_equal_sizes(), false);
     ASSERT_EQ(d.get_num_batches(), 3);
-    ASSERT_EQ(d.get_batch_sizes()[0], gko::dim<2>(1));
-    ASSERT_EQ(d.get_batch_sizes()[2], gko::dim<2>(2));
-}
-
-
-TEST(BatchDim, ConstructsSquareObject)
-{
-    gko::batch_dim<2> d{5};
-
-    ASSERT_EQ(d[0], 5);
-    ASSERT_EQ(d[1], 5);
+    ASSERT_EQ(d.get_batch_sizes()[0], gko::dim<3>(1));
+    ASSERT_EQ(d.get_batch_sizes()[2], gko::dim<3>(2));
 }
 
 
@@ -78,8 +69,8 @@ TEST(BatchDim, ConstructsNullObject)
 {
     gko::batch_dim<2> d{};
 
-    ASSERT_EQ(d[0], 0);
-    ASSERT_EQ(d[1], 0);
+    ASSERT_EQ(d.get_num_batches(), 0);
+    ASSERT_EQ(d.get_batch_sizes()[0], gko::dim<2>{});
 }
 
 
@@ -101,60 +92,64 @@ private:
 
 TEST(BatchDim, CopiesProperlyOnHeap)
 {
-    auto manager = batch_dim_manager::create(gko::batch_dim<3>{1, 2, 3});
+    auto manager =
+        batch_dim_manager::create(gko::batch_dim<3>{std::vector<gko::dim<3>>{
+            gko::dim<3>(1), gko::dim<3>(5), gko::dim<3>(2)}}
+
+        );
 
     const auto copy = manager->get_size();
 
-    ASSERT_EQ(copy[0], 1);
-    ASSERT_EQ(copy[1], 2);
-    ASSERT_EQ(copy[2], 3);
-}
-
-
-TEST(BatchDim, ConvertsToBool)
-{
-    gko::batch_dim<2> d1{};
-    gko::batch_dim<2> d2{2, 3};
-
-    ASSERT_FALSE(d1);
-    ASSERT_TRUE(d2);
+    ASSERT_EQ(copy.stores_equal_sizes(), false);
+    ASSERT_EQ(copy.get_num_batches(), 3);
+    ASSERT_EQ(copy.get_batch_sizes()[0], gko::dim<3>(1));
+    ASSERT_EQ(copy.get_batch_sizes()[2], gko::dim<3>(2));
 }
 
 
 TEST(BatchDim, EqualityReturnsTrueWhenEqual)
 {
-    ASSERT_TRUE(gko::batch_dim<2>(2, 3) == gko::batch_dim<2>(2, 3));
+    ASSERT_TRUE(gko::batch_dim<2>(2, gko::dim<2>{3}) ==
+                gko::batch_dim<2>(2, gko::dim<2>{3}));
 }
 
 
-TEST(BatchDim, EqualityReturnsFalseWhenDifferentRows)
+TEST(BatchDim, EqualityReturnsFalseWhenDifferentNumBatches)
 {
-    ASSERT_FALSE(gko::batch_dim<2>(4, 3) == gko::batch_dim<2>(2, 3));
+    ASSERT_FALSE(gko::batch_dim<2>(3, gko::dim<2>{3}) ==
+                 gko::batch_dim<2>(2, gko::dim<2>{3}));
 }
 
 
-TEST(BatchDim, EqualityReturnsFalseWhenDifferentColumns)
+TEST(BatchDim, EqualityReturnsFalseWhenDifferentBatchSizes)
 {
-    ASSERT_FALSE(gko::batch_dim<2>(2, 4) == gko::batch_dim<2>(2, 3));
+    ASSERT_FALSE(gko::batch_dim<2>(3, gko::dim<2>{3}) ==
+                 gko::batch_dim<2>(3, gko::dim<2>{4}));
+}
+
+
+TEST(BatchDim, EqualityReturnsFalseWhenOneBatchSizeIsDifferent)
+{
+    ASSERT_FALSE(gko::batch_dim<2>(std::vector<gko::dim<2>>{gko::dim<2>{4},
+                                                            gko::dim<2>{3}}) ==
+                 gko::batch_dim<2>(
+                     std::vector<gko::dim<2>>{gko::dim<2>{4}, gko::dim<2>{2}}));
 }
 
 
 TEST(BatchDim, NotEqualWorks)
 {
-    ASSERT_TRUE(gko::batch_dim<2>(3, 5) != gko::batch_dim<2>(4, 3));
-}
-
-
-TEST(BatchDim, MultipliesDimensions)
-{
-    ASSERT_EQ(gko::batch_dim<2>(2, 3) * gko::batch_dim<2>(4, 5),
-              gko::batch_dim<2>(8, 15));
+    ASSERT_TRUE(gko::batch_dim<2>(3, gko::dim<2>{3}) !=
+                gko::batch_dim<2>(3, gko::dim<2>{4}));
 }
 
 
 TEST(BatchDim, TransposesDimensions)
 {
-    ASSERT_EQ(transpose(gko:batch_ : dim<2>(3, 5)), gko::batch_dim<2>(5, 3));
+    ASSERT_EQ(gko::transpose(gko::batch_dim<2>(
+                  std::vector<gko::dim<2>>{gko::dim<2>{4, 2}, gko::dim<2>{3}})),
+              gko::batch_dim<2>(
+                  std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{3}}));
 }
 
 
