@@ -63,30 +63,14 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::BatchDense<ValueType> *const b,
                   matrix::BatchDense<ValueType> *const c)
 {
-    // const auto a_ub = get_batch_struct(a);
-    // const auto b_ub = get_batch_struct(b);
-    // const auto c_ub = get_batch_struct(c);
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
-        // const auto a_b = gko::batch::batch_entry(a_ub, batch);
-        // const auto b_b = gko::batch::batch_entry(b_ub, batch);
-        // const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        // simple_apply(a_b, b_b, c_b);
-        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
-            for (size_type col = 0; col < c->get_size().at(batch)[1]; ++col) {
-                c->at(batch, row, col) = zero<ValueType>();
-            }
-        }
-
-        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
-            for (size_type inner = 0; inner < a->get_size().at(batch)[1];
-                 ++inner) {
-                for (size_type col = 0; col < c->get_size().at(batch)[1];
-                     ++col) {
-                    c->at(batch, row, col) +=
-                        a->at(batch, row, inner) * b->at(batch, inner, col);
-                }
-            }
-        }
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        simple_apply(a_b, b_b, c_b);
     }
 }
 
@@ -96,40 +80,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::BatchDense<ValueType> *alpha,
-           const matrix::BatchDense<ValueType> *a,
-           const matrix::BatchDense<ValueType> *b,
-           const matrix::BatchDense<ValueType> *beta,
-           matrix::BatchDense<ValueType> *c)
+           const matrix::BatchDense<ValueType> *const alpha,
+           const matrix::BatchDense<ValueType> *const a,
+           const matrix::BatchDense<ValueType> *const b,
+           const matrix::BatchDense<ValueType> *const beta,
+           matrix::BatchDense<ValueType> *const c)
 {
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
-        if (beta->at(batch, 0, 0) != zero<ValueType>()) {
-            for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
-                for (size_type col = 0; col < c->get_size().at(batch)[1];
-                     ++col) {
-                    c->at(batch, row, col) *= beta->at(batch, 0, 0);
-                }
-            }
-        } else {
-            for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
-                for (size_type col = 0; col < c->get_size().at(batch)[1];
-                     ++col) {
-                    c->at(batch, row, col) *= zero<ValueType>();
-                }
-            }
-        }
-
-        for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row) {
-            for (size_type inner = 0; inner < a->get_size().at(batch)[1];
-                 ++inner) {
-                for (size_type col = 0; col < c->get_size().at(batch)[1];
-                     ++col) {
-                    c->at(batch, row, col) += alpha->at(batch, 0, 0) *
-                                              a->at(batch, row, inner) *
-                                              b->at(batch, inner, col);
-                }
-            }
-        }
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        const auto c_b = gko::batch::batch_entry(c_ub, batch);
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
+        apply(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
 }
 
@@ -141,20 +109,12 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::BatchDense<ValueType> *alpha,
            matrix::BatchDense<ValueType> *x)
 {
+    const auto x_ub = get_batch_struct(x);
+    const auto alpha_ub = get_batch_struct(alpha);
     for (size_type batch = 0; batch < x->get_num_batches(); ++batch) {
-        if (alpha->get_size().at(batch)[1] == 1) {
-            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                    x->at(batch, i, j) *= alpha->at(batch, 0, 0);
-                }
-            }
-        } else {
-            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                    x->at(batch, i, j) *= alpha->at(batch, 0, j);
-                }
-            }
-        }
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        scale(alpha_b, x_b);
     }
 }
 
@@ -167,22 +127,14 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::BatchDense<ValueType> *x,
                 matrix::BatchDense<ValueType> *y)
 {
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto alpha_ub = get_batch_struct(alpha);
     for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
-        if (alpha->get_size().at(batch)[1] == 1) {
-            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                    y->at(batch, i, j) +=
-                        alpha->at(batch, 0, 0) * x->at(batch, i, j);
-                }
-            }
-        } else {
-            for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-                for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                    y->at(batch, i, j) +=
-                        alpha->at(batch, 0, j) * x->at(batch, i, j);
-                }
-            }
-        }
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        add_scaled(alpha_b, x_b, y_b);
     }
 }
 
@@ -234,18 +186,12 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::BatchDense<ValueType> *x,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
 {
+    const auto x_ub = get_batch_struct(x);
+    const auto res_ub = get_batch_struct(result);
     for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
-        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-            result->at(batch, 0, j) = zero<remove_complex<ValueType>>();
-        }
-        for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-            for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                result->at(batch, 0, j) += squared_norm(x->at(batch, i, j));
-            }
-        }
-        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-            result->at(batch, 0, j) = sqrt(result->at(batch, 0, j));
-        }
+        const auto res_b = gko::batch::batch_entry(res_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        compute_norm2(x_b, res_b);
     }
 }
 
