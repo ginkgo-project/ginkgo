@@ -80,7 +80,7 @@ include:
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
-    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - if [ ! -z ${SYCL_DEVICE_TYPE+x} ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
@@ -251,7 +251,7 @@ trigger_pipeline:
 # Build jobs
 # Job with example runs.
 build/cuda90/gcc/all/debug/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda90-gnu5-llvm39
@@ -265,7 +265,7 @@ build/cuda90/gcc/all/debug/shared:
     CUDA_ARCH: 35
 
 build/cuda90/clang/all/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda90-gnu5-llvm39
@@ -281,7 +281,7 @@ build/cuda90/clang/all/release/static:
 
 # cuda 9.1 and friends
 build/cuda91/gcc/all/debug/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda91-gnu6-llvm40
@@ -295,7 +295,7 @@ build/cuda91/gcc/all/debug/static:
     CUDA_ARCH: 35
 
 build/cuda91/clang/all/release/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda91-gnu6-llvm40
@@ -311,7 +311,7 @@ build/cuda91/clang/all/release/shared:
 
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda92-gnu7-llvm50-intel2017
@@ -326,7 +326,7 @@ build/cuda92/gcc/all/release/shared:
 # Make sure that our jobs run when HWLOC is
 # forcibly switched off
 build/cuda92/intel/cuda/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda92-gnu7-llvm50-intel2017
@@ -343,7 +343,7 @@ build/cuda92/intel/cuda/release/static:
 
 # Build CUDA NVIDIA without omp
 build/cuda92/intel/cuda_wo_omp/release/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda92-gnu7-llvm50-intel2017
@@ -361,7 +361,7 @@ build/cuda92/intel/cuda_wo_omp/release/shared:
 # Make sure that our jobs run when using self-installed
 # third-party HWLOC.
 build/cuda100/gcc/all/debug/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda100-gnu7-llvm60-intel2018
@@ -375,7 +375,7 @@ build/cuda100/gcc/all/debug/shared:
     CUDA_ARCH: 35
 
 build/cuda100/clang/all/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda100-gnu7-llvm60-intel2018
@@ -391,7 +391,7 @@ build/cuda100/clang/all/release/static:
     CUDA_ARCH: 35
 
 build/cuda100/intel/cuda/release/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda100-gnu7-llvm60-intel2018
@@ -406,7 +406,7 @@ build/cuda100/intel/cuda/release/shared:
 
 # cuda 10.1 and friends
 build/cuda101/gcc/all/debug/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda101-gnu8-llvm7-intel2019
@@ -420,7 +420,7 @@ build/cuda101/gcc/all/debug/shared:
     CUDA_ARCH: 35
 
 build/cuda101/clang/all/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda101-gnu8-llvm7-intel2019
@@ -437,7 +437,7 @@ build/cuda101/clang/all/release/static:
 
 # clang-cuda with cuda 10.1 and friends
 build/clang-cuda101/gcc/all/release/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda101-gnu8-llvm10-intel2019
@@ -451,7 +451,7 @@ build/clang-cuda101/gcc/all/release/shared:
     CUDA_ARCH: 35
 
 build/clang-cuda101/clang/cuda/debug/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda101-gnu8-llvm10-intel2019
@@ -471,7 +471,7 @@ build/clang-cuda101/clang/cuda/debug/static:
 
 # works when there is no hwloc and tpl hwloc is also switched off.
 build/cuda102/gcc/all/debug/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda102-gnu8-llvm8-intel2019
@@ -487,7 +487,7 @@ build/cuda102/gcc/all/debug/shared:
 
 # Use TPL hwloc when no system hwloc is available
 build/cuda102/clang/all/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda102-gnu8-llvm8-intel2019
@@ -503,7 +503,7 @@ build/cuda102/clang/all/release/static:
     CUDA_ARCH: 35
 
 build/cuda102/intel/cuda/debug/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda102-gnu8-llvm8-intel2019
@@ -520,7 +520,7 @@ build/cuda102/intel/cuda/debug/static:
 
 # cuda 11.0 and friends
 build/cuda110/gcc/cuda/debug/shared:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
@@ -533,7 +533,7 @@ build/cuda110/gcc/cuda/debug/shared:
     CUDA_ARCH: 35
 
 build/cuda110/clang/cuda/release/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .full_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
@@ -548,7 +548,7 @@ build/cuda110/clang/cuda/release/static:
     CUDA_ARCH: 35
 
 build/cuda110/intel/cuda/debug/static:
-  <<: *default_build_with_test
+  <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
