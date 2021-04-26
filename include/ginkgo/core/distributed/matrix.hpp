@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>

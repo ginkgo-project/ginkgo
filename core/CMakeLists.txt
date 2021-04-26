@@ -11,7 +11,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/version.cpp
     distributed/partition.cpp
-    distributed/errors.cpp
+    # distributed/errors.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp
