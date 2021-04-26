@@ -53,10 +53,25 @@ namespace gko {
 
 class batch_stride {
 public:
+    /**
+     * Checks if the batch_stride object stores equal sizes.
+     *
+     * @return bool representing whether equal strides are being stored
+     */
     bool stores_equal_strides() const { return equal_strides_; }
 
+    /**
+     * Get the number of batches stored
+     *
+     * @return num_batches
+     */
     size_type get_num_batches() const { return num_batches_; }
 
+    /**
+     * Get the batch strides as a std::vector.
+     *
+     * @return  the std::vector of batch strides
+     */
     std::vector<size_type> get_batch_strides() const
     {
         if (!equal_strides_) {
@@ -66,6 +81,13 @@ public:
         }
     }
 
+    /**
+     * Get the batch size at a particular index.
+     *
+     * @param batch the index whose size is needed
+     *
+     * @return  the size of the batch at the requested index
+     */
     const size_type &at(const size_type batch = 0) const
     {
         if (equal_strides_) {
@@ -94,6 +116,14 @@ public:
         }
     }
 
+    /**
+     * Creates a batch_stride object which stores uniform batch strides.
+     *
+     * @param num_batches  number of batches to be stored
+     * @param stride  the stride of all the batches stored
+     *
+     * @note  Use this constructor when uniform batches need to be stored.
+     */
     batch_stride(const size_type num_batches = 0, const size_type &stride = 0)
         : equal_strides_(true),
           common_stride_(stride),
@@ -101,6 +131,15 @@ public:
           strides_()
     {}
 
+    /**
+     * Creates a batch_stride object which stores possibly non-uniform batch
+     * strides.
+     *
+     * @param batch_strides  the std::vector object that stores the
+     * batch_strides
+     *
+     * @note  Use this constructor when non-uniform batches need to be stored.
+     */
     batch_stride(const std::vector<size_type> &batch_strides)
         : equal_strides_(false),
           common_stride_(size_type{}),
@@ -123,12 +162,12 @@ class BatchCsr;
 
 
 /**
- * BatchDense is a matrix format which explicitly stores all values of the
- * matrix.
+ * BatchDense is a batch matrix format which explicitly stores all values of the
+ * matrix in each of the batches.
  *
- * The values are stored in row-major format (values belonging to the same row
- * appear consecutive in the memory). Optionally, rows can be padded for better
- * memory access.
+ * The values in each of the batches are stored in row-major format (values
+ * belonging to the same row appear consecutive in the memory). Optionally, rows
+ * can be padded for better memory access.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -276,16 +315,18 @@ public:
     }
 
     /**
-     * Returns the stride of the matrix.
+     * Returns the batch_stride of the matrix.
      *
-     * @return the stride of the matrix.
+     * @return the batch_stride of the matrix.
      */
     const batch_stride &get_stride() const noexcept { return stride_; }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored in the batch matrix,
+     * cumulative across all the batches.
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements explicitly stored in the matrix,
+     *         cumulative across all the batches
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -293,7 +334,10 @@ public:
     }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored at a specific batch
+     * index.
+     *
+     * @param batch  the batch index to be queried
      *
      * @return the number of elements explicitly stored in the matrix
      */
@@ -305,8 +349,9 @@ public:
     }
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a single element for a particular batch.
      *
+     * @param batch  the batch index to be queried
      * @param row  the row of the requested element
      * @param col  the column of the requested element
      *
@@ -321,7 +366,7 @@ public:
     }
 
     /**
-     * @copydoc BatchDense::at(size_type, size_type)
+     * @copydoc BatchDense::at(size_type, size_type, size_type)
      */
     value_type at(size_type batch, size_type row, size_type col) const noexcept
     {
@@ -330,12 +375,13 @@ public:
     }
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a single element for a particular batch.
      *
      * Useful for iterating across all elements of the matrix.
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
+     * @param batch  the batch index to be queried
      * @param idx  a linear index of the requested element
      *             (ignoring the stride)
      *
@@ -349,7 +395,7 @@ public:
     }
 
     /**
-     * @copydoc Dense::at(size_type, size_type)
+     * @copydoc BatchDense::at(size_type, size_type, size_type)
      */
     ValueType at(size_type batch, size_type idx) const noexcept
     {
@@ -359,10 +405,11 @@ public:
     /**
      * Scales the matrix with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix is
-     * scaled by alpha. If it is a BatchDense row vector of values, then i-th
-     * column of the matrix is scaled with the i-th element of alpha (the number
-     * of columns of alpha has to match the number of columns of the matrix).
+     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix (all
+     * batches) is scaled by alpha. If it is a BatchDense row vector of values,
+     * then i-th column of the matrix is scaled with the i-th element of alpha
+     * (the number of columns of alpha has to match the number of columns of the
+     * matrix).
      */
     void scale(const BatchLinOp *alpha)
     {
@@ -387,8 +434,9 @@ public:
     }
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`. The
-     * conjugate of this is taken.
+     * Computes the column-wise dot product of this matrix and `b`. Dot products
+     * are computed for each corresponding batch. If the matrix has complex
+     * value_type, then the conjugate of this is taken.
      *
      * @param b  a BatchDense matrix of same dimension as this
      * @param result  a BatchDense row vector, used to store the dot product
@@ -403,7 +451,8 @@ public:
     }
 
     /**
-     * Computes the Euclidian (L^2) norm of this matrix.
+     * Computes the Euclidean (L^2) norm of this matrix. Norms are computed for
+     * each batch.
      *
      * @param result  a BatchDense row vector, used to store the norm
      *                (the number of columns in the vector must match the number
@@ -416,6 +465,10 @@ public:
     }
 
 private:
+    /**
+     * Compute the memory required for the values array from the sizes and the
+     * strides.
+     */
     inline size_type compute_batch_mem(const batch_dim<2> &sizes,
                                        const batch_stride &strides)
     {
@@ -430,6 +483,9 @@ private:
         return mem_req;
     }
 
+    /**
+     * Extract the nth dim of the batch sizes from the input batch_dim object.
+     */
     inline batch_stride extract_nth_dim(const int dim, const batch_dim<2> &size)
     {
         if (size.stores_equal_sizes()) {
@@ -442,6 +498,9 @@ private:
         return batch_stride(stride);
     }
 
+    /**
+     * Extract strides from the vector of the distinct Dense matrices.
+     */
     inline batch_stride get_strides_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
@@ -452,6 +511,9 @@ private:
         return batch_stride(strides);
     }
 
+    /**
+     * Extract sizes from the vector of the distinct Dense matrices.
+     */
     inline batch_dim<2> get_sizes_from_mtxs(
         const std::vector<Dense<ValueType> *> mtxs)
     {
@@ -462,6 +524,10 @@ private:
         return batch_dim<2>(sizes);
     }
 
+    /**
+     * Compute the number of elements stored in each batch and store it in a
+     * prefixed sum fashion
+     */
     inline Array<size_type> compute_num_elems_per_batch_cumul(
         std::shared_ptr<const Executor> exec, const batch_dim<2> &sizes,
         const batch_stride &strides)
@@ -495,8 +561,8 @@ protected:
      * Creates an uninitialized BatchDense matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param sizes  sizes of the batch matrices in a std::vector
-     * @param strides  stride of the rows (i.e. offset between the first
+     * @param size  size of the batch matrices in a batch_dim object
+     * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
      *                  number of matrix elements)
      */
@@ -517,7 +583,7 @@ protected:
      * @tparam ValuesArray  type of array of values
      *
      * @param exec  Executor associated to the matrix
-     * @param sizes  sizes of the batch matrices in a std::vector
+     * @param size  sizes of the batch matrices in a batch_dim object
      * @param values  array of matrix values
      * @param strides  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
