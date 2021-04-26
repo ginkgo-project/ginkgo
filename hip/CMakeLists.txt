@@ -262,11 +262,14 @@ if(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     find_package(hip REQUIRED)
     # To save a bit of pain, we directly link against the `library` instead of
     # linking against the target.
-    get_target_property(HIP_LIBAMDHIP64_CONFIGURATIONS hip::amdhip64 IMPORTED_CONFIGURATIONS)
-    if (CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]" AND HIP_LIBAMDHIP64_CONFIGURATIONS MATCHES "[Dd][Ee][Bb][Uu][Gg]")
-        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_DEBUG)
-    else()
-        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_RELEASE)
+    if (CMAKE_BUILD_TYPE)
+        # Check if our configuration is available first
+        string(TOUPPER "${CMAKE_BUILD_TYPE}" UPPER_BUILD_TYPE)
+        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION_${UPPER_BUILD_TYPE})
+    endif()
+    if (NOT HIP_LIBAMDHIP64_LIBRARIES)
+        # Fall back to anything
+        get_target_property(HIP_LIBAMDHIP64_LIBRARIES hip::amdhip64 IMPORTED_LOCATION)
     endif()
     target_link_libraries(ginkgo_hip PUBLIC ${HIP_LIBAMDHIP64_LIBRARIES})
 elseif(GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")

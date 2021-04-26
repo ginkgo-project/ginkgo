@@ -84,9 +84,6 @@ function(ginkgo_install)
         install(FILES "${Ginkgo_SOURCE_DIR}/third_party/papi_sde/papi_sde_interface.h"
             DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/third_party/papi_sde"
             )
-        install(FILES "${Ginkgo_SOURCE_DIR}/cmake/Modules/FindPAPI.cmake"
-            DESTINATION "${GINKGO_INSTALL_MODULE_DIR}/"
-            )
     endif()
 
     if  (GINKGO_HAVE_HWLOC AND NOT GINKGO_USE_EXTERNAL_HWLOC)
@@ -103,6 +100,12 @@ function(ginkgo_install)
             DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}"
             )
     endif()
+
+    # Install CMake modules
+    install(DIRECTORY "${Ginkgo_SOURCE_DIR}/cmake/Modules"
+        DESTINATION "${GINKGO_INSTALL_MODULE_DIR}"
+        FILES_MATCHING PATTERN "*.cmake"
+        )
 
     # export targets
     export(EXPORT Ginkgo

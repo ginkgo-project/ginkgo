@@ -1,6 +1,7 @@
 ginkgo_create_hip_test(hip_executor)
 if(GINKGO_HAVE_HWLOC)
-    ginkgo_create_hip_test(hip_executor_topology numa)
+    find_package(NUMA REQUIRED)
+    ginkgo_create_hip_test(hip_executor_topology NUMA::NUMA)
 endif()
 ginkgo_create_hip_test(lin_op)
 ginkgo_create_hip_test(math)
