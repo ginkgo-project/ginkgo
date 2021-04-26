@@ -113,10 +113,11 @@ void renumber(std::shared_ptr<const OmpExecutor> exec, Array<IndexType> &agg,
     Array<IndexType> agg_map(exec, num + 1);
     auto agg_vals = agg.get_data();
     auto agg_map_vals = agg_map.get_data();
-    components::fill_array(exec, agg_map_vals, num + 1, zero<IndexType>());
+    // agg_vals[i] == i always holds in the aggregated group whose identifier is
+    // i because we use the index of element as the aggregated group identifier.
 #pragma omp parallel for
     for (size_type i = 0; i < num; i++) {
-        agg_map_vals[agg_vals[i]] = 1;
+        agg_map_vals[i] = (agg_vals[i] == i);
     }
     components::prefix_sum(exec, agg_map_vals, num + 1);
 #pragma omp parallel for
@@ -241,11 +242,13 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const OmpExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
-                       const Array<IndexType> &agg,
+                       const matrix::Csr<ValueType, IndexType> *prolong_op,
+                       const matrix::Csr<ValueType, IndexType> *restrict_op,
                        matrix::Csr<ValueType, IndexType> *coarse,
                        matrix::Csr<ValueType, IndexType> *temp)
 {
     // agg[i] -> I, agg[j] -> J
+    const auto agg_const_val = prolong_op->get_const_col_idxs();
     const auto coarse_nrows = coarse->get_size()[0];
     const auto source_nrows = source->get_size()[0];
     const auto source_row_ptrs = source->get_const_row_ptrs();
@@ -254,9 +257,9 @@ void amgx_pgm_generate(std::shared_ptr<const OmpExecutor> exec,
     vector<map<IndexType, ValueType>> row_list(
         source_nrows, map<IndexType, ValueType>{exec}, exec);
     for (size_type i = 0; i < source_nrows; i++) {
-        IndexType row_idx = agg.get_const_data()[i];
+        IndexType row_idx = agg_const_val[i];
         for (auto j = source_row_ptrs[i]; j < source_row_ptrs[i + 1]; j++) {
-            const auto col = agg.get_const_data()[source_col_idxs[j]];
+            const auto col = agg_const_val[source_col_idxs[j]];
             const auto val = source_vals[j];
             row_list[row_idx][col] += val;
         }

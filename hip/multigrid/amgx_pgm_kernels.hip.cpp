@@ -113,8 +113,6 @@ void renumber(std::shared_ptr<const HipExecutor> exec, Array<IndexType> &agg,
 {
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);
-    components::fill_array(exec, agg_map.get_data(), agg_map.get_num_elems(),
-                           zero<IndexType>());
     const dim3 grid(ceildiv(num, default_block_size));
     hipLaunchKernelGGL(kernel::fill_agg_kernel, dim3(grid),
                        dim3(default_block_size), 0, 0, num,
@@ -188,10 +186,12 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const HipExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
-                       const Array<IndexType> &agg,
+                       const matrix::Csr<ValueType, IndexType> *prolong_op,
+                       const matrix::Csr<ValueType, IndexType> *restrict_op,
                        matrix::Csr<ValueType, IndexType> *coarse,
                        matrix::Csr<ValueType, IndexType> *temp)
 {
+    const auto agg_const_val = prolong_op->get_const_col_idxs();
     const auto source_nrows = source->get_size()[0];
     const auto source_nnz = source->get_num_stored_elements();
     const auto coarse_nrows = coarse->get_size()[0];
@@ -204,14 +204,14 @@ void amgx_pgm_generate(std::shared_ptr<const HipExecutor> exec,
     // agg source_row (for row size) coarse row source map
     hipLaunchKernelGGL(kernel::get_source_row_map_kernel, dim3(grid),
                        dim3(default_block_size), 0, 0, source_nrows,
-                       agg.get_const_data(), source->get_const_row_ptrs(),
+                       agg_const_val, source->get_const_row_ptrs(),
                        temp->get_row_ptrs(), row_map.get_data());
     // prefix sum of temp_row_ptrs
     components::prefix_sum(exec, temp->get_row_ptrs(), coarse_nrows + 1);
     // copy source -> to coarse and change column index
     hipLaunchKernelGGL(
         kernel::move_row_kernel, dim3(grid), dim3(default_block_size), 0, 0,
-        source_nrows, agg.get_const_data(), row_map.get_const_data(),
+        source_nrows, agg_const_val, row_map.get_const_data(),
         source->get_const_row_ptrs(), source->get_const_col_idxs(),
         as_hip_type(source->get_const_values()), temp->get_const_row_ptrs(),
         temp->get_col_idxs(), as_hip_type(temp->get_values()));

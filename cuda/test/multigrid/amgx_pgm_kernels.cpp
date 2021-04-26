@@ -98,13 +98,35 @@ protected:
             ref);
     }
 
+    gko::Array<index_type> gen_agg_array(gko::size_type num,
+                                         gko::size_type num_agg)
+    {
+        auto agg_array = gen_array(num, 0, num_agg - 1);
+        auto agg_array_val = agg_array.get_data();
+        std::vector<index_type> select_agg(num);
+        std::iota(select_agg.begin(), select_agg.end(), 0);
+        // use the first num_agg item as the aggregated index.
+        std::shuffle(select_agg.begin(), select_agg.end(), rand_engine);
+        // the value of agg_array is the i-th of aggregate group
+        for (gko::size_type i = 0; i < num; i++) {
+            agg_array_val[i] = select_agg[agg_array_val[i]];
+        }
+        // the aggregated group must contain the identifier-th element
+        // agg_val[i] == i holds in the aggregated group whose identifier is i
+        for (gko::size_type i = 0; i < num_agg; i++) {
+            auto agg_idx = select_agg[i];
+            agg_array_val[agg_idx] = agg_idx;
+        }
+        return agg_array;
+    }
+
     void initialize_data()
     {
-        int m = 597;
+        m = 597;
         n = 300;
         int nrhs = 3;
 
-        agg = gen_array(m, 0, n - 1);
+        agg = gen_agg_array(m, n);
         unfinished_agg = gen_array(m, -1, n - 1);
         strongest_neighbor = gen_array(m, 0, n - 1);
         coarse_vector = gen_mtx(n, nrhs);
@@ -171,6 +193,7 @@ protected:
     std::shared_ptr<Csr> d_system_mtx;
 
     gko::size_type n;
+    gko::size_type m;
 };
 
 
@@ -193,8 +216,10 @@ TEST_F(AmgxPgm, CountUnaggIsEquivalentToRef)
     index_type num_unagg;
     index_type d_num_unagg;
 
-    gko::kernels::reference::amgx_pgm::count_unagg(ref, agg, &num_unagg);
-    gko::kernels::cuda::amgx_pgm::count_unagg(cuda, d_agg, &d_num_unagg);
+    gko::kernels::reference::amgx_pgm::count_unagg(ref, unfinished_agg,
+                                                   &num_unagg);
+    gko::kernels::cuda::amgx_pgm::count_unagg(cuda, d_unfinished_agg,
+                                              &d_num_unagg);
 
     ASSERT_EQ(d_num_unagg, num_unagg);
 }
@@ -203,8 +228,6 @@ TEST_F(AmgxPgm, CountUnaggIsEquivalentToRef)
 TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
 {
     initialize_data();
-    auto x = unfinished_agg;
-    auto d_x = d_unfinished_agg;
     index_type num_agg;
     index_type d_num_agg;
 
@@ -213,7 +236,7 @@ TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
 
     ASSERT_EQ(d_num_agg, num_agg);
     GKO_ASSERT_ARRAY_EQ(d_agg, agg);
-    ASSERT_LE(num_agg, n);
+    ASSERT_EQ(num_agg, n);
 }
 
 
@@ -271,15 +294,34 @@ TEST_F(AmgxPgm, GenerateMtxIsEquivalentToRef)
     auto csr_coarse = Csr::create(ref, gko::dim<2>{n, n}, 0);
     auto d_csr_coarse = Csr::create(cuda, gko::dim<2>{n, n}, 0);
     auto csr_temp = Csr::create(ref, gko::dim<2>{n, n},
-                                weight_csr->get_num_stored_elements());
+                                system_mtx->get_num_stored_elements());
     auto d_csr_temp = Csr::create(cuda, gko::dim<2>{n, n},
-                                  d_weight_csr->get_num_stored_elements());
+                                  d_system_mtx->get_num_stored_elements());
+    index_type num_agg;
+    // renumber again
+    gko::kernels::reference::amgx_pgm::renumber(ref, agg, &num_agg);
+    auto prolong_op = Csr::create(ref, gko::dim<2>{m, n}, m);
+    for (int i = 0; i < m; i++) {
+        prolong_op->get_col_idxs()[i] = agg.get_const_data()[i];
+    }
+    std::iota(prolong_op->get_row_ptrs(), prolong_op->get_row_ptrs() + m + 1,
+              0);
+    std::fill_n(prolong_op->get_values(), m, gko::one<value_type>());
+    auto restrict_op = gko::as<Csr>(prolong_op->transpose());
+    auto d_prolong_op = Csr::create(cuda);
+    auto d_restrict_op = Csr::create(cuda);
+    d_prolong_op->copy_from(prolong_op.get());
+    d_restrict_op->copy_from(restrict_op.get());
 
     gko::kernels::cuda::amgx_pgm::amgx_pgm_generate(
-        cuda, d_weight_csr.get(), d_agg, d_csr_coarse.get(), d_csr_temp.get());
+        cuda, d_system_mtx.get(), d_prolong_op.get(), d_restrict_op.get(),
+        d_csr_coarse.get(), d_csr_temp.get());
     gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
-        ref, weight_csr.get(), agg, csr_coarse.get(), csr_temp.get());
+        ref, system_mtx.get(), prolong_op.get(), restrict_op.get(),
+        csr_coarse.get(), csr_temp.get());
 
+    // it should be checked already in renumber
+    GKO_ASSERT_EQ(num_agg, n);
     GKO_ASSERT_MTX_NEAR(d_csr_coarse, csr_coarse, 1e-14);
 }
 

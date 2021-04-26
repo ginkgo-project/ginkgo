@@ -74,15 +74,17 @@ namespace {
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> amgx_pgm_generate(
     std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType> *source, const size_type num_agg,
-    const Array<IndexType> &agg)
+    const matrix::Csr<ValueType, IndexType> *source,
+    const matrix::Csr<ValueType, IndexType> *prolong_op,
+    const matrix::Csr<ValueType, IndexType> *restrict_op)
 {
+    auto num_agg = prolong_op->get_size()[1];
     auto coarse = matrix::Csr<ValueType, IndexType>::create(
         exec, dim<2>{num_agg, num_agg}, 0, source->get_strategy());
     auto temp = matrix::Csr<ValueType, IndexType>::create(
         exec, dim<2>{num_agg, num_agg}, source->get_num_stored_elements());
-    exec->run(amgx_pgm::make_amgx_pgm_generate(source, agg, coarse.get(),
-                                               temp.get()));
+    exec->run(amgx_pgm::make_amgx_pgm_generate(source, prolong_op, restrict_op,
+                                               coarse.get(), temp.get()));
     return std::move(coarse);
 }
 
@@ -158,13 +160,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
-    // Construct the coarse matrix
-    auto coarse_matrix =
-        share(amgx_pgm_generate(exec, amgxpgm_op, num_agg, agg_));
-    // this->set_multigrid_level(system_matrix_, coarse_matrix);
-    auto coarse_dim = coarse_matrix->get_size()[0];
+    auto coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
-
     // TODO: prolong_op can be done with lightway format
     auto prolong_op = share(
         matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
@@ -175,7 +172,11 @@ void AmgxPgm<ValueType, IndexType>::generate()
     exec->run(amgx_pgm::make_fill_array(prolong_op->get_values(), fine_dim,
                                         one<ValueType>()));
     // TODO: implement the restrict_op from aggregation.
-    auto restrict_op = share(prolong_op->transpose());
+    auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
+
+    // Construct the coarse matrix
+    auto coarse_matrix = share(amgx_pgm_generate(
+        exec, amgxpgm_op, prolong_op.get(), restrict_op.get()));
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
 

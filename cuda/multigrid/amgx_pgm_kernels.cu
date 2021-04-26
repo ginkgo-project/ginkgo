@@ -111,8 +111,6 @@ void renumber(std::shared_ptr<const CudaExecutor> exec, Array<IndexType> &agg,
 {
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);
-    components::fill_array(exec, agg_map.get_data(), agg_map.get_num_elems(),
-                           zero<IndexType>());
     const dim3 grid(ceildiv(num, default_block_size));
     kernel::fill_agg_kernel<<<grid, default_block_size>>>(
         num, agg.get_const_data(), agg_map.get_data());
@@ -177,10 +175,12 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const CudaExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
-                       const Array<IndexType> &agg,
+                       const matrix::Csr<ValueType, IndexType> *prolong_op,
+                       const matrix::Csr<ValueType, IndexType> *restrict_op,
                        matrix::Csr<ValueType, IndexType> *coarse,
                        matrix::Csr<ValueType, IndexType> *temp)
 {
+    const auto agg_const_val = prolong_op->get_const_col_idxs();
     const auto source_nrows = source->get_size()[0];
     const auto source_nnz = source->get_num_stored_elements();
     const auto coarse_nrows = coarse->get_size()[0];
@@ -192,13 +192,13 @@ void amgx_pgm_generate(std::shared_ptr<const CudaExecutor> exec,
     dim3 grid(ceildiv(source_nrows, default_block_size));
     // agg source_row (for row size) coarse row source map
     kernel::get_source_row_map_kernel<<<grid, default_block_size>>>(
-        source_nrows, agg.get_const_data(), source->get_const_row_ptrs(),
+        source_nrows, agg_const_val, source->get_const_row_ptrs(),
         temp->get_row_ptrs(), row_map.get_data());
     // prefix sum of temp_row_ptrs
     components::prefix_sum(exec, temp->get_row_ptrs(), coarse_nrows + 1);
     // copy source -> to coarse and change column index
     kernel::move_row_kernel<<<grid, default_block_size>>>(
-        source_nrows, agg.get_const_data(), row_map.get_const_data(),
+        source_nrows, agg_const_val, row_map.get_const_data(),
         source->get_const_row_ptrs(), source->get_const_col_idxs(),
         as_cuda_type(source->get_const_values()), temp->get_const_row_ptrs(),
         temp->get_col_idxs(), as_cuda_type(temp->get_values()));
