@@ -63,6 +63,8 @@ struct BatchBicgstabOptions {
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
                    remove_complex<_type>> &options,                      \
                const BatchLinOp *const a,                                \
+               const matrix::BatchDense<_type> *const left_scale,        \
+               const matrix::BatchDense<_type> *const right_scale,       \
                const matrix::BatchDense<_type> *const b,                 \
                matrix::BatchDense<_type> *const x,                       \
                gko::log::BatchLogData<_type> &logdata)
