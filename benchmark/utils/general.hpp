@@ -429,6 +429,21 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 
 
 template <typename ValueType>
+gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp *solver,
+                                                    const vec<ValueType> *b,
+                                                    const vec<ValueType> *x)
+{
+    auto exec = solver->get_executor();
+    auto ref_solver = gko::clone(gko::ReferenceExecutor::create(), solver);
+    auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
+    auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
+    auto res = clone(x);
+    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(res));
+    return compute_norm2(lend(res));
+}
+
+
+template <typename ValueType>
 gko::remove_complex<ValueType> compute_residual_norm(
     const gko::LinOp* system_matrix, const vec<ValueType>* b,
     const vec<ValueType>* x)

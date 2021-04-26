@@ -476,14 +476,15 @@ void solve_system(const std::string& solver_name,
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
         auto x_clone = clone(x);
+        std::shared_ptr<const gko::LinOp> solver;
         for (auto status : ic.run(false)) {
             x_clone = clone(x);
 
             exec->synchronize();
             generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = generate_solver(exec, give(precond), solver_name)
-                              ->generate(system_matrix);
+            solver = generate_solver(exec, give(precond), solver_name)
+                         ->generate(system_matrix);
             generate_timer->toc();
 
             exec->synchronize();
@@ -492,6 +493,14 @@ void solve_system(const std::string& solver_name,
             apply_timer->toc();
         }
         if (b->get_size()[1] == 1 && !FLAGS_overhead) {
+            // a solver is considered direct if it didn't log any iterations
+            if (solver_json["apply"].HasMember("iterations") &&
+                solver_json["apply"]["iterations"].GetInt() == 0) {
+                auto error =
+                    compute_direct_error(lend(solver), lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "forward_error", error,
+                                  allocator);
+            }
             auto residual = compute_residual_norm(lend(system_matrix), lend(b),
                                                   lend(x_clone));
             add_or_set_member(solver_json, "residual_norm", residual,
