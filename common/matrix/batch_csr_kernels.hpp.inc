@@ -129,6 +129,22 @@ __device__ __forceinline__ void spmv_ker(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
+    const gko::batch_csr::UniformBatch<const ValueType> a,
+    const batch_dense::UniformBatch<const ValueType> b,
+    const batch_dense::UniformBatch<ValueType> c)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
+         ibatch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto c_b = gko::batch::batch_entry(c, ibatch);
+        spmv_ker(a_b, b_b, c_b);
+    }
+}
+
+
 /**
  * Device kernel for 'advanced' SpMV of one CSR matrix in a batch.
  *
@@ -154,6 +170,64 @@ __device__ __forceinline__ void adv_spmv_ker_1(
         }
     }
 }
+
+
+/**
+ * Device kernel for 'advanced' SpMV of one CSR matrix in a batch.
+ *
+ * Assumes the input and output multi-vectors are stored row-major.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void adv_spmv_ker(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
+    const gko::batch_dense::BatchEntry<const ValueType> &b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
+                                     static_cast<double>(tile_size));
+
+    const int num_subwarp_grps_per_block =
+        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+
+
+    for (int row_and_rhs_combination = subwarp_grp_id;
+         row_and_rhs_combination < a.num_rows * b.num_rhs;
+         row_and_rhs_combination += num_subwarp_grps_per_block) {
+        int row = row_and_rhs_combination / b.num_rhs;
+        int rhs = row_and_rhs_combination % b.num_rhs;
+
+        int row_start = a.row_ptrs[row];
+        int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+
+
+        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
+             i += subwarp_grp.size()) {
+            int col = a.col_idxs[i];
+            ValueType val = a.values[i];
+
+            temp += alpha * val * b.values[col * b.stride + rhs];
+        }
+
+        // subwarp_grp level reduction
+        for (int i = subwarp_grp.size() / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c.values[row * c.stride + rhs] =
+                temp + beta * c.values[row * c.stride + rhs];
+        }
+    }
+}
+
 
 template <typename ValueType>
 __global__
@@ -223,61 +297,5 @@ __global__ void uniform_batch_scale(
         const auto left_b = gko::batch::batch_entry(left, batch_id);
         const auto right_b = gko::batch::batch_entry(right, batch_id);
         batch_scale(left_b, right_b, a_b);
-    }
-}
-
-/**
- * Device kernel for 'advanced' SpMV of one CSR matrix in a batch.
- *
- * Assumes the input and output multi-vectors are stored row-major.
- */
-template <typename ValueType>
-__device__ __forceinline__ void adv_spmv_ker(
-    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
-{
-    constexpr auto tile_size = config::warp_size;
-
-    auto thread_block = group::this_thread_block();
-
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
-    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                     static_cast<double>(tile_size));
-
-    const int num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
-
-
-    for (int row_and_rhs_combination = subwarp_grp_id;
-         row_and_rhs_combination < a.num_rows * b.num_rhs;
-         row_and_rhs_combination += num_subwarp_grps_per_block) {
-        int row = row_and_rhs_combination / b.num_rhs;
-        int rhs = row_and_rhs_combination % b.num_rhs;
-
-        int row_start = a.row_ptrs[row];
-        int row_end = a.row_ptrs[row + 1];
-
-        ValueType temp = zero<ValueType>();
-
-
-        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
-             i += subwarp_grp.size()) {
-            int col = a.col_idxs[i];
-            ValueType val = a.values[i];
-
-            temp += alpha * val * b.values[col * b.stride + rhs];
-        }
-
-        // subwarp_grp level reduction
-        for (int i = subwarp_grp.size() / 2; i > 0; i /= 2) {
-            temp += subwarp_grp.shfl_down(temp, i);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            c.values[row * c.stride + rhs] =
-                temp + beta * c.values[row * c.stride + rhs];
-        }
     }
 }
