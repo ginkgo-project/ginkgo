@@ -75,7 +75,7 @@ __global__ void apply_kernel(
             const auto a_b = gko::batch::batch_entry(mat, ibatch);
             const auto b_b = gko::batch::batch_entry(b, ibatch);
             batch_scale(left_b, right_b, a_b);
-            batch_dense::batch_scale(left_b, b_b);
+            batch_scale(left_b, b_b);
         }
 
         const auto a_b =
@@ -107,8 +107,7 @@ __global__ void apply_kernel(
             const int j = iz % num_rhs;
             r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
         }
-        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
-                                              norms_b);
+        compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
         __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
             init_rel_res_norm[iz] = sqrt(norms_b.values[iz]);
@@ -136,8 +135,7 @@ __global__ void apply_kernel(
                          r_b);
             __syncthreads();
 
-            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
-                                                  norms_b);
+            compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
             __syncthreads();
             for (int j = threadIdx.x; j < num_rhs; j += blockDim.x) {
                 norms[j] = sqrt(norms[j]);
@@ -165,13 +163,13 @@ __global__ void apply_kernel(
             }
             __syncthreads();
 
-            batch_dense::add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
+            add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
             __syncthreads();
             iter++;
         }
 
         if (left.values) {
-            batch_dense::batch_scale(right_b, x_b);
+            batch_scale(right_b, x_b);
         }
     }
 }
