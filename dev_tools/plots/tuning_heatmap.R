@@ -29,19 +29,20 @@ for (i in files)
 # Merge all the separate dataframes
 df_merged <- rbind_pages(df_tmp)
 # Unnest the two vectors
-df <- as.data.frame(unnest(df,spmv.coo.tuning.values,spmv.coo.tuning.time))
+df <- as.data.frame(unnest(df_merged, spmv.coo.tuning.values,spmv.coo.tuning.time))
 # Now that all columns are vectors, compute the speedup using vector operations
 df$spmv.coo.speedup <- df$spmv.coo.time/df$spmv.coo.tuning.time
+# df <- df[df$problem.nonzeros >= 1e7, ]
 
 # Plot the values
 ggplot(df, aes(factor(problem.nonzeros), factor(spmv.coo.tuning.values), fill=spmv.coo.speedup)) +
     geom_tile() +
     scale_fill_gradientn(
         colours=c("red", "yellow", "skyblue", "darkblue"),
-        values = rescale(c(min(df$speedup),
+        values = rescale(c(min(df$spmv.coo.speedup),
                            1.0,
                            1.11,
-                           max(df$speedup)))) +
+                           max(df$spmv.coo.speedup)))) +
     ggtitle("Speedup of tuned value against COO SpMV")+ xlab("nonzeros")+ ylab("tuned value (multiple)") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), plot.title = element_text(hjust=0.5))
 

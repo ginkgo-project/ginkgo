@@ -274,7 +274,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"onemkl_csr", read_matrix_from_data<onemkl_csr>},
         {"onemkl_optimized_csr", read_matrix_from_data<onemkl_optimized_csr>},
 #endif  // HAS_INTEL
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
+        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>}};
 // clang-format on
 
 

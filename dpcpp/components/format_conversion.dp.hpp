@@ -45,6 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
@@ -102,6 +106,16 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
 {
     size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
     size_type multiple = 8;
+    if (nnz >= 2e8) {
+        multiple = 256;
+    } else if (nnz >= 2e7) {
+        multiple = 32;
+    }
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    if (_tuning_flag) {
+        multiple = _tuned_value;
+    }
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_dpcpp,
                     size_type(ceildiv(nnz, config::warp_size)));
 }

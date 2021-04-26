@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@ namespace dpcpp {
 // #include "common/components/uninitialized_array.hpp.inc"
 /**
  * Stores an array with uninitialized contents.
+ * DPCPP does not allow to use char to store complex data for shared_memory.
  *
  * This class needed for datatypes that do have a non-empty constructor when`
  * using them as shared memory, for example `thrust::complex<float>`.
@@ -87,7 +88,7 @@ public:
     constexpr __dpct_inline__ ValueType &operator[](size_type pos) const
         noexcept
     {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
     /**
@@ -98,13 +99,14 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
+    __dpct_inline__ ValueType &operator[](size_type pos) noexcept
     {
-        return reinterpret_cast<ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
 private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    // unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    ValueType data_[size];
 };
 
 

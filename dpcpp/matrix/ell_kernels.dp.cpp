@@ -113,7 +113,7 @@ constexpr int max_thread_per_worker = 16;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 8, 16>;
+using compiled_kernels = syn::value_list<int, 0, 8, 16, 32>;
 
 
 // #include "common/matrix/ell_kernels.hpp.inc"
@@ -471,9 +471,21 @@ template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
 template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
                                 size_type, size_type, const double *, int32 *);
 template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type,
+                                const std::complex<float> *, int32 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type,
+                                const std::complex<double> *, int32 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
                                 size_type, size_type, const float *, int64 *);
 template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
                                 size_type, size_type, const double *, int64 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type,
+                                const std::complex<float> *, int64 *);
+template void count_nnz_per_row(dim3, dim3, size_t, sycl::queue *, size_type,
+                                size_type, size_type,
+                                const std::complex<double> *, int64 *);
 
 
 template <typename ValueType, typename IndexType>

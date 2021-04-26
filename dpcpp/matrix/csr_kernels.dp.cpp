@@ -94,7 +94,7 @@ using compiled_kernels = syn::value_list<int, 6>;
 
 using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
 
-using spgeam_kernels = syn::value_list<int, 8, 16>;
+using spgeam_kernels = syn::value_list<int, 8, 16, 32>;
 
 
 // #include "common/matrix/csr_kernels.hpp.inc"
@@ -2299,45 +2299,49 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
+template <typename IndexType>
+void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
+                        size_type size, const IndexType *permutation_indices,
+                        IndexType *inv_permutation) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const DpcppExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 const matrix::Csr<ValueType, IndexType> *orig,
-                 matrix::Csr<ValueType, IndexType> *row_permuted)
-    GKO_NOT_IMPLEMENTED;
+void inv_symm_permute(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType *perm,
+    const matrix::Csr<ValueType, IndexType> *orig,
+    matrix::Csr<ValueType, IndexType> *permuted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
+    const matrix::Csr<ValueType, IndexType> *orig,
+    matrix::Csr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const DpcppExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
-                         const matrix::Csr<ValueType, IndexType> *orig,
-                         matrix::Csr<ValueType, IndexType> *row_permuted)
-    GKO_NOT_IMPLEMENTED;
+void inverse_row_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
+    const matrix::Csr<ValueType, IndexType> *orig,
+    matrix::Csr<ValueType, IndexType> *row_permuted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const DpcppExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
+void inverse_column_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType *perm,
+    const matrix::Csr<ValueType, IndexType> *orig,
+    matrix::Csr<ValueType, IndexType> *column_permuted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);

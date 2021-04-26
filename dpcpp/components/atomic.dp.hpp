@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -176,17 +176,19 @@ GKO_BIND_ATOMIC_HELPER_ValueType(unsigned long long int);
 
 
 template <cl::sycl::access::address_space addressSpace, typename ValueType>
-struct atomic_helper<addressSpace, std::complex<ValueType>,
-                     std::enable_if_t<true>> {
-    __dpct_inline__ static std::complex<ValueType> atomic_add(
-        std::complex<ValueType> *__restrict__ addr, std::complex<ValueType> val)
+struct atomic_helper<
+    addressSpace, ValueType,
+    std::enable_if_t<is_complex<ValueType>() && sizeof(ValueType) >= 16>> {
+    __dpct_inline__ static ValueType atomic_add(ValueType *__restrict__ addr,
+                                                ValueType val)
     {
-        fake_complex<ValueType> *fake_addr =
-            reinterpret_cast<fake_complex<ValueType> *>(addr);
+        using real_type = remove_complex<ValueType>;
+        fake_complex<real_type> *fake_addr =
+            reinterpret_cast<fake_complex<real_type> *>(addr);
         // Separate to real part and imag part
-        auto real = atomic_helper<addressSpace, ValueType>::atomic_add(
+        auto real = atomic_helper<addressSpace, real_type>::atomic_add(
             &(fake_addr->x), val.real());
-        auto imag = atomic_helper<addressSpace, ValueType>::atomic_add(
+        auto imag = atomic_helper<addressSpace, real_type>::atomic_add(
             &(fake_addr->y), val.imag());
         return {real, imag};
     }

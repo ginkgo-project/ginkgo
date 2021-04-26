@@ -60,7 +60,7 @@ void inplace_absolute_array_kernel(const size_type n,
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < n) {
-        array[tidx] = dpcpp::abs(array[tidx]);
+        array[tidx] = abs(array[tidx]);
     }
 }
 
@@ -90,7 +90,7 @@ void outplace_absolute_array_kernel(const size_type n,
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < n) {
-        out[tidx] = dpcpp::abs(in[tidx]);
+        out[tidx] = abs(in[tidx]);
     }
 }
 

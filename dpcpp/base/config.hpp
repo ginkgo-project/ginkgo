@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ struct config {
     /**
      * The number of threads within a DPCPP warp.
      */
-    static constexpr uint32 warp_size = 16;
+    static constexpr uint32 warp_size = 32;
 
     /**
      * The bitmask of the entire warp.

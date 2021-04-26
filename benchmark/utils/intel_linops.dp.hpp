@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <oneapi/mkl.hpp>
+
+
+#include "benchmark/utils/types.hpp"
 
 
 namespace detail {
@@ -157,7 +160,7 @@ protected:
 
         oneapi::mkl::sparse::gemv(*(this->get_gpu_exec()->get_queue()), trans_,
                                   gko::one<ValueType>(), this->get_mat_handle(),
-                                  const_cast<double *>(db),
+                                  const_cast<ValueType *>(db),
                                   gko::zero<ValueType>(), dx);
     }
 
@@ -180,10 +183,9 @@ private:
 }  // namespace detail
 
 
-using onemkl_csr = detail::OnemklCsr<>;
+using onemkl_csr = detail::OnemklCsr<false, etype>;
 
-using onemkl_optimized_csr =
-    detail::OnemklCsr<true, gko::default_precision, gko::int32>;
+using onemkl_optimized_csr = detail::OnemklCsr<true, etype, gko::int32>;
 
 
 #endif  // GKO_BENCHMARK_UTILS_INTEL_LINOPS_DP_HPP_

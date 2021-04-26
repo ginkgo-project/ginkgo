@@ -110,7 +110,7 @@ void DpcppExecutor::raw_free(void *ptr) const noexcept
 
 void *DpcppExecutor::raw_alloc(size_type num_bytes) const
 {
-    void *dev_ptr = sycl::malloc_device(num_bytes, *queue_.get());
+    void *dev_ptr = sycl::malloc_shared(num_bytes, *queue_.get());
     GKO_ENSURE_ALLOCATED(dev_ptr, "DPC++", num_bytes);
     return dev_ptr;
 }

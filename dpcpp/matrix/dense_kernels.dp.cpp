@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
 #include <iostream>
+#include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -380,7 +380,7 @@ void finalize_norm2_computation(
     finalize_reduce_computation<block_size>(
         size, work, result,
         [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return sqrt(x); }, item_ct1, tmp_work);
+        [](const ValueType &x) { return std::sqrt(x); }, item_ct1, tmp_work);
 }
 
 template <size_type block_size, typename ValueType>
@@ -823,11 +823,11 @@ void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 
 template <size_type block_size, typename IndexType, typename ValueType>
-void row_permute(size_type num_rows, size_type num_cols,
-                 const IndexType *__restrict__ perm_idxs,
-                 const ValueType *__restrict__ orig, size_type stride_orig,
-                 ValueType *__restrict__ result, size_type stride_result,
-                 sycl::nd_item<3> item_ct1)
+void symm_permute(size_type num_rows, size_type num_cols,
+                  const IndexType *__restrict__ perm_idxs,
+                  const ValueType *__restrict__ orig, size_type stride_orig,
+                  ValueType *__restrict__ result, size_type stride_result,
+                  sycl::nd_item<3> item_ct1)
 {
     constexpr auto warps_per_block = block_size / config::warp_size;
     const auto global_id =
@@ -841,11 +841,11 @@ void row_permute(size_type num_rows, size_type num_cols,
 }
 
 template <size_type block_size, typename IndexType, typename ValueType>
-void row_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows, size_type num_cols,
-                 const IndexType *perm_idxs, const ValueType *orig,
-                 size_type stride_orig, ValueType *result,
-                 size_type stride_result)
+void symm_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                  sycl::queue *stream, size_type num_rows, size_type num_cols,
+                  const IndexType *perm_idxs, const ValueType *orig,
+                  size_type stride_orig, ValueType *result,
+                  size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
         auto local_range = block.reverse();
@@ -853,7 +853,7 @@ void row_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
                          [=](sycl::nd_item<3> item_ct1) {
-                             row_permute<block_size>(
+                             symm_permute<block_size>(
                                  num_rows, num_cols, perm_idxs, orig,
                                  stride_orig, result, stride_result, item_ct1);
                          });
@@ -1019,7 +1019,7 @@ void inplace_absolute_dense(size_type num_rows, size_type num_cols,
     auto row = tidx / num_cols;
     auto col = tidx % num_cols;
     if (row < num_rows) {
-        data[row * stride + col] = dpcpp::abs(data[row * stride + col]);
+        data[row * stride + col] = abs(data[row * stride + col]);
     }
 }
 
@@ -1053,7 +1053,7 @@ void outplace_absolute_dense(size_type num_rows, size_type num_cols,
     auto row = tidx / num_cols;
     auto col = tidx % num_cols;
     if (row < num_rows) {
-        out[row * stride_out + col] = dpcpp::abs(in[row * stride_in + col]);
+        out[row * stride_out + col] = abs(in[row * stride_in + col]);
     }
 }
 
@@ -1662,21 +1662,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const DpcppExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 const matrix::Dense<ValueType> *orig,
-                 matrix::Dense<ValueType> *row_permuted)
+void symm_permute(std::shared_ptr<const DpcppExecutor> exec,
+                  const Array<IndexType> *permutation_indices,
+                  const matrix::Dense<ValueType> *orig,
+                  matrix::Dense<ValueType> *permuted)
 {
     constexpr auto block_size = default_block_size;
     const dim3 grid_dim =
         ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
     const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    // functioname row_permute<block_size>
-    kernel::row_permute<block_size>(
+    // functioname symm_permute<block_size>
+    kernel::symm_permute<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), orig->get_size()[0],
         orig->get_size()[1], permutation_indices->get_const_data(),
-        orig->get_const_values(), orig->get_stride(),
-        row_permuted->get_values(), row_permuted->get_stride());
+        orig->get_const_values(), orig->get_stride(), permuted->get_values(),
+        permuted->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

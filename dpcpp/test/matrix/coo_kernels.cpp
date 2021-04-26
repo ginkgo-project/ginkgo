@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,13 @@ namespace {
 
 class Coo : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
-    using Vec = gko::matrix::Dense<>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Coo<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Coo() : rand_engine(42) {}
 
@@ -79,7 +84,7 @@ protected:
     {
         return gko::test::generate_random_matrix<Vec>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)
@@ -129,7 +134,7 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -140,7 +145,7 @@ TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -151,7 +156,7 @@ TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -162,7 +167,7 @@ TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
     mtx->apply2(alpha.get(), y.get(), expected.get());
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -173,7 +178,7 @@ TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -184,7 +189,7 @@ TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -195,7 +200,7 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -206,7 +211,7 @@ TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -217,7 +222,7 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
     mtx->apply2(alpha.get(), y.get(), expected.get());
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -228,35 +233,35 @@ TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
 TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(dpcpp);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-6);
 }
 
 
 TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(dpcpp);
 
     mtx->convert_to(dense_mtx.get());
     dense_mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-6);
 }
 
 
@@ -278,7 +283,7 @@ TEST_F(Coo, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-6);
 }
 
 
@@ -289,7 +294,7 @@ TEST_F(Coo, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-6);
 }
 
 

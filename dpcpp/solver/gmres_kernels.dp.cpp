@@ -390,7 +390,7 @@ void update_hessenberg_2_kernel(
 
         if (tidx == 0) {
             hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
-                sycl::sqrt(reduction_helper[0]);
+                std::sqrt(reduction_helper[0]);
         }
     }
 }
@@ -486,12 +486,11 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
     } else {
-        const auto scale = dpcpp::abs(this_hess) + dpcpp::abs(next_hess);
-        const auto hypotenuse =
-            scale *
-            sycl::sqrt(
-                dpcpp::abs(this_hess / scale) * dpcpp::abs(this_hess / scale) +
-                dpcpp::abs(next_hess / scale) * dpcpp::abs(next_hess / scale));
+        const auto scale = abs(this_hess) + abs(next_hess);
+        // dpcpp does not support complex / real
+        const ValueType hypotenuse =
+            scale * std::sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
+                              abs(next_hess / scale) * abs(next_hess / scale));
         register_cos = conj(this_hess) / hypotenuse;
         register_sin = conj(next_hess) / hypotenuse;
     }
@@ -515,7 +514,7 @@ void calculate_residual_norm_kernel(size_type col_idx, size_type num_cols,
     const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
-    residual_norm[col_idx] = dpcpp::abs(next_rnc);
+    residual_norm[col_idx] = abs(next_rnc);
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] = next_rnc;
 }
@@ -798,7 +797,7 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
         const auto k_krylov_bases =
             krylov_bases->get_const_values() +
             k * num_rows * hessenberg_iter->get_size()[1];
-        if (hessenberg_iter->get_size()[1] >= 1) {
+        if (1) {
             // TODO: this condition should be tuned
             // single rhs will use vendor's dot, otherwise, use our own
             // multidot_kernel which parallelize multiple rhs.
@@ -811,10 +810,10 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
                             hessenberg_iter->get_values(), stride_hessenberg,
                             stop_status);
         } else {
-            oneapi::mkl::blas::row_major::dot(
-                *exec->get_queue(), num_rows, k_krylov_bases, stride_krylov,
-                next_krylov_basis, stride_krylov,
-                hessenberg_iter->get_values() + k * stride_hessenberg);
+            // oneapi::mkl::blas::row_major::dot(
+            //     *exec->get_queue(), num_rows, k_krylov_bases, stride_krylov,
+            //     next_krylov_basis, stride_krylov,
+            //     hessenberg_iter->get_values() + k * stride_hessenberg);
         }
         update_next_krylov_kernel<default_block_size>(
             ceildiv(num_rows * stride_krylov, default_block_size),

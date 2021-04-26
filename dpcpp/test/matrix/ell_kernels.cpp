@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,13 @@ namespace {
 
 class Ell : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Ell<>;
-    using Vec = gko::matrix::Dense<>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Ell<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Ell() : rand_engine(42) {}
 
@@ -80,7 +85,7 @@ protected:
     {
         return gko::test::generate_random_matrix<Vec>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_rows = 532, int num_cols = 231,
@@ -133,7 +138,7 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -198,7 +203,7 @@ TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-6);
 }
 
 
@@ -283,13 +288,13 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(dpcpp);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-6);
 }
 
 
