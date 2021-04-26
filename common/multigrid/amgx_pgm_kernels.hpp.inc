@@ -77,7 +77,9 @@ __global__ __launch_bounds__(default_block_size) void fill_agg_kernel(
     if (tidx >= num) {
         return;
     }
-    result[index[tidx]] = 1;
+    // agg_vals[i] == i always holds in the aggregated group whose identifier is
+    // i because we use the index of element as the aggregated group identifier.
+    result[tidx] = (index[tidx] == tidx);
 }
 
 

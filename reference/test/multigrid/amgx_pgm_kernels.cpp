@@ -508,11 +508,10 @@ TYPED_TEST(AmgxPgm, GenerateMtx)
     gko::Array<index_type> agg(this->exec, 5);
     auto agg_vals = agg.get_data();
     // 0 - 2, 1 - 3, 4
-    agg_vals[0] = 0;
-    agg_vals[1] = 1;
-    agg_vals[2] = 0;
-    agg_vals[3] = 1;
-    agg_vals[4] = 2;
+    auto prolong_op = mtx_type::create(this->exec, gko::dim<2>{5, 3}, 0);
+    prolong_op->read(
+        {{5, 3}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 2, 1}}});
+    auto restrict_op = gko::as<mtx_type>(prolong_op->transpose());
     auto coarse_ans = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
     coarse_ans->read({{3, 3},
                       {{0, 0, 4},
@@ -528,7 +527,8 @@ TYPED_TEST(AmgxPgm, GenerateMtx)
     auto empty = gko::matrix::Csr<value_type, index_type>::create(this->exec);
 
     gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
-        this->exec, this->mtx.get(), agg, csr_coarse.get(), empty.get());
+        this->exec, this->mtx.get(), prolong_op.get(), restrict_op.get(),
+        csr_coarse.get(), empty.get());
 
     GKO_ASSERT_MTX_NEAR(csr_coarse, coarse_ans, r<value_type>::value);
 }
