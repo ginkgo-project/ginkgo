@@ -52,7 +52,7 @@ namespace hip {
 
 
 constexpr int default_block_size = 128;
-
+constexpr int sm_multiplier = 4;
 
 /**
  * @brief The batch Bicgstab solver namespace.
@@ -84,7 +84,9 @@ static void apply_impl(
     std::shared_ptr<const HipExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> opts, LogType logger,
     const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &left,
+    const gko::batch_dense::UniformBatch<const ValueType> &right,
+    const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     using real_type = gko::remove_complex<ValueType>;
@@ -97,7 +99,7 @@ static void apply_impl(
                              stop::AbsAndRelResidualMaxIter<ValueType>>),
             dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
             opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
-            a, b, x);
+            a, left, right, b, x);
     } else if (opts.preconditioner == gko::preconditioner::batch::none_str) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
@@ -105,7 +107,7 @@ static void apply_impl(
                              stop::AbsAndRelResidualMaxIter<ValueType>>),
             dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
             opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
-            a, b, x);
+            a, left, right, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -116,6 +118,8 @@ template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const left_scale,
+           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            log::BatchLogData<ValueType> &logdata)
@@ -127,14 +131,31 @@ void apply(std::shared_ptr<const HipExecutor> exec,
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
-    const gko::batch_dense::UniformBatch<const hip_value_type> b_b =
-        get_batch_struct(b);
+
+    const gko::batch_dense::UniformBatch<const hip_value_type> left_sb =
+        maybe_null_batch_struct(left_scale);
+    const gko::batch_dense::UniformBatch<const hip_value_type> right_sb =
+        maybe_null_batch_struct(right_scale);
+    const auto to_scale = left_sb.values || right_sb.values;
+    if (to_scale) {
+        if (!left_sb.values || !right_sb.values) {
+            // one-sided scaling not implemented
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+
+
     const gko::batch_dense::UniformBatch<hip_value_type> x_b =
         get_batch_struct(x);
+
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        const gko::batch_csr::UniformBatch<const hip_value_type> m_b =
-            get_batch_struct(amat);
-        apply_impl(exec, opts, logger, m_b, b_b, x_b);
+        const gko::batch_csr::UniformBatch<hip_value_type> m_b =
+            get_batch_struct(const_cast<matrix::BatchCsr<ValueType> *>(amat));
+
+        const gko::batch_dense::UniformBatch<hip_value_type> b_b =
+            get_batch_struct(const_cast<matrix::BatchDense<ValueType> *>(b));
+
+        apply_impl(exec, opts, logger, m_b, left_sb, right_sb, b_b, x_b);
     } else {
         GKO_NOT_SUPPORTED(a);
     }

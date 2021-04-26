@@ -400,7 +400,9 @@ __global__ void apply_kernel(
     const gko::remove_complex<ValueType> rel_tol,
     const gko::stop::batch::ToleranceType tol_type, LogType logger,
     const BatchMatrixType a,
-    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> left,
+    const gko::batch_dense::UniformBatch<const ValueType> right,
+    const gko::batch_dense::UniformBatch<ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -731,11 +733,30 @@ __global__ void apply_kernel(
 
         uint32 converged = 0;
 
-        const typename BatchMatrixType::entry_type A_global_entry =
-            gko::batch::batch_entry(a, ibatch);
+        const gko::batch_dense::BatchEntry<const ValueType> left_global_entry =
+            gko::batch::batch_entry(left, ibatch);
+
+        const gko::batch_dense::BatchEntry<const ValueType> right_global_entry =
+            gko::batch::batch_entry(right, ibatch);
+
+
+        if (left_global_entry.values) {
+            const typename BatchMatrixType::entry_type A_global_entry =
+                gko::batch::batch_entry(a, ibatch);
+            const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
+                gko::batch::batch_entry(b, ibatch);
+            batch_scale(left_global_entry, right_global_entry, A_global_entry);
+            batch_dense::batch_scale(left_global_entry, b_global_entry);
+
+            __syncthreads();
+        }
+
+
+        const auto A_global_entry =
+            gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
 
         const gko::batch_dense::BatchEntry<const ValueType> b_global_entry =
-            gko::batch::batch_entry(b, ibatch);
+            gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
 
         const gko::batch_dense::BatchEntry<ValueType> x_global_entry =
             gko::batch::batch_entry(x, ibatch);
@@ -1028,6 +1049,11 @@ __global__ void apply_kernel(
             __syncthreads();
         }
 
+        if (left_global_entry.values) {
+            batch_dense::batch_scale(right_global_entry, x_shared_entry);
+        }
+
+        __syncthreads();
 
         // copy x back to global memory
         for (int li = threadIdx.x;

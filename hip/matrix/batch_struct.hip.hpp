@@ -98,6 +98,42 @@ inline gko::batch_csr::UniformBatch<const hip_type<ValueType>> get_batch_struct(
 }
 
 
+/**
+ * Generates an mutable uniform batch struct from a batch of CSR matrices.
+ */
+template <typename ValueType>
+inline gko::batch_csr::UniformBatch<hip_type<ValueType>> get_batch_struct(
+    matrix::BatchCsr<ValueType> *const op)
+{
+    return {as_hip_type(op->get_values()),
+            op->get_const_col_idxs(),
+            op->get_const_row_ptrs(),
+            op->get_num_batches(),
+            static_cast<int>(op->get_size().at(0)[0]),
+            static_cast<int>(op->get_num_stored_elements() /
+                             op->get_num_batches())};
+}
+
+
+/**
+ * Generates an immutable uniform batch struct from a batch of dense matrices
+ * that may be null.
+ */
+template <typename ValueType>
+inline gko::batch_dense::UniformBatch<const hip_type<ValueType>>
+maybe_null_batch_struct(const matrix::BatchDense<ValueType> *const op)
+{
+    if (op) {
+        return {as_hip_type(op->get_const_values()), op->get_num_batches(),
+                op->get_stride().at(0),
+                static_cast<int>(op->get_size().at(0)[0]),
+                static_cast<int>(op->get_size().at(0)[1])};
+    } else {
+        return {nullptr, 0, 0, 0, 0};
+    }
+}
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
