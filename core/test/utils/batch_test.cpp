@@ -74,7 +74,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    const gko::batch_dim bsize{10, gko::dim<2>(500, 100)};
+    const gko::batch_dim<2> bsize{10, gko::dim<2>(500, 100)};
     std::unique_ptr<Mtx> mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<double> values_sample;

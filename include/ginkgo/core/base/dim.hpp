@@ -274,11 +274,16 @@ struct batch_dim {
 
     std::vector<dim<dimensionality, dimension_type>> get_batch_sizes() const
     {
-        if (!equal_sizes_) {
-            return sizes_;
+        if (equal_sizes_) {
+            if (num_batches_ > 0) {
+                return std::vector<dim<dimensionality, dimension_type>>(
+                    num_batches_, common_size_);
+            } else {
+                return std::vector<dim<dimensionality, dimension_type>>(
+                    1, common_size_);
+            }
         } else {
-            return std::vector<dim<dimensionality, dimension_type>>(
-                num_batches_, common_size_);
+            return sizes_;
         }
     }
 
@@ -383,6 +388,25 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
     const dim<2, DimensionType>& dimensions) noexcept
 {
     return {dimensions[1], dimensions[0]};
+}
+
+
+/**
+ * Checks if two batch dim objects are different.
+ *
+ * @tparam Dimensionality  number of dimensions of the dim objects
+ * @tparam DimensionType  datatype used to represent each dimension
+ *
+ * @param x  first object
+ * @param y  second object
+ *
+ * @return `!(x == y)`
+ */
+template <size_type Dimensionality, typename DimensionType>
+const inline bool operator!=(const batch_dim<Dimensionality, DimensionType> &x,
+                             const batch_dim<Dimensionality, DimensionType> &y)
+{
+    return !(x == y);
 }
 
 
