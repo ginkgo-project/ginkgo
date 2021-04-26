@@ -72,7 +72,8 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class BatchBicgstab : public EnableBatchLinOp<BatchBicgstab<ValueType>>,
-                      public BatchTransposable {
+                      public BatchTransposable,
+                      public EnableBatchScaledSolver<ValueType> {
     friend class EnableBatchLinOp<BatchBicgstab>;
     friend class EnablePolymorphicObject<BatchBicgstab, BatchLinOp>;
 
