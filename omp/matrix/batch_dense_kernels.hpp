@@ -209,6 +209,27 @@ inline void compute_dot_product(const BatchEntry<const ValueType> &x,
 }
 
 
+/**
+ * Multiplies with a diagonal matrix represented as a dense vector.
+ *
+ * @param[in] diag_vec  The entries of the diagonal matrix.
+ * @param[in,out] a  The dense matrix or vectors to scale.
+ */
+template <typename ValueType>
+inline void batch_scale(
+    const gko::batch_dense::BatchEntry<const ValueType> &diag_vec,
+    const gko::batch_dense::BatchEntry<ValueType> &a)
+{
+#pragma omp parallel for
+    for (int i_row = 0; i_row < a.num_rows; i_row++) {
+        const ValueType scale = diag_vec.values[i_row];
+        for (int j = 0; j < a.num_rhs; j++) {
+            a.values[i_row * a.stride + j] *= scale;
+        }
+    }
+}
+
+
 }  // namespace batch_dense
 }  // namespace omp
 }  // namespace kernels
