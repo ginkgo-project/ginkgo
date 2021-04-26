@@ -115,8 +115,7 @@ public:
             check_norms(residual_norms, converged);
         } else {
             real_type norms[32];
-            batch_dense::compute_norm2<ValueType>(residual,
-                                                  {norms, 32, 1, nrhs});
+            compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
             check_norms(norms, converged);
         }
 
