@@ -35,15 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/components/prefix_sum.hpp"
+#include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
@@ -51,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
+#include "cuda/matrix/batch_struct.hpp"
 
 
 namespace gko {
@@ -64,7 +60,11 @@ namespace cuda {
 namespace batch_dense {
 
 
-// constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 512;
+constexpr int sm_multiplier = 4;
+
+
+#include "common/matrix/batch_dense_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -123,58 +123,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void scale(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::BatchDense<ValueType> *alpha,
-           matrix::BatchDense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-//        cublas::scal(exec->get_cublas_handle(), x->get_size()[0],
-//                     alpha->get_const_values(), x->get_values(),
-//                     x->get_stride());
-//    } else {
-//        // TODO: tune this parameter
-//        constexpr auto block_size = default_block_size;
-//        const dim3 grid_dim =
-//            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-//        const dim3 block_dim{config::warp_size, 1,
-//                             block_size / config::warp_size};
-//        kernel::scale<block_size><<<grid_dim, block_dim>>>(
-//            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
-//            as_cuda_type(alpha->get_const_values()),
-//            as_cuda_type(x->get_values()), x->get_stride());
-//    }
-//}
+           const matrix::BatchDense<ValueType> *const alpha,
+           matrix::BatchDense<ValueType> *const x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const CudaExecutor> exec,
-                const matrix::BatchDense<ValueType> *alpha,
-                const matrix::BatchDense<ValueType> *x,
-                matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-//        cublas::axpy(exec->get_cublas_handle(), x->get_size()[0],
-//                     alpha->get_const_values(), x->get_const_values(),
-//                     x->get_stride(), y->get_values(), y->get_stride());
-//    } else {
-//        // TODO: tune this parameter
-//        constexpr auto block_size = default_block_size;
-//        const dim3 grid_dim =
-//            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-//        const dim3 block_dim{config::warp_size, 1,
-//                             block_size / config::warp_size};
-//        kernel::add_scaled<block_size><<<grid_dim, block_dim>>>(
-//            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
-//            as_cuda_type(alpha->get_const_values()),
-//            as_cuda_type(x->get_const_values()), x->get_stride(),
-//            as_cuda_type(y->get_values()), y->get_stride());
-//    }
-//}
+                const matrix::BatchDense<ValueType> *const alpha,
+                const matrix::BatchDense<ValueType> *const x,
+                matrix::BatchDense<ValueType> *const y)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    add_scaled<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, y_ub);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
@@ -246,43 +212,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::BatchDense<ValueType> *x,
-                   matrix::BatchDense<remove_complex<ValueType>> *result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-//            cublas::norm2(exec->get_cublas_handle(), x->get_size()[0],
-//                          x->get_const_values() + col, x->get_stride(),
-//                          result->get_values() + col);
-//        }
-//    } else {
-//        using norm_type = remove_complex<ValueType>;
-//        // TODO: these are tuning parameters obtained experimentally, once
-//        // we decide how to handle this uniformly, they should be modified
-//        // appropriately
-//        constexpr auto work_per_thread = 32;
-//        constexpr auto block_size = 1024;
-//
-//        constexpr auto work_per_block = work_per_thread * block_size;
-//        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-//        const dim3 block_dim{config::warp_size, 1,
-//                             block_size / config::warp_size};
-//        Array<norm_type> work(exec, grid_dim.x);
-//        // TODO: write a kernel which does this more efficiently
-//        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-//            kernel::compute_partial_norm2<block_size><<<grid_dim,
-//            block_dim>>>(
-//                x->get_size()[0], as_cuda_type(x->get_const_values() + col),
-//                x->get_stride(), as_cuda_type(work.get_data()));
-//            kernel::finalize_norm2_computation<block_size><<<1, block_dim>>>(
-//                grid_dim.x, as_cuda_type(work.get_const_data()),
-//                as_cuda_type(result->get_values() + col));
-//        }
-//    }
-//}
+                   const matrix::BatchDense<ValueType> *const x,
+                   matrix::BatchDense<remove_complex<ValueType>> *const result)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto res_ub = get_batch_struct(result);
+    compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
