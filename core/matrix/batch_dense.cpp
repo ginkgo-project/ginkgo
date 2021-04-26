@@ -113,6 +113,12 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
 template <typename ValueType>
 void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
+    // TODO: Remove this when non-uniform batching kernels have been
+    // implemented
+    if (!this->get_size().stores_equal_sizes() ||
+        !this->get_stride().stores_equal_strides()) {
+        GKO_NOT_IMPLEMENTED;
+    }
     this->get_executor()->run(batch_dense::make_simple_apply(
         this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
 }
@@ -124,6 +130,12 @@ void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
                                        const BatchLinOp *beta,
                                        BatchLinOp *x) const
 {
+    // TODO: Remove this when non-uniform batching kernels have been
+    // implemented
+    if (!this->get_size().stores_equal_sizes() ||
+        !this->get_stride().stores_equal_strides()) {
+        GKO_NOT_IMPLEMENTED;
+    }
     this->get_executor()->run(batch_dense::make_apply(
         as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
         as<BatchDense<ValueType>>(beta), as<BatchDense<ValueType>>(x)));
