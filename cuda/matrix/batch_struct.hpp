@@ -103,7 +103,7 @@ get_batch_struct(const matrix::BatchCsr<ValueType, int32> *const op)
 
 
 /**
- * Generates an immutable uniform batch struct from a batch of CSR matrices.
+ * Generates an mutable uniform batch struct from a batch of CSR matrices.
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<cuda_type<ValueType>> get_batch_struct(
