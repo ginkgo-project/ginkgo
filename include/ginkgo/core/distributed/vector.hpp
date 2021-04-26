@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_MPI
 
 
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
