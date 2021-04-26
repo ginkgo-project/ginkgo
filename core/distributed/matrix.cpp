@@ -139,10 +139,10 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
         gather_idxs_.clear();
         gather_idxs_.set_executor(exec->get_master());
     }
-    gather_idxs_.resize_and_reset(recv_gather_idxs.get_num_elems());
+    gather_idxs_.resize_and_reset(send_offsets_.back());
     comm_.alltoallv(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
                     recv_offsets_.data(), gather_idxs_.get_data(),
-                    recv_sizes_.data(), recv_offsets_.data(), 1);
+                    send_sizes_.data(), send_offsets_.data(), 1);
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
