@@ -413,7 +413,7 @@ std::unique_ptr<vec<ValueType>> create_vector(
 template <typename ValueType>
 ValueType get_norm(const vec<ValueType>* norm)
 {
-    return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+    return norm->get_executor()->copy_val_to_host(norm->get_const_values());
 }
 
 
@@ -429,17 +429,18 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 
 
 template <typename ValueType>
-gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp *solver,
-                                                    const vec<ValueType> *b,
-                                                    const vec<ValueType> *x)
+gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
+                                                    const vec<ValueType>* b,
+                                                    const vec<ValueType>* x)
 {
+    auto ref_exec = gko::ReferenceExecutor::create();
     auto exec = solver->get_executor();
-    auto ref_solver = gko::clone(gko::ReferenceExecutor::create(), solver);
+    auto ref_solver = gko::clone(ref_exec, solver);
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
-    auto res = clone(x);
-    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(res));
-    return compute_norm2(lend(res));
+    auto err = gko::clone(ref_exec, x);
+    ref_solver->apply(lend(one), lend(b), lend(neg_one), lend(err));
+    return compute_norm2(lend(err));
 }
 
 
