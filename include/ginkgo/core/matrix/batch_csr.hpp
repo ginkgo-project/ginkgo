@@ -53,37 +53,14 @@ class BatchCsr;
 
 /**
  * BatchCsr is a matrix format which stores only the nonzero coefficients by
- * compressing each row of the matrix (compressed sparse row format).
- *
- * The nonzero elements are stored in a 1D array row-wise, and accompanied
- * with a row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column of each
- * nonzero element.
- *
- * The BatchCsr BatchLinOp supports different operations:
- *
- * ```cpp
- * matrix::BatchCsr *A, *B, *C;      // matrices
- * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
- * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
- * matrix::Identity *I;         // identity matrix
- *
- * // Applying to Dense matrices computes an SpMV/SpMM product
- * A->apply(b, x)              // x = A*b
- * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
- *
- * // Applying to BatchCsr matrices computes a SpGEMM product of two sparse
- * matrices A->apply(B, C)              // C = A*B A->apply(alpha, B, beta, C)
- * // C = alpha*A*B + beta*C
- *
- * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
- * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
- * ```
- * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
- * by column index, otherwise the algorithms will produce incorrect results.
+ * compressing each row of the matrix (compressed sparse row format). Each of
+ * the individual batches are stored in a CSR matrix.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
+ *
+ * @note Currently, BatchCsr can store matrices with batch entries that have the
+ * same sparsity pattern, but different values.
  *
  * @ingroup batch_csr
  * @ingroup mat_formats
@@ -141,6 +118,11 @@ public:
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
+    /**
+     * Unbatches the BatchCsr matrix into distinct matrices of Csr type.
+     *
+     * @return  a std::vector containing the distinct Csr matrices.
+     */
     std::vector<std::unique_ptr<unbatch_type>> unbatch() const
     {
         auto exec = this->get_executor();
@@ -169,7 +151,7 @@ public:
      */
     void sort_by_column_index();
 
-    /*
+    /**
      * Tests if all row entry pairs (value, col_idx) are sorted by column index
      *
      * @returns True if all row entry pairs (value, col_idx) are sorted by
@@ -235,9 +217,11 @@ public:
     }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored in the matrix,
+     * cumulative over all the batches
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements explicitly stored in the matrix,
+     * cumulative over all the batches
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -249,9 +233,9 @@ protected:
      * Creates an uninitialized BatchCsr matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
-     * @param strategy  the strategy of BatchCsr
+     * @param num_batches  the number of batches to be stored
+     * @param size  the common size of all the batch matrices
+     * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batches = {}, const dim<2> &size = dim<2>{},
@@ -271,10 +255,14 @@ protected:
      * @tparam RowPtrsArray  type of `row_ptrs` array
      *
      * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
+     * @param num_batches  the number of batches
+     * @param size  the common size of the batch matrices
+     * @param values  array of matrix values concatenated for the different
+     *                batches
+     * @param col_idxs  array of column indexes which is common among all the
+     *                  batches
+     * @param row_ptrs  array of row pointers which is common among all the
+     *                  batches
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
