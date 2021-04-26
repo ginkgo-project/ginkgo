@@ -55,7 +55,6 @@ namespace {
 class BatchCsr : public ::testing::Test {
 protected:
     using value_type = float;
-    // using Arr = gko::Array<int>;
     using Vec = gko::matrix::BatchDense<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
     using ComplexVec = gko::matrix::BatchDense<std::complex<value_type>>;
