@@ -67,46 +67,46 @@ protected:
     BatchDense()
         : exec(gko::ReferenceExecutor::create()),
           mtx_0(gko::batch_initialize<Mtx>(
-              {{I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
-               {{1.0, -2.0, 3.0}, {1.0, 2.5, 3.0}}},
+              {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
+               {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
               exec)),
           mtx_00(gko::initialize<DenseMtx>(
-              {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})}, exec)),
-          mtx_01(gko::initialize<DenseMtx>({{1.0, -2.0, 3.0}, {1.0, 2.5, 3.0}},
-                                           exec)),
-          mtx_1(gko::batch_initialize<Mtx>(
-              std::vector<size_type>{2, 4},
-              {{I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
-               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-              exec)),
+              {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec)),
+          mtx_01(gko::initialize<DenseMtx>(
+              {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
+          mtx_1(
+              gko::batch_initialize<Mtx>(std::vector<size_type>{4, 4},
+                                         {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+                                          {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+                                         exec)),
           mtx_10(gko::initialize<DenseMtx>(
-              {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})}, exec)),
+              {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec)),
           mtx_11(gko::initialize<DenseMtx>(
               4, {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec)),
           mtx_2(gko::batch_initialize<Mtx>(
-              std::vector<size_type>{4, 2},
-              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}},
+              std::vector<size_type>{2, 2},
+              {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
                {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
               exec)),
           mtx_20(gko::initialize<DenseMtx>(
-              4, {{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}}, exec)),
+              4, {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})},
+              exec)),
           mtx_21(gko::initialize<DenseMtx>(
               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec)),
           mtx_3(gko::batch_initialize<Mtx>(
-              std::vector<size_type>{4, 2},
-              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}},
-               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}},
+              std::vector<size_type>{4, 4},
+              {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
               exec)),
-          mtx_30(gko::initialize<DenseMtx>(
-              4, {{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}}, exec)),
+          mtx_30(gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
+                                           exec)),
           mtx_31(gko::initialize<DenseMtx>(
               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}, exec)),
           mtx_4(gko::batch_initialize<Mtx>(
-              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.0}},
-               {I<T>({2.0, -2.0}), I<T>({4.0, 3.0})}},
+              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.5}},
+               {{2.0, -2.0, 1.5}, {4.0, 3.0, 2.2}, {-1.25, 3.0, 0.5}}},
               exec)),
           mtx_5(gko::batch_initialize<Mtx>(
-              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}},
+              {{{1.0, 1.5}, {6.0, 1.0}, {7.0, -4.5}},
                {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
               exec)),
           mtx_6(gko::batch_initialize<Mtx>(
@@ -214,7 +214,8 @@ TYPED_TEST(BatchDense, ApplyFailsOnWrongNumberOfCols)
 {
     using Mtx = typename TestFixture::Mtx;
     auto res = Mtx::create(
-        this->exec, std::vector<gko::dim<2>>{gko::dim<2>{2}, gko::dim<2>{2}},
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 1}, gko::dim<2>{2, 1}},
         std::vector<gko::size_type>{3, 3});
 
 
@@ -227,8 +228,8 @@ TYPED_TEST(BatchDense, ScalesData)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{{2.0, -2.0}}, {{2.0, -2.0, 3.0}}},
-                                            this->exec);
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{I<T>({2.0, -2.0, 1.5})}, {I<T>({3.0, -1.0, 0.25})}}, this->exec);
 
     auto ualpha = alpha->unbatch();
 
@@ -264,8 +265,8 @@ TYPED_TEST(BatchDense, ScalesDataWithStride)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{{2.0, -2.0}}, {{2.0, -2.0, 3.0}}},
-                                            this->exec);
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{{2.0, -2.0, -1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
 
     auto ualpha = alpha->unbatch();
 
@@ -283,8 +284,8 @@ TYPED_TEST(BatchDense, AddsScaled)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::batch_initialize<Mtx>({{{2.0, -2.0}}, {{2.0, -2.0, 3.0}}},
-                                            this->exec);
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
 
     auto ualpha = alpha->unbatch();
 
@@ -331,9 +332,7 @@ TYPED_TEST(BatchDense, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto result =
-        Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 3}}));
+    auto result = Mtx::create(this->exec, gko::batch_dim(2, gko::dim<2>{1, 3}));
 
     auto ures = result->unbatch();
 
@@ -388,9 +387,13 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
     using Mtx = typename TestFixture::Mtx;
     auto result =
         Mtx::create(this->exec, gko::batch_dim(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{1, 3}, gko::dim<2>{1, 3}}));
+                                    gko::dim<2>{1, 2}, gko::dim<2>{1, 2}}));
+    auto result2 =
+        Mtx::create(this->exec, gko::batch_dim(2, gko::dim<2>{1, 2}));
 
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result.get()),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result2.get()),
                  gko::DimensionMismatch);
 }
 
@@ -515,80 +518,6 @@ TYPED_TEST(BatchDense, MovesToCsr32)
 }
 
 
-// TYPED_TEST(BatchDense, ConvertsToCsr64)
-// {
-//     using T = typename TestFixture::value_type;
-//     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
-//     auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
-
-//     this->mtx_6->convert_to(batch_csr_mtx.get());
-
-//     auto v = batch_csr_mtx->get_const_values();
-//     auto c = batch_csr_mtx->get_const_col_idxs();
-//     auto r = batch_csr_mtx->get_const_row_ptrs();
-//     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-//     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-//     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-//     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-//     EXPECT_EQ(r[0], 0);
-//     EXPECT_EQ(r[1], 2);
-//     EXPECT_EQ(r[2], 3);
-//     EXPECT_EQ(r[3], 5);
-//     EXPECT_EQ(c[0], 0);
-//     EXPECT_EQ(c[1], 2);
-//     EXPECT_EQ(c[2], 1);
-//     EXPECT_EQ(c[3], 1);
-//     EXPECT_EQ(c[4], 2);
-//     EXPECT_EQ(v[0], T{1.0});
-//     EXPECT_EQ(v[1], T{3.0});
-//     EXPECT_EQ(v[2], T{3.0});
-//     EXPECT_EQ(v[3], T{1.0});
-//     EXPECT_EQ(v[4], T{5.0});
-//     EXPECT_EQ(v[5], T{2.0});
-//     EXPECT_EQ(v[6], T{5.0});
-//     EXPECT_EQ(v[7], T{1.0});
-//     EXPECT_EQ(v[8], T{-1.0});
-//     EXPECT_EQ(v[9], T{8.0});
-// }
-
-
-// TYPED_TEST(BatchDense, MovesToCsr64)
-// {
-//     using T = typename TestFixture::value_type;
-//     using BatchCsr = typename gko::matrix::BatchCsr<T, gko::int64>;
-//     auto batch_csr_mtx = BatchCsr::create(this->mtx_6->get_executor());
-
-//     this->mtx_6->move_to(batch_csr_mtx.get());
-
-//     auto v = batch_csr_mtx->get_const_values();
-//     auto c = batch_csr_mtx->get_const_col_idxs();
-//     auto r = batch_csr_mtx->get_const_row_ptrs();
-//     ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
-//     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
-//     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
-//     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
-//     EXPECT_EQ(r[0], 0);
-//     EXPECT_EQ(r[1], 2);
-//     EXPECT_EQ(r[2], 3);
-//     EXPECT_EQ(r[3], 5);
-//     EXPECT_EQ(c[0], 0);
-//     EXPECT_EQ(c[1], 2);
-//     EXPECT_EQ(c[2], 1);
-//     EXPECT_EQ(c[3], 1);
-//     EXPECT_EQ(c[4], 2);
-//     EXPECT_EQ(v[0], T{1.0});
-//     EXPECT_EQ(v[1], T{3.0});
-//     EXPECT_EQ(v[2], T{3.0});
-//     EXPECT_EQ(v[3], T{1.0});
-//     EXPECT_EQ(v[4], T{5.0});
-//     EXPECT_EQ(v[5], T{2.0});
-//     EXPECT_EQ(v[6], T{5.0});
-//     EXPECT_EQ(v[7], T{1.0});
-//     EXPECT_EQ(v[8], T{-1.0});
-//     EXPECT_EQ(v[9], T{8.0});
-// }
-
-
 TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
 {
     using BatchDense = typename TestFixture::Mtx;
@@ -659,10 +588,11 @@ TYPED_TEST(BatchDense, SquareMatrixIsTransposable)
 
     auto utb = trans_as_batch_dense->unbatch();
     GKO_ASSERT_MTX_NEAR(utb[0].get(),
-                        l({{1.0, 6.0, 6.0}, {1.5, 1.0, 1.0}, {3.0, 5.0, 5.0}}),
+                        l({{1.0, 6.0, 6.0}, {1.5, 1.0, 1.0}, {3.0, 5.0, 5.5}}),
                         r<TypeParam>::value);
-    GKO_ASSERT_MTX_NEAR(utb[1].get(), l({{2.0, 4.0}, {-2.0, 3.0}}),
-                        r<TypeParam>::value);
+    GKO_ASSERT_MTX_NEAR(
+        utb[1].get(), l({{2.0, 4.0, -1.25}, {-2.0, 3.0, 3.0}, {1.5, 2.2, 0.5}}),
+        r<TypeParam>::value);
 }
 
 
@@ -673,7 +603,7 @@ TYPED_TEST(BatchDense, NonSquareMatrixIsTransposable)
     auto trans_as_batch_dense = static_cast<Mtx *>(trans.get());
 
     auto utb = trans_as_batch_dense->unbatch();
-    GKO_ASSERT_MTX_NEAR(utb[0].get(), l({{1.0, 6.0}, {1.5, 1.0}, {3.0, 5.0}}),
+    GKO_ASSERT_MTX_NEAR(utb[0].get(), l({{1.0, 6.0, 7.0}, {1.5, 1.0, -4.5}}),
                         r<TypeParam>::value);
     GKO_ASSERT_MTX_NEAR(utb[1].get(), l({{2.0, 1.0, 4.0}, {-2.0, 3.0, 3.0}}),
                         r<TypeParam>::value);
