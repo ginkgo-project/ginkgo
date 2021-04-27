@@ -88,13 +88,6 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-dim<2> Bicgstab<ValueType>::get_global_size() const noexcept
-{
-    return this->get_system_matrix()->get_global_size();
-}
-
-
-template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     precision_dispatch_real_complex<ValueType>(
