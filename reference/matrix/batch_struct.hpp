@@ -33,11 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
 #define GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
 
 #include "core/matrix/batch_struct.hpp"
+
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 namespace gko {
@@ -98,4 +99,4 @@ inline gko::batch_csr::UniformBatch<const ValueType> get_batch_struct(
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
-#endif
+#endif  // GKO_REFERENCE_MATRIX_BATCH_STRUCT_HPP_
