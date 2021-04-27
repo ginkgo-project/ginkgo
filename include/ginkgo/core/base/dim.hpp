@@ -439,8 +439,8 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
  * @return `!(x == y)`
  */
 template <size_type Dimensionality, typename DimensionType>
-const inline bool operator!=(const batch_dim<Dimensionality, DimensionType> &x,
-                             const batch_dim<Dimensionality, DimensionType> &y)
+inline bool operator!=(const batch_dim<Dimensionality, DimensionType> &x,
+                       const batch_dim<Dimensionality, DimensionType> &y)
 {
     return !(x == y);
 }
