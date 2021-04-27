@@ -8,7 +8,7 @@ ExternalProject_Add(${package_name}
     DOWNLOAD_NO_PROGRESS TRUE
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/src"
     BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/build"
-    CONFIGURE_COMMAND "${config_command}"
+    CONFIGURE_COMMAND "${config_command}" "${ARGN}"
     INSTALL_COMMAND ""
     UPDATE_DISCONNECTED ${GINKGO_SKIP_DEPENDENCY_UPDATE}
     )

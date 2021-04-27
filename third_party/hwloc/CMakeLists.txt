@@ -15,7 +15,7 @@ else()
     message(STATUS "Downloading HWLOC tars and building")
     ginkgo_load_and_configure_package(hwloc_external "https://download.open-mpi.org/release/hwloc/v2.3/hwloc-2.3.0.tar.gz"
         "SHA1=69d8e2f088d365cf5e86d04f049c6b1e09e2b9c3"
-        "${TPL_HWLOC_PATH}/src/configure"
+        "${TPL_HWLOC_PATH}/src/configure" "--disable-nvml" "--disable-cuda" "--disable-rsmi"
         )
 
 endif()
