@@ -33,12 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
 #define GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
 
+
+#include "core/matrix/batch_struct.hpp"
+
+
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
-#include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 
@@ -102,4 +105,4 @@ get_batch_struct(const matrix::BatchCsr<ValueType> *const op)
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
-#endif
+#endif  // GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_

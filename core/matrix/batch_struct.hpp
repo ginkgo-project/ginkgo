@@ -30,9 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #ifndef GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
 #define GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
+
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -179,4 +179,4 @@ GKO_ATTRIBUTES GKO_INLINE batch_csr::BatchEntry<ValueType> batch_entry(
 
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_MATRIX_BATCH_STRUCT_HPP_
