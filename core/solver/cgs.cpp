@@ -161,7 +161,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        r->compute_dot(r_tld.get(), rho.get());
+        r->compute_conj_dot(r_tld.get(), rho.get());
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -183,7 +183,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
                                    &stop_status));
         get_preconditioner()->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
-        r_tld->compute_dot(v_hat.get(), gamma.get());
+        r_tld->compute_conj_dot(v_hat.get(), gamma.get());
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q

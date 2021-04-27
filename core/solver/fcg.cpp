@@ -153,8 +153,8 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
      */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        r->compute_dot(z.get(), rho.get());
-        t->compute_dot(z.get(), rho_t.get());
+        r->compute_conj_dot(z.get(), rho.get());
+        t->compute_conj_dot(z.get(), rho_t.get());
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -173,7 +173,7 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
                                    prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
-        p->compute_dot(q.get(), beta.get());
+        p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
