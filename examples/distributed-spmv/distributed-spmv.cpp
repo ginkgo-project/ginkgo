@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
         exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
-    const auto rows_per_rank = gko::ceildiv(A_data.size[0], comm.size());
+    const auto rows_per_rank = A_data.size[0] / comm.size();
     for (int i = 0; i < comm.size(); i++) {
         ranges_array.get_data()[i] = i * rows_per_rank;
     }
