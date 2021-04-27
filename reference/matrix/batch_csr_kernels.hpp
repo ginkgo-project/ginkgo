@@ -30,9 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#ifndef GKO_REFERENCE_MATRIX_BATCH_CSR_HPP_
-#define GKO_REFERENCE_MATRIX_BATCH_CSR_HPP_
+#ifndef GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_
+#define GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -112,4 +111,4 @@ inline void adv_spmv_ker(const ValueType alpha,
 
 }  // namespace gko
 
-#endif
+#endif  // GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_

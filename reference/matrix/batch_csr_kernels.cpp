@@ -48,8 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "reference/components/format_conversion.hpp"
-
-
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
