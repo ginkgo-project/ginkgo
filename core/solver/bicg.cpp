@@ -208,7 +208,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
         conj_trans_preconditioner->apply(r2.get(), z2.get());
-        z->compute_dot(r2.get(), rho.get());
+        z->compute_conj_dot(r2.get(), rho.get());
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -229,7 +229,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
                                     rho.get(), prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         conj_trans_A->apply(p2.get(), q2.get());
-        p2->compute_dot(q.get(), beta.get());
+        p2->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q

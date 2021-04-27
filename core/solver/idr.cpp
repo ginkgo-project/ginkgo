@@ -246,8 +246,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
         get_preconditioner()->apply(residual.get(), helper.get());
         system_matrix_->apply(helper.get(), t.get());
 
-        t->compute_dot(residual.get(), omega.get());
-        t->compute_dot(t.get(), tht.get());
+        t->compute_conj_dot(residual.get(), omega.get());
+        t->compute_conj_dot(t.get(), tht.get());
         residual->compute_norm2(residual_norm.get());
 
         // omega = (t^H * residual) / (t^H * t)
