@@ -86,6 +86,40 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 }
 
 
+TEST(DummyLogged, CanAccessLoggers)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+
+    auto logger1 = gko::share(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    auto logger2 = gko::share(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.add_logger(logger1);
+    c.add_logger(logger2);
+
+    ASSERT_EQ(c.get_loggers()[0], logger1);
+    ASSERT_EQ(c.get_loggers()[1], logger2);
+    ASSERT_EQ(c.get_num_loggers(), 2);
+}
+
+
+TEST(DummyLogged, CanClearLoggers)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+    c.add_logger(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.clear_loggers();
+
+    ASSERT_EQ(c.get_num_loggers(), 0);
+}
+
+
 TEST(DummyLogged, CanRemoveLogger)
 {
     auto exec = gko::ReferenceExecutor::create();
