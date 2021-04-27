@@ -102,9 +102,9 @@ protected:
         dalpha = Mtx::create(cuda);
         dalpha->copy_from(alpha.get());
         expected = Mtx::create(
-            ref, gko::batch_dim(batch_size, gko::dim<2>{1, num_vecs}));
+            ref, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
         dresult = Mtx::create(
-            cuda, gko::batch_dim(batch_size, gko::dim<2>{1, num_vecs}));
+            cuda, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
     }
 
     void set_up_apply_data()
@@ -287,7 +287,7 @@ TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
-        gko::batch_dim(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto norm_expected = NormVector::create(this->ref, norm_size);
     auto dnorm = NormVector::create(this->cuda, norm_size);
 
