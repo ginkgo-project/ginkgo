@@ -1,82 +1,83 @@
 .use_gko-nocuda-gnu9-llvm8:
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  image: ginkgohub/cpu:gnu9-llvm8
   tags:
     - private_ci
     - cpu
+    - amdci
 
 .use_gko-nocuda-gnu9-llvm8-intel:
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  image: ginkgohub/cpu:gnu9-llvm8-intel2020
   tags:
     - private_ci
     - cpu
-    - cuda
+    - controller
 
 .use_gko-cuda90-gnu5-llvm39:
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
+  image: ginkgohub/cuda:90-gnu5-llvm39
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda91-gnu6-llvm40:
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  image: ginkgohub/cuda:91-gnu6-llvm40
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda92-gnu7-llvm50-intel2017:
-  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
+  image: ginkgohub/cuda:92-gnu7-llvm50-intel2017
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda100-gnu7-llvm60-intel2018:
-  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
+  image: ginkgohub/cuda:100-gnu7-llvm60-intel2018
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda101-gnu8-llvm7-intel2019:
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: ginkgohub/cuda:101-gnu8-llvm7-intel2019
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda101-gnu8-llvm10-intel2019:
-  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  image: ginkgohub/cuda:101-gnu8-llvm10-intel2019
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda102-gnu8-llvm8-intel2019:
-  image: localhost:5000/gko-cuda102-gnu8-llvm8-intel2019
+  image: ginkgohub/cuda:102-gnu8-llvm8-intel2019
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-cuda110-gnu9-llvm9-intel2020:
-  image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
+  image: ginkgohub/cuda:110-gnu9-llvm9-intel2020
   tags:
     - private_ci
-    - cuda
-    - gpu
+    - controller
+    - cpu
 
 .use_gko-amd-gnu8-llvm7:
-  image: localhost:5000/gko-amd-gnu8-llvm7
+  image: ginkgohub/rocm:gnu8-llvm7
   tags:
     - private_ci
-    - amd
+    - amdci
     - gpu
 
 .use_gko-oneapi:
-  image: localhost:5000/gko-oneapi
+  image: ginkgohub/oneapi:latest
   tags:
     - private_ci
-    - cuda
+    - bwuni
     - cpu
