@@ -3,7 +3,7 @@
   tags:
     - private_ci
     - cpu
-    - amd
+    - amdci
 
 .use_gko-nocuda-gnu9-llvm8-intel:
   image: ginkgohub/cpu:gnu9-llvm8-intel2020
@@ -72,7 +72,7 @@
   image: ginkgohub/rocm:gnu8-llvm7
   tags:
     - private_ci
-    - amd
+    - amdci
     - gpu
 
 .use_gko-oneapi:
