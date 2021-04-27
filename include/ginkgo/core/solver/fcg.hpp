@@ -99,8 +99,6 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    dim<2> get_global_size() const noexcept override;
-
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
      *

@@ -232,14 +232,6 @@ public:
     const dim<2>& get_size() const noexcept { return size_; }
 
     /**
-     * Returns the global size of the operator.
-     * For non-distributed matrices, it matches the (local) size.
-     *
-     * @return global size of the operator
-     */
-    virtual dim<2> get_global_size() const noexcept { return this->get_size(); }
-
-    /**
      * Returns true if the linear operator uses the data given in x as
      * an initial guess. Returns false otherwise.
      *
