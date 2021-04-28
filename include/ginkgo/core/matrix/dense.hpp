@@ -518,7 +518,7 @@ public:
     }
 
     /**
-     * Computes the column-wise dot product of this matrix and `conj(b)`.
+     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
