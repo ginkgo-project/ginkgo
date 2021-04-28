@@ -184,6 +184,7 @@ int main(int argc, char *argv[])
 
     std::vector<std::unique_ptr<vec>> batch_b;
     std::vector<std::unique_ptr<vec>> batch_x;
+    std::vector<std::unique_ptr<vec>> batch_s;
 
     // Read data from individual files in the subdirectories and keep
     // accumulating it to form batched objets later
@@ -198,15 +199,9 @@ int main(int argc, char *argv[])
 
     for (int problem_id = 0; problem_id < num_batches; problem_id++) {
         const std::string subdir_path = subdir[problem_id % subdir.size()];
-        std::string file_A;
-        std::string file_b;
-        if (is_scaled == true) {
-            file_A = subdir_path + "/A_scaled.mtx";
-            file_b = subdir_path + "/b_scaled.mtx";
-        } else {
-            file_A = subdir_path + "/A.mtx";
-            file_b = subdir_path + "/b.mtx";
-        }
+        std::string file_A = subdir_path + "/A.mtx";
+        std::string file_b = subdir_path + "/b.mtx";
+        std::string file_s = subdir_path + "/S.mtx";
 
         std::unique_ptr<csr_mat> A =
             gko::read<csr_mat>(std::ifstream(file_A), exec->get_master());
@@ -249,7 +244,11 @@ int main(int argc, char *argv[])
             batch_values.push_back(A->get_const_values()[i]);
         }
 
+        // read rhs
         std::unique_ptr<vec> b = gko::read<vec>(std::ifstream(file_b), exec);
+
+        // read scaling vector
+        std::unique_ptr<vec> s = gko::read<vec>(std::ifstream(file_s), exec);
 
         std::unique_ptr<vec> x_cpu =
             vec::create(exec->get_master(), b->get_size(), b->get_stride());
@@ -265,17 +264,20 @@ int main(int argc, char *argv[])
 
         batch_x.push_back(std::move(x));
         batch_b.push_back(std::move(b));
+        batch_s.push_back(std::move(s));
     }
 
 
     // Now create batch_csr and batch_dense matrices.
     std::vector<vec *> batch_initial_guess;
     std::vector<vec *> batch_rhs;
+    std::vector<vec *> batch_scale_left;
 
 
     for (int i = 0; i < batch_x.size(); i++) {
         batch_rhs.push_back(batch_b[i].get());
         batch_initial_guess.push_back(batch_x[i].get());
+        batch_scale_left.push_back(batch_s[i].get());
     }
 
     std::cout << "\n Create batched matrices objects\n";
@@ -318,6 +320,35 @@ int main(int argc, char *argv[])
         gko::matrix::BatchDense<ValueType>::create(exec, batch_rhs);
 
 
+    std::unique_ptr<gko::matrix::BatchDense<ValueType>> left_scale_dense_batch =
+        gko::matrix::BatchDense<ValueType>::create(exec, batch_scale_left);
+
+    // The scaling vectors given in S.mtx files are to be used as left scaling
+    // vectors, and the inverses of the left scaling matrices are to be used as
+    // the right scaling matrices. Therefore, we can create a right scaling
+    // vector by taking the reciprocal of each element of the left scaling
+    // vector
+    std::unique_ptr<gko::matrix::BatchDense<ValueType>>
+        right_scale_dense_batch_cpu =
+            gko::clone(exec->get_master(), left_scale_dense_batch);
+    for (int ibatch = 0;
+         ibatch < right_scale_dense_batch_cpu->get_num_batches(); ibatch++) {
+        GKO_ASSERT_EQ(right_scale_dense_batch_cpu->get_size().at(ibatch)[1], 1);
+
+        for (int irow = 0;
+             irow < right_scale_dense_batch_cpu->get_size().at(ibatch)[0];
+             irow++) {
+            right_scale_dense_batch_cpu->at(ibatch, irow, 0) =
+                gko::one<ValueType>() /
+                right_scale_dense_batch_cpu->at(ibatch, irow, 0);
+        }
+    }
+
+
+    std::unique_ptr<gko::matrix::BatchDense<ValueType>>
+        right_scale_dense_batch = gko::clone(exec, right_scale_dense_batch_cpu);
+
+
     // Checks if the sizes of all matrices in the batch are the same and if so
     // convert the batches to uniform batches
 
@@ -333,6 +364,17 @@ int main(int argc, char *argv[])
     batch_sz_b.check_size_equality();
     b_dense_batch->set_size(batch_sz_b);
 
+    gko::batch_dim batch_sz_lt = left_scale_dense_batch->get_size();
+    batch_sz_lt.check_size_equality();
+    left_scale_dense_batch->set_size(batch_sz_lt);
+
+    gko::batch_dim batch_sz_rt = right_scale_dense_batch->get_size();
+    batch_sz_rt.check_size_equality();
+    right_scale_dense_batch->set_size(batch_sz_rt);
+
+    std::cout << "\n Generating solver factory and solver object\n"
+              << std::endl;
+
     // generate the solver factory object
     auto solver_fac =
         gko::solver::BatchBicgstab<ValueType>::build()
@@ -344,6 +386,16 @@ int main(int argc, char *argv[])
 
     // generate the solver object
     auto solver = solver_fac->generate(A_csr_batch);
+
+    if (is_scaled == true) {
+        std::cout << "\n Set the left and right scaling vectors which are to "
+                     "be used by the solver (to solve the scaled system) \n"
+                  << std::endl;
+
+        solver->batch_scale(gko::lend(left_scale_dense_batch),
+                            gko::lend(right_scale_dense_batch));
+    }
+
 
     std::cout << "\n Start solving the batched system \n" << std::endl;
 
@@ -361,13 +413,7 @@ int main(int argc, char *argv[])
     for (int p_id = 0; p_id < subdir.size(); p_id++) {
         const std::string subdir_path = subdir[p_id];
 
-        std::string solution_file;
-        if (is_scaled == true) {
-            solution_file = subdir_path + "/x_gko_scaled.mtx";
-        } else {
-            solution_file = subdir_path + "/x_gko.mtx";
-        }
-
+        std::string solution_file = subdir_path + "/x_gko.mtx";
 
         gko::write<vec>(std::ofstream(solution_file),
                         lend(vector_of_solution[p_id]));
