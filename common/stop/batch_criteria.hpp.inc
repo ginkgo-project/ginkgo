@@ -119,11 +119,17 @@ public:
             check_norms(norms, converged);
         }
 
-        if (converged == all_true) {
-            return true;
-        } else {
-            return false;
+        bool retval = (converged == all_true);
+        if (retval) {
+            __shared__ bool true_retval;
+            // Only the first warp hs the correct value
+            if (threadIdx.x == 0) {
+                true_retval = retval;
+            }
+            __syncthreads();
+            retval = true_retval;
         }
+        return retval;
     }
 
 private:
@@ -148,16 +154,16 @@ private:
     __device__ __forceinline__ void check_norms(
         const real_type *const res_norms, bitset_type &converged) const
     {
-        auto thread_block = group::this_thread_block();
-        auto subwarp_grp = group::tiled_partition<max_nrhs>(thread_block);
-        for (int i = subwarp_grp.thread_rank(); i < nrhs; i += max_nrhs) {
+        const int i = threadIdx.x;
+        const uint32 activemask = ~(0xffffffff << nrhs);
+        if (i < nrhs) {
             const int ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
-            const bitset_type wchk = subwarp_grp.ballot(ichk);
+            const bitset_type wchk = __ballot_sync(activemask, ichk);
             converged |= wchk;
         }
+        __syncwarp();
         // copy the converged value to all threads in the warp
-        converged = subwarp_grp.shfl(converged, 0);
-        // note that every warp does all this redundantly
+        converged = __shfl_sync(activemask, converged, 0);
     }
 };
 
