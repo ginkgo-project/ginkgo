@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void spmv_ker(
+__device__ __forceinline__ void spmv_kernel(
     const gko::batch_csr::BatchEntry<const ValueType> &a,
     const gko::batch_dense::BatchEntry<const ValueType> &b,
     const gko::batch_dense::BatchEntry<ValueType> &c)
@@ -68,7 +68,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
         const auto a_b = gko::batch::batch_entry(a, ibatch);
         const auto b_b = gko::batch::batch_entry(b, ibatch);
         const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_ker(a_b, b_b, c_b);
+        spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -79,7 +79,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void adv_spmv_ker(
+__device__ __forceinline__ void advanced_spmv_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
     const gko::batch_dense::BatchEntry<const ValueType> &b,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
@@ -115,6 +115,7 @@ __global__
         const auto c_b = gko::batch::batch_entry(c, ibatch);
         const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
         const auto beta_b = gko::batch::batch_entry(beta, ibatch);
-        adv_spmv_ker(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
+        advanced_spmv_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
+                             c_b);
     }
 }
