@@ -509,6 +509,12 @@ public:
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
         const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 25600 on Intel hardware. */
+        const index_type intel_row_len_limit = 25600;
+        /* Use imbalance strategy when the matrix has more more than 3e8 on
+         * Intel hardware */
+        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
 
         /**
          * Creates an automatical strategy.
@@ -579,6 +585,10 @@ public:
                 row_len_limit = amd_row_len_limit;
             }
 #endif  // GINKGO_HIP_PLATFORM_HCC
+            if (!cuda_strategy_) {
+                nnz_limit = intel_nnz_limit;
+                row_len_limit = intel_row_len_limit;
+            }
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
