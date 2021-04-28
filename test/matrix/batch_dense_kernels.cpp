@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-//#include "core/components/fill_array.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/test/utils/batch.hpp"
 #include "cuda/test/utils.hpp"
@@ -156,46 +155,6 @@ protected:
 };
 
 
-// TEST_F(BatchDense, SingleVectorCudaScaleIsEquivalentToRef)
-// {
-//    set_up_vector_data(1);
-//    auto result = Mtx::create(ref);
-
-//    x->scale(alpha.get());
-//    dx->scale(dalpha.get());
-//    result->copy_from(dx.get());
-
-//    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
-// }
-
-
-// TEST_F(BatchDense, MultipleVectorCudaScaleIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_vector_data(20);
-//
-//    x->scale(alpha.get());
-//    dx->scale(dalpha.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-//}
-
-
-// TEST_F(BatchDense,
-// MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_vector_data(20, true);
-//
-//    x->scale(alpha.get());
-//    dx->scale(dalpha.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-//}
-
-
 TEST_F(BatchDense, SingleVectorCudaAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
@@ -230,59 +189,6 @@ TEST_F(BatchDense,
 }
 
 
-// TEST_F(BatchDense, AddsScaledDiagIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    auto mat = gen_mtx<Mtx>(532, 532);
-//    gko::Array<Mtx::value_type> diag_values(ref, 532);
-//    gko::kernels::reference::components::fill_array(ref,
-//    diag_values.get_data(),
-//                                                    532,
-//                                                    Mtx::value_type{2.0});
-//    auto diag =
-//        gko::matrix::Diagonal<Mtx::value_type>::create(ref, 532, diag_values);
-//    alpha = gko::initialize<Mtx>({2.0}, ref);
-//    auto dmat = Mtx::create(cuda);
-//    dmat->copy_from(mat.get());
-//    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(cuda);
-//    ddiag->copy_from(diag.get());
-//    dalpha = Mtx::create(cuda);
-//    dalpha->copy_from(alpha.get());
-//
-//    mat->add_scaled(alpha.get(), diag.get());
-//    dmat->add_scaled(dalpha.get(), ddiag.get());
-//
-//    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, SingleVectorCudaComputeDotIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_vector_data(1);
-//
-//    x->compute_dot(y.get(), expected.get());
-//    dx->compute_dot(dy.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, MultipleVectorCudaComputeDotIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_vector_data(20);
-//
-//    x->compute_dot(y.get(), expected.get());
-//    dx->compute_dot(dy.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-
-
 TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
@@ -296,98 +202,6 @@ TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
 }
-
-
-// TEST_F(BatchDense, SimpleApplyIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//
-//    x->apply(y.get(), expected.get());
-//    dx->apply(dy.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, AdvancedApplyIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//
-//    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
-//    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, ApplyToComplexIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-//    auto dcomplex_b = ComplexMtx::create(cuda);
-//    dcomplex_b->copy_from(complex_b.get());
-//    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-//    auto dcomplex_x = ComplexMtx::create(cuda);
-//    dcomplex_x->copy_from(complex_x.get());
-//
-//    x->apply(complex_b.get(), complex_x.get());
-//    dx->apply(dcomplex_b.get(), dcomplex_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, AdvancedApplyToComplexIsEquivalentToRef)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-//    auto dcomplex_b = ComplexMtx::create(cuda);
-//    dcomplex_b->copy_from(complex_b.get());
-//    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-//    auto dcomplex_x = ComplexMtx::create(cuda);
-//    dcomplex_x->copy_from(complex_x.get());
-//
-//    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-//    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-//}
-
-
-// TEST_F(BatchDense, IsTransposable)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//
-//    auto trans = x->transpose();
-//    auto dtrans = dx->transpose();
-//
-//    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-//                        static_cast<Mtx *>(trans.get()), 0);
-//}
-
-
-// TEST_F(BatchDense, IsConjugateTransposable)
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    set_up_apply_data();
-//
-//    auto trans = c_x->conj_transpose();
-//    auto dtrans = dc_x->conj_transpose();
-//
-//    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-//                        static_cast<ComplexMtx *>(trans.get()), 0);
-//}
 
 
 }  // namespace
