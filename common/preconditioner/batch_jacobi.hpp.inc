@@ -63,23 +63,29 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    GKO_ATTRIBUTES GKO_INLINE
+    __device__ __forceinline__
     BatchJacobi(const gko::batch_csr::BatchEntry<const ValueType> &mat,
                 ValueType *const __restrict__ work)
         : matrix_{mat}, work_{work}
     {
         // TODO: optimize this
-        for (int i = threadIdx.x; i < matrix_.num_rows; i += blockDim.x) {
-            for (int j = matrix_.row_ptrs[i]; j < matrix_.row_ptrs[i + 1];
-                 j++) {
-                if (matrix_.col_idxs[j] == i) {
-                    work_[i] = one<ValueType>() / matrix_.values[j];
+        constexpr auto warp_size = config::warp_size;
+        const auto tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        const int tile_rank = threadIdx.x / warp_size;
+        const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+        for (int irow = tile_rank; irow < matrix_.num_rows; irow += num_tiles) {
+            for (int j = matrix_.row_ptrs[irow] + tile.thread_rank();
+                 j < matrix_.row_ptrs[irow + 1]; j += warp_size) {
+                if (matrix_.col_idxs[j] == irow) {
+                    work_[irow] = one<ValueType>() / matrix_.values[j];
                 }
             }
         }
+        __syncthreads();
     }
 
-    GKO_ATTRIBUTES GKO_INLINE void apply(
+    __device__ __forceinline__ void apply(
         const gko::batch_dense::BatchEntry<const ValueType> &r,
         const gko::batch_dense::BatchEntry<ValueType> &z) const
     {
