@@ -114,8 +114,8 @@ void BatchCsr<ValueType, IndexType>::move_to(
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
 {
-    size_type num_batches = data.size();
-    std::vector<size_type> nnz(num_batches, 0);
+    size_type num_batch_entries = data.size();
+    std::vector<size_type> nnz(num_batch_entries, 0);
     size_type ind = 0;
     for (const auto &batch_data : data) {
         for (const auto &elem : batch_data.nonzeros) {
@@ -124,8 +124,8 @@ void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
         ++ind;
     }
     GKO_ASSERT(std::equal(nnz.begin() + 1, nnz.end(), nnz.begin()));
-    auto tmp = BatchCsr::create(this->get_executor()->get_master(), num_batches,
-                                data[0].size, nnz[0]);
+    auto tmp = BatchCsr::create(this->get_executor()->get_master(),
+                                num_batch_entries, data[0].size, nnz[0]);
 
     size_type id = 0;
     size_type nnz_offset = 0;
@@ -166,12 +166,12 @@ void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
     } else {
         tmp = this;
     }
-    data = std::vector<mat_data>(tmp->get_num_batches());
+    data = std::vector<mat_data>(tmp->get_num_batch_entries());
 
     size_type num_nnz_per_batch =
-        tmp->get_num_stored_elements() / tmp->get_num_batches();
+        tmp->get_num_stored_elements() / tmp->get_num_batch_entries();
     size_type offset = 0;
-    for (size_type batch = 0; batch < tmp->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < tmp->get_num_batch_entries(); ++batch) {
         data[batch] = {tmp->get_size().at(batch), {}};
 
         for (size_type row = 0; row < tmp->get_size().at(0)[0]; ++row) {

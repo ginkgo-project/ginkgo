@@ -275,23 +275,23 @@ struct batch_dim {
     bool stores_equal_sizes() const { return equal_sizes_; }
 
     /**
-     * Get the number of batches stored
+     * Get the number of batch entries stored
      *
-     * @return num_batches
+     * @return num_batch_entries
      */
-    size_type get_num_batches() const { return num_batches_; }
+    size_type get_num_batch_entries() const { return num_batch_entries_; }
 
     /**
-     * Get the batch sizes as a std::vector.
+     * Get the sizes of all entries as a std::vector.
      *
      * @return  the std::vector of batch sizes
      */
     std::vector<dim<dimensionality, dimension_type>> get_batch_sizes() const
     {
         if (equal_sizes_) {
-            if (num_batches_ > 0) {
+            if (num_batch_entries_ > 0) {
                 return std::vector<dim<dimensionality, dimension_type>>(
-                    num_batches_, common_size_);
+                    num_batch_entries_, common_size_);
             } else {
                 return std::vector<dim<dimensionality, dimension_type>>{
                     common_size_};
@@ -304,18 +304,18 @@ struct batch_dim {
     /**
      * Get the batch size at a particular index.
      *
-     * @param batch the index whose size is needed
+     * @param batch_entry  the index of the entry whose size is needed
      *
-     * @return  the size of the batch at the requested index
+     * @return  the size of the batch entry at the requested batch-index
      */
     const dim<dimensionality, dimension_type> &at(
-        const size_type batch = 0) const
+        const size_type batch_entry = 0) const
     {
         if (equal_sizes_) {
             return common_size_;
         } else {
-            GKO_ASSERT(batch < num_batches_);
-            return sizes_[batch];
+            GKO_ASSERT(batch_entry < num_batch_entries_);
+            return sizes_[batch_entry];
         }
     }
 
@@ -330,7 +330,7 @@ struct batch_dim {
     friend bool operator==(const batch_dim &x, const batch_dim &y)
     {
         if (x.equal_sizes_ && y.equal_sizes_) {
-            return x.num_batches_ == y.num_batches_ &&
+            return x.num_batch_entries_ == y.num_batch_entries_ &&
                    x.common_size_ == y.common_size_;
         } else {
             return x.sizes_ == y.sizes_;
@@ -338,24 +338,26 @@ struct batch_dim {
     }
 
     /**
-     * Creates a batch_dim object which stores uniform batch sizes.
+     * Creates a batch_dim object which stores a uniform size for all batch
+     * entries.
      *
-     * @param num_batches  number of batches to be stored
-     * @param size  the size of all the batches stored
+     * @param num_batch_entries  number of batch entries to be stored
+     * @param common_size  the common size of all the batch entries stored
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    batch_dim(const size_type num_batches = 0,
-              const dim<dimensionality, dimension_type> &size =
+    batch_dim(const size_type num_batch_entries = 0,
+              const dim<dimensionality, dimension_type> &common_size =
                   dim<dimensionality, dimension_type>{})
         : equal_sizes_(true),
-          common_size_(size),
-          num_batches_(num_batches),
+          common_size_(common_size),
+          num_batch_entries_(num_batch_entries),
           sizes_()
     {}
 
     /**
-     * Creates a batch_dim object which stores possibly non-uniform batch sizes.
+     * Creates a batch_dim object which stores possibly non-uniform sizes for
+     * the different batch entries.
      *
      * @param batch_sizes  the std::vector object that stores the batch_sizes
      *
@@ -365,7 +367,7 @@ struct batch_dim {
         const std::vector<dim<dimensionality, dimension_type>> &batch_sizes)
         : equal_sizes_(false),
           common_size_(dim<dimensionality, dimension_type>{}),
-          num_batches_(batch_sizes.size()),
+          num_batch_entries_(batch_sizes.size()),
           sizes_(batch_sizes)
     {
         check_size_equality();
@@ -374,7 +376,7 @@ struct batch_dim {
 private:
     void check_size_equality()
     {
-        for (size_type i = 0; i < num_batches_; ++i) {
+        for (size_type i = 0; i < num_batch_entries_; ++i) {
             if (!(sizes_[i] == sizes_[0])) {
                 return;
             }
@@ -384,7 +386,7 @@ private:
     }
 
     bool equal_sizes_{};
-    size_type num_batches_{};
+    size_type num_batch_entries_{};
     dim<dimensionality, dimension_type> common_size_{};
     std::vector<dim<dimensionality, dimension_type>> sizes_{};
 };
@@ -462,11 +464,12 @@ inline batch_dim<2, DimensionType> transpose(
 {
     batch_dim<2, DimensionType> out{};
     if (input.stores_equal_sizes()) {
-        out = batch_dim<2, DimensionType>(input.get_num_batches(),
+        out = batch_dim<2, DimensionType>(input.get_num_batch_entries(),
                                           gko::transpose(input.at(0)));
         return out;
     }
-    auto trans = std::vector<dim<2, DimensionType>>(input.get_num_batches());
+    auto trans =
+        std::vector<dim<2, DimensionType>>(input.get_num_batch_entries());
     for (size_type i = 0; i < trans.size(); ++i) {
         trans[i] = transpose(input.at(i));
     }
