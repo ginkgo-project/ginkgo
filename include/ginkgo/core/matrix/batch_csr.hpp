@@ -128,9 +128,9 @@ public:
         auto exec = this->get_executor();
         auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
         size_type num_nnz =
-            this->get_num_stored_elements() / this->get_num_batches();
+            this->get_num_stored_elements() / this->get_num_batch_entries();
         size_type offset = 0;
-        for (size_type b = 0; b < this->get_num_batches(); ++b) {
+        for (size_type b = 0; b < this->get_num_batch_entries(); ++b) {
             auto mat =
                 unbatch_type::create(exec, this->get_size().at(b), num_nnz);
             exec->copy_from(exec.get(), num_nnz,
@@ -233,15 +233,16 @@ protected:
      * Creates an uninitialized BatchCsr matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
-     * @param num_batches  the number of batches to be stored
+     * @param num_batch_entries  the number of batches to be stored
      * @param size  the common size of all the batch matrices
      * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
-             const size_type num_batches = {}, const dim<2> &size = dim<2>{},
-             size_type num_nonzeros = {})
-        : EnableBatchLinOp<BatchCsr>(exec, batch_dim<2>(num_batches, size)),
-          values_(exec, num_nonzeros * num_batches),
+             const size_type num_batch_entries = {},
+             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+        : EnableBatchLinOp<BatchCsr>(exec,
+                                     batch_dim<2>(num_batch_entries, size)),
+          values_(exec, num_nonzeros * num_batch_entries),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, (size[0]) + 1)
     {}
@@ -255,7 +256,7 @@ protected:
      * @tparam RowPtrsArray  type of `row_ptrs` array
      *
      * @param exec  Executor associated to the matrix
-     * @param num_batches  the number of batches
+     * @param num_batch_entries  the number of batches
      * @param size  the common size of the batch matrices
      * @param values  array of matrix values concatenated for the different
      *                batches
@@ -272,16 +273,18 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    BatchCsr(std::shared_ptr<const Executor> exec, const size_type num_batches,
-             const dim<2> &size, ValuesArray &&values, ColIdxsArray &&col_idxs,
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const size_type num_batch_entries, const dim<2> &size,
+             ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableBatchLinOp<BatchCsr>(exec, batch_dim<2>(num_batches, size)),
+        : EnableBatchLinOp<BatchCsr>(exec,
+                                     batch_dim<2>(num_batch_entries, size)),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
         GKO_ASSERT_EQ(values_.get_num_elems(),
-                      col_idxs_.get_num_elems() * num_batches);
+                      col_idxs_.get_num_elems() * num_batch_entries);
         GKO_ASSERT_EQ(this->get_size().at(0)[0] + 1, row_ptrs_.get_num_elems());
     }
 

@@ -135,6 +135,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), value_type{6.0});
+    ASSERT_EQ(m->at(2, 2), value_type{-1.0});
 }
 
 
