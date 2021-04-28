@@ -478,7 +478,7 @@ TYPED_TEST(BatchDense, ConvertsToCsr32)
     auto v = batch_csr_mtx->get_const_values();
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
+    ASSERT_EQ(batch_csr_mtx->get_num_batch_entries(), 2);
     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
@@ -515,7 +515,7 @@ TYPED_TEST(BatchDense, MovesToCsr32)
     auto v = batch_csr_mtx->get_const_values();
     auto c = batch_csr_mtx->get_const_col_idxs();
     auto r = batch_csr_mtx->get_const_row_ptrs();
-    ASSERT_EQ(batch_csr_mtx->get_num_batches(), 2);
+    ASSERT_EQ(batch_csr_mtx->get_num_batch_entries(), 2);
     ASSERT_EQ(batch_csr_mtx->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(batch_csr_mtx->get_num_stored_elements(), 10);
@@ -552,7 +552,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyToPrecision)
 
     empty->convert_to(res.get());
 
-    ASSERT_FALSE(res->get_num_batches());
+    ASSERT_FALSE(res->get_num_batch_entries());
 }
 
 
@@ -567,7 +567,7 @@ TYPED_TEST(BatchDense, MovesEmptyToPrecision)
 
     empty->move_to(res.get());
 
-    ASSERT_FALSE(res->get_num_batches());
+    ASSERT_FALSE(res->get_num_batch_entries());
 }
 
 
@@ -583,7 +583,7 @@ TYPED_TEST(BatchDense, ConvertsEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_num_batches());
+    ASSERT_FALSE(res->get_num_batch_entries());
 }
 
 
@@ -599,7 +599,7 @@ TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
-    ASSERT_FALSE(res->get_num_batches());
+    ASSERT_FALSE(res->get_num_batch_entries());
 }
 
 
