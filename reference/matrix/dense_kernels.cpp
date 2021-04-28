@@ -220,7 +220,7 @@ void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
     }
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += x->at(i, j) * conj(y->at(i, j));
+            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
         }
     }
 }
