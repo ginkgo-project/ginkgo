@@ -480,6 +480,44 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(hip, gko::dim<2>{1, 2});
+
+    complex_b->compute_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
+}
+
+
+TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(hip, gko::dim<2>{1, 2});
+
+    complex_b->compute_conj_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_conj_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
+}
+
+
 TEST_F(Dense, IsTransposable)
 {
     set_up_apply_data();
