@@ -250,25 +250,38 @@ void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Dense<ValueType> *y,
                       matrix::Dense<ValueType> *result)
 {
-    // TODO: these are tuning parameters obtained experimentally, once
-    // we decide how to handle this uniformly, they should be modified
-    // appropriately
-    constexpr auto work_per_thread = 32;
-    constexpr auto block_size = 1024;
+    if (cublas::is_supported<ValueType>::value) {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            cublas::conj_dot(exec->get_cublas_handle(), x->get_size()[0],
+                             x->get_const_values() + col, x->get_stride(),
+                             y->get_const_values() + col, y->get_stride(),
+                             result->get_values() + col);
+        }
+    } else {
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = 1024;
 
-    constexpr auto work_per_block = work_per_thread * block_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    Array<ValueType> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        kernel::compute_partial_conj_dot<block_size><<<grid_dim, block_dim>>>(
-            x->get_size()[0], as_cuda_type(x->get_const_values() + col),
-            x->get_stride(), as_cuda_type(y->get_const_values() + col),
-            y->get_stride(), as_cuda_type(work.get_data()));
-        kernel::finalize_sum_reduce_computation<block_size>
-            <<<1, block_dim>>>(grid_dim.x, as_cuda_type(work.get_const_data()),
-                               as_cuda_type(result->get_values() + col));
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<ValueType> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            kernel::compute_partial_conj_dot<block_size>
+                <<<grid_dim, block_dim>>>(
+                    x->get_size()[0], as_cuda_type(x->get_const_values() + col),
+                    x->get_stride(), as_cuda_type(y->get_const_values() + col),
+                    y->get_stride(), as_cuda_type(work.get_data()));
+            kernel::finalize_sum_reduce_computation<block_size>
+                <<<1, block_dim>>>(grid_dim.x,
+                                   as_cuda_type(work.get_const_data()),
+                                   as_cuda_type(result->get_values() + col));
+        }
     }
 }
 
