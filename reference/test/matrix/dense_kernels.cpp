@@ -2971,4 +2971,38 @@ TYPED_TEST(DenseComplex, GetImagWithGivenResult)
 }
 
 
+TYPED_TEST(DenseComplex, Dot)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto a =
+        gko::initialize<Mtx>({T{1.0, 0.0}, T{3.0, 4.0}, T{1.0, 2.0}}, exec);
+    auto b =
+        gko::initialize<Mtx>({T{1.0, -2.0}, T{5.0, 0.0}, T{0.0, -3.0}}, exec);
+    auto result = gko::initialize<Mtx>({T{0.0, 0.0}}, exec);
+
+    a->compute_dot(b.get(), result.get());
+
+    GKO_ASSERT_MTX_NEAR(result, l({T{22.0, 15.0}}), 0.0);
+}
+
+
+TYPED_TEST(DenseComplex, ConjDot)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto a =
+        gko::initialize<Mtx>({T{1.0, 0.0}, T{3.0, 4.0}, T{1.0, 2.0}}, exec);
+    auto b =
+        gko::initialize<Mtx>({T{1.0, -2.0}, T{5.0, 0.0}, T{0.0, -3.0}}, exec);
+    auto result = gko::initialize<Mtx>({T{0.0, 0.0}}, exec);
+
+    a->compute_conj_dot(b.get(), result.get());
+
+    GKO_ASSERT_MTX_NEAR(result, l({T{10.0, -25.0}}), 0.0);
+}
+
+
 }  // namespace
