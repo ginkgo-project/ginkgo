@@ -91,8 +91,8 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
     if (!batch_size.stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     } else {
-        num_stored_nonzeros =
-            Array<size_type>{exec->get_master(), source->get_num_batches()};
+        num_stored_nonzeros = Array<size_type>{exec->get_master(),
+                                               source->get_num_batch_entries()};
 
         exec->get_master()->run(batch_dense::make_count_nonzeros(
             source, num_stored_nonzeros.get_data()));
@@ -101,7 +101,7 @@ inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
     size_type num_nnz =
         num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
     auto tmp = BatchCsr<ValueType, IndexType>::create(
-        exec, source->get_num_batches(), main_size, num_nnz);
+        exec, source->get_num_batch_entries(), main_size, num_nnz);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
@@ -147,8 +147,8 @@ void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha, batch_dim<2>(this->get_num_batches(), dim<2>(1, 1)));
-    for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
+        batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
+    for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
         if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
             GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
@@ -166,8 +166,8 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     auto batch_b = as<BatchDense<ValueType>>(b);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
-        batch_alpha, batch_dim<2>(this->get_num_batches(), dim<2>(1, 1)));
-    for (size_type b = 0; b < batch_alpha->get_num_batches(); ++b) {
+        batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
+    for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
         if (batch_alpha->get_size().at(b)[1] != 1) {
             // different alpha for each column
             GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
@@ -182,7 +182,7 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
 
 inline const batch_dim<2> get_col_sizes(const batch_dim<2> &sizes)
 {
-    auto col_sizes = std::vector<dim<2>>(sizes.get_num_batches());
+    auto col_sizes = std::vector<dim<2>>(sizes.get_num_batch_entries());
     for (size_type i = 0; i < col_sizes.size(); ++i) {
         col_sizes[i] = dim<2>(1, sizes.at(i)[1]);
     }
@@ -252,23 +252,6 @@ void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32> *result)
 }
 
 
-// template <typename ValueType>
-// void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int64> *result)
-// const
-// {
-//     conversion_helper(result, this,
-//                       batch_dense::template make_convert_to_batch_csr<
-//                           const BatchDense<ValueType> *&, decltype(result)>);
-// }
-
-
-// template <typename ValueType>
-// void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int64> *result)
-// {
-//     this->convert_to(result);
-// }
-
-
 namespace {
 
 
@@ -335,8 +318,8 @@ inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
         tmp = mtx;
     }
 
-    data = std::vector<MatrixData>(mtx->get_num_batches());
-    for (size_type b = 0; b < mtx->get_num_batches(); ++b) {
+    data = std::vector<MatrixData>(mtx->get_num_batch_entries());
+    for (size_type b = 0; b < mtx->get_num_batch_entries(); ++b) {
         data[b] = {mtx->get_size().at(b), {}};
         for (size_type row = 0; row < data[b].size[0]; ++row) {
             for (size_type col = 0; col < data[b].size[1]; ++col) {

@@ -52,15 +52,16 @@ protected:
     BatchGenerator()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
-              bsize.get_num_batches(), bsize.at()[0], bsize.at()[1],
+              bsize.get_num_batch_entries(), bsize.at()[0], bsize.at()[1],
               std::normal_distribution<double>(50, 5),
               std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
               exec)),
-          nnz_per_row_sample(bsize.get_num_batches() * bsize.at()[0], 0),
+          nnz_per_row_sample(bsize.get_num_batch_entries() * bsize.at()[0], 0),
           values_sample(0)
     {
         // collect samples of nnz/row and values from the matrix
-        for (size_t ibatch = 0; ibatch < bsize.get_num_batches(); ibatch++) {
+        for (size_t ibatch = 0; ibatch < bsize.get_num_batch_entries();
+             ibatch++) {
             for (int row = 0; row < mtx->get_size().at(ibatch)[0]; ++row) {
                 for (int col = 0; col < mtx->get_size().at(ibatch)[1]; ++col) {
                     auto val = mtx->at(ibatch, row, col);

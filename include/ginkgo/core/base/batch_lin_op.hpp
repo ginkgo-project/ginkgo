@@ -180,9 +180,9 @@ public:
      *
      * @return number of batches in the batch operator
      */
-    size_type get_num_batches() const noexcept
+    size_type get_num_batch_entries() const noexcept
     {
-        return size_.get_num_batches();
+        return size_.get_num_batch_entries();
     }
 
     /**
@@ -213,15 +213,16 @@ protected:
      * Creates a batch operator with uniform batches.
      *
      * @param exec        the executor where all the operations are performed
-     * @param num_batches the number of batches to be stored in the operator
+     * @param num_batch_entries the number of batches to be stored in the
+     * operator
      * @param size        the size of on of the operator in the batched operator
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
-                        const size_type num_batches = 0,
+                        const size_type num_batch_entries = 0,
                         const dim<2> &size = dim<2>{})
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
-          size_{num_batches > 0 ? batch_dim<2>(num_batches, size)
-                                : batch_dim<2>{}}
+          size_{num_batch_entries > 0 ? batch_dim<2>(num_batch_entries, size)
+                                      : batch_dim<2>{}}
     {}
 
     /**
@@ -283,8 +284,8 @@ protected:
      * @param b  batch vector(s) on which the operator is applied
      * @param x  output batch vector(s)
      */
-    virtual void validate_application_parameters(const BatchLinOp *b,
-                                                 const BatchLinOp *x) const
+    void validate_application_parameters(const BatchLinOp *b,
+                                         const BatchLinOp *x) const
     {
         GKO_ASSERT_BATCH_CONFORMANT(this, b);
         GKO_ASSERT_BATCH_EQUAL_ROWS(this, x);
@@ -300,16 +301,16 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output batch vector(s)
      */
-    virtual void validate_application_parameters(const BatchLinOp *alpha,
-                                                 const BatchLinOp *b,
-                                                 const BatchLinOp *beta,
-                                                 const BatchLinOp *x) const
+    void validate_application_parameters(const BatchLinOp *alpha,
+                                         const BatchLinOp *b,
+                                         const BatchLinOp *beta,
+                                         const BatchLinOp *x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
-            alpha, batch_dim<2>(b->get_num_batches(), dim<2>(1, 1)));
+            alpha, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
-            beta, batch_dim<2>(b->get_num_batches(), dim<2>(1, 1)));
+            beta, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
     }
 
 private:
@@ -467,11 +468,11 @@ protected:
 
 
 /**
- * Batch Linear operators which support transposition should implement the
- * Transposable interface.
+ * Batch Linear operators which support transposition of the distinct batch
+ * entries should implement the BatchTransposable interface.
  *
  * It provides two functionalities, the normal transpose and the
- * conjugate transpose.
+ * conjugate transpose, both transposing the invidual batch entries.
  *
  * The normal transpose returns the transpose of the linear operator without
  * changing any of its elements representing the operation, $B = A^{T}$.
@@ -480,11 +481,11 @@ protected:
  * additionally transposes the linear operator representing the operation, $B
  * = A^{H}$.
  *
- * Example: Transposing a Csr matrix:
+ * Example: Transposing a BatchCsr matrix:
  * ------------------------------------
  *
  * ```c++
- * //Transposing an object of LinOp type.
+ * //Transposing an object of BatchLinOp type.
  * //The object you want to transpose.
  * auto op = matrix::BatchCsr::create(exec);
  * //Transpose the object by first converting it to a transposable type.
@@ -496,16 +497,16 @@ public:
     virtual ~BatchTransposable() = default;
 
     /**
-     * Returns a BatchLinOp representing the transpose of the BatchTransposable
-     * object.
+     * Returns a BatchLinOp containing the transposes of the distinct entries of
+     * the BatchTransposable object.
      *
      * @return a pointer to the new transposed object
      */
     virtual std::unique_ptr<BatchLinOp> transpose() const = 0;
 
     /**
-     * Returns a BatchLinOp representing the conjugate transpose of the
-     * BatchTransposable object.
+     * Returns a BatchLinOp containing the conjugate transpose of the distinct
+     * entries of the BatchTransposable object.
      *
      * @return a pointer to the new conjugate transposed object
      */

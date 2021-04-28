@@ -61,11 +61,11 @@ public:
     bool stores_equal_strides() const { return equal_strides_; }
 
     /**
-     * Get the number of batches stored
+     * Get the number of batche entries stored
      *
-     * @return num_batches
+     * @return num_batch_entries
      */
-    size_type get_num_batches() const { return num_batches_; }
+    size_type get_num_batch_entries() const { return num_batch_entries_; }
 
     /**
      * Get the batch strides as a std::vector.
@@ -77,24 +77,24 @@ public:
         if (!equal_strides_) {
             return strides_;
         } else {
-            return std::vector<size_type>(num_batches_, common_stride_);
+            return std::vector<size_type>(num_batch_entries_, common_stride_);
         }
     }
 
     /**
-     * Get the batch size at a particular index.
+     * Get the batch size of a particular entry in the batch.
      *
-     * @param batch the index whose size is needed
+     * @param batch_entry the entry whose size is needed
      *
-     * @return  the size of the batch at the requested index
+     * @return  the size of the batch entry at the requested index
      */
-    const size_type &at(const size_type batch = 0) const
+    const size_type &at(const size_type batch_entry = 0) const
     {
         if (equal_strides_) {
             return common_stride_;
         } else {
-            GKO_ASSERT(batch < num_batches_);
-            return strides_[batch];
+            GKO_ASSERT(batch_entry < num_batch_entries_);
+            return strides_[batch_entry];
         }
     }
 
@@ -109,7 +109,7 @@ public:
     friend bool operator==(const batch_stride &x, const batch_stride &y)
     {
         if (x.equal_strides_ && y.equal_strides_) {
-            return x.num_batches_ == y.num_batches_ &&
+            return x.num_batch_entries_ == y.num_batch_entries_ &&
                    x.common_stride_ == y.common_stride_;
         } else {
             return x.strides_ == y.strides_;
@@ -119,15 +119,17 @@ public:
     /**
      * Creates a batch_stride object which stores uniform batch strides.
      *
-     * @param num_batches  number of batches to be stored
-     * @param stride  the stride of all the batches stored
+     * @param num_batch_entries  number of batche entries to be stored
+     * @param common_stride  the common stride of all the batch entries to be
+     * stored
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    batch_stride(const size_type num_batches = 0, const size_type &stride = 0)
+    batch_stride(const size_type num_batch_entries = 0,
+                 const size_type &common_stride = 0)
         : equal_strides_(true),
-          common_stride_(stride),
-          num_batches_(num_batches),
+          common_stride_(common_stride),
+          num_batch_entries_(num_batch_entries),
           strides_()
     {}
 
@@ -143,7 +145,7 @@ public:
     batch_stride(const std::vector<size_type> &batch_strides)
         : equal_strides_(false),
           common_stride_(size_type{}),
-          num_batches_(batch_strides.size()),
+          num_batch_entries_(batch_strides.size()),
           strides_(batch_strides)
     {
         check_equal_strides();
@@ -152,7 +154,7 @@ public:
 private:
     inline void check_equal_strides()
     {
-        for (size_type b = 1; b < num_batches_; ++b) {
+        for (size_type b = 1; b < num_batch_entries_; ++b) {
             if (strides_[0] != strides_[b]) {
                 equal_strides_ = false;
                 common_stride_ = 0;
@@ -164,7 +166,7 @@ private:
     }
 
     bool equal_strides_{};
-    size_type num_batches_{};
+    size_type num_batch_entries_{};
     size_type common_stride_{};
     std::vector<size_type> strides_{};
 };
@@ -272,7 +274,7 @@ public:
     {
         auto exec = this->get_executor();
         auto unbatch_mats = std::vector<std::unique_ptr<unbatch_type>>{};
-        for (size_type b = 0; b < this->get_num_batches(); ++b) {
+        for (size_type b = 0; b < this->get_num_batch_entries(); ++b) {
             auto mat = unbatch_type::create(exec, this->get_size().at(b),
                                             this->get_stride().at(b));
             exec->copy_from(exec.get(), mat->get_num_stored_elements(),
@@ -298,7 +300,7 @@ public:
      */
     value_type *get_values(size_type batch) noexcept
     {
-        GKO_ASSERT(batch < this->get_num_batches());
+        GKO_ASSERT(batch < this->get_num_batch_entries());
         return values_.get_data() +
                num_elems_per_batch_cumul_.get_const_data()[batch];
     }
@@ -324,7 +326,7 @@ public:
      */
     const value_type *get_const_values(size_type batch) const noexcept
     {
-        GKO_ASSERT(batch < this->get_num_batches());
+        GKO_ASSERT(batch < this->get_num_batch_entries());
         return values_.get_const_data() +
                num_elems_per_batch_cumul_.get_const_data()[batch];
     }
@@ -358,7 +360,7 @@ public:
      */
     size_type get_num_stored_elements(size_type batch) const noexcept
     {
-        GKO_ASSERT(batch < this->get_num_batches());
+        GKO_ASSERT(batch < this->get_num_batch_entries());
         return num_elems_per_batch_cumul_.get_const_data()[batch + 1] -
                num_elems_per_batch_cumul_.get_const_data()[batch];
     }
@@ -376,7 +378,7 @@ public:
      */
     value_type &at(size_type batch, size_type row, size_type col) noexcept
     {
-        GKO_ASSERT(batch < this->get_num_batches());
+        GKO_ASSERT(batch < this->get_num_batch_entries());
         return values_.get_data()[linearize_index(batch, row, col)];
     }
 
@@ -385,12 +387,12 @@ public:
      */
     value_type at(size_type batch, size_type row, size_type col) const noexcept
     {
-        GKO_ASSERT(batch < this->get_num_batches());
+        GKO_ASSERT(batch < this->get_num_batch_entries());
         return values_.get_const_data()[linearize_index(batch, row, col)];
     }
 
     /**
-     * Returns a single element for a particular batch.
+     * Returns a single element for a particular batch entry.
      *
      * Useful for iterating across all elements of the matrix.
      * However, it is less efficient than the two-parameter variant of this
@@ -449,9 +451,9 @@ public:
     }
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`. Dot products
-     * are computed for each corresponding batch. If the matrix has complex
-     * value_type, then the conjugate of this is taken.
+     * Computes the column-wise dot product of each matrix in this batch and its
+     * corresponding entry in `b`. If the matrix has complex value_type, then
+     * the conjugate of this is taken.
      *
      * @param b  a BatchDense matrix of same dimension as this
      * @param result  a BatchDense row vector, used to store the dot product
@@ -466,8 +468,7 @@ public:
     }
 
     /**
-     * Computes the Euclidean (L^2) norm of this matrix. Norms are computed for
-     * each batch.
+     * Computes the Euclidean (L^2) norm of each matrix in this batch.
      *
      * @param result  a BatchDense row vector, used to store the norm
      *                (the number of columns in the vector must match the number
@@ -487,12 +488,14 @@ private:
     inline size_type compute_batch_mem(const batch_dim<2> &sizes,
                                        const batch_stride &strides)
     {
-        GKO_ASSERT(sizes.get_num_batches() == strides.get_num_batches());
+        GKO_ASSERT(sizes.get_num_batch_entries() ==
+                   strides.get_num_batch_entries());
         if (sizes.stores_equal_sizes() && strides.stores_equal_strides()) {
-            return (sizes.at(0))[0] * strides.at(0) * sizes.get_num_batches();
+            return (sizes.at(0))[0] * strides.at(0) *
+                   sizes.get_num_batch_entries();
         }
         size_type mem_req = 0;
-        for (auto i = 0; i < sizes.get_num_batches(); ++i) {
+        for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
             mem_req += (sizes.at(i))[0] * strides.at(i);
         }
         return mem_req;
@@ -504,10 +507,10 @@ private:
     inline batch_stride extract_nth_dim(const int dim, const batch_dim<2> &size)
     {
         if (size.stores_equal_sizes()) {
-            return batch_stride(size.get_num_batches(), size.at(0)[dim]);
+            return batch_stride(size.get_num_batch_entries(), size.at(0)[dim]);
         }
-        std::vector<size_type> stride(size.get_num_batches());
-        for (auto i = 0; i < size.get_num_batches(); ++i) {
+        std::vector<size_type> stride(size.get_num_batch_entries());
+        for (auto i = 0; i < size.get_num_batch_entries(); ++i) {
             stride[i] = (size.at(i))[dim];
         }
         return batch_stride(stride);
@@ -547,10 +550,10 @@ private:
         std::shared_ptr<const Executor> exec, const batch_dim<2> &sizes,
         const batch_stride &strides)
     {
-        auto num_elems =
-            Array<size_type>(exec->get_master(), sizes.get_num_batches() + 1);
+        auto num_elems = Array<size_type>(exec->get_master(),
+                                          sizes.get_num_batch_entries() + 1);
         num_elems.get_data()[0] = 0;
-        for (auto i = 0; i < sizes.get_num_batches(); ++i) {
+        for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
             num_elems.get_data()[i + 1] =
                 num_elems.get_data()[i] + (sizes.at(i))[0] * strides.at(i);
         }
@@ -568,8 +571,8 @@ protected:
     BatchDense(std::shared_ptr<const Executor> exec,
                const batch_dim<2> &size = batch_dim<2>{})
         : BatchDense(std::move(exec), size,
-                     size.get_num_batches() > 0 ? extract_nth_dim(1, size)
-                                                : batch_stride{})
+                     size.get_num_batch_entries() > 0 ? extract_nth_dim(1, size)
+                                                      : batch_stride{})
     {}
 
     /**
@@ -641,7 +644,7 @@ protected:
     {
         num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
             exec->get_master(), this->get_size(), stride_);
-        for (size_type i = 0; i < this->get_num_batches(); ++i) {
+        for (size_type i = 0; i < this->get_num_batch_entries(); ++i) {
             auto local_exec = matrices[i]->get_executor();
             exec->copy_from(local_exec.get(),
                             matrices[i]->get_num_stored_elements(),
@@ -726,7 +729,7 @@ private:
 
 
 /**
- * Creates and initializes a column-vector.
+ * Creates and initializes a batch of column-vectors.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
  * values, and then converts the matrix to the requested type.
@@ -737,7 +740,7 @@ private:
  *                (not including the implied Executor as the first argument)
  *
  * @param stride  row stride for the temporary Dense matrix
- * @param vals  values used to initialize the vector
+ * @param vals  values used to initialize the batch vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
  *                     including the Executor, which is passed as the first
@@ -754,11 +757,11 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
-    size_type num_batches = vals.size();
-    std::vector<size_type> num_rows(num_batches);
-    std::vector<dim<2>> sizes(num_batches);
+    size_type num_batch_entries = vals.size();
+    std::vector<size_type> num_rows(num_batch_entries);
+    std::vector<dim<2>> sizes(num_batch_entries);
     auto vals_begin = begin(vals);
-    for (size_type b = 0; b < num_batches; ++b) {
+    for (size_type b = 0; b < num_batch_entries; ++b) {
         num_rows[b] = vals_begin->size();
         sizes[b] = dim<2>(num_rows[b], 1);
         vals_begin++;
@@ -781,7 +784,7 @@ std::unique_ptr<Matrix> batch_initialize(
 }
 
 /**
- * Creates and initializes a column-vector.
+ * Creates and initializes a batch of column-vectors.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
  * values, and then converts the matrix to the requested type. The stride of
@@ -814,7 +817,7 @@ std::unique_ptr<Matrix> batch_initialize(
 
 
 /**
- * Creates and initializes a matrix.
+ * Creates and initializes a batch of matrices.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
  * values, and then converts the matrix to the requested type.
@@ -843,10 +846,10 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
-    size_type num_batches = vals.size();
-    std::vector<size_type> num_rows(num_batches);
-    std::vector<size_type> num_cols(num_batches);
-    std::vector<dim<2>> sizes(num_batches);
+    size_type num_batch_entries = vals.size();
+    std::vector<size_type> num_rows(num_batch_entries);
+    std::vector<size_type> num_cols(num_batch_entries);
+    std::vector<dim<2>> sizes(num_batch_entries);
     size_type ind = 0;
     for (const auto &b : vals) {
         num_rows[ind] = b.size();
@@ -877,7 +880,7 @@ std::unique_ptr<Matrix> batch_initialize(
 
 
 /**
- * Creates and initializes a matrix.
+ * Creates and initializes a batch of matrices.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
  * values, and then converts the matrix to the requested type. The stride of
@@ -917,7 +920,8 @@ std::unique_ptr<Matrix> batch_initialize(
 
 
 /**
- * Creates and initializes a column-vector from copies of a given vector.
+ * Creates and initializes a batch column-vector by making copies of the single
+ * input column vector.
  *
  * This function first creates a temporary batch dense matrix, fills it with
  * passed in values, and then converts the matrix to the requested type.
@@ -947,7 +951,7 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
-    size_type num_batches = num_vectors;
+    size_type num_batch_entries = num_vectors;
     std::vector<size_type> num_rows(num_vectors);
     std::vector<dim<2>> sizes(num_vectors);
     for (size_type b = 0; b < num_vectors; ++b) {

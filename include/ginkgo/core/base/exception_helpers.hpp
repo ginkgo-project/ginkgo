@@ -162,7 +162,7 @@ inline batch_dim<2> get_batch_size(const batch_dim<2> &size) { return size; }
 inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
                                                  const batch_dim<2> &size2)
 {
-    if (size1.get_num_batches() != size2.get_num_batches()) {
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
     }
 
@@ -174,7 +174,7 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
         }
     }
 
-    for (auto i = 0; i < size1.get_num_batches(); ++i) {
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
         if (size1.at(i)[1] != size2.at(i)[0]) {
             return std::tuple<bool, int>{false, i};
         }
@@ -186,7 +186,7 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
 inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
                                                  const batch_dim<2> &size2)
 {
-    if (size1.get_num_batches() != size2.get_num_batches()) {
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
     }
 
@@ -198,7 +198,7 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
         }
     }
 
-    for (auto i = 0; i < size1.get_num_batches(); ++i) {
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
         if (size1.at(i)[0] != size2.at(i)[1]) {
             return std::tuple<bool, int>{false, i};
         }
@@ -210,7 +210,7 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
 inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
                                                 const batch_dim<2> &size2)
 {
-    if (size1.get_num_batches() != size2.get_num_batches()) {
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
     }
 
@@ -222,7 +222,7 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
         }
     }
 
-    for (auto i = 0; i < size1.get_num_batches(); ++i) {
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
         if (size1.at(i)[0] != size2.at(i)[0]) {
             return std::tuple<bool, int>{false, i};
         }
@@ -234,7 +234,7 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
 inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
                                                 const batch_dim<2> &size2)
 {
-    if (size1.get_num_batches() != size2.get_num_batches()) {
+    if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
     }
 
@@ -246,7 +246,7 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
         }
     }
 
-    for (auto i = 0; i < size1.get_num_batches(); ++i) {
+    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
         if (size1.at(i)[1] != size2.at(i)[1]) {
             return std::tuple<bool, int>{false, i};
         }
