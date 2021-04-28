@@ -138,8 +138,8 @@ protected:
 
 TEST_F(EnableBatchLinOp, KnowsNumBatches)
 {
-    ASSERT_EQ(op->get_num_batches(), 1);
-    ASSERT_EQ(op2->get_num_batches(), 2);
+    ASSERT_EQ(op->get_num_batch_entries(), 1);
+    ASSERT_EQ(op2->get_num_batch_entries(), 2);
 }
 
 
