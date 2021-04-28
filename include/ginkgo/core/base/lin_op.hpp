@@ -290,8 +290,7 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    virtual void validate_application_parameters(const LinOp *b,
-                                                 const LinOp *x) const
+    void validate_application_parameters(const LinOp *b, const LinOp *x) const
     {
         GKO_ASSERT_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(this, x);
@@ -307,10 +306,9 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void validate_application_parameters(const LinOp *alpha,
-                                                 const LinOp *b,
-                                                 const LinOp *beta,
-                                                 const LinOp *x) const
+    void validate_application_parameters(const LinOp *alpha, const LinOp *b,
+                                         const LinOp *beta,
+                                         const LinOp *x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));

@@ -57,9 +57,9 @@ namespace batch_csr {
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-inline void spmv_ker(const gko::batch_csr::BatchEntry<const ValueType> &a,
-                     const gko::batch_dense::BatchEntry<const ValueType> &b,
-                     const gko::batch_dense::BatchEntry<ValueType> &c)
+inline void spmv_kernel(const gko::batch_csr::BatchEntry<const ValueType> &a,
+                        const gko::batch_dense::BatchEntry<const ValueType> &b,
+                        const gko::batch_dense::BatchEntry<ValueType> &c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < b.num_rhs; ++j) {
@@ -83,11 +83,10 @@ inline void spmv_ker(const gko::batch_csr::BatchEntry<const ValueType> &a,
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-inline void adv_spmv_ker(const ValueType alpha,
-                         const gko::batch_csr::BatchEntry<const ValueType> &a,
-                         const gko::batch_dense::BatchEntry<const ValueType> &b,
-                         const ValueType beta,
-                         const gko::batch_dense::BatchEntry<ValueType> &c)
+inline void advanced_spmv_kernel(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
+    const gko::batch_dense::BatchEntry<const ValueType> &b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < c.num_rhs; ++j) {
