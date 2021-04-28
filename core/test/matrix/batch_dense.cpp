@@ -66,7 +66,7 @@ protected:
     static void assert_equal_to_original_mtx(
         gko::matrix::BatchDense<value_type> *m)
     {
-        ASSERT_EQ(m->get_num_batches(), 2);
+        ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_stride().at(0), 4);
@@ -90,8 +90,8 @@ protected:
 
     static void assert_empty(gko::matrix::BatchDense<value_type> *m)
     {
-        ASSERT_EQ(m->get_num_batches(), 0);
-        ASSERT_EQ(m->get_num_batches(), 0);
+        ASSERT_EQ(m->get_num_batch_entries(), 0);
+        ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
@@ -123,7 +123,7 @@ TYPED_TEST(BatchDense, CanBeConstructedWithSize)
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 4}, gko::dim<2>{2, 3}});
 
-    ASSERT_EQ(m->get_num_batches(), 2);
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 4));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride().at(0), 4);
@@ -220,7 +220,7 @@ TYPED_TEST(BatchDense, CanBeListConstructed)
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
         {{1.0, 2.0}, {1.0, 3.0}}, this->exec);
 
-    ASSERT_EQ(m->get_num_batches(), 2);
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
@@ -236,7 +236,7 @@ TYPED_TEST(BatchDense, CanBeListConstructedWithstride)
     using value_type = typename TestFixture::value_type;
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
         std::vector<gko::size_type>{2}, {{1.0, 2.0}}, this->exec);
-    ASSERT_EQ(m->get_num_batches(), 1);
+    ASSERT_EQ(m->get_num_batch_entries(), 1);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0, 0), value_type{1.0});
@@ -249,7 +249,7 @@ TYPED_TEST(BatchDense, CanBeListConstructedByCopies)
     using value_type = typename TestFixture::value_type;
     auto m = gko::batch_initialize<gko::matrix::BatchDense<TypeParam>>(
         2, I<value_type>({1.0, 2.0}), this->exec);
-    ASSERT_EQ(m->get_num_batches(), 2);
+    ASSERT_EQ(m->get_num_batch_entries(), 2);
     ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_size().at(1), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
