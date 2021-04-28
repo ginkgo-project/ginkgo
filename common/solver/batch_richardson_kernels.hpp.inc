@@ -61,13 +61,17 @@ __global__ void apply_kernel(
         right.values, right.stride, right.num_rows, 1};
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        __shared__ UninitializedArray<ValueType, max_nrows> residual_un;
-        __shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
-        __shared__ UninitializedArray<ValueType, PrecType::work_size>
-            prec_work_un;
-        ValueType *const residual = residual_un;
-        ValueType *const delta_x = delta_x_un;
-        ValueType *const prec_work = prec_work_un;
+        //__shared__ UninitializedArray<ValueType, max_nrows> residual_un;
+        //__shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
+        //__shared__ UninitializedArray<ValueType, PrecType::work_size>
+        //    prec_work_un;
+        // ValueType *const residual = residual_un;
+        // ValueType *const delta_x = delta_x_un;
+        // ValueType *const prec_work = prec_work_un;
+
+        __shared__ ValueType residual[max_nrows];
+        __shared__ ValueType delta_x[max_nrows];
+        __shared__ ValueType prec_work[PrecType::work_size];
 
         uint32 converged = 0;
 
