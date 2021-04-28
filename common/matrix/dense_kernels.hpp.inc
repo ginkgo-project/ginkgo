@@ -183,7 +183,7 @@ __global__ __launch_bounds__(block_size) void compute_partial_conj_dot(
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
-            return x[i * stride_x] * conj(y[i * stride_y]);
+            return conj(x[i * stride_x]) * y[i * stride_y];
         },
         [](const ValueType &x, const ValueType &y) { return x + y; });
 }

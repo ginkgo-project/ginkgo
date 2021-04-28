@@ -261,30 +261,41 @@ void compute_conj_dot(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Dense<ValueType> *y,
                       matrix::Dense<ValueType> *result)
 {
-    // TODO: these are tuning parameters obtained experimentally, once
-    // we decide how to handle this uniformly, they should be modified
-    // appropriately
-    constexpr auto work_per_thread = 32;
-    constexpr auto block_size = 1024;
+    if (hipblas::is_supported<ValueType>::value) {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipblas::conj_dot(exec->get_hipblas_handle(), x->get_size()[0],
+                              x->get_const_values() + col, x->get_stride(),
+                              y->get_const_values() + col, y->get_stride(),
+                              result->get_values() + col);
+        }
+    } else {
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = 1024;
 
-    constexpr auto work_per_block = work_per_thread * block_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    Array<ValueType> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::compute_partial_conj_dot<block_size>),
-            dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
-            as_hip_type(x->get_const_values() + col), x->get_stride(),
-            as_hip_type(y->get_const_values() + col), y->get_stride(),
-            as_hip_type(work.get_data()));
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                kernel::finalize_sum_reduce_computation<block_size>),
-            dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
-            as_hip_type(work.get_const_data()),
-            as_hip_type(result->get_values() + col));
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<ValueType> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::compute_partial_conj_dot<block_size>),
+                dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
+                as_hip_type(x->get_const_values() + col), x->get_stride(),
+                as_hip_type(y->get_const_values() + col), y->get_stride(),
+                as_hip_type(work.get_data()));
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sum_reduce_computation<block_size>),
+                dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
+                as_hip_type(work.get_const_data()),
+                as_hip_type(result->get_values() + col));
+        }
     }
 }
 
