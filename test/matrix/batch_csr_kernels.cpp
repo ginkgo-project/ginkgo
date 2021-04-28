@@ -88,7 +88,7 @@ protected:
 
     void set_up_apply_data(int num_vectors = 1)
     {
-        const size_t batch_size = mtx_size.get_num_batches();
+        const size_t batch_size = mtx_size.get_num_batch_entries();
         const int nrows = mtx_size.at()[0];
         const int ncols = mtx_size.at()[1];
         mtx = Mtx::create(ref);
@@ -115,7 +115,7 @@ protected:
 
     void set_up_apply_complex_data()
     {
-        const size_t batch_size = mtx_size.get_num_batches();
+        const size_t batch_size = mtx_size.get_num_batch_entries();
         const int nrows = mtx_size.at()[0];
         const int ncols = mtx_size.at()[1];
         complex_mtx = ComplexMtx::create(ref);

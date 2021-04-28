@@ -92,7 +92,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        ASSERT_EQ(m->get_num_batches(), 2);
+        ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 8);
         EXPECT_EQ(r[0], 0);
@@ -114,8 +114,7 @@ protected:
 
     void assert_empty(const Mtx *m)
     {
-        ASSERT_EQ(m->get_num_batches(), 0);
-        ASSERT_FALSE(m->get_num_batches());
+        ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
@@ -195,6 +194,7 @@ TYPED_TEST(BatchCsr, CanBeMoved)
     copy->copy_from(std::move(this->mtx));
 
     this->assert_equal_to_original_mtx(copy.get());
+    ASSERT_EQ(this->mtx.get(), nullptr);
 }
 
 
