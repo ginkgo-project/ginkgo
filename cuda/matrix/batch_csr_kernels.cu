@@ -213,24 +213,13 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto num_rows = static_cast<int>(mat->get_size().at(0)[0]);
-    const ValueType *const left_vals = left_scale->get_const_values();
-    const ValueType *const right_vals = right_scale->get_const_values();
-    const size_type nbatches = mat->get_num_batches();
-    const auto row_ptrs = mat->get_const_row_ptrs();
-    const auto col_idxs = mat->get_const_col_idxs();
-    const auto vals = mat->get_values();
-    const int nnz = static_cast<int>(mat->get_num_stored_elements() /
-                                     mat->get_num_batches());
-    const size_type left_stride = left_scale->get_stride().at();
-    const size_type right_stride = right_scale->get_stride().at();
+    const auto m_ub = get_batch_struct(mat);
+    const auto left_ub = get_batch_struct(left_scale);
+    const auto right_ub = get_batch_struct(right_scale);
 
     constexpr int block_size = 512;
     const int num_blocks = exec->get_num_multiprocessor();
-    uniform_batch_scale<<<num_blocks, block_size>>>(
-        as_cuda_type(left_vals), left_stride, as_cuda_type(right_vals),
-        right_stride, row_ptrs, col_idxs, nbatches, num_rows, nnz,
-        as_cuda_type(vals));
+    uniform_batch_scale<<<num_blocks, block_size>>>(left_ub, right_ub, m_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
