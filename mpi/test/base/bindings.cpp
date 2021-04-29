@@ -56,13 +56,92 @@ protected:
     MpiBindings() : ref(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<gko::Executor> ref;
+
+    void assert_equal_arrays(gko::Array<double> &array_1,
+                             gko::Array<double> &array_2)
+    {
+        ASSERT_EQ(array_1.get_num_elems(), array_2.get_num_elems());
+        for (gko::size_type i = 0; i < array_1.get_num_elems(); ++i) {
+            EXPECT_EQ(array_1.get_const_data()[i], array_2.get_const_data()[i]);
+        }
+    }
 };
+
+
+TEST_F(MpiBindings, DefaultCommIsWorld)
+{
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    auto comm = gko::mpi::communicator();
+
+    EXPECT_EQ(comm.size(), size);
+}
 
 
 TEST_F(MpiBindings, KnowsItsCommunicator)
 {
     auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
+
     EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+}
+
+
+TEST_F(MpiBindings, CommunicatorCanBeCopied)
+{
+    auto comm_world = gko::mpi::communicator();
+    auto copy = comm_world;
+
+    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
+}
+
+
+TEST_F(MpiBindings, CommunicatorCanBeCopyConstructed)
+{
+    auto comm_world = gko::mpi::communicator();
+    auto copy = gko::mpi::communicator(comm_world);
+
+    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
+}
+
+
+TEST_F(MpiBindings, CommunicatorCanBeMoved)
+{
+    int size;
+    auto comm_world = gko::mpi::communicator();
+
+    auto moved = std::move(comm_world);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    EXPECT_EQ(comm_world.size(), 0);
+    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(moved.size(), size);
+}
+
+
+TEST_F(MpiBindings, CommunicatorCanBeMoveConstructed)
+{
+    int size;
+    auto comm_world = gko::mpi::communicator();
+
+    auto moved = gko::mpi::communicator(std::move(comm_world));
+
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    EXPECT_EQ(comm_world.size(), 0);
+    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(moved.size(), size);
+}
+
+
+TEST_F(MpiBindings, CommKnowsItsSize)
+{
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+
+    EXPECT_EQ(comm.size(), size);
 }
 
 
@@ -72,6 +151,16 @@ TEST_F(MpiBindings, KnowsItsSize)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     EXPECT_EQ(gko::mpi::get_num_ranks(MPI_COMM_WORLD), size);
+}
+
+
+TEST_F(MpiBindings, CommKnowsItsRank)
+{
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+
+    EXPECT_EQ(comm.rank(), rank);
 }
 
 
@@ -634,6 +723,35 @@ TEST_F(MpiBindings, CanGatherValuesWithDisplacements)
         ASSERT_EQ(comp_data, nullptr);
     }
     delete data;
+}
+
+
+TEST_F(MpiBindings, AllToAllWorksCorrectly)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<double>{ref};
+    auto recv_array = gko::Array<double>{ref};
+    auto ref_array = gko::Array<double>{ref};
+    recv_array = gko::Array<double>{ref, 4};
+    if (my_rank == 0) {
+        send_array = gko::Array<double>(ref, {2.5, 3.0, 1.5, 2.0});
+        ref_array = gko::Array<double>(ref, {2.5, 2.5, 2.0, 5.5});
+    } else if (my_rank == 1) {
+        send_array = gko::Array<double>(ref, {2.5, 3.5, 1.0, 2.0});
+        ref_array = gko::Array<double>(ref, {3.0, 3.5, 3.0, 3.5});
+    } else if (my_rank == 2) {
+        send_array = gko::Array<double>(ref, {2.0, 3.0, 1.5, 0.0});
+        ref_array = gko::Array<double>(ref, {1.5, 1.0, 1.5, 3.5});
+    } else if (my_rank == 3) {
+        send_array = gko::Array<double>(ref, {5.5, 3.5, 3.5, -2.0});
+        ref_array = gko::Array<double>(ref, {2.0, 2.0, 0.0, -2.0});
+    }
+
+    gko::mpi::all_to_all<double, double>(send_array.get_data(), 1,
+                                         recv_array.get_data());
+    this->assert_equal_arrays(recv_array, ref_array);
 }
 
 

@@ -88,15 +88,69 @@ init_finalize::~init_finalize()
 }
 
 
+mpi_type::mpi_type(const int count, MPI_Datatype &old)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_contiguous(count, old, &this->type_));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&this->type_));
+}
+
+
+mpi_type::~mpi_type() { MPI_Type_free(&(this->type_)); }
+
+
 communicator::communicator(const MPI_Comm &comm)
 {
     this->comm_ = bindings::duplicate_comm(comm);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
 }
 
 
 communicator::communicator(const MPI_Comm &comm_in, int color, int key)
 {
     this->comm_ = bindings::create_comm(comm_in, color, key);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
+}
+
+
+communicator::communicator(communicator &other)
+{
+    this->comm_ = bindings::duplicate_comm(other.comm_);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
+}
+
+
+communicator &communicator::operator=(const communicator &other)
+{
+    this->comm_ = bindings::duplicate_comm(other.comm_);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
+    return *this;
+}
+
+
+communicator::communicator(communicator &&other)
+{
+    this->comm_ = bindings::duplicate_comm(other.comm_);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
+    bindings::free_comm(other.comm_);
+    other.size_ = 0;
+    other.rank_ = -1;
+}
+
+
+communicator &communicator::operator=(communicator &&other)
+{
+    this->comm_ = bindings::duplicate_comm(other.comm_);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
+    bindings::free_comm(other.comm_);
+    other.size_ = 0;
+    other.rank_ = -1;
+    return *this;
 }
 
 
@@ -364,8 +418,9 @@ void broadcast(BroadcastType *buffer, int count, int root_rank,
 
 template <typename ReduceType>
 void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
-            op_type op_enum, int root_rank, std::shared_ptr<request> req,
-            std::shared_ptr<const communicator> comm)
+            op_type op_enum, int root_rank,
+            std::shared_ptr<const communicator> comm,
+            std::shared_ptr<request> req)
 {
     auto operation = helpers::get_operation<ReduceType>(op_enum);
     auto reduce_type = helpers::get_mpi_type(send_buffer[0]);
@@ -384,8 +439,9 @@ void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
 
 template <typename ReduceType>
 void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                int count, op_type op_enum, std::shared_ptr<request> req,
-                std::shared_ptr<const communicator> comm)
+                int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
 {
     auto operation = helpers::get_operation<ReduceType>(op_enum);
     auto reduce_type = helpers::get_mpi_type(send_buffer[0]);
@@ -456,6 +512,55 @@ void scatter(const SendType *send_buffer, const int *send_counts,
 }
 
 
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_to_all(
+            send_buffer, send_count, send_type, recv_buffer,
+            recv_count == 0 ? send_count : recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all(
+            send_buffer, send_count, send_type, recv_buffer,
+            recv_count == 0 ? send_count : recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType *send_buffer, const int *send_counts,
+                const int *send_offsets, RecvType *recv_buffer,
+                const int *recv_counts, const int *recv_offsets,
+                const int stride, std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+
+    auto new_type = mpi_type(stride, send_type);
+    if (!req.get()) {
+        bindings::all_to_all_v(
+            send_buffer, send_counts, send_offsets, new_type.get(), recv_buffer,
+            recv_counts, recv_offsets, new_type.get(),
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all_v(
+            send_buffer, send_counts, send_offsets, new_type.get(), recv_buffer,
+            recv_counts, recv_offsets, new_type.get(),
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
 #define GKO_DECLARE_WINDOW(ValueType) class window<ValueType>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
@@ -507,8 +612,8 @@ GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_BCAST);
 #define GKO_DECLARE_REDUCE(ReduceType)                                  \
     void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, \
                 int count, op_type operation, int root_rank,            \
-                std::shared_ptr<request> req,                           \
-                std::shared_ptr<const communicator> comm)
+                std::shared_ptr<const communicator> comm,               \
+                std::shared_ptr<request> req)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 
@@ -516,8 +621,8 @@ GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 #define GKO_DECLARE_ALLREDUCE(ReduceType)                                   \
     void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, \
                     int count, op_type operation,                           \
-                    std::shared_ptr<request> req,                           \
-                    std::shared_ptr<const communicator> comm)
+                    std::shared_ptr<const communicator> comm,               \
+                    std::shared_ptr<request> req)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE);
 
@@ -554,6 +659,27 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER1);
                  std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
+
+
+#define GKO_DECLARE_ALL_TO_ALL(SendType, RecvType)                     \
+    void all_to_all(const SendType *send_buffer, const int send_count, \
+                    RecvType *recv_buffer, const int recv_count,       \
+                    std::shared_ptr<const communicator> comm,          \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL);
+
+
+#define GKO_DECLARE_ALL_TO_ALL_V(SendType, RecvType)                     \
+    void all_to_all(const SendType *send_buffer, const int *send_counts, \
+                    const int *send_offsets, RecvType *recv_buffer,      \
+                    const int *recv_counts, const int *recv_offsets,     \
+                    const int stride,                                    \
+                    std::shared_ptr<const communicator> comm,            \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ALL_TO_ALL_V);
 
 
 }  // namespace mpi
