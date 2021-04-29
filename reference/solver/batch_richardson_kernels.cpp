@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
+#include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
@@ -81,11 +82,6 @@ static void apply_impl(
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
     const auto stride = b.stride;
 
-    const gko::batch_dense::BatchEntry<const ValueType> left_b = {
-        left.values, left.stride, left.num_rows, 1};
-    const gko::batch_dense::BatchEntry<const ValueType> right_b = {
-        right.values, right.stride, right.num_rows, 1};
-
     GKO_ASSERT((nrhs == x.num_rhs));
     GKO_ASSERT((batch_config<ValueType>::max_num_rows >= nrows * nrhs));
 
@@ -94,6 +90,9 @@ static void apply_impl(
         ValueType delta_x[batch_config<ValueType>::max_num_rows];
         ValueType prec_work[PrecType::work_size];
         uint32 converged = 0;
+
+        const auto left_b = gko::batch::batch_entry(left, ibatch);
+        const auto right_b = gko::batch::batch_entry(right, ibatch);
 
         if (left.values) {
             const auto a_b = gko::batch::batch_entry(a, ibatch);
