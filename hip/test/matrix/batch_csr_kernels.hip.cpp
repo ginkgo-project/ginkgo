@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
-#include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
@@ -70,14 +70,15 @@ protected:
 
     void SetUp()
     {
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
@@ -104,17 +105,17 @@ protected:
         y = gen_mtx<Vec>(batch_size, ncols, num_vectors, 1);
         alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
-        dmtx = Mtx::create(omp);
+        dmtx = Mtx::create(hip);
         dmtx->copy_from(mtx.get());
-        square_dmtx = Mtx::create(omp);
+        square_dmtx = Mtx::create(hip);
         square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(omp);
+        dresult = Vec::create(hip);
         dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
+        dy = Vec::create(hip);
         dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
+        dalpha = Vec::create(hip);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
+        dbeta = Vec::create(hip);
         dbeta->copy_from(beta.get());
     }
 
@@ -126,28 +127,28 @@ protected:
         complex_mtx = ComplexMtx::create(ref);
         complex_mtx->copy_from(
             gen_mtx<ComplexVec>(batch_size, nrows, ncols, 1));
-        complex_dmtx = ComplexMtx::create(omp);
+        complex_dmtx = ComplexMtx::create(hip);
         complex_dmtx->copy_from(complex_mtx.get());
 
         complex_b = gen_mtx<ComplexVec>(batch_size, nrows, 3, 1);
-        dcomplex_b = ComplexVec::create(omp);
+        dcomplex_b = ComplexVec::create(hip);
         dcomplex_b->copy_from(complex_b.get());
         complex_y = gen_mtx<ComplexVec>(batch_size, nrows, 3, 1);
-        dcomplex_y = ComplexVec::create(omp);
+        dcomplex_y = ComplexVec::create(hip);
         dcomplex_y->copy_from(complex_y.get());
         complex_x = gen_mtx<ComplexVec>(batch_size, ncols, 3, 1);
-        dcomplex_x = ComplexVec::create(omp);
+        dcomplex_x = ComplexVec::create(hip);
         dcomplex_x->copy_from(complex_x.get());
         c_alpha = gko::batch_initialize<ComplexVec>(batch_size, {2.0}, ref);
         c_beta = gko::batch_initialize<ComplexVec>(batch_size, {-1.0}, ref);
-        dc_alpha = ComplexVec::create(omp);
+        dc_alpha = ComplexVec::create(hip);
         dc_alpha->copy_from(c_alpha.get());
-        dc_beta = ComplexVec::create(omp);
+        dc_beta = ComplexVec::create(hip);
         dc_beta->copy_from(c_beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     const gko::batch_dim mtx_size;
     std::ranlux48 rand_engine;
@@ -234,11 +235,11 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
     const size_t batch_size = mtx_size.get_num_batches();
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
-    auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);
-    auto ref_right_scale = gen_mtx<Vec>(batch_size, ncols, 1, 1);
-    auto d_left_scale = Vec::create(omp);
+    auto ref_left_scale = gen_mtx<Vec>(1, nrows, 1, 1);
+    auto ref_right_scale = gen_mtx<Vec>(1, ncols, 1, 1);
+    auto d_left_scale = Vec::create(hip);
     d_left_scale->copy_from(ref_left_scale.get());
-    auto d_right_scale = Vec::create(omp);
+    auto d_right_scale = Vec::create(hip);
     d_right_scale->copy_from(ref_right_scale.get());
 
     mtx->batch_scale(ref_left_scale.get(), ref_right_scale.get());
