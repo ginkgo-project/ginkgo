@@ -102,3 +102,21 @@ private:
     ValueType *const __restrict__ work_;
     const gko::batch_csr::BatchEntry<const ValueType> &matrix_;
 };
+
+
+template <typename ValueType>
+__global__ void batch_jacobi(
+    const gko::batch_csr::UniformBatch<const ValueType> a,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<ValueType> x)
+{
+    for (size_type batch = 0; batch < a.num_batch; ++batch) {
+        const auto a_b = gko::batch::batch_entry(a, batch);
+        const auto b_b = gko::batch::batch_entry(b, batch);
+        const auto x_b = gko::batch::batch_entry(x, batch);
+
+        __shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        BatchJacobi<ValueType> prec(a_b, prec_work);
+        prec.apply(b_b, x_b);
+    }
+}
