@@ -27,10 +27,11 @@ target_sources(ginkgo_omp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/amgx_pgm_kernels.cpp
+    preconditioner/batch_jacobi_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
-	solver/batch_richardson_kernels.cpp
+    solver/batch_richardson_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp
