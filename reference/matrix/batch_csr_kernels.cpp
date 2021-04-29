@@ -120,26 +120,16 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto num_rows = static_cast<int>(mat->get_size().at(0)[0]);
-    const ValueType *const left_vals = left_scale->get_const_values();
-    const ValueType *const right_vals = right_scale->get_const_values();
-    const size_type left_stride = left_scale->get_stride().at();
-    const size_type right_stride = right_scale->get_stride().at();
     const size_type nbatches = mat->get_num_batches();
-    const auto row_ptrs = mat->get_const_row_ptrs();
-    const auto col_idxs = mat->get_const_col_idxs();
-    const auto vals = mat->get_values();
-    const int nnz = static_cast<int>(mat->get_num_stored_elements() /
-                                     mat->get_num_batches());
+    const auto a_ub = get_batch_struct(mat);
+    const auto left_ub = get_batch_struct(left_scale);
+    const auto right_ub = get_batch_struct(right_scale);
 
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        const gko::batch_csr::BatchEntry<ValueType> a = {
-            vals + ibatch * nnz, col_idxs, row_ptrs, num_rows, nnz};
-        const gko::batch_dense::BatchEntry<const ValueType> left = {
-            left_vals, left_stride, num_rows, 1};
-        const gko::batch_dense::BatchEntry<const ValueType> right = {
-            right_vals, right_stride, num_rows, 1};
-        gko::kernels::reference::batch_scale(left, right, a);
+        auto a_b = gko::batch::batch_entry(a_ub, ibatch);
+        auto left_b = gko::batch::batch_entry(left_ub, ibatch);
+        auto right_b = gko::batch::batch_entry(right_ub, ibatch);
+        gko::kernels::reference::batch_scale(left_b, right_b, a_b);
     }
 }
 
