@@ -284,10 +284,10 @@ TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 {
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
-    auto left_scale =
-        gko::batch_initialize<BDense>(1, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale =
-        gko::batch_initialize<BDense>(1, {1.0, 1.0, 1.0}, this->exec);
+    auto left_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto right_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
 
     Result result = this->solve_poisson_uniform_1(
         this->opts_1, left_scale.get(), right_scale.get());
@@ -307,10 +307,10 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    auto left_scale =
-        gko::batch_initialize<BDense>(1, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale =
-        gko::batch_initialize<BDense>(1, {1.0, 1.5, 1.05}, this->exec);
+    auto left_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
+    auto right_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
     const Options opts{"jacobi", 1000, 1e-6, 1.0};
 
     Result result = this->solve_poisson_uniform_1(opts, left_scale.get(),

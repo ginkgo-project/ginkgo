@@ -55,11 +55,6 @@ __global__ void apply_kernel(
         return;
     }
 
-    const gko::batch_dense::BatchEntry<const ValueType> left_b = {
-        left.values, left.stride, left.num_rows, 1};
-    const gko::batch_dense::BatchEntry<const ValueType> right_b = {
-        right.values, right.stride, right.num_rows, 1};
-
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         //__shared__ UninitializedArray<ValueType, max_nrows> residual_un;
         //__shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
@@ -74,6 +69,9 @@ __global__ void apply_kernel(
         __shared__ ValueType prec_work[PrecType::work_size];
 
         uint32 converged = 0;
+
+        const auto left_b = gko::batch::batch_entry(left, ibatch);
+        const auto right_b = gko::batch::batch_entry(right, ibatch);
 
         if (left.values) {
             const auto a_b = gko::batch::batch_entry(mat, ibatch);
