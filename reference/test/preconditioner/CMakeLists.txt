@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_jacobi_kernels)
 ginkgo_create_test(ilu)
 ginkgo_create_test(ic)
 ginkgo_create_test(isai_kernels)
