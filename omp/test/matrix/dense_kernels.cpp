@@ -347,6 +347,28 @@ TEST_F(Dense, MultipleVectorOmpComputeDotIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, SingleVectorOmpComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->compute_conj_dot(y.get(), expected.get());
+    dx->compute_conj_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, MultipleVectorOmpComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->compute_conj_dot(y.get(), expected.get());
+    dx->compute_conj_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Dense, ComputesNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
@@ -474,6 +496,44 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
               convert<MixedMtx>(dbeta).get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+}
+
+
+TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
+
+    complex_b->compute_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
+}
+
+
+TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
+
+    complex_b->compute_conj_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_conj_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
 }
 
 

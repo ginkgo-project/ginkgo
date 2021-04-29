@@ -168,14 +168,29 @@ __global__ __launch_bounds__(block_size) void compute_partial_dot(
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
-            return x[i * stride_x] * conj(y[i * stride_y]);
+            return x[i * stride_x] * y[i * stride_y];
         },
         [](const ValueType &x, const ValueType &y) { return x + y; });
 }
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void finalize_dot_computation(
+__global__ __launch_bounds__(block_size) void compute_partial_conj_dot(
+    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
+    const ValueType *__restrict__ y, size_type stride_y,
+    ValueType *__restrict__ work)
+{
+    compute_partial_reduce<block_size>(
+        num_rows, work,
+        [x, stride_x, y, stride_y](size_type i) {
+            return conj(x[i * stride_x]) * y[i * stride_y];
+        },
+        [](const ValueType &x, const ValueType &y) { return x + y; });
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void finalize_sum_reduce_computation(
     size_type size, const ValueType *work, ValueType *result)
 {
     finalize_reduce_computation<block_size>(
@@ -199,7 +214,7 @@ __global__ __launch_bounds__(block_size) void compute_partial_norm2(
 
 
 template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void finalize_norm2_computation(
+__global__ __launch_bounds__(block_size) void finalize_sqrt_reduce_computation(
     size_type size, const ValueType *work, ValueType *result)
 {
     finalize_reduce_computation<block_size>(

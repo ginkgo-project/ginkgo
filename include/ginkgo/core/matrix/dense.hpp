@@ -503,8 +503,7 @@ public:
     }
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`. The
-     * conjugate of this is taken.
+     * Computes the column-wise dot product of this matrix and `b`.
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
@@ -516,6 +515,21 @@ public:
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
                                make_temporary_clone(exec, result).get());
+    }
+
+    /**
+     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_conj_dot(const LinOp *b, LinOp *result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_conj_dot_impl(make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, result).get());
     }
 
     /**
@@ -710,6 +724,14 @@ protected:
      *        instead of compute_dot(const LinOp *b, LinOp *result).
      */
     virtual void compute_dot_impl(const LinOp *b, LinOp *result) const;
+
+    /**
+     * @copydoc compute_conj_dot(const LinOp *, LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_conj_dot(const LinOp *b, LinOp *result).
+     */
+    virtual void compute_conj_dot_impl(const LinOp *b, LinOp *result) const;
 
     /**
      * @copydoc compute_norm2(LinOp *) const
