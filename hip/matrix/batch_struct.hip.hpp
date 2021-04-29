@@ -86,7 +86,7 @@ inline gko::batch_dense::UniformBatch<hip_type<ValueType>> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<const hip_type<ValueType>> get_batch_struct(
-    const matrix::BatchCsr<ValueType> *const op)
+    const matrix::BatchCsr<ValueType, int32> *const op)
 {
     return {as_hip_type(op->get_const_values()),
             op->get_const_col_idxs(),
@@ -103,7 +103,7 @@ inline gko::batch_csr::UniformBatch<const hip_type<ValueType>> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<hip_type<ValueType>> get_batch_struct(
-    matrix::BatchCsr<ValueType> *const op)
+    matrix::BatchCsr<ValueType, int32> *const op)
 {
     return {as_hip_type(op->get_values()),
             op->get_const_col_idxs(),
