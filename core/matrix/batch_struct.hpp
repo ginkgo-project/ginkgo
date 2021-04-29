@@ -168,7 +168,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_dense::BatchEntry<ValueType> batch_entry(
     const batch_dense::UniformBatch<ValueType> &batch,
     const size_type batch_idx)
 {
-    return {&batch.values[batch_idx * batch.stride * batch.num_rows],
+    return {batch.values + batch_idx * batch.stride * batch.num_rows,
             batch.stride, batch.num_rows, batch.num_rhs};
 }
 
@@ -186,7 +186,7 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_csr::BatchEntry<ValueType> batch_entry(
     const batch_csr::UniformBatch<ValueType> &batch, const size_type batch_idx)
 {
-    return {&batch.values[batch_idx * batch.num_nnz], batch.col_idxs,
+    return {batch.values + batch_idx * batch.num_nnz, batch.col_idxs,
             batch.row_ptrs, batch.num_rows, batch.num_nnz};
 }
 
