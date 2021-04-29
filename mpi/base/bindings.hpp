@@ -61,6 +61,14 @@ namespace bindings {
 inline double get_walltime() { return MPI_Wtime(); }
 
 
+inline int get_comm_size(const MPI_Comm &comm)
+{
+    int size = 0;
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(comm, &size));
+    return size;
+}
+
+
 inline int get_comm_rank(const MPI_Comm &comm)
 {
     int my_rank = 0;
@@ -121,7 +129,9 @@ inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm comm2)
 
 inline void free_comm(MPI_Comm comm)
 {
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(&comm));
+    if (comm) {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(&comm));
+    }
 }
 
 
@@ -151,7 +161,9 @@ inline void allocate_window(unsigned int size, const int disp_unit,
 
 inline void free_window(MPI_Win *win)
 {
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_free(win));
+    if (win) {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_free(win));
+    }
 }
 
 
@@ -421,6 +433,53 @@ inline void scatterv(const void *send_buffer, const int *send_counts,
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Scatterv(send_buffer, send_counts, displacements, send_type,
                      recv_buffer, recv_count, recv_type, root_rank, comm));
+}
+
+
+inline void all_to_all(const void *send_buffer, const int send_count,
+                       MPI_Datatype &send_type, void *recv_buffer,
+                       const int recv_count, MPI_Datatype &recv_type,
+                       const MPI_Comm &comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(send_buffer, send_count, send_type,
+                                          recv_buffer, recv_count, recv_type,
+                                          comm));
+}
+
+
+inline void i_all_to_all(const void *send_buffer, const int send_count,
+                         MPI_Datatype &send_type, void *recv_buffer,
+                         const int recv_count, MPI_Datatype &recv_type,
+                         const MPI_Comm &comm, MPI_Request *requests)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(send_buffer, send_count, send_type,
+                                           recv_buffer, recv_count, recv_type,
+                                           comm, requests));
+}
+
+
+inline void all_to_all_v(const void *send_buffer, const int *send_count,
+                         const int *send_offsets, const MPI_Datatype &send_type,
+                         void *recv_buffer, const int *recv_count,
+                         const int *recv_offsets, const MPI_Datatype &recv_type,
+                         const MPI_Comm &comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Alltoallv(send_buffer, send_count, send_offsets, send_type,
+                      recv_buffer, recv_count, recv_offsets, recv_type, comm));
+}
+
+
+inline void i_all_to_all_v(const void *send_buffer, const int *send_count,
+                           const int *send_offsets,
+                           const MPI_Datatype &send_type, void *recv_buffer,
+                           const int *recv_count, const int *recv_offsets,
+                           const MPI_Datatype &recv_type, const MPI_Comm &comm,
+                           MPI_Request *requests)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
+        send_buffer, send_count, send_offsets, send_type, recv_buffer,
+        recv_count, recv_offsets, recv_type, comm, requests));
 }
 
 

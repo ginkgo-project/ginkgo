@@ -177,9 +177,12 @@ class request : public EnableSharedCreateMethod<request> {
 public:
     request(const int size) : req_(new MPI_Request[size]) {}
 
-    request() : req_{} {}
+    request() : req_(new MPI_Request[1]) {}
 
-    ~request() { delete req_; }
+    ~request()
+    {
+        if (req_) delete req_;
+    }
 
     MPI_Request *get_requests() const { return req_; }
 
@@ -197,9 +200,12 @@ class status : public EnableSharedCreateMethod<status> {
 public:
     status(const int size) : status_(new MPI_Status[size]) {}
 
-    status() : status_{} {}
+    status() : status_(new MPI_Status[1]) {}
 
-    ~status() { delete status_; }
+    ~status()
+    {
+        if (status_) delete status_;
+    }
 
     MPI_Status *get_statuses() const { return status_; }
 
@@ -219,19 +225,23 @@ public:
 
     communicator(const MPI_Comm &comm, int color, int key);
 
-    communicator() = delete;
+    communicator() : communicator(MPI_COMM_WORLD) {}
 
-    communicator(communicator &other) = delete;
+    communicator(communicator &other);
 
-    communicator &operator=(const communicator &other) = delete;
+    communicator &operator=(const communicator &other);
 
-    communicator(communicator &&other) = default;
+    communicator(communicator &&other);
 
-    communicator &operator=(communicator &&other) = default;
+    communicator &operator=(communicator &&other);
 
     static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
 
     MPI_Comm get() const { return comm_; }
+
+    int size() const { return size_; }
+
+    int rank() const { return rank_; };
 
     bool compare(const MPI_Comm &other) const;
 
@@ -241,6 +251,19 @@ public:
 
 private:
     MPI_Comm comm_;
+    int size_{};
+    int rank_{};
+};
+
+
+class mpi_type {
+public:
+    mpi_type(const int count, MPI_Datatype &old);
+    ~mpi_type();
+    const MPI_Datatype &get() const { return this->type_; }
+
+private:
+    MPI_Datatype type_{};
 };
 
 
@@ -251,8 +274,8 @@ public:
     enum class lock_type { shared = 1, exclusive = 2 };
 
     window() : window_(nullptr) {}
-    window(window &other) = delete;
-    window &operator=(const window &other) = delete;
+    window(window &other) = default;
+    window &operator=(const window &other) = default;
     window(window &&other) = default;
     window &operator=(window &&other) = default;
 
@@ -341,14 +364,16 @@ void broadcast(BroadcastType *buffer, int count, int root_rank,
 
 template <typename ReduceType>
 void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
-            op_type op_enum, int root_rank, std::shared_ptr<request> req = {},
-            std::shared_ptr<const communicator> comm = {});
+            op_type op_enum, int root_rank,
+            std::shared_ptr<const communicator> comm = {},
+            std::shared_ptr<request> req = {});
 
 
 template <typename ReduceType>
 void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                int count, op_type op_enum, std::shared_ptr<request> req = {},
-                std::shared_ptr<const communicator> comm = {});
+                int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
@@ -375,6 +400,22 @@ void scatter(const SendType *send_buffer, const int *send_counts,
              const int *displacements, RecvType *recv_buffer,
              const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count = {},
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType *send_buffer, const int *send_counts,
+                const int *send_offsets, RecvType *recv_buffer,
+                const int *recv_counts, const int *recv_offsets,
+                const int stride = 1,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
 
 
 }  // namespace mpi
