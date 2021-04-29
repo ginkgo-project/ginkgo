@@ -234,8 +234,8 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
     const size_t batch_size = mtx_size.get_num_batches();
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
-    auto ref_left_scale = gen_mtx<Vec>(1, nrows, 1, 1);
-    auto ref_right_scale = gen_mtx<Vec>(1, ncols, 1, 1);
+    auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);
+    auto ref_right_scale = gen_mtx<Vec>(batch_size, ncols, 1, 1);
     auto d_left_scale = Vec::create(cuda);
     d_left_scale->copy_from(ref_left_scale.get());
     auto d_right_scale = Vec::create(cuda);
