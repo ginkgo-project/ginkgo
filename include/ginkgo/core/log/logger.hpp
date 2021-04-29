@@ -594,6 +594,19 @@ public:
         }
     }
 
+    /**
+     * Returns the vector containing all loggers registered at this object.
+     *
+     * @return the vector containing all registered loggers.
+     */
+    const std::vector<std::shared_ptr<const Logger>> &get_loggers() const
+    {
+        return loggers_;
+    }
+
+    /** Remove all loggers registered at this object. */
+    void clear_loggers() { loggers_.clear(); }
+
 protected:
     template <size_type Event, typename... Params>
     void log(Params &&... params) const
