@@ -42,6 +42,7 @@ target_sources(ginkgo_dpcpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp
     multigrid/pgm_kernels.dp.cpp
+    preconditioner/batch_jacobi_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_advanced_apply_kernel.dp.cpp
     preconditioner/jacobi_generate_kernel.dp.cpp
