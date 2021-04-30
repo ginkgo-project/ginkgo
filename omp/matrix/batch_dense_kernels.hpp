@@ -112,7 +112,7 @@ inline void apply(const ValueType alpha, const BatchEntry<const ValueType> &a,
             for (int col = 0; col < c.num_rhs; ++col) {
                 c.values[row * c.stride + col] +=
                     alpha * a.values[row * a.stride + inner] *
-                    b.values[inner * a.stride + col];
+                    b.values[inner * b.stride + col];
             }
         }
     }
