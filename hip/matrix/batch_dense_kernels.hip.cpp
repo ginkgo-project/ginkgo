@@ -97,7 +97,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 template <typename ValueType>
 void scale(std::shared_ptr<const HipExecutor> exec,
            const matrix::BatchDense<ValueType> *alpha,
-           matrix::BatchDense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType> *x)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(scale), dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, alpha_ub, x_ub);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
@@ -107,7 +114,15 @@ template <typename ValueType>
 void add_scaled(std::shared_ptr<const HipExecutor> exec,
                 const matrix::BatchDense<ValueType> *alpha,
                 const matrix::BatchDense<ValueType> *x,
-                matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
+                matrix::BatchDense<ValueType> *y)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(add_scaled), dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, alpha_ub, x_ub, y_ub);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
@@ -128,7 +143,15 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
                  const matrix::BatchDense<ValueType> *x,
                  const matrix::BatchDense<ValueType> *y,
-                 matrix::BatchDense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                 matrix::BatchDense<ValueType> *result)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_dot_product), dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, x_ub, y_ub, res_ub);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
@@ -138,7 +161,13 @@ template <typename ValueType>
 void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                    const matrix::BatchDense<ValueType> *x,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto res_ub = get_batch_struct(result);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(compute_norm2), dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, x_ub, res_ub);
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
