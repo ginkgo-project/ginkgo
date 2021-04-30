@@ -41,869 +41,344 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "core/components/fill_array.hpp"
+//#include "core/components/fill_array.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
+#include "core/test/utils/batch.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
-// namespace {
+namespace {
 
 
-// class BatchDense : public ::testing::Test {
-// protected:
-//     using itype = int;
-//     using vtype = double;
-//     using Mtx = gko::matrix::BatchDense<vtype>;
-//     using NormVector = gko::matrix::BatchDense<gko::remove_complex<vtype>>;
-//     using Arr = gko::Array<itype>;
-//     using ComplexMtx = gko::matrix::BatchDense<std::complex<vtype>>;
+class BatchDense : public ::testing::Test {
+protected:
+    using vtype = double;
+    using Mtx = gko::matrix::BatchDense<vtype>;
+    using NormVector = gko::matrix::BatchDense<gko::remove_complex<vtype>>;
+    using ComplexMtx = gko::matrix::BatchDense<std::complex<vtype>>;
 
-//     BatchDense() : rand_engine(15) {}
+    BatchDense() : rand_engine(15) {}
 
-//     void SetUp()
-//     {
-//         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-//         ref = gko::ReferenceExecutor::create();
-//         hip = gko::HipExecutor::create(0, ref);
-//     }
+    void SetUp()
+    {
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
+        ref = gko::ReferenceExecutor::create();
+        hip = gko::HipExecutor::create(0, ref);
+    }
 
-//     void TearDown()
-//     {
-//         if (hip != nullptr) {
-//             ASSERT_NO_THROW(hip->synchronize());
-//         }
-//     }
+    void TearDown()
+    {
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
+        }
+    }
 
-//     template <typename MtxType>
-//     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
-//     {
-//         return gko::test::generate_random_matrix<MtxType>(
-//             num_rows, num_cols,
-//             std::uniform_int_distribution<>(num_cols, num_cols),
-//             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
-//     }
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(const size_t batchsize, int num_rows,
+                                     int num_cols)
+    {
+        return gko::test::generate_uniform_batch_random_matrix<MtxType>(
+            batchsize, num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
 
-//     void set_up_vector_data(gko::size_type num_vecs,
-//                             bool different_alpha = false)
-//     {
-//         x = gen_mtx<Mtx>(1000, num_vecs);
-//         y = gen_mtx<Mtx>(1000, num_vecs);
-//         if (different_alpha) {
-//             alpha = gen_mtx<Mtx>(1, num_vecs);
-//         } else {
-//             alpha = gko::initialize<Mtx>({2.0}, ref);
-//         }
-//         dx = Mtx::create(hip);
-//         dx->copy_from(x.get());
-//         dy = Mtx::create(hip);
-//         dy->copy_from(y.get());
-//         dalpha = Mtx::create(hip);
-//         dalpha->copy_from(alpha.get());
-//         expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
-//         dresult = Mtx::create(hip, gko::dim<2>{1, num_vecs});
-//     }
+    void set_up_vector_data(gko::size_type num_vecs,
+                            bool different_alpha = false)
+    {
+        x = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
+        y = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
+        if (different_alpha) {
+            alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
+        } else {
+            alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
+        }
+        dx = Mtx::create(hip);
+        dx->copy_from(x.get());
+        dy = Mtx::create(hip);
+        dy->copy_from(y.get());
+        dalpha = Mtx::create(hip);
+        dalpha->copy_from(alpha.get());
+        expected = Mtx::create(
+            ref, gko::batch_dim(batch_size, gko::dim<2>{1, num_vecs}));
+        dresult = Mtx::create(
+            hip, gko::batch_dim(batch_size, gko::dim<2>{1, num_vecs}));
+    }
 
-//     void set_up_apply_data()
-//     {
-//         x = gen_mtx<Mtx>(65, 25);
-//         y = gen_mtx<Mtx>(25, 35);
-//         expected = gen_mtx<Mtx>(65, 35);
-//         alpha = gko::initialize<Mtx>({2.0}, ref);
-//         beta = gko::initialize<Mtx>({-1.0}, ref);
-//         square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
-//         dx = Mtx::create(hip);
-//         dx->copy_from(x.get());
-//         dy = Mtx::create(hip);
-//         dy->copy_from(y.get());
-//         dresult = Mtx::create(hip);
-//         dresult->copy_from(expected.get());
-//         dalpha = Mtx::create(hip);
-//         dalpha->copy_from(alpha.get());
-//         dbeta = Mtx::create(hip);
-//         dbeta->copy_from(beta.get());
-//         dsquare = Mtx::create(hip);
-//         dsquare->copy_from(square.get());
+    void set_up_apply_data()
+    {
+        x = gen_mtx<Mtx>(batch_size, 65, 25);
+        c_x = gen_mtx<ComplexMtx>(batch_size, 65, 25);
+        y = gen_mtx<Mtx>(batch_size, 25, 35);
+        expected = gen_mtx<Mtx>(batch_size, 65, 35);
+        alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
+        beta = gko::batch_initialize<Mtx>(batch_size, {-1.0}, ref);
+        square = gen_mtx<Mtx>(batch_size, x->get_size().at()[0],
+                              x->get_size().at()[0]);
+        dx = Mtx::create(hip);
+        dx->copy_from(x.get());
+        dc_x = ComplexMtx::create(hip);
+        dc_x->copy_from(c_x.get());
+        dy = Mtx::create(hip);
+        dy->copy_from(y.get());
+        dresult = Mtx::create(hip);
+        dresult->copy_from(expected.get());
+        dalpha = Mtx::create(hip);
+        dalpha->copy_from(alpha.get());
+        dbeta = Mtx::create(hip);
+        dbeta->copy_from(beta.get());
+        dsquare = Mtx::create(hip);
+        dsquare->copy_from(square.get());
+    }
 
-//         std::vector<itype> tmp(x->get_size()[0], 0);
-//         auto rng = std::default_random_engine{};
-//         std::iota(tmp.begin(), tmp.end(), 0);
-//         std::shuffle(tmp.begin(), tmp.end(), rng);
-//         std::vector<itype> tmp2(x->get_size()[1], 0);
-//         std::iota(tmp2.begin(), tmp2.end(), 0);
-//         std::shuffle(tmp2.begin(), tmp2.end(), rng);
-//         std::vector<itype> tmp3(x->get_size()[0] / 10);
-//         std::uniform_int_distribution<itype> row_dist(0, x->get_size()[0] -
-//         1); for (auto &i : tmp3) {
-//             i = row_dist(rng);
-//         }
-//         rpermute_idxs =
-//             std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
-//         cpermute_idxs =
-//             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
-//         rgather_idxs =
-//             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
-//     }
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
-//     std::shared_ptr<gko::ReferenceExecutor> ref;
-//     std::shared_ptr<const gko::HipExecutor> hip;
+    std::ranlux48 rand_engine;
 
-//     std::ranlux48 rand_engine;
-
-//     std::unique_ptr<Mtx> x;
-//     std::unique_ptr<Mtx> y;
-//     std::unique_ptr<Mtx> alpha;
-//     std::unique_ptr<Mtx> beta;
-//     std::unique_ptr<Mtx> expected;
-//     std::unique_ptr<Mtx> square;
-//     std::unique_ptr<Mtx> dresult;
-//     std::unique_ptr<Mtx> dx;
-//     std::unique_ptr<Mtx> dy;
-//     std::unique_ptr<Mtx> dalpha;
-//     std::unique_ptr<Mtx> dbeta;
-//     std::unique_ptr<Mtx> dsquare;
-//     std::unique_ptr<Arr> rpermute_idxs;
-//     std::unique_ptr<Arr> cpermute_idxs;
-//     std::unique_ptr<Arr> rgather_idxs;
-// };
+    const size_t batch_size = 11;
+    std::unique_ptr<Mtx> x;
+    std::unique_ptr<ComplexMtx> c_x;
+    std::unique_ptr<Mtx> y;
+    std::unique_ptr<Mtx> alpha;
+    std::unique_ptr<Mtx> beta;
+    std::unique_ptr<Mtx> expected;
+    std::unique_ptr<Mtx> square;
+    std::unique_ptr<Mtx> dresult;
+    std::unique_ptr<Mtx> dx;
+    std::unique_ptr<ComplexMtx> dc_x;
+    std::unique_ptr<Mtx> dy;
+    std::unique_ptr<Mtx> dalpha;
+    std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Mtx> dsquare;
+};
 
 
-// TEST_F(BatchDense, SingleVectorHipScaleIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(1);
-// //    auto result = Mtx::create(ref);
-// //
-// //    x->scale(alpha.get());
-// //    dx->scale(dalpha.get());
-// //    result->copy_from(dx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
-// //}
+TEST_F(BatchDense, SingleVectorHipScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+    auto result = Mtx::create(ref);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+    result->copy_from(dx.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(result, x, 1e-14);
+}
 
 
-// TEST_F(BatchDense, MultipleVectorHipScaleIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20);
-// //
-// //    x->scale(alpha.get());
-// //    dx->scale(dalpha.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-// //}
+TEST_F(BatchDense, MultipleVectorHipScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 
-// TEST_F(BatchDense, MultipleVectorHipScaleWithDifferentAlphaIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20, true);
-// //
-// //    x->scale(alpha.get());
-// //    dx->scale(dalpha.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-// //}
+TEST_F(BatchDense, MultipleVectorHipScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 
-// TEST_F(BatchDense, SingleVectorHipAddScaledIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(1);
-// //
-// //    x->add_scaled(alpha.get(), y.get());
-// //    dx->add_scaled(dalpha.get(), dy.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-// //}
+TEST_F(BatchDense, SingleVectorHipAddScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->add_scaled(alpha.get(), y.get());
+    dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 
-// TEST_F(BatchDense, MultipleVectorHipAddScaledIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20);
-// //
-// //    x->add_scaled(alpha.get(), y.get());
-// //    dx->add_scaled(dalpha.get(), dy.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-// //}
+TEST_F(BatchDense, MultipleVectorHipAddScaledIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->add_scaled(alpha.get(), y.get());
+    dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 
-// TEST_F(BatchDense,
-//        MultipleVectorHipAddScaledWithDifferentAlphaIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20);
-// //
-// //    x->add_scaled(alpha.get(), y.get());
-// //    dx->add_scaled(dalpha.get(), dy.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-// //}
+TEST_F(BatchDense,
+       MultipleVectorHipAddScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->add_scaled(alpha.get(), y.get());
+    dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 
 // TEST_F(BatchDense, AddsScaledDiagIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    auto mat = gen_mtx<Mtx>(532, 532);
-// //    gko::Array<Mtx::value_type> diag_values(ref, 532);
-// //    gko::kernels::reference::components::fill_array(ref,
-// //    diag_values.get_data(),
-// //                                                    532,
-// //                                                    Mtx::value_type{2.0});
-// //    auto diag =
-// //        gko::matrix::Diagonal<Mtx::value_type>::create(ref, 532,
-// diag_values);
-// //    alpha = gko::initialize<Mtx>({2.0}, ref);
-// //    auto dmat = Mtx::create(hip);
-// //    dmat->copy_from(mat.get());
-// //    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(hip);
-// //    ddiag->copy_from(diag.get());
-// //    dalpha = Mtx::create(hip);
-// //    dalpha->copy_from(alpha.get());
-// //
-// //    mat->add_scaled(alpha.get(), diag.get());
-// //    dmat->add_scaled(dalpha.get(), ddiag.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    auto mat = gen_mtx<Mtx>(532, 532);
+//    gko::Array<Mtx::value_type> diag_values(ref, 532);
+//    gko::kernels::reference::components::fill_array(ref,
+//    diag_values.get_data(),
+//                                                    532,
+//                                                    Mtx::value_type{2.0});
+//    auto diag =
+//        gko::matrix::Diagonal<Mtx::value_type>::create(ref, 532, diag_values);
+//    alpha = gko::initialize<Mtx>({2.0}, ref);
+//    auto dmat = Mtx::create(hip);
+//    dmat->copy_from(mat.get());
+//    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(hip);
+//    ddiag->copy_from(diag.get());
+//    dalpha = Mtx::create(hip);
+//    dalpha->copy_from(alpha.get());
+//
+//    mat->add_scaled(alpha.get(), diag.get());
+//    dmat->add_scaled(dalpha.get(), ddiag.get());
+//
+//    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
+//}
 
 
-// TEST_F(BatchDense, SingleVectorHipComputeDotIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(1);
-// //
-// //    x->compute_dot(y.get(), expected.get());
-// //    dx->compute_dot(dy.get(), dresult.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-// //}
+TEST_F(BatchDense, SingleVectorHipComputeDotIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->compute_dot(y.get(), expected.get());
+    dx->compute_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+}
 
 
-// TEST_F(BatchDense, MultipleVectorHipComputeDotIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20);
-// //
-// //    x->compute_dot(y.get(), expected.get());
-// //    dx->compute_dot(dy.get(), dresult.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-// //}
+TEST_F(BatchDense, MultipleVectorHipComputeDotIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->compute_dot(y.get(), expected.get());
+    dx->compute_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+}
 
 
-// TEST_F(BatchDense, HipComputeNorm2IsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_vector_data(20);
-// //    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
-// //    auto norm_expected = NormVector::create(this->ref, norm_size);
-// //    auto dnorm = NormVector::create(this->hip, norm_size);
-// //
-// //    x->compute_norm2(norm_expected.get());
-// //    dx->compute_norm2(dnorm.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
-// //}
+TEST_F(BatchDense, HipComputeNorm2IsEquivalentToRef)
+{
+    set_up_vector_data(20);
+    auto norm_size =
+        gko::batch_dim(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->hip, norm_size);
+
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
+}
 
 
 // TEST_F(BatchDense, SimpleApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    x->apply(y.get(), expected.get());
-// //    dx->apply(dy.get(), dresult.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//
+//    x->apply(y.get(), expected.get());
+//    dx->apply(dy.get(), dresult.get());
+//
+//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+//}
 
 
 // TEST_F(BatchDense, AdvancedApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
-// //    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//
+//    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
+//    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+//
+//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+//}
 
 
 // TEST_F(BatchDense, ApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-// //    auto dcomplex_b = ComplexMtx::create(hip);
-// //    dcomplex_b->copy_from(complex_b.get());
-// //    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-// //    auto dcomplex_x = ComplexMtx::create(hip);
-// //    dcomplex_x->copy_from(complex_x.get());
-// //
-// //    x->apply(complex_b.get(), complex_x.get());
-// //    dx->apply(dcomplex_b.get(), dcomplex_x.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+//    auto dcomplex_b = ComplexMtx::create(hip);
+//    dcomplex_b->copy_from(complex_b.get());
+//    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+//    auto dcomplex_x = ComplexMtx::create(hip);
+//    dcomplex_x->copy_from(complex_x.get());
+//
+//    x->apply(complex_b.get(), complex_x.get());
+//    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+//
+//    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+//}
 
 
 // TEST_F(BatchDense, AdvancedApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-// //    auto dcomplex_b = ComplexMtx::create(hip);
-// //    dcomplex_b->copy_from(complex_b.get());
-// //    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-// //    auto dcomplex_x = ComplexMtx::create(hip);
-// //    dcomplex_x->copy_from(complex_x.get());
-// //
-// //    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-// //    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(),
-// dcomplex_x.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+//    auto dcomplex_b = ComplexMtx::create(hip);
+//    dcomplex_b->copy_from(complex_b.get());
+//    auto complex_x = gen_mtx<ComplexMtx>(65, 1);
+//    auto dcomplex_x = ComplexMtx::create(hip);
+//    dcomplex_x->copy_from(complex_x.get());
+//
+//    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+//    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+//
+//    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+//}
 
 
 // TEST_F(BatchDense, IsTransposable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto trans = x->transpose();
-// //    auto dtrans = dx->transpose();
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-// //                        static_cast<Mtx *>(trans.get()), 0);
-// //}
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//
+//    auto trans = x->transpose();
+//    auto dtrans = dx->transpose();
+//
+//    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+//                        static_cast<Mtx *>(trans.get()), 0);
+//}
 
 
-// TEST_F(BatchDense, ConvertToCooIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto coo_mtx = gko::matrix::Coo<>::create(ref);
-// //    auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
-// //
-// //    x->convert_to(coo_mtx.get());
-// //    dx->convert_to(dcoo_mtx.get());
-// //
-// //    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
-// //              coo_mtx->get_num_stored_elements());
-// //    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
-// //}
+// TEST_F(BatchDense, IsConjugateTransposable)
+//{
+// TODO (script:batch_dense): change the code imported from matrix/dense if
+// needed
+//    set_up_apply_data();
+//
+//    auto trans = c_x->conj_transpose();
+//    auto dtrans = dc_x->conj_transpose();
+//
+//    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
+//                        static_cast<ComplexMtx *>(trans.get()), 0);
+//}
 
 
-// TEST_F(BatchDense, MoveToCooIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto coo_mtx = gko::matrix::Coo<>::create(ref);
-// //    auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
-// //
-// //    x->move_to(coo_mtx.get());
-// //    dx->move_to(dcoo_mtx.get());
-// //
-// //    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
-// //              coo_mtx->get_num_stored_elements());
-// //    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, ConvertToCsrIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-// //    auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
-// //
-// //    x->convert_to(csr_mtx.get());
-// //    dx->convert_to(dcsr_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, MoveToCsrIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-// //    auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
-// //
-// //    x->move_to(csr_mtx.get());
-// //    dx->move_to(dcsr_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, ConvertToEllIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto ell_mtx = gko::matrix::Ell<>::create(ref);
-// //    auto dell_mtx = gko::matrix::Ell<>::create(hip);
-// //
-// //    x->convert_to(ell_mtx.get());
-// //    dx->convert_to(dell_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, MoveToEllIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto ell_mtx = gko::matrix::Ell<>::create(ref);
-// //    auto dell_mtx = gko::matrix::Ell<>::create(hip);
-// //
-// //    x->move_to(ell_mtx.get());
-// //    dx->move_to(dell_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, ConvertToSellpIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-// //    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
-// //
-// //    x->convert_to(sellp_mtx.get());
-// //    dx->convert_to(dsellp_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, MoveToSellpIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-// //    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
-// //
-// //    x->move_to(sellp_mtx.get());
-// //    dx->move_to(dsellp_mtx.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, ConvertsEmptyToSellp)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    auto dempty_mtx = Mtx::create(hip);
-// //    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
-// //
-// //    dempty_mtx->convert_to(dsellp_mtx.get());
-// //
-// //    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()),
-// 0);
-// //    ASSERT_FALSE(dsellp_mtx->get_size());
-// //}
-
-
-// TEST_F(BatchDense, CountNNZIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    gko::size_type nnz;
-// //    gko::size_type dnnz;
-// //
-// //    gko::kernels::reference::batch_dense::count_nonzeros(ref, x.get(),
-// &nnz);
-// //    gko::kernels::hip::batch_dense::count_nonzeros(hip, dx.get(), &dnnz);
-// //
-// //    ASSERT_EQ(nnz, dnnz);
-// //}
-
-
-// TEST_F(BatchDense, CalculateNNZPerRowIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    gko::Array<gko::size_type> nnz_per_row(ref);
-// //    nnz_per_row.resize_and_reset(x->get_size()[0]);
-// //    gko::Array<gko::size_type> dnnz_per_row(hip);
-// //    dnnz_per_row.resize_and_reset(dx->get_size()[0]);
-// //
-// //    gko::kernels::reference::batch_dense::calculate_nonzeros_per_row(ref,
-// //    x.get(),
-// // &nnz_per_row);
-// //    gko::kernels::hip::batch_dense::calculate_nonzeros_per_row(hip,
-// dx.get(),
-// //                                                         &dnnz_per_row);
-// //
-// //    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
-// //    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
-// //        ASSERT_EQ(nnz_per_row.get_const_data()[i],
-// tmp.get_const_data()[i]);
-// //    }
-// //}
-
-
-// TEST_F(BatchDense, CalculateMaxNNZPerRowIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    gko::size_type max_nnz;
-// //    gko::size_type dmax_nnz;
-// //
-// //    gko::kernels::reference::batch_dense::calculate_max_nnz_per_row(ref,
-// //    x.get(),
-// //                                                              &max_nnz);
-// //    gko::kernels::hip::batch_dense::calculate_max_nnz_per_row(hip,
-// dx.get(),
-// //                                                        &dmax_nnz);
-// //
-// //    ASSERT_EQ(max_nnz, dmax_nnz);
-// //}
-
-
-// TEST_F(BatchDense, CalculateTotalColsIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    gko::size_type total_cols;
-// //    gko::size_type dtotal_cols;
-// //
-// //    gko::kernels::reference::batch_dense::calculate_total_cols(
-// //        ref, x.get(), &total_cols, 2, gko::matrix::default_slice_size);
-// //    gko::kernels::hip::batch_dense::calculate_total_cols(
-// //        hip, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
-// //
-// //    ASSERT_EQ(total_cols, dtotal_cols);
-// //}
-
-
-// TEST_F(BatchDense, CanGatherRows)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto r_gather = x->row_gather(rgather_idxs.get());
-// //    auto dr_gather = dx->row_gather(rgather_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-// //}
-
-
-// TEST_F(BatchDense, CanGatherRowsIntoBatchDense)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //    auto gather_size =
-// //        gko::dim<2>{rgather_idxs->get_num_elems(), x->get_size()[1]};
-// //    auto r_gather = Mtx::create(ref, gather_size);
-// //    // test make_temporary_clone and non-default stride
-// //    auto dr_gather = Mtx::create(ref, gather_size, x->get_size()[1] + 2);
-// //
-// //    x->row_gather(rgather_idxs.get(), r_gather.get());
-// //    dx->row_gather(rgather_idxs.get(), dr_gather.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsPermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto permuted = square->permute(rpermute_idxs.get());
-// //    auto dpermuted = dsquare->permute(rpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
-// //                        static_cast<Mtx *>(dpermuted.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsInversePermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto permuted = square->inverse_permute(rpermute_idxs.get());
-// //    auto dpermuted = dsquare->inverse_permute(rpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
-// //                        static_cast<Mtx *>(dpermuted.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsRowPermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto r_permute = x->row_permute(rpermute_idxs.get());
-// //    auto dr_permute = dx->row_permute(rpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
-// //                        static_cast<Mtx *>(dr_permute.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsColPermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto c_permute = x->column_permute(cpermute_idxs.get());
-// //    auto dc_permute = dx->column_permute(cpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
-// //                        static_cast<Mtx *>(dc_permute.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsInverseRowPermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
-// //    auto d_inverse_r_permute =
-// dx->inverse_row_permute(rpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
-// //                        static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, IsInverseColPermutable)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto inverse_c_permute =
-// x->inverse_column_permute(cpermute_idxs.get());
-// //    auto d_inverse_c_permute =
-// //    dx->inverse_column_permute(cpermute_idxs.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
-// //                        static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
-// //}
-
-
-// TEST_F(BatchDense, ExtractDiagonalIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto diag = x->extract_diagonal();
-// //    auto ddiag = dx->extract_diagonal();
-// //
-// //    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-// //}
-
-
-// TEST_F(BatchDense, InplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    x->compute_absolute_inplace();
-// //    dx->compute_absolute_inplace();
-// //
-// //    GKO_ASSERT_MTX_NEAR(x, dx, 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, OutplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto abs_x = x->compute_absolute();
-// //    auto dabs_x = dx->compute_absolute();
-// //
-// //    GKO_ASSERT_MTX_NEAR(abs_x, dabs_x, 1e-14);
-// //}
-
-
-// TEST_F(BatchDense, MakeComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto complex_x = x->make_complex();
-// //    auto dcomplex_x = dx->make_complex();
-// //
-// //    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
-// //}
-
-
-// TEST_F(BatchDense, MakeComplexWithGivenResultIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto complex_x = ComplexMtx::create(ref, x->get_size());
-// //    x->make_complex(complex_x.get());
-// //    auto dcomplex_x = ComplexMtx::create(hip, x->get_size());
-// //    dx->make_complex(dcomplex_x.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
-// //}
-
-
-// TEST_F(BatchDense, GetRealIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto real_x = x->get_real();
-// //    auto dreal_x = dx->get_real();
-// //
-// //    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
-// //}
-
-
-// TEST_F(BatchDense, GetRealWithGivenResultIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto real_x = Mtx::create(ref, x->get_size());
-// //    x->get_real(real_x.get());
-// //    auto dreal_x = Mtx::create(hip, dx->get_size());
-// //    dx->get_real(dreal_x.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
-// //}
-
-
-// TEST_F(BatchDense, GetImagIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto imag_x = x->get_imag();
-// //    auto dimag_x = dx->get_imag();
-// //
-// //    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-// //}
-
-
-// TEST_F(BatchDense, GetImagWithGivenResultIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
-// //{
-// // TODO (script:batch_dense): change the code imported from matrix/dense if
-// // needed
-// //    set_up_apply_data();
-// //
-// //    auto imag_x = Mtx::create(ref, x->get_size());
-// //    x->get_imag(imag_x.get());
-// //    auto dimag_x = Mtx::create(hip, dx->get_size());
-// //    dx->get_imag(dimag_x.get());
-// //
-// //    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-// //}
-
-
-// }  // namespace
+}  // namespace
