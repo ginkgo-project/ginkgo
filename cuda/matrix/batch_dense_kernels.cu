@@ -124,7 +124,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 template <typename ValueType>
 void scale(std::shared_ptr<const CudaExecutor> exec,
            const matrix::BatchDense<ValueType> *const alpha,
-           matrix::BatchDense<ValueType> *const x) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType> *const x)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    scale<<<num_blocks, default_block_size>>>(alpha_ub, x_ub);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
@@ -170,42 +176,15 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::BatchDense<ValueType> *x,
                  const matrix::BatchDense<ValueType> *y,
-                 matrix::BatchDense<ValueType> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        // TODO: write a custom kernel which does this more efficiently
-//        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-//            cublas::dot(exec->get_cublas_handle(), x->get_size()[0],
-//                        x->get_const_values() + col, x->get_stride(),
-//                        y->get_const_values() + col, y->get_stride(),
-//                        result->get_values() + col);
-//        }
-//    } else {
-//        // TODO: these are tuning parameters obtained experimentally, once
-//        // we decide how to handle this uniformly, they should be modified
-//        // appropriately
-//        constexpr auto work_per_thread = 32;
-//        constexpr auto block_size = 1024;
-//
-//        constexpr auto work_per_block = work_per_thread * block_size;
-//        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-//        const dim3 block_dim{config::warp_size, 1,
-//                             block_size / config::warp_size};
-//        Array<ValueType> work(exec, grid_dim.x);
-//        // TODO: write a kernel which does this more efficiently
-//        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-//            kernel::compute_partial_dot<block_size><<<grid_dim, block_dim>>>(
-//                x->get_size()[0], as_cuda_type(x->get_const_values() + col),
-//                x->get_stride(), as_cuda_type(y->get_const_values() + col),
-//                y->get_stride(), as_cuda_type(work.get_data()));
-//            kernel::finalize_dot_computation<block_size><<<1, block_dim>>>(
-//                grid_dim.x, as_cuda_type(work.get_const_data()),
-//                as_cuda_type(result->get_values() + col));
-//        }
-//    }
-//}
+                 matrix::BatchDense<ValueType> *result)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub, res_ub);
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
