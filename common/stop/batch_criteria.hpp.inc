@@ -164,7 +164,7 @@ AbsAndRelResidualMaxIter<ValueType>::check_converged(
     } else {
         __shared__ UninitializedArray<real_type, 32> norms;
 
-        batch_dense::compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
+        compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
 
         __syncthreads();
 
