@@ -63,8 +63,7 @@ __device__ __forceinline__ void initialize(
 
 
     // Compute norms of rhs
-    batch_dense::compute_norm2<ValueType>(b_global_entry,
-                                          rhs_norms_shared_entry);
+    compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
     // copy x from global to shared memory
     for (int li = threadIdx.x;
@@ -96,8 +95,8 @@ __device__ __forceinline__ void initialize(
                  static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
-                                          res_norms_shared_entry);
+    compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
+                             res_norms_shared_entry);
 
 
     for (int li = threadIdx.x;
@@ -192,8 +191,8 @@ __device__ __forceinline__ void compute_alpha(
     const gko::batch_dense::BatchEntry<ValueType> temp_shared_entry{
         temp_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-    batch_dense::compute_dot_product<ValueType>(
-        r_hat_shared_entry, v_shared_entry, temp_shared_entry);
+    compute_dot_product<ValueType>(r_hat_shared_entry, v_shared_entry,
+                                   temp_shared_entry);
     __syncthreads();
 
     for (int c = threadIdx.x; c < alpha_shared_entry.num_rhs; c += blockDim.x) {
@@ -259,10 +258,10 @@ __device__ __forceinline__ void compute_omega_new(
     const gko::batch_dense::BatchEntry<ValueType> t_t_shared_entry{
         t_t_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-    batch_dense::compute_dot_product<ValueType>(t_shared_entry, s_shared_entry,
-                                                t_s_shared_entry);
-    batch_dense::compute_dot_product<ValueType>(t_shared_entry, t_shared_entry,
-                                                t_t_shared_entry);
+    compute_dot_product<ValueType>(t_shared_entry, s_shared_entry,
+                                   t_s_shared_entry);
+    compute_dot_product<ValueType>(t_shared_entry, t_shared_entry,
+                                   t_t_shared_entry);
 
     __syncthreads();
 
@@ -746,7 +745,7 @@ __global__ void apply_kernel(
             const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
                 gko::batch::batch_entry(b, ibatch);
             batch_scale(left_global_entry, right_global_entry, A_global_entry);
-            batch_dense::batch_scale(left_global_entry, b_global_entry);
+            batch_scale(left_global_entry, b_global_entry);
 
             __syncthreads();
         }
@@ -901,7 +900,7 @@ __global__ void apply_kernel(
 
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
-            batch_dense::compute_dot_product<ValueType>(
+            compute_dot_product<ValueType>(
                 gko::batch::to_const(r_hat_shared_entry),
                 gko::batch::to_const(r_shared_entry), rho_new_shared_entry);
 
@@ -956,7 +955,7 @@ __global__ void apply_kernel(
 
             __syncthreads();
 
-            batch_dense::compute_norm2<ValueType>(
+            compute_norm2<ValueType>(
                 gko::batch::to_const(s_shared_entry),
                 res_norms_temp_shared_entry);  // an estimate of residual norms
             __syncthreads();
@@ -1029,7 +1028,7 @@ __global__ void apply_kernel(
 
             __syncthreads();
 
-            batch_dense::compute_norm2<ValueType>(
+            compute_norm2<ValueType>(
                 gko::batch::to_const(r_shared_entry),
                 res_norms_temp_shared_entry);  // residual norms
             __syncthreads();
@@ -1050,7 +1049,7 @@ __global__ void apply_kernel(
         }
 
         if (left_global_entry.values) {
-            batch_dense::batch_scale(right_global_entry, x_shared_entry);
+            batch_scale(right_global_entry, x_shared_entry);
         }
 
         __syncthreads();
