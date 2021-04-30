@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
 
