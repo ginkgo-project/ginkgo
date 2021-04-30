@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
@@ -128,6 +129,35 @@ TEST_F(BatchGenerator, OutputHasCorrectValuesAverageAndDeviation)
     // check that average and deviation is within 10% of the required amount
     ASSERT_NEAR(average, 20.0, 2.0);
     ASSERT_NEAR(deviation, 5.0, 0.5);
+}
+
+
+TEST_F(BatchGenerator, OutputHasAllDiagonalEntriesWhenRequested)
+{
+    using Csr = gko::matrix::BatchCsr<double>;
+    const gko::size_type nbatch = 3, nrows = 10, ncols = 10;
+    auto dmtx = gko::test::generate_uniform_batch_random_matrix<Csr>(
+        nbatch, nrows, ncols, std::uniform_int_distribution<>(1, 3),
+        std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42), true,
+        exec);
+
+    const int *const row_ptrs = dmtx->get_const_row_ptrs();
+    const int *const col_idxs = dmtx->get_const_col_idxs();
+    const double *const vals = dmtx->get_const_values();
+    for (size_t row = 0; row < nrows; row++) {
+        bool has_diag = false;
+        for (int iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            if (col_idxs[iz] == row) {
+                has_diag = true;
+                for (size_t ibatch = 0; ibatch < nbatch; ibatch++) {
+                    if (vals[ibatch * row_ptrs[nrows] + iz] == 0.0) {
+                        has_diag = false;
+                    }
+                }
+            }
+        }
+        ASSERT_TRUE(has_diag);
+    }
 }
 
 
