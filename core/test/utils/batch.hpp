@@ -43,46 +43,69 @@ namespace gko {
 namespace test {
 
 
+/**
+ * Generates a batch of random matrices of the specified type.
+ */
 template <typename MatrixType, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
     const size_type batch_size, const size_type num_rows,
     const size_type num_cols, NonzeroDistribution &&nonzero_dist,
     ValueDistribution &&value_dist, Engine &&engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
+    const bool with_all_diagonals, std::shared_ptr<const Executor> exec,
+    MatrixArgs &&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
-    using std::begin;
-    using std::end;
-
-    std::vector<size_type> col_idx(num_cols);
-    std::iota(begin(col_idx), end(col_idx), size_type(0));
-    std::vector<size_type> nnz_in_row(num_rows);
 
     // generate sparsity pattern
+    matrix_data<value_type, index_type> sdata{gko::dim<2>{num_rows, num_cols},
+                                              {}};
+
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
+        std::vector<size_type> col_idx(num_cols);
+        std::iota(begin(col_idx), end(col_idx), size_type(0));
         const auto nnz_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row[row] = std::max(size_type(0), std::min(nnz_row, num_cols));
-        std::shuffle(begin(col_idx), end(col_idx), engine);
+        size_type nnz_in_row =
+            std::max(size_type(0), std::min(nnz_row, num_cols));
+        std::shuffle(std::begin(col_idx), std::end(col_idx), engine);
+
+        if (with_all_diagonals) {
+            if (nnz_in_row == 0) {
+                nnz_in_row = 1;
+            }
+            bool has_diagonal = false;
+            for (size_type icol = 0; icol < nnz_in_row; icol++) {
+                if (col_idx[icol] == row) {
+                    has_diagonal = true;
+                }
+            }
+            if (!has_diagonal) {
+                col_idx[0] = row;
+            }
+        }
+
+        std::for_each(
+            std::begin(col_idx), std::begin(col_idx) + nnz_in_row,
+            [&](size_type col) { sdata.nonzeros.emplace_back(row, col, 1.0); });
     }
 
     std::vector<matrix_data<value_type, index_type>> batchmtx;
     batchmtx.reserve(batch_size);
 
     for (size_t ibatch = 0; ibatch < batch_size; ibatch++) {
-        matrix_data<value_type, index_type> data{
-            gko::dim<2>{num_rows, num_cols}, {}};
-        for (size_type row = 0; row < num_rows; ++row) {
-            std::for_each(begin(col_idx), begin(col_idx) + nnz_in_row[row],
-                          [&](size_type col) {
-                              data.nonzeros.emplace_back(
-                                  row, col,
-                                  gko::detail::get_rand_value<value_type>(
-                                      value_dist, engine));
-                          });
+        matrix_data<value_type, index_type> data = sdata;
+        for (size_type iz = 0; iz < data.nonzeros.size(); ++iz) {
+            value_type valnz =
+                gko::detail::get_rand_value<value_type>(value_dist, engine);
+            if (data.nonzeros[iz].column == data.nonzeros[iz].row &&
+                valnz == zero<value_type>()) {
+                valnz = 1.0;
+            }
+            data.nonzeros[iz].value = valnz;
         }
+
         data.ensure_row_major_order();
         batchmtx.emplace_back(std::move(data));
     }
