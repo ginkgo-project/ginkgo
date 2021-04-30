@@ -60,6 +60,19 @@ __device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
     }
 }
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<ValueType> x)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        scale(alpha_b, x_b);
+    }
+}
+
 
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
@@ -193,4 +206,26 @@ __device__ __forceinline__ void compute_dot_product(
         }
     }
     // TODO: put a parallel reduce here
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_multiplier) void compute_dot_product(const gko::batch_dense::
+                                                UniformBatch<const ValueType>
+                                                    x,
+                                            const gko::batch_dense::
+                                                UniformBatch<const ValueType>
+                                                    y,
+                                            const gko::batch_dense::
+                                                UniformBatch<ValueType>
+                                                    result)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto y_b = gko::batch::batch_entry(y, ibatch);
+        const auto r_b = gko::batch::batch_entry(result, ibatch);
+        compute_dot_product(x_b, y_b, r_b);
+    }
 }
