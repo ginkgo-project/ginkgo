@@ -165,17 +165,14 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::BatchDense<ValueType> *y,
                  matrix::BatchDense<ValueType> *result)
 {
-    for (size_type batch = 0; batch < result->get_num_batch_entries();
-         ++batch) {
-        for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-            result->at(batch, 0, j) = zero<ValueType>();
-        }
-        for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-            for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-                result->at(batch, 0, j) +=
-                    conj(x->at(batch, i, j)) * y->at(batch, i, j);
-            }
-        }
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+        const auto res_b = gko::batch::batch_entry(res_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        compute_dot_product(x_b, y_b, res_b);
     }
 }
 
