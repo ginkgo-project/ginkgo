@@ -60,36 +60,11 @@ GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        amgx_pgm::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
-GKO_REGISTER_OPERATION(amgx_pgm_generate, amgx_pgm::amgx_pgm_generate);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 }  // namespace amgx_pgm
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> amgx_pgm_generate(
-    std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType> *source,
-    const matrix::Csr<ValueType, IndexType> *prolong_op,
-    const matrix::Csr<ValueType, IndexType> *restrict_op)
-{
-    auto num_agg = prolong_op->get_size()[1];
-    auto coarse = matrix::Csr<ValueType, IndexType>::create(
-        exec, dim<2>{num_agg, num_agg}, 0, source->get_strategy());
-    auto temp = matrix::Csr<ValueType, IndexType>::create(
-        exec, dim<2>{num_agg, num_agg}, source->get_num_stored_elements());
-    exec->run(amgx_pgm::make_amgx_pgm_generate(source, prolong_op, restrict_op,
-                                               coarse.get(), temp.get()));
-    return std::move(coarse);
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -160,7 +135,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
 
-    auto coarse_dim = num_agg;
+    gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
     // TODO: prolong_op can be done with lightway format
     auto prolong_op = share(
@@ -175,8 +150,13 @@ void AmgxPgm<ValueType, IndexType>::generate()
     auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
 
     // Construct the coarse matrix
-    auto coarse_matrix = share(amgx_pgm_generate(
-        exec, amgxpgm_op, prolong_op.get(), restrict_op.get()));
+    // TODO: use less memory footprint to improve it
+    auto coarse_matrix =
+        share(matrix_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+    auto tmp = matrix_type::create(exec, gko::dim<2>{coarse_dim, fine_dim});
+    restrict_op->apply(amgxpgm_op, tmp.get());
+    tmp->apply(prolong_op.get(), coarse_matrix.get());
+
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
 

@@ -288,44 +288,6 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 }
 
 
-TEST_F(AmgxPgm, GenerateMtxIsEquivalentToRef)
-{
-    initialize_data();
-    auto csr_coarse = Csr::create(ref, gko::dim<2>{n, n}, 0);
-    auto d_csr_coarse = Csr::create(cuda, gko::dim<2>{n, n}, 0);
-    auto csr_temp = Csr::create(ref, gko::dim<2>{n, n},
-                                system_mtx->get_num_stored_elements());
-    auto d_csr_temp = Csr::create(cuda, gko::dim<2>{n, n},
-                                  d_system_mtx->get_num_stored_elements());
-    index_type num_agg;
-    // renumber again
-    gko::kernels::reference::amgx_pgm::renumber(ref, agg, &num_agg);
-    auto prolong_op = Csr::create(ref, gko::dim<2>{m, n}, m);
-    for (int i = 0; i < m; i++) {
-        prolong_op->get_col_idxs()[i] = agg.get_const_data()[i];
-    }
-    std::iota(prolong_op->get_row_ptrs(), prolong_op->get_row_ptrs() + m + 1,
-              0);
-    std::fill_n(prolong_op->get_values(), m, gko::one<value_type>());
-    auto restrict_op = gko::as<Csr>(prolong_op->transpose());
-    auto d_prolong_op = Csr::create(cuda);
-    auto d_restrict_op = Csr::create(cuda);
-    d_prolong_op->copy_from(prolong_op.get());
-    d_restrict_op->copy_from(restrict_op.get());
-
-    gko::kernels::cuda::amgx_pgm::amgx_pgm_generate(
-        cuda, d_system_mtx.get(), d_prolong_op.get(), d_restrict_op.get(),
-        d_csr_coarse.get(), d_csr_temp.get());
-    gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
-        ref, system_mtx.get(), prolong_op.get(), restrict_op.get(),
-        csr_coarse.get(), csr_temp.get());
-
-    // it should be checked already in renumber
-    GKO_ASSERT_EQ(num_agg, n);
-    GKO_ASSERT_MTX_NEAR(d_csr_coarse, csr_coarse, 1e-14);
-}
-
-
 TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
 {
     initialize_data();
