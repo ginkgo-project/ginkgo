@@ -81,7 +81,7 @@ protected:
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             batchsize, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
     }
 
     void set_up_vector_data(gko::size_type num_vecs,
