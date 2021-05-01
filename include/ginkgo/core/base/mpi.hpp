@@ -362,6 +362,7 @@ template <typename BroadcastType>
 void broadcast(BroadcastType *buffer, int count, int root_rank,
                std::shared_ptr<const communicator> comm = {});
 
+
 template <typename ReduceType>
 void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
             op_type op_enum, int root_rank,
@@ -370,8 +371,15 @@ void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
 
 
 template <typename ReduceType>
+void all_reduce(ReduceType *recv_buffer, int count,
+                op_type op_enum = op_type::sum,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
+template <typename ReduceType>
 void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
-                int count, op_type op_enum,
+                int count, op_type op_enum = op_type::sum,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
@@ -400,6 +408,12 @@ void scatter(const SendType *send_buffer, const int *send_counts,
              const int *displacements, RecvType *recv_buffer,
              const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
+
+
+template <typename RecvType>
+void all_to_all(RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
