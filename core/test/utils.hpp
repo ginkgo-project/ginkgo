@@ -57,41 +57,80 @@ namespace test {
 
 
 using ValueTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>>;
+#else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
+#endif
 
 
 using ComplexValueTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::complex<float>>;
+#else
     ::testing::Types<std::complex<float>, std::complex<double>>;
+#endif
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
 
 
 using ValueAndIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>, gko::int32, gko::int64,
+                     gko::size_type>;
+#else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>,
                      gko::int32, gko::int64, gko::size_type>;
+#endif
+
 
 using RealValueAndIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, gko::int32, gko::int64, gko::size_type>;
+#else
     ::testing::Types<float, double, gko::int32, gko::int64, gko::size_type>;
-
-using ValueIndexTypes = ::testing::Types<
-    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-    std::tuple<std::complex<float>, gko::int32>,
-    std::tuple<std::complex<double>, gko::int32>, std::tuple<float, gko::int64>,
-    std::tuple<double, gko::int64>, std::tuple<std::complex<float>, gko::int64>,
-    std::tuple<std::complex<double>, gko::int64>>;
+#endif
 
 
-using RealValueIndexTypes = ::testing::Types<
-    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-    std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+using ValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<float, gko::int64>,
+                     std::tuple<std::complex<float>, gko::int64>>;
+#else
+    ::testing::Types<
+        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+        std::tuple<std::complex<float>, gko::int32>,
+        std::tuple<std::complex<double>, gko::int32>,
+        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>,
+        std::tuple<std::complex<float>, gko::int64>,
+        std::tuple<std::complex<double>, gko::int64>>;
+#endif
+
+
+using RealValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<float, gko::int64>>;
+#else
+    ::testing::Types<
+        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+#endif
 
 
 using ComplexValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int64>>;
+#else
     ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
                      std::tuple<std::complex<double>, gko::int32>,
                      std::tuple<std::complex<float>, gko::int64>,
                      std::tuple<std::complex<double>, gko::int64>>;
+#endif
 
 
 template <typename Precision, typename OutputType>

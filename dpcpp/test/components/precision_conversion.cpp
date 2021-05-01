@@ -97,6 +97,7 @@ protected:
 };
 
 
+#ifndef GINKGO_DPCPP_SINGLE_MODE
 TEST_F(PrecisionConversion, ConvertsReal)
 {
     gko::Array<double> dtmp;
@@ -168,6 +169,7 @@ TEST_F(PrecisionConversion, ConvertsComplexFromRef)
 
     GKO_ASSERT_ARRAY_EQ(dcvals, dout);
 }
+#endif  // GINKGO_DPCPP_SINGLE_MODE
 
 
 }  // namespace

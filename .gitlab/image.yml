@@ -75,9 +75,21 @@
     - amdci
     - gpu
 
-.use_gko-oneapi:
+.use_gko-oneapi-cpu:
   image: ginkgohub/oneapi:latest
   tags:
     - private_ci
-    - bwuni
+    - intelci-igpu
     - cpu
+
+.use_gko-oneapi-igpu:
+  image: ginkgohub/oneapi:latest
+  tags:
+    - private_ci
+    - intel-igpu
+
+.use_gko-oneapi-dgpu:
+  image: ginkgohub/oneapi:latest
+  tags:
+    - private_ci
+    - intel-dgpu

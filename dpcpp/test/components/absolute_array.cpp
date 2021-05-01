@@ -52,8 +52,13 @@ namespace {
 
 class AbsoluteArray : public ::testing::Test {
 protected:
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+    using complex_type = std::complex<float>;
+#else
     using value_type = double;
     using complex_type = std::complex<double>;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
     AbsoluteArray()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::DpcppExecutor::create(0, ref)),

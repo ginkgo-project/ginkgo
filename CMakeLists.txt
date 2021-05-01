@@ -1,9 +1,7 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 
 # Use *_ROOT environment variables for find_package calls
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
-    cmake_policy(SET CMP0074 NEW)
-endif()
+cmake_policy(SET CMP0074 NEW)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.
@@ -54,6 +52,11 @@ set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
 if(MSVC)
     set(GINKGO_COMPILER_FLAGS "" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
+elseif(GINKGO_BUILD_DPCPP OR CMAKE_CXX_COMPILER MATCHES "dpcpp")
+    # For now always use `-ffp-model=precise` with DPC++. This can be removed when
+    # the floating point issues are fixed.
+    set(GINKGO_COMPILER_FLAGS "-Wpedantic;-ffp-model=precise" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic;-ffp-model=precise`")
 else()
     set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
         "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
@@ -78,6 +81,7 @@ if(MSVC OR WIN32 OR CYGWIN OR APPLE)
 else()
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 endif()
+option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)

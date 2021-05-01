@@ -557,6 +557,17 @@ public:
      *       equal.
      */
     virtual void remove_logger(const Logger *logger) = 0;
+
+    /**
+     * Returns the vector containing all loggers registered at this object.
+     *
+     * @return the vector containing all registered loggers.
+     */
+    virtual const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+        const = 0;
+
+    /** Remove all loggers registered at this object. */
+    virtual void clear_loggers() = 0;
 };
 
 
@@ -594,18 +605,13 @@ public:
         }
     }
 
-    /**
-     * Returns the vector containing all loggers registered at this object.
-     *
-     * @return the vector containing all registered loggers.
-     */
-    const std::vector<std::shared_ptr<const Logger>> &get_loggers() const
+    const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+        const override
     {
         return loggers_;
     }
 
-    /** Remove all loggers registered at this object. */
-    void clear_loggers() { loggers_.clear(); }
+    void clear_loggers() override { loggers_.clear(); }
 
 protected:
     template <size_type Event, typename... Params>
