@@ -48,21 +48,6 @@ namespace reference {
 namespace stop {
 
 
-namespace detail {
-
-
-constexpr uint32 pow(const uint32 x, const int N)
-{
-    uint32 ans = 1;
-    for (int i = 0; i < N; i++) {
-        ans *= x;
-    }
-    return ans;
-}
-
-
-}  // namespace detail
-
 /**
  * A stopping criterion for batch solvers that comprises a
  * maximum iteration count as well as relative residual tolerance.
@@ -144,7 +129,7 @@ private:
     int max_its;
     const real_type rel_tol;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::pow(2, 32) - 1;
+    static constexpr uint32 all_true = 0xffffffff;
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const
