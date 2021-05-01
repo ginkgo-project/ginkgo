@@ -545,6 +545,26 @@ TEST_F(MpiBindings, CanAllReduceValues)
 }
 
 
+TEST_F(MpiBindings, CanAllReduceValuesInPlace)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    int data;
+    if (my_rank == 0) {
+        data = 3;
+    } else if (my_rank == 1) {
+        data = 5;
+    } else if (my_rank == 2) {
+        data = 2;
+    } else if (my_rank == 3) {
+        data = 6;
+    }
+    gko::mpi::all_reduce<int>(&data, 1, gko::mpi::op_type::sum);
+    ASSERT_EQ(data, 16);
+}
+
+
 TEST_F(MpiBindings, CanScatterValues)
 {
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
@@ -751,6 +771,87 @@ TEST_F(MpiBindings, AllToAllWorksCorrectly)
 
     gko::mpi::all_to_all<double, double>(send_array.get_data(), 1,
                                          recv_array.get_data());
+    this->assert_equal_arrays(recv_array, ref_array);
+}
+
+
+TEST_F(MpiBindings, AllToAllInPlaceWorksCorrectly)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto recv_array = gko::Array<double>{ref};
+    auto ref_array = gko::Array<double>{ref};
+    recv_array = gko::Array<double>{ref, 4};
+    if (my_rank == 0) {
+        recv_array = gko::Array<double>(ref, {2.5, 3.0, 1.5, 2.0});
+        ref_array = gko::Array<double>(ref, {2.5, 2.5, 2.0, 5.5});
+    } else if (my_rank == 1) {
+        recv_array = gko::Array<double>(ref, {2.5, 3.5, 1.0, 2.0});
+        ref_array = gko::Array<double>(ref, {3.0, 3.5, 3.0, 3.5});
+    } else if (my_rank == 2) {
+        recv_array = gko::Array<double>(ref, {2.0, 3.0, 1.5, 0.0});
+        ref_array = gko::Array<double>(ref, {1.5, 1.0, 1.5, 3.5});
+    } else if (my_rank == 3) {
+        recv_array = gko::Array<double>(ref, {5.5, 3.5, 3.5, -2.0});
+        ref_array = gko::Array<double>(ref, {2.0, 2.0, 0.0, -2.0});
+    }
+
+    gko::mpi::all_to_all<double>(recv_array.get_data(), 1);
+    this->assert_equal_arrays(recv_array, ref_array);
+}
+
+
+TEST_F(MpiBindings, AllToAllVWorksCorrectly)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto send_array = gko::Array<double>{ref};
+    auto recv_array = gko::Array<double>{ref};
+    auto ref_array = gko::Array<double>{ref};
+    auto scounts_array = gko::Array<int>{ref};
+    auto soffset_array = gko::Array<int>{ref};
+    auto rcounts_array = gko::Array<int>{ref};
+    auto roffset_array = gko::Array<int>{ref};
+    if (my_rank == 0) {
+        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+        send_array = gko::Array<double>{ref, {2.5, 3.0, 1.5, 2.0}};
+        scounts_array = gko::Array<int>{ref, {1, 2, 1, 0}};
+        rcounts_array = gko::Array<int>{ref, {1, 2, 2, 1}};
+        soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
+        roffset_array = gko::Array<int>{ref, {0, 1, 3, 4}};
+        ref_array = gko::Array<double>{ref, {2.5, 2.5, 3.5, 2.0, 3.0, 0.0}};
+    } else if (my_rank == 1) {
+        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+        send_array = gko::Array<double>{ref, {2.5, 3.5, 1.0, 2.0}};
+        scounts_array = gko::Array<int>{ref, {2, 2, 1, 2}};
+        rcounts_array = gko::Array<int>{ref, {2, 2, 2, 0}};
+        soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
+        roffset_array = gko::Array<int>{ref, {0, 2, 3, 5}};
+        ref_array = gko::Array<double>{ref, {3.0, 1.5, 3.5, 3.0, 1.5, 0.0}};
+    } else if (my_rank == 2) {
+        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0}};
+        send_array = gko::Array<double>{ref, {2.0, 3.0, 1.5, 0.0}};
+        scounts_array = gko::Array<int>{ref, {2, 2, 1, 1}};
+        rcounts_array = gko::Array<int>{ref, {1, 1, 1, 1}};
+        soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
+        roffset_array = gko::Array<int>{ref, {0, 1, 2, 3}};
+        ref_array = gko::Array<double>{ref, {3.0, 3.5, 3.0, 3.5}};
+    } else if (my_rank == 3) {
+        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0}};
+        send_array = gko::Array<double>{ref, {5.5, 3.5, 3.5, -2.0}};
+        scounts_array = gko::Array<int>{ref, {1, 0, 1, 0}};
+        rcounts_array = gko::Array<int>{ref, {0, 2, 1, 0}};
+        soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
+        roffset_array = gko::Array<int>{ref, {0, 1, 2, 2}};
+        ref_array = gko::Array<double>{ref, {0.0, 2.5, 3.5}};
+    }
+
+    gko::mpi::all_to_all<double, double>(
+        send_array.get_data(), scounts_array.get_data(),
+        soffset_array.get_data(), recv_array.get_data(),
+        rcounts_array.get_data(), roffset_array.get_data());
     this->assert_equal_arrays(recv_array, ref_array);
 }
 

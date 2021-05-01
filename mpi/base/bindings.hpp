@@ -257,6 +257,11 @@ inline void wait(MPI_Request *request, MPI_Status *status)
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(request, status));
 }
 
+template <typename T>
+inline const T *in_place()
+{
+    return reinterpret_cast<const T *>(MPI_IN_PLACE);
+}
 
 inline void send(const void *send_buffer, const int send_count,
                  MPI_Datatype &send_type, const int destination_rank,

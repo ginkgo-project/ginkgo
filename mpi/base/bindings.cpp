@@ -438,13 +438,33 @@ void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
 
 
 template <typename ReduceType>
+void all_reduce(ReduceType *recv_buffer, int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_reduce(
+            bindings::in_place<ReduceType>(), recv_buffer, count, reduce_type,
+            operation, comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_reduce(
+            bindings::in_place<ReduceType>(), recv_buffer, count, reduce_type,
+            operation, comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
+template <typename ReduceType>
 void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
                 int count, op_type op_enum,
                 std::shared_ptr<const communicator> comm,
                 std::shared_ptr<request> req)
 {
     auto operation = helpers::get_operation<ReduceType>(op_enum);
-    auto reduce_type = helpers::get_mpi_type(send_buffer[0]);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
     if (!req.get()) {
         bindings::all_reduce(
             send_buffer, recv_buffer, count, reduce_type, operation,
@@ -509,6 +529,27 @@ void scatter(const SendType *send_buffer, const int *send_counts,
     bindings::scatterv(send_buffer, send_counts, displacements, send_type,
                        recv_buffer, recv_count, recv_type, root_rank,
                        comm ? comm->get() : communicator::get_comm_world());
+}
+
+
+template <typename RecvType>
+void all_to_all(RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_to_all(
+            bindings::in_place<RecvType>(), recv_count, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all(
+            bindings::in_place<RecvType>(), recv_count, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
 }
 
 
@@ -618,13 +659,21 @@ GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_BCAST);
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 
 
-#define GKO_DECLARE_ALLREDUCE(ReduceType)                                   \
+#define GKO_DECLARE_ALLREDUCE1(ReduceType)                                 \
+    void all_reduce(ReduceType *recv_buffer, int count, op_type operation, \
+                    std::shared_ptr<const communicator> comm,              \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE1);
+
+
+#define GKO_DECLARE_ALLREDUCE2(ReduceType)                                  \
     void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, \
                     int count, op_type operation,                           \
                     std::shared_ptr<const communicator> comm,               \
                     std::shared_ptr<request> req)
 
-GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE2);
 
 
 #define GKO_DECLARE_GATHER1(SendType, RecvType)                             \
@@ -661,13 +710,21 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER1);
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
 
 
-#define GKO_DECLARE_ALL_TO_ALL(SendType, RecvType)                     \
+#define GKO_DECLARE_ALL_TO_ALL1(RecvType)                        \
+    void all_to_all(RecvType *recv_buffer, const int recv_count, \
+                    std::shared_ptr<const communicator> comm,    \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALL_TO_ALL1);
+
+
+#define GKO_DECLARE_ALL_TO_ALL2(SendType, RecvType)                    \
     void all_to_all(const SendType *send_buffer, const int send_count, \
                     RecvType *recv_buffer, const int recv_count,       \
                     std::shared_ptr<const communicator> comm,          \
                     std::shared_ptr<request> req)
 
-GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL);
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL2);
 
 
 #define GKO_DECLARE_ALL_TO_ALL_V(SendType, RecvType)                     \
