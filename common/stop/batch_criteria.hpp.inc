@@ -37,21 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace stop {
 
 
-namespace detail {
-
-
-constexpr uint32 pow(const uint32 x, const int N)
-{
-    uint32 ans = 1;
-    for (int i = 0; i < N; i++) {
-        ans *= x;
-    }
-    return ans;
-}
-
-
-}  // namespace detail
-
 /**
  * A stopping criterion for batch solvers that comprises a
  * maximum iteration count as well as relative residual tolerance.
@@ -63,7 +48,7 @@ class RelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
     using bitset_type = uint32;
-    static constexpr int max_nrhs = 32;
+    static constexpr int max_nrhs = config::warp_size;
 
     /**
      * Set up the stopping criterion and convergence variable.
@@ -119,17 +104,7 @@ public:
             check_norms(norms, converged);
         }
 
-        bool retval = (converged == all_true);
-        if (retval) {
-            __shared__ bool true_retval;
-            // Only the first warp hs the correct value
-            if (threadIdx.x == 0) {
-                true_retval = retval;
-            }
-            __syncthreads();
-            retval = true_retval;
-        }
-        return retval;
+        return (converged == all_true);
     }
 
 private:
@@ -137,7 +112,7 @@ private:
     int max_its;
     const real_type rel_tol;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::pow(2, 32) - 1;
+    static constexpr uint32 all_true = 0xffffffff;
 
     /**
      * Check the relative residuals.
@@ -154,16 +129,18 @@ private:
     __device__ __forceinline__ void check_norms(
         const real_type *const res_norms, bitset_type &converged) const
     {
-        const int i = threadIdx.x;
+        // All warps in the thread-block do the check redundantly.
+        // Only the first nrhs threads of each warp do the check.
+        const int i = threadIdx.x % config::warp_size;
         const uint32 activemask = ~(0xffffffff << nrhs);
         if (i < nrhs) {
             const int ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
             const bitset_type wchk = __ballot_sync(activemask, ichk);
             converged |= wchk;
         }
-        __syncwarp();
+        //__syncwarp();
         // copy the converged value to all threads in the warp
-        converged = __shfl_sync(activemask, converged, 0);
+        converged = __shfl_sync(all_true, converged, 0);
     }
 };
 
