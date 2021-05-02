@@ -159,13 +159,14 @@ void advanced_spmv(
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
 
-    // #pragma omp parallel for
+#pragma omp parallel for
     for (size_type row = 0; row < c->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
             c->at(row, j) *= vbeta;
         }
     }
-    // #pragma omp parallel for
+    const auto x_clone = c->clone();
+#pragma omp parallel for
     for (size_type i = 0; i < a->get_num_blocks(); ++i) {
         size_type offset = block_ptrs[i];
         auto loc_mtx = a->get_block_mtxs()[i];
@@ -188,10 +189,9 @@ void advanced_spmv(
         const auto loc_b = dense_b->create_submatrix(
             ov_row_span, span{0, dense_b->get_size()[1]});
         auto x_row_span = span{offset, offset + loc_size[0]};
-        auto x_comp_span = span{0, loc_size[0]};
         auto x_col_span = span{0, c->get_size()[1]};
         auto loc_x = c->create_submatrix(x_row_span, x_col_span);
-        auto ov_loc_x = c->create_submatrix(ov_row_span, x_col_span);
+        auto ov_loc_x = x_clone->create_submatrix(ov_row_span, x_col_span);
 
         ValueType temp_val = 0.0;
         for (size_type row = 0; row < ov_size[0]; ++row) {
@@ -202,7 +202,7 @@ void advanced_spmv(
                     auto val = vals[k];
                     auto col = col_idxs[k];
                     temp_val += valpha * val * loc_b->at(col, j);
-                    if (x_comp_span.in_span(row)) {
+                    if (row < loc_size[0]) {
                         loc_x->at(row, j) = temp_val;
                     }
                 }
