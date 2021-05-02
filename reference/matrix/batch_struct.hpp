@@ -86,7 +86,7 @@ inline gko::batch_dense::UniformBatch<ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<const ValueType> get_batch_struct(
-    const matrix::BatchCsr<ValueType> *const op)
+    const matrix::BatchCsr<ValueType, int32> *const op)
 {
     return {op->get_const_values(),
             op->get_const_col_idxs(),
