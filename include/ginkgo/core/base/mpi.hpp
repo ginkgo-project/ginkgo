@@ -50,6 +50,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#ifdef GKO_HAVE_MPI
+
+#include <mpi.h>
+
+#endif
+
+
 #ifndef MPI_VERSION
 
 using MPI_Comm = int;
@@ -115,17 +122,17 @@ enum class op_type {
  */
 class init_finalize {
 public:
-    init_finalize(int &argc, char **&argv, const size_type num_threads);
+    init_finalize(int &argc, char **&argv, const size_type num_threads = 1);
 
     init_finalize() = delete;
 
-    init_finalize(init_finalize &other) = delete;
+    init_finalize(init_finalize &other) = default;
 
-    init_finalize &operator=(const init_finalize &other) = delete;
+    init_finalize &operator=(const init_finalize &other) = default;
 
-    init_finalize(init_finalize &&other) = delete;
+    init_finalize(init_finalize &&other) = default;
 
-    init_finalize const &operator=(init_finalize &&other) = delete;
+    init_finalize &operator=(init_finalize &&other) = default;
 
     static bool is_finalized();
 
@@ -225,7 +232,7 @@ public:
 
     communicator(const MPI_Comm &comm, int color, int key);
 
-    communicator() : communicator(MPI_COMM_WORLD) {}
+    communicator();
 
     communicator(communicator &other);
 
