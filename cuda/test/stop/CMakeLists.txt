@@ -1,2 +1,3 @@
+ginkgo_create_cuda_test(batch_criteria)
 ginkgo_create_test(criterion_kernels)
 ginkgo_create_test(residual_norm_kernels)
