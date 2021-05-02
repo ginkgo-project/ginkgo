@@ -90,7 +90,7 @@ inline gko::batch_dense::UniformBatch<cuda_type<ValueType>> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<const cuda_type<ValueType>>
-get_batch_struct(const matrix::BatchCsr<ValueType> *const op)
+get_batch_struct(const matrix::BatchCsr<ValueType, int32> *const op)
 {
     return {as_cuda_type(op->get_const_values()),
             op->get_const_col_idxs(),
