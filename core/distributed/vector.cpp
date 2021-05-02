@@ -129,9 +129,17 @@ typename Vector<ValueType>::local_mtx_type *Vector<ValueType>::get_local()
 
 
 template <typename ValueType>
+std::shared_ptr<mpi::communicator> Vector<ValueType>::get_communicator() const
+{
+    return comm_;
+}
+
+
+template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          communicator comm, dim<2> global_size,
-                          dim<2> local_size, size_type stride)
+                          std::shared_ptr<mpi::communicator> comm,
+                          dim<2> global_size, dim<2> local_size,
+                          size_type stride)
     : EnableLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
@@ -140,8 +148,8 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          communicator comm, dim<2> global_size,
-                          dim<2> local_size)
+                          std::shared_ptr<mpi::communicator> comm,
+                          dim<2> global_size, dim<2> local_size)
     : Vector{exec, comm, global_size, local_size, local_size[1]}
 {}
 
@@ -152,7 +160,7 @@ void Vector<ValueType>::read_distributed(
     std::shared_ptr<const Partition<int64>> partition)
 {
     auto exec = this->get_executor();
-    auto rank = this->get_communicator().rank();
+    auto rank = this->get_communicator()->rank();
     auto global_rows = static_cast<size_type>(partition->get_size());
     auto local_rows = static_cast<size_type>(partition->get_part_size(rank));
     Array<matrix_data_entry<ValueType, global_index_type>> global_data{
@@ -173,7 +181,7 @@ void Vector<ValueType>::read_distributed(
     std::shared_ptr<const Partition<int32>> partition)
 {
     auto exec = this->get_executor();
-    auto rank = this->get_communicator().rank();
+    auto rank = this->get_communicator()->rank();
     auto global_rows = static_cast<size_type>(partition->get_size());
     auto local_rows = static_cast<size_type>(partition->get_part_size(rank));
     Array<matrix_data_entry<ValueType, global_index_type>> global_data{
@@ -211,8 +219,9 @@ void Vector<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_local()->compute_dot(as<Vector>(b)->get_local(), dense_res.get());
     exec->synchronize();
-    this->get_communicator().allreduce(dense_res->get_values(),
-                                       this->get_size()[1]);
+    mpi::all_reduce(dense_res->get_values(),
+                    static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
+                    this->get_communicator());
 }
 
 
@@ -225,8 +234,9 @@ void Vector<ValueType>::compute_conj_dot(const LinOp *b, LinOp *result) const
     this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
                                         dense_res.get());
     exec->synchronize();
-    this->get_communicator().allreduce(dense_res->get_values(),
-                                       this->get_size()[1]);
+    mpi::all_reduce(dense_res->get_values(),
+                    static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
+                    this->get_communicator());
 }
 
 
@@ -240,8 +250,9 @@ void Vector<ValueType>::compute_norm2(LinOp *result) const
     exec->run(
         vector::make_compute_norm2_sqr(this->get_local(), dense_res.get()));
     exec->synchronize();
-    this->get_communicator().allreduce(dense_res->get_values(),
-                                       this->get_size()[1]);
+    mpi::all_reduce(dense_res->get_values(),
+                    static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
+                    this->get_communicator());
     exec->run(vector::make_compute_sqrt(dense_res.get()));
 }
 
