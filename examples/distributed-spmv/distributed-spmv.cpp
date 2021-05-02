@@ -45,13 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-// Finally, we need the MPI header for MPI_Init and _Finalize
-#include <mpi.h>
-
-
 int main(int argc, char *argv[])
 {
-    MPI_Init(&argc, &argv);
+    const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
@@ -105,7 +101,7 @@ int main(int argc, char *argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const auto comm = gko::distributed::communicator{};
+    const auto comm = gko::mpi::communicator::create();
 
     std::ifstream a_stream{"data/A.mtx"};
     std::ifstream x_stream{"data/x.mtx"};
@@ -116,12 +112,12 @@ int main(int argc, char *argv[])
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
-        exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
-    const auto rows_per_rank = A_data.size[0] / comm.size();
-    for (int i = 0; i < comm.size(); i++) {
+        exec->get_master(), static_cast<gko::size_type>(comm->size() + 1)};
+    const auto rows_per_rank = A_data.size[0] / comm->size();
+    for (int i = 0; i < comm->size(); i++) {
         ranges_array.get_data()[i] = i * rows_per_rank;
     }
-    ranges_array.get_data()[comm.size()] = A_data.size[0];
+    ranges_array.get_data()[comm->size()] = A_data.size[0];
     auto partition =
         gko::share(part_type::build_from_contiguous(exec, ranges_array));
 
@@ -138,6 +134,4 @@ int main(int argc, char *argv[])
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
     b->compute_norm2(lend(result));
     std::cout << *result->get_values() << std::endl;
-
-    MPI_Finalize();
 }

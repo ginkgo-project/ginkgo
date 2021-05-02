@@ -152,11 +152,16 @@ public:
 
     void validate_data() const override;
 
-protected:
-    Vector(std::shared_ptr<const Executor> exec, communicator comm,
-           dim<2> global_size, dim<2> local_size, size_type stride);
+    std::shared_ptr<mpi::communicator> get_communicator() const;
 
-    Vector(std::shared_ptr<const Executor> exec, communicator comm = {},
+protected:
+    Vector(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<mpi::communicator> comm, dim<2> global_size,
+           dim<2> local_size, size_type stride);
+
+    Vector(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<mpi::communicator> comm =
+               std::make_shared<mpi::communicator>(),
            dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp *, LinOp *) const override;
@@ -165,6 +170,7 @@ protected:
                     LinOp *) const override;
 
 private:
+    std::shared_ptr<mpi::communicator> comm_;
     matrix::Dense<ValueType> local_;
 };
 

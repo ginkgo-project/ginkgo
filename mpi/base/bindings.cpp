@@ -76,7 +76,7 @@ init_finalize::init_finalize(int &argc, char **&argv,
             MPI_Init_thread(&argc, &argv, this->required_thread_support_,
                             &(this->provided_thread_support_)));
     } else {
-        GKO_MPI_INITIALIZED;
+        // GKO_MPI_INITIALIZED;
     }
 }
 
@@ -113,6 +113,14 @@ communicator::communicator(const MPI_Comm &comm_in, int color, int key)
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
     this->local_rank_ = bindings::get_local_rank(this->comm_);
+}
+
+
+communicator::communicator()
+{
+    this->comm_ = bindings::duplicate_comm(MPI_COMM_WORLD);
+    this->size_ = bindings::get_comm_size(this->comm_);
+    this->rank_ = bindings::get_comm_rank(this->comm_);
 }
 
 
@@ -590,16 +598,17 @@ void all_to_all(const SendType *send_buffer, const int *send_counts,
     auto send_type = helpers::get_mpi_type(send_buffer[0]);
     auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
 
-    auto new_type = mpi_type(stride, send_type);
+    // auto new_type = mpi_type(stride, send_type);
+
     if (!req.get()) {
         bindings::all_to_all_v(
-            send_buffer, send_counts, send_offsets, new_type.get(), recv_buffer,
-            recv_counts, recv_offsets, new_type.get(),
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, send_type,
             comm ? comm->get() : communicator::get_comm_world());
     } else {
         bindings::i_all_to_all_v(
-            send_buffer, send_counts, send_offsets, new_type.get(), recv_buffer,
-            recv_counts, recv_offsets, new_type.get(),
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, send_type,
             comm ? comm->get() : communicator::get_comm_world(),
             req->get_requests());
     }

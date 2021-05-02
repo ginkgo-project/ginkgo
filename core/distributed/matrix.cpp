@@ -48,14 +48,15 @@ GKO_REGISTER_OPERATION(build_diag_offdiag,
 
 
 template <typename ValueType, typename LocalIndexType>
-Matrix<ValueType, LocalIndexType>::Matrix(std::shared_ptr<const Executor> exec,
-                                          communicator comm)
+Matrix<ValueType, LocalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<mpi::communicator> comm)
     : EnableLinOp<Matrix<value_type, local_index_type>>{exec},
       DistributedBase{comm},
-      send_offsets_(comm.size() + 1),
-      send_sizes_(comm.size()),
-      recv_offsets_(comm.size() + 1),
-      recv_sizes_(comm.size()),
+      send_offsets_(comm_->size() + 1),
+      send_sizes_(comm_->size()),
+      recv_offsets_(comm_->size() + 1),
+      recv_sizes_(comm_->size()),
       gather_idxs_{exec},
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{exec},
@@ -89,11 +90,11 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     const auto comm = this->get_communicator();
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     GKO_ASSERT_EQ(size[0], partition->get_size());
-    GKO_ASSERT_EQ(comm.size(), partition->get_num_parts());
+    GKO_ASSERT_EQ(comm_->size(), partition->get_num_parts());
     using nonzero_type = matrix_data_entry<ValueType, LocalIndexType>;
     auto exec = this->get_executor();
     auto local_data = make_temporary_clone(exec, &data);
-    auto local_part = comm.rank();
+    auto local_part = comm_->rank();
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(partition->get_num_parts());
@@ -127,7 +128,8 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     for (size_type i = 0; i < num_parts; i++) {
         recv_sizes_[i] = recv_offsets_[i + 1] - recv_offsets_[i];
     }
-    comm.alltoall(recv_sizes_.data(), send_sizes_.data(), 1);
+    mpi::all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1,
+                    this->get_communicator());
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
@@ -141,9 +143,10 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec->get_master());
     }
     gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.alltoallv(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                   recv_offsets_.data(), gather_idxs_.get_data(),
-                   send_sizes_.data(), send_offsets_.data(), 1);
+    mpi::all_to_all(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+                    recv_offsets_.data(), gather_idxs_.get_data(),
+                    send_sizes_.data(), send_offsets_.data(), 1,
+                    this->get_communicator());
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
@@ -172,15 +175,17 @@ void Matrix<ValueType, LocalIndexType>::communicate(
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
     if (use_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-        comm.alltoallv(host_send_buffer_->get_const_values(),
-                       send_sizes_.data(), send_offsets_.data(),
-                       host_recv_buffer_->get_values(), recv_sizes_.data(),
-                       recv_offsets_.data(), num_cols);
+        mpi::all_to_all(host_send_buffer_->get_const_values(),
+                        send_sizes_.data(), send_offsets_.data(),
+                        host_recv_buffer_->get_values(), recv_sizes_.data(),
+                        recv_offsets_.data(), num_cols,
+                        this->get_communicator());
         recv_buffer_->copy_from(host_recv_buffer_.get());
     } else {
-        comm.alltoallv(send_buffer_->get_const_values(), send_sizes_.data(),
-                       send_offsets_.data(), recv_buffer_->get_values(),
-                       recv_sizes_.data(), recv_offsets_.data(), num_cols);
+        mpi::all_to_all(send_buffer_->get_const_values(), send_sizes_.data(),
+                        send_offsets_.data(), recv_buffer_->get_values(),
+                        recv_sizes_.data(), recv_offsets_.data(), num_cols,
+                        this->get_communicator());
     }
 }
 
