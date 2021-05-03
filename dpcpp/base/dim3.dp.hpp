@@ -54,7 +54,7 @@ sycl::nd_range<3> sycl_nd_range(dim3 grid, dim3 block)
 {
     auto local_range = block.reverse();
     auto global_range = grid.reverse() * local_range;
-    return sycl::nd_range<3>(global_range, local_range)
+    return sycl::nd_range<3>(global_range, local_range);
 }
 
 
