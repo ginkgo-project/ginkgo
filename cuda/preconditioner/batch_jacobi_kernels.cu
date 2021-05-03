@@ -70,7 +70,8 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
-    batch_jacobi<<<1, 1>>>(a_ub, b_ub, x_ub);
+    const size_type nbatch = a->get_num_batches();
+    batch_jacobi<<<nbatch, default_block_size>>>(a_ub, b_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
