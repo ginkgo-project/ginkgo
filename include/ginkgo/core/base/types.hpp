@@ -194,6 +194,28 @@ constexpr size_type byte_size = CHAR_BIT;
 
 
 /**
+ * Config type
+ */
+using Config = int;
+
+constexpr int config_scaler = 1000;
+
+constexpr Config config_set(int block_size, int warp_size)
+{
+    return block_size * config_scaler + warp_size;
+}
+
+constexpr int get_warp_size(Config config_set)
+{
+    return config_set % config_scaler;
+}
+
+constexpr int get_block_size(Config config_set)
+{
+    return config_set / config_scaler;
+}
+
+/**
  * Evaluates if all template arguments Args fulfill std::is_integral. If that is
  * the case, this class inherits from `std::true_type`, otherwise, it inherits
  * from `std::false_type`.

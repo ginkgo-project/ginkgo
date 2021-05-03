@@ -811,6 +811,20 @@ protected:
          *       multicore processor, or a single thread in a SMT processor"
          */
         std::vector<int> closest_pu_ids{};
+
+        /**
+         * The validate function for Config
+         */
+        bool validate(Config config)
+        {
+            bool allowed = false;
+            auto blocksize = get_block_size(config);
+            auto warpsize = get_warp_size(config);
+            for (auto &i : subgroup_sizes) {
+                allowed |= (i == warpsize);
+            }
+            return allowed && (blocksize <= max_workgroup_size);
+        }
     };
 
     /**
