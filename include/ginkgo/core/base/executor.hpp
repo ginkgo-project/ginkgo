@@ -827,6 +827,10 @@ protected:
         }
     };
 
+public:
+    const exec_info get_const_exec_info() const { return this->exec_info_; }
+
+protected:
     /**
      * Gets the exec info struct
      *

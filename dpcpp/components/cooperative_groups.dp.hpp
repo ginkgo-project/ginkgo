@@ -350,10 +350,11 @@ using detail::thread_block_tile;
 
 // Only support tile_partition with 8, 16, 32.
 template <unsigned Size, typename Group>
-    __dpct_inline__ std::enable_if_t<Size> 1 && Size <= 64 &&
-    (Size & (Size - 1)),
-    detail::thread_block_tile<Size>> tiled_partition
-        [[intel::reqd_sub_group_size(Size)]] (const Group &group)
+__dpct_inline__
+    std::enable_if_t<(Size > 1) && Size <= 64 && !(Size & (Size - 1)),
+                     detail::thread_block_tile<Size>>
+        tiled_partition
+    [[intel::reqd_sub_group_size(Size)]] (const Group &group)
 {
     return detail::thread_block_tile<Size>(group);
 }

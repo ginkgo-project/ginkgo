@@ -70,6 +70,39 @@ namespace syn {
         }                                                                    \
     }
 
+#define GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(_name, _callable)           \
+    template <typename Predicate, bool... BoolArgs, int... IntArgs,            \
+              gko::size_type... SizeTArgs, typename... TArgs,                  \
+              typename... InferredArgs>                                        \
+    inline void _name(::gko::syn::value_list<gko::Config>, Predicate,          \
+                      ::gko::syn::value_list<bool, BoolArgs...>,               \
+                      ::gko::syn::value_list<int, IntArgs...>,                 \
+                      ::gko::syn::value_list<gko::size_type, SizeTArgs...>,    \
+                      ::gko::syn::type_list<TArgs...>, InferredArgs...)        \
+        GKO_KERNEL_NOT_FOUND;                                                  \
+                                                                               \
+    template <gko::Config K, gko::Config... Rest, typename Predicate,          \
+              bool... BoolArgs, int... IntArgs, gko::size_type... SizeTArgs,   \
+              typename... TArgs, typename... InferredArgs>                     \
+    inline void _name(                                                         \
+        ::gko::syn::value_list<gko::Config, K, Rest...>,                       \
+        Predicate is_eligible,                                                 \
+        ::gko::syn::value_list<bool, BoolArgs...> bool_args,                   \
+        ::gko::syn::value_list<int, IntArgs...> int_args,                      \
+        ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,        \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)       \
+    {                                                                          \
+        if (is_eligible(K)) {                                                  \
+            std::cout << "call " << K << std::endl;                            \
+            _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K>(     \
+                std::forward<InferredArgs>(args)...);                          \
+        } else {                                                               \
+            _name(::gko::syn::value_list<gko::Config, Rest...>(), is_eligible, \
+                  bool_args, int_args, size_args, type_args,                   \
+                  std::forward<InferredArgs>(args)...);                        \
+        }                                                                      \
+    }
+
 
 }  // namespace syn
 }  // namespace gko
