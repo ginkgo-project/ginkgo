@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/test/utils.hpp"
@@ -94,29 +95,49 @@ void test_assert(bool *success, bool partial)
     }
 }
 
+template <Config config>
 void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 {
-    auto group = group::tiled_partition<config::warp_size>(
+    auto group = group::tiled_partition<get_warp_size(config)>(
         group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == sycl::max(0, (int)(i - 1)));
     test_assert(s, group.shfl_down(i, 1) ==
                        sycl::min((unsigned int)(i + 1),
-                                 (unsigned int)(config::warp_size - 1)));
+                                 (unsigned int)(get_warp_size(config) - 1)));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
+template <Config config>
 void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { cg_shuffle(s, item_ct1); });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             cg_shuffle<config>(s, item_ct1);
+                         });
     });
 }
 
-TEST_F(CooperativeGroups, Shuffle) { test(cg_shuffle_host); }
+GKO_ENABLE_IMPLEMENTATION_SELECTION(cg_shuffle_config, cg_shuffle_host)
+
+void cg_shuffle_config(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                       sycl::queue *stream,
+                       std::shared_ptr<const DpcppExecutor> exec, bool *s)
+{
+    auto exec_info = exec->get_exec_info();
+    constexpr auto default_config_list =
+        ::gko::syn::value_list<Config, config_set(32, 32)>();
+    cg_shuffle_config()(
+        config_list,
+        [&exec_info](Config config) { return exec_info.validate(config); },
+        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
+        ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory, stream,
+        s);
+}
+
+TEST_F(CooperativeGroups, Shuffle) { test(cg_shuffle_config); }
 
 
 void cg_all(bool *s, sycl::nd_item<3> item_ct1)
