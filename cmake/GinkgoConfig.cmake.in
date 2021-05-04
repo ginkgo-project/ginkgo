@@ -170,8 +170,8 @@ if(GINKGO_HAVE_HWLOC)
     find_package(HWLOC REQUIRED)
 endif()
 
-# HIP depends on Threads::Threads in some circumstances, but doesn't find it
-if (GINKGO_BUILD_HIP)
+# HIP and OpenMP depend on Threads::Threads in some circumstances, but don't find it
+if (GINKGO_BUILD_HIP OR GINKGO_BUILD_OMP)
     find_package(Threads REQUIRED)
 endif()
 
