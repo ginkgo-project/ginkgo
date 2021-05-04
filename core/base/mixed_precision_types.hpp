@@ -39,70 +39,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #ifdef GINKGO_MIXED_PRECISION
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro) \
-    template _macro(float, float, float, int32);                    \
-    template _macro(float, float, double, int32);                   \
-    template _macro(float, double, float, int32);                   \
-    template _macro(float, double, double, int32);                  \
-    template _macro(double, float, float, int32);                   \
-    template _macro(double, float, double, int32);                  \
-    template _macro(double, double, float, int32);                  \
-    template _macro(double, double, double, int32);                 \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<float>, int32);                    \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<double>, int32);                   \
-    template _macro(std::complex<float>, std::complex<double>,      \
-                    std::complex<float>, int32);                    \
-    template _macro(std::complex<float>, std::complex<double>,      \
-                    std::complex<double>, int32);                   \
-    template _macro(std::complex<double>, std::complex<float>,      \
-                    std::complex<float>, int32);                    \
-    template _macro(std::complex<double>, std::complex<float>,      \
-                    std::complex<double>, int32);                   \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<float>, int32);                    \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<double>, int32);                   \
-    template _macro(float, float, float, int64);                    \
-    template _macro(float, float, double, int64);                   \
-    template _macro(float, double, float, int64);                   \
-    template _macro(float, double, double, int64);                  \
-    template _macro(double, float, float, int64);                   \
-    template _macro(double, float, double, int64);                  \
-    template _macro(double, double, float, int64);                  \
-    template _macro(double, double, double, int64);                 \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<float>, int64);                    \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<double>, int64);                   \
-    template _macro(std::complex<float>, std::complex<double>,      \
-                    std::complex<float>, int64);                    \
-    template _macro(std::complex<float>, std::complex<double>,      \
-                    std::complex<double>, int64);                   \
-    template _macro(std::complex<double>, std::complex<float>,      \
-                    std::complex<float>, int64);                    \
-    template _macro(std::complex<double>, std::complex<float>,      \
-                    std::complex<double>, int64);                   \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<float>, int64);                    \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<double>, int64)
+#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE(_macro, ...)  \
+    template _macro(float, float, float, __VA_ARGS__);          \
+    template _macro(float, float, double, __VA_ARGS__);         \
+    template _macro(float, double, float, __VA_ARGS__);         \
+    template _macro(float, double, double, __VA_ARGS__);        \
+    template _macro(double, float, float, __VA_ARGS__);         \
+    template _macro(double, float, double, __VA_ARGS__);        \
+    template _macro(double, double, float, __VA_ARGS__);        \
+    template _macro(double, double, double, __VA_ARGS__);       \
+    template _macro(std::complex<float>, std::complex<float>,   \
+                    std::complex<float>, __VA_ARGS__);          \
+    template _macro(std::complex<float>, std::complex<float>,   \
+                    std::complex<double>, __VA_ARGS__);         \
+    template _macro(std::complex<float>, std::complex<double>,  \
+                    std::complex<float>, __VA_ARGS__);          \
+    template _macro(std::complex<float>, std::complex<double>,  \
+                    std::complex<double>, __VA_ARGS__);         \
+    template _macro(std::complex<double>, std::complex<float>,  \
+                    std::complex<float>, __VA_ARGS__);          \
+    template _macro(std::complex<double>, std::complex<float>,  \
+                    std::complex<double>, __VA_ARGS__);         \
+    template _macro(std::complex<double>, std::complex<double>, \
+                    std::complex<float>, __VA_ARGS__);          \
+    template _macro(std::complex<double>, std::complex<double>, \
+                    std::complex<double>, __VA_ARGS__)
 #else
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro) \
-    template _macro(float, float, float, int32);                    \
-    template _macro(double, double, double, int32);                 \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<float>, int32);                    \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<double>, int32);                   \
-    template _macro(float, float, float, int64);                    \
-    template _macro(double, double, double, int64);                 \
-    template _macro(std::complex<float>, std::complex<float>,       \
-                    std::complex<float>, int64);                    \
-    template _macro(std::complex<double>, std::complex<double>,     \
-                    std::complex<double>, int64)
+#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE(_macro, ...)  \
+    template _macro(float, float, float, __VA_ARGS__);          \
+    template _macro(double, double, double, __VA_ARGS__);       \
+    template _macro(std::complex<float>, std::complex<float>,   \
+                    std::complex<float>, __VA_ARGS__);          \
+    template _macro(std::complex<double>, std::complex<double>, \
+                    std::complex<double>, __VA_ARGS__)
 #endif
+
+
+#define GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE(_macro, int32);       \
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE(_macro, int64)
 
 
 #endif  // GKO_CORE_BASE_MIXED_PRECISION_TYPES_HPP_
