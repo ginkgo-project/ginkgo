@@ -50,6 +50,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+#if NDEBUG
+
+#define DEFAULT_USE_CUDA_UNIFIED_MEMORY true
+
+#if (GINKGO_HIP_PLATFORM_HCC == 1)
+#define DEFAULT_USE_HIP_UNIFIED_MEMORY true
+#else
+#define DEFAULT_USE_HIP_UNIFIED_MEMORY false
+#endif
+
+#else
+
+#define DEFAULT_USE_CUDA_UNIFIED_MEMORY false
+#define DEFAULT_USE_HIP_UNIFIED_MEMORY false
+
+#endif
+
 inline namespace cl {
 namespace sycl {
 
@@ -1239,7 +1256,8 @@ public:
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
-        bool device_reset = false);
+        bool device_reset = false,
+        bool use_unified_memory = DEFAULT_USE_CUDA_UNIFIED_MEMORY);
 
     ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1353,8 +1371,11 @@ protected:
     void init_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
-                 bool device_reset = false)
-        : EnableDeviceReset{device_reset}, master_(master)
+                 bool device_reset = false,
+                 bool use_unified_memory = DEFAULT_USE_CUDA_UNIFIED_MEMORY)
+        : EnableDeviceReset{device_reset},
+          use_unified_memory_{use_unified_memory},
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1416,6 +1437,7 @@ private:
     static constexpr int max_devices = 64;
     static unsigned num_execs[max_devices];
     static std::mutex mutex[max_devices];
+    bool use_unified_memory_;
 };
 
 
@@ -1445,9 +1467,10 @@ public:
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
      */
-    static std::shared_ptr<HipExecutor> create(int device_id,
-                                               std::shared_ptr<Executor> master,
-                                               bool device_reset = false);
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<Executor> master,
+        bool device_reset = false,
+        bool use_unified_memory = DEFAULT_USE_HIP_UNIFIED_MEMORY);
 
     ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1561,8 +1584,11 @@ protected:
     void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
-                bool device_reset = false)
-        : EnableDeviceReset{device_reset}, master_(master)
+                bool device_reset = false,
+                bool use_unified_memory = DEFAULT_USE_HIP_UNIFIED_MEMORY)
+        : EnableDeviceReset{device_reset},
+          use_unified_memory_{use_unified_memory},
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1624,6 +1650,7 @@ private:
     static constexpr int max_devices = 64;
     static int num_execs[max_devices];
     static std::mutex mutex[max_devices];
+    bool use_unified_memory_;
 };
 
 

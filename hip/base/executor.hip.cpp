@@ -56,10 +56,12 @@ namespace gko {
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, bool device_reset)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset,
+    bool use_unified_mem)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master), device_reset),
+        new HipExecutor(device_id, std::move(master), device_reset,
+                        use_unified_mem),
         [device_id](HipExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             delete exec;
@@ -124,11 +126,12 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
-#if defined(NDEBUG) || (GINKGO_HIP_PLATFORM_HCC == 1)
-    auto error_code = hipMalloc(&dev_ptr, num_bytes);
-#else
-    auto error_code = hipMallocManaged(&dev_ptr, num_bytes);
-#endif
+    int error_code = 0;
+    if (this->use_unified_memory_) {
+        error_code = hipMallocManaged(&dev_ptr, num_bytes);
+    } else {
+        error_code = hipMalloc(&dev_ptr, num_bytes);
+    }
     if (error_code != hipErrorMemoryAllocation) {
         GKO_ASSERT_NO_HIP_ERRORS(error_code);
     }
