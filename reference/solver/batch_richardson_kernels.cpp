@@ -64,12 +64,12 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
-template <typename PrecType, typename StopType, typename LogType,
+template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
-    LogType logger, const BatchMatrixType &a,
+    LogType logger, PrecType prec, const BatchMatrixType &a,
     const gko::batch_dense::UniformBatch<const ValueType> &left,
     const gko::batch_dense::UniformBatch<const ValueType> &right,
     const gko::batch_dense::UniformBatch<ValueType> &b,
@@ -120,7 +120,7 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<real_type> norms_b{norms, max_nrhs,
                                                               1, nrhs};
 
-        PrecType prec(a_b, prec_work);
+        prec.generate(a_b, prec_work);
 
         // initial residual
         for (int iz = 0; iz < nrows * nrhs; iz++) {
@@ -203,8 +203,11 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        apply_impl<BatchJacobi<ValueType>, stop::RelResidualMaxIter<ValueType>>(
-            exec, opts, logger, a, left, right, b, x);
+        int *const pattern{};
+        prepare_jacobi(gko::batch::to_const(a), pattern);
+        BatchJacobi<ValueType> prec(pattern);
+        apply_impl<stop::RelResidualMaxIter<ValueType>>(
+            exec, opts, logger, prec, a, left, right, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
