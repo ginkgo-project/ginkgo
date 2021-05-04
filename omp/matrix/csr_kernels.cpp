@@ -165,7 +165,7 @@ struct col_heap_element {
 /**
  * @internal
  *
- * Entry in a heap storing a entry (value and column index) and associated
+ * Entry in a heap storing an entry (value and column index) and associated
  * non-zero index (and row end) from a matrix.
  *
  * @tparam ValueType  The value type for matrices.
@@ -247,7 +247,9 @@ void sift_down(HeapElement *heap, typename HeapElement::index_type idx,
  * @param col_cb  function that will be called once for each output column after
  *                all accumulations into it are completed. Its signature must be
  *                compatible with `col_cb(column, state)`.
- * @return the value initializaed by init_cb and updated by step_cb and col_cb
+ * @return the value initialized by init_cb and updated by step_cb and col_cb
+ * @note If the columns of B are not sorted, the output may have duplicate
+ *       column entries.
  *
  * @tparam HeapElement  the heap element type. See col_heap_element and
  *                      val_heap_element
