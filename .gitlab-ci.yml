@@ -437,7 +437,7 @@ build/cuda101/clang/all/release/static:
     CUDA_ARCH: 35
 
 # clang-cuda with cuda 10.1 and friends
-build/clang-cuda101/gcc/all/release/shared:
+build/clang-cuda101/gcc/cuda/release/shared:
   <<: *default_build
   extends:
     - .quick_test_condition
@@ -447,7 +447,7 @@ build/clang-cuda101/gcc/all/release/shared:
     CUDA_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
+    BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
 
