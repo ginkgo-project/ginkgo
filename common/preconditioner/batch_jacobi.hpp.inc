@@ -54,6 +54,8 @@ public:
         return batch_config<ValueType>::max_num_rows;
     }
 
+    BatchJacobi(const int *const pattern) : pattern_(pattern) {}
+
     /**
      * Sets the input and generates the preconditioner by storing the inverse
      * diagonal entries in the work vector.
@@ -63,22 +65,22 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    __device__ __forceinline__
-    BatchJacobi(const gko::batch_csr::BatchEntry<const ValueType> &mat,
-                ValueType *const __restrict__ work)
-        : matrix_{mat}, work_{work}
+    __device__ __forceinline__ void generate(
+        const gko::batch_csr::BatchEntry<const ValueType> &mat,
+        ValueType *const __restrict__ work)
     {
+        work_ = work;
         // TODO: optimize this
         constexpr auto warp_size = config::warp_size;
         const auto tile =
             group::tiled_partition<warp_size>(group::this_thread_block());
         const int tile_rank = threadIdx.x / warp_size;
         const int num_tiles = (blockDim.x - 1) / warp_size + 1;
-        for (int irow = tile_rank; irow < matrix_.num_rows; irow += num_tiles) {
-            for (int j = matrix_.row_ptrs[irow] + tile.thread_rank();
-                 j < matrix_.row_ptrs[irow + 1]; j += warp_size) {
-                if (matrix_.col_idxs[j] == irow) {
-                    work_[irow] = one<ValueType>() / matrix_.values[j];
+        for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
+            for (int j = mat.row_ptrs[irow] + tile.thread_rank();
+                 j < mat.row_ptrs[irow + 1]; j += warp_size) {
+                if (mat.col_idxs[j] == irow) {
+                    work_[irow] = one<ValueType>() / mat.values[j];
                 }
             }
         }
@@ -89,8 +91,7 @@ public:
         const gko::batch_dense::BatchEntry<const ValueType> &r,
         const gko::batch_dense::BatchEntry<ValueType> &z) const
     {
-        for (int i = threadIdx.x; i < matrix_.num_rows * r.num_rhs;
-             i += blockDim.x) {
+        for (int i = threadIdx.x; i < r.num_rows * r.num_rhs; i += blockDim.x) {
             const int row = i / r.num_rhs;
             const int col = i % r.num_rhs;
             z.values[row * z.stride + col] =
@@ -99,13 +100,14 @@ public:
     }
 
 private:
-    ValueType *const __restrict__ work_;
-    const gko::batch_csr::BatchEntry<const ValueType> &matrix_;
+    const int *__restrict__ pattern_;
+    ValueType *__restrict__ work_;
 };
 
 
 template <typename ValueType>
 __global__ void batch_jacobi(
+    BatchJacobi<ValueType> prec,
     const gko::batch_csr::UniformBatch<const ValueType> a,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
@@ -116,7 +118,14 @@ __global__ void batch_jacobi(
         const auto x_b = gko::batch::batch_entry(x, batch);
 
         __shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
-        BatchJacobi<ValueType> prec(a_b, prec_work);
+        prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }
 }
+
+
+template <typename ValueType>
+__global__ void prepare_jacobi(
+    const gko::batch_csr::UniformBatch<const ValueType> &a,
+    int *const sparsity_data)
+{}
