@@ -92,11 +92,14 @@ static void apply_impl(
     const size_type nbatch = a.num_batch;
 
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        apply_kernel<BatchJacobi<ValueType>,
-                     stop::RelResidualMaxIter<ValueType>>
+        int *const pattern{};
+        prepare_jacobi<<<nbatch, default_block_size>>>(gko::batch::to_const(a),
+                                                       pattern);
+        BatchJacobi<ValueType> prec(pattern);
+        apply_kernel<stop::RelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size>>>(
                 opts.max_its, opts.rel_residual_tol, opts.relax_factor, logger,
-                a, left, right, b, x);
+                prec, a, left, right, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
