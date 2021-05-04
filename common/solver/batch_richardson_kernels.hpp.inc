@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-template <typename PrecType, typename StopType, typename LogType,
+template <typename StopType, typename PrecType, typename LogType,
           typename MatrixType, typename ValueType>
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> rel_tol,
     const gko::remove_complex<ValueType> relax_factor, LogType logger,
-    const MatrixType mat,
+    PrecType prec, const MatrixType mat,
     const gko::batch_dense::UniformBatch<const ValueType> left,
     const gko::batch_dense::UniformBatch<const ValueType> right,
     const gko::batch_dense::UniformBatch<ValueType> b,
@@ -101,7 +101,7 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<real_type> norms_b{
             norms, static_cast<size_type>(max_nrhs), 1, num_rhs};
 
-        PrecType prec(a_b, prec_work);
+        prec.generate(a_b, prec_work);
 
         // initial residual
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
