@@ -231,7 +231,7 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
 {
     set_up_apply_data();
-    const size_t batch_size = mtx_size.get_num_batches();
+    const size_t batch_size = mtx_size.get_num_batch_entries();
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
     auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);

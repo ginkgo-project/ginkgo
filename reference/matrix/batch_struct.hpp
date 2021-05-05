@@ -108,10 +108,10 @@ inline gko::batch_csr::UniformBatch<ValueType> get_batch_struct(
     return {op->get_values(),
             op->get_const_col_idxs(),
             op->get_const_row_ptrs(),
-            op->get_num_batches(),
+            op->get_num_batch_entries(),
             static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
-                             op->get_num_batches())};
+                             op->get_num_batch_entries())};
 }
 
 
@@ -124,7 +124,7 @@ inline gko::batch_dense::UniformBatch<const ValueType> maybe_null_batch_struct(
     const matrix::BatchDense<ValueType> *const op)
 {
     if (op) {
-        return {op->get_const_values(), op->get_num_batches(),
+        return {op->get_const_values(), op->get_num_batch_entries(),
                 op->get_stride().at(0),
                 static_cast<int>(op->get_size().at(0)[0]),
                 static_cast<int>(op->get_size().at(0)[1])};
