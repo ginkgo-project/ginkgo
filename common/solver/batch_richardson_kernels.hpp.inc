@@ -132,9 +132,9 @@ __global__ void apply_kernel(
                 r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
             }
             __syncthreads();
-            adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
-                         gko::batch::to_const(x_b), static_cast<ValueType>(1.0),
-                         r_b);
+            advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
+                                 gko::batch::to_const(x_b),
+                                 static_cast<ValueType>(1.0), r_b);
             __syncthreads();
 
             compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);

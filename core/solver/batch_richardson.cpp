@@ -95,8 +95,8 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
     log::BatchLogData<ValueType> logdata;
     // allocate logging arrays assuming uniform size batch
     const size_type num_rhs = dense_b->get_size().at(0)[1];
-    const size_type num_batches = dense_b->get_num_batches();
-    batch_dim sizes(num_batches, dim<2>{1, num_rhs});
+    const size_type num_batches = dense_b->get_num_batch_entries();
+    batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
     logdata.res_norms =
         matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
     logdata.iter_counts.set_executor(this->get_executor());
