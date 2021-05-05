@@ -78,12 +78,6 @@ namespace amgx_pgm {
         const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg, \
         Array<IndexType> &intermediate_agg)
 
-#define GKO_DECLARE_AMGX_PGM_GENERATE(ValueType, IndexType)                 \
-    void amgx_pgm_generate(std::shared_ptr<const DefaultExecutor> exec,     \
-                           const matrix::Csr<ValueType, IndexType> *source, \
-                           const Array<IndexType> &agg,                     \
-                           matrix::Csr<ValueType, IndexType> *coarse)
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     template <typename IndexType>                                       \
     GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
@@ -94,9 +88,7 @@ namespace amgx_pgm {
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_AMGX_PGM_GENERATE(ValueType, IndexType)
+    GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)
 
 
 }  // namespace amgx_pgm

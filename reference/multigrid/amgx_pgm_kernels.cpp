@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <tuple>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -71,10 +72,12 @@ void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
         if (agg_vals[i] == -1) {
             auto neighbor = strongest_neighbor_vals[i];
-            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i) {
+            // i < neighbor always holds when neighbor is not -1
+            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
+                i < neighbor) {
+                // Use the smaller index as agg point
                 agg_vals[i] = i;
                 agg_vals[neighbor] = i;
-                // Use the smaller index as agg point
             }
         }
     }
@@ -146,14 +149,13 @@ void find_strongest_neighbor(
                 auto weight =
                     vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
                 if (agg.get_const_data()[col] == -1 &&
-                    (weight > max_weight_unagg ||
-                     (weight == max_weight_unagg && col > strongest_unagg))) {
+                    std::tie(weight, col) >
+                        std::tie(max_weight_unagg, strongest_unagg)) {
                     max_weight_unagg = weight;
                     strongest_unagg = col;
                 } else if (agg.get_const_data()[col] != -1 &&
-                           (weight > max_weight_agg ||
-                            (weight == max_weight_agg &&
-                             col > strongest_agg))) {
+                           std::tie(weight, col) >
+                               std::tie(max_weight_agg, strongest_agg)) {
                     max_weight_agg = weight;
                     strongest_agg = col;
                 }
@@ -206,8 +208,8 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
             auto weight =
                 vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
             if (agg_const_val[col] != -1 &&
-                (weight > max_weight_agg ||
-                 (weight == max_weight_agg && col > strongest_agg))) {
+                std::tie(weight, col) >
+                    std::tie(max_weight_agg, strongest_agg)) {
                 max_weight_agg = weight;
                 strongest_agg = col;
             }
@@ -227,56 +229,6 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
-
-
-template <typename ValueType, typename IndexType>
-void amgx_pgm_generate(std::shared_ptr<const ReferenceExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType> *source,
-                       const Array<IndexType> &agg,
-                       matrix::Csr<ValueType, IndexType> *coarse)
-{
-    // agg[i] -> I, agg[j] -> J
-    const auto coarse_nrows = coarse->get_size()[0];
-    const auto source_nrows = source->get_size()[0];
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-    const auto source_vals = source->get_const_values();
-    gko::vector<gko::map<IndexType, ValueType>> row_list(
-        source_nrows, gko::map<IndexType, ValueType>{exec}, exec);
-    for (size_type i = 0; i < source_nrows; i++) {
-        IndexType row_idx = agg.get_const_data()[i];
-        for (auto j = source_row_ptrs[i]; j < source_row_ptrs[i + 1]; j++) {
-            const auto col = agg.get_const_data()[source_col_idxs[j]];
-            const auto val = source_vals[j];
-            row_list[row_idx][col] += val;
-        }
-    }
-    auto coarse_row_ptrs = coarse->get_row_ptrs();
-    for (size_type i = 0; i < coarse_nrows; i++) {
-        coarse_row_ptrs[i] = row_list[i].size();
-    }
-    components::prefix_sum(exec, coarse_row_ptrs, coarse_nrows + 1);
-
-    auto nnz = coarse_row_ptrs[coarse_nrows];
-    matrix::CsrBuilder<ValueType, IndexType> coarse_builder{coarse};
-    auto &coarse_col_idxs_array = coarse_builder.get_col_idx_array();
-    auto &coarse_vals_array = coarse_builder.get_value_array();
-    coarse_col_idxs_array.resize_and_reset(nnz);
-    coarse_vals_array.resize_and_reset(nnz);
-    auto coarse_col_idxs = coarse_col_idxs_array.get_data();
-    auto coarse_vals = coarse_vals_array.get_data();
-
-    for (size_type i = 0; i < coarse_nrows; i++) {
-        auto ind = coarse_row_ptrs[i];
-        for (auto pair : row_list[i]) {
-            coarse_col_idxs[ind] = pair.first;
-            coarse_vals[ind] = pair.second;
-            ind++;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_GENERATE);
 
 
 }  // namespace amgx_pgm

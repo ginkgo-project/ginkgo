@@ -48,8 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
+#include "core/test/utils/matrix_utils.hpp"
+#include "core/test/utils/value_generator.hpp"
 
 
 namespace gko {
@@ -62,7 +65,6 @@ using ValueTypes =
 #else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
 #endif
-
 
 using ComplexValueTypes =
 #if GINKGO_DPCPP_SINGLE_MODE

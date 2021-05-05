@@ -100,16 +100,6 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
 
 
-template <typename ValueType, typename IndexType>
-void amgx_pgm_generate(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType> *source,
-                       const Array<IndexType> &agg,
-                       matrix::Csr<ValueType, IndexType> *coarse)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_GENERATE);
-
-
 }  // namespace amgx_pgm
 }  // namespace dpcpp
 }  // namespace kernels

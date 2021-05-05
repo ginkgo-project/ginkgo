@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
@@ -500,36 +500,24 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
 }
 
 
-TYPED_TEST(AmgxPgm, GenerateMtx)
+TYPED_TEST(AmgxPgm, GenerateMgLevel)
 {
-    using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
-    using mtx_type = typename TestFixture::Mtx;
-    gko::Array<index_type> agg(this->exec, 5);
-    auto agg_vals = agg.get_data();
-    // 0 - 2, 1 - 3, 4
-    agg_vals[0] = 0;
-    agg_vals[1] = 1;
-    agg_vals[2] = 0;
-    agg_vals[3] = 1;
-    agg_vals[4] = 2;
-    auto coarse_ans = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
-    coarse_ans->read({{3, 3},
-                      {{0, 0, 4},
-                       {0, 1, -3},
-                       {0, 2, -1},
-                       {1, 0, -3},
-                       {1, 1, 5},
-                       {1, 2, -1},
-                       {2, 0, -2},
-                       {2, 1, -2},
-                       {2, 2, 5}}});
-    auto csr_coarse = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
+    using Mtx = typename TestFixture::Mtx;
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
+    // 0-2-4, 1-3
+    prolong_op->read(
+        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
-    gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
-        this->exec, this->mtx.get(), agg, csr_coarse.get());
+    auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
 
-    GKO_ASSERT_MTX_NEAR(csr_coarse, coarse_ans, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        this->coarse, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
+                        r<value_type>::value);
 }
 
 

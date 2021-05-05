@@ -46,28 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/test/utils/value_generator.hpp"
+
+
 namespace gko {
 namespace test {
-namespace detail {
-
-
-template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
-{
-    return dist(gen);
-}
-
-
-template <typename ValueType, typename Distribution, typename Generator>
-typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
-{
-    return ValueType(dist(gen), dist(gen));
-}
-
-
-}  // namespace detail
 
 
 /**
@@ -87,6 +70,8 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
@@ -145,6 +130,8 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename Engine, typename... MatrixArgs>
@@ -206,6 +193,8 @@ std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
@@ -291,6 +280,8 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
@@ -325,6 +316,8 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
@@ -358,6 +351,8 @@ std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
  * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename ValueDistribution,
           typename Engine, typename... MatrixArgs>
@@ -370,7 +365,6 @@ std::unique_ptr<MatrixType> generate_random_band_matrix(
     using index_type = typename MatrixType::index_type;
 
     matrix_data<value_type, index_type> data{gko::dim<2>{size, size}, {}};
-
     for (size_type row = 0; row < size; ++row) {
         for (size_type col = row < lower_bandwidth ? 0 : row - lower_bandwidth;
              col <= std::min(row + upper_bandwidth, size - 1); col++) {

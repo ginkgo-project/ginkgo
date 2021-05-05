@@ -111,18 +111,6 @@ protected:
             std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void make_diag_dominant(Mtx *mtx)
-    {
-        using std::abs;
-        for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            auto sum = gko::zero<Mtx::value_type>();
-            for (int j = 0; j < mtx->get_size()[1]; ++j) {
-                sum += abs(mtx->at(i, j));
-            }
-            mtx->at(i, i) = sum;
-        }
-    }
-
     void initialize_data()
     {
 #ifdef GINKGO_FAST_TESTS
