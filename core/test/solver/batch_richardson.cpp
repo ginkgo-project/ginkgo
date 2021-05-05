@@ -66,6 +66,7 @@ protected:
                                 .with_max_iterations(def_max_iters)
                                 .with_rel_residual_tol(def_rel_res_tol)
                                 .with_preconditioner("jacobi")
+                                .with_relaxation_factor(def_relax)
                                 .on(exec)),
           solver(batchrich_factory->generate(mtx))
     {}
@@ -78,6 +79,7 @@ protected:
     std::unique_ptr<gko::BatchLinOp> solver;
     const int def_max_iters = 10;
     const real_type def_rel_res_tol = 1e-4;
+    const real_type def_relax = 1.2;
 };
 
 TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
@@ -92,6 +94,7 @@ TYPED_TEST(BatchRich, FactoryKnowsItsExecutor)
 TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
+    using real_type = typename TestFixture::real_type;
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_EQ(this->solver->get_size().at(i),
                   gko::dim<2>(this->nrows, this->nrows));
@@ -99,6 +102,13 @@ TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
     auto batchrich_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(batchrich_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(batchrich_solver->get_system_matrix(), this->mtx);
+    ASSERT_EQ(batchrich_solver->get_parameters().relaxation_factor,
+              this->def_relax);
+    ASSERT_EQ(batchrich_solver->get_parameters().preconditioner, "jacobi");
+    ASSERT_EQ(batchrich_solver->get_parameters().rel_residual_tol,
+              this->def_rel_res_tol);
+    ASSERT_EQ(batchrich_solver->get_parameters().max_iterations,
+              this->def_max_iters);
 }
 
 
@@ -182,10 +192,13 @@ TYPED_TEST(BatchRich, CanSetCriteria)
     auto batchrich_factory = Solver::build()
                                  .with_max_iterations(22)
                                  .with_rel_residual_tol(static_cast<RT>(0.25))
+                                 .with_relaxation_factor(static_cast<RT>(0.28))
                                  .on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
 
     ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().relaxation_factor,
+              static_cast<RT>(0.28));
     const RT tol = std::numeric_limits<RT>::epsilon();
     ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
 }
