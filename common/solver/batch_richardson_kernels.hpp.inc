@@ -91,8 +91,9 @@ __global__ void apply_kernel(
             delta_x, static_cast<size_type>(num_rhs), num_rows, num_rhs};
 
         // These need to be duplicated across threads
-        const ValueType one[] = {1.0};
-        const gko::batch_dense::BatchEntry<const ValueType> one_b{one, 1, 1, 1};
+        const auto relax = static_cast<ValueType>(relax_factor);
+        const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
+                                                                    1, 1};
 
         __shared__ real_type norms[max_nrhs];
         for (int iz = threadIdx.x; iz < max_nrhs; iz += blockDim.x) {
@@ -165,7 +166,7 @@ __global__ void apply_kernel(
             }
             __syncthreads();
 
-            add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
+            add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
             __syncthreads();
             iter++;
         }
