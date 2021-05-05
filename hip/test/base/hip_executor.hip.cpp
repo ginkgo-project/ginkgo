@@ -104,7 +104,8 @@ protected:
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
-        hip = gko::HipExecutor::create(0, omp, false, true);
+        hip3 = gko::HipExecutor::create(0, omp, false,
+                                        gko::allocation_mode::unified_global);
     }
 
     void TearDown()
@@ -209,7 +210,7 @@ __global__ void check_data2(int *data)
 TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 {
     int orig[] = {3, 8};
-    auto *copy = hip->alloc<int>(2);
+    auto *copy = hip3->alloc<int>(2);
 
     hip3->copy_from(omp.get(), 2, orig, copy);
 

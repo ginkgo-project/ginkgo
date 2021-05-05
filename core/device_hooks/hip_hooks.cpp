@@ -53,10 +53,10 @@ version version_info::get_hip_version() noexcept
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    bool use_unified_mem)
+    allocation_mode alloc_mode)
 {
     return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, use_unified_mem));
+        device_id, std::move(master), device_reset, alloc_mode));
 }
 
 
