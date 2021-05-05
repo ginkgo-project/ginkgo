@@ -51,11 +51,11 @@ template <typename ValueType, typename LocalIndexType>
 Matrix<ValueType, LocalIndexType>::Matrix(std::shared_ptr<const Executor> exec,
                                           communicator comm)
     : EnableLinOp<Matrix<value_type, local_index_type>>{exec},
-      comm_{comm},
-      send_offsets_(comm_.size() + 1),
-      send_sizes_(comm_.size()),
-      recv_offsets_(comm_.size() + 1),
-      recv_sizes_(comm_.size()),
+      DistributedBase{comm},
+      send_offsets_(comm.size() + 1),
+      send_sizes_(comm.size()),
+      recv_offsets_(comm.size() + 1),
+      recv_sizes_(comm.size()),
       gather_idxs_{exec},
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{exec},
@@ -86,13 +86,14 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     const Array<matrix_data_entry<ValueType, global_index_type>> &data,
     dim<2> size, std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
+    const auto comm = this->get_communicator();
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     GKO_ASSERT_EQ(size[0], partition->get_size());
-    GKO_ASSERT_EQ(comm_.size(), partition->get_num_parts());
+    GKO_ASSERT_EQ(comm.size(), partition->get_num_parts());
     using nonzero_type = matrix_data_entry<ValueType, LocalIndexType>;
     auto exec = this->get_executor();
     auto local_data = make_temporary_clone(exec, &data);
-    auto local_part = comm_.rank();
+    auto local_part = comm.rank();
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(partition->get_num_parts());
@@ -126,23 +127,23 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     for (size_type i = 0; i < num_parts; i++) {
         recv_sizes_[i] = recv_offsets_[i + 1] - recv_offsets_[i];
     }
-    comm_.alltoall(recv_sizes_.data(), send_sizes_.data(), 1);
+    comm.alltoall(recv_sizes_.data(), send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer =
-        exec->get_master() != exec /* || comm_->is_gpu_aware() */;
+        exec->get_master() != exec /* || comm.is_gpu_aware() */;
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
         gather_idxs_.set_executor(exec->get_master());
     }
     gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm_.alltoallv(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                    recv_offsets_.data(), gather_idxs_.get_data(),
-                    send_sizes_.data(), send_offsets_.data(), 1);
+    comm.alltoallv(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+                   recv_offsets_.data(), gather_idxs_.get_data(),
+                   send_sizes_.data(), send_offsets_.data(), 1);
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
@@ -154,6 +155,7 @@ void Matrix<ValueType, LocalIndexType>::communicate(
     const LocalVec *local_b) const
 {
     auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
     auto num_cols = local_b->get_size()[1];
     auto send_size = send_offsets_.back();
     auto recv_size = recv_offsets_.back();
@@ -162,7 +164,7 @@ void Matrix<ValueType, LocalIndexType>::communicate(
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
     auto use_host_buffer =
-        exec->get_master() != exec /* || comm_->is_gpu_aware() */;
+        exec->get_master() != exec /* || comm->is_gpu_aware() */;
     if (use_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
@@ -170,15 +172,15 @@ void Matrix<ValueType, LocalIndexType>::communicate(
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
     if (use_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-        comm_.alltoallv(host_send_buffer_->get_const_values(),
-                        send_sizes_.data(), send_offsets_.data(),
-                        host_recv_buffer_->get_values(), recv_sizes_.data(),
-                        recv_offsets_.data(), num_cols);
+        comm.alltoallv(host_send_buffer_->get_const_values(),
+                       send_sizes_.data(), send_offsets_.data(),
+                       host_recv_buffer_->get_values(), recv_sizes_.data(),
+                       recv_offsets_.data(), num_cols);
         recv_buffer_->copy_from(host_recv_buffer_.get());
     } else {
-        comm_.alltoallv(send_buffer_->get_const_values(), send_sizes_.data(),
-                        send_offsets_.data(), recv_buffer_->get_values(),
-                        recv_sizes_.data(), recv_offsets_.data(), num_cols);
+        comm.alltoallv(send_buffer_->get_const_values(), send_sizes_.data(),
+                       send_offsets_.data(), recv_buffer_->get_values(),
+                       recv_sizes_.data(), recv_offsets_.data(), num_cols);
     }
 }
 
