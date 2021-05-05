@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -328,6 +329,76 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
     precision_dispatch_real_complex<ValueType>(fn, in, out);
 #endif
 }
+
+
+#if GKO_HAVE_MPI
+
+
+template <typename ValueType>
+detail::temporary_conversion<distributed::Vector<ValueType>>
+make_temporary_conversion_distributed(LinOp *matrix)
+{
+    auto result = detail::temporary_conversion<distributed::Vector<ValueType>>::
+        template create<distributed::Vector<next_precision<ValueType>>>(matrix);
+    if (!result) {
+        GKO_NOT_SUPPORTED(matrix);
+    }
+    return result;
+}
+
+
+template <typename ValueType>
+detail::temporary_conversion<const distributed::Vector<ValueType>>
+make_temporary_conversion_distributed(const LinOp *matrix)
+{
+    auto result =
+        detail::temporary_conversion<const distributed::Vector<ValueType>>::
+            template create<distributed::Vector<next_precision<ValueType>>>(
+                matrix);
+    if (!result) {
+        GKO_NOT_SUPPORTED(matrix);
+    }
+    return result;
+}
+
+
+template <typename ValueType, typename Function, typename... Args>
+void precision_dispatch_distributed(Function fn, Args *... linops)
+{
+    fn(make_temporary_conversion_distributed<ValueType>(linops).get()...);
+}
+
+
+template <typename ValueType, typename Function>
+void precision_dispatch_real_complex_distributed(Function fn, const LinOp *in,
+                                                 LinOp *out)
+{
+    if (!dynamic_cast<const distributed::DistributedBase *>(in)) {
+        precision_dispatch_real_complex<ValueType>(fn, in, out);
+        return;
+    }
+    precision_dispatch_distributed<ValueType>(fn, in, out);
+}
+
+
+template <typename ValueType, typename Function>
+void precision_dispatch_real_complex_distributed(Function fn,
+                                                 const LinOp *alpha,
+                                                 const LinOp *in,
+                                                 const LinOp *beta, LinOp *out)
+{
+    if (!dynamic_cast<const distributed::DistributedBase *>(in)) {
+        precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
+        return;
+    }
+    fn(make_temporary_conversion<ValueType>(alpha).get(),
+       make_temporary_conversion_distributed<ValueType>(in).get(),
+       make_temporary_conversion<ValueType>(beta).get(),
+       make_temporary_conversion_distributed<ValueType>(out).get());
+}
+
+
+#endif
 
 
 }  // namespace gko

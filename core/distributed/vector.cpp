@@ -129,18 +129,11 @@ typename Vector<ValueType>::local_mtx_type *Vector<ValueType>::get_local()
 
 
 template <typename ValueType>
-communicator Vector<ValueType>::get_communicator() const
-{
-    return comm_;
-}
-
-
-template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
     : EnableLinOp<Vector<ValueType>>{exec, global_size},
-      comm_{comm},
+      DistributedBase{comm},
       local_{exec, local_size, stride}
 {}
 
@@ -196,12 +189,27 @@ void Vector<ValueType>::read_distributed(
 
 
 template <typename ValueType>
+void Vector<ValueType>::scale(const LinOp *alpha)
+{
+    this->get_local()->scale(alpha);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::add_scaled(const LinOp *alpha, const LinOp *b)
+{
+    auto dense_b = as<Vector<ValueType>>(b);
+    this->get_local()->add_scaled(alpha, dense_b->get_local());
+}
+
+
+template <typename ValueType>
 void Vector<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
 {
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_local()->compute_dot(b, dense_res.get());
+    this->get_local()->compute_dot(as<Vector>(b)->get_local(), dense_res.get());
     exec->synchronize();
     this->get_communicator().allreduce(dense_res->get_values(),
                                        this->get_size()[1]);
@@ -214,7 +222,8 @@ void Vector<ValueType>::compute_conj_dot(const LinOp *b, LinOp *result) const
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_local()->compute_conj_dot(b, dense_res.get());
+    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
+                                        dense_res.get());
     exec->synchronize();
     this->get_communicator().allreduce(dense_res->get_values(),
                                        this->get_size()[1]);

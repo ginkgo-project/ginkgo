@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_MPI
 
 
+#include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -49,12 +50,13 @@ namespace gko {
 namespace distributed {
 
 
-template <typename ValueType>
+template <typename ValueType = double>
 class Vector
     : public EnableLinOp<Vector<ValueType>>,
       public EnableCreateMethod<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>> {
+      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
+      public DistributedBase {
     friend class EnableCreateMethod<Vector<ValueType>>;
     friend class EnablePolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
@@ -148,8 +150,6 @@ public:
     // Promise not to break things? :)
     local_mtx_type *get_local();
 
-    communicator get_communicator() const;
-
 protected:
     Vector(std::shared_ptr<const Executor> exec, communicator comm,
            dim<2> global_size, dim<2> local_size, size_type stride);
@@ -163,7 +163,6 @@ protected:
                     LinOp *) const override;
 
 private:
-    communicator comm_;
     matrix::Dense<ValueType> local_;
 };
 

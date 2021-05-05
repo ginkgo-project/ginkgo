@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/solver/distributed_helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 
 
@@ -84,7 +85,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -93,18 +94,19 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                     matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Ir<ValueType>::apply_dense_impl(const VectorType *dense_b,
+                                     VectorType *dense_x) const
 {
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto inner_solution = Vector::create_with_config_of(dense_b);
+    auto residual = detail::create_with_same_size(dense_b);
+    auto inner_solution = detail::create_with_same_size(dense_b);
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
@@ -166,7 +168,7 @@ template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
