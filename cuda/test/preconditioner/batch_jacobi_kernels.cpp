@@ -125,9 +125,9 @@ protected:
         auto cu_b = BDense::create(cuexec);
         cu_b->copy_from(ref_b.get());
         auto ref_x = BDense::create(
-            exec, gko::batch_dim(nbatch, gko::dim<2>(nrows, nrhs)));
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
         auto cu_x = BDense::create(
-            cuexec, gko::batch_dim(nbatch, gko::dim<2>(nrows, nrhs)));
+            cuexec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
 
         gko::kernels::cuda::batch_jacobi::batch_jacobi_apply(
             cuexec, cu_mtx.get(), cu_b.get(), cu_x.get());
