@@ -96,7 +96,7 @@ TYPED_TEST(BatchJacobi, AppliesToSingleVector)
     auto b = gko::batch_initialize<BDense>({{-2.0, 9.0, 4.0}, {-3.0, 5.0, 3.0}},
                                            this->exec);
     auto x = BDense::create(this->exec,
-                            gko::batch_dim(2, gko::dim<2>(this->nrows, 1)));
+                            gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
@@ -117,7 +117,7 @@ TYPED_TEST(BatchJacobi, AppliesToMultipleVectors)
          {{-3.0, 4.5}, {5.0, 12.4}, {3.0, -1.0}}},
         this->exec);
     auto x = BDense::create(this->exec,
-                            gko::batch_dim(2, gko::dim<2>(this->nrows, 2)));
+                            gko::batch_dim<>(2, gko::dim<2>(this->nrows, 2)));
 
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
