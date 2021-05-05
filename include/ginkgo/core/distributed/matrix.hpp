@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -58,7 +59,8 @@ namespace distributed {
 
 template <typename ValueType = double, typename LocalIndexType = int32>
 class Matrix : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
-               public EnableCreateMethod<Matrix<ValueType, LocalIndexType>> {
+               public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
+               public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
 
@@ -91,7 +93,6 @@ protected:
                     LinOp *x) const override;
 
 private:
-    communicator comm_;
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
