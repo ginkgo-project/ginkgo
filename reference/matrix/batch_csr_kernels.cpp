@@ -120,7 +120,7 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const size_type nbatches = mat->get_num_batches();
+    const size_type nbatches = mat->get_num_batch_entries();
     const auto a_ub = get_batch_struct(mat);
     const auto left_ub = get_batch_struct(left_scale);
     const auto right_ub = get_batch_struct(right_scale);
