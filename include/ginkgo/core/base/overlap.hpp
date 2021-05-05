@@ -106,7 +106,7 @@ public:
                      bool overlap_at_start = true)
         : is_unidirectional_{exec->get_master(), num_blocks},
           overlaps_{exec->get_master(), num_blocks},
-          overlap_at_start_{exec, num_blocks}
+          overlap_at_start_{exec->get_master(), num_blocks}
     {
         // TODO move to a core function. and update to unidir and overlap_start
         // to have different values at start and end of arrays

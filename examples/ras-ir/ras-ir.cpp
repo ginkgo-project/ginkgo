@@ -65,10 +65,11 @@ int main(int argc, char *argv[])
 
     // Figure out where to run the code
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0]
-                  << " [num_subdomains] [relax_fac] [matrix] [executor] "
-                     "[inner_tolerance]"
-                  << std::endl;
+        std::cerr
+            << "Usage: " << argv[0]
+            << " [num_subdomains] [overlap] [relax_fac] [matrix] [executor] "
+               "[inner_tolerance]"
+            << std::endl;
         std::exit(-1);
     }
 
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
     const auto mat_string = argc >= 5 ? argv[4] : "A.mtx";
     const auto executor_string = argc >= 6 ? argv[5] : "omp";
     RealValueType inner_reduction_factor =
-        argc >= 6 ? std::atof(argv[5]) : 1e-3;
+        argc >= 7 ? std::atof(argv[6]) : 1e-3;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},

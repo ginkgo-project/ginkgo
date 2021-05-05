@@ -164,6 +164,8 @@ Csr<ValueType, IndexType>::get_block_approx(
     Overlap<size_type> block_overlaps(exec->get_master());
     block_sizes = block_sizes_in;
     block_overlaps = block_overlaps_in;
+    // FIXME host transfer
+    block_overlaps.set_executor(exec->get_master());
     size_type num_blocks = block_sizes.get_num_elems();
     std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> block_mtxs;
     if (permutation.get_const_data() == nullptr) {
