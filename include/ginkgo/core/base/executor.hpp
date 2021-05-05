@@ -50,20 +50,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#if NDEBUG
+namespace gko {
 
-#define DEFAULT_USE_CUDA_UNIFIED_MEMORY true
+
+/**
+ * Specify the mode of allocation for CUDA/HIP GPUs.
+ *
+ * `device` allocates memory on the device and Unified Memory model is not used.
+ *
+ * `unified_global` allocates memory on the device, but is accessible by the
+ * host through the Unified memory model.
+ *
+ * `unified_host` allocates memory on the
+ * host and it is not available on devices which do not have concurrent acesses
+ * switched on, but this access can be explictly switched on, when necessary.
+ */
+enum class allocation_mode { device, unified_global, unified_host };
+
+
+}  // namespace gko
+
+
+#ifdef NDEBUG
+
+// When in release, always prefer device allocations
+#define GKO_DEFAULT_CUDA_ALLOC_MODE allocation_mode::device
+
+#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::device
+
+#else
+
+// When in debug, always prefer UM allocations.
+#define GKO_DEFAULT_CUDA_ALLOC_MODE allocation_mode::unified_global
 
 #if (GINKGO_HIP_PLATFORM_HCC == 1)
-#define DEFAULT_USE_HIP_UNIFIED_MEMORY true
+
+// HIP on AMD GPUs does not support UM, so always prefer device allocations.
+#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::device
+
 #else
-#define DEFAULT_USE_HIP_UNIFIED_MEMORY false
+
+#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::unified_global
+
 #endif
-
-#else
-
-#define DEFAULT_USE_CUDA_UNIFIED_MEMORY false
-#define DEFAULT_USE_HIP_UNIFIED_MEMORY false
 
 #endif
 
@@ -1257,7 +1286,7 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        bool use_unified_memory = DEFAULT_USE_CUDA_UNIFIED_MEMORY);
+        allocation_mode alloc_mode = GKO_DEFAULT_CUDA_ALLOC_MODE);
 
     ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1372,9 +1401,9 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
-                 bool use_unified_memory = DEFAULT_USE_CUDA_UNIFIED_MEMORY)
+                 allocation_mode alloc_mode = GKO_DEFAULT_CUDA_ALLOC_MODE)
         : EnableDeviceReset{device_reset},
-          use_unified_memory_{use_unified_memory},
+          alloc_mode_{alloc_mode},
           master_(master)
     {
         this->get_exec_info().device_id = device_id;
@@ -1437,7 +1466,7 @@ private:
     static constexpr int max_devices = 64;
     static unsigned num_execs[max_devices];
     static std::mutex mutex[max_devices];
-    bool use_unified_memory_;
+    allocation_mode alloc_mode_;
 };
 
 
@@ -1470,7 +1499,7 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        bool use_unified_memory = DEFAULT_USE_HIP_UNIFIED_MEMORY);
+        allocation_mode alloc_mode = GKO_DEFAULT_HIP_ALLOC_MODE);
 
     ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1585,9 +1614,9 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                bool use_unified_memory = DEFAULT_USE_HIP_UNIFIED_MEMORY)
+                allocation_mode alloc_mode = GKO_DEFAULT_HIP_ALLOC_MODE)
         : EnableDeviceReset{device_reset},
-          use_unified_memory_{use_unified_memory},
+          alloc_mode_(alloc_mode),
           master_(master)
     {
         this->get_exec_info().device_id = device_id;
@@ -1650,7 +1679,7 @@ private:
     static constexpr int max_devices = 64;
     static int num_execs[max_devices];
     static std::mutex mutex[max_devices];
-    bool use_unified_memory_;
+    allocation_mode alloc_mode_;
 };
 
 

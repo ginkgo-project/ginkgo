@@ -57,11 +57,11 @@ namespace gko {
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    bool use_unified_mem)
+    allocation_mode alloc_mode)
 {
     return std::shared_ptr<CudaExecutor>(
         new CudaExecutor(device_id, std::move(master), device_reset,
-                         use_unified_mem),
+                         alloc_mode),
         [device_id](CudaExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             delete exec;
@@ -127,10 +127,15 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
     void *dev_ptr = nullptr;
     cuda::device_guard g(this->get_device_id());
     int error_code = 0;
-    if (this->use_unified_memory_) {
-        error_code = cudaMallocManaged(&dev_ptr, num_bytes);
-    } else {
+    if (this->alloc_mode_ == allocation_mode::unified_host) {
+        error_code = cudaMallocManaged(&dev_ptr, num_bytes, cudaMemAttachHost);
+    } else if (this->alloc_mode_ == allocation_mode::unified_global) {
+        error_code =
+            cudaMallocManaged(&dev_ptr, num_bytes, cudaMemAttachGlobal);
+    } else if (this->alloc_mode_ == allocation_mode::device) {
         error_code = cudaMalloc(&dev_ptr, num_bytes);
+    } else {
+        GKO_NOT_SUPPORTED(this->alloc_mode_);
     }
     if (error_code != cudaErrorMemoryAllocation) {
         GKO_ASSERT_NO_CUDA_ERRORS(error_code);
