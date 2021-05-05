@@ -87,8 +87,9 @@ protected:
     void set_up_vector_data(gko::size_type num_vecs,
                             bool different_alpha = false)
     {
-        x = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
-        y = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
+        const int num_rows = 252;
+        x = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
+        y = gen_mtx<Mtx>(batch_size, num_rows, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
         } else {
@@ -108,10 +109,11 @@ protected:
 
     void set_up_apply_data()
     {
-        x = gen_mtx<Mtx>(batch_size, 65, 25);
-        c_x = gen_mtx<ComplexMtx>(batch_size, 65, 25);
-        y = gen_mtx<Mtx>(batch_size, 25, 35);
-        expected = gen_mtx<Mtx>(batch_size, 65, 35);
+        const int m = 35, n = 15, p = 25;
+        x = gen_mtx<Mtx>(batch_size, m, n);
+        c_x = gen_mtx<ComplexMtx>(batch_size, m, n);
+        y = gen_mtx<Mtx>(batch_size, n, p);
+        expected = gen_mtx<Mtx>(batch_size, m, p);
         alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Mtx>(batch_size, {-1.0}, ref);
         square = gen_mtx<Mtx>(batch_size, x->get_size().at()[0],
