@@ -63,7 +63,7 @@ protected:
     using Cg = gko::solver::Cg<value_type>;
 
     RasPrecond()
-        : exec(gko::ReferenceExecutor::create()),
+        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create())),
           csr_mtx(gko::initialize<CsrMtx>({{2.0, 1.0, 0.0, 0.0, 0.0},
                                            {1.0, 2.0, 1.0, 0.0, 0.0},
                                            {0.0, 1.0, 2.0, 1.0, 0.0},
@@ -163,11 +163,18 @@ TYPED_TEST(RasPrecond, CanApply)
     solver1->apply(gko::lend(b1), gko::lend(x1));
     solver->apply(gko::lend(block_b), gko::lend(block_x));
 
-    EXPECT_EQ(x0->at(0), block_x->at(0));
-    EXPECT_EQ(x0->at(1), block_x->at(1));
-    EXPECT_EQ(x1->at(0), block_x->at(2));
-    EXPECT_EQ(x1->at(1), block_x->at(3));
-    EXPECT_EQ(x1->at(2), block_x->at(4));
+    auto host_x0 = DenseMtx::create(this->exec->get_master());
+    auto host_x1 = DenseMtx::create(this->exec->get_master());
+    auto host_block_x = DenseMtx::create(this->exec->get_master());
+    host_x0->copy_from(x0.get());
+    host_x1->copy_from(x1.get());
+    host_block_x->copy_from(block_x.get());
+
+    EXPECT_EQ(host_x0->at(0), host_block_x->at(0));
+    EXPECT_EQ(host_x0->at(1), host_block_x->at(1));
+    EXPECT_EQ(host_x1->at(0), host_block_x->at(2));
+    EXPECT_EQ(host_x1->at(1), host_block_x->at(3));
+    EXPECT_EQ(host_x1->at(2), host_block_x->at(4));
 }
 
 
@@ -194,11 +201,18 @@ TYPED_TEST(RasPrecond, CanApplyWithOverlap)
     solver1->apply(gko::lend(b1), gko::lend(x1));
     solver->apply(gko::lend(block_b), gko::lend(block_x));
 
-    EXPECT_EQ(x0->at(0), block_x->at(0));
-    EXPECT_EQ(x0->at(1), block_x->at(1));
-    EXPECT_EQ(x1->at(1), block_x->at(2));
-    EXPECT_EQ(x1->at(2), block_x->at(3));
-    EXPECT_EQ(x1->at(3), block_x->at(4));
+    auto host_x0 = DenseMtx::create(this->exec->get_master());
+    auto host_x1 = DenseMtx::create(this->exec->get_master());
+    auto host_block_x = DenseMtx::create(this->exec->get_master());
+    host_x0->copy_from(x0.get());
+    host_x1->copy_from(x1.get());
+    host_block_x->copy_from(block_x.get());
+
+    EXPECT_EQ(host_x0->at(0), host_block_x->at(0));
+    EXPECT_EQ(host_x0->at(1), host_block_x->at(1));
+    EXPECT_EQ(host_x1->at(1), host_block_x->at(2));
+    EXPECT_EQ(host_x1->at(2), host_block_x->at(3));
+    EXPECT_EQ(host_x1->at(3), host_block_x->at(4));
 }
 
 
@@ -230,11 +244,18 @@ TYPED_TEST(RasPrecond, CanAdvancedApply)
     solver->apply(gko::lend(alpha), gko::lend(block_b), gko::lend(beta),
                   gko::lend(block_x));
 
-    EXPECT_EQ(x0->at(0), block_x->at(0));
-    EXPECT_EQ(x0->at(1), block_x->at(1));
-    EXPECT_EQ(x1->at(0), block_x->at(2));
-    EXPECT_EQ(x1->at(1), block_x->at(3));
-    EXPECT_EQ(x1->at(2), block_x->at(4));
+    auto host_x0 = DenseMtx::create(this->exec->get_master());
+    auto host_x1 = DenseMtx::create(this->exec->get_master());
+    auto host_block_x = DenseMtx::create(this->exec->get_master());
+    host_x0->copy_from(x0.get());
+    host_x1->copy_from(x1.get());
+    host_block_x->copy_from(block_x.get());
+
+    EXPECT_EQ(host_x0->at(0), host_block_x->at(0));
+    EXPECT_EQ(host_x0->at(1), host_block_x->at(1));
+    EXPECT_EQ(host_x1->at(0), host_block_x->at(2));
+    EXPECT_EQ(host_x1->at(1), host_block_x->at(3));
+    EXPECT_EQ(host_x1->at(2), host_block_x->at(4));
 }
 
 

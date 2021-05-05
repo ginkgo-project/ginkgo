@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
-#include "cuda/preconditioner/ras_common.hpp"
+// #include "cuda/preconditioner/ras_common.hpp"
 
 
 namespace gko {
@@ -63,7 +63,7 @@ namespace cuda {
 namespace ras {
 
 
-#include "common/preconditioner/ras_generate_kernel.hpp.inc"
+// #include "common/preconditioner/ras_generate_kernel.hpp.inc"
 
 
 namespace {
