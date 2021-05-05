@@ -111,8 +111,12 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<ValueType> dx_b{
             delta_x, static_cast<size_type>(nrhs), nrows, nrhs};
 
-        const ValueType one[] = {1.0};
-        const gko::batch_dense::BatchEntry<const ValueType> one_b{one, 1, 1, 1};
+        // const ValueType one[] = {1.0};
+        // const gko::batch_dense::BatchEntry<const ValueType> one_b{one, 1, 1,
+        // 1};
+        const auto relax = static_cast<ValueType>(opts.relax_factor);
+        const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
+                                                                    1, 1};
         real_type norms[max_nrhs];
         for (int j = 0; j < max_nrhs; j++) {
             norms[j] = 0;
@@ -156,8 +160,7 @@ static void apply_impl(
                                  gko::batch::to_const(x_b),
                                  static_cast<ValueType>(1.0), r_b);
 
-            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
-                                                  norms_b);
+            batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
             for (int j = 0; j < nrhs; j++) {
                 norms_b.values[j] = sqrt(norms_b.values[j]);
             }
@@ -182,7 +185,7 @@ static void apply_impl(
                 }
             }
 
-            batch_dense::add_scaled(one_b, gko::batch::to_const(dx_b), x_b);
+            batch_dense::add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
             iter++;
         }
 
