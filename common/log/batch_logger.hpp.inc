@@ -72,6 +72,7 @@ public:
      * @param batch_idx  The index of linear system in the batch to log.
      * @param iter  The current iteration count.
      * @param res_norm  Norms of current residuals for each RHS.
+     *                  The jth thread accesses the jth RHS.
      * @param converged  Bitset representing convergence state for each RHS.
      */
     __device__ __forceinline__ void log_iteration(
