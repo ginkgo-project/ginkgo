@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "ginkgo/core/matrix/dense.hpp"
+
 
 using etype = double;
 #ifdef GKO_SPGEAM_LONG
@@ -101,7 +101,8 @@ std::shared_ptr<Mtx> build_mtx2(std::shared_ptr<gko::Executor> exec,
         nonzero.row = permutation[nonzero.row];
     }
     data.ensure_row_major_order();
-    auto result = Mtx::create(exec, data.size, data.nonzeros.size());
+    auto result =
+        gko::share(Mtx::create(exec, data.size, data.nonzeros.size()));
     result->read(data);
     return result;
 }
