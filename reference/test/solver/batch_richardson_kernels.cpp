@@ -280,6 +280,27 @@ TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
 }
 
 
+TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
+{
+    using Result = typename TestFixture::Result;
+    using BDense = typename TestFixture::BDense;
+    using Options = typename TestFixture::Options;
+    const Options opts{"jacobi", 1000, 1e-6, 1.0};
+    const Options opts_slower{"jacobi", 1000, 1e-6, 0.8};
+
+    Result result1 = this->solve_poisson_uniform_1(opts);
+    Result result2 = this->solve_poisson_uniform_1(opts_slower);
+
+    const int *const iter_arr1 = result1.logdata.iter_counts.get_const_data();
+    const int *const iter_arr2 = result2.logdata.iter_counts.get_const_data();
+    for (size_t i = 0; i < this->nbatch; i++) {
+        ASSERT_LE(iter_arr1[i], iter_arr2[i]);
+    }
+    GKO_ASSERT_BATCH_MTX_NEAR(result2.x, this->xex_1,
+                              1e-6 /*r<value_type>::value*/);
+}
+
+
 TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 {
     using Result = typename TestFixture::Result;
