@@ -56,7 +56,7 @@ protected:
               bsize.get_num_batch_entries(), bsize.at()[0], bsize.at()[1],
               std::normal_distribution<double>(50, 5),
               std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              false, exec)),
           nnz_per_row_sample(bsize.get_num_batch_entries() * bsize.at()[0], 0),
           values_sample(0)
     {
@@ -76,7 +76,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    const gko::batch_dim<2> bsize{10, gko::dim<2>(500, 100)};
+    const gko::batch_dim<2> bsize{8, gko::dim<2>(254, 100)};
     std::unique_ptr<Mtx> mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<double> values_sample;

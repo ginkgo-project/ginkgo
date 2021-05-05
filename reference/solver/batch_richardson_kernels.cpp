@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
-// include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
+// include device kernels for every matrix and preconditioner type
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
@@ -152,9 +152,9 @@ static void apply_impl(
                 const int j = iz % nrhs;
                 r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
             }
-            adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
-                         gko::batch::to_const(x_b), static_cast<ValueType>(1.0),
-                         r_b);
+            advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
+                                 gko::batch::to_const(x_b),
+                                 static_cast<ValueType>(1.0), r_b);
 
             batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
                                                   norms_b);

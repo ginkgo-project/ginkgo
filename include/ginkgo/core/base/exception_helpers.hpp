@@ -255,7 +255,7 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> check_batch_square(const batch_dim &size)
+inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
 {
     if (size.stores_equal_sizes()) {
         if (size.at(0)[0] != size.at(0)[1]) {
@@ -265,7 +265,7 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim &size)
         }
     }
 
-    for (auto i = 0; i < size.get_num_batches(); ++i) {
+    for (auto i = 0; i < size.get_num_batch_entries(); ++i) {
         if (size.at(i)[1] != size.at(i)[1]) {
             return std::tuple<bool, int>{false, i};
         }
@@ -275,7 +275,7 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim &size)
 
 
 inline std::tuple<bool, int> check_batch_left_scalable(
-    const batch_dim &mat_size, const batch_dim &left_size)
+    const batch_dim<> &mat_size, const batch_dim<> &left_size)
 {
     if (mat_size.stores_equal_sizes() && left_size.stores_equal_sizes()) {
         if (mat_size.at(0)[0] == left_size.at(0)[0] &&
@@ -291,7 +291,7 @@ inline std::tuple<bool, int> check_batch_left_scalable(
 
 
 inline std::tuple<bool, int> check_batch_right_scalable(
-    const batch_dim &mat_size, const batch_dim &right_size)
+    const batch_dim<> &mat_size, const batch_dim<> &right_size)
 {
     if (mat_size.stores_equal_sizes() && right_size.stores_equal_sizes()) {
         if (mat_size.at(0)[1] == right_size.at(0)[0] &&
