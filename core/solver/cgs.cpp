@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/cgs_kernels.hpp"
+#include "core/solver/distributed_helpers.hpp"
 
 
 namespace gko {
@@ -89,7 +90,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -98,34 +99,35 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                      matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Cgs<ValueType>::apply_dense_impl(const VectorType *dense_b,
+                                      VectorType *dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_size()[1];
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto r_tld = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
-    auto u = Vector::create_with_config_of(dense_b);
-    auto u_hat = Vector::create_with_config_of(dense_b);
-    auto v_hat = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
+    auto r = detail::create_with_same_size(dense_b);
+    auto r_tld = detail::create_with_same_size(dense_b);
+    auto p = detail::create_with_same_size(dense_b);
+    auto q = detail::create_with_same_size(dense_b);
+    auto u = detail::create_with_same_size(dense_b);
+    auto u_hat = detail::create_with_same_size(dense_b);
+    auto v_hat = detail::create_with_same_size(dense_b);
+    auto t = detail::create_with_same_size(dense_b);
 
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto gamma = Vector::create_with_config_of(alpha.get());
-    auto rho_prev = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
+    auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto beta = LocalVector::create_with_config_of(alpha.get());
+    auto gamma = LocalVector::create_with_config_of(alpha.get());
+    auto rho_prev = LocalVector::create_with_config_of(alpha.get());
+    auto rho = LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
@@ -133,8 +135,11 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(cgs::make_initialize(
-        dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
-        v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
+        detail::get_local(dense_b), detail::get_local(r.get()),
+        detail::get_local(r_tld.get()), detail::get_local(p.get()),
+        detail::get_local(q.get()), detail::get_local(u.get()),
+        detail::get_local(u_hat.get()), detail::get_local(v_hat.get()),
+        detail::get_local(t.get()), alpha.get(), beta.get(), gamma.get(),
         rho_prev.get(), rho.get(), &stop_status));
     // r = dense_b
     // r_tld = r
@@ -178,25 +183,29 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // beta = rho / rho_prev
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
-        exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), rho_prev.get(),
-                                   &stop_status));
+        exec->run(cgs::make_step_1(
+            detail::get_local(r.get()), detail::get_local(u.get()),
+            detail::get_local(p.get()), detail::get_local(q.get()), beta.get(),
+            rho.get(), rho_prev.get(), &stop_status));
         get_preconditioner()->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_conj_dot(v_hat.get(), gamma.get());
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
-                                   alpha.get(), rho.get(), gamma.get(),
-                                   &stop_status));
+        exec->run(cgs::make_step_2(
+            detail::get_local(u.get()), detail::get_local(v_hat.get()),
+            detail::get_local(q.get()), detail::get_local(t.get()), alpha.get(),
+            rho.get(), gamma.get(), &stop_status));
 
         get_preconditioner()->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         // r = r - alpha * t
         // x = x + alpha * u_hat
-        exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
-                                   alpha.get(), &stop_status));
+        exec->run(cgs::make_step_3(
+            detail::get_local(t.get()), detail::get_local(u_hat.get()),
+            detail::get_local(r.get()), detail::get_local(dense_x), alpha.get(),
+            &stop_status));
 
         swap(rho_prev, rho);
     }
@@ -207,7 +216,7 @@ template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());

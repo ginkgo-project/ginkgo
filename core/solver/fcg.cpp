@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/solver/distributed_helpers.hpp"
 #include "core/solver/fcg_kernels.hpp"
 
 
@@ -88,7 +89,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -97,39 +98,42 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                      matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
+                                      VectorType *dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
+    auto r = detail::create_with_same_size(dense_b);
+    auto z = detail::create_with_same_size(dense_b);
+    auto p = detail::create_with_same_size(dense_b);
+    auto q = detail::create_with_same_size(dense_b);
+    auto t = detail::create_with_same_size(dense_b);
 
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
-    auto rho_t = Vector::create_with_config_of(alpha.get());
+    auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto beta = LocalVector::create_with_config_of(alpha.get());
+    auto prev_rho = LocalVector::create_with_config_of(alpha.get());
+    auto rho = LocalVector::create_with_config_of(alpha.get());
+    auto rho_t = LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(fcg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
-                                   t.get(), prev_rho.get(), rho.get(),
-                                   rho_t.get(), &stop_status));
+    exec->run(fcg::make_initialize(
+        detail::get_local(dense_b), detail::get_local(r.get()),
+        detail::get_local(z.get()), detail::get_local(p.get()),
+        detail::get_local(q.get()), detail::get_local(t.get()), prev_rho.get(),
+        rho.get(), rho_t.get(), &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -172,8 +176,9 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
-        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
-                                   prev_rho.get(), &stop_status));
+        exec->run(fcg::make_step_1(
+            detail::get_local(p.get()), detail::get_local(z.get()),
+            detail::get_local(rho_t.get()), prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
@@ -181,8 +186,10 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), &stop_status));
+        exec->run(fcg::make_step_2(
+            detail::get_local(dense_x), detail::get_local(r.get()),
+            detail::get_local(t.get()), detail::get_local(p.get()),
+            detail::get_local(q.get()), beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -192,7 +199,7 @@ template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());

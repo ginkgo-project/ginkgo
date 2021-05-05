@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include <ginkgo/core/distributed/vector.hpp>
+
+
 #include "core/components/fill_array.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
@@ -67,16 +70,33 @@ bool ResidualNormBase<ValueType>::check_impl(
     uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
-    const NormVector* dense_tau;
+    using DistributedComplex = distributed::Vector<gko::to_complex<ValueType>>;
+    using DistributedVector = distributed::Vector<ValueType>;
+    const NormVector *dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        if (dynamic_cast<const ComplexVector*>(updater.residual_)) {
-            auto* dense_r = as<ComplexVector>(updater.residual_);
-            dense_r->compute_norm2(u_dense_tau_.get());
+        if (dynamic_cast<const distributed::DistributedBase *>(
+                updater.residual_)) {
+            // the vector is distributed
+            if (dynamic_cast<const DistributedComplex *>(updater.residual_)) {
+                // handle solvers that use complex vectors even for real systems
+                auto dense_r = as<DistributedComplex>(updater.residual_);
+                dense_r->compute_norm2(u_dense_tau_.get());
+            } else {
+                auto dense_r = as<DistributedVector>(updater.residual_);
+                dense_r->compute_norm2(u_dense_tau_.get());
+            }
         } else {
-            auto* dense_r = as<Vector>(updater.residual_);
-            dense_r->compute_norm2(u_dense_tau_.get());
+            // the vector is non-distributed
+            if (dynamic_cast<const ComplexVector *>(updater.residual_)) {
+                // handle solvers that use complex vectors even for real systems
+                auto dense_r = as<ComplexVector>(updater.residual_);
+                dense_r->compute_norm2(u_dense_tau_.get());
+            } else {
+                auto dense_r = as<Vector>(updater.residual_);
+                dense_r->compute_norm2(u_dense_tau_.get());
+            }
         }
         dense_tau = u_dense_tau_.get();
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
