@@ -226,6 +226,110 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
 }
 
 
+/**
+ * Calls the given function with each given argument LinOp
+ * converted into matrix::Dense<ValueType> as parameters.
+ *
+ * If GINKGO_MIXED_PRECISION is defined, this means that the function will be
+ * called with its dynamic type as a static type, so the (templated/generic)
+ * function will be instantiated with all pairs of Dense<ValueType> and
+ * Dense<next_precision<ValueType>> parameter types, and the appropriate
+ * overload will be called based on the dynamic type of the parameter.
+ *
+ * If GINKGO_MIXED_PRECISION is not defined, it will behave exactly like
+ * precision_dispatch.
+ *
+ * @param fn  the given function. It will be called with one const and one
+ *            non-const matrix::Dense<...> parameter based on the dynamic type
+ *            of the inputs (GINKGO_MIXED_PRECISION) or of type
+ *            matrix::Dense<ValueType> (no GINKGO_MIXED_PRECISION).
+ * @param in  The first parameter to be cast (GINKGO_MIXED_PRECISION) or
+ *            converted (no GINKGO_MIXED_PRECISION) and used to call `fn`.
+ * @param out  The second parameter to be cast (GINKGO_MIXED_PRECISION) or
+ *             converted (no GINKGO_MIXED_PRECISION) and used to call `fn`.
+ *
+ * @tparam ValueType  the value type to use for the parameters of `fn` (no
+ *                    GINKGO_MIXED_PRECISION). With GINKGO_MIXED_PRECISION
+ *                    enabled, it only matters whether this type is complex or
+ *                    real.
+ * @tparam Function  the function pointer, lambda or other functor type to call
+ *                   with the converted arguments.
+ */
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = matrix::Dense<ValueType>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    if (auto dense_in = dynamic_cast<const fst_type *>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else if (auto dense_in = dynamic_cast<const snd_type *>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else {
+        GKO_NOT_SUPPORTED(in);
+    }
+#else
+    precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
+
+/**
+ * Calls the given function with the given LinOps cast to their dynamic type
+ * matrix::Dense<ValueType>* as parameters.
+ * If ValueType is real and both `in` and `out` are complex, uses
+ * matrix::Dense::get_real_view() to convert them into real matrices after
+ * precision conversion.
+ *
+ * @see mixed_precision_dispatch()
+ */
+template <typename ValueType, typename Function,
+          std::enable_if_t<is_complex<ValueType>()> * = nullptr>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
+                                           LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    mixed_precision_dispatch<ValueType>(fn, in, out);
+#else
+    precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
+
+template <typename ValueType, typename Function,
+          std::enable_if_t<!is_complex<ValueType>()> * = nullptr>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
+                                           LinOp *out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in)) {
+        mixed_precision_dispatch<to_complex<ValueType>>(
+            [&fn](auto dense_in, auto dense_out) {
+                fn(dense_in->create_real_view().get(),
+                   dense_out->create_real_view().get());
+            },
+            in, out);
+    } else {
+        mixed_precision_dispatch<ValueType>(fn, in, out);
+    }
+#else
+    precision_dispatch_real_complex<ValueType>(fn, in, out);
+#endif
+}
+
+
 }  // namespace gko
 
 

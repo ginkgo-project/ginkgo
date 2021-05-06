@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
 
 
@@ -56,24 +57,27 @@ namespace dpcpp {
 namespace ell {
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Ell<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          const matrix::Ell<MatrixValueType, IndexType> *a,
+          const matrix::Dense<InputValueType> *b,
+          matrix::Dense<OutputValueType> *c) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Ell<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   const matrix::Dense<MatrixValueType> *alpha,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   const matrix::Dense<OutputValueType> *beta,
+                   matrix::Dense<OutputValueType> *c) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

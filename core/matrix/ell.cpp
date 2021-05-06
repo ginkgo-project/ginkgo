@@ -102,7 +102,7 @@ size_type calculate_max_nnz_per_row(
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->get_executor()->run(ell::make_spmv(this, dense_b, dense_x));
         },
@@ -114,12 +114,15 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](auto dense_b, auto dense_x) {
+            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+            auto dense_beta = make_temporary_conversion<
+                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
             this->get_executor()->run(ell::make_advanced_spmv(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
+                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 

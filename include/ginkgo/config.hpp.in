@@ -63,6 +63,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine GINKGO_BENCHMARK_ENABLE_TUNING
 
 
+/* Should we compile mixed-precision kernels for Ginkgo? */
+#cmakedefine GINKGO_MIXED_PRECISION
+
+
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off
 #define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@

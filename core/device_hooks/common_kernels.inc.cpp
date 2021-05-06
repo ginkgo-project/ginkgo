@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
@@ -931,15 +932,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace ell {
 
 
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType)
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType, OutputValueType,
+                            IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_SPMV_KERNEL);
 
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType,
+                                     OutputValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>

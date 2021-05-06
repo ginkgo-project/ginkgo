@@ -32,6 +32,7 @@ include:
   BUILD_HWLOC: "ON"
   FAST_TESTS: "OFF"
   DPCPP_SINGLE_MODE: "OFF"
+  MIXED_PRECISION: "ON"
   RUN_EXAMPLES: "OFF"
   CONFIG_LOG: "ON"
   CXX_FLAGS: ""
@@ -77,6 +78,7 @@ include:
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
+        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
@@ -111,6 +113,7 @@ include:
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
+        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
         -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
@@ -681,6 +684,44 @@ build/nocuda/intel/omp/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
+build/nocuda-nomixed/gcc/omp/release/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko-nocuda-gnu9-llvm8
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    MIXED_PRECISION: "OFF"
+
+build/nocuda-nomixed/clang/omp/debug/static:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+    - .use_gko-nocuda-gnu9-llvm8
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
+
+build/nocuda-nomixed/intel/omp/release/static:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+    - .use_gko-nocuda-gnu9-llvm8-intel
+  variables:
+    <<: *default_variables
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
 
 build/dpcpp/cpu/release/static:
   <<: *default_build_with_test
