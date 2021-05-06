@@ -66,11 +66,12 @@ public:
      * Logs an iteration of the solver, though does nothing for most iterations.
      *
      * Records the residual for all RHSs whenever the convergence bitset
-     * changes state. Further records the iteration count whenever the
+     * changes state. Further, records the iteration count whenever the
      * convergence state of a specific RHS changes for the better.
+     * Finally, records residuals for all RHS in the final iteration.
      *
      * @param batch_idx  The index of linear system in the batch to log.
-     * @param iter  The current iteration count.
+     * @param iter  The current iteration count (0-based).
      * @param res_norm  Norms of current residuals for each RHS.
      *                  The jth thread accesses the jth RHS.
      * @param converged  Bitset representing convergence state for each RHS.
