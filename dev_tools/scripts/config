@@ -25,7 +25,7 @@
 - "core/test/base/(extended_float|iterator_factory)"
     - RemoveTest: "true"
 - "core/test/base/allocator"
-    - FixInclude: "core/base/allocator.hpp"
+    - FixInclude: "ginkgo/core/base/allocator.hpp"
 - "reference/test/base/utils"
     - FixInclude: "core/base/utils.hpp"
 - "_builder\.cpp"

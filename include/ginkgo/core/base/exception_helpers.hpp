@@ -163,6 +163,19 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ *Asserts that the condition is satisfied.
+ *
+ *@throw  if _cond is not satisfied.
+ */
+#define GKO_ASSERT_CONDITION(_cond)                \
+    if (!(_cond)) {                                \
+        throw ::gko::ConditionUnsatisfied(         \
+            __FILE__, __LINE__, __func__, #_cond,  \
+            "expected condition to be satisfied"); \
+    }
+
+
+/**
  *Asserts that _op1 is a square matrix.
  *
  *@throw DimensionMismatch  if the number of rows of _op1 is different from the

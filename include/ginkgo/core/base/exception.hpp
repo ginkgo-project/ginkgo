@@ -471,6 +471,30 @@ public:
 
 
 /**
+ * ConditionUnsatisfied is thrown if two values are not equal.
+ */
+class ConditionUnsatisfied : public Error {
+public:
+    /**
+     * Initializes a unsatisfied condition error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param cond  The condition that was not satisfied.
+     * @param clarification  An additional message further describing the error
+     */
+    ConditionUnsatisfied(const std::string &file, int line,
+                         const std::string &func, const std::string &cond,
+                         const std::string &clarification)
+        : Error(file, line,
+                func + ": Condition not satisfied : " + cond + " : " +
+                    clarification)
+    {}
+};
+
+
+/**
  * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {

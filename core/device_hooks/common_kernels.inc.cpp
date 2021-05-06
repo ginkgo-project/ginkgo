@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/base/index_set_kernels.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
@@ -117,6 +118,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
 }  // namespace components
+
+
+namespace index_set {
+
+
+template <typename IndexType>
+GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
+
+template <typename IndexType>
+GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
+
+template <typename IndexType>
+GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
+
+
+}  // namespace index_set
 
 
 namespace dense {

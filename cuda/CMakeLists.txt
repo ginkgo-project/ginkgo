@@ -76,6 +76,7 @@ target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
     base/executor.cpp
+    base/index_set_kernels.cpp
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu

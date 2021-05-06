@@ -11,6 +11,7 @@ target_sources(ginkgo_dpcpp
     PRIVATE
     base/version.dp.cpp
     base/executor.dp.cpp
+    base/index_set_kernels.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
     components/precision_conversion.dp.cpp
