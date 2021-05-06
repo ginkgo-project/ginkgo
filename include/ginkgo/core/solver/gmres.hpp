@@ -102,18 +102,18 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
     /**
-     * Gets the krylov dimension of the solver
+     * Gets the Krylov dimension of the solver
      *
-     * @return the krylov dimension
+     * @return the Krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
 
     /**
-     * Sets the krylov dimension
+     * Sets the Krylov dimension
      *
-     * @param other  the new krylov dimension
+     * @param other  the new Krylov dimension
      */
-    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
+    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
 
     /**
      * Gets the stopping criterion factory of the solver.
@@ -159,7 +159,7 @@ public:
             generated_preconditioner, nullptr);
 
         /**
-         * krylov dimension factory.
+         * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
