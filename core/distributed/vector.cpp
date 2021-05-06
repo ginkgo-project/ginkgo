@@ -129,13 +129,6 @@ typename Vector<ValueType>::local_mtx_type *Vector<ValueType>::get_local()
 
 
 template <typename ValueType>
-std::shared_ptr<mpi::communicator> Vector<ValueType>::get_communicator() const
-{
-    return comm_;
-}
-
-
-template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           std::shared_ptr<mpi::communicator> comm,
                           dim<2> global_size, dim<2> local_size,

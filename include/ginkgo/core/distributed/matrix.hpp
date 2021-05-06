@@ -80,11 +80,6 @@ public:
 
     void validate_data() const override;
 
-    std::shared_ptr<mpi::communicator> get_communicator() const
-    {
-        return comm_;
-    }
-
 protected:
     using GlobalVec = Vector<value_type>;
     using LocalVec = matrix::Dense<value_type>;
@@ -102,7 +97,6 @@ protected:
                     LinOp *x) const override;
 
 private:
-    std::shared_ptr<mpi::communicator> comm_;
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;

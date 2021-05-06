@@ -53,10 +53,10 @@ Matrix<ValueType, LocalIndexType>::Matrix(
     std::shared_ptr<mpi::communicator> comm)
     : EnableLinOp<Matrix<value_type, local_index_type>>{exec},
       DistributedBase{comm},
-      send_offsets_(comm_->size() + 1),
-      send_sizes_(comm_->size()),
-      recv_offsets_(comm_->size() + 1),
-      recv_sizes_(comm_->size()),
+      send_offsets_(comm->size() + 1),
+      send_sizes_(comm->size()),
+      recv_offsets_(comm->size() + 1),
+      recv_sizes_(comm->size()),
       gather_idxs_{exec},
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{exec},
@@ -90,11 +90,11 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     const auto comm = this->get_communicator();
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     GKO_ASSERT_EQ(size[0], partition->get_size());
-    GKO_ASSERT_EQ(comm_->size(), partition->get_num_parts());
+    GKO_ASSERT_EQ(comm->size(), partition->get_num_parts());
     using nonzero_type = matrix_data_entry<ValueType, LocalIndexType>;
     auto exec = this->get_executor();
     auto local_data = make_temporary_clone(exec, &data);
-    auto local_part = comm_->rank();
+    auto local_part = comm->rank();
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(partition->get_num_parts());
