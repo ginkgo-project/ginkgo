@@ -158,8 +158,8 @@ void Vector<ValueType>::read_distributed(
     Array<matrix_data_entry<ValueType, global_index_type>> global_data{
         exec, data.nonzeros.begin(), data.nonzeros.end()};
     Array<matrix_data_entry<ValueType, int64>> local_data{exec};
-    exec->run(vector::make_build_local(exec, partition.get(), rank, local_data,
-                                       ValueType{}));
+    exec->run(vector::make_build_local(global_data, partition.get(), rank,
+                                       local_data, ValueType{}));
     dim<2> local_size{local_rows, data.size[1]};
     dim<2> global_size{global_rows, data.size[1]};
     this->get_local()->read(local_data, local_size);
@@ -179,8 +179,8 @@ void Vector<ValueType>::read_distributed(
     Array<matrix_data_entry<ValueType, global_index_type>> global_data{
         exec, data.nonzeros.begin(), data.nonzeros.end()};
     Array<matrix_data_entry<ValueType, int32>> local_data{exec};
-    exec->run(vector::make_build_local(exec, partition.get(), rank, local_data,
-                                       ValueType{}));
+    exec->run(vector::make_build_local(global_data, partition.get(), rank,
+                                       local_data, ValueType{}));
     dim<2> local_size{local_rows, data.size[1]};
     dim<2> global_size{global_rows, data.size[1]};
     this->get_local()->read(local_data, local_size);
