@@ -212,9 +212,12 @@ void Vector<ValueType>::compute_dot(const LinOp *b, LinOp *result) const
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_local()->compute_dot(as<Vector>(b)->get_local(), dense_res.get());
     exec->synchronize();
-    mpi::all_reduce(dense_res->get_values(),
+    auto dense_res_host =
+        make_temporary_clone(exec->get_master(), dense_res.get());
+    mpi::all_reduce(dense_res_host->get_values(),
                     static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
                     this->get_communicator());
+    dense_res->copy_from(dense_res_host.get());
 }
 
 

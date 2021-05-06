@@ -45,20 +45,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-// Finally, we need the MPI header for MPI_Init and _Finalize
-#include <mpi.h>
-
-
 int main(int argc, char *argv[])
 {
-    MPI_Init(&argc, &argv);
+    const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
     using ValueType = double;
+    // using GlobalIndexType = int;  // gko::distributed::global_index_type;
     using GlobalIndexType = gko::distributed::global_index_type;
-    using LocalIndexType = GlobalIndexType;
+    using LocalIndexType = int;  // GlobalIndexType;
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
     using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
@@ -66,7 +63,7 @@ int main(int argc, char *argv[])
     using solver = gko::solver::Bicgstab<ValueType>;
 
     // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
+    // std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
@@ -83,14 +80,20 @@ int main(int argc, char *argv[])
     // @note With the help of C++, you see that you only ever need to change the
     // executor and all the other functions/ routines within Ginkgo should
     // automatically work and run on the executor with any other changes.
+    ValueType t_init = MPI_Wtime();
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
+    const auto comm = gko::mpi::communicator::create();
+    const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 const auto comm = gko::mpi::communicator::create();
+                 return gko::CudaExecutor::create(
+                     gko::mpi::get_local_rank(comm->get()),
+                     gko::ReferenceExecutor::create(), true);
              }},
             {"hip",
              [] {
@@ -106,11 +109,21 @@ int main(int argc, char *argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const auto comm = gko::distributed::communicator{};
 
     // assemble matrix: 7-pt stencil
-    const auto grid_dim = 100;
     const auto num_rows = grid_dim * grid_dim * grid_dim;
+
+    // build partition: uniform number of rows per rank
+    gko::Array<gko::int64> ranges_array{
+        exec->get_master(), static_cast<gko::size_type>(comm->size() + 1)};
+    const auto rows_per_rank = num_rows / comm->size();
+    for (int i = 0; i < comm->size(); i++) {
+        ranges_array.get_data()[i] = i * rows_per_rank;
+    }
+    ranges_array.get_data()[comm->size()] = num_rows;
+    auto partition = gko::share(
+        part_type::build_from_contiguous(exec->get_master(), ranges_array));
+
     gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;
@@ -142,23 +155,23 @@ int main(int argc, char *argv[])
     }
 
 
-    // build partition: uniform number of rows per rank
-    gko::Array<gko::int64> ranges_array{
-        exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
-    const auto rows_per_rank = num_rows / comm.size();
-    for (int i = 0; i < comm.size(); i++) {
-        ranges_array.get_data()[i] = i * rows_per_rank;
-    }
-    ranges_array.get_data()[comm.size()] = num_rows;
-    auto partition =
-        gko::share(part_type::build_from_contiguous(exec, ranges_array));
+    ValueType t_init_end = MPI_Wtime();
 
+    auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
+    auto x_host = dist_vec::create(exec->get_master(), comm);
+    auto b_host = dist_vec::create(exec->get_master(), comm);
+    A_host->read_distributed(A_data, partition);
+    b_host->read_distributed(b_data, partition);
+    x_host->read_distributed(x_data, partition);
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
-    A->read_distributed(A_data, partition);
-    b->read_distributed(b_data, partition);
-    x->read_distributed(x_data, partition);
+    A->copy_from(A_host.get());
+    b->copy_from(b_host.get());
+    x->copy_from(x_host.get());
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_read_setup_end = MPI_Wtime();
 
     auto Ainv =
         solver::build()
@@ -166,14 +179,35 @@ int main(int argc, char *argv[])
                 gko::stop::Iteration::build().with_max_iters(100u).on(exec))
             .on(exec)
             ->generate(A);
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_solver_generate_end = MPI_Wtime();
 
+    Ainv->apply(lend(b), lend(x));
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_solver_apply_end = MPI_Wtime();
+
+    x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    Ainv->apply(lend(b), lend(x));
-    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
+    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b->compute_norm2(lend(result));
-    std::cout << *result->get_values() << std::endl;
+    b_host->compute_norm2(lend(result));
 
-    MPI_Finalize();
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_end = MPI_Wtime();
+
+    if (comm->rank() == 0) {
+        // clang-format off
+    std::cout << "\nNum rows in matrix: " << num_rows
+              << "\nNum ranks: " << comm->size()
+              << "\nFinal Res norm: " << *result->get_values()
+              << "\nInit time: " << t_init_end - t_init
+              << "\nRead time: " << t_read_setup_end - t_init
+              << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
+              << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+              << "\nTotal time: " << t_end - t_init
+              << std::endl;
+        // clang-format on
+    }
 }
