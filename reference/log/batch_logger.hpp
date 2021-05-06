@@ -76,18 +76,19 @@ public:
      * Logs an iteration of the solver, though does nothing for most iterations.
      *
      * Records the residual for all RHSs whenever the convergence bitset
-     * changes state. Further records the iteration count whenever the
+     * changes state. Further, records the iteration count whenever the
      * convergence state of a specific RHS changes for the better.
+     * Finally, records residuals for all RHS in the final iteration.
      *
      * @param batch_idx  The index of linear system in the batch to log.
-     * @param iter  The current iteration count.
+     * @param iter  The current iteration count (0-based numbering).
      * @param res_norm  Norms of current residuals for each RHS.
      * @param converged  Bitset representing convergence state for each RHS.
      */
     void log_iteration(const size_type batch_idx, const int iter,
                        const real_type *const res_norm, const uint32 converged)
     {
-        if (converged != init_converged_ || iter >= max_iters_ - 2) {
+        if (converged != init_converged_ || iter >= max_iters_ - 1) {
             for (int j = 0; j < nrhs_; j++) {
                 const uint32 jconv = converged & (1 << j);
                 const uint32 old_jconv = init_converged_ & (1 << j);
