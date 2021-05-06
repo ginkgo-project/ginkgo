@@ -155,6 +155,7 @@ TYPED_TEST(CbGmres, CbGmresFactoryKnowsItsExecutor)
 TYPED_TEST(CbGmres, CbGmresFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
+
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     auto cb_gmres_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(cb_gmres_solver->get_system_matrix(), nullptr);
@@ -265,18 +266,40 @@ TYPED_TEST(CbGmres, CanSetKrylovDim)
     using value_type = typename TestFixture::value_type;
     using nc_value_type = typename TestFixture::nc_value_type;
     using Solver = typename TestFixture::Solver;
+    const gko::size_type new_krylov_dim{4u};
+
     auto cb_gmres_factory =
         Solver::build()
-            .with_krylov_dim(4u)
+            .with_krylov_dim(new_krylov_dim)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(nc_value_type{1e-6})
-                    .on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
             .on(this->exec);
     auto solver = cb_gmres_factory->generate(this->mtx);
-    auto krylov_dim = solver->get_krylov_dim();
 
+    ASSERT_EQ(solver->get_krylov_dim(), new_krylov_dim);
+    // Also test the default storage_recision
+    ASSERT_EQ(solver->get_storage_precision(),
+              gko::solver::cb_gmres::storage_precision::reduce1);
+}
+
+
+TYPED_TEST(CbGmres, CanUseSetKrylovDim)
+{
+    using value_type = typename TestFixture::value_type;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    using Solver = typename TestFixture::Solver;
+    const gko::size_type new_krylov_dim{40u};
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    solver->set_krylov_dim(new_krylov_dim);
+
+    ASSERT_EQ(solver->get_krylov_dim(), new_krylov_dim);
+    // Also test the default storage_recision
     ASSERT_EQ(solver->get_storage_precision(),
               gko::solver::cb_gmres::storage_precision::reduce1);
 }

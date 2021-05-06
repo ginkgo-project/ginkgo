@@ -107,10 +107,10 @@ enum class storage_precision {
  * are merged into 2 separate steps. Classical Gram-Schmidt with
  * reorthogonalization is used.
  *
- * The krylov basis can be stored in reduced precision (compressed) to reduce
- * memory accesses, while all computations (including krylov basis operations)
+ * The Krylov basis can be stored in reduced precision (compressed) to reduce
+ * memory accesses, while all computations (including Krylov basis operations)
  * are performed in the same arithmetic precision ValueType. By default, the
- * krylov basis are stored in one precision lower than ValueType.
+ * Krylov basis are stored in one precision lower than ValueType.
  *
  * @tparam ValueType  the arithmetic precision and the precision of matrix
  *                    elements
@@ -138,11 +138,18 @@ public:
     }
 
     /**
-     * Returns the krylov dimension.
+     * Returns the Krylov dimension.
      *
-     * @return the krylov dimension
+     * @return the Krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
+
+    /**
+     * Sets the Krylov dimension
+     *
+     * @param other  the new Krylov dimension
+     */
+    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
 
     /**
      * Returns the storage precision used internally.
@@ -182,7 +189,7 @@ public:
             generated_preconditioner, nullptr);
 
         /**
-         * krylov dimension factory.
+         * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
     };
