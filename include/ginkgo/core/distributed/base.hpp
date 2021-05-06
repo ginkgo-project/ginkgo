@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_MPI
 
 
-#include <ginkgo/core/distributed/communicator.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 
 
 namespace gko {
@@ -51,12 +51,18 @@ class DistributedBase {
 public:
     virtual ~DistributedBase() = default;
 
-    communicator get_communicator() const { return comm_; }
+    std::shared_ptr<mpi::communicator> get_communicator() const
+    {
+        return comm_;
+    }
 
-    explicit DistributedBase(communicator comm = {}) : comm_{comm} {}
+    explicit DistributedBase(std::shared_ptr<mpi::communicator> comm =
+                                 std::make_shared<mpi::communicator>())
+        : comm_{comm}
+    {}
 
 private:
-    communicator comm_;
+    std::shared_ptr<mpi::communicator> comm_;
 };
 
 
