@@ -41,6 +41,7 @@ target_sources(ginkgo_reference
     preconditioner/batch_jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/batch_bicgstab_kernels.cpp
+    solver/batch_cg_kernels.cpp
     solver/batch_richardson_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
