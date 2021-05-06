@@ -122,7 +122,7 @@ public:
      *
      * @param exec  the Executor where the array data is allocated
      */
-    Array(std::shared_ptr<const Executor> exec) noexcept
+    explicit Array(std::shared_ptr<const Executor> exec) noexcept
         : num_elems_(0),
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
