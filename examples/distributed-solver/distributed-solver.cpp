@@ -108,48 +108,71 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const auto comm = gko::distributed::communicator{};
 
-    std::ifstream a_stream{"data/A.mtx"};
-    std::ifstream x_stream{"data/x.mtx"};
-    std::ifstream x0_stream{"data/x0.mtx"};
-    std::ifstream b_stream{"data/b.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
-    auto x_data = gko::read_raw<ValueType, GlobalIndexType>(x_stream);
-    auto x0_data = gko::read_raw<ValueType, GlobalIndexType>(x0_stream);
-    auto b_data = gko::read_raw<ValueType, GlobalIndexType>(b_stream);
+    // assemble matrix: 7-pt stencil
+    const auto grid_dim = 100;
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
+    gko::matrix_data<ValueType, GlobalIndexType> A_data;
+    gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    A_data.size = {num_rows, num_rows};
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                b_data.nonzeros.emplace_back(
+                    idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+            }
+        }
+    }
+
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
         exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
-    const auto rows_per_rank = A_data.size[0] / comm.size();
+    const auto rows_per_rank = num_rows / comm.size();
     for (int i = 0; i < comm.size(); i++) {
         ranges_array.get_data()[i] = i * rows_per_rank;
     }
-    ranges_array.get_data()[comm.size()] = A_data.size[0];
+    ranges_array.get_data()[comm.size()] = num_rows;
     auto partition =
         gko::share(part_type::build_from_contiguous(exec, ranges_array));
 
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
-    auto x0 = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
     A->read_distributed(A_data, partition);
-    x->read_distributed(x_data, partition);
-    x0->read_distributed(x_data, partition);
     b->read_distributed(b_data, partition);
+    x->read_distributed(x_data, partition);
+
     auto Ainv =
         solver::build()
-            .with_criteria(gko::stop::AbsoluteResidualNorm<ValueType>::build()
-                               .with_tolerance(1e-10)
-                               .on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec))
             .on(exec)
             ->generate(A);
 
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    Ainv->apply(lend(one), lend(b), lend(minus_one), lend(x0));
-    x->add_scaled(lend(minus_one), lend(x0));
+    Ainv->apply(lend(b), lend(x));
+    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    x->compute_norm2(lend(result));
+    b->compute_norm2(lend(result));
     std::cout << *result->get_values() << std::endl;
 
     MPI_Finalize();
