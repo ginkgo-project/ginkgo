@@ -42,6 +42,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
+    solver/batch_cg_kernels.hip.cpp
     solver/batch_richardson_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
