@@ -63,8 +63,6 @@ protected:
     const int nrows = 100;
     const int nrhs = 4;
     const size_t nbatch = 3;
-    // const size_t def_stride = static_cast<size_t>(nrhs);
-    // const real_type tol = 1e-5;
     static constexpr int max_nrhs = 6;
 };
 
@@ -177,6 +175,50 @@ TYPED_TEST(BatchFinalLogger, LogsTwoRhsConvergedOneIteration)
                       j + 1.0);
             if (j == 1 || j == 3) {
                 ASSERT_EQ(iters_log.get_const_data()[i * this->nrhs + j], iter);
+            } else {
+                ASSERT_EQ(iters_log.get_const_data()[i * this->nrhs + j], -1);
+            }
+        }
+    }
+}
+
+TYPED_TEST(BatchFinalLogger, LogsLastIterationCorrectly)
+{
+    using real_type = typename TestFixture::real_type;
+    using BatchLog = typename TestFixture::BatchLog;
+    constexpr int max_nrhs = TestFixture::max_nrhs;
+    gko::Array<real_type> res_norms_log(this->exec, this->nbatch * this->nrhs);
+    gko::Array<int> iters_log(this->exec, this->nbatch * this->nrhs);
+    for (int i = 0; i < this->nbatch * this->nrhs; i++) {
+        res_norms_log.get_data()[i] = 0.0;
+        iters_log.get_data()[i] = -1;
+    }
+    const int maxits = 10;
+    BatchLog blog_h(this->nrhs, maxits, res_norms_log.get_data(),
+                    iters_log.get_data());
+    for (size_t ib = 0; ib < this->nbatch; ib++) {
+        BatchLog blog = blog_h;
+        real_type resnv[max_nrhs];
+        for (int i = 0; i < this->nrhs; i++) {
+            resnv[i] = i + 1.0;
+        }
+        // no RHS has converged.
+        int iter = 7;
+        uint32_t converged = 0xfffffff2;
+        blog.log_iteration(ib, iter, resnv, converged);
+        iter = 9;
+        for (int i = 0; i < this->nrhs; i++) {
+            resnv[i] = i + 10.0;
+        }
+        blog.log_iteration(ib, iter, resnv, converged);
+    }
+
+    for (size_t i = 0; i < this->nbatch; i++) {
+        for (int j = 0; j < this->nrhs; j++) {
+            ASSERT_EQ(res_norms_log.get_const_data()[i * this->nrhs + j],
+                      j + 10.0);
+            if (j == 1) {
+                ASSERT_EQ(iters_log.get_const_data()[i * this->nrhs + j], 7);
             } else {
                 ASSERT_EQ(iters_log.get_const_data()[i * this->nrhs + j], -1);
             }
