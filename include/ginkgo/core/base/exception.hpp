@@ -108,6 +108,27 @@ private:
 
 
 /**
+ * ValidationError is thrown when the validation in
+ * PolymorphicObject->validate_data() encounters a violated invariant.
+ */
+class ValidationError : public Error {
+public:
+    /**
+     * Initializes a ValidationError error.
+     *
+     * @param file  The name of the source file containing the validation.
+     * @param line  The line number containing the failing validation.
+     * @param message  The message describing the validation failure.
+     */
+    ValidationError(const std::string &file, int line,
+                    const std::string &dynamic_type, const std::string &message)
+        : Error{file, line,
+                "Validation failure in " + dynamic_type + ":" + message}
+    {}
+};
+
+
+/**
  * NotImplemented is thrown in case an operation has not yet
  * been implemented (but will be implemented in the future).
  */
