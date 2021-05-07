@@ -126,12 +126,14 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
     void *dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
     int error_code = 0;
-    if (this->alloc_mode_ == allocation_mode::unified_host) {
-        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachHost);
+    if (this->alloc_mode_ == allocation_mode::device) {
+        error_code = hipMalloc(&dev_ptr, num_bytes);
+#if !(GKO_HIP_PLATFORM_HCC == 1)
     } else if (this->alloc_mode_ == allocation_mode::unified_global) {
         error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachGlobal);
-    } else if (this->alloc_mode_ == allocation_mode::device) {
-        error_code = hipMalloc(&dev_ptr, num_bytes);
+    } else if (this->alloc_mode_ == allocation_mode::unified_host) {
+        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachHost);
+#endif
     } else {
         GKO_NOT_SUPPORTED(this->alloc_mode_);
     }
