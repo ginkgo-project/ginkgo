@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # copy libraries
-LIBRARY_DIRS="core core/device_hooks reference omp cuda hip"
 LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_omp ginkgo_cuda ginkgo_hip ginkgo_dpcpp ginkgo_device"
 SUFFIXES=".so .dylib .dll d.so d.dylib d.dll"
 VERSION="1.4.0"
