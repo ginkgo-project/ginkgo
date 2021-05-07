@@ -91,7 +91,11 @@ public:
 
 class HipExecutor : public ::testing::Test {
 protected:
-    HipExecutor() : omp(gko::OmpExecutor::create()), hip(nullptr), hip2(nullptr)
+    HipExecutor()
+        : omp(gko::OmpExecutor::create()),
+          hip(nullptr),
+          hip2(nullptr),
+          hip3(nullptr)
     {}
 
     void SetUp()
@@ -100,6 +104,8 @@ protected:
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
+        hip3 = gko::HipExecutor::create(0, omp, false,
+                                        gko::allocation_mode::unified_global);
     }
 
     void TearDown()
@@ -113,6 +119,7 @@ protected:
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::HipExecutor> hip;
     std::shared_ptr<gko::HipExecutor> hip2;
+    std::shared_ptr<gko::HipExecutor> hip3;
 };
 
 
@@ -183,6 +190,39 @@ TEST_F(HipExecutor, CopiesDataToHip)
     ASSERT_NO_THROW(hip->synchronize());
     hip->free(copy);
 }
+
+
+__global__ void check_data2(int *data)
+{
+    if (data[0] != 4 || data[1] != 8) {
+#if GINKGO_HIP_PLATFORM_HCC
+        asm("s_trap 0x02;");
+#else  // GINKGO_HIP_PLATFORM_NVCC
+        asm("trap;");
+#endif
+    }
+}
+
+
+#if GINKGO_HIP_PLATFORM_NVCC
+
+
+TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
+{
+    int orig[] = {3, 8};
+    auto *copy = hip3->alloc<int>(2);
+
+    hip3->copy_from(omp.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
+    ASSERT_NO_THROW(hip3->synchronize());
+    copy[0] = 4;
+    check_data2<<<1, 1>>>(copy);
+    hip3->free(copy);
+}
+
+
+#endif
 
 
 __global__ void init_data(int *data)

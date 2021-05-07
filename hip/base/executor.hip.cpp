@@ -56,10 +56,11 @@ namespace gko {
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, bool device_reset)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset,
+    allocation_mode alloc_mode)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master), device_reset),
+        new HipExecutor(device_id, std::move(master), device_reset, alloc_mode),
         [device_id](HipExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             delete exec;
@@ -124,11 +125,18 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
-#if defined(NDEBUG) || (GINKGO_HIP_PLATFORM_HCC == 1)
-    auto error_code = hipMalloc(&dev_ptr, num_bytes);
-#else
-    auto error_code = hipMallocManaged(&dev_ptr, num_bytes);
+    int error_code = 0;
+    if (this->alloc_mode_ == allocation_mode::device) {
+        error_code = hipMalloc(&dev_ptr, num_bytes);
+#if !(GKO_HIP_PLATFORM_HCC == 1)
+    } else if (this->alloc_mode_ == allocation_mode::unified_global) {
+        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachGlobal);
+    } else if (this->alloc_mode_ == allocation_mode::unified_host) {
+        error_code = hipMallocManaged(&dev_ptr, num_bytes, hipMemAttachHost);
 #endif
+    } else {
+        GKO_NOT_SUPPORTED(this->alloc_mode_);
+    }
     if (error_code != hipErrorMemoryAllocation) {
         GKO_ASSERT_NO_HIP_ERRORS(error_code);
     }

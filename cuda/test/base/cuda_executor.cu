@@ -86,7 +86,10 @@ public:
 class CudaExecutor : public ::testing::Test {
 protected:
     CudaExecutor()
-        : omp(gko::OmpExecutor::create()), cuda(nullptr), cuda2(nullptr)
+        : omp(gko::OmpExecutor::create()),
+          cuda(nullptr),
+          cuda2(nullptr),
+          cuda3(nullptr)
     {}
 
     void SetUp()
@@ -95,6 +98,8 @@ protected:
         cuda = gko::CudaExecutor::create(0, omp);
         cuda2 = gko::CudaExecutor::create(
             gko::CudaExecutor::get_num_devices() - 1, omp);
+        cuda3 = gko::CudaExecutor::create(0, omp, false,
+                                          gko::allocation_mode::unified_global);
     }
 
     void TearDown()
@@ -108,6 +113,7 @@ protected:
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<gko::CudaExecutor> cuda2;
+    std::shared_ptr<gko::CudaExecutor> cuda3;
 };
 
 
@@ -163,6 +169,7 @@ __global__ void check_data(int *data)
     }
 }
 
+
 TEST_F(CudaExecutor, CopiesDataToCuda)
 {
     int orig[] = {3, 8};
@@ -173,6 +180,29 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
     cuda->free(copy);
+}
+
+
+__global__ void check_data2(int *data)
+{
+    if (data[0] != 4 || data[1] != 8) {
+        asm("trap;");
+    }
+}
+
+
+TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
+{
+    int orig[] = {3, 8};
+    auto *copy = cuda3->alloc<int>(2);
+
+    cuda3->copy_from(omp.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
+    ASSERT_NO_THROW(cuda3->synchronize());
+    copy[0] = 4;
+    check_data2<<<1, 1>>>(copy);
+    cuda3->free(copy);
 }
 
 

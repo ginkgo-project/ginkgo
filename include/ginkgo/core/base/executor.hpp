@@ -50,6 +50,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+namespace gko {
+
+
+/**
+ * Specify the mode of allocation for CUDA/HIP GPUs.
+ *
+ * `device` allocates memory on the device and Unified Memory model is not used.
+ *
+ * `unified_global` allocates memory on the device, but is accessible by the
+ * host through the Unified memory model.
+ *
+ * `unified_host` allocates memory on the
+ * host and it is not available on devices which do not have concurrent acesses
+ * switched on, but this access can be explictly switched on, when necessary.
+ */
+enum class allocation_mode { device, unified_global, unified_host };
+
+
+#ifdef NDEBUG
+
+// When in release, prefer device allocations
+constexpr allocation_mode default_cuda_alloc_mode = allocation_mode::device;
+
+constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
+
+#else
+
+// When in debug, always UM allocations.
+constexpr allocation_mode default_cuda_alloc_mode =
+    allocation_mode::unified_global;
+
+#if (GINKGO_HIP_PLATFORM_HCC == 1)
+
+// HIP on AMD GPUs does not support UM, so always prefer device allocations.
+constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
+
+#else
+
+// HIP on NVIDIA GPUs supports UM, so prefer UM allocations.
+constexpr allocation_mode default_hip_alloc_mode =
+    allocation_mode::unified_global;
+
+#endif
+
+#endif
+
+
+}  // namespace gko
+
 inline namespace cl {
 namespace sycl {
 
@@ -1236,10 +1285,15 @@ public:
      * @param device_id  the CUDA device id of this device
      * @param master  an executor on the host that is used to invoke the device
      * kernels
+     * @param device_reset  whether to reset the device after the object exits
+     *                      the scope.
+     * @param alloc_mode  the allocation mode that the executor should operate
+     *                    on. See @allocation_mode for more details
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
-        bool device_reset = false);
+        bool device_reset = false,
+        allocation_mode alloc_mode = default_cuda_alloc_mode);
 
     ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1353,8 +1407,11 @@ protected:
     void init_handles();
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
-                 bool device_reset = false)
-        : EnableDeviceReset{device_reset}, master_(master)
+                 bool device_reset = false,
+                 allocation_mode alloc_mode = default_cuda_alloc_mode)
+        : EnableDeviceReset{device_reset},
+          alloc_mode_{alloc_mode},
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1416,6 +1473,7 @@ private:
     static constexpr int max_devices = 64;
     static unsigned num_execs[max_devices];
     static std::mutex mutex[max_devices];
+    allocation_mode alloc_mode_;
 };
 
 
@@ -1444,10 +1502,15 @@ public:
      * @param device_id  the HIP device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
+     * @param device_reset  whether to reset the device after the object exits
+     *                      the scope.
+     * @param alloc_mode  the allocation mode that the executor should operate
+     *                    on. See @allocation_mode for more details
      */
-    static std::shared_ptr<HipExecutor> create(int device_id,
-                                               std::shared_ptr<Executor> master,
-                                               bool device_reset = false);
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<Executor> master,
+        bool device_reset = false,
+        allocation_mode alloc_mode = default_hip_alloc_mode);
 
     ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1561,8 +1624,11 @@ protected:
     void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
-                bool device_reset = false)
-        : EnableDeviceReset{device_reset}, master_(master)
+                bool device_reset = false,
+                allocation_mode alloc_mode = default_hip_alloc_mode)
+        : EnableDeviceReset{device_reset},
+          alloc_mode_(alloc_mode),
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1624,6 +1690,7 @@ private:
     static constexpr int max_devices = 64;
     static int num_execs[max_devices];
     static std::mutex mutex[max_devices];
+    allocation_mode alloc_mode_;
 };
 
 
