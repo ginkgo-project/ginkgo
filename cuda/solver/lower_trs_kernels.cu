@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 #include "cuda/solver/common_trs_kernels.cuh"
 
 
@@ -108,7 +110,7 @@ __global__ void sptrsv_naive_caching_kernel(
     const ValueType *const vals, const ValueType *const b, ValueType *const x,
     volatile uint32 *const ready, const size_type n)
 {
-    const auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto gid = thread::get_thread_id_flat<IndexType>();
     const auto row = gid;
 
     if (row >= n) {
@@ -119,8 +121,8 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shid = gid % default_block_size;
 
     volatile __shared__ uint32 ready_s[default_block_size];
-#pragma diag_suppress static_var_with_dynamic_init
-    __shared__ ValueType x_s[default_block_size];
+    __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
+    ValueType *x_s = x_s_array;
     ready_s[self_shid] = 0;
     x_s[self_shid] = zero<ValueType>();
 
@@ -183,6 +185,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
         ready.get_data(), n);
 }
 
+
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
                               bool& do_transpose)
 {
@@ -202,12 +205,15 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
 {
-    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
-                                          false);
+    if (matrix->get_strategy()->get_name() == "sparselib") {
+        generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct,
+                                              num_rhs, false);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
