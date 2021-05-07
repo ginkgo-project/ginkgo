@@ -78,6 +78,8 @@ public:
         dim<2> size,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
+    void validate_data() const override;
+
 protected:
     using GlobalVec = Vector<value_type>;
     using LocalVec = matrix::Dense<value_type>;

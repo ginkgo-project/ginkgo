@@ -216,6 +216,67 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *alpha,
 }
 
 
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::validate_data() const
+{
+    LinOp::validate_data();
+    one_scalar_.validate_data();
+    diag_mtx_.validate_data();
+    offdiag_mtx_.validate_data();
+    const auto exec = this->get_executor();
+    const auto host_exec = exec->get_master();
+    const auto comm = this->get_communicator();
+    // executors
+    GKO_VALIDATION_CHECK(one_scalar_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(diag_mtx_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(offdiag_mtx_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(gather_idxs_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(host_send_buffer_.get() == nullptr ||
+                         host_send_buffer_->get_executor() == host_exec);
+    GKO_VALIDATION_CHECK(host_recv_buffer_.get() == nullptr ||
+                         host_recv_buffer_->get_executor() == host_exec);
+    GKO_VALIDATION_CHECK(send_buffer_.get() == nullptr ||
+                         send_buffer_->get_executor() == exec);
+    GKO_VALIDATION_CHECK(recv_buffer_.get() == nullptr ||
+                         recv_buffer_->get_executor() == exec);
+    // sizes are matching
+    const auto num_local_rows = diag_mtx_.get_size()[0];
+    const auto num_offdiag_cols = offdiag_mtx_.get_size()[1];
+    const auto num_gather_rows = gather_idxs_.get_num_elems();
+    GKO_VALIDATION_CHECK(num_local_rows == diag_mtx_.get_size()[1]);
+    GKO_VALIDATION_CHECK(num_local_rows == offdiag_mtx_.get_size()[0]);
+    auto num_local_rows_sum = diag_mtx_.get_size()[0];
+    comm.allreduce(&num_local_rows_sum, 1);
+    GKO_VALIDATION_CHECK(num_local_rows_sum == this->get_size()[0]);
+    const auto num_parts = comm.rank();
+    GKO_VALIDATION_CHECK(num_parts == send_sizes_.size());
+    GKO_VALIDATION_CHECK(num_parts == recv_sizes_.size());
+    GKO_VALIDATION_CHECK(num_parts + 1 == send_offsets_.size());
+    GKO_VALIDATION_CHECK(num_parts + 1 == recv_offsets_.size());
+    // communication data structures are consistent
+    auto send_copy = send_sizes_;
+    auto recv_copy = recv_sizes_;
+    for (comm_index_type i = 0; i < num_parts; i++) {
+        GKO_VALIDATION_CHECK(send_sizes_[i] ==
+                             send_offsets_[i + 1] - send_offsets_[i]);
+        GKO_VALIDATION_CHECK(recv_sizes_[i] ==
+                             recv_offsets_[i + 1] - recv_offsets_[i]);
+    }
+    comm.alltoall(send_copy.data(), 1);
+    comm.alltoall(recv_copy.data(), 1);
+    GKO_VALIDATION_CHECK(send_copy == recv_sizes_);
+    GKO_VALIDATION_CHECK(recv_copy == send_sizes_);
+    // gather indices are in bounds
+    Array<local_index_type> host_gather_idxs(host_exec, gather_idxs_);
+    const auto host_gather_idx_ptr = host_gather_idxs.get_const_data();
+    GKO_VALIDATION_CHECK_NAMED(
+        "gather indices need to be in range",
+        std::all_of(
+            host_gather_idx_ptr, host_gather_idx_ptr + num_gather_rows,
+            [&](auto row) { return row >= 0 && row < num_local_rows; }));
+}
+
+
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \
     class Matrix<ValueType, LocalIndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DISTRIBUTED_MATRIX);

@@ -240,6 +240,14 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    void validate_data() const override
+    {
+        PolymorphicObject::validate_data();
+        if (get_size()[0] < 0 || get_size()[1] < 0) {
+            GKO_VALIDATION_ERROR("Negative LinOp dimensions");
+        }
+    }
+
 protected:
     /**
      * Creates a linear operator.
