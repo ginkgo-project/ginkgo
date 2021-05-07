@@ -62,6 +62,127 @@ namespace cuda {
 namespace lower_trs {
 
 
+constexpr int default_block_size = 512;
+
+
+template <typename ValueType>
+__device__ std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+load(const ValueType *values, int index)
+{
+    const volatile ValueType *val = values + index;
+    return *val;
+}
+
+template <typename ValueType>
+__device__ std::enable_if_t<std::is_floating_point<ValueType>::value,
+                            thrust::complex<ValueType>>
+load(const thrust::complex<ValueType> *values, int index)
+{
+    auto real = reinterpret_cast<const ValueType *>(values);
+    auto imag = real + 1;
+    return {load(real, 2 * index), load(imag, 2 * index)};
+}
+
+template <typename ValueType>
+__device__ void store(
+    ValueType *values, int index,
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
+{
+    volatile ValueType *val = values + index;
+    *val = value;
+}
+
+template <typename ValueType>
+__device__ void store(thrust::complex<ValueType> *values, int index,
+                      thrust::complex<ValueType> value)
+{
+    auto real = reinterpret_cast<ValueType *>(values);
+    auto imag = real + 1;
+    store(real, 2 * index, value.real());
+    store(imag, 2 * index, value.imag());
+}
+
+template <typename ValueType, typename IndexType>
+__global__ void sptrsv_naive_caching_kernel(
+    const IndexType *const rowptrs, const IndexType *const colidxs,
+    const ValueType *const vals, const ValueType *const b, ValueType *const x,
+    volatile uint32 *const ready, const size_type n)
+{
+    const auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto row = gid;
+
+    if (row >= n) {
+        return;
+    }
+
+    const auto self_shmem_id = gid / default_block_size;
+    const auto self_shid = gid % default_block_size;
+
+    volatile __shared__ uint32 ready_s[default_block_size];
+#pragma diag_suppress static_var_with_dynamic_init
+    __shared__ ValueType x_s[default_block_size];
+    ready_s[self_shid] = 0;
+    x_s[self_shid] = zero<ValueType>();
+
+    __syncthreads();
+
+    const auto row_start = rowptrs[row];
+    const auto row_end = rowptrs[row + 1] - 1;
+
+    ValueType sum = 0.0;
+    for (IndexType i = row_start; i < row_end; ++i) {
+        const auto dependency = colidxs[i];
+        volatile auto is_ready = &ready[dependency];
+        auto x_p = &x[dependency];
+
+        const bool shmem_possible =
+            dependency / default_block_size == self_shmem_id;
+        if (shmem_possible) {
+            const auto dependency_shid = dependency % default_block_size;
+            is_ready = &ready_s[dependency_shid];
+            x_p = &x_s[dependency_shid];
+        }
+
+        uint32 is_ready_v = false;
+        while (!is_ready_v) {
+            is_ready_v = *is_ready;
+        }
+
+        sum += load(x_p, 0) * vals[i];
+    }
+
+    const auto r = (b[row] - sum) / vals[rowptrs[row + 1] - 1];
+
+    store(x_s, self_shid, r);
+    __threadfence_block();
+    ready_s[self_shid] = 1;
+
+    x[row] = r;
+    __threadfence();
+    ready[row] = 1;
+}
+
+template <typename ValueType, typename IndexType>
+void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *matrix,
+                          const matrix::Dense<ValueType> *b,
+                          matrix::Dense<ValueType> *x)
+{
+    const IndexType n = matrix->get_size()[0];
+
+    Array<uint32> ready(exec, n);
+    cudaMemset(ready.get_data(), 0, n * sizeof(uint32));
+
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+
+    sptrsv_naive_caching_kernel<<<grid_size, block_size>>>(
+        matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+        as_cuda_type(matrix->get_const_values()),
+        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
+        ready.get_data(), n);
+}
+
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
                               bool& do_transpose)
 {
@@ -88,7 +209,6 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
-
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
@@ -96,8 +216,13 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
-    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                       trans_x, b, x);
+    if (matrix->get_strategy()->get_name() == "sparselib") {
+        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
+                                           trans_x, b, x);
+
+    } else {
+        sptrsv_naive_caching(exec, matrix, b, x);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
