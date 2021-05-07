@@ -88,16 +88,10 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_ or _Cygwin_
 
-Depending on the configuration settings, some manual work might be required. More details are availble in [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
-* Build Ginkgo with Debug mode:
-  Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
-  1. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
-* Build Ginkgo in _MinGW_:
-  If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
-  [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
-  or compile ginkgo again might work.
-
-__NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
+In these environments, two problems can be encountered, the solution for which is described in the
+[windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
+* `ld: error: export ordinal too large` needs the compilation flag `-O1`
+* `cc1plus.exe: out of memory allocating 65536 bytes` requires a modification of the environment
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. This needs further investigation.

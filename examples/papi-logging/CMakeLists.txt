@@ -6,6 +6,10 @@ if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.4.0 REQUIRED)
 endif()
 
+if (NOT GINKGO_HAVE_PAPI_SDE)
+    message(FATAL_ERROR "This example needs Ginkgo built with PAPI support")
+endif()
+
 add_executable(papi-logging papi-logging.cpp)
 target_link_libraries(papi-logging ginkgo PAPI::PAPI)
 

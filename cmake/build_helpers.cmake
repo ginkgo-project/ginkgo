@@ -1,3 +1,5 @@
+set(GINKGO_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
+
 function(ginkgo_default_includes name)
     # set include path depending on used interface
     target_include_directories("${name}"
