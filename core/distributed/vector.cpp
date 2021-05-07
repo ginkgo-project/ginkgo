@@ -246,6 +246,31 @@ void Vector<ValueType>::compute_norm2(LinOp *result) const
 }
 
 
+template <typename ValueType>
+void Vector<ValueType>::validate_data() const
+{
+    LinOp::validate_data();
+    this->get_local()->validate_data();
+    const auto exec = this->get_executor();
+    GKO_VALIDATION_CHECK(this->get_local()->get_executor() == exec);
+    // check number of rows
+    auto num_local_rows_sum = this->get_local()->get_size()[0];
+    this->get_communicator().allreduce(&num_local_rows_sum, 1);
+    GKO_VALIDATION_CHECK(num_local_rows_sum == this->get_size()[0]);
+    // check number of columns
+    size_type num_local_cols = this->get_local()->get_size()[1];
+    auto num_local_cols_min = num_local_cols;
+    auto num_local_cols_max = num_local_cols;
+    this->get_communicator().allreduce(&num_local_cols_min, 1, MPI_MIN);
+    this->get_communicator().allreduce(&num_local_cols_max, 1, MPI_MAX);
+    GKO_VALIDATION_CHECK_NAMED(
+        "number of columns on different nodes must match",
+        num_local_cols_max == num_local_cols_min);
+    GKO_VALIDATION_CHECK_NAMED("local and global number of columns must match",
+                               num_local_cols_max == this->get_size()[0]);
+}
+
+
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
