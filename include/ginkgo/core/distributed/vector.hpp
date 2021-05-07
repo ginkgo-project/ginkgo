@@ -150,6 +150,8 @@ public:
     // Promise not to break things? :)
     local_mtx_type *get_local();
 
+    void validate_data() const override;
+
 protected:
     Vector(std::shared_ptr<const Executor> exec, communicator comm,
            dim<2> global_size, dim<2> local_size, size_type stride);

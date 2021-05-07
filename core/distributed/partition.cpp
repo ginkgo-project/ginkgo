@@ -94,6 +94,58 @@ void Partition<LocalIndexType>::compute_range_ranks()
 }
 
 
+template <typename LocalIndexType>
+void Partition<LocalIndexType>::validate_data() const
+{
+    PolymorphicObject::validate_data();
+    const auto exec = this->get_executor();
+    // executors
+    GKO_VALIDATION_CHECK(offsets_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(ranks_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(part_sizes_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(part_ids_.get_executor() == exec);
+    // sizes
+    const auto num_ranges = this->get_num_ranges();
+    const auto num_parts = part_sizes_.get_num_elems();
+    GKO_VALIDATION_CHECK(num_ranges >= 0);
+    GKO_VALIDATION_CHECK(ranks_.get_num_elems() == num_ranges);
+    GKO_VALIDATION_CHECK(part_ids_.get_num_elems() == num_ranges);
+    GKO_VALIDATION_CHECK(part_sizes_.get_num_elems() == num_parts);
+    // check range offsets: non-descending starting at 0
+    Array<global_index_type> host_offsets(exec->get_master(), offsets_);
+    const auto host_offset_ptr = host_offsets.get_const_data();
+    GKO_VALIDATION_CHECK(host_offset_ptr[0] == 0);
+    GKO_VALIDATION_CHECK_NAMED(
+        "offsets need to be non-descending",
+        std::is_sorted(host_offset_ptr, host_offset_ptr + (num_ranges + 1)));
+    // check part IDs: in range [0, num_parts)
+    Array<comm_index_type> host_part_ids(exec->get_master(), part_ids_);
+    const auto host_part_id_ptr = host_part_ids.get_const_data();
+    GKO_VALIDATION_CHECK_NAMED(
+        "part IDs need to be in range",
+        std::all_of(host_part_id_ptr, host_part_id_ptr + num_ranges,
+                    [&](auto id) { return id >= 0 && id < num_parts; }));
+    // check ranks and part sizes
+    std::vector<global_index_type> partial_part_sizes(num_parts);
+    Array<local_index_type> host_ranks(exec->get_master(), ranks_);
+    Array<local_index_type> host_part_sizes(exec->get_master(), part_sizes_);
+    const auto host_rank_ptr = host_ranks.get_const_data();
+    const auto host_part_size_ptr = host_part_sizes.get_const_data();
+    for (size_type i = 0; i < num_ranges; i++) {
+        const auto part = host_part_id_ptr[i];
+        const auto rank = host_rank_ptr[i];
+        const auto range_size = host_offset_ptr[i + 1] - host_offset_ptr[i];
+        GKO_VALIDATION_CHECK_NAMED("computed and stored range ranks must match",
+                                   rank == partial_part_sizes[part]);
+        partial_part_sizes[part] += range_size;
+    }
+    GKO_VALIDATION_CHECK_NAMED(
+        "computed and stored part sizes must match",
+        std::equal(partial_part_sizes.begin(), partial_part_sizes.end(),
+                   host_part_size_ptr));
+}
+
+
 #define GKO_DECLARE_PARTITION(_type) class Partition<_type>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION);
 

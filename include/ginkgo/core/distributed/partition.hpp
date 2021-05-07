@@ -93,7 +93,10 @@ public:
     /**
      * Returns the number of parts represented in this partition.
      */
-    comm_index_type get_num_parts() const { return num_parts_; }
+    comm_index_type get_num_parts() const
+    {
+        return static_cast<comm_index_type>(part_sizes_.get_num_elems());
+    }
 
     /**
      * Returns the ranges boundary array stored by this partition.
@@ -189,17 +192,20 @@ public:
     Partition(std::shared_ptr<const Executor> exec,
               comm_index_type num_parts = 0, size_type num_ranges = 0)
         : EnablePolymorphicObject<Partition>{exec},
-          num_parts_{num_parts},
           offsets_{exec, num_ranges + 1},
           ranks_{exec, num_ranges},
           part_sizes_{exec, static_cast<size_type>(num_parts)},
           part_ids_{exec, num_ranges}
     {
-        // TODO zero out contents
+        offsets_.fill(0);
+        ranks_.fill(0);
+        part_sizes_.fill(0);
+        part_ids_.fill(0);
     }
 
+    void validate_data() const override;
+
 private:
-    comm_index_type num_parts_;
     Array<global_index_type> offsets_;
     Array<local_index_type> ranks_;
     Array<local_index_type> part_sizes_;
