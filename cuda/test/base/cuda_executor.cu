@@ -99,7 +99,7 @@ protected:
         cuda2 = gko::CudaExecutor::create(
             gko::CudaExecutor::get_num_devices() - 1, omp);
         cuda3 = gko::CudaExecutor::create(0, omp, false,
-                                          gko::allocation_mode::unified_host);
+                                          gko::allocation_mode::unified_global);
     }
 
     void TearDown()

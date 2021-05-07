@@ -68,33 +68,36 @@ namespace gko {
 enum class allocation_mode { device, unified_global, unified_host };
 
 
-}  // namespace gko
-
-
 #ifdef NDEBUG
 
-// When in release, always prefer device allocations
-#define GKO_DEFAULT_CUDA_ALLOC_MODE allocation_mode::device
+// When in release, prefer device allocations
+constexpr allocation_mode default_cuda_alloc_mode = allocation_mode::device;
 
-#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::device
+constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
 
 #else
 
-// When in debug, always prefer UM allocations.
-#define GKO_DEFAULT_CUDA_ALLOC_MODE allocation_mode::unified_global
+// When in debug, always UM allocations.
+constexpr allocation_mode default_cuda_alloc_mode =
+    allocation_mode::unified_global;
 
 #if (GINKGO_HIP_PLATFORM_HCC == 1)
 
 // HIP on AMD GPUs does not support UM, so always prefer device allocations.
-#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::device
+constexpr allocation_mode default_hip_alloc_mode = allocation_mode::device;
 
 #else
 
-#define GKO_DEFAULT_HIP_ALLOC_MODE allocation_mode::unified_global
+// HIP on NVIDIA GPUs supports UM, so prefer UM allocations.
+constexpr allocation_mode default_hip_alloc_mode =
+    allocation_mode::unified_global;
 
 #endif
 
 #endif
+
+
+}  // namespace gko
 
 inline namespace cl {
 namespace sycl {
@@ -1282,11 +1285,15 @@ public:
      * @param device_id  the CUDA device id of this device
      * @param master  an executor on the host that is used to invoke the device
      * kernels
+     * @param device_reset  whether to reset the device after the object exits
+     *                      the scope.
+     * @param alloc_mode  the allocation mode that the executor should operate
+     *                    on. See @allocation_mode for more details
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = GKO_DEFAULT_CUDA_ALLOC_MODE);
+        allocation_mode alloc_mode = default_cuda_alloc_mode);
 
     ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1401,7 +1408,7 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
-                 allocation_mode alloc_mode = GKO_DEFAULT_CUDA_ALLOC_MODE)
+                 allocation_mode alloc_mode = default_cuda_alloc_mode)
         : EnableDeviceReset{device_reset},
           alloc_mode_{alloc_mode},
           master_(master)
@@ -1495,11 +1502,15 @@ public:
      * @param device_id  the HIP device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
+     * @param device_reset  whether to reset the device after the object exits
+     *                      the scope.
+     * @param alloc_mode  the allocation mode that the executor should operate
+     *                    on. See @allocation_mode for more details
      */
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = GKO_DEFAULT_HIP_ALLOC_MODE);
+        allocation_mode alloc_mode = default_hip_alloc_mode);
 
     ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
@@ -1614,7 +1625,7 @@ protected:
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                allocation_mode alloc_mode = GKO_DEFAULT_HIP_ALLOC_MODE)
+                allocation_mode alloc_mode = default_hip_alloc_mode)
         : EnableDeviceReset{device_reset},
           alloc_mode_(alloc_mode),
           master_(master)
