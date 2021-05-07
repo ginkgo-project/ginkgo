@@ -3,16 +3,6 @@ project(GinkgoExportBuildTest LANGUAGES CXX)
 
 find_package(Ginkgo REQUIRED)
 
-if(MSVC)
-    if(GINKGO_BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CXX")
-        ginkgo_switch_to_windows_dynamic("C")
-    else()
-        ginkgo_switch_to_windows_static("CXX")
-        ginkgo_switch_to_windows_static("C")
-    endif()
-endif()
-
 # Here, we use test install without any data. We instantiate the
 # interface only.
 add_executable(test_exportbuild ../test_install/test_install.cpp)

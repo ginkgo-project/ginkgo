@@ -36,10 +36,10 @@ jobs:
 
     - name: configure
       run: |
-        path C:\tools\cygwin\bin;%GITHUB_WORKSPACE%\build\windows_shared_library
+        path C:\tools\cygwin\bin
         mkdir build
         cd build
-        bash -c "cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} .."
+        bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} .."
         bash -c "make -j4"
         bash -c "ctest . --output-on-failure"
       shell: cmd
@@ -49,5 +49,5 @@ jobs:
         path C:\tools\cygwin\bin
         cd build
         bash -c "make install"
-        bash -c "export PATH=/usr/local/lib:$PATH && make test_install"
+        bash -c "export PATH=/usr/local/bin:$PATH && make test_install"
       shell: cmd

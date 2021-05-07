@@ -19,19 +19,29 @@ set(EXAMPLES_EXEC_LIST
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
-    custom-matrix-format
     custom-stopping-criterion
     ginkgo-overhead
-    heat-equation
     minimal-cuda-solver
-    papi-logging
     par-ilu-convergence
     performance-debugging
     preconditioner-export
     simple-solver-logging)
 
+if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
+    list(APPEND EXAMPLES_LIST custom-matrix-format)
+endif()
+
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     list(APPEND EXAMPLES_LIST external-lib-interfacing)
+endif()
+
+find_package(OpenCV)
+if(OpenCV_FOUND)
+    list(APPEND EXAMPLES_LIST heat-equation)
+endif()
+
+if(GINKGO_HAVE_PAPI_SDE)
+    list(APPEND EXAMPLES_LIST papi-logging)
 endif()
 
 foreach(example ${EXAMPLES_LIST})

@@ -33,10 +33,10 @@ jobs:
         bcdedit /set IncreaseUserVa 3072
         editbin /LARGEADDRESSAWARE "C:\Program Files\Git\mingw64\bin\cc1plus.exe"
         path %PATH:C:\Program Files\Git\bin;=%
-        path %PATH:C:\Program Files\Git\usr\bin;=%;%GITHUB_WORKSPACE%\build\windows_shared_library
+        path %PATH:C:\Program Files\Git\usr\bin;=%
         mkdir build
         cd build
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
+        cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
         cmake --build . -j4
         ctest . --output-on-failure
       shell: cmd
@@ -44,7 +44,7 @@ jobs:
     - name: install
       run: |
         set PATH=%PATH:C:\Program Files\Git\bin;=%
-        set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\Program Files (x86)\Ginkgo\lib
+        set PATH=%PATH:C:\Program Files\Git\usr\bin;=%;C:\Program Files (x86)\Ginkgo\bin
         cd build
         cmake --install .
         cmake --build . --target test_install

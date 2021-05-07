@@ -18,6 +18,13 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+if (MINGW OR CYGWIN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -105,19 +112,6 @@ if(GINKGO_BENCHMARK_ENABLE_TUNING)
     # complexity/intrusiveness, so we simply disable them.
     set(GINKGO_BUILD_TESTS OFF)
     set(GINKGO_BUILD_EXAMPLES OFF)
-endif()
-
-if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
-    # Change shared libraries output only if this build has executable program
-    # with shared libraries.
-    set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
-    option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
-    set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
-        "Set Ginkgo's shared library relative path in windows. Current default is `windows_shared_library`. \
-        This absolute path ${PROJECT_BINARY_DIR}/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH must be in the environment variable PATH.")
-    set(GINKGO_WINDOWS_SHARED_LIBRARY_PATH ${PROJECT_BINARY_DIR}/${GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH})
-else()
-    set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
 endif()
 
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP OR GINKGO_BUILD_DPCPP))
@@ -220,22 +214,6 @@ if(GINKGO_BUILD_HIP)
     endif()
 endif()
 
-
-if(MSVC)
-    # This is modified from
-    # https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
-    include(cmake/windows_helpers.cmake)
-    if(BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CXX")
-        ginkgo_switch_to_windows_dynamic("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-    else()
-        ginkgo_switch_to_windows_static("CXX")
-        ginkgo_switch_to_windows_static("C")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    endif()
-endif()
-
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
@@ -253,6 +231,14 @@ add_subdirectory(third_party)    # Third-party tools and libraries
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
+
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    else()
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
+    endif()
+endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)

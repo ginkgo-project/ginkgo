@@ -171,10 +171,10 @@ ginkgo_print_generic_header(${minimal_log} "  Developer Tools:")
 ginkgo_print_generic_header(${detailed_log} "  Developer Tools:")
 ginkgo_print_foreach_variable(${minimal_log}
         "GINKGO_DEVEL_TOOLS;GINKGO_WITH_CLANG_TIDY;GINKGO_WITH_IWYU"
-        "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_CHECK_PATH;GINKGO_WITH_CCACHE")
+        "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_WITH_CCACHE")
 ginkgo_print_foreach_variable(${detailed_log}
         "GINKGO_DEVEL_TOOLS;GINKGO_WITH_CLANG_TIDY;GINKGO_WITH_IWYU"
-        "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_CHECK_PATH;GINKGO_WITH_CCACHE")
+        "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_WITH_CCACHE")
 ginkgo_print_module_footer(${detailed_log} "  CCACHE:")
 ginkgo_print_variable(${detailed_log} "CCACHE_PROGRAM")
 ginkgo_print_env_variable(${detailed_log} "CCACHE_DIR")
