@@ -248,6 +248,77 @@ protected:
           row_ptrs_(exec, (size[0]) + 1)
     {}
 
+
+    /**
+     * Creates an BatchCsr matrix by duplicating a CSR matrix
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_batch_entries  the number of batches to be stored
+     * @param csr_mat  the csr matrix to be duplicated
+     */
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const size_type num_batch_entries,
+             const matrix::Csr<value_type, index_type> *csr_mat)
+        : EnableBatchLinOp<BatchCsr>(
+              exec, batch_dim<2>(num_batch_entries, csr_mat->get_size())),
+          values_(exec, csr_mat->get_num_stored_elements() * num_batch_entries),
+          col_idxs_(exec, csr_mat->get_num_stored_elements()),
+          row_ptrs_(exec, (csr_mat->get_size()[0]) + 1)
+    {
+        size_type offset = 0;
+        size_type num_nnz = csr_mat->get_num_stored_elements();
+        for (size_type i = 0; i < num_batch_entries; ++i) {
+            exec->copy_from(csr_mat->get_executor().get(), num_nnz,
+                            csr_mat->get_const_values(),
+                            values_.get_data() + offset);
+            offset += num_nnz;
+        }
+        exec->copy_from(csr_mat->get_executor().get(), num_nnz,
+                        csr_mat->get_const_col_idxs(), col_idxs_.get_data());
+        exec->copy_from(csr_mat->get_executor().get(),
+                        (csr_mat->get_size()[0]) + 1,
+                        csr_mat->get_const_row_ptrs(), row_ptrs_.get_data());
+    }
+
+
+    /**
+     * Creates an BatchCsr matrix by duplicating a BatchCsr matrix
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_duplications  the number of times the entire input batch
+     *                          matrix has to be duplicated
+     * @param batch_mat  the BatchCsr matrix to be duplicated
+     */
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const size_type num_duplications,
+             const matrix::BatchCsr<value_type, index_type> *batch_mat)
+        : EnableBatchLinOp<BatchCsr>(
+              exec, batch_dim<2>(
+                        num_duplications * batch_mat->get_num_batch_entries(),
+                        batch_mat->get_size().at(0))),
+          values_(exec,
+                  batch_mat->get_num_stored_elements() * num_duplications),
+          col_idxs_(exec, batch_mat->get_num_stored_elements() /
+                              batch_mat->get_num_batch_entries()),
+          row_ptrs_(exec, (batch_mat->get_size().at(0)[0]) + 1)
+    {
+        size_type offset = 0;
+        size_type num_nnz = batch_mat->get_num_stored_elements();
+        for (size_type i = 0; i < num_duplications; ++i) {
+            exec->copy_from(batch_mat->get_executor().get(), num_nnz,
+                            batch_mat->get_const_values(),
+                            values_.get_data() + offset);
+            offset += num_nnz;
+        }
+        exec->copy_from(batch_mat->get_executor().get(),
+                        col_idxs_.get_num_elems(),
+                        batch_mat->get_const_col_idxs(), col_idxs_.get_data());
+        exec->copy_from(batch_mat->get_executor().get(),
+                        row_ptrs_.get_num_elems(),
+                        batch_mat->get_const_row_ptrs(), row_ptrs_.get_data());
+    }
+
+
     /**
      * Creates a BatchCsr matrix from already allocated (and initialized) row
      * pointer, column index and value arrays.
