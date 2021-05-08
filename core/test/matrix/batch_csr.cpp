@@ -51,6 +51,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using size_type = gko::size_type;
 
     BatchCsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -120,6 +121,16 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_NE(m->get_const_row_ptrs(), nullptr);
     }
+
+
+    template <typename ValueType>
+    void assert_equal_data_array(size_type num_elems, const ValueType *data1,
+                                 const ValueType *data2)
+    {
+        for (size_type i = 0; i < num_elems; ++i) {
+            EXPECT_EQ(data1[i], data2[i]);
+        }
+    }
 };
 
 using valuetypes =
@@ -149,6 +160,59 @@ TYPED_TEST(BatchCsr, CanBeEmpty)
     auto mtx = Mtx::create(this->exec);
 
     this->assert_empty(mtx.get());
+}
+
+
+TYPED_TEST(BatchCsr, CanBeDuplicatedFromOneCsrMatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    index_type col_idxs[] = {0, 1, 1, 0};
+    index_type row_ptrs[] = {0, 2, 3, 4};
+    value_type batch_values[] = {1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
+                                 3.0, 4.0, 1.0, 2.0, 3.0, 4.0};
+
+    auto csr_mat = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::view(this->exec, 4, values),
+        gko::Array<index_type>::view(this->exec, 4, col_idxs),
+        gko::Array<index_type>::view(this->exec, 4, row_ptrs));
+
+    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
+        this->exec, 3, csr_mat.get());
+
+    this->assert_equal_data_array(12, batch_values, mtx->get_values());
+    this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
+    this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
+}
+
+
+TYPED_TEST(BatchCsr, CanBeDuplicatedFromBatchMatrices)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
+    index_type col_idxs[] = {0, 1, 1, 0};
+    index_type row_ptrs[] = {0, 2, 3, 4};
+    value_type bvalues[] = {1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0,
+                            1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0,
+                            1.0, 2.0, 3.0, 4.0, -1.0, 12.0, 13.0, 14.0};
+
+    auto batch_mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
+        this->exec, 2, gko::dim<2>{3, 2},
+        gko::Array<value_type>::view(this->exec, 8, values),
+        gko::Array<index_type>::view(this->exec, 4, col_idxs),
+        gko::Array<index_type>::view(this->exec, 4, row_ptrs));
+
+    auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
+        this->exec, 3, batch_mtx.get());
+
+    this->assert_equal_data_array(24, bvalues, mtx->get_values());
+    this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
+    this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
 }
 
 
