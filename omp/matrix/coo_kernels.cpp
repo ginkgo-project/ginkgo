@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "omp/components/atomic.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -103,15 +104,46 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Coo<ValueType, IndexType> *a,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto coo_val = a->get_const_values();
-    auto coo_col = a->get_const_col_idxs();
-    auto coo_row = a->get_const_row_idxs();
-    auto num_cols = b->get_size()[1];
+    const auto coo_val = a->get_const_values();
+    const auto coo_col = a->get_const_col_idxs();
+    const auto coo_row = a->get_const_row_idxs();
+    const auto num_rhs = b->get_size()[1];
+    const auto sentinel_row = a->get_size()[0] + 1;
+    const auto nnz = a->get_num_stored_elements();
+    const auto num_threads = omp_get_max_threads();
+    const auto work_per_thread =
+        static_cast<size_type>(ceildiv(nnz, num_threads));
 
-#pragma omp parallel for
-    for (size_type j = 0; j < num_cols; j++) {
-        for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
-            c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
+#pragma omp parallel num_threads(num_threads)
+    {
+        const auto thread_id = static_cast<size_type>(omp_get_thread_num());
+        const auto begin = work_per_thread * thread_id;
+        const auto end = std::min(begin + work_per_thread, nnz);
+        if (begin < end) {
+            const auto first = begin > 0 ? coo_row[begin - 1] : sentinel_row;
+            const auto last = end < nnz ? coo_row[end] : sentinel_row;
+            auto nz = begin;
+            for (; nz < end && coo_row[nz] == first; nz++) {
+                const auto row = first;
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    atomic_add(c->at(row, rhs), coo_val[nz] * b->at(col, rhs));
+                }
+            }
+            for (; nz < end && coo_row[nz] != last; nz++) {
+                const auto row = coo_row[nz];
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    c->at(row, rhs) += coo_val[nz] * b->at(col, rhs);
+                }
+            }
+            for (; nz < end; nz++) {
+                const auto row = last;
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    atomic_add(c->at(row, rhs), coo_val[nz] * b->at(col, rhs));
+                }
+            }
         }
     }
 }
@@ -126,17 +158,49 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType> *b,
                     matrix::Dense<ValueType> *c)
 {
-    auto coo_val = a->get_const_values();
-    auto coo_col = a->get_const_col_idxs();
-    auto coo_row = a->get_const_row_idxs();
-    auto alpha_val = alpha->at(0, 0);
-    auto num_cols = b->get_size()[1];
+    const auto coo_val = a->get_const_values();
+    const auto coo_col = a->get_const_col_idxs();
+    const auto coo_row = a->get_const_row_idxs();
+    const auto num_rhs = b->get_size()[1];
+    const auto sentinel_row = a->get_size()[0] + 1;
+    const auto nnz = a->get_num_stored_elements();
+    const auto num_threads = omp_get_max_threads();
+    const auto work_per_thread =
+        static_cast<size_type>(ceildiv(nnz, num_threads));
+    const auto scale = alpha->at(0, 0);
 
-#pragma omp parallel for
-    for (size_type j = 0; j < num_cols; j++) {
-        for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
-            c->at(coo_row[i], j) +=
-                alpha_val * coo_val[i] * b->at(coo_col[i], j);
+#pragma omp parallel num_threads(num_threads)
+    {
+        const auto thread_id = static_cast<size_type>(omp_get_thread_num());
+        const auto begin = work_per_thread * thread_id;
+        const auto end = std::min(begin + work_per_thread, nnz);
+        if (begin < end) {
+            const auto first = begin > 0 ? coo_row[begin - 1] : sentinel_row;
+            const auto last = end < nnz ? coo_row[end] : sentinel_row;
+            auto nz = begin;
+            for (; nz < end && coo_row[nz] == first; nz++) {
+                const auto row = first;
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    atomic_add(c->at(row, rhs),
+                               scale * coo_val[nz] * b->at(col, rhs));
+                }
+            }
+            for (; nz < end && coo_row[nz] != last; nz++) {
+                const auto row = coo_row[nz];
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    c->at(row, rhs) += scale * coo_val[nz] * b->at(col, rhs);
+                }
+            }
+            for (; nz < end; nz++) {
+                const auto row = last;
+                const auto col = coo_col[nz];
+                for (size_type rhs = 0; rhs < num_rhs; rhs++) {
+                    atomic_add(c->at(row, rhs),
+                               scale * coo_val[nz] * b->at(col, rhs));
+                }
+            }
         }
     }
 }
