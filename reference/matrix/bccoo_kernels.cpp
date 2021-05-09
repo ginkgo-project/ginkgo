@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "reference/components/format_conversion.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 
 
 namespace gko {

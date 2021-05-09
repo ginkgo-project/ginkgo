@@ -318,9 +318,9 @@ protected:
     void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_idxs_;
 };
 
 

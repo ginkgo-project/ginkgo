@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -590,6 +591,54 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace coo
+
+
+// TODO (script:bccoo): adapt this block as needed
+namespace bccoo {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_SPMV2_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV2_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL);
+
+
+}  // namespace bccoo
 
 
 namespace ell {

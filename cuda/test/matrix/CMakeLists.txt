@@ -1,2 +1,1 @@
 ginkgo_create_test(bccoo_kernels)
-ginkgo_create_test(fbcsr_kernels)
