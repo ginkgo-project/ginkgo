@@ -25,6 +25,7 @@ target_sources(ginkgo
     log/performance_hint.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/bccoo.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp

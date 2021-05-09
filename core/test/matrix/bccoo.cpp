@@ -150,9 +150,9 @@ GKO_NOT_IMPLEMENTED;
 //
 //    auto mtx = gko::matrix::Bccoo<value_type, index_type>::create(
 //        this->exec, gko::dim<2>{3, 2},
-//        gko::Array<value_type>::view(this->exec, 4, values),
-//        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-//        gko::Array<index_type>::view(this->exec, 4, row_idxs));
+//        gko::array<value_type>::view(this->exec, 4, values),
+//        gko::array<index_type>::view(this->exec, 4, col_idxs),
+//        gko::array<index_type>::view(this->exec, 4, row_idxs));
 //
 //    ASSERT_EQ(mtx->get_const_values(), values);
 //    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
