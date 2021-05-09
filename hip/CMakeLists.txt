@@ -163,6 +163,7 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
+    matrix/bccoo_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp
@@ -181,11 +182,11 @@ set(GINKGO_HIP_SOURCES
     reorder/rcm_kernels.hip.cpp
     solver/bicg_kernels.hip.cpp
     solver/bicgstab_kernels.hip.cpp
+    solver/cb_gmres_kernels.hip.cpp
     solver/cg_kernels.hip.cpp
     solver/cgs_kernels.hip.cpp
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
-    solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
