@@ -243,6 +243,8 @@ public:
 
     int rank() const { return rank_; };
 
+    int local_rank() const { return local_rank_; };
+
     bool compare(const MPI_Comm &other) const;
 
     bool operator==(const communicator &rhs) { return compare(rhs.get()); }
@@ -253,6 +255,7 @@ private:
     MPI_Comm comm_;
     int size_{};
     int rank_{};
+    int local_rank_{};
 };
 
 
@@ -280,10 +283,9 @@ public:
     window &operator=(window &&other) = default;
 
     window(ValueType *base, unsigned int size,
+           std::shared_ptr<const communicator> comm,
            const int disp_unit = sizeof(ValueType),
            info input_info = info(MPI_INFO_NULL),
-           std::shared_ptr<const communicator> comm =
-               std::make_shared<communicator>(MPI_COMM_WORLD),
            win_type create_type = win_type::create);
 
     MPI_Win get() { return this->window_; }
