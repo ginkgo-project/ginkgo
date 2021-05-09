@@ -68,111 +68,6 @@ protected:
 };
 
 
-TEST_F(MpiBindings, DefaultCommIsWorld)
-{
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    auto comm = gko::mpi::communicator();
-
-    EXPECT_EQ(comm.size(), size);
-}
-
-
-TEST_F(MpiBindings, KnowsItsCommunicator)
-{
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(MpiBindings, CommunicatorCanBeCopied)
-{
-    auto comm_world = gko::mpi::communicator();
-    auto copy = comm_world;
-
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(MpiBindings, CommunicatorCanBeCopyConstructed)
-{
-    auto comm_world = gko::mpi::communicator();
-    auto copy = gko::mpi::communicator(comm_world);
-
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(MpiBindings, CommunicatorCanBeMoved)
-{
-    int size;
-    auto comm_world = gko::mpi::communicator();
-
-    auto moved = std::move(comm_world);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world.size(), 0);
-    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(moved.size(), size);
-}
-
-
-TEST_F(MpiBindings, CommunicatorCanBeMoveConstructed)
-{
-    int size;
-    auto comm_world = gko::mpi::communicator();
-
-    auto moved = gko::mpi::communicator(std::move(comm_world));
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world.size(), 0);
-    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(moved.size(), size);
-}
-
-
-TEST_F(MpiBindings, CommKnowsItsSize)
-{
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-
-    EXPECT_EQ(comm.size(), size);
-}
-
-
-TEST_F(MpiBindings, KnowsItsSize)
-{
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    EXPECT_EQ(gko::mpi::get_num_ranks(MPI_COMM_WORLD), size);
-}
-
-
-TEST_F(MpiBindings, CommKnowsItsRank)
-{
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-
-    EXPECT_EQ(comm.rank(), rank);
-}
-
-
-TEST_F(MpiBindings, KnowsItsRanks)
-{
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    EXPECT_EQ(rank, gko::mpi::get_my_rank(MPI_COMM_WORLD));
-}
-
-
 TEST_F(MpiBindings, CanSetADefaultWindow)
 {
     gko::mpi::window<int> win;
@@ -185,7 +80,8 @@ TEST_F(MpiBindings, CanCreateWindow)
     using ValueType = int;
     ValueType *data;
     data = new ValueType[4]{1, 2, 3, 4};
-    gko::mpi::window<ValueType> win(data, 4 * sizeof(ValueType));
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto win = gko::mpi::window<ValueType>(data, 4 * sizeof(ValueType), comm);
     ASSERT_NE(win.get(), nullptr);
     win.lock_all();
     win.unlock_all();
@@ -264,16 +160,16 @@ TEST_F(MpiBindings, CanPutValuesWithLockAll)
 {
     using ValueType = int;
     using window = gko::mpi::window<ValueType>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm);
-    auto num_ranks = gko::mpi::get_num_ranks(comm);
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = window(data, 4 * sizeof(ValueType));
+    auto win = window(data, 4 * sizeof(ValueType), comm);
     win.lock_all();
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -298,16 +194,15 @@ TEST_F(MpiBindings, CanPutValuesWithExclusiveLock)
     using ValueType = int;
     using window = gko::mpi::window<ValueType>;
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm->get());
-    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     int *data;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = window(data, 4 * sizeof(ValueType), sizeof(ValueType),
-                      MPI_INFO_NULL, comm, window::win_type::create);
+    auto win = window(data, 4 * sizeof(ValueType), comm);
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
@@ -332,8 +227,8 @@ TEST_F(MpiBindings, CanPutValuesWithFence)
     using ValueType = int;
     using window = gko::mpi::window<ValueType>;
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm->get());
-    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
     int *data;
@@ -342,7 +237,7 @@ TEST_F(MpiBindings, CanPutValuesWithFence)
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = window(data, 4 * sizeof(ValueType));
+    auto win = window(data, 4 * sizeof(ValueType), comm);
     win.fence();
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -366,8 +261,8 @@ TEST_F(MpiBindings, CanGetValuesWithLockAll)
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm->get());
-    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
     int *data;
@@ -376,8 +271,7 @@ TEST_F(MpiBindings, CanGetValuesWithLockAll)
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
-                      MPI_INFO_NULL, comm, Window::win_type::create);
+    auto win = Window(data, 4 * sizeof(ValueType), comm);
     if (my_rank != 0) {
         win.lock_all();
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -402,8 +296,8 @@ TEST_F(MpiBindings, CanGetValuesWithExclusiveLock)
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm->get());
-    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
     int *data;
@@ -412,8 +306,7 @@ TEST_F(MpiBindings, CanGetValuesWithExclusiveLock)
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
-                      MPI_INFO_NULL, comm, Window::win_type::create);
+    auto win = Window(data, 4 * sizeof(ValueType), comm);
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
@@ -438,8 +331,8 @@ TEST_F(MpiBindings, CanGetValuesWithFence)
     using ValueType = int;
     using Window = gko::mpi::window<ValueType>;
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
-    auto my_rank = gko::mpi::get_my_rank(comm->get());
-    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    auto my_rank = comm->rank();
+    auto num_ranks = comm->size();
     auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
     int *data;
@@ -448,8 +341,7 @@ TEST_F(MpiBindings, CanGetValuesWithFence)
     } else {
         data = new ValueType[4]{0, 0, 0, 0};
     }
-    auto win = Window(data, 4 * sizeof(ValueType), sizeof(ValueType),
-                      MPI_INFO_NULL, comm, Window::win_type::create);
+    auto win = Window(data, 4 * sizeof(ValueType), comm);
     win.fence();
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -820,32 +712,32 @@ TEST_F(MpiBindings, AllToAllVWorksCorrectly)
         scounts_array = gko::Array<int>{ref, {1, 2, 1, 0}};
         rcounts_array = gko::Array<int>{ref, {1, 2, 2, 1}};
         soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{ref, {0, 1, 3, 4}};
-        ref_array = gko::Array<double>{ref, {2.5, 2.5, 3.5, 2.0, 3.0, 0.0}};
+        roffset_array = gko::Array<int>{ref, {0, 1, 3, 5}};
+        ref_array = gko::Array<double>{ref, {2.5, 2.5, 3.5, 1.5, 2.4, 5.5}};
     } else if (my_rank == 1) {
         recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
         send_array = gko::Array<double>{ref, {2.5, 3.5, 1.0, 2.0}};
         scounts_array = gko::Array<int>{ref, {2, 2, 1, 2}};
         rcounts_array = gko::Array<int>{ref, {2, 2, 2, 0}};
         soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{ref, {0, 2, 3, 5}};
-        ref_array = gko::Array<double>{ref, {3.0, 1.5, 3.5, 3.0, 1.5, 0.0}};
+        roffset_array = gko::Array<int>{ref, {0, 2, 4, 5}};
+        ref_array = gko::Array<double>{ref, {3.0, 1.5, 3.5, 1.0, 3.0, 1.5}};
     } else if (my_rank == 2) {
         recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0}};
-        send_array = gko::Array<double>{ref, {2.0, 3.0, 1.5, 0.0}};
+        send_array = gko::Array<double>{ref, {2.0, 3.0, 1.5, 2.4}};
         scounts_array = gko::Array<int>{ref, {2, 2, 1, 1}};
         rcounts_array = gko::Array<int>{ref, {1, 1, 1, 1}};
-        soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
+        soffset_array = gko::Array<int>{ref, {2, 1, 1, 1}};
         roffset_array = gko::Array<int>{ref, {0, 1, 2, 3}};
         ref_array = gko::Array<double>{ref, {3.0, 3.5, 3.0, 3.5}};
     } else if (my_rank == 3) {
-        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0}};
+        recv_array = gko::Array<double>{ref, {0.0, 0.0, 0.0, 0.0}};
         send_array = gko::Array<double>{ref, {5.5, 3.5, 3.5, -2.0}};
         scounts_array = gko::Array<int>{ref, {1, 0, 1, 0}};
         rcounts_array = gko::Array<int>{ref, {0, 2, 1, 0}};
         soffset_array = gko::Array<int>{ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{ref, {0, 1, 2, 2}};
-        ref_array = gko::Array<double>{ref, {0.0, 2.5, 3.5}};
+        roffset_array = gko::Array<int>{ref, {0, 1, 3, 3}};
+        ref_array = gko::Array<double>{ref, {0.0, 2.5, 3.5, 3.0}};
     }
 
     gko::mpi::all_to_all<double, double>(

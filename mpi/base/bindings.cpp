@@ -103,6 +103,7 @@ communicator::communicator(const MPI_Comm &comm)
     this->comm_ = bindings::duplicate_comm(comm);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
 }
 
 
@@ -111,6 +112,7 @@ communicator::communicator(const MPI_Comm &comm_in, int color, int key)
     this->comm_ = bindings::create_comm(comm_in, color, key);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
 }
 
 
@@ -119,6 +121,7 @@ communicator::communicator(communicator &other)
     this->comm_ = bindings::duplicate_comm(other.comm_);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
 }
 
 
@@ -127,6 +130,7 @@ communicator &communicator::operator=(const communicator &other)
     this->comm_ = bindings::duplicate_comm(other.comm_);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
     return *this;
 }
 
@@ -136,7 +140,7 @@ communicator::communicator(communicator &&other)
     this->comm_ = bindings::duplicate_comm(other.comm_);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
-    bindings::free_comm(other.comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
     other.size_ = 0;
     other.rank_ = -1;
 }
@@ -147,7 +151,7 @@ communicator &communicator::operator=(communicator &&other)
     this->comm_ = bindings::duplicate_comm(other.comm_);
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
-    bindings::free_comm(other.comm_);
+    this->local_rank_ = bindings::get_local_rank(this->comm_);
     other.size_ = 0;
     other.rank_ = -1;
     return *this;
@@ -187,8 +191,8 @@ bool communicator::compare(const MPI_Comm &comm) const
 
 template <typename ValueType>
 window<ValueType>::window(ValueType *base, unsigned int size,
-                          const int disp_unit, info input_info,
                           std::shared_ptr<const communicator> comm,
+                          const int disp_unit, info input_info,
                           win_type create_type)
 {
     if (create_type == win_type::create) {
@@ -278,7 +282,7 @@ void window<ValueType>::flush_all_local()
 template <typename ValueType>
 window<ValueType>::~window()
 {
-    if (this->window_ != nullptr) {
+    if (this->window_) {
         bindings::free_window(&this->window_);
     }
 }
