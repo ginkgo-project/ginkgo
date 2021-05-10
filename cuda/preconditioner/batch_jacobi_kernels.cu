@@ -71,8 +71,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    int *const pattern{};
-    BatchJacobi<cuda_type<ValueType>> prec(pattern);
+    BatchJacobi<cuda_type<ValueType>> prec;
     batch_jacobi<<<nbatch, default_block_size>>>(prec, a_ub, b_ub, x_ub);
 }
 
