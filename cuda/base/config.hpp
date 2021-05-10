@@ -77,12 +77,13 @@ struct config {
 template <typename ValueType>
 struct batch_config {
     /**
-     * Max number of rows per matrix in a batch of (small) sparse matrices
+     * Max number of rows per matrix in a batch of (small) sparse matrices.
      */
     static constexpr int max_num_rows = 128;
 
     /**
-     * Max number of RHS vectors in a linear system
+     * Max number of RHS vectors in a linear system. This can be at most
+     * `config::warp_size`.
      */
     static constexpr int max_num_rhs = 5;
 };
