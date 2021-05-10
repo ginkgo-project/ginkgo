@@ -79,9 +79,9 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{"jacobi", 500, 1e-6, 1.0};
+    const Options opts_1{"jacobi", 500, r<real_type>::value, 1.0};
     const int nrhs = 2;
-    const Options opts_m{"jacobi", 100, 1e-6, 1.0};
+    const Options opts_m{"jacobi", 500, r<real_type>::value, 1.0};
 
     struct LinSys {
         std::unique_ptr<Mtx> mtx;
@@ -114,12 +114,12 @@ protected:
             sys.b = gko::batch_initialize<BDense>(
                 nbatches,
                 std::initializer_list<std::initializer_list<value_type>>{
-                    {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
+                    {-1.0, 4.0}, {3.0, -5.0}, {1.0, 2.0}},
                 exec);
             sys.xex = gko::batch_initialize<BDense>(
                 nbatches,
                 std::initializer_list<std::initializer_list<value_type>>{
-                    {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
+                    {1.0, 1.0}, {3.0, -2.0}, {2.0, 0.0}},
                 exec);
         } else {
             GKO_NOT_IMPLEMENTED;
@@ -209,7 +209,7 @@ protected:
         if (std::is_same<real_type, float>::value) {
             return 50;
         } else if (std::is_same<real_type, double>::value) {
-            return 80;
+            return 108;
         } else {
             return -1;
         }
@@ -261,10 +261,10 @@ protected:
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
             iters[0] = 50;
-            iters[1] = 63;
+            iters[1] = 48;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 80;
-            iters[1] = 79;
+            iters[0] = 108;
+            iters[1] = 106;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -305,9 +305,10 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->get_const_values()[i],
                   this->opts_1.rel_residual_tol);
         // The following is satisfied for float but not for double - why?
-        // ASSERT_NEAR(res_log_array[i]/this->bnorm_1->get_const_values()[i],
-        // 			this->resnorm_1->get_const_values()[i]/this->bnorm_1->get_const_values()[i],
-        // 10*r<value_type>::value);
+        ASSERT_NEAR(res_log_array[i] / this->sys_1.bnorm->get_const_values()[i],
+                    this->r_1.resnorm->get_const_values()[i] /
+                        this->sys_1.bnorm->get_const_values()[i],
+                    10 * r<value_type>::value);
     }
 }
 
@@ -346,10 +347,11 @@ TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
                 res_log_array[i * this->nrhs + j] /
                     this->sys_m.bnorm->get_const_values()[i * this->nrhs + j],
                 this->opts_m.rel_residual_tol);
-            // The following is satisfied for float but not for double - why?
-            // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
-            // 			rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
-            // 10*r<value_type>::value);
+            ASSERT_NEAR(
+                res_log_array[i] / this->sys_m.bnorm->get_const_values()[i],
+                this->r_m.resnorm->get_const_values()[i] /
+                    this->sys_m.bnorm->get_const_values()[i],
+                10 * r<value_type>::value);
         }
     }
 }
@@ -360,8 +362,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{"jacobi", 1000, 1e-6, 1.0};
-    const Options opts_slower{"jacobi", 1000, 1e-6, 0.8};
+    const Options opts{"jacobi", 1000, 1e-8, 1.0};
+    const Options opts_slower{"jacobi", 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -387,7 +389,7 @@ TYPED_TEST(BatchRich, CoreSolvesSystemJacobi)
     std::unique_ptr<typename Solver::Factory> batchrich_factory =
         Solver::build()
             .with_max_iterations(100)
-            .with_rel_residual_tol(1e-6f)
+            .with_rel_residual_tol(5e-7f)
             .with_preconditioner("jacobi")
             .on(useexec);
     const int nrhs_1 = 1;
@@ -412,7 +414,7 @@ TYPED_TEST(BatchRich, CoreSolvesSystemJacobi)
     for (size_t i = 0; i < nbatch; i++) {
         ASSERT_LE(
             rnorms->get_const_values()[i] / sys.bnorm->get_const_values()[i],
-            1e-6);
+            5e-7);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, 1e-5 /*r<value_type>::value*/);
 }
@@ -444,10 +446,12 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
 {
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
+    using value_type = typename TestFixture::value_type;
     auto left_scale = gko::batch_initialize<BDense>(
         {{0.8, 0.9, 0.95}, {1.1, 3.2, 0.9}}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
+    // const Options opts{"jacobi", 1000, 2*r<value_type>::value, 1.0};
 
     Result result = this->solve_poisson_uniform_1(
         this->opts_1, left_scale.get(), right_scale.get());
@@ -458,7 +462,7 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
                   this->opts_1.rel_residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex,
-                              1e-6 /*r<value_type>::value*/);
+                              1e-5 /*r<value_type>::value*/);
 }
 
 
