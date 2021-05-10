@@ -153,8 +153,6 @@ protected:
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-        relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
-            {parameters_.relaxation_factor}, this->get_executor());
         if (!preconditioner::batch::is_valid_preconditioner_string(
                 parameters_.preconditioner)) {
             GKO_NOT_IMPLEMENTED;
@@ -163,7 +161,6 @@ protected:
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };
 
 
