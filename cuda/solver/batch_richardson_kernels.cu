@@ -92,10 +92,7 @@ static void apply_impl(
     const size_type nbatch = a.num_batch;
 
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        int *const pattern{};
-        prepare_jacobi<<<nbatch, default_block_size>>>(gko::batch::to_const(a),
-                                                       pattern);
-        BatchJacobi<ValueType> prec(pattern);
+        BatchJacobi<ValueType> prec;
         apply_kernel<stop::RelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size>>>(
                 opts.max_its, opts.rel_residual_tol, opts.relax_factor, logger,
@@ -136,10 +133,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
         get_batch_struct(x);
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        // const gko::batch_csr::UniformBatch<const cu_value_type> m_b =
-        //     get_batch_struct(amat);
-        // const gko::batch_dense::UniformBatch<const cu_value_type> b_b =
-        // 	get_batch_struct(b);
         auto m_b =
             get_batch_struct(const_cast<matrix::BatchCsr<ValueType> *>(amat));
         auto b_b =

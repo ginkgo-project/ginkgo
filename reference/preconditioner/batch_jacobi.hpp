@@ -67,8 +67,6 @@ public:
         return batch_config<ValueType>::max_num_rows;
     }
 
-    BatchJacobi(const int *const pattern) : pattern_(pattern) {}
-
     /**
      * Sets the input and generates the preconditioner by storing the inverse
      * diagonal entries in the work vector.
@@ -104,16 +102,8 @@ public:
     }
 
 private:
-    const int *const pattern_;
     ValueType *work_;
 };
-
-
-template <typename ValueType>
-inline void prepare_jacobi(
-    const gko::batch_csr::UniformBatch<const ValueType> &a,
-    int *const sparsity_data)
-{}
 
 
 }  // namespace reference
