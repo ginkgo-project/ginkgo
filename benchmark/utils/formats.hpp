@@ -53,7 +53,8 @@ namespace formats {
 
 
 std::string available_format =
-    "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
+    "batch_csr,coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, "
+    "hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
@@ -78,8 +79,10 @@ std::string format_description =
     "     Irregular Sparse Matrices.\n"
     "csr: Compressed Sparse Row storage. Ginkgo implementation with\n"
     "     automatic strategy.\n"
-    "csrc: Ginkgo's CSR implementation with automatic strategy.\n"
-    "csri: Ginkgo's CSR implementation with imbalance strategy.\n"
+    "batch_csr: An optimized storage format for batch matrices with the same "
+    "sparsity pattern\n"
+    "csrc: Ginkgo's CSR implementation with automatic stategy.\n"
+    "csri: Ginkgo's CSR implementation with inbalance strategy.\n"
     "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
     "csrs: Ginkgo's CSR implementation with sparselib strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse\n"
@@ -145,7 +148,7 @@ std::string format_command =
 
 
 // the formats command-line argument
-DEFINE_string(formats, "coo", formats::format_command.c_str());
+DEFINE_string(formats, "batch_csr", formats::format_command.c_str());
 
 DEFINE_int64(ell_imbalance_limit, 100,
              "Maximal storage overhead above which ELL benchmarks will be "
@@ -161,6 +164,74 @@ using csr = gko::matrix::Csr<etype, itype>;
 using coo = gko::matrix::Coo<etype, itype>;
 using ell = gko::matrix::Ell<etype, itype>;
 using ell_mixed = gko::matrix::Ell<gko::next_precision<etype>, itype>;
+using batch_csr = gko::matrix::BatchCsr<etype, itype>;
+
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixType>
+std::unique_ptr<MatrixType> read_batch_matrix_from_data(
+    std::shared_ptr<const gko::Executor> exec, const int num_duplications,
+    const gko::matrix_data<etype>& data)
+{
+    auto csr_mat = csr::create(exec);
+    csr_mat->read(data);
+    auto mat = MatrixType::create(exec, num_duplications, csr_mat.get());
+    return mat;
+}
+
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixType>
+std::unique_ptr<MatrixType> read_matrix_from_data(
+    std::shared_ptr<const gko::Executor> exec,
+    const gko::matrix_data<etype, itype>& data)
+{
+    auto mat = MatrixType::create(std::move(exec));
+    mat->read(data);
+    return mat;
+}
+
+
+/**
+ * Creates a Ginkgo sparselib matrix from the intermediate data representation
+ * format gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixTagType  the tag type for the matrix format, see
+ *                        sparselib_linops.hpp
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixTagType>
+std::unique_ptr<gko::LinOp> read_splib_matrix_from_data(
+    std::shared_ptr<const gko::Executor> exec,
+    const gko::matrix_data<etype, itype>& data)
+{
+    auto mat = create_sparselib_linop<MatrixTagType>(std::move(exec));
+    gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(data);
+    return mat;
+}
+>>>>>>> Add BatchCsr spmv benchmarking
 
 
 /**
@@ -228,6 +299,14 @@ auto create_matrix_type_with_gpu_strategy()
         return MatrixType::create(exec, create_gpu_strategy<Strategy>(exec));
     };
 }
+
+
+const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
+                                std::shared_ptr<const gko::Executor>, const int,
+                                const gko::matrix_data<etype>&)>>
+    batch_matrix_factory{
+        {"batch_csr",
+         read_batch_matrix_from_data<gko::matrix::BatchCsr<etype>>}};
 
 
 // clang-format off
