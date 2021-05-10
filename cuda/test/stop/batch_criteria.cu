@@ -155,10 +155,12 @@ protected:
             res = resm.get_const_data();
         }
 
-        conv_check<<<1, dbs>>>(
-            this->nrhs, this->nrows, this->b_norms.get_const_data(),
-            resnorms.get_const_data(), gko::kernels::cuda::as_cuda_type(res),
-            converged.get_data(), all_conv.get_data());
+        const real_type *const resnormptr =
+            resvec ? nullptr : resnorms.get_const_data();
+        conv_check<<<1, dbs>>>(nrhs, nrows, b_norms.get_const_data(),
+                               resnormptr,
+                               gko::kernels::cuda::as_cuda_type(res),
+                               converged.get_data(), all_conv.get_data());
 
         gko::Array<uint32_t> h_converged(this->exec, converged);
         gko::Array<bool> h_all_conv(this->exec, all_conv);
