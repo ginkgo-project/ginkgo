@@ -195,6 +195,24 @@ inline void batch_scale(
 }
 
 
+/**
+ * Copies the values of one multi-vector into another.
+ *
+ * Note that the output multi-vector should already have memory allocated
+ * and stride set.
+ */
+template <typename ValueType>
+inline void copy(const gko::batch_dense::BatchEntry<const ValueType> &in,
+                 const gko::batch_dense::BatchEntry<ValueType> &out)
+{
+    for (int iz = 0; iz < in.num_rows * in.num_rhs; iz++) {
+        const int i = iz / in.num_rhs;
+        const int j = iz % in.num_rhs;
+        out.values[i * out.stride + j] = in.values[i * in.stride + j];
+    }
+}
+
+
 }  // namespace batch_dense
 }  // namespace reference
 }  // namespace kernels
