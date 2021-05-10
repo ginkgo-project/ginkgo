@@ -639,14 +639,6 @@ protected:
     void batch_scale_impl(const BatchLinOp *const left_scale_op,
                           const BatchLinOp *const right_scale_op) override
     {
-        // auto sysmat =
-        // std::static_pointer_cast<ConcreteSolver*>()->system_matrix_; auto
-        // orig_const_mat = 	std::dynamic_pointer_cast<const
-        // BatchScalable>(sysmat); if (!orig_const_mat) {
-        // 	GKO_NOT_SUPPORTED(sysmat);
-        // }
-        // auto mat = std::const_pointer_cast<BatchScalable>(orig_const_mat);
-        // mat->batch_scale(left_op, right_op);
         left_scale_ =
             static_cast<const matrix::BatchDense<ValueType> *>(left_scale_op);
         right_scale_ =
