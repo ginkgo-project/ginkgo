@@ -355,6 +355,9 @@ std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 template <typename ValueType>
 using vec = gko::matrix::Dense<ValueType>;
 
+template <typename ValueType>
+using batch_vec = gko::matrix::BatchDense<ValueType>;
+
 
 // Create a matrix with value indices s[i, j] = sin(i)
 template <typename ValueType>
@@ -392,6 +395,45 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
     h_res->move_to(res);
     return res;
 }
+
+
+template <typename ValueType, typename RandomEngine>
+std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
+    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2>& size,
+    RandomEngine& engine)
+{
+    GKO_ASSERT(size.stores_equal_sizes());
+    auto res = batch_vec<ValueType>::create(exec);
+    auto num_batch_entries = size.get_num_batch_entries();
+    std::vector<gko::matrix_data<ValueType>> data{};
+    for (gko::size_type i = 0; i < num_batch_entries; ++i) {
+        data.emplace_back(gko::matrix_data<ValueType>(
+            size.at(0),
+            std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                           1.0),
+            engine));
+    }
+    res->read(data);
+    return res;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
+    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2>& size,
+    ValueType value)
+{
+    GKO_ASSERT(size.stores_equal_sizes());
+    auto res = batch_vec<ValueType>::create(exec);
+    auto num_batch_entries = size.get_num_batch_entries();
+    std::vector<gko::matrix_data<ValueType>> data{};
+    for (gko::size_type i = 0; i < num_batch_entries; ++i) {
+        data.emplace_back(gko::matrix_data<ValueType>(size.at(0), value));
+    }
+    res->read(data);
+    return res;
+}
+
 
 // utilities for computing norms and residuals
 template <typename ValueType>
@@ -441,6 +483,42 @@ gko::remove_complex<ValueType> compute_residual_norm(
     auto res = clone(b);
     system_matrix->apply(one, x, neg_one, res);
     return compute_norm2(res.get());
+}
+
+
+template <typename ValueType>
+std::vector<gko::remove_complex<ValueType>> compute_batch_max_relative_norm2(
+    batch_vec<ValueType>* result, const batch_vec<ValueType>* answer)
+{
+    using rc_vtype = gko::remove_complex<ValueType>;
+    auto exec = answer->get_executor();
+    auto nbatch = result->get_num_batch_entries();
+    auto answer_norm = batch_vec<rc_vtype>::create(
+        exec,
+        gko::batch_dim<2>(nbatch, gko::dim<2>(1, answer->get_size().at(0)[1])));
+    answer->compute_norm2(lend(answer_norm));
+    auto neg_one =
+        gko::batch_initialize<batch_vec<ValueType>>(nbatch, {-1.0}, exec);
+    result->add_scaled(lend(neg_one), lend(answer));
+    auto absolute_norm = batch_vec<rc_vtype>::create(
+        exec,
+        gko::batch_dim<2>(nbatch, gko::dim<2>(1, result->get_size().at(0)[1])));
+    result->compute_norm2(lend(absolute_norm));
+    auto host_answer_norm =
+        clone(answer_norm->get_executor()->get_master(), answer_norm);
+    auto host_absolute_norm =
+        clone(absolute_norm->get_executor()->get_master(), absolute_norm);
+    std::vector<rc_vtype> max_relative_norm2(nbatch, rc_vtype(0.0));
+    for (gko::size_type b = 0; b < host_answer_norm->get_num_batch_entries();
+         b++) {
+        for (gko::size_type i = 0; i < host_answer_norm->get_size().at(0)[1];
+             i++) {
+            max_relative_norm2[b] = std::max(
+                host_absolute_norm->at(b, 0, i) / host_answer_norm->at(b, 0, i),
+                max_relative_norm2[b]);
+        }
+    }
+    return max_relative_norm2;
 }
 
 
