@@ -83,7 +83,7 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
             bool is_first_in_segment =
-                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+                segment_scan<subwarp_size>(tile_block, curr_row, temp_val);
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
@@ -98,7 +98,7 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                                 : zero<ValueType>();
         // segmented scan
         bool is_first_in_segment =
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+            segment_scan<subwarp_size>(tile_block, curr_row, temp_val);
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }

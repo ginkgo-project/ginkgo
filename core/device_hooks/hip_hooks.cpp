@@ -107,8 +107,10 @@ void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 void HipExecutor::run(const Operation &op) const
 {
+    this->template log<log::Logger::operation_launched>(this, &op);
     op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
+    this->template log<log::Logger::operation_completed>(this, &op);
 }
 
 

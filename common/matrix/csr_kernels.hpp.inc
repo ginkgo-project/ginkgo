@@ -68,21 +68,20 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
 template <bool overflow, typename IndexType>
 __device__ __forceinline__ void find_next_row(
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    const IndexType row_predict, const IndexType row_predict_end,
-    const IndexType *__restrict__ row_ptr)
+    IndexType &row, IndexType &row_end, const IndexType row_predict,
+    const IndexType row_predict_end, const IndexType *__restrict__ row_ptr)
 {
     if (!overflow || ind < data_size) {
-        if (ind >= *row_end) {
-            *row = row_predict;
-            *row_end = row_predict_end;
-            for (; ind >= *row_end; *row_end = row_ptr[++*row + 1])
+        if (ind >= row_end) {
+            row = row_predict;
+            row_end = row_predict_end;
+            for (; ind >= row_end; row_end = row_ptr[++row + 1])
                 ;
         }
 
     } else {
-        *row = num_rows - 1;
-        *row_end = data_size;
+        row = num_rows - 1;
+        row_end = data_size;
     }
 }
 
@@ -91,16 +90,16 @@ template <unsigned subwarp_size, typename ValueType, typename IndexType,
           typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<subwarp_size> &group, bool force_write,
-    ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
+    ValueType &val, const IndexType row, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
     const bool need_write = segment_scan(group, row, val);
     if (need_write && force_write) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
+        atomic_add(&(c[row * c_stride + column_id]), scale(val));
     }
     if (!need_write || force_write) {
-        *val = zero<ValueType>();
+        val = zero<ValueType>();
     }
 }
 
@@ -110,28 +109,27 @@ template <bool last, unsigned subwarp_size, typename ValueType,
 __device__ __forceinline__ void process_window(
     const group::thread_block_tile<subwarp_size> &group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
-    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
+    IndexType &row, IndexType &row_end, IndexType &nrow, IndexType &nrow_end,
+    ValueType &temp_val, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
-    const IndexType curr_row = *row;
-    find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
-                        *nrow_end, row_ptrs);
+    const IndexType curr_row = row;
+    find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     // segmented scan
-    if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
-                        c_stride, column_id, scale);
-        *nrow = group.shfl(*row, subwarp_size - 1);
-        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
+    if (group.any(curr_row != row)) {
+        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c, c_stride,
+                        column_id, scale);
+        nrow = group.shfl(row, subwarp_size - 1);
+        nrow_end = group.shfl(row_end, subwarp_size - 1);
     }
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col * b_stride + column_id];
+        temp_val += val[ind] * b[col * b_stride + column_id];
     }
 }
 
@@ -169,21 +167,21 @@ __device__ __forceinline__ void spmv_kernel(
     auto nrow_end = row_end;
     ValueType temp_val = zero<ValueType>();
     IndexType ind = start + threadIdx.x;
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
-                        nrow_end, row_ptrs);
+    find_next_row<true>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     const IndexType ind_end = end - wsize;
     const auto tile_block =
         group::tiled_partition<wsize>(group::this_thread_block());
     for (; ind < ind_end; ind += wsize) {
-        process_window<false>(tile_block, num_rows, data_size, ind, &row,
-                              &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                              column_id, scale);
+        process_window<false>(tile_block, num_rows, data_size, ind, row,
+                              row_end, nrow, nrow_end, temp_val, val, col_idxs,
+                              row_ptrs, b, b_stride, c, c_stride, column_id,
+                              scale);
     }
-    process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
-                         &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, b_stride, c, c_stride, column_id, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
+    process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
+                         nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
+                         b_stride, c, c_stride, column_id, scale);
+    warp_atomic_add(tile_block, true, temp_val, row, c, c_stride, column_id,
                     scale);
 }
 

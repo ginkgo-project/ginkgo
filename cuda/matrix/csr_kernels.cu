@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -60,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/merging.cuh"
+#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -98,6 +100,7 @@ using spgeam_kernels =
 
 
 #include "common/matrix/csr_kernels.hpp.inc"
+#include "common/matrix/csr_kernels_spgemm.hpp.inc"
 
 
 namespace host_kernel {
@@ -501,115 +504,336 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
     auto b_row_ptrs = b->get_const_row_ptrs();
     auto b_col_idxs = b->get_const_col_idxs();
     auto c_row_ptrs = c->get_row_ptrs();
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
 
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
+    if (a->get_strategy()->get_name() == "sparselib" ||
+        a->get_strategy()->get_name() == "cusparse") {
+        if (cusparse::is_supported<ValueType, IndexType>::value) {
+            auto handle = exec->get_cusparse_handle();
+            cusparse::pointer_mode_guard pm_guard(handle);
 
-        auto alpha = one<ValueType>();
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto zero_nnz = IndexType{};
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+            auto alpha = one<ValueType>();
+            auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
+            auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
+            auto null_value = static_cast<ValueType *>(nullptr);
+            auto null_index = static_cast<IndexType *>(nullptr);
+            auto zero_nnz = IndexType{};
+            auto m = IndexType(a->get_size()[0]);
+            auto n = IndexType(b->get_size()[1]);
+            auto k = IndexType(a->get_size()[1]);
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            zero_nnz, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
+            auto a_descr = cusparse::create_mat_descr();
+            auto b_descr = cusparse::create_mat_descr();
+            auto c_descr = cusparse::create_mat_descr();
+            auto d_descr = cusparse::create_mat_descr();
+            auto info = cusparse::create_spgemm_info();
+            // allocate buffer
+            size_type buffer_size{};
+            cusparse::spgemm_buffer_size(
+                handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+                b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
+                zero_nnz, null_index, null_index, info, buffer_size);
+            Array<char> buffer_array(exec, buffer_size);
+            auto buffer = buffer_array.get_data();
 
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, zero_nnz, null_index, null_index, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
+            // count nnz
+            IndexType c_nnz{};
+            cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                                 a_col_idxs, b_descr, b_nnz, b_row_ptrs,
+                                 b_col_idxs, d_descr, zero_nnz, null_index,
+                                 null_index, c_descr, c_row_ptrs, &c_nnz, info,
+                                 buffer);
 
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
-                         null_value, null_index, null_index, c_descr, c_vals,
-                         c_row_ptrs, c_col_idxs, info, buffer);
+            // accumulate non-zeros
+            c_col_idxs_array.resize_and_reset(c_nnz);
+            c_vals_array.resize_and_reset(c_nnz);
+            auto c_col_idxs = c_col_idxs_array.get_data();
+            auto c_vals = c_vals_array.get_data();
+            cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+                             a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                             b_row_ptrs, b_col_idxs, null_value, d_descr,
+                             zero_nnz, null_value, null_index, null_index,
+                             c_descr, c_vals, c_row_ptrs, c_col_idxs, info,
+                             buffer);
 
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
+            cusparse::destroy(info);
+            cusparse::destroy(d_descr);
+            cusparse::destroy(c_descr);
+            cusparse::destroy(b_descr);
+            cusparse::destroy(a_descr);
 
 #else   // CUDA_VERSION >= 11000
-        const auto beta = zero<ValueType>();
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
-                                            null_index, null_value);
+            const auto beta = zero<ValueType>();
+            auto spgemm_descr = cusparse::create_spgemm_descr();
+            auto a_descr = cusparse::create_csr(
+                m, k, a_nnz, const_cast<IndexType *>(a_row_ptrs),
+                const_cast<IndexType *>(a_col_idxs),
+                const_cast<ValueType *>(a_vals));
+            auto b_descr = cusparse::create_csr(
+                k, n, b_nnz, const_cast<IndexType *>(b_row_ptrs),
+                const_cast<IndexType *>(b_col_idxs),
+                const_cast<ValueType *>(b_vals));
+            auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
+                                                null_index, null_value);
 
-        // estimate work
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
+            // estimate work
+            size_type buffer1_size{};
+            cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
+                                             &beta, c_descr, spgemm_descr,
+                                             buffer1_size, nullptr);
+            Array<char> buffer1{exec, buffer1_size};
+            cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
+                                             &beta, c_descr, spgemm_descr,
+                                             buffer1_size, buffer1.get_data());
 
-        // compute spgemm
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
+            // compute spgemm
+            size_type buffer2_size{};
+            cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+                                     c_descr, spgemm_descr, buffer1.get_data(),
+                                     buffer2_size, nullptr);
+            Array<char> buffer2{exec, buffer2_size};
+            cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+                                     c_descr, spgemm_descr, buffer1.get_data(),
+                                     buffer2_size, buffer2.get_data());
 
-        // copy data to result
-        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
-                                   c_col_idxs_array.get_data(),
-                                   c_vals_array.get_data());
+            // copy data to result
+            auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
+            c_col_idxs_array.resize_and_reset(c_nnz);
+            c_vals_array.resize_and_reset(c_nnz);
+            cusparse::csr_set_pointers(c_descr, c_row_ptrs,
+                                       c_col_idxs_array.get_data(),
+                                       c_vals_array.get_data());
 
-        cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                              spgemm_descr);
+            cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta,
+                                  c_descr, spgemm_descr);
 
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
+            cusparse::destroy(c_descr);
+            cusparse::destroy(b_descr);
+            cusparse::destroy(a_descr);
+            cusparse::destroy(spgemm_descr);
 #endif  // CUDA_VERSION >= 11000
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        auto num_rows = a->get_size()[0];
+        constexpr auto spgemm_warps_per_block =
+            spgemm_block_size / config::warp_size;
+        auto num_blocks = ceildiv(num_rows, spgemm_warps_per_block);
+
+        size_type max_nnz{};
+        calculate_max_nnz_per_row(exec, a, &max_nnz);
+        constexpr auto merge_size = 32;
+        if (max_nnz <= merge_size) {
+            exec->run_named(
+                "spgemm_count0", [] {},
+                [&] {
+                    spgemm_count_short<<<num_blocks, spgemm_block_size>>>(
+                        num_rows, a_row_ptrs, a_col_idxs, b_row_ptrs,
+                        b_col_idxs, c_row_ptrs);
+
+                    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+                },
+                [] {});
+
+            auto c_nnz = static_cast<size_type>(
+                exec->copy_val_to_host(c_row_ptrs + num_rows));
+
+            c_col_idxs_array.resize_and_reset(c_nnz);
+            c_vals_array.resize_and_reset(c_nnz);
+            auto c_col_idxs = c_col_idxs_array.get_data();
+            auto c_vals = c_vals_array.get_data();
+
+            exec->run_named(
+                "spgemm0", [] {},
+                [&] {
+                    spgemm_kernel_short<<<num_blocks, spgemm_block_size>>>(
+                        num_rows, a_row_ptrs, a_col_idxs, as_cuda_type(a_vals),
+                        b_row_ptrs, b_col_idxs, as_cuda_type(b_vals),
+                        c_row_ptrs, c_col_idxs, as_cuda_type(c_vals));
+                },
+                [] {});
+        } else {
+            // first "unravel" the matrix into a taller matrix
+            // with at most merge_size entries per row
+            Array<IndexType> merge_count_array{exec, num_rows + 1};
+            auto merge_counts = merge_count_array.get_data();
+
+            // determine how many "tall" rows belong to each row
+
+            exec->run_named(
+                "analysis0", [] {},
+                [&] {
+                    spgemm_merge_counts<<<num_blocks, spgemm_block_size>>>(
+                        a->get_const_row_ptrs(), num_rows, merge_size,
+                        merge_counts);
+
+                    components::prefix_sum(exec, merge_counts, num_rows + 1);
+                },
+                [] {});
+
+            auto tall_num_rows = static_cast<size_type>(
+                exec->copy_val_to_host(merge_counts + num_rows));
+            auto tall_num_blocks =
+                ceildiv(tall_num_rows, spgemm_warps_per_block);
+
+            Array<IndexType> in_row_ptr_array{exec, tall_num_rows + 1};
+            // TODO: use 64 bit row ptr indices for the intermediate output
+            Array<IndexType> out_row_ptr_array{exec, tall_num_rows + 1};
+
+            // build the row pointers of the "tall" matrix
+            exec->run_named(
+                "analysis0", [] {},
+                [&] {
+                    spgemm_tall_row_ptrs<<<tall_num_blocks,
+                                           spgemm_block_size>>>(
+                        a->get_const_row_ptrs(), merge_counts, num_rows,
+                        merge_size, in_row_ptr_array.get_data());
+                },
+                [] {});
+
+            // compute tallA * B
+            exec->run_named(
+                "spgemm_count0", [] {},
+                [&] {
+                    spgemm_count_short<<<tall_num_blocks, spgemm_block_size>>>(
+                        tall_num_rows, in_row_ptr_array.get_const_data(),
+                        a_col_idxs, b_row_ptrs, b_col_idxs,
+                        out_row_ptr_array.get_data());
+
+                    components::prefix_sum(exec, out_row_ptr_array.get_data(),
+                                           tall_num_rows + 1);
+                },
+                [] {});
+
+            auto out_nnz = static_cast<size_type>(exec->copy_val_to_host(
+                out_row_ptr_array.get_const_data() + tall_num_rows));
+
+            Array<IndexType> out_col_idx_array{exec, out_nnz};
+            Array<ValueType> out_value_array{exec, out_nnz};
+
+            exec->run_named(
+                "spgemm0", [] {},
+                [&] {
+                    spgemm_kernel_short<<<tall_num_blocks, spgemm_block_size>>>(
+                        tall_num_rows, in_row_ptr_array.get_const_data(),
+                        a_col_idxs, as_cuda_type(a_vals), b_row_ptrs,
+                        b_col_idxs, as_cuda_type(b_vals),
+                        out_row_ptr_array.get_const_data(),
+                        out_col_idx_array.get_data(),
+                        as_cuda_type(out_value_array.get_data()));
+                },
+                [] {});
+
+            /**
+             * Iteratively merge rows from tallA * B using small-and-wide
+             * merge matrices
+             *
+             *   C = M_{num_passes - 1} * ... * M_1 * tallA * B
+             *
+             *   M_i = |1 1 1               ...|
+             *         |      1 1           ...|
+             *         |          1 1 1 1   ...|
+             *         ...
+             * These matrices are completely determined by their row ptrs.
+             */
+            Array<IndexType> new_merge_count_array{exec, num_rows + 1};
+            Array<IndexType> in_col_idx_array{exec};
+            Array<ValueType> in_value_array{exec};
+            auto new_merge_counts = new_merge_count_array.get_data();
+            std::swap(new_merge_counts, merge_counts);
+            int i = 0;
+
+            while (tall_num_rows > num_rows) {
+                ++i;
+                // swap output/input
+                std::swap(new_merge_counts, merge_counts);
+                in_row_ptr_array = std::move(out_row_ptr_array);
+                in_col_idx_array = std::move(out_col_idx_array);
+                in_value_array = std::move(out_value_array);
+
+                exec->run_named(
+                    "analysis" + std::to_string(i), [] {},
+                    [&] {
+                        spgemm_merge_counts<<<num_blocks, spgemm_block_size>>>(
+                            merge_counts, num_rows, merge_size,
+                            new_merge_counts);
+
+                        components::prefix_sum(exec, new_merge_counts,
+                                               num_rows + 1);
+                    },
+                    [] {});
+
+                auto flat_num_rows = static_cast<size_type>(
+                    exec->copy_val_to_host(new_merge_counts + num_rows));
+                auto flat_num_blocks =
+                    ceildiv(flat_num_rows, spgemm_warps_per_block);
+
+                Array<IndexType> merge_row_ptr_array{exec, flat_num_rows + 1};
+
+                // build the row pointers of the merge matrix
+                exec->run_named(
+                    "analysis" + std::to_string(i), [] {},
+                    [&] {
+                        spgemm_tall_row_ptrs<<<num_blocks, spgemm_block_size>>>(
+                            merge_counts, new_merge_counts, num_rows,
+                            merge_size, merge_row_ptr_array.get_data());
+                    },
+                    [] {});
+
+                if (flat_num_rows == num_rows) {
+                    out_row_ptr_array =
+                        Array<IndexType>::view(exec, num_rows + 1, c_row_ptrs);
+                } else {
+                    out_row_ptr_array.resize_and_reset(flat_num_rows + 1);
+                }
+
+                // compute row ptrs of partial merge M_i * ...
+                exec->run_named(
+                    "spgemm_count" + std::to_string(i), [] {},
+                    [&] {
+                        spgemm_count_merge<<<flat_num_rows,
+                                             spgemm_block_size>>>(
+                            flat_num_rows, merge_row_ptr_array.get_const_data(),
+                            in_row_ptr_array.get_const_data(),
+                            in_col_idx_array.get_const_data(),
+                            out_row_ptr_array.get_data());
+
+                        components::prefix_sum(exec,
+                                               out_row_ptr_array.get_data(),
+                                               flat_num_rows + 1);
+                    },
+                    [] {});
+
+                out_nnz = static_cast<size_type>(exec->copy_val_to_host(
+                    out_row_ptr_array.get_const_data() + flat_num_rows));
+                out_col_idx_array.resize_and_reset(out_nnz);
+                out_value_array.resize_and_reset(out_nnz);
+
+                exec->run_named(
+                    "spgemm" + std::to_string(i), [] {},
+                    [&] {
+                        spgemm_kernel_merge<<<flat_num_blocks,
+                                              spgemm_block_size>>>(
+                            flat_num_rows, merge_row_ptr_array.get_const_data(),
+                            in_row_ptr_array.get_const_data(),
+                            in_col_idx_array.get_const_data(),
+                            as_cuda_type(in_value_array.get_const_data()),
+                            out_row_ptr_array.get_const_data(),
+                            out_col_idx_array.get_data(),
+                            as_cuda_type(out_value_array.get_data()));
+                    },
+                    [] {});
+
+                tall_num_rows = flat_num_rows;
+                tall_num_blocks = flat_num_blocks;
+            }
+            c_col_idxs_array = std::move(out_col_idx_array);
+            c_vals_array = std::move(out_value_array);
+        }
     }
 }
 
@@ -786,7 +1010,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         cusparse::destroy(spgemm_descr);
 
         auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
-        auto nnz_per_row = spgeam_total_nnz / m;
+        auto nnz_per_row = spgeam_total_nnz / std::max<IndexType>(m, 1);
         select_spgeam(
             spgeam_kernels(),
             [&](int compiled_subwarp_size) {

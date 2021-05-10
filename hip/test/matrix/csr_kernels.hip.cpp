@@ -92,12 +92,19 @@ protected:
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
-                                     int min_nnz_row)
+                                     int min_nnz_row, int max_nnz_row)
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
+    {
+        return gen_mtx<MtxType>(num_rows, num_cols, min_nnz_row, num_cols);
     }
 
     void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy,
@@ -420,23 +427,92 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), trans.get(), beta.get(), square_mtx.get());
     dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
 
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
-TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, SimpleApplySparselibToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
     mtx->apply(trans.get(), square_mtx.get());
     dmtx->apply(d_trans.get(), square_dmtx.get());
 
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    mtx->apply(trans.get(), square_mtx.get());
+    dmtx->apply(d_trans.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto mtx2 =
+        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
+    auto dmtx2 = Mtx::create(hip, mtx2->get_size());
+    dmtx2->copy_from(mtx2.get());
+
+    mtx->apply(mtx2.get(), square_mtx.get());
+    dmtx->apply(dmtx2.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto mtx1 = gen_mtx<Mtx>(mtx->get_size()[0], mtx->get_size()[1], 0, 10);
+    auto mtx2 =
+        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
+    auto dmtx1 = Mtx::create(hip, mtx1->get_size());
+    auto dmtx2 = Mtx::create(hip, mtx2->get_size());
+    dmtx1->copy_from(mtx1.get());
+    dmtx2->copy_from(mtx2.get());
+
+    mtx1->apply(mtx2.get(), square_mtx.get());
+    dmtx1->apply(dmtx2.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    auto mtx2 =
+        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
+    auto dmtx2 = Mtx::create(hip, mtx2->get_size());
+    dmtx2->copy_from(mtx2.get());
+
+    mtx->apply(mtx2.get(), square_mtx.get());
+    dmtx->apply(dmtx2.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 

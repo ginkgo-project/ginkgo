@@ -70,7 +70,7 @@ __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
             bool is_first_in_segment =
-                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+                segment_scan<subwarp_size>(tile_block, curr_row, temp_val);
             if (is_first_in_segment) {
                 atomic_add(&(nnz_per_row[curr_row]), temp_val);
             }
@@ -84,7 +84,7 @@ __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
         // segmented scan
 
         bool is_first_in_segment =
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+            segment_scan<subwarp_size>(tile_block, curr_row, temp_val);
         if (is_first_in_segment) {
             atomic_add(&(nnz_per_row[curr_row]), temp_val);
         }

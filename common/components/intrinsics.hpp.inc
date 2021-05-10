@@ -42,6 +42,23 @@ __forceinline__ __device__ int popcnt(uint64 mask) { return __popcll(mask); }
 
 /**
  * @internal
+ * Returns a bitmask with the first rank bits set.
+ *
+ * @tparam MaskType the bitmask type
+ * @param rank  the rank, needs to be non-negative and at most than the number
+ *              of bits in config::lane_mask_type.
+ */
+__forceinline__ __device__ config::lane_mask_type prefix_mask(int rank)
+{
+    constexpr auto mask_size = config::lane_mask_type{config::warp_size};
+    const auto div_rank = config::lane_mask_type{rank / mask_size};
+    const auto mod_rank = config::lane_mask_type{rank % mask_size};
+    return ((div_rank ^ config::lane_mask_type{1}) << mod_rank) - 1;
+}
+
+
+/**
+ * @internal
  * Returns the (1-based!) index of the first set bit in the given mask,
  * starting from the least significant bit.
  */
@@ -64,3 +81,13 @@ __forceinline__ __device__ int clz(uint32 mask) { return __clz(mask); }
 
 /** @copydoc clz */
 __forceinline__ __device__ int clz(uint64 mask) { return __clzll(mask); }
+
+
+/**
+ * @internal
+ * Returns the rounded-up binary logarithm of i.
+ */
+__forceinline__ __device__ int log2(uint32 i) { return 32 - clz(i - 1); }
+
+/** @copydoc log2 */
+__forceinline__ __device__ int log2(uint64 i) { return 64 - clz(i - 1); }
