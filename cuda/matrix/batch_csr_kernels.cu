@@ -217,9 +217,9 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     const auto left_ub = get_batch_struct(left_scale);
     const auto right_ub = get_batch_struct(right_scale);
 
-    constexpr int block_size = 512;
     const int num_blocks = exec->get_num_multiprocessor();
-    uniform_batch_scale<<<num_blocks, block_size>>>(left_ub, right_ub, m_ub);
+    uniform_batch_scale<<<num_blocks, default_block_size>>>(left_ub, right_ub,
+                                                            m_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

@@ -128,11 +128,7 @@ static void apply_impl(
         prec.generate(a_b, prec_work);
 
         // initial residual
-        for (int iz = 0; iz < nrows * nrhs; iz++) {
-            const int i = iz / nrhs;
-            const int j = iz % nrhs;
-            r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
-        }
+        batch_dense::copy(b_b, r_b);
         batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
                                               norms_b);
 
@@ -152,19 +148,12 @@ static void apply_impl(
             // static_cast<ValueType>(1.0), r_b);
 
             // r <- b - Ax
-            for (int iz = 0; iz < nrows * nrhs; iz++) {
-                const int i = iz / nrhs;
-                const int j = iz % nrhs;
-                r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
-            }
+            batch_dense::copy(b_b, r_b);
             advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
                                  gko::batch::to_const(x_b),
                                  static_cast<ValueType>(1.0), r_b);
 
             batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
-            // for (int j = 0; j < nrhs; j++) {
-            //     norms_b.values[j] = sqrt(norms_b.values[j]);
-            // }
 
             const bool all_converged =
                 stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
@@ -207,9 +196,7 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        int *const pattern{};
-        prepare_jacobi(gko::batch::to_const(a), pattern);
-        BatchJacobi<ValueType> prec(pattern);
+        BatchJacobi<ValueType> prec;
         apply_impl<stop::RelResidualMaxIter<ValueType>>(
             exec, opts, logger, prec, a, left, right, b, x);
     } else {
@@ -243,7 +230,6 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
 
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        // if(to_scale) {
         // We pinky-promise not to change the matrix and RHS if no scaling was
         // requested
         const auto a_b =
@@ -251,11 +237,6 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
         const auto b_b =
             get_batch_struct(const_cast<matrix::BatchDense<ValueType> *>(b));
         apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
-        // } else {
-        // 	const auto a_b = get_batch_struct(a_mat);
-        // 	apply_select_prec(exec, opts, logger, &a_b, left_ptr, right_ptr,
-        // &b_b, 					  &x_b);
-        // }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
