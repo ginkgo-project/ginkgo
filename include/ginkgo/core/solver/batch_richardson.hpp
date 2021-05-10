@@ -152,7 +152,6 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());

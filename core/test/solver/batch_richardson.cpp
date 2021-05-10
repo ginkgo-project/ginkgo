@@ -80,6 +80,13 @@ protected:
     const int def_max_iters = 10;
     const real_type def_rel_res_tol = 1e-4;
     const real_type def_relax = 1.2;
+
+    void assert_size(const gko::BatchLinOp *const solver)
+    {
+        for (size_t i = 0; i < nbatch; i++) {
+            ASSERT_EQ(solver->get_size().at(i), gko::dim<2>(nrows, nrows));
+        }
+    }
 };
 
 TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
@@ -95,10 +102,8 @@ TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     using real_type = typename TestFixture::real_type;
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_EQ(this->solver->get_size().at(i),
-                  gko::dim<2>(this->nrows, this->nrows));
-    }
+
+    this->assert_size(this->solver.get());
     auto batchrich_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(batchrich_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(batchrich_solver->get_system_matrix(), this->mtx);
@@ -120,10 +125,7 @@ TYPED_TEST(BatchRich, CanBeCopied)
 
     copy->copy_from(this->solver.get());
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_EQ(copy->get_size().at(i),
-                  gko::dim<2>(this->nrows, this->nrows));
-    }
+    this->assert_size(copy.get());
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
@@ -138,10 +140,7 @@ TYPED_TEST(BatchRich, CanBeMoved)
 
     copy->copy_from(std::move(this->solver));
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_EQ(copy->get_size().at(i),
-                  gko::dim<2>(this->nrows, this->nrows));
-    }
+    this->assert_size(copy.get());
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
@@ -154,10 +153,7 @@ TYPED_TEST(BatchRich, CanBeCloned)
     using Solver = typename TestFixture::Solver;
     auto clone = this->solver->clone();
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_EQ(clone->get_size().at(i),
-                  gko::dim<2>(this->nrows, this->nrows));
-    }
+    this->assert_size(clone.get());
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
@@ -243,6 +239,7 @@ TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
                  gko::DimensionMismatch);
 }
 
+// TODO: Enable after BatchCsr::transpose is implemented.
 // TYPED_TEST(BatchRich, SolverTransposeRetainsFactoryParameters)
 // {
 //     using Solver = typename TestFixture::Solver;
