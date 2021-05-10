@@ -41,13 +41,13 @@ namespace stop {
  * A stopping criterion for batch solvers that comprises a
  * maximum iteration count as well as relative residual tolerance.
  *
- * At most 32 right-hand-side vectors are supported.
+ * At most `batch_config::max_num_rhs` right-hand-side vectors are supported.
  */
 template <typename ValueType>
 class RelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
-    using bitset_type = uint32;
+    using bitset_type = config::lane_mask_type;
     static constexpr int max_nrhs = config::warp_size;
 
     /**
@@ -72,7 +72,8 @@ public:
         if (nrhs > max_nrhs) {
             printf("Batch stopping criterion: Too many right hand sides!\n");
         }
-        converge_bitset = 0 - (1 << num_rhs);
+        // converge_bitset = 0 - (1 << num_rhs);
+        converge_bitset = (~static_cast<bitset_type>(0) << num_rhs);
     }
 
     /**
@@ -99,8 +100,13 @@ public:
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            real_type norms[32];
-            compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
+            __shared__ real_type norms[batch_config<ValueType>::max_num_rhs];
+            compute_norm2<ValueType>(
+                residual, gko::batch_dense::BatchEntry<real_type>{
+                              norms,
+                              static_cast<size_type>(
+                                  batch_config<ValueType>::max_num_rhs),
+                              1, nrhs});
             check_norms(norms, converged);
         }
 
@@ -112,7 +118,7 @@ private:
     int max_its;
     const real_type rel_tol;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = 0xffffffff;
+    static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
     /**
      * Check the relative residuals.
@@ -132,13 +138,12 @@ private:
         // All warps in the thread-block do the check redundantly.
         // Only the first nrhs threads of each warp do the check.
         const int i = threadIdx.x % config::warp_size;
-        const uint32 activemask = ~(0xffffffff << nrhs);
+        const bitset_type activemask = ~(~static_cast<bitset_type>(0) << nrhs);
         if (i < nrhs) {
             const int ichk = (res_norms[i] / rhs_norms[i] < rel_tol);
             const bitset_type wchk = __ballot_sync(activemask, ichk);
             converged |= wchk;
         }
-        //__syncwarp();
         // copy the converged value to all threads in the warp
         converged = __shfl_sync(all_true, converged, 0);
     }
