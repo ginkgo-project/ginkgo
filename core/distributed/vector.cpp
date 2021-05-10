@@ -262,14 +262,17 @@ void Vector<ValueType>::validate_data() const
     GKO_VALIDATION_CHECK(this->get_local()->get_executor() == exec);
     // check number of rows
     auto num_local_rows_sum = this->get_local()->get_size()[0];
-    this->get_communicator().allreduce(&num_local_rows_sum, 1);
+    mpi::all_reduce(&num_local_rows_sum, 1, mpi::op_type::sum,
+                    this->get_communicator());
     GKO_VALIDATION_CHECK(num_local_rows_sum == this->get_size()[0]);
     // check number of columns
     size_type num_local_cols = this->get_local()->get_size()[1];
     auto num_local_cols_min = num_local_cols;
     auto num_local_cols_max = num_local_cols;
-    this->get_communicator().allreduce(&num_local_cols_min, 1, MPI_MIN);
-    this->get_communicator().allreduce(&num_local_cols_max, 1, MPI_MAX);
+    mpi::all_reduce(&num_local_cols_min, 1, mpi::op_type::min,
+                    this->get_communicator());
+    mpi::all_reduce(&num_local_cols_max, 1, mpi::op_type::max,
+                    this->get_communicator());
     GKO_VALIDATION_CHECK_NAMED(
         "number of columns on different nodes must match",
         num_local_cols_max == num_local_cols_min);

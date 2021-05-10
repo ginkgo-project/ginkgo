@@ -251,9 +251,10 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
     GKO_VALIDATION_CHECK(num_local_rows == diag_mtx_.get_size()[1]);
     GKO_VALIDATION_CHECK(num_local_rows == offdiag_mtx_.get_size()[0]);
     auto num_local_rows_sum = diag_mtx_.get_size()[0];
-    comm.allreduce(&num_local_rows_sum, 1);
+    mpi::all_reduce(&num_local_rows_sum, 1, mpi::op_type::sum,
+                    this->get_communicator());
     GKO_VALIDATION_CHECK(num_local_rows_sum == this->get_size()[0]);
-    const auto num_parts = comm.rank();
+    const auto num_parts = comm->rank();
     GKO_VALIDATION_CHECK(num_parts == send_sizes_.size());
     GKO_VALIDATION_CHECK(num_parts == recv_sizes_.size());
     GKO_VALIDATION_CHECK(num_parts + 1 == send_offsets_.size());
@@ -267,8 +268,8 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
         GKO_VALIDATION_CHECK(recv_sizes_[i] ==
                              recv_offsets_[i + 1] - recv_offsets_[i]);
     }
-    comm.alltoall(send_copy.data(), 1);
-    comm.alltoall(recv_copy.data(), 1);
+    mpi::all_to_all(send_copy.data(), 1, this->get_communicator());
+    mpi::all_to_all(recv_copy.data(), 1, this->get_communicator());
     GKO_VALIDATION_CHECK(send_copy == recv_sizes_);
     GKO_VALIDATION_CHECK(recv_copy == send_sizes_);
     // gather indices are in bounds
