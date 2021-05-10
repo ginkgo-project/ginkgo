@@ -2,7 +2,7 @@
 # Environment variable detection
 
 if [ ! "${BENCHMARK}" ]; then
-    BENCHMARK="spmv"
+    BENCHMARK="batch_spmv"
     echo "BENCHMARK   environment variable not set - assuming \"${BENCHMARK}\"" 1>&2
 fi
 
@@ -41,8 +41,13 @@ if [ ! "${PRECONDS}" ]; then
 fi
 
 if [ ! "${FORMATS}" ]; then
-    echo "FORMATS    environment variable not set - assuming \"csr,coo,ell,hybrid,sellp\"" 1>&2
-    FORMATS="csr,coo,ell,hybrid,sellp"
+    echo "FORMATS    environment variable not set - assuming \"batch_csr\"" 1>&2
+    FORMATS="batch_csr"
+fi
+
+if [ ! "${NUM_BATCHES}" ]; then
+    NUM_BATCHES="1"
+    echo "NUM_BATCHES environment variable not set - assuming \"${NUM_BATCHES}\"" 1>&2
 fi
 
 if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
@@ -72,7 +77,7 @@ fi
 
 if [ ! "${SYSTEM_NAME}" ]; then
     SYSTEM_NAME="unknown"
-    echo "SYSTEM_MANE environment variable not set - assuming \"${SYSTEM_NAME}\"" 1>&2
+    echo "SYSTEM_NAME environment variable not set - assuming \"${SYSTEM_NAME}\"" 1>&2
 fi
 
 if [ ! "${DEVICE_ID}" ]; then
@@ -123,7 +128,7 @@ fi
 
 if [ ! "${SOLVERS_INITIAL_GUESS}" ]; then
     SOLVERS_INITIAL_GUESS="rhs"
-    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
+    echo "SOLVERS_INITIAL_GUESS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
 fi
 
 if [ "${SOLVERS_INITIAL_GUESS}" == "random" ]; then
@@ -133,7 +138,7 @@ elif [ "${SOLVERS_INITIAL_GUESS}" == "0" ]; then
 elif [ "${SOLVERS_INITIAL_GUESS}" == "rhs" ]; then
     SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=rhs"
 else
-    echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
+    echo "SOLVERS_INITIAL_GUESS does not support the value \"${SOLVERS_INITIAL_GUESS}\"." 1>&2
     echo "The following values are supported: \"0\", \"random\" and \"rhs\"" 1>&2
     exit 1
 fi
@@ -237,6 +242,23 @@ run_spmv_benchmarks() {
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 --repetitions="${REPETITIONS}" \
                 --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
+                <"$1.imd" 2>&1 >"$1"
+    keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+}
+
+
+# Runs the SpMV benchmarks for all SpMV formats by using file $1 as the input,
+# and updating it with the results. Backups are created after each
+# benchmark run, to prevent data loss in case of a crash. Once the benchmarking
+# is completed, the backups and the results are combined, and the newest file is
+# taken as the final result.
+run_batch_spmv_benchmarks() {
+    [ "${DRY_RUN}" == "true" ] && return
+    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    ./spmv/batch_spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
+                --num_batches="${NUM_BATCHES}" \
+                --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -363,10 +385,13 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
 
     echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
     compute_matrix_statistics "${RESULT_FILE}"
-
-    echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
-
-    run_spmv_benchmarks "${RESULT_FILE}"
+    if [ "${BENCHMARK}" == "spmv" ]; then
+        echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
+        run_spmv_benchmarks "${RESULT_FILE}"
+    elif [ "${BENCHMARK}" == "batch_spmv" ]; then
+        echo -e "${PREFIX}Running Batch SpMV for ${GROUP}/${NAME}" 1>&2
+        run_batch_spmv_benchmarks "${RESULT_FILE}"
+    fi
 
     if [ "${BENCHMARK}" == "conversions" ]; then
         echo -e "${PREFIX}Running Conversion for ${GROUP}/${NAME}" 1>&2
