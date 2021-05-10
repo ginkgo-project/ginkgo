@@ -61,31 +61,54 @@ protected:
           mtx(gko::test::create_poisson1d_batch<value_type>(
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
-              nrows, nbatch)),
-          batchrich_factory(Solver::build()
-                                .with_max_iterations(def_max_iters)
-                                .with_rel_residual_tol(def_rel_res_tol)
-                                .with_preconditioner("jacobi")
-                                .with_relaxation_factor(def_relax)
-                                .on(exec)),
-          solver(batchrich_factory->generate(mtx))
+              nrows, nbatch))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     const gko::size_type nbatch = 3;
     const int nrows = 5;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<typename Solver::Factory> batchrich_factory;
-    std::unique_ptr<gko::BatchLinOp> solver;
     const int def_max_iters = 10;
     const real_type def_rel_res_tol = 1e-4;
     const real_type def_relax = 1.2;
+
+    std::unique_ptr<Solver> generate_solver()
+    {
+        auto batchrich_factory =
+            Solver::build()
+                .with_max_iterations(this->def_max_iters)
+                .with_rel_residual_tol(this->def_rel_res_tol)
+                .with_preconditioner("jacobi")
+                .with_relaxation_factor(this->def_relax)
+                .on(this->exec);
+        auto solver = batchrich_factory->generate(this->mtx);
+        return std::unique_ptr<Solver>(static_cast<Solver *>(solver.release()));
+    }
 
     void assert_size(const gko::BatchLinOp *const solver)
     {
         for (size_t i = 0; i < nbatch; i++) {
             ASSERT_EQ(solver->get_size().at(i), gko::dim<2>(nrows, nrows));
         }
+    }
+
+    // Checks equality of the matrix and parameters with defaults
+    void assert_solver_params(const Solver *const a)
+    {
+        ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
+        ASSERT_EQ(a->get_parameters().preconditioner, "jacobi");
+        ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
+        ASSERT_EQ(a->get_parameters().rel_residual_tol, def_rel_res_tol);
+    }
+
+    // Checks equality of the matrix and parameters with defaults
+    void assert_solver_with_mtx(const Solver *const a)
+    {
+        auto a_copy_mtx = a->get_system_matrix();
+        const auto a_copy_batch_mtx =
+            static_cast<const Mtx *>(a_copy_mtx.get());
+        GKO_ASSERT_BATCH_MTX_NEAR(a_copy_batch_mtx, mtx, 0.0);
+        assert_solver_params(a);
     }
 };
 
@@ -94,7 +117,10 @@ TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
 
 TYPED_TEST(BatchRich, FactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->batchrich_factory->get_executor(), this->exec);
+    using Solver = typename TestFixture::Solver;
+    auto batchrich_factory = Solver::build().on(this->exec);
+
+    ASSERT_EQ(batchrich_factory->get_executor(), this->exec);
 }
 
 
@@ -103,17 +129,10 @@ TYPED_TEST(BatchRich, FactoryCreatesCorrectSolver)
     using Solver = typename TestFixture::Solver;
     using real_type = typename TestFixture::real_type;
 
-    this->assert_size(this->solver.get());
-    auto batchrich_solver = static_cast<Solver *>(this->solver.get());
-    ASSERT_NE(batchrich_solver->get_system_matrix(), nullptr);
+    auto batchrich_solver = this->generate_solver();
+
     ASSERT_EQ(batchrich_solver->get_system_matrix(), this->mtx);
-    ASSERT_EQ(batchrich_solver->get_parameters().relaxation_factor,
-              this->def_relax);
-    ASSERT_EQ(batchrich_solver->get_parameters().preconditioner, "jacobi");
-    ASSERT_EQ(batchrich_solver->get_parameters().rel_residual_tol,
-              this->def_rel_res_tol);
-    ASSERT_EQ(batchrich_solver->get_parameters().max_iterations,
-              this->def_max_iters);
+    this->assert_solver_params(batchrich_solver.get());
 }
 
 
@@ -121,14 +140,14 @@ TYPED_TEST(BatchRich, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto copy = this->batchrich_factory->generate(Mtx::create(this->exec));
+    auto solver = this->generate_solver();
+    auto batchrich_factory = Solver::build().on(this->exec);
+    auto copy = batchrich_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(solver.get());
 
     this->assert_size(copy.get());
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+    this->assert_solver_with_mtx(static_cast<Solver *>(copy.get()));
 }
 
 
@@ -136,14 +155,15 @@ TYPED_TEST(BatchRich, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto copy = this->batchrich_factory->generate(Mtx::create(this->exec));
+    auto solver = this->generate_solver();
+    auto batchrich_factory = Solver::build().on(this->exec);
+    auto copy = batchrich_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->copy_from(std::move(solver));
 
     this->assert_size(copy.get());
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
+    this->assert_solver_with_mtx(static_cast<Solver *>(copy.get()));
+    ASSERT_EQ(solver.get(), nullptr);
 }
 
 
@@ -151,32 +171,34 @@ TYPED_TEST(BatchRich, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto clone = this->solver->clone();
+    auto solver = this->generate_solver();
+
+    auto clone = solver->clone();
 
     this->assert_size(clone.get());
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
+    this->assert_solver_with_mtx(static_cast<Solver *>(clone.get()));
 }
 
 
 TYPED_TEST(BatchRich, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
+    auto solver = this->generate_solver();
 
-    this->solver->clear();
+    solver->clear();
 
-    ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
-    ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+    ASSERT_EQ(solver->get_num_batch_entries(), 0);
+    ASSERT_EQ(solver->get_size().at(0), gko::dim<2>(0, 0));
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
 TYPED_TEST(BatchRich, ApplyUsesInitialGuessReturnsTrue)
 {
-    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+    auto solver = this->generate_solver();
+
+    ASSERT_TRUE(solver->apply_uses_initial_guess());
 }
 
 
@@ -206,12 +228,10 @@ TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
     const std::string batchrich_precond = "none";
 
     auto batchrich_factory =
-        Solver::build().with_max_iterations(3).with_preconditioner("none").on(
-            this->exec);
+        Solver::build().with_preconditioner(batchrich_precond).on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
     auto precond = solver->get_parameters().preconditioner;
 
-    ASSERT_NE(precond, "");
     ASSERT_EQ(precond, batchrich_precond);
 }
 
@@ -232,10 +252,11 @@ TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
+    auto batchrich_factory = Solver::build().on(this->exec);
     std::shared_ptr<Mtx> rectangular_mtx =
         Mtx::create(this->exec, 2, gko::dim<2>{3, 5}, 3);
 
-    ASSERT_THROW(this->batchrich_factory->generate(rectangular_mtx),
+    ASSERT_THROW(batchrich_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
 }
 
