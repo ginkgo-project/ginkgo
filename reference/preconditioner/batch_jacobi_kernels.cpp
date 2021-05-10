@@ -57,9 +57,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
-    int *const pattern{};
-    prepare_jacobi(a_ub, pattern);
-    BatchJacobi<ValueType> prec(pattern);
+    BatchJacobi<ValueType> prec;
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);

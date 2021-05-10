@@ -130,3 +130,22 @@ __device__ __forceinline__ void batch_scale(
         a.values[row * a.stride + col] *= scale_vec.values[row];
     }
 }
+
+/**
+ * Copies the values of one multi-vector into another.
+ *
+ * Note that the output multi-vector should already have memory allocated
+ * and stride set.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &in,
+    const gko::batch_dense::BatchEntry<ValueType> &out)
+{
+    for (int iz = threadIdx.x; iz < in.num_rows * in.num_rhs;
+         iz += blockDim.x) {
+        const int i = iz / in.num_rhs;
+        const int j = iz % in.num_rhs;
+        out.values[i * out.stride + j] = in.values[i * in.stride + j];
+    }
+}
