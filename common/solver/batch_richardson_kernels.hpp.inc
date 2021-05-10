@@ -110,11 +110,7 @@ __global__ void apply_kernel(
         prec.generate(a_b, prec_work);
 
         // initial residual
-        for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
-            const int i = iz / num_rhs;
-            const int j = iz % num_rhs;
-            r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
-        }
+        copy(b_b, r_b);
         compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
         __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
@@ -131,12 +127,7 @@ __global__ void apply_kernel(
             //     static_cast<ValueType>(1.0), r_b);
 
             // r <- b - Ax
-            for (int iz = threadIdx.x; iz < num_rows * num_rhs;
-                 iz += blockDim.x) {
-                const int i = iz / num_rhs;
-                const int j = iz % num_rhs;
-                r_b.values[i * r_b.stride + j] = b_b.values[i * b_b.stride + j];
-            }
+            copy(b_b, r_b);
             __syncthreads();
             advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
                                  gko::batch::to_const(x_b),
