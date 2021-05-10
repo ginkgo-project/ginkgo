@@ -70,8 +70,8 @@ static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
+    const gko::batch_dense::UniformBatch<const ValueType> &left_scale,
+    const gko::batch_dense::UniformBatch<const ValueType> &right_scale,
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
@@ -80,21 +80,22 @@ static void apply_impl(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+    constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
     const auto stride = b.stride;
 
     GKO_ASSERT((nrhs == x.num_rhs));
-    GKO_ASSERT((batch_config<ValueType>::max_num_rows >= nrows * nrhs));
+    GKO_ASSERT((max_nrows * max_nrhs >= nrows * nrhs));
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        ValueType residual[batch_config<ValueType>::max_num_rows];
-        ValueType delta_x[batch_config<ValueType>::max_num_rows];
+        ValueType residual[max_nrows * max_nrhs];
+        ValueType delta_x[max_nrows * max_nrhs];
         ValueType prec_work[PrecType::work_size];
         uint32 converged = 0;
 
-        const auto left_b = gko::batch::batch_entry(left, ibatch);
-        const auto right_b = gko::batch::batch_entry(right, ibatch);
+        const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
+        const auto right_b = gko::batch::batch_entry(right_scale, ibatch);
 
-        if (left.values) {
+        if (left_scale.values) {
             const auto a_b = gko::batch::batch_entry(a, ibatch);
             const auto b_b = gko::batch::batch_entry(b, ibatch);
             batch_scale(left_b, right_b, a_b);
@@ -137,7 +138,7 @@ static void apply_impl(
 
         real_type init_rel_res_norm[max_nrhs];
         for (int j = 0; j < nrhs; j++) {
-            init_rel_res_norm[j] = sqrt(norms_b.values[j]);
+            init_rel_res_norm[j] = norms_b.values[j];
         }
 
         StopType stop(nrhs, opts.max_its, opts.rel_residual_tol, converged,
@@ -161,9 +162,9 @@ static void apply_impl(
                                  static_cast<ValueType>(1.0), r_b);
 
             batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
-            for (int j = 0; j < nrhs; j++) {
-                norms_b.values[j] = sqrt(norms_b.values[j]);
-            }
+            // for (int j = 0; j < nrhs; j++) {
+            //     norms_b.values[j] = sqrt(norms_b.values[j]);
+            // }
 
             const bool all_converged =
                 stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
@@ -189,7 +190,7 @@ static void apply_impl(
             iter++;
         }
 
-        if (left.values) {
+        if (left_scale.values) {
             batch_dense::batch_scale(right_b, x_b);
         }
     }

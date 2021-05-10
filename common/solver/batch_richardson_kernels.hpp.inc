@@ -36,11 +36,16 @@ __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> rel_tol,
     const gko::remove_complex<ValueType> relax_factor, LogType logger,
     PrecType prec, const MatrixType mat,
-    const gko::batch_dense::UniformBatch<const ValueType> left,
-    const gko::batch_dense::UniformBatch<const ValueType> right,
+    const gko::batch_dense::UniformBatch<const ValueType> left_scale,
+    const gko::batch_dense::UniformBatch<const ValueType> right_scale,
     const gko::batch_dense::UniformBatch<ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
+    static_assert(
+        std::is_same<typename MatrixType::value_type, ValueType>::value,
+        "Inconsistent value type of matrix type!");
+    static_assert(std::is_same<typename PrecType::value_type, ValueType>::value,
+                  "Inconsistent value type of preconditioner!");
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = mat.num_batch;
     const auto num_rows = mat.num_rows;
@@ -48,7 +53,7 @@ __global__ void apply_kernel(
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
     constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
 
-    if (batch_config<ValueType>::max_num_rows < num_rows * num_rhs) {
+    if (max_nrows * max_nrhs < num_rows * num_rhs) {
         if (blockIdx.x == 0 && threadIdx.x == 0) {
             printf(" Static vector size not enough!\n");
         }
@@ -64,16 +69,16 @@ __global__ void apply_kernel(
         // ValueType *const delta_x = delta_x_un;
         // ValueType *const prec_work = prec_work_un;
 
-        __shared__ ValueType residual[max_nrows];
-        __shared__ ValueType delta_x[max_nrows];
+        __shared__ ValueType residual[max_nrows * max_nrhs];
+        __shared__ ValueType delta_x[max_nrows * max_nrhs];
         __shared__ ValueType prec_work[PrecType::work_size];
 
         uint32 converged = 0;
 
-        const auto left_b = gko::batch::batch_entry(left, ibatch);
-        const auto right_b = gko::batch::batch_entry(right, ibatch);
+        const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
+        const auto right_b = gko::batch::batch_entry(right_scale, ibatch);
 
-        if (left.values) {
+        if (left_scale.values) {
             const auto a_b = gko::batch::batch_entry(mat, ibatch);
             const auto b_b = gko::batch::batch_entry(b, ibatch);
             batch_scale(left_b, right_b, a_b);
@@ -171,7 +176,7 @@ __global__ void apply_kernel(
             iter++;
         }
 
-        if (left.values) {
+        if (left_scale.values) {
             batch_scale(right_b, x_b);
         }
     }

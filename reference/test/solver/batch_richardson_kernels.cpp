@@ -64,12 +64,12 @@ protected:
           xex_m(gko::batch_initialize<BDense>(
               nbatch,
               std::initializer_list<std::initializer_list<value_type>>{
-                  {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
+                  {1.0, 1.0}, {3.0, -2.0}, {2.0, 2.5}},
               exec)),
           b_m(gko::batch_initialize<BDense>(
               nbatch,
               std::initializer_list<std::initializer_list<value_type>>{
-                  {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
+                  {-1.0, 4.0}, {3.0, -7.5}, {1.0, 7.0}},
               exec))
     {
         bnorm_1 = gko::batch_initialize<RBDense>(nbatch, {0.0}, exec);
@@ -87,13 +87,13 @@ protected:
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{"jacobi", 500, 1e-6, 1.0};
+    const Options opts_1{"jacobi", 500, r<real_type>::value, 1.0};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{"jacobi", 100, 1e-6, 1.0};
+    const Options opts_m{"jacobi", 1000, r<real_type>::value, 1.0};
 
     struct Result {
         std::shared_ptr<BDense> x;
@@ -142,9 +142,9 @@ protected:
     int single_iters_regression() const
     {
         if (std::is_same<real_type, float>::value) {
-            return 50;
+            return 40;
         } else if (std::is_same<real_type, double>::value) {
-            return 80;
+            return 98;
         } else {
             return -1;
         }
@@ -187,11 +187,11 @@ protected:
     {
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
-            iters[0] = 50;
-            iters[1] = 63;
+            iters[0] = 40;
+            iters[1] = 40;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 80;
-            iters[1] = 79;
+            iters[0] = 98;
+            iters[1] = 98;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -214,7 +214,7 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
                               1e-6 /*r<value_type>::value*/);
 }
 
-TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
+TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsSameAsBefore)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -230,10 +230,10 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
         ASSERT_EQ(iter_array[i], ref_iters);
         ASSERT_LE(res_log_array[i] / this->bnorm_1->get_const_values()[i],
                   this->opts_1.rel_residual_tol);
-        // The following is satisfied for float but not for double - why?
-        // ASSERT_NEAR(res_log_array[i]/bnorm_1->get_const_values()[i],
-        // 			r_1.resnorm->get_const_values()[i]/bnorm_1->get_const_values()[i],
-        // 10*r<value_type>::value);
+        ASSERT_NEAR(res_log_array[i] / this->bnorm_1->get_const_values()[i],
+                    this->r_1.resnorm->get_const_values()[i] /
+                        this->bnorm_1->get_const_values()[i],
+                    10 * r<value_type>::value);
     }
 }
 
@@ -253,7 +253,7 @@ TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
 }
 
 
-TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
+TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsSameAsBefore)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -271,10 +271,10 @@ TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
             ASSERT_LE(res_log_array[i * this->nrhs + j] /
                           this->bnorm_m->get_const_values()[i * this->nrhs + j],
                       this->opts_m.rel_residual_tol);
-            // The following is satisfied for float but not for double - why?
-            // ASSERT_NEAR(res_log_array[i]/bnorm->get_const_values()[i],
-            // 			rnorm->get_const_values()[i]/bnorm->get_const_values()[i],
-            // 10*r<value_type>::value);
+            ASSERT_NEAR(res_log_array[i] / this->bnorm_m->get_const_values()[i],
+                        this->r_m.resnorm->get_const_values()[i] /
+                            this->bnorm_m->get_const_values()[i],
+                        10 * r<value_type>::value);
         }
     }
 }
@@ -285,8 +285,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{"jacobi", 1000, 1e-6, 1.0};
-    const Options opts_slower{"jacobi", 1000, 1e-6, 0.8};
+    const Options opts{"jacobi", 1000, 1e-8, 1.0};
+    const Options opts_slower{"jacobi", 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -332,7 +332,8 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    const Options opts{"jacobi", 1000, 1e-6, 1.0};
+    // const Options opts{"jacobi", 1000, 5e-7, 1.0};
+    const Options opts = this->opts_1;
 
     Result result = this->solve_poisson_uniform_1(opts, left_scale.get(),
                                                   right_scale.get());
@@ -343,7 +344,7 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
                   opts.rel_residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-                              1e-6 /*r<value_type>::value*/);
+                              1e-5 /*r<value_type>::value*/);
 }
 
 
