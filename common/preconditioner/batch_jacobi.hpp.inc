@@ -37,6 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 class BatchJacobi final {
 public:
+    using value_type = ValueType;
+
     /**
      * The size of the work vector required in case of static allocation.
      */
