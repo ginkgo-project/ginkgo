@@ -83,8 +83,7 @@ __device__ __forceinline__ void compute_norm2(
         result.values[j] = zero<remove_complex<ValueType>>();
     }
     __syncthreads();
-    // TODO: put a parallel reduce here
-    __syncthreads();
+    // TODO: replace this with a parallel reduce below
     if (threadIdx.x == 0) {
         for (int i = 0; i < x.num_rows; i++) {
             for (int j = 0; j < x.num_rhs; ++j) {
@@ -121,7 +120,7 @@ __global__
  * One thread is assigned to each entry.
  */
 template <typename ValueType>
-__device__ void batch_scale(
+__device__ __forceinline__ void batch_scale(
     const gko::batch_dense::BatchEntry<const ValueType> &scale_vec,
     const gko::batch_dense::BatchEntry<ValueType> &a)
 {
@@ -131,4 +130,3 @@ __device__ void batch_scale(
         a.values[row * a.stride + col] *= scale_vec.values[row];
     }
 }
-
