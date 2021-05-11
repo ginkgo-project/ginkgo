@@ -135,7 +135,6 @@ set(GINKGO_OPENMP_LIBRARIES @OpenMP_CXX_LIBRARIES@)
 
 set(GINKGO_OPENMP_FLAGS "@OpenMP_CXX_FLAGS@")
 
-
 #MPI
 set(GINKGO_MPI_VERSION @MPI_VERSION@)
 set(GINKGO_MPI_C_COMPILER @MPI_C_COMPILER@)
@@ -143,6 +142,7 @@ set(GINKGO_MPI_CXX_COMPILER @MPI_CXX_COMPILER@)
 set(GINKGO_MPI_mpi_LIBRARY @MPI_mpi_LIBRARY@)
 set(GINKGO_MPIEXEC_EXECUTABLE @MPIEXEC_EXECUTABLE@)
 set(GINKGO_MPIEXEC_NUMPROC_FLAG @MPIEXEC_NUMPROC_FLAG@)
+
 
 # NOTE: we do not export benchmarks, examples, tests or devel tools
 #     so `third_party` libraries are currently unneeded.
