@@ -282,9 +282,6 @@ endif()
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
-if(GINKGO_BUILD_HIP)
-    add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
-endif()
 if (GINKGO_BUILD_DPCPP)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
