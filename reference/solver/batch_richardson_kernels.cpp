@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_richardson_kernels.hpp"
 
 
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-
-
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
 #include "reference/log/batch_logger.hpp"
@@ -195,7 +192,7 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
+    if (opts.preconditioner == gko::preconditioner::batch::jacobi) {
         BatchJacobi<ValueType> prec;
         apply_impl<stop::RelResidualMaxIter<ValueType>>(
             exec, opts, logger, prec, a, left, right, b, x);

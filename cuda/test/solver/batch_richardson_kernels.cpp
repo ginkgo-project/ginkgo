@@ -48,6 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+namespace gpb = gko::preconditioner::batch;
+
+
 template <typename T>
 class BatchRich : public ::testing::Test {
 protected:
@@ -79,9 +82,9 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{"jacobi", 500, r<real_type>::value, 1.0};
+    const Options opts_1{gpb::jacobi, 500, r<real_type>::value, 1.0};
     const int nrhs = 2;
-    const Options opts_m{"jacobi", 500, r<real_type>::value, 1.0};
+    const Options opts_m{gpb::jacobi, 500, r<real_type>::value, 1.0};
 
     struct LinSys {
         std::unique_ptr<Mtx> mtx;
@@ -362,8 +365,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{"jacobi", 1000, 1e-8, 1.0};
-    const Options opts_slower{"jacobi", 1000, 1e-8, 0.8};
+    const Options opts{gpb::jacobi, 1000, 1e-8, 1.0};
+    const Options opts_slower{gpb::jacobi, 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -390,7 +393,7 @@ TYPED_TEST(BatchRich, CoreSolvesSystemJacobi)
         Solver::build()
             .with_max_iterations(100)
             .with_rel_residual_tol(5e-7f)
-            .with_preconditioner("jacobi")
+            .with_preconditioner(gpb::jacobi)
             .on(useexec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
@@ -451,7 +454,6 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
         {{0.8, 0.9, 0.95}, {1.1, 3.2, 0.9}}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    // const Options opts{"jacobi", 1000, 2*r<value_type>::value, 1.0};
 
     Result result = this->solve_poisson_uniform_1(
         this->opts_1, left_scale.get(), right_scale.get());

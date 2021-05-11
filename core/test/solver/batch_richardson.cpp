@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+namespace gpb = gko::preconditioner::batch;
+
+
 template <typename T>
 class BatchRich : public ::testing::Test {
 protected:
@@ -78,7 +81,7 @@ protected:
             Solver::build()
                 .with_max_iterations(this->def_max_iters)
                 .with_rel_residual_tol(this->def_rel_res_tol)
-                .with_preconditioner("jacobi")
+                .with_preconditioner(gpb::jacobi)
                 .with_relaxation_factor(this->def_relax)
                 .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
@@ -96,7 +99,7 @@ protected:
     void assert_solver_params(const Solver *const a)
     {
         ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
-        ASSERT_EQ(a->get_parameters().preconditioner, "jacobi");
+        ASSERT_EQ(a->get_parameters().preconditioner, gpb::jacobi);
         ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
         ASSERT_EQ(a->get_parameters().rel_residual_tol, def_rel_res_tol);
     }
@@ -225,7 +228,7 @@ TYPED_TEST(BatchRich, CanSetCriteria)
 TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;
-    const std::string batchrich_precond = "none";
+    const gpb::Type batchrich_precond = gpb::none;
 
     auto batchrich_factory =
         Solver::build().with_preconditioner(batchrich_precond).on(this->exec);
@@ -233,18 +236,6 @@ TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
     auto precond = solver->get_parameters().preconditioner;
 
     ASSERT_EQ(precond, batchrich_precond);
-}
-
-
-TYPED_TEST(BatchRich, ThrowsOnWrongPreconditionerInFactory)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    std::string unavailable_prec = "smoothed_aggregation";
-    auto batchrich_factory =
-        Solver::build().with_preconditioner(unavailable_prec).on(this->exec);
-
-    ASSERT_THROW(batchrich_factory->generate(this->mtx), gko::NotImplemented);
 }
 
 
@@ -267,12 +258,12 @@ TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
 
 //     auto batchrich_factory =
 //         Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
-// 		.with_relaxation_factor(2.0f).with_preconditioner("none").on(this->exec);
+// 		.with_relaxation_factor(2.0f).with_preconditioner(gpb::none).on(this->exec);
 //     auto solver = batchrich_factory->generate(this->mtx);
 // 	auto solver_trans = gko::as<Solver>(solver->transpose());
 // 	auto params = solver_trans->get_parameters();
 
-// 	ASSERT_EQ(params.preconditioner, "none");
+// 	ASSERT_EQ(params.preconditioner, gpb::none);
 // 	ASSERT_EQ(params.max_iterations, 3);
 // 	ASSERT_EQ(params.rel_residual_tol, 0.25);
 // 	ASSERT_EQ(params.relaxation_factor, 2.0);
