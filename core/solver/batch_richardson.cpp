@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
 #include "core/solver/batch_richardson_kernels.hpp"
