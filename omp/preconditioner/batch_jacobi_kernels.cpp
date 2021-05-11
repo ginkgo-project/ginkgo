@@ -30,12 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
 
+#include <ginkgo/core/matrix/batch_csr.hpp>
+
+
 #include "core/matrix/batch_struct.hpp"
-#include "ginkgo/core/matrix/batch_csr.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 

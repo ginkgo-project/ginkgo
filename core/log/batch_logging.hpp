@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #ifndef GKO_CORE_LOG_BATCH_LOGGING_HPP_
 #define GKO_CORE_LOG_BATCH_LOGGING_HPP_
 
@@ -66,4 +65,4 @@ struct BatchLogData {
 }  // namespace log
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_LOG_BATCH_LOGGING_HPP_
