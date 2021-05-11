@@ -563,39 +563,33 @@ build/amd/clang/hip_wo_omp/release/shared:
 # mpi job test debug shared
 build/nocuda/gcc/mpi/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  extends:
+    - .quick_test_condition
+    - .use_gko-nocuda-gnu9-llvm8-intel
   variables:
     <<: *default_variables
     BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "ON"
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cpu
 
 # mpi job test release static
 build/nocuda/gcc/mpi/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  extends:
+    - .full_test_condition
+    - .use_gko-nocuda-gnu9-llvm8-intel
   variables:
     <<: *default_variables
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cpu
 
 # mpi job with cuda 10.2
 build/cuda100/mpi/gcc/all/debug/shared:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
+  <<: *default_build
+  extends:
+    - .quick_test_condition
+    - .use_gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -603,14 +597,8 @@ build/cuda100/mpi/gcc/all/debug/shared:
     BUILD_MPI: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
     CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
 
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
