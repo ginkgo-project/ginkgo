@@ -31,26 +31,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_STRINGS_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_STRINGS_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_TYPES_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_TYPES_HPP_
+
+
+#include <string>
+
 
 namespace gko {
 namespace preconditioner {
 namespace batch {
 
 
+/**
+ * Types of batch preconditioners available.
+ */
+enum Type { none, jacobi };
+
+
 const char none_str[] = "none";
 const char jacobi_str[] = "jacobi";
 
 
-inline bool is_valid_preconditioner_string(const std::string preconditioner)
+/**
+ * Get a string name of an available batch preconditioner type.
+ */
+inline std::string get_string_of(Type type)
 {
-    if (preconditioner == none_str) {
-        return true;
-    } else if (preconditioner == jacobi_str) {
-        return true;
+    if (type == none) {
+        return none_str;
+    } else {
+        return jacobi_str;
     }
-    return false;
 }
 
 
