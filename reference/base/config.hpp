@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #ifndef GKO_REFERENCE_BASE_CONFIG_HPP_
 #define GKO_REFERENCE_BASE_CONFIG_HPP_
 
@@ -62,4 +61,4 @@ struct batch_config {
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_CONFIG_HPP_
+#endif  // GKO_REFERENCE_BASE_CONFIG_HPP_
