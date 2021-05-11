@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
+#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 
 
 namespace gko {
@@ -115,7 +115,8 @@ public:
         /**
          * Inner preconditioner descriptor.
          */
-        std::string GKO_FACTORY_PARAMETER_SCALAR(preconditioner, "jacobi");
+        preconditioner::batch::Type GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, preconditioner::batch::jacobi);
 
         /**
          * Maximum number iterations allowed.
@@ -153,10 +154,6 @@ protected:
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-        if (!preconditioner::batch::is_valid_preconditioner_string(
-                parameters_.preconditioner)) {
-            GKO_NOT_IMPLEMENTED;
-        }
     }
 
 private:
