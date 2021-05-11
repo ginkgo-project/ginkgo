@@ -165,4 +165,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_IR_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_BATCH_RICHARDSON_HPP_

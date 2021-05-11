@@ -217,7 +217,7 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
     const auto left_ub = get_batch_struct(left_scale);
     const auto right_ub = get_batch_struct(right_scale);
 
-    const int num_blocks = exec->get_num_multiprocessor();
+    const int num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     uniform_batch_scale<<<num_blocks, default_block_size>>>(left_ub, right_ub,
                                                             m_ub);
 }
