@@ -30,10 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "reference/stop/batch_criteria.hpp"
-
-
 #include <gtest/gtest.h>
 
 
@@ -44,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
+#include "reference/stop/batch_criteria.hpp"
 
 
 namespace {
