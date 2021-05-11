@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/batch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
-#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
