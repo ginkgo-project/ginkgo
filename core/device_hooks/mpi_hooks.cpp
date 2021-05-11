@@ -95,8 +95,8 @@ bool communicator::compare(const MPI_Comm &comm) const GKO_NOT_COMPILED(mpi);
 
 template <typename ValueType>
 window<ValueType>::window(ValueType *base, unsigned int size,
-                          const int disp_unit, info input_info,
                           std::shared_ptr<const communicator> comm,
+                          const int disp_unit, info input_info,
                           win_type create_type) GKO_NOT_COMPILED(mpi);
 
 
