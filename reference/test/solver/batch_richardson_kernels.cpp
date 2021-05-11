@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+namespace gpb = gko::preconditioner::batch;
+
+
 template <typename T>
 class BatchRich : public ::testing::Test {
 protected:
@@ -87,13 +90,13 @@ protected:
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{"jacobi", 500, r<real_type>::value, 1.0};
+    const Options opts_1{gpb::jacobi, 500, r<real_type>::value, 1.0};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{"jacobi", 1000, r<real_type>::value, 1.0};
+    const Options opts_m{gpb::jacobi, 1000, r<real_type>::value, 1.0};
 
     struct Result {
         std::shared_ptr<BDense> x;
@@ -285,8 +288,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{"jacobi", 1000, 1e-8, 1.0};
-    const Options opts_slower{"jacobi", 1000, 1e-8, 0.8};
+    const Options opts{gpb::jacobi, 1000, 1e-8, 1.0};
+    const Options opts_slower{gpb::jacobi, 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -332,7 +335,6 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    // const Options opts{"jacobi", 1000, 5e-7, 1.0};
     const Options opts = this->opts_1;
 
     Result result = this->solve_poisson_uniform_1(opts, left_scale.get(),
