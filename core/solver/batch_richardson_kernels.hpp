@@ -130,4 +130,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CORE_SOLVER_BATCH_RICHARDSON_KERNELS_HPP_

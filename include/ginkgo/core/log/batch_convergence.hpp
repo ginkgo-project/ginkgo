@@ -143,4 +143,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_LOG_CONVERGENCE_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_BATCH_CONVERGENCE_HPP_
