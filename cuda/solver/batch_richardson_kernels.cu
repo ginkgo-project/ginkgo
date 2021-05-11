@@ -61,16 +61,12 @@ namespace batch_rich {
 
 
 #include "common/components/uninitialized_array.hpp.inc"
-
-
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
-
-
 #include "common/solver/batch_richardson_kernels.hpp.inc"
+#include "common/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>
