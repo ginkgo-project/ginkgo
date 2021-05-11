@@ -219,4 +219,4 @@ inline void copy(const gko::batch_dense::BatchEntry<const ValueType> &in,
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
