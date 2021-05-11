@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -51,7 +52,7 @@ namespace batch_rich {
  */
 template <typename RealType>
 struct BatchRichardsonOptions {
-    std::string preconditioner;
+    preconditioner::batch::Type preconditioner;
     int max_its;
     RealType rel_residual_tol;
     RealType relax_factor;

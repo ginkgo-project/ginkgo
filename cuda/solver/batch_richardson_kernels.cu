@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
 #include "cuda/base/config.hpp"
@@ -91,7 +90,7 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
 
-    if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
+    if (opts.preconditioner == gko::preconditioner::batch::jacobi) {
         BatchJacobi<ValueType> prec;
         apply_kernel<stop::RelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size>>>(
