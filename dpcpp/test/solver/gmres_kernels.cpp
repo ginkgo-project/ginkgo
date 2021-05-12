@@ -57,7 +57,11 @@ namespace {
 
 class Gmres : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using norm_type = gko::remove_complex<value_type>;

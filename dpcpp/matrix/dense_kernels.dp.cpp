@@ -1129,7 +1129,7 @@ template <typename ValueType>
 void scale(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
 {
-    if (0) {
+    if (x->get_size()[1] == 1) {
         oneapi::mkl::blas::row_major::scal(
             *exec->get_queue(), x->get_size()[0] * x->get_size()[1],
             exec->copy_val_to_host(alpha->get_const_values()), x->get_values(),
@@ -1157,7 +1157,7 @@ void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
-    if (0) {
+    if (x->get_size()[1] == 1) {
         oneapi::mkl::blas::row_major::axpy(
             *exec->get_queue(), x->get_size()[0],
             exec->copy_val_to_host(alpha->get_const_values()),
@@ -1230,7 +1230,7 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
-    if (0) {
+    if (1) {
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             dot(*exec->get_queue(), x->get_size()[0],
@@ -1273,7 +1273,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType> *x,
                    matrix::Dense<remove_complex<ValueType>> *result)
 {
-    if (0) {
+    if (1) {
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             oneapi::mkl::blas::row_major::nrm2(
                 *exec->get_queue(), x->get_size()[0],
