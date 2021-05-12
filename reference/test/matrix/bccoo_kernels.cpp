@@ -69,8 +69,8 @@ protected:
     Bccoo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
         // clang-format off
-        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
-                                     {0.0, 5.0, 0.0}}, exec);
+//        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
+//                                     {0.0, 5.0, 0.0}}, exec);
         // clang-format on
         uns_mtx = gko::clone(exec, mtx);
         auto cols = uns_mtx->get_col_idxs();
