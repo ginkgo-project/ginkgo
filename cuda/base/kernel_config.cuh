@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,68 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_CONFIG_HPP_
-#define GKO_CUDA_BASE_CONFIG_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
-
+#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
+#define GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
 
 #include "cuda/base/math.hpp"
-
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint32;
-
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 32;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The maximal number of threads allowed in a CUDA warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
-
-
+/**
+ * Set shared memory bank configuration.
+ *
+ * \tparam ValueType  The scalar type used for computations.
+ */
 template <typename ValueType>
-struct batch_config {
-    /**
-     * Max number of rows per matrix in a batch of (small) sparse matrices.
-     */
-    static constexpr int max_num_rows = 128;
-
-    /**
-     * Max number of RHS vectors in a linear system. This can be at most
-     * `config::warp_size`.
-     */
-    static constexpr int max_num_rhs = 5;
-};
+inline void configure_shared_memory()
+{
+    if (sizeof(ValueType) == 4) {
+        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
+    } else if (sizeof(ValueType) % 8 == 0) {
+        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+    }
+}
 
 
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
-
-#endif  // GKO_CUDA_BASE_CONFIG_HPP_
+#endif
