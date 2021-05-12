@@ -51,9 +51,10 @@ public:
      * part of a 'batch preconditioner interface' because other preconditioners
      * may need it.
      */
-    static constexpr int dynamic_work_size(int, int)
+    __host__ __device__ static constexpr int dynamic_work_size(
+        const int num_rows, int)
     {
-        return batch_config<ValueType>::max_num_rows;
+        return num_rows;
     }
 
     /**
@@ -116,7 +117,9 @@ __global__ void batch_jacobi(
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
 
-        __shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        extern __shared__ char local_mem[];
+        const auto prec_work = reinterpret_cast<ValueType *>(local_mem);
         prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }
