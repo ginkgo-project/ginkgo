@@ -30,10 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
-#define GKO_CUDA_BASE_KERNEL_CONFIG_HPP_
+#ifndef GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
+#define GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
+
 
 #include "cuda/base/math.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -60,4 +62,4 @@ inline void configure_shared_memory()
 }  // namespace kernels
 }  // namespace gko
 
-#endif
+#endif  // GKO_CUDA_BASE_KERNEL_CONFIG_CUH_
