@@ -47,7 +47,6 @@ void BatchConvergence<ValueType>::on_batch_solver_completed(
     const Array<int> &num_iterations,
     const BatchLinOp *const residual_norm) const
 {
-    using Vector = matrix::BatchDense<ValueType>;
     using NormVector = matrix::BatchDense<real_type>;
     this->num_iterations_ = num_iterations;
     auto res_norm = as<NormVector>(residual_norm);
