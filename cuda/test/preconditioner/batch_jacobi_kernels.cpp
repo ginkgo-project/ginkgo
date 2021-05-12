@@ -50,19 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-// template <typename T>
-// std::enable_if_t<!gko::is_complex<T>(), std::complex<T>>
-// get_num(std::complex<T>)
-// {
-//     return {5.0, 1.5};
-// }
-
-// template <typename T>
-// std::enable_if_t<!gko::is_complex<T>(), T> get_num(T)
-// {
-//     return 5.0;
-// }
-
 template <typename T>
 std::complex<T> get_num(std::complex<T>)
 {
