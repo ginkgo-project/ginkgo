@@ -48,6 +48,7 @@ namespace kernels {
 namespace cuda {
 
 
+#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
@@ -86,12 +87,22 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
 
+    gko::kernels::cuda::configure_shared_memory<ValueType>();
+
     if (opts.preconditioner == gko::preconditioner::batch::jacobi) {
-        BatchJacobi<ValueType> prec;
+        const int shared_size =
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+            gko::kernels::batch_rich::local_memory_requirement<ValueType>(
+                a.num_rows, a.num_nnz, b.num_rhs) +
+            BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
+                sizeof(ValueType);
+#else
+            0;
+#endif
         apply_kernel<stop::RelResidualMaxIter<ValueType>>
-            <<<nbatch, default_block_size>>>(
+            <<<nbatch, default_block_size, shared_size>>>(
                 opts.max_its, opts.rel_residual_tol, opts.relax_factor, logger,
-                prec, a, left, right, b, x);
+                BatchJacobi<ValueType>(), a, left, right, b, x);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
