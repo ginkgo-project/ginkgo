@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/log/batch_logging.hpp"
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -57,6 +58,15 @@ struct BatchRichardsonOptions {
     RealType rel_residual_tol;
     RealType relax_factor;
 };
+
+
+template <typename ValueType>
+inline int local_memory_requirement(const int num_rows, const int num_nz,
+                                    const int num_rhs)
+{
+    return (2 * num_rows * num_rhs) * sizeof(ValueType) +
+           2 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+}
 
 
 #define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)                  \
