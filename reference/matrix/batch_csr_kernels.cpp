@@ -63,7 +63,7 @@ namespace batch_csr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const ReferenceExecutor> exec,
+void spmv(std::shared_ptr<const ReferenceExecutor>,
           const matrix::BatchCsr<ValueType, IndexType> *const a,
           const matrix::BatchDense<ValueType> *const b,
           matrix::BatchDense<ValueType> *const c)
@@ -84,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+void advanced_spmv(std::shared_ptr<const ReferenceExecutor>,
                    const matrix::BatchDense<ValueType> *const alpha,
                    const matrix::BatchCsr<ValueType, IndexType> *const a,
                    const matrix::BatchDense<ValueType> *const b,
@@ -112,7 +112,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
+void batch_scale(std::shared_ptr<const ReferenceExecutor>,
                  const matrix::BatchDense<ValueType> *const left_scale,
                  const matrix::BatchDense<ValueType> *const right_scale,
                  matrix::BatchCsr<ValueType, IndexType> *const mat)
