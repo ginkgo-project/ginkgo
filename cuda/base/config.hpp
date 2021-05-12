@@ -89,6 +89,22 @@ struct batch_config {
 };
 
 
+/**
+ * Set shared memory bank configuration.
+ *
+ * \tparam ValueType  The scalar type used for computations.
+ */
+template <typename ValueType>
+inline void configure_shared_memory()
+{
+    if (sizeof(ValueType) == 4) {
+        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);
+    } else if (sizeof(ValueType) % 8 == 0) {
+        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+    }
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
