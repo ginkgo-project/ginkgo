@@ -50,14 +50,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+// template <typename T>
+// std::enable_if_t<!gko::is_complex<T>(), std::complex<T>>
+// get_num(std::complex<T>)
+// {
+//     return {5.0, 1.5};
+// }
+
+// template <typename T>
+// std::enable_if_t<!gko::is_complex<T>(), T> get_num(T)
+// {
+//     return 5.0;
+// }
+
 template <typename T>
-std::enable_if_t<gko::is_complex<T>(), T> get_num()
+std::complex<T> get_num(std::complex<T>)
 {
     return {5.0, 1.5};
 }
 
 template <typename T>
-std::enable_if_t<!gko::is_complex<T>(), T> get_num()
+T get_num(T)
 {
     return 5.0;
 }
@@ -91,8 +104,8 @@ protected:
                     for (size_t ibatch = 0; ibatch < nbatch; ibatch++) {
                         // TODO: take care of any padding here
                         const size_t valpos = iz + ibatch * nnz;
-                        vals[valpos] = get_num<value_type>() +
-                                       static_cast<T>(std::sin(irow));
+                        vals[valpos] =
+                            get_num(T{}) + static_cast<T>(std::sin(irow));
                     }
                 }
             }
