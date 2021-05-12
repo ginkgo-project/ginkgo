@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "reference/base/config.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
@@ -75,14 +76,12 @@ public:
                        const real_type rel_res_tol,
                        bitset_type &converge_bitset,
                        const real_type *const rhs_b_norms)
-        : nrhs{num_rhs},
-          rel_tol{rel_res_tol},
-          max_its{max_iters},
-          rhs_norms{rhs_b_norms}
+        : nrhs_{num_rhs},
+          rel_tol_{rel_res_tol},
+          max_its_{max_iters},
+          rhs_norms_{rhs_b_norms}
     {
-        if (nrhs > 32) {
-            printf("Batch stopping criterion: Too many right hand sides!\n");
-        }
+        GKO_ENSURE_IN_BOUNDS(nrhs_, 32);
         converge_bitset = 0 - (1 << num_rhs);
     }
 
@@ -103,20 +102,21 @@ public:
         const gko::batch_dense::BatchEntry<const ValueType> &residual,
         bitset_type &converged) const
     {
-        if (iter >= max_its - 1) {
+        if (iter >= max_its_ - 1) {
             return true;
         }
 
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            real_type norms[32];
+            constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+            real_type norms[max_nrhs];
             batch_dense::compute_norm2<ValueType>(residual,
-                                                  {norms, 32, 1, nrhs});
+                                                  {norms, max_nrhs, 1, nrhs_});
             check_norms(norms, converged);
         }
 
-        if (converged == all_true) {
+        if (converged == all_true_) {
             return true;
         } else {
             return false;
@@ -124,17 +124,17 @@ public:
     }
 
 private:
-    int nrhs;
-    int max_its;
-    const real_type rel_tol;
-    const real_type *const rhs_norms;
-    static constexpr uint32 all_true = 0xffffffff;
+    int nrhs_;
+    int max_its_;
+    const real_type rel_tol_;
+    const real_type *const rhs_norms_;
+    static constexpr uint32 all_true_ = 0xffffffff;
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const
     {
-        for (int i = 0; i < nrhs; i++) {
-            if (res_norms[i] / rhs_norms[i] < rel_tol) {
+        for (int i = 0; i < nrhs_; i++) {
+            if (res_norms[i] / rhs_norms_[i] < rel_tol_) {
                 converged = converged | (1 << i);
             }
         }
