@@ -66,7 +66,7 @@ using BatchRichardsonOptions =
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
-    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<const ReferenceExecutor>,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
     const gko::batch_dense::UniformBatch<const ValueType> &left_scale,
@@ -80,7 +80,6 @@ static void apply_impl(
     const auto nrhs = b.num_rhs;
     constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
     constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
-    const auto stride = b.stride;
 
     GKO_ASSERT((nrhs == x.num_rhs));
     GKO_ASSERT((max_nrows * max_nrhs >= nrows * nrhs));
@@ -89,7 +88,7 @@ static void apply_impl(
 #if GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM
         const int shared_size_bytes =
             gko::kernels::batch_rich::local_memory_requirement<ValueType>(
-                nrows, a.num_nnz, nrhs) +
+                nrows, nrhs) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
         const auto shared_space = malloc(shared_size_bytes);
         const auto residual = reinterpret_cast<ValueType *>(shared_space);
@@ -147,7 +146,7 @@ static void apply_impl(
                       init_rel_res_norm);
 
         int iter = 0;
-        while (1) {
+        while (true) {
             // r <- r - Adx  This causes instability!
             // adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
             // 					  gko::batch::to_const(dx_b),
@@ -161,8 +160,8 @@ static void apply_impl(
 
             batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
 
-            const bool all_converged =
-                stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
+            const bool all_converged = stop.check_converged(
+                iter, norms, {nullptr, 0, 0, 0}, converged);
             logger.log_iteration(ibatch, iter, norms, converged);
             if (all_converged) {
                 break;
@@ -224,17 +223,15 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            gko::log::BatchLogData<ValueType> &logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
-        logdata.iter_counts.get_data());
+        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const auto left_sb = maybe_null_batch_struct(left_scale);
     const auto right_sb = maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale) {
-        if (!left_sb.values || !right_sb.values) {
-            // one-sided scaling not implemented
-            GKO_NOT_IMPLEMENTED;
-        }
+    if (to_scale && !(left_sb.values && right_sb.values)) {
+        // one-sided scaling not implemented
+        GKO_NOT_IMPLEMENTED;
     }
     const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
 
