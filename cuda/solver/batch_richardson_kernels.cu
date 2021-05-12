@@ -94,7 +94,7 @@ static void apply_impl(
         const int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
             gko::kernels::batch_rich::local_memory_requirement<ValueType>(
-                a.num_rows, a.num_nnz, b.num_rhs) +
+                a.num_rows, b.num_rhs) +
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
                 sizeof(ValueType);
 #else

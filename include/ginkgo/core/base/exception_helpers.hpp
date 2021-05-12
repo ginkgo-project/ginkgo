@@ -592,7 +592,10 @@ inline std::tuple<bool, int> check_batch_right_scalable(
             ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[0],       \
             ::gko::detail::get_batch_size(_op).at(std::get<1>(comp))[1],       \
             "expected square matrices in batch");                              \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 
 /**
@@ -1014,33 +1017,36 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
                   "semi-colon warnings")
 
 
-#define GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(_opA, _left_op, _right_op)   \
-    auto chkleft = ::gko::detail::check_batch_left_scalable(             \
-        ::gko::detail::get_batch_size(_opA),                             \
-        ::gko::detail::get_batch_size(_left_op));                        \
-    if (!std::get<0>(chkleft)) {                                         \
-        const int bidx = std::get<1>(chkleft);                           \
-        throw ::gko::DimensionMismatch(                                  \
-            __FILE__, __LINE__, __func__, #_opA,                         \
-            ::gko::detail::get_batch_size(_opA).at(bidx)[0],             \
-            ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_left_op,  \
-            ::gko::detail::get_batch_size(_left_op).at(bidx)[0],         \
-            ::gko::detail::get_batch_size(_left_op).at(bidx)[1],         \
-            "expected matching left scaling vector");                    \
-    }                                                                    \
-    auto chkrt = ::gko::detail::check_batch_right_scalable(              \
-        ::gko::detail::get_batch_size(_opA),                             \
-        ::gko::detail::get_batch_size(_right_op));                       \
-    if (!std::get<0>(chkrt)) {                                           \
-        const int bidx = std::get<1>(chkrt);                             \
-        throw ::gko::DimensionMismatch(                                  \
-            __FILE__, __LINE__, __func__, #_opA,                         \
-            ::gko::detail::get_batch_size(_opA).at(bidx)[0],             \
-            ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_right_op, \
-            ::gko::detail::get_batch_size(_right_op).at(bidx)[0],        \
-            ::gko::detail::get_batch_size(_right_op).at(bidx)[1],        \
-            "expected matching right scaling vector");                   \
-    }
+#define GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(_opA, _left_op, _right_op)       \
+    auto chkleft = ::gko::detail::check_batch_left_scalable(                 \
+        ::gko::detail::get_batch_size(_opA),                                 \
+        ::gko::detail::get_batch_size(_left_op));                            \
+    if (!std::get<0>(chkleft)) {                                             \
+        const int bidx = std::get<1>(chkleft);                               \
+        throw ::gko::DimensionMismatch(                                      \
+            __FILE__, __LINE__, __func__, #_opA,                             \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[0],                 \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_left_op,      \
+            ::gko::detail::get_batch_size(_left_op).at(bidx)[0],             \
+            ::gko::detail::get_batch_size(_left_op).at(bidx)[1],             \
+            "expected matching left scaling vector");                        \
+    }                                                                        \
+    auto chkrt = ::gko::detail::check_batch_right_scalable(                  \
+        ::gko::detail::get_batch_size(_opA),                                 \
+        ::gko::detail::get_batch_size(_right_op));                           \
+    if (!std::get<0>(chkrt)) {                                               \
+        const int bidx = std::get<1>(chkrt);                                 \
+        throw ::gko::DimensionMismatch(                                      \
+            __FILE__, __LINE__, __func__, #_opA,                             \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[0],                 \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[1], #_right_op,     \
+            ::gko::detail::get_batch_size(_right_op).at(bidx)[0],            \
+            ::gko::detail::get_batch_size(_right_op).at(bidx)[1],            \
+            "expected matching right scaling vector");                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace gko

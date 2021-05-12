@@ -517,8 +517,6 @@ public:
 /**
  * A batch made up of entities that can scaled from the left and right by
  * scaling vectors.
- *
- * TODO: Somehow restrict this to be a BatchLinOp. Mixin?
  */
 class BatchScalable {
 public:
