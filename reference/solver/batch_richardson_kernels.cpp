@@ -49,6 +49,8 @@ namespace kernels {
 namespace reference {
 
 
+#define GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM 1
+
 /**
  * @brief The batch Richardson solver namespace.
  *
@@ -84,9 +86,25 @@ static void apply_impl(
     GKO_ASSERT((max_nrows * max_nrhs >= nrows * nrhs));
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+#if GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM
+        const int shared_size_bytes =
+            gko::kernels::batch_rich::local_memory_requirement<ValueType>(
+                nrows, a.num_nnz, nrhs) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        const auto shared_space = malloc(shared_size_bytes);
+        const auto residual = reinterpret_cast<ValueType *>(shared_space);
+        ValueType *const delta_x = residual + nrows * nrhs;
+        ValueType *const prec_work = delta_x + nrows * nrhs;
+        const auto norms = reinterpret_cast<real_type *>(
+            prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
+        real_type *const init_rel_res_norm = norms + nrhs;
+#else
         ValueType residual[max_nrows * max_nrhs];
         ValueType delta_x[max_nrows * max_nrhs];
         ValueType prec_work[PrecType::work_size];
+        real_type norms[max_nrhs];
+        real_type init_rel_res_norm[max_nrhs];
+#endif
         uint32 converged = 0;
 
         const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
@@ -109,27 +127,18 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<ValueType> dx_b{
             delta_x, static_cast<size_type>(nrhs), nrows, nrhs};
 
-        // const ValueType one[] = {1.0};
-        // const gko::batch_dense::BatchEntry<const ValueType> one_b{one, 1, 1,
-        // 1};
         const auto relax = static_cast<ValueType>(opts.relax_factor);
         const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
                                                                     1, 1};
-        real_type norms[max_nrhs];
-        for (int j = 0; j < max_nrhs; j++) {
-            norms[j] = 0;
-        }
         const gko::batch_dense::BatchEntry<real_type> norms_b{norms, max_nrhs,
                                                               1, nrhs};
 
         prec.generate(a_b, prec_work);
 
         // initial residual
-        batch_dense::copy(b_b, r_b);
-        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_b),
+        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(b_b),
                                               norms_b);
 
-        real_type init_rel_res_norm[max_nrhs];
         for (int j = 0; j < nrhs; j++) {
             init_rel_res_norm[j] = norms_b.values[j];
         }
@@ -179,6 +188,9 @@ static void apply_impl(
         if (left_scale.values) {
             batch_dense::batch_scale(right_b, x_b);
         }
+#if GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM
+        free(shared_space);
+#endif
     }
 }
 
