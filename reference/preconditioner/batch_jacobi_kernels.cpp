@@ -48,7 +48,7 @@ namespace batch_jacobi {
 
 
 template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
+void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor>,
                         const matrix::BatchCsr<ValueType> *const a,
                         const matrix::BatchDense<ValueType> *const b,
                         matrix::BatchDense<ValueType> *const x)
