@@ -50,15 +50,6 @@ __global__ void apply_kernel(
     const auto nbatch = mat.num_batch;
     const auto num_rows = mat.num_rows;
     const auto num_rhs = b.num_rhs;
-    constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
-    constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
-
-    if (max_nrows * max_nrhs < num_rows * num_rhs) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(" Static vector size not enough!\n");
-        }
-        return;
-    }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
@@ -70,6 +61,14 @@ __global__ void apply_kernel(
             prec_work + PrecType::dynamic_work_size(num_rows, mat.num_nnz));
         real_type *const init_rel_res_norm = norms + num_rhs;
 #else
+        constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+        constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
+        if (max_nrows * max_nrhs < num_rows * num_rhs) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(" Static vector size not enough!\n");
+            }
+            return;
+        }
         //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
         // residual_un;
         //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
@@ -113,11 +112,11 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
                                                                     1, 1};
 
-        for (int iz = threadIdx.x; iz < max_nrhs; iz += blockDim.x) {
+        for (int iz = threadIdx.x; iz < num_rhs; iz += blockDim.x) {
             norms[iz] = 0.0;
         }
         const gko::batch_dense::BatchEntry<real_type> norms_b{
-            norms, static_cast<size_type>(max_nrhs), 1, num_rhs};
+            norms, static_cast<size_type>(num_rhs), 1, num_rhs};
 
         prec.generate(a_b, prec_work);
 
@@ -131,7 +130,7 @@ __global__ void apply_kernel(
         StopType stop(num_rhs, max_iter, rel_tol, converged, init_rel_res_norm);
 
         int iter = 0;
-        while (1) {
+        while (true) {
             // r <- r - Adx  This causes instability!
             // adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
             //     gko::batch_dense::to_const(dx_b),
