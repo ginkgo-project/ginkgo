@@ -75,7 +75,8 @@ __global__ void conv_check(const int nrhs, const int nrows,
     const int maxits = 10;
     const int iter = 5;
     const gko::remove_complex<T> tol = 1e-5;
-    gko::batch_dense::BatchEntry<const T> res{residual, nrhs, nrows, nrhs};
+    gko::batch_dense::BatchEntry<const T> res{
+        residual, static_cast<size_t>(nrhs), nrows, nrhs};
     BatchStop bstop(nrhs, maxits, tol, *converged, bnorms);
     *all_conv = bstop.check_converged(iter, res_norms, res, *converged);
 }
