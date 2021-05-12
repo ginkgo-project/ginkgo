@@ -50,7 +50,7 @@ namespace cuda {
 
 
 constexpr int default_block_size = 128;
-constexpr int sm_multiplier = 4;
+// constexpr int sm_multiplier = 4;
 
 
 namespace batch_jacobi {
@@ -70,8 +70,11 @@ void batch_jacobi_apply(std::shared_ptr<const gko::CudaExecutor> exec,
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
     const size_type nbatch = a->get_num_batch_entries();
-    BatchJacobi<cuda_type<ValueType>> prec;
-    batch_jacobi<<<nbatch, default_block_size>>>(prec, a_ub, b_ub, x_ub);
+    const int shared_size =
+        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        sizeof(ValueType);
+    batch_jacobi<<<nbatch, default_block_size, shared_size>>>(
+        BatchJacobi<cuda_type<ValueType>>(), a_ub, b_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);

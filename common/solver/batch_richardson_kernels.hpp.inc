@@ -61,17 +61,30 @@ __global__ void apply_kernel(
     }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        //__shared__ UninitializedArray<ValueType, max_nrows> residual_un;
-        //__shared__ UninitializedArray<ValueType, max_nrows> delta_x_un;
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+        extern __shared__ char local_mem[];
+        const auto residual = reinterpret_cast<ValueType *>(local_mem);
+        ValueType *const delta_x = residual + num_rows * num_rhs;
+        ValueType *const prec_work = residual + 2 * num_rows * num_rhs;
+        const auto norms = reinterpret_cast<real_type *>(
+            prec_work + PrecType::dynamic_work_size(num_rows, mat.num_nnz));
+        real_type *const init_rel_res_norm = norms + num_rhs;
+#else
+        //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
+        // residual_un;
+        //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
+        // delta_x_un;
         //__shared__ UninitializedArray<ValueType, PrecType::work_size>
         //    prec_work_un;
         // ValueType *const residual = residual_un;
         // ValueType *const delta_x = delta_x_un;
         // ValueType *const prec_work = prec_work_un;
-
         __shared__ ValueType residual[max_nrows * max_nrhs];
         __shared__ ValueType delta_x[max_nrows * max_nrhs];
         __shared__ ValueType prec_work[PrecType::work_size];
+        __shared__ real_type norms[max_nrhs];
+        __shared__ real_type init_rel_res_norm[max_nrhs];
+#endif
 
         uint32 converged = 0;
 
@@ -100,7 +113,6 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
                                                                     1, 1};
 
-        __shared__ real_type norms[max_nrhs];
         for (int iz = threadIdx.x; iz < max_nrhs; iz += blockDim.x) {
             norms[iz] = 0.0;
         }
@@ -112,7 +124,6 @@ __global__ void apply_kernel(
         // initial residual
         copy(b_b, r_b);
         compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
-        __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
             init_rel_res_norm[iz] = norms_b.values[iz];
         }
