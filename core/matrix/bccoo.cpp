@@ -62,6 +62,7 @@ GKO_REGISTER_OPERATION(spmv, bccoo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, bccoo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, bccoo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, bccoo::advanced_spmv2);
+GKO_REGISTER_OPERATION(convert_to_coo, bccoo::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, bccoo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, bccoo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, bccoo::extract_diagonal);
@@ -138,22 +139,63 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
     GKO_NOT_IMPLEMENTED;
-//{
+/*
+{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    result->values_ = this->values_;
-//    result->row_idxs_ = this->row_idxs_;
-//    result->col_idxs_ = this->col_idxs_;
-//    result->set_size(this->get_size());
-//}
-
+    result->data_ = this->data_;
+    result->rows_ = this->rows_;
+    result->offsets_ = this->offsets_;
+    result->set_size(this->get_size());
+}
+*/
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) GKO_NOT_IMPLEMENTED;
-//{
+/*
+{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    this->convert_to(result);
-//}
+    this->convert_to(result);
+}
+*/
+
+
+template <typename ValueType, typename IndexType>
+void Bccoo<ValueType, IndexType>::convert_to(
+    Coo<ValueType, IndexType>* result) const GKO_NOT_IMPLEMENTED;
+/*
+{
+// TODO (script:bccoo): change the code imported from matrix/coo if needed
+    auto exec = this->get_executor();
+    auto tmp = Coo<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
+    tmp->values_ = this->values_;
+    tmp->col_idxs_ = this->col_idxs_;
+    exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
+    tmp->make_srow();
+    tmp->move_to(result);
+}
+*/
+
+
+template <typename ValueType, typename IndexType>
+void Bccoo<ValueType, IndexType>::move_to(Coo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+// TODO (script:bccoo): change the code imported from matrix/coo if needed
+    auto exec = this->get_executor();
+    auto tmp = Coo<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
+    tmp->values_ = std::move(this->values_);
+    tmp->col_idxs_ = std::move(this->col_idxs_);
+    exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
+    tmp->make_srow();
+    tmp->move_to(result);
+}
+*/
 
 
 template <typename ValueType, typename IndexType>

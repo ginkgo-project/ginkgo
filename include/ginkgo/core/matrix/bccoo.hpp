@@ -48,23 +48,56 @@ namespace matrix {
 
 
 template <typename ValueType, typename IndexType>
+class Coo;
+
+
+template <typename ValueType, typename IndexType>
 class Csr;
 
 
 template <typename ValueType>
 class Dense;
 
-
+/* // JIAE
 template <typename ValueType, typename IndexType>
 class BccooBuilder;
-
+*/
 
 /**
- * BCCOO stores a matrix in the bccoordinate matrix format.
+ * BCCOO is a matrix format which only stores the nonzeros coeffficients
+ * by blocks of consecutive elements.
  *
- * The nonzero elements are stored in an array row-wise (but not neccessarily
- * sorted by column index within a row). Two extra arrays contain the row and
- * column indexes of each nonzero element of the matrix.
+ * First the elements are sorted by row and column indexes, and, then,
+ * only the pairs (column,value) is stored in the 1D array of bytes.
+ * The column indexes could be stored as their value or as the difference
+ * from the previous element in the same row.
+ *
+ * Two additional 1-D vectors complete the block structure. One of them
+ * contains the starting point of each block in the array of bytes,
+ * whereas the second one indicates the row index of the first pair
+ * in the block.
+ *
+ * The BCCOO LinOp supports different operations:
+ *
+ * ```cpp
+ * matrix::BCCOO *A, *B, *C;    // matrices
+ * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
+ * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
+ * matrix::Identity *I;         // identity matrix
+ *
+ * // Applying to Dense matrices computes an SpMV/SpMM product
+ * A->apply(b, x)              // x = A*b
+ * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
+ *
+ * // Applying to BCCOO matrices computes a SpGEMM product of two sparse
+ * matrices A->apply(B, C)              // C = A*B A->apply(alpha, B, beta, C)
+ * // C = alpha*A*B + beta*C
+ *
+ * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
+ * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
+ * ```
+ * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
+ * by column index, otherwise the algorithms will produce incorrect results.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -77,6 +110,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
               public EnableCreateMethod<Bccoo<ValueType, IndexType>>,
               public ConvertibleTo<Bccoo<next_precision<ValueType>, IndexType>>,
+              public ConvertibleTo<Coo<ValueType, IndexType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public DiagonalExtractable<ValueType>,
@@ -86,9 +120,10 @@ class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
                   remove_complex<Bccoo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Bccoo>;
     friend class EnablePolymorphicObject<Bccoo, LinOp>;
+    friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
-    friend class BccooBuilder<ValueType, IndexType>;
+    //    friend class BccooBuilder<ValueType, IndexType>; // JIAE
     friend class Bccoo<to_complex<ValueType>, IndexType>;
 
 public:
@@ -107,6 +142,10 @@ public:
         Bccoo<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Bccoo<next_precision<ValueType>, IndexType>* result) override;
+
+    void convert_to(Coo<ValueType, IndexType>* other) const override;
+
+    void move_to(Coo<ValueType, IndexType>* other) override;
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 
@@ -127,60 +166,60 @@ public:
     void compute_absolute_inplace() override;
 
     /**
-     * Returns the values of the matrix.
+     * Returns the row index of the first element of each block.
      *
-     * @return the values of the matrix.
+     * @return the row index of the first element of each block.
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    index_type* get_rows() noexcept { return rows_.get_data(); }
 
     /**
-     * @copydoc Csr::get_values()
+     * @copydoc Bccoo::get_rows()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
+    const index_type* get_const_rows() const noexcept
     {
-        return values_.get_const_data();
+        return rows_.get_const_data();
     }
 
     /**
-     * Returns the column indexes of the matrix.
+     * Returns the offset related to the first element of each block.
      *
-     * @return the column indexes of the matrix.
+     * @return the offset related to the first element of each block.
      */
-    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_offsets() noexcept { return offsets_.get_data(); }
 
     /**
-     * @copydoc Csr::get_col_idxs()
+     * @copydoc Bccoo::get_offsets()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs() const noexcept
+    const index_type* get_const_offsets() const noexcept
     {
-        return col_idxs_.get_const_data();
+        return offsets_.get_const_data();
     }
 
     /**
-     * Returns the row indexes of the matrix.
+     * Returns the vector where column indexes and values are stored.
      *
-     * @return the row indexes of the matrix.
+     * @return the vector where column indexes and values are stored.
      */
-    index_type* get_row_idxs() noexcept { return row_idxs_.get_data(); }
+    uint8* get_data() noexcept { return data_.get_data(); }
 
     /**
-     * @copydoc Csr::get_row_idxs()
+     * @copydoc Bccoo::get_data()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_idxs() const noexcept
+    const uint8* get_const_data() const noexcept
     {
-        return row_idxs_.get_const_data();
+        return data_.get_const_data();
     }
 
     /**
@@ -188,10 +227,21 @@ public:
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return values_.get_num_elems();
-    }
+    size_type get_num_stored_elements() const noexcept { return num_nonzeros_; }
+
+    /**
+     * Returns the number of blocks used in the definition of the matrix.
+     *
+     * @return the number of blocks used in the definition of the matrix.
+     */
+    size_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
+
+    /**
+     * Returns the number of blocks used in the definition of the matrix.
+     *
+     * @return the number of blocks used in the definition of the matrix.
+     */
+    size_type get_num_bytes() const noexcept { return data_.get_num_elems(); }
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -265,13 +315,16 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
+     * @param num_blocks    number of blocks
+     * @param num_bytes     number of bytes
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-          size_type num_nonzeros = {})
+          size_type num_nonzeros = {}, size_type num_blocks = {},
+          size_type num_bytes = {})
         : EnableLinOp<Bccoo>(exec, size),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          row_idxs_(exec, num_nonzeros)
+          rows_(exec, num_blocks),
+          offsets_(exec, num_blocks + 1),
+          data_(exec, num_bytes)
     {}
 
     /**
@@ -294,20 +347,22 @@ protected:
      *       created, and the original array data will not be used in the
      *       matrix.
      */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowIdxsArray>
-    Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          ValuesArray&& values, ColIdxsArray&& col_idxs,
-          RowIdxsArray&& row_idxs)
-        : EnableLinOp<Bccoo>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
-    {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
-    }
-
+    /*
+    // JIAE
+        template <typename ValuesArray, typename ColIdxsArray,
+                  typename RowIdxsArray>
+        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size,
+              ValuesArray &&values, ColIdxsArray &&col_idxs,
+              RowIdxsArray &&row_idxs)
+            : EnableLinOp<Bccoo>(exec, size),
+              values_{exec, std::forward<ValuesArray>(values)},
+              col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+              row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
+        {
+            GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+            GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
+        }
+    */
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -318,9 +373,16 @@ protected:
     void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    array<value_type> values_;
-    array<index_type> col_idxs_;
-    array<index_type> row_idxs_;
+    // array<value_type> values_;
+    // array<index_type> col_idxs_;
+    // array<index_type> row_idxs_;
+
+    array<index_type> rows_;
+    array<index_type> offsets_;
+    array<uint8> data_;
+    size_type num_nonzeros_;
+    // size_type num_blocks_;
+    // size_type num_bytes_;
 };
 
 
