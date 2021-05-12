@@ -114,7 +114,7 @@ __global__ void apply_kernel(
         compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
         __shared__ real_type init_rel_res_norm[max_nrhs];
         for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
-            init_rel_res_norm[iz] = sqrt(norms_b.values[iz]);
+            init_rel_res_norm[iz] = norms_b.values[iz];
         }
 
         StopType stop(num_rhs, max_iter, rel_tol, converged, init_rel_res_norm);
