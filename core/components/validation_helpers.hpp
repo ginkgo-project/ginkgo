@@ -52,10 +52,7 @@ bool is_symmetric(const LinOp *A) { return false; }
  * @param row_ptrs the array which is to be tested
  */
 template <typename IndexType>
-bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
-{
-    return false;
-}
+bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
 
 }  // namespace validate
 }  // namespace gko
