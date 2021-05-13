@@ -33,6 +33,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/validation_helpers.hpp"
 
 namespace gko {
-namespace validate {}
+namespace validate {
+
+template <typename IndexType>
+bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
+{
+    for (size_type i = 1; i < num_entries; ++i) {
+        if (row_ptrs[i - 1] > row_ptrs[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+#define GKO_DECLARE_IS_ROW_ORDERED(IndexType) \
+    bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ROW_ORDERED);
+
+}  // namespace validate
 
 }  // namespace gko
