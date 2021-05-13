@@ -71,7 +71,6 @@ public:
         ValueType *const __restrict__ work)
     {
         work_ = work;
-        // TODO: optimize this
         constexpr auto warp_size = config::warp_size;
         const auto tile =
             group::tiled_partition<warp_size>(group::this_thread_block());
@@ -80,8 +79,11 @@ public:
         for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
             for (int j = mat.row_ptrs[irow] + tile.thread_rank();
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
-                if (mat.col_idxs[j] == irow) {
-                    work_[irow] = one<ValueType>() / mat.values[j];
+                const int found = (mat.col_idxs[j] == irow);
+                const uint32 foundbits = tile.ballot(found);
+                if (foundbits && tile.thread_rank() == 0) {
+                    const int posj = ffs(foundbits) - 1;
+                    work_[irow] = one<ValueType>() / mat.values[j + posj];
                 }
             }
         }
