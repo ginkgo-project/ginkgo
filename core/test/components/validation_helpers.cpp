@@ -65,6 +65,6 @@ TYPED_TEST(IsRowOrdered, ReturnsTrueOnOrdered)
 
     ASSERT_EQ(
         gko::validate::is_row_ordered(a.get_const_data(), a.get_num_elems()),
-        true);
+        false);
 }
 }  // namespace
