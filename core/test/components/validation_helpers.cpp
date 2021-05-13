@@ -30,34 +30,41 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_COMPONENTS_VALIDATION_HELPERS_HPP_
-#define GKO_CORE_COMponents_VALIDATION_HELPERS_HPP_
-
+#include <gtest/gtest.h>
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
-namespace gko {
-namespace validate {
+#include "core/components/validation_helpers.hpp"
+#include "core/test/utils.hpp"
 
-/**
- * Tests whether a given matrix is symmetric
- *
- * @param A the input matrix which is tested
- */
-bool is_symmetric(const LinOp *A) { return false; }
+namespace {
 
-/**
- * Tests whether the given row_ptrs are in an ascending order
- *
- * @param row_ptrs the array which is to be tested
- */
-template <typename IndexType>
-bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
+template <typename T>
+class IsRowOrdered : public ::testing::Test {
+protected:
+    IsRowOrdered() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::Executor> exec;
+};
+
+TYPED_TEST_SUITE(IsRowOrdered, gko::test::IndexTypes);
+
+TYPED_TEST(IsRowOrdered, ReturnsFalseOnUnordered)
 {
-    return false;
+    gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
+
+    ASSERT_EQ(
+        gko::validate::is_row_ordered(a.get_const_data(), a.get_num_elems()),
+        true);
 }
 
-}  // namespace validate
-}  // namespace gko
 
-#endif  // GKO_CORE_COMPONENTS_VALIDATION_HELPERS_HPP_
+TYPED_TEST(IsRowOrdered, ReturnsTrueOnOrdered)
+{
+    gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
+
+    ASSERT_EQ(
+        gko::validate::is_row_ordered(a.get_const_data(), a.get_num_elems()),
+        true);
+}
+}  // namespace
