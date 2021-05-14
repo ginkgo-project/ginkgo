@@ -89,7 +89,7 @@ void FillSubdir(const std::string &main_dir, std::vector<std::string> &subdir)
 int main(int argc, char *argv[])
 {
     // Some Shortcuts
-    using ValueType = std::complex<double>;
+    using ValueType = double;
 
     using vec = gko::matrix::Dense<ValueType>;
     using csr_mat = gko::matrix::Csr<ValueType, gko::int32>;
@@ -377,11 +377,12 @@ int main(int argc, char *argv[])
 
     // generate the solver factory object
     auto solver_fac =
-        gko::solver::BatchBicgstab<ValueType>::build()
+        gko::solver::BatchGmres<ValueType>::build()
             .with_abs_residual_tol(1e-11)
             .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
-            .with_max_iterations(150)
-            .with_preconditioner("jacobi")
+            .with_max_iterations(500)
+            .with_preconditioner("none")
+            .with_restart(5)
             .on(exec);
 
     // generate the solver object
