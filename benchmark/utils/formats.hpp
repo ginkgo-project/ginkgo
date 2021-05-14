@@ -200,6 +200,28 @@ std::unique_ptr<MatrixType> read_batch_matrix_from_data(
  * @return a `unique_pointer` to the created matrix
  */
 template <typename MatrixType>
+std::unique_ptr<MatrixType> read_batch_matrix_from_data2(
+    std::shared_ptr<const gko::Executor> exec, const int num_duplications,
+    const std::vector<gko::matrix_data<etype>>& data)
+{
+    auto single_batch = MatrixType::create(exec);
+    single_batch->read(data);
+    auto mat = MatrixType::create(exec, num_duplications, single_batch.get());
+    return mat;
+}
+
+/**
+ * Creates a Ginkgo matrix from the intermediate data representation format
+ * gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixType  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixType>
 std::unique_ptr<MatrixType> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec,
     const gko::matrix_data<etype, itype>& data)
@@ -299,6 +321,14 @@ auto create_matrix_type_with_gpu_strategy()
         return MatrixType::create(exec, create_gpu_strategy<Strategy>(exec));
     };
 }
+
+
+const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
+                                std::shared_ptr<const gko::Executor>, const int,
+                                const std::vector<gko::matrix_data<etype>>&)>>
+    batch_matrix_factory2{
+        {"batch_csr",
+         read_batch_matrix_from_data2<gko::matrix::BatchCsr<etype>>}};
 
 
 const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
