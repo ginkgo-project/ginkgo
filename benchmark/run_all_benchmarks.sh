@@ -52,9 +52,9 @@ if [ ! "${FORMATS}" ]; then
     print_default FORMATS
 fi
 
-if [ ! "${NUM_BATCHES}" ]; then
-    NUM_BATCHES="1"
-    echo "NUM_BATCHES environment variable not set - assuming \"${NUM_BATCHES}\"" 1>&2
+if [ ! "${NUM_BATCH_DUP}" ]; then
+    NUM_BATCH_DUP="1"
+    echo "NUM_BATCH_DUP environment variable not set - assuming \"${NUM_BATCH_DUP}\"" 1>&2
 fi
 
 if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
@@ -168,6 +168,20 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
+if  [ ! "${BATCH_SCALING}" ] || [ "${BATCH_SCALING}" -eq 0 ]; then
+    BATCH_SCALING_STR="--batch_scaling=false"
+else
+    BATCH_SCALING_STR="--batch_scaling=true"
+fi
+
+if  [ ! "${USE_SUITE_SPARSE}" ] || [ "${USE_SUITE_SPARSE}" -eq 1 ]; then
+    SS_STR="--using_suite_sparse=true"
+    echo "Using matrices from SuiteSparse"
+else
+    SS_STR="--using_suite_sparse=false"
+    echo "Not using matrices from SuiteSparse"
+fi
+
 # This allows using a matrix list file for benchmarking.
 # The file should contains a suitesparse matrix on each line.
 # The allowed formats to target suitesparse matrix is:
@@ -182,6 +196,42 @@ elif [ -f "${MATRIX_LIST_FILE}" ]; then
     use_matrix_list_file=1
 else
     echo -e "A matrix list file was set to ${MATRIX_LIST_FILE} but it cannot be found."
+    exit 1
+fi
+
+if [ ! "${BATCH_MATRIX_LIST_FILE}" ]; then
+    use_batch_matrix_list_file=0
+elif [ -f "${BATCH_MATRIX_LIST_FILE}" ]; then
+    use_batch_matrix_list_file=1
+    echo "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE}"
+else
+    echo -e "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE} but it cannot be found."
+    exit 1
+fi
+
+# This allows using a folder to automatically read the files in the folder into a matrix.
+# The folder structure for a matrix class with two batch entries could look like this:
+#
+# matrix_class
+# \__1
+#     \__A.mtx
+#     \__b.mtx
+#     \__x0.mtx
+# \__2
+#     \__A.mtx
+#     \__b.mtx
+#     \__x0.mtx
+if [ ! "${BATCH_MATRIX_FOLDER}" ]; then
+    use_batch_matrix=0
+elif [ -d "${BATCH_MATRIX_FOLDER}" ]; then
+    use_batch_matrix=1
+    echo "A batch matrix folder was set to ${BATCH_MATRIX_FOLDER}"
+    if [ -f "${MATRIX_LIST_FILE}" ]; then
+        echo "Cannot use both matrix file list and batch matrix folder. The matrix file list will be ignored."
+        use_matrix_list_file=0
+    fi
+else
+    echo -e "A matrix folder was set to ${BATCH_MATRIX_FOLDER} but it cannot be found."
     exit 1
 fi
 
@@ -269,7 +319,8 @@ run_batch_spmv_benchmarks() {
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/batch_spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
-                --num_batches="${NUM_BATCHES}" \
+                --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
+                --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -328,9 +379,63 @@ run_preconditioner_benchmarks() {
 
 
 ################################################################################
+# Batch matrix functionality
+
+count_num_batch_entries() {
+    echo $(($(ls -la $1 | wc -l) - 3))
+}
+
+parse_batch_matrix_list() {
+    local source_list_file=$1
+    local benchmark_list=""
+    for mtx in $(cat ${source_list_file}); do
+        benchmark_list="$benchmark_list $mtx"
+    done
+    echo "$benchmark_list"
+}
+
+if [ $use_batch_matrix -eq 1 ]; then
+    BATCH_MATRIX_LIST=$(parse_batch_matrix_list $BATCH_MATRIX_LIST_FILE)
+    NUM_BATCH_MATS=${#BATCH_MATRIX_LIST[@]}
+    echo "Number of matrices: ${NUM_BATCH_MATS} and the matrices are: ${BATCH_MATRIX_LIST}"
+fi
+
+# Creates an input file for the batch matrix
+generate_batch_input() {
+    BASE_DIR=$1 #${$(dirname $1)}
+    INPUT=$2
+    cat << EOT
+[{
+    "problem": "${BASE_DIR}/${INPUT}"
+}]
+EOT
+}
+
+
+if [ $use_batch_matrix -eq 1 ]; then
+    for (( p=0; p < ${NUM_BATCH_MATS}; ++p )); do
+        i=${BATCH_MATRIX_LIST[$((p))]}
+        lmat=$(echo "$i" | sed 's/^[[:space:]]*//')
+        echo -e "Processing matrix: $lmat"
+        RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}"
+        RESULT_FILE="${RESULT_DIR}/${lmat}.json"
+        mkdir -p "$(dirname "${RESULT_FILE}")"
+        generate_batch_input "$BATCH_MATRIX_FOLDER" "$lmat" > "${RESULT_FILE}"
+        NUM_BATCH_ENTRIES=$(count_num_batch_entries "${BATCH_MATRIX_FOLDER}/${lmat}")
+
+        if [ "${BENCHMARK}" == "batch_spmv" ]; then
+            echo -e "(${p}/${NUM_BATCH_MATS}) Running Batch SpMV for ${lmat} class" 1>&2
+            run_batch_spmv_benchmarks "${RESULT_FILE}"
+        fi
+    done
+fi
+
+################################################################################
 # SuiteSparse collection
 
-SSGET=ssget
+if [ $USE_SUITE_SPARSE -eq 1 ]; then
+
+    SSGET=ssget
 NUM_PROBLEMS="$(${SSGET} -n)"
 
 # Creates an input file for $1-th problem in the SuiteSparse collection
@@ -402,6 +507,7 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
         run_spmv_benchmarks "${RESULT_FILE}"
     elif [ "${BENCHMARK}" == "batch_spmv" ]; then
         echo -e "${PREFIX}Running Batch SpMV for ${GROUP}/${NAME}" 1>&2
+        NUM_BATCH_ENTRIES=${NUM_BATCH_DUP}
         run_batch_spmv_benchmarks "${RESULT_FILE}"
     fi
 
@@ -515,3 +621,5 @@ for bsize in ${BLOCK_SIZES}; do
         break
     fi
 done
+
+fi
