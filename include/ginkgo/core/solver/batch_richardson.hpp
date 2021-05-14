@@ -115,8 +115,8 @@ public:
         /**
          * Inner preconditioner descriptor.
          */
-        preconditioner::batch::Type GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, preconditioner::batch::jacobi);
+        preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, preconditioner::batch::type::jacobi);
 
         /**
          * Maximum number iterations allowed.
