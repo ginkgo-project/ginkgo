@@ -59,6 +59,7 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
         .with_max_iterations(parameters_.max_iterations)
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(
             as<BatchTransposable>(this->get_system_matrix())->transpose()));
@@ -73,6 +74,7 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
         .with_max_iterations(parameters_.max_iterations)
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
                              ->conj_transpose()));
