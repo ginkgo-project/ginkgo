@@ -49,8 +49,6 @@ namespace kernels {
 namespace reference {
 
 
-#define GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM 1
-
 /**
  * @brief The batch Richardson solver namespace.
  *
@@ -66,7 +64,7 @@ using BatchRichardsonOptions =
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
-    std::shared_ptr<const ReferenceExecutor>,
+    std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
     const gko::batch_dense::UniformBatch<const ValueType> &left_scale,
@@ -78,32 +76,25 @@ static void apply_impl(
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
-    constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
-    constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
 
     GKO_ASSERT((nrhs == x.num_rhs));
-    GKO_ASSERT((max_nrows * max_nrhs >= nrows * nrhs));
+
+    const int local_size_bytes =
+        gko::kernels::batch_rich::local_memory_requirement<ValueType>(nrows,
+                                                                      nrhs) +
+        PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+    using byte = unsigned char;
+    Array<byte> local_space(exec, local_size_bytes);
 
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-#if GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM
-        const int shared_size_bytes =
-            gko::kernels::batch_rich::local_memory_requirement<ValueType>(
-                nrows, nrhs) +
-            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        const auto shared_space = malloc(shared_size_bytes);
+        byte *const shared_space = local_space.get_data();
         const auto residual = reinterpret_cast<ValueType *>(shared_space);
         ValueType *const delta_x = residual + nrows * nrhs;
         ValueType *const prec_work = delta_x + nrows * nrhs;
         const auto norms = reinterpret_cast<real_type *>(
             prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
         real_type *const init_rel_res_norm = norms + nrhs;
-#else
-        ValueType residual[max_nrows * max_nrhs];
-        ValueType delta_x[max_nrows * max_nrhs];
-        ValueType prec_work[PrecType::work_size];
-        real_type norms[max_nrhs];
-        real_type init_rel_res_norm[max_nrhs];
-#endif
+
         uint32 converged = 0;
 
         const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
@@ -129,8 +120,8 @@ static void apply_impl(
         const auto relax = static_cast<ValueType>(opts.relax_factor);
         const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
                                                                     1, 1};
-        const gko::batch_dense::BatchEntry<real_type> norms_b{norms, max_nrhs,
-                                                              1, nrhs};
+        const gko::batch_dense::BatchEntry<real_type> norms_b{
+            norms, static_cast<size_type>(nrhs), 1, nrhs};
 
         prec.generate(a_b, prec_work);
 
@@ -187,9 +178,6 @@ static void apply_impl(
         if (left_scale.values) {
             batch_dense::batch_scale(right_b, x_b);
         }
-#if GKO_REF_BATCH_USE_DYNAMIC_SHARED_MEM
-        free(shared_space);
-#endif
     }
 }
 
@@ -203,7 +191,7 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    if (opts.preconditioner == gko::preconditioner::batch::jacobi) {
+    if (opts.preconditioner == gko::preconditioner::batch::type::jacobi) {
         BatchJacobi<ValueType> prec;
         apply_impl<stop::RelResidualMaxIter<ValueType>>(
             exec, opts, logger, prec, a, left, right, b, x);
