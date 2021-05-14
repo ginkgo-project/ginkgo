@@ -54,6 +54,7 @@ target_sources(ginkgo
     reorder/scaled_reordered.cpp
     solver/batch_bicgstab.cpp
     solver/batch_cg.cpp
+    solver/batch_gmres.cpp
     solver/batch_richardson.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
