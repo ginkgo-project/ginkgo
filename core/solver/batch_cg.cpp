@@ -90,7 +90,8 @@ void BatchCg<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto dense_x = as<Vector>(x);
     const kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>> opts{
         parameters_.preconditioner, parameters_.max_iterations,
-        parameters_.rel_residual_tol, parameters_.abs_residual_tol};
+        parameters_.rel_residual_tol, parameters_.abs_residual_tol,
+        parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
 
