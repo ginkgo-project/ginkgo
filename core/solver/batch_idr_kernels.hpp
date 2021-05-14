@@ -58,6 +58,8 @@ struct BatchIdrOptions {
     size_type subspace_dim_val;
     bool is_complex_subspace;
     RealType kappa_val;
+    bool to_use_smoothing;
+    bool deterministic_gen;
     ::gko::stop::batch::ToleranceType tol_type;
 };
 
