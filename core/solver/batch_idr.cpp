@@ -62,6 +62,8 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::transpose() const
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
+        .with_smoothing(parameters_.smoothing)
+        .with_deterministic(parameters_.deterministic)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(
@@ -80,6 +82,8 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
+        .with_smoothing(parameters_.smoothing)
+        .with_deterministic(parameters_.deterministic)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
@@ -104,6 +108,8 @@ void BatchIdr<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
         parameters_.subspace_dim,
         parameters_.complex_subspace,
         parameters_.kappa,
+        parameters_.smoothing,
+        parameters_.deterministic,
         parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
