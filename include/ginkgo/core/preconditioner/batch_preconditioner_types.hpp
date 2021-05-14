@@ -45,7 +45,7 @@ namespace batch {
 /**
  * Types of batch preconditioners available.
  */
-enum Type { none, jacobi };
+enum class type { none, jacobi };
 
 
 const char none_str[] = "none";
@@ -55,9 +55,9 @@ const char jacobi_str[] = "jacobi";
 /**
  * Get a string name of an available batch preconditioner type.
  */
-inline std::string get_string_of(Type type)
+inline std::string get_string_of(type prec_type)
 {
-    if (type == none) {
+    if (prec_type == type::none) {
         return none_str;
     } else {
         return jacobi_str;
