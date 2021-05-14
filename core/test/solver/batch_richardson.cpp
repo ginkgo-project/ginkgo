@@ -62,8 +62,7 @@ protected:
     BatchRich()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::create_poisson1d_batch<value_type>(
-              std::static_pointer_cast<const gko::ReferenceExecutor>(
-                  this->exec),
+              std::static_pointer_cast<const gko::ReferenceExecutor>(exec),
               nrows, nbatch))
     {}
 
@@ -81,7 +80,7 @@ protected:
             Solver::build()
                 .with_max_iterations(this->def_max_iters)
                 .with_rel_residual_tol(this->def_rel_res_tol)
-                .with_preconditioner(gpb::jacobi)
+                .with_preconditioner(gpb::type::jacobi)
                 .with_relaxation_factor(this->def_relax)
                 .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
@@ -99,7 +98,7 @@ protected:
     void assert_solver_params(const Solver *const a)
     {
         ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
-        ASSERT_EQ(a->get_parameters().preconditioner, gpb::jacobi);
+        ASSERT_EQ(a->get_parameters().preconditioner, gpb::type::jacobi);
         ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
         ASSERT_EQ(a->get_parameters().rel_residual_tol, def_rel_res_tol);
     }
@@ -228,7 +227,7 @@ TYPED_TEST(BatchRich, CanSetCriteria)
 TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;
-    const gpb::Type batchrich_precond = gpb::none;
+    const gpb::type batchrich_precond = gpb::type::none;
 
     auto batchrich_factory =
         Solver::build().with_preconditioner(batchrich_precond).on(this->exec);
@@ -249,6 +248,27 @@ TYPED_TEST(BatchRich, ThrowsOnRectangularMatrixInFactory)
 
     ASSERT_THROW(batchrich_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(BatchRich, CanSetScalingVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Dense = typename TestFixture::Dense;
+
+    auto batchrich_factory = Solver::build().on(this->exec);
+    auto solver = batchrich_factory->generate(this->mtx);
+    auto left_scale = Dense::create(
+        this->exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
+    auto right_scale = Dense::create_with_config_of(left_scale.get());
+    solver->batch_scale(left_scale.get(), right_scale.get());
+
+    auto s_solver =
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+    ASSERT_TRUE(s_solver);
+    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
 }
 
 // TODO: Enable after BatchCsr::transpose is implemented.
