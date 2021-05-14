@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,71 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_CONFIG_HPP_
-#define GKO_CUDA_BASE_CONFIG_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "cuda/base/math.hpp"
+#include "core/solver/batch_gmres_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace dpcpp {
+/**
+ * @brief The batch Gmres solver namespace.
+ *
+ * @ingroup batch_gmres
+ */
+namespace batch_gmres {
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint32;
-
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 32;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The maximal number of threads allowed in a CUDA warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
-
+template <typename T>
+using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
 template <typename ValueType>
-struct batch_config {
-    /**
-     * Max number of rows per matrix in a batch of (small) sparse matrices.
-     */
-    static constexpr int max_num_rows = 35;
+void apply(std::shared_ptr<const DpcppExecutor> exec,
+           const BatchGmresOptions<remove_complex<ValueType>> &opts,
+           const BatchLinOp *const a,
+           const matrix::BatchDense<ValueType> *const left_scale,
+           const matrix::BatchDense<ValueType> *const right_scale,
+           const matrix::BatchDense<ValueType> *const b,
+           matrix::BatchDense<ValueType> *const x,
+           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
 
-    /**
-     * Max number of RHS vectors in a linear system. This can be at most
-     * `config::warp_size`.
-     */
-    static constexpr int max_num_rhs =
-        2;  // NOTE: max_num_rhs has to be an even number to avoid cuda
-            // misaligned address issues while using complex datatypes(in
-            // reference to the shared memory in solver kernels)
-};
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);
 
 
-}  // namespace cuda
+}  // namespace batch_gmres
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CUDA_BASE_CONFIG_HPP_
