@@ -48,7 +48,7 @@ namespace batch_jacobi {
 
 
 template <typename ValueType>
-void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor>,
+void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
                         const matrix::BatchCsr<ValueType> *const a,
                         const matrix::BatchDense<ValueType> *const b,
                         matrix::BatchDense<ValueType> *const x)
@@ -56,13 +56,19 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor>,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto x_ub = get_batch_struct(x);
+    const int local_size_bytes =
+        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        sizeof(ValueType);
+    using byte = unsigned char;
+    Array<byte> local_space(exec, local_size_bytes);
     BatchJacobi<ValueType> prec;
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
 
-        ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        const auto prec_work =
+            reinterpret_cast<ValueType *>(local_space.get_data());
         prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }
