@@ -30,36 +30,38 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_gmres.hpp>
+#include <ginkgo/core/solver/batch_idr.hpp>
 
 
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
-#include "core/solver/batch_gmres_kernels.hpp"
+#include "core/solver/batch_idr_kernels.hpp"
 
 
 namespace gko {
 namespace solver {
-namespace batch_gmres {
+namespace batch_idr {
 
 
-GKO_REGISTER_OPERATION(apply, batch_gmres::apply);
+GKO_REGISTER_OPERATION(apply, batch_idr::apply);
 
 
-}  // namespace batch_gmres
+}  // namespace batch_idr
 
 
 template <typename ValueType>
-std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
-        .with_restart(parameters_.restart)
+        .with_subspace_dim(parameters_.subspace_dim)
+        .with_complex_subspace(parameters_.complex_subspace)
+        .with_kappa(parameters_.kappa)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(
@@ -68,14 +70,16 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
         .with_rel_residual_tol(parameters_.rel_residual_tol)
         .with_abs_residual_tol(parameters_.abs_residual_tol)
-        .with_restart(parameters_.restart)
+        .with_subspace_dim(parameters_.subspace_dim)
+        .with_complex_subspace(parameters_.complex_subspace)
+        .with_kappa(parameters_.kappa)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
@@ -84,7 +88,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+void BatchIdr<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
@@ -92,10 +96,15 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner,   parameters_.max_iterations,
-             parameters_.rel_residual_tol, parameters_.abs_residual_tol,
-             parameters_.restart,          parameters_.tolerance_type};
+    const kernels::batch_idr::BatchIdrOptions<remove_complex<ValueType>> opts{
+        parameters_.preconditioner,
+        parameters_.max_iterations,
+        parameters_.rel_residual_tol,
+        parameters_.abs_residual_tol,
+        parameters_.subspace_dim,
+        parameters_.complex_subspace,
+        parameters_.kappa,
+        parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
 
@@ -111,9 +120,9 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     logdata.iter_counts.set_executor(this->get_executor());
     logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    exec->run(batch_gmres::make_apply(opts, system_matrix_.get(),
-                                      this->left_scale_, this->right_scale_,
-                                      dense_b, dense_x, logdata));
+    exec->run(batch_idr::make_apply(opts, system_matrix_.get(),
+                                    this->left_scale_, this->right_scale_,
+                                    dense_b, dense_x, logdata));
 
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
@@ -121,10 +130,10 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                       const BatchLinOp *b,
-                                       const BatchLinOp *beta,
-                                       BatchLinOp *x) const
+void BatchIdr<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                     const BatchLinOp *b,
+                                     const BatchLinOp *beta,
+                                     BatchLinOp *x) const
 
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
@@ -136,8 +145,8 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *alpha,
 }
 
 
-#define GKO_DECLARE_BATCH_GMRES(_type) class BatchGmres<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES);
+#define GKO_DECLARE_BATCH_IDR(_type) class BatchIdr<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR);
 
 
 }  // namespace solver
