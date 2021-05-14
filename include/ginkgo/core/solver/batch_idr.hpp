@@ -144,12 +144,45 @@ public:
      */
     bool get_complex_subspace() const { return complex_subspace_; }
 
+
     /**
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
      */
     void set_complex_subpsace(const bool other) { complex_subspace_ = other; }
+
+    /**
+     * Gets the deterministic parameter of the solver.
+     *
+     * @return the deterministic parameter
+     */
+    bool get_deterministic() const { return deterministic_; }
+
+    /**
+     * Sets the deterministic parameter of the solver.
+     *
+     * @param other  the new deterministic parameter
+     */
+    void set_deterministic(const bool other) { deterministic_ = other; }
+
+
+    /**
+     * Gets the smoothing paramter of solver
+     *
+     *
+     * @return the smoothing paramter
+     */
+    bool get_smoothing() const { return smoothing_; }
+
+
+    /**
+     * Sets the smoothing paramter of solver
+     *
+     * @param other the new smoothing paramter
+     */
+    void set_smoothing(const bool other) { smoothing_ = other; }
+
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -195,15 +228,27 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(complex_subspace, false);
 
+        /**
+         * To enable smoothing
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(smoothing, true);
+
+
+        /**
+        * If set to true, the vectors spanning the subspace S are chosen
+        * deterministically. This is mostly needed for testing purposes.
+        *
+        * Note: If 'deterministic' is set to true, the subspace vectors are
+
+        * The default behaviour is to choose the subspace vectors randomly.
+        */
+        bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
+
 
         /**
          * To specify which tolerance is to be considered.
          *
          */
-        // ::gko::stop::batch::ToleranceType
-        // GKO_FACTORY_PARAMETER_SCALAR(tolerance_type,
-        // ::gko::stop::batch::ToleranceType::absolute);
-
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
     };
@@ -231,6 +276,8 @@ protected:
         complex_subspace_ = parameters_.complex_subspace;
         subspace_dim_ = parameters_.subspace_dim;
         kappa_ = parameters_.kappa;
+        deterministic_ = parameters_.deterministic;
+        smoothing_ = parameters_.smoothing;
         if (!gko::preconditioner::batch::is_valid_preconditioner_string(
                 parameters_.preconditioner)) {
             GKO_NOT_IMPLEMENTED;
@@ -242,6 +289,8 @@ private:
     bool complex_subspace_;
     size_type subspace_dim_;
     real_type kappa_;
+    bool deterministic_;
+    bool smoothing_;
 };
 
 
