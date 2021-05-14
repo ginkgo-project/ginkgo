@@ -52,6 +52,7 @@ target_sources(ginkgo_dpcpp
     reorder/rcm_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
     solver/batch_cg_kernels.dp.cpp
+    solver/batch_gmres_kernels.dp.cpp
     solver/batch_richardson_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
