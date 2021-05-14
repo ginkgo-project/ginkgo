@@ -951,7 +951,6 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
-    size_type num_batch_entries = num_vectors;
     std::vector<size_type> num_rows(num_vectors);
     std::vector<dim<2>> sizes(num_vectors);
     for (size_type b = 0; b < num_vectors; ++b) {
@@ -961,7 +960,6 @@ std::unique_ptr<Matrix> batch_initialize(
     auto b_size = batch_dim<2>(sizes);
     auto b_stride = batch_stride(stride);
     auto tmp = batch_dense::create(exec->get_master(), b_size, b_stride);
-    size_type batch = 0;
     for (size_type batch = 0; batch < num_vectors; batch++) {
         size_type idx = 0;
         for (const auto &elem : vals) {
@@ -1041,7 +1039,6 @@ std::unique_ptr<Matrix> batch_initialize(
     std::shared_ptr<const Executor> exec, TArgs &&... create_args)
 {
     using batch_dense = matrix::BatchDense<typename Matrix::value_type>;
-    const size_type num_batches = num_matrices;
     std::vector<dim<2>> sizes(num_matrices);
     const size_type num_rows = vals.size();
     for (size_type b = 0; b < num_matrices; ++b) {
@@ -1052,7 +1049,6 @@ std::unique_ptr<Matrix> batch_initialize(
         }
     }
     auto tmp = batch_dense::create(exec->get_master(), sizes, stride);
-    size_type batch = 0;
     for (size_type batch = 0; batch < num_matrices; batch++) {
         size_type ridx = 0;
         for (const auto &row : vals) {

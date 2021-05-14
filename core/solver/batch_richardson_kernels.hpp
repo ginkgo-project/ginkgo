@@ -53,13 +53,23 @@ namespace batch_rich {
  */
 template <typename RealType>
 struct BatchRichardsonOptions {
-    preconditioner::batch::Type preconditioner;
+    preconditioner::batch::type preconditioner;
     int max_its;
     RealType rel_residual_tol;
     RealType relax_factor;
 };
 
 
+/**
+ * Calculates the amount of in-solver storage needed by batch-Richardson.
+ *
+ * The calculation includes multivectors for
+ * - the residual
+ * - the update (delta_x)
+ * and small arrays for
+ * - the current residual norm
+ * - the initial residual norm.
+ */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {

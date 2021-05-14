@@ -82,9 +82,9 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{gpb::jacobi, 500, r<real_type>::value, 1.0};
+    const Options opts_1{gpb::type::jacobi, 500, r<real_type>::value, 1.0};
     const int nrhs = 2;
-    const Options opts_m{gpb::jacobi, 500, r<real_type>::value, 1.0};
+    const Options opts_m{gpb::type::jacobi, 500, r<real_type>::value, 1.0};
 
     struct LinSys {
         std::unique_ptr<Mtx> mtx;
@@ -365,8 +365,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{gpb::jacobi, 1000, 1e-8, 1.0};
-    const Options opts_slower{gpb::jacobi, 1000, 1e-8, 0.8};
+    const Options opts{gpb::type::jacobi, 1000, 1e-8, 1.0};
+    const Options opts_slower{gpb::type::jacobi, 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -393,7 +393,7 @@ TYPED_TEST(BatchRich, CoreSolvesSystemJacobi)
         Solver::build()
             .with_max_iterations(100)
             .with_rel_residual_tol(5e-7f)
-            .with_preconditioner(gpb::jacobi)
+            .with_preconditioner(gpb::type::jacobi)
             .on(useexec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
