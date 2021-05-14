@@ -52,7 +52,7 @@ constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
 /**
- * @brief The batch Cg solver namespace.
+ * @brief The batch Gmres solver namespace.
  *
  * @ingroup batch_gmres
  */
