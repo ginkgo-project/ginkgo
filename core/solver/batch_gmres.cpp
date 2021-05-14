@@ -30,29 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_gmres.hpp>
 
 
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
 
 
-#include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_gmres_kernels.hpp"
 
 
 namespace gko {
 namespace solver {
-namespace batch_bicgstab {
+namespace batch_gmres {
 
 
-GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
+GKO_REGISTER_OPERATION(apply, batch_gmres::apply);
 
 
-}  // namespace batch_bicgstab
+}  // namespace batch_gmres
 
 
 template <typename ValueType>
-std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
+std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -66,7 +66,7 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
+std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
@@ -80,8 +80,7 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
-                                          BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
@@ -89,11 +88,10 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const kernels::batch_bicgstab::BatchBicgstabOptions<
-        remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
+    const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
+        opts{parameters_.preconditioner,   parameters_.max_iterations,
              parameters_.rel_residual_tol, parameters_.abs_residual_tol,
-             parameters_.tolerance_type};
+             parameters_.restart,          parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
 
@@ -109,9 +107,9 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
     logdata.iter_counts.set_executor(this->get_executor());
     logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    exec->run(batch_bicgstab::make_apply(opts, system_matrix_.get(),
-                                         this->left_scale_, this->right_scale_,
-                                         dense_b, dense_x, logdata));
+    exec->run(batch_gmres::make_apply(opts, system_matrix_.get(),
+                                      this->left_scale_, this->right_scale_,
+                                      dense_b, dense_x, logdata));
 
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
@@ -119,10 +117,11 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                          const BatchLinOp *b,
-                                          const BatchLinOp *beta,
-                                          BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp *alpha,
+                                       const BatchLinOp *b,
+                                       const BatchLinOp *beta,
+                                       BatchLinOp *x) const
+
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 
@@ -133,8 +132,8 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *alpha,
 }
 
 
-#define GKO_DECLARE_BATCH_BICGSTAB(_type) class BatchBicgstab<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB);
+#define GKO_DECLARE_BATCH_GMRES(_type) class BatchGmres<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES);
 
 
 }  // namespace solver

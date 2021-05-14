@@ -74,6 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
+#include "core/solver/batch_gmres_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -627,6 +628,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
 
 
 }  // namespace batch_cg
+
+
+namespace batch_gmres {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);
+
+
+}  // namespace batch_gmres
 
 
 namespace sparsity_csr {

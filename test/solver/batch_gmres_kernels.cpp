@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,71 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_CONFIG_HPP_
-#define GKO_CUDA_BASE_CONFIG_HPP_
+#include "core/solver/batch_gmres_kernels.hpp"
 
 
-#include <ginkgo/core/base/types.hpp>
+#include <gtest/gtest.h>
 
 
-#include "cuda/base/math.hpp"
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
+#include "core/test/utils.hpp"
+#include "core/test/utils/batch.hpp"
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint32;
-
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 32;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The maximal number of threads allowed in a CUDA warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
-
-
-template <typename ValueType>
-struct batch_config {
-    /**
-     * Max number of rows per matrix in a batch of (small) sparse matrices.
-     */
-    static constexpr int max_num_rows = 35;
-
-    /**
-     * Max number of RHS vectors in a linear system. This can be at most
-     * `config::warp_size`.
-     */
-    static constexpr int max_num_rhs =
-        2;  // NOTE: max_num_rhs has to be an even number to avoid cuda
-            // misaligned address issues while using complex datatypes(in
-            // reference to the shared memory in solver kernels)
-};
-
-
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_CUDA_BASE_CONFIG_HPP_
+namespace {}  // namespace
