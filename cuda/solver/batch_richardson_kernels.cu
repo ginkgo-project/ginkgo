@@ -91,7 +91,7 @@ static void apply_impl(
 
     gko::kernels::cuda::configure_shared_memory<ValueType>();
 
-    if (opts.preconditioner == gko::preconditioner::batch::jacobi) {
+    if (opts.preconditioner == gko::preconditioner::batch::type::jacobi) {
         const int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
             gko::kernels::batch_rich::local_memory_requirement<ValueType>(
