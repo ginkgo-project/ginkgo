@@ -30,11 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/solver/batch_richardson.hpp>
+
+
 #include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/executor.hpp>
 
 
 #include "core/solver/batch_richardson_kernels.hpp"
@@ -88,13 +87,13 @@ protected:
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{gpb::jacobi, 500, r<real_type>::value, 1.0};
+    const Options opts_1{gpb::type::jacobi, 500, r<real_type>::value, 1.0};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{gpb::jacobi, 1000, r<real_type>::value, 1.0};
+    const Options opts_m{gpb::type::jacobi, 1000, r<real_type>::value, 1.0};
 
     struct Result {
         std::shared_ptr<BDense> x;
@@ -286,8 +285,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
-    const Options opts{gpb::jacobi, 1000, 1e-8, 1.0};
-    const Options opts_slower{gpb::jacobi, 1000, 1e-8, 0.8};
+    const Options opts{gpb::type::jacobi, 1000, 1e-8, 1.0};
+    const Options opts_slower{gpb::type::jacobi, 1000, 1e-8, 0.8};
 
     Result result1 = this->solve_poisson_uniform_1(opts);
     Result result2 = this->solve_poisson_uniform_1(opts_slower);
@@ -345,6 +344,61 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
                               1e-5 /*r<value_type>::value*/);
+}
+
+
+TYPED_TEST(BatchRich, CanSolveWithoutScaling)
+{
+    using T = typename TestFixture::value_type;
+    using RT = typename TestFixture::real_type;
+    using Solver = gko::solver::BatchRichardson<T>;
+    using Dense = gko::matrix::BatchDense<T>;
+    using RDense = gko::matrix::BatchDense<RT>;
+    using Mtx = typename TestFixture::Mtx;
+    const RT tol = std::numeric_limits<RT>::epsilon();
+    auto batchrich_factory = Solver::build()
+                                 .with_max_iterations(500)
+                                 .with_rel_residual_tol(tol * 100)
+                                 .with_relaxation_factor(RT{0.95})
+                                 .on(this->exec);
+    std::shared_ptr<Mtx> mtx = gko::test::create_poisson1d_batch<T>(
+        this->exec, this->nrows, this->nbatch);
+    auto solver = batchrich_factory->generate(mtx);
+    const int nrhs = 3;
+    auto b = Dense::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, nrhs)));
+    auto x = Dense::create_with_config_of(b.get());
+    auto res = Dense::create_with_config_of(b.get());
+    auto alpha = gko::batch_initialize<Dense>(this->nbatch, {-1.0}, this->exec);
+    auto beta = gko::batch_initialize<Dense>(this->nbatch, {1.0}, this->exec);
+    auto bnorm = RDense::create(
+        this->exec, gko::batch_dim<>(this->nbatch, gko::dim<2>(1, nrhs)));
+    for (size_t ib = 0; ib < this->nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            bnorm->at(ib, 0, j) = gko::zero<RT>();
+            const T val = 1.0 + ib / 2.0 - j / 4.0;
+            for (int i = 0; i < this->nrows; i++) {
+                b->at(ib, i, j) = val;
+                x->at(ib, i, j) = 0.0;
+                res->at(ib, i, j) = val;
+                bnorm->at(ib, 0, j) += gko::squared_norm(val);
+            }
+            bnorm->at(ib, 0, j) = std::sqrt(bnorm->at(ib, 0, j));
+        }
+    }
+
+    solver->apply(b.get(), x.get());
+
+    mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
+    auto rnorm = RDense::create(
+        this->exec, gko::batch_dim<>(this->nbatch, gko::dim<2>(1, nrhs)));
+    res->compute_norm2(rnorm.get());
+    for (size_t ib = 0; ib < this->nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            ASSERT_LE(rnorm->at(ib, 0, j) / bnorm->at(ib, 0, j), tol * 100);
+        }
+    }
 }
 
 
