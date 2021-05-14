@@ -266,7 +266,7 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
     }
 
     for (auto i = 0; i < size.get_num_batch_entries(); ++i) {
-        if (size.at(i)[1] != size.at(i)[1]) {
+        if (size.at(i)[1] != size.at(i)[0]) {
             return std::tuple<bool, int>{false, i};
         }
     }
