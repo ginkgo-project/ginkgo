@@ -58,11 +58,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Command-line arguments
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
+DEFINE_uint32(num_duplications, 1, "The number of duplications");
 DEFINE_uint32(num_batches, 1, "The number of batch entries");
+DEFINE_bool(batch_scaling, false, "Whether to use scaled matrices");
+DEFINE_bool(using_suite_sparse, true,
+            "Whether the suitesparse matrices are being used");
 
 
 template <typename ValueType>
 using batch_vec = gko::matrix::BatchDense<ValueType>;
+
+using size_type = gko::size_type;
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
@@ -77,7 +83,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        auto nbatch = FLAGS_num_batches;
+        auto nbatch = FLAGS_num_duplications;
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
         auto system_matrix = share(
@@ -163,6 +169,122 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             system_matrix->apply(lend(b), lend(x_clone));
             timer->toc();
         }
+        add_or_set_member(spmv_case[format_name], "num_batch_entries",
+                          system_matrix->get_num_batch_entries(), allocator);
+        add_or_set_member(spmv_case[format_name], "time",
+                          timer->compute_average_time(), allocator);
+
+        // compute and write benchmark data
+        add_or_set_member(spmv_case[format_name], "completed", true, allocator);
+    } catch (const std::exception &e) {
+        add_or_set_member(test_case["spmv"][format_name], "completed", false,
+                          allocator);
+        std::cerr << "Error when processing test case " << test_case << "\n"
+                  << "what(): " << e.what() << std::endl;
+    }
+}
+
+// This function supposes that management of `FLAGS_overwrite` is done before
+// calling it
+void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
+                const std::vector<gko::matrix_data<etype>> &data,
+                const batch_vec<etype> *b, const batch_vec<etype> *x,
+                const batch_vec<etype> *answer, rapidjson::Value &test_case,
+                rapidjson::MemoryPoolAllocator<> &allocator)
+{
+    try {
+        auto &spmv_case = test_case["spmv"];
+        add_or_set_member(spmv_case, format_name,
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+
+        auto nbatch = FLAGS_num_duplications;
+        auto storage_logger = std::make_shared<StorageLogger>(exec);
+        exec->add_logger(storage_logger);
+        auto system_matrix = share(
+            formats::batch_matrix_factory2.at(format_name)(exec, nbatch, data));
+
+        std::clog << "Batch Matrix has: "
+                  << system_matrix->get_num_batch_entries()
+                  << " batches, each of size ("
+                  << system_matrix->get_size().at(0)[0] << ", "
+                  << system_matrix->get_size().at(0)[1] << ") , with total nnz "
+                  << gko::as<gko::matrix::BatchCsr<etype>>(system_matrix.get())
+                         ->get_num_stored_elements()
+                  << std::endl;
+
+        exec->remove_logger(gko::lend(storage_logger));
+        storage_logger->write_data(spmv_case[format_name], allocator);
+        // check the residual
+        if (FLAGS_detailed) {
+            auto x_clone = clone(x);
+            exec->synchronize();
+            system_matrix->apply(lend(b), lend(x_clone));
+            exec->synchronize();
+            auto max_relative_norm2 =
+                compute_batch_max_relative_norm2(lend(x_clone), lend(answer));
+            // FIXME
+            // add_or_set_member(spmv_case[format_name], "max_relative_norm2",
+            //                   max_relative_norm2, allocator);
+        }
+        // warm run
+        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+            auto x_clone = clone(x);
+            exec->synchronize();
+            system_matrix->apply(lend(b), lend(x_clone));
+            exec->synchronize();
+        }
+
+        // tuning run
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+        auto &format_case = spmv_case[format_name];
+        if (!format_case.HasMember("tuning")) {
+            format_case.AddMember(
+                "tuning", rapidjson::Value(rapidjson::kObjectType), allocator);
+        }
+        auto &tuning_case = format_case["tuning"];
+        add_or_set_member(tuning_case, "time",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
+        add_or_set_member(tuning_case, "values",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
+
+        // Enable tuning for this portion of code
+        gko::_tuning_flag = true;
+        // Select some values we want to tune.
+        std::vector<gko::size_type> tuning_values{
+            1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+        for (auto val : tuning_values) {
+            // Actually set the value that will be tuned. See
+            // cuda/components/format_conversion.cuh for an example of how this
+            // variable is used.
+            gko::_tuned_value = val;
+            auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
+            for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+                auto x_clone = clone(x);
+                exec->synchronize();
+                tuning_timer->tic();
+                system_matrix->apply(lend(b), lend(x_clone));
+                tuning_timer->toc();
+            }
+            tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
+                                         allocator);
+            tuning_case["values"].PushBack(val, allocator);
+        }
+        // We put back the flag to false to use the default (non-tuned) values
+        // for the following
+        gko::_tuning_flag = false;
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
+        // timed run
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
+        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+            auto x_clone = clone(x);
+            exec->synchronize();
+            timer->tic();
+            system_matrix->apply(lend(b), lend(x_clone));
+            timer->toc();
+        }
+        add_or_set_member(spmv_case[format_name], "num_batch_entries",
+                          system_matrix->get_num_batch_entries(), allocator);
         add_or_set_member(spmv_case[format_name], "time",
                           timer->compute_average_time(), allocator);
 
@@ -182,8 +304,8 @@ int main(int argc, char *argv[])
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
     std::string format = std::string() + "  [\n" +
-                         "    { \"filename\": \"my_file.mtx\"},\n" +
-                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+                         "    { \"problem\": \"my_file.mtx\"},\n" +
+                         "    { \"problem\": \"my_file2.mtx\"}\n" + "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information = "The formats are " + FLAGS_formats +
@@ -199,7 +321,11 @@ int main(int argc, char *argv[])
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
+        if (FLAGS_using_suite_sparse) {
+            print_batch_config_error_and_exit();
+        } else {
+            print_config_error_and_exit();
+        }
     }
 
     auto &allocator = test_cases.GetAllocator();
@@ -207,7 +333,11 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
-            validate_option_object(test_case);
+            if (FLAGS_using_suite_sparse) {
+                validate_option_object(test_case);
+            } else {
+                validate_batch_option_object(test_case);
+            }
             if (!test_case.HasMember("spmv")) {
                 test_case.AddMember("spmv",
                                     rapidjson::Value(rapidjson::kObjectType),
@@ -222,36 +352,66 @@ int main(int argc, char *argv[])
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
-            std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
-
             auto nrhs = FLAGS_nrhs;
             auto nbatch = FLAGS_num_batches;
+            auto ndup = FLAGS_num_duplications;
+            size_type multiplier = 1;
+            auto data = std::vector<gko::matrix_data<etype>>(nbatch);
+            if (FLAGS_using_suite_sparse) {
+                GKO_ASSERT(ndup == nbatch);
+                std::string fname = test_case["filename"].GetString();
+                std::ifstream mtx_fd(fname);
+                data[0] = gko::read_raw<etype>(mtx_fd);
+                multiplier = 1;
+            } else {
+                for (size_type i = 0; i < data.size(); ++i) {
+                    std::string fname =
+                        std::string(test_case["problem"].GetString()) + "/" +
+                        std::to_string(i) + "/A.mtx";
+                    std::ifstream mtx_fd(fname);
+                    data[i] = gko::read_raw<etype>(mtx_fd);
+                }
+                multiplier = ndup;
+            }
+
             auto b = create_batch_matrix<etype>(
                 exec,
-                gko::batch_dim<2>(nbatch, gko::dim<2>{data.size[0], nrhs}),
+                gko::batch_dim<2>(nbatch * multiplier,
+                                  gko::dim<2>{data[0].size[0], nrhs}),
                 engine);
             auto x = create_batch_matrix<etype>(
                 exec,
-                gko::batch_dim<2>(nbatch, gko::dim<2>{data.size[0], nrhs}),
+                gko::batch_dim<2>(nbatch * multiplier,
+                                  gko::dim<2>{data[0].size[0], nrhs}),
                 engine);
-            // std::clog << "Batch Matrix has: " << nbatch
-            //           << " batches, each of size (" << data.size[0] << ", "
-            //           << data.size[1] << ")" << std::endl;
 
-            // Compute the result from ginkgo::coo as the correct answer
+            // Compute the result from ginkgo::batch_csr as the correct answer
             auto answer = batch_vec<etype>::create(exec);
             if (FLAGS_detailed) {
-                auto system_matrix = share(formats::batch_matrix_factory.at(
-                    "batch_csr")(exec, nbatch, data));
+                std::shared_ptr<gko::BatchLinOp> system_matrix;
+                if (FLAGS_using_suite_sparse) {
+                    system_matrix = share(formats::batch_matrix_factory.at(
+                        "batch_csr")(exec, ndup, data[0]));
+                } else {
+                    system_matrix = share(formats::batch_matrix_factory2.at(
+                        "batch_csr")(exec, ndup, data));
+                }
+                auto sys_size = system_matrix->get_size();
+                auto x_size = x->get_size();
+                auto b_size = b->get_size();
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
                 exec->synchronize();
             }
             for (const auto &format_name : formats) {
-                apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
-                           lend(answer), test_case, allocator);
+                if (FLAGS_using_suite_sparse) {
+                    apply_spmv(format_name.c_str(), exec, data[0], lend(b),
+                               lend(x), lend(answer), test_case, allocator);
+                } else {
+                    apply_spmv(format_name.c_str(), exec, data, lend(b),
+                               lend(x), lend(answer), test_case, allocator);
+                }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
