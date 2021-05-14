@@ -59,6 +59,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
+ * Function which outputs the input format for benchmarks similar to the spmv.
+ */
+[[noreturn]] void print_batch_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of matrix configuration folder "
+                 "locations:\n"
+              << "  [\n"
+              << "    { \"problem\": \"my_folder\" },\n"
+              << "    { \"problem\": \"my_folder2\" }\n"
+              << "  ]" << std::endl;
+    std::exit(1);
+}
+
+
+/**
+ * Validates whether the input format is correct for spmv-like benchmarks.
+ *
+ * @param value  the JSON value to test.
+ */
+void validate_batch_option_object(const rapidjson::Value &value)
+{
+    if (!value.IsObject() || !value.HasMember("problem") ||
+        !value["problem"].IsString()) {
+        print_batch_config_error_and_exit();
+    }
+}
+
+
+/**
  * Validates whether the input format is correct for spmv-like benchmarks.
  *
  * @param value  the JSON value to test.
