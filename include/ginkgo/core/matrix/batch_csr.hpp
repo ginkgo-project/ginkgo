@@ -249,6 +249,31 @@ protected:
     {}
 
 
+    template <typename MatrixType>
+    void batch_duplicator(std::shared_ptr<const Executor> exec,
+                          const size_type num_batch_entries,
+                          const size_type col_idxs_size,
+                          const MatrixType *input,
+                          BatchCsr<value_type, index_type> *output)
+    {
+        auto row_ptrs = output->get_row_ptrs();
+        auto col_idxs = output->get_col_idxs();
+        auto values = output->get_values();
+        size_type offset = 0;
+        size_type num_nnz = input->get_num_stored_elements();
+        for (size_type i = 0; i < num_batch_entries; ++i) {
+            exec->copy_from(input->get_executor().get(), num_nnz,
+                            input->get_const_values(), values + offset);
+            offset += num_nnz;
+        }
+        exec->copy_from(input->get_executor().get(), col_idxs_size,
+                        input->get_const_col_idxs(), col_idxs);
+        exec->copy_from(input->get_executor().get(),
+                        output->get_size().at(0)[0] + 1,
+                        input->get_const_row_ptrs(), row_ptrs);
+    }
+
+
     /**
      * Creates an BatchCsr matrix by duplicating a CSR matrix
      *
@@ -265,21 +290,9 @@ protected:
           col_idxs_(exec, csr_mat->get_num_stored_elements()),
           row_ptrs_(exec, (csr_mat->get_size()[0]) + 1)
     {
-        size_type offset = 0;
-        size_type num_nnz = csr_mat->get_num_stored_elements();
-        for (size_type i = 0; i < num_batch_entries; ++i) {
-            exec->copy_from(csr_mat->get_executor().get(), num_nnz,
-                            csr_mat->get_const_values(),
-                            values_.get_data() + offset);
-            offset += num_nnz;
-        }
-        exec->copy_from(csr_mat->get_executor().get(), num_nnz,
-                        csr_mat->get_const_col_idxs(), col_idxs_.get_data());
-        exec->copy_from(csr_mat->get_executor().get(),
-                        (csr_mat->get_size()[0]) + 1,
-                        csr_mat->get_const_row_ptrs(), row_ptrs_.get_data());
+        batch_duplicator(exec, num_batch_entries,
+                         csr_mat->get_num_stored_elements(), csr_mat, this);
     }
-
 
     /**
      * Creates an BatchCsr matrix by duplicating a BatchCsr matrix
@@ -302,20 +315,8 @@ protected:
                               batch_mat->get_num_batch_entries()),
           row_ptrs_(exec, (batch_mat->get_size().at(0)[0]) + 1)
     {
-        size_type offset = 0;
-        size_type num_nnz = batch_mat->get_num_stored_elements();
-        for (size_type i = 0; i < num_duplications; ++i) {
-            exec->copy_from(batch_mat->get_executor().get(), num_nnz,
-                            batch_mat->get_const_values(),
-                            values_.get_data() + offset);
-            offset += num_nnz;
-        }
-        exec->copy_from(batch_mat->get_executor().get(),
-                        col_idxs_.get_num_elems(),
-                        batch_mat->get_const_col_idxs(), col_idxs_.get_data());
-        exec->copy_from(batch_mat->get_executor().get(),
-                        row_ptrs_.get_num_elems(),
-                        batch_mat->get_const_row_ptrs(), row_ptrs_.get_data());
+        batch_duplicator(exec, num_duplications, col_idxs_.get_num_elems(),
+                         batch_mat, this);
     }
 
 
