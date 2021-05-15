@@ -72,6 +72,8 @@ using size_type = gko::size_type;
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
+//
+// Overload for the Suitesparse matrices
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<etype> &data, const batch_vec<etype> *b,
                 const batch_vec<etype> *x, const batch_vec<etype> *answer,
@@ -186,6 +188,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
+//
+// Overload with the reading a batch matrix with std::vector<matrix_data>
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const std::vector<gko::matrix_data<etype>> &data,
                 const batch_vec<etype> *b, const batch_vec<etype> *x,
