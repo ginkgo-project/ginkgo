@@ -179,12 +179,16 @@ else
     BATCH_SCALING_STR="--batch_scaling=true"
 fi
 
-if  [ ! "${USE_SUITE_SPARSE}" ] || [ "${USE_SUITE_SPARSE}" -eq 1 ]; then
-    SS_STR="--using_suite_sparse=true"
-    echo "Using matrices from SuiteSparse"
-else
+if [ ! "${USE_SUITE_SPARSE}" ]; then
+    USE_SUITE_SPARSE=1
+fi
+
+if [ "${USE_SUITE_SPARSE}" -eq 0 ]; then
     SS_STR="--using_suite_sparse=false"
     echo "Not using matrices from SuiteSparse"
+else
+    SS_STR="--using_suite_sparse=true"
+    echo "Using matrices from SuiteSparse"
 fi
 
 # This allows using a matrix list file for benchmarking.
@@ -204,6 +208,18 @@ else
     exit 1
 fi
 
+# This allows using a matrix list file for benchmarking.
+#
+# Each matrix on each line is duplicated NUM_BATCH_DUP times
+# if USE_SUITE_SPARSE is on
+#
+# The file should contains a suitesparse matrix on each line.
+# The allowed formats to target suitesparse matrix is:
+#   id or group/name or name.
+# Example:
+# 1903
+# Freescale/circuit5M
+# thermal2
 if [ ! "${BATCH_MATRIX_LIST_FILE}" ]; then
     use_batch_matrix_list_file=0
 elif [ -f "${BATCH_MATRIX_LIST_FILE}" ]; then
@@ -215,7 +231,7 @@ else
 fi
 
 # This allows using a folder to automatically read the files in the folder into a matrix.
-# The folder structure for a matrix class with two batch entries could look like this:
+# The folder structure for a matrix class with two batch entries should look like this:
 #
 # matrix_class
 # \__1
@@ -296,7 +312,7 @@ run_conversion_benchmarks() {
 }
 
 
-# Runs the SpMV benchmarks for all SpMV formats by using file $1 as the input,
+# Runs the batch SpMV benchmarks for all batch formats by using file $1 as the input,
 # and updating it with the results. Backups are created after each
 # benchmark run, to prevent data loss in case of a crash. Once the benchmarking
 # is completed, the backups and the results are combined, and the newest file is
@@ -386,10 +402,12 @@ run_preconditioner_benchmarks() {
 ################################################################################
 # Batch matrix functionality
 
+# Because ls -la always shows first 3 non-essential (for our purposes) lines
 count_num_batch_entries() {
     echo $(($(ls -la $1 | wc -l) - 3))
 }
 
+# Read the list of the batch_mat file and prepare the batch matrix class list.
 parse_batch_matrix_list() {
     local source_list_file=$1
     local benchmark_list=""
@@ -416,7 +434,6 @@ generate_batch_input() {
 EOT
 }
 
-
 if [ $use_batch_matrix -eq 1 ]; then
     for (( p=0; p < ${NUM_BATCH_MATS}; ++p )); do
         i=${BATCH_MATRIX_LIST[$((p))]}
@@ -435,127 +452,128 @@ if [ $use_batch_matrix -eq 1 ]; then
     done
 fi
 
+
 ################################################################################
 # SuiteSparse collection
 
 if [ $USE_SUITE_SPARSE -eq 1 ]; then
 
     SSGET=ssget
-NUM_PROBLEMS="$(${SSGET} -n)"
+    NUM_PROBLEMS="$(${SSGET} -n)"
 
-# Creates an input file for $1-th problem in the SuiteSparse collection
-generate_suite_sparse_input() {
-    INPUT=$(${SSGET} -i "$1" -e)
-    cat << EOT
+    # Creates an input file for $1-th problem in the SuiteSparse collection
+    generate_suite_sparse_input() {
+        INPUT=$(${SSGET} -i "$1" -e)
+        cat << EOT
 [{
     "filename": "${INPUT}",
     "problem": $(${SSGET} -i "$1" -j)
 }]
 EOT
-}
+    }
 
-parse_matrix_list() {
-    local source_list_file=$1
-    local benchmark_list=""
-    local id=0
-    for mtx in $(cat ${source_list_file}); do
-        if [[ ! "$mtx" =~ ^[0-9]+$ ]]; then
-            if [[ "$mtx" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-                id=$(${SSGET} -s "[ @name == $mtx ]")
-            elif [[ "$mtx" =~ ^([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)$ ]]; then
-                local group="${BASH_REMATCH[1]}"
-                local name="${BASH_REMATCH[2]}"
-                id=$(${SSGET} -s "[ @name == $name ] && [ @group == $group ]")
+    parse_matrix_list() {
+        local source_list_file=$1
+        local benchmark_list=""
+        local id=0
+        for mtx in $(cat ${source_list_file}); do
+            if [[ ! "$mtx" =~ ^[0-9]+$ ]]; then
+                if [[ "$mtx" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                    id=$(${SSGET} -s "[ @name == $mtx ]")
+                elif [[ "$mtx" =~ ^([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)$ ]]; then
+                    local group="${BASH_REMATCH[1]}"
+                    local name="${BASH_REMATCH[2]}"
+                    id=$(${SSGET} -s "[ @name == $name ] && [ @group == $group ]")
+                else
+                    >&2 echo -e "Could not recognize entry $mtx."
+                fi
             else
-                >&2 echo -e "Could not recognize entry $mtx."
+                id=$mtx
             fi
-        else
-            id=$mtx
-        fi
-        benchmark_list="$benchmark_list $id"
-    done
-    echo "$benchmark_list"
-}
+            benchmark_list="$benchmark_list $id"
+        done
+        echo "$benchmark_list"
+    }
 
-if [ $use_matrix_list_file -eq 1 ]; then
-    MATRIX_LIST=($(parse_matrix_list $MATRIX_LIST_FILE))
-    NUM_PROBLEMS=${#MATRIX_LIST[@]}
-fi
-
-LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
-LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
-for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
     if [ $use_matrix_list_file -eq 1 ]; then
-        i=${MATRIX_LIST[$((p-1))]}
-    else
-        i=$p
+        MATRIX_LIST=($(parse_matrix_list $MATRIX_LIST_FILE))
+        NUM_PROBLEMS=${#MATRIX_LIST[@]}
     fi
-    if [ "${BENCHMARK}" == "preconditioner" ]; then
-        break
-    fi
-    if [ "$(${SSGET} -i "$i" -preal)" = "0" ]; then
+
+    LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
+    LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
+    for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
+        if [ $use_matrix_list_file -eq 1 ]; then
+            i=${MATRIX_LIST[$((p-1))]}
+        else
+            i=$p
+        fi
+        if [ "${BENCHMARK}" == "preconditioner" ]; then
+            break
+        fi
+        if [ "$(${SSGET} -i "$i" -preal)" = "0" ]; then
+            [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
+            continue
+        fi
+        RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}/SuiteSparse"
+        GROUP=$(${SSGET} -i "$i" -pgroup)
+        NAME=$(${SSGET} -i "$i" -pname)
+        RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
+        PREFIX="($i/${NUM_PROBLEMS}):\t"
+        mkdir -p "$(dirname "${RESULT_FILE}")"
+        generate_suite_sparse_input "$i" >"${RESULT_FILE}"
+
+        echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
+        compute_matrix_statistics "${RESULT_FILE}"
+        if [ "${BENCHMARK}" == "spmv" ]; then
+            echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
+            run_spmv_benchmarks "${RESULT_FILE}"
+        elif [ "${BENCHMARK}" == "batch_spmv" ]; then
+            echo -e "${PREFIX}Running Batch SpMV for ${GROUP}/${NAME}" 1>&2
+            NUM_BATCH_ENTRIES=${NUM_BATCH_DUP}
+            run_batch_spmv_benchmarks "${RESULT_FILE}"
+        fi
+
+        if [ "${BENCHMARK}" == "conversions" ]; then
+            echo -e "${PREFIX}Running Conversion for ${GROUP}/${NAME}" 1>&2
+            run_conversion_benchmarks "${RESULT_FILE}"
+        fi
+
+        if [ "${BENCHMARK}" != "solver" -o \
+            "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then
+            [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
+            continue
+        fi
+
+        echo -e "${PREFIX}Running solvers for ${GROUP}/${NAME}" 1>&2
+        run_solver_benchmarks "${RESULT_FILE}"
+
+        echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
         [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
-        continue
-    fi
-    RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}/SuiteSparse"
-    GROUP=$(${SSGET} -i "$i" -pgroup)
-    NAME=$(${SSGET} -i "$i" -pname)
-    RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
-    PREFIX="($i/${NUM_PROBLEMS}):\t"
-    mkdir -p "$(dirname "${RESULT_FILE}")"
-    generate_suite_sparse_input "$i" >"${RESULT_FILE}"
+    done
 
-    echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
-    compute_matrix_statistics "${RESULT_FILE}"
-    if [ "${BENCHMARK}" == "spmv" ]; then
-        echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
-        run_spmv_benchmarks "${RESULT_FILE}"
-    elif [ "${BENCHMARK}" == "batch_spmv" ]; then
-        echo -e "${PREFIX}Running Batch SpMV for ${GROUP}/${NAME}" 1>&2
-        NUM_BATCH_ENTRIES=${NUM_BATCH_DUP}
-        run_batch_spmv_benchmarks "${RESULT_FILE}"
+
+    if [ "${BENCHMARK}" != "preconditioner" ]; then
+        exit
     fi
 
-    if [ "${BENCHMARK}" == "conversions" ]; then
-        echo -e "${PREFIX}Running Conversion for ${GROUP}/${NAME}" 1>&2
-        run_conversion_benchmarks "${RESULT_FILE}"
-    fi
 
-    if [ "${BENCHMARK}" != "solver" -o \
-         "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then
-        [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
-        continue
-    fi
+    ################################################################################
+    # Generated collection
 
-    echo -e "${PREFIX}Running solvers for ${GROUP}/${NAME}" 1>&2
-    run_solver_benchmarks "${RESULT_FILE}"
+    count_tokens() { echo "$#"; }
 
-    echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
-    [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
-done
+    BLOCK_SIZES="$(seq 1 32)"
+    NUM_BLOCKS="$(seq 10000 2000 50000)"
+    NUM_PROBLEMS=$((
+                      $(count_tokens ${BLOCK_SIZES}) * $(count_tokens ${NUM_BLOCKS}) ))
+    ID=0
 
 
-if [ "${BENCHMARK}" != "preconditioner" ]; then
-    exit
-fi
-
-
-################################################################################
-# Generated collection
-
-count_tokens() { echo "$#"; }
-
-BLOCK_SIZES="$(seq 1 32)"
-NUM_BLOCKS="$(seq 10000 2000 50000)"
-NUM_PROBLEMS=$((
-    $(count_tokens ${BLOCK_SIZES}) * $(count_tokens ${NUM_BLOCKS}) ))
-ID=0
-
-
-# Creates an input file for a block diagonal matrix with block size $1 and
-# number of blocks $2. The location of the matrix is given by $3.
-generate_block_diagonal_input() {
-    cat << EOT
+    # Creates an input file for a block diagonal matrix with block size $1 and
+    # number of blocks $2. The location of the matrix is given by $3.
+    generate_block_diagonal_input() {
+        cat << EOT
 [{
     "filename": "$3",
     "problem": {
@@ -575,56 +593,56 @@ generate_block_diagonal_input() {
     }
 }]
 EOT
-}
+    }
 
 
-# Generates the problem data using the input file $1
-generate_problem() {
-    [ "${DRY_RUN}" == "true" ] && return
-    cp "$1" "$1.tmp"
-    ./matrix_generator/matrix_generator${BENCH_SUFFIX} <"$1.tmp" 2>&1 >"$1"
-    keep_latest "$1" "$1.tmp"
-}
+    # Generates the problem data using the input file $1
+    generate_problem() {
+        [ "${DRY_RUN}" == "true" ] && return
+        cp "$1" "$1.tmp"
+        ./matrix_generator/matrix_generator${BENCH_SUFFIX} <"$1.tmp" 2>&1 >"$1"
+        keep_latest "$1" "$1.tmp"
+    }
 
 
-LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
-LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
-for bsize in ${BLOCK_SIZES}; do
-    for nblocks in ${NUM_BLOCKS}; do
-        ID=$((${ID} + 1))
+    LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
+    LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
+    for bsize in ${BLOCK_SIZES}; do
+        for nblocks in ${NUM_BLOCKS}; do
+            ID=$((${ID} + 1))
+            if [ "${ID}" -ge "${LOOP_END}" ]; then
+                break
+            fi
+            if [ "${ID}" -lt "${LOOP_START}" ]; then
+                continue
+            fi
+            RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}/Generated"
+            GROUP="block-diagonal"
+            NAME="${nblocks}-${bsize}"
+            RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
+            PREFIX="(${ID}/${NUM_PROBLEMS}):\t"
+            mkdir -p "$(dirname "${RESULT_FILE}")"
+            mkdir -p "/tmp/${GROUP}"
+            generate_block_diagonal_input \
+                "${bsize}" "${nblocks}" "/tmp/${GROUP}/${NAME}.mtx" \
+                >"${RESULT_FILE}"
+
+            echo -e "${PREFIX}Generating problem ${GROUP}/${NAME}" 1>&2
+            generate_problem "${RESULT_FILE}"
+
+            echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
+            compute_matrix_statistics "${RESULT_FILE}"
+
+            echo -e "${PREFIX}Running preconditioners for ${GROUP}/${NAME}" 1>&2
+            BLOCK_SIZES="${bsize}"
+            run_preconditioner_benchmarks "${RESULT_FILE}"
+
+            echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
+            [ "${DRY_RUN}" != "true" ] && rm -r "/tmp/${GROUP}/${NAME}.mtx"
+        done
         if [ "${ID}" -ge "${LOOP_END}" ]; then
             break
         fi
-        if [ "${ID}" -lt "${LOOP_START}" ]; then
-            continue
-        fi
-        RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}/Generated"
-        GROUP="block-diagonal"
-        NAME="${nblocks}-${bsize}"
-        RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
-        PREFIX="(${ID}/${NUM_PROBLEMS}):\t"
-        mkdir -p "$(dirname "${RESULT_FILE}")"
-        mkdir -p "/tmp/${GROUP}"
-        generate_block_diagonal_input \
-            "${bsize}" "${nblocks}" "/tmp/${GROUP}/${NAME}.mtx" \
-                >"${RESULT_FILE}"
-
-        echo -e "${PREFIX}Generating problem ${GROUP}/${NAME}" 1>&2
-        generate_problem "${RESULT_FILE}"
-
-        echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
-        compute_matrix_statistics "${RESULT_FILE}"
-
-        echo -e "${PREFIX}Running preconditioners for ${GROUP}/${NAME}" 1>&2
-        BLOCK_SIZES="${bsize}"
-        run_preconditioner_benchmarks "${RESULT_FILE}"
-
-        echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
-        [ "${DRY_RUN}" != "true" ] && rm -r "/tmp/${GROUP}/${NAME}.mtx"
     done
-    if [ "${ID}" -ge "${LOOP_END}" ]; then
-        break
-    fi
-done
 
 fi
