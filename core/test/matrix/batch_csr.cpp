@@ -183,6 +183,7 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromOneCsrMatrix)
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, 3, csr_mat.get());
 
+    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(3, gko::dim<2>{3, 2}));
     this->assert_equal_data_array(12, batch_values, mtx->get_values());
     this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
     this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
@@ -210,6 +211,7 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromBatchMatrices)
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, 3, batch_mtx.get());
 
+    ASSERT_EQ(mtx->get_size(), gko::batch_dim<2>(6, gko::dim<2>{3, 2}));
     this->assert_equal_data_array(24, bvalues, mtx->get_values());
     this->assert_equal_data_array(4, col_idxs, mtx->get_col_idxs());
     this->assert_equal_data_array(4, row_ptrs, mtx->get_row_ptrs());
