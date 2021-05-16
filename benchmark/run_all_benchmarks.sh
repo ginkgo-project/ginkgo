@@ -170,10 +170,17 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
-if  [ ! "${BATCH_SCALING}" ] || [ "${BATCH_SCALING}" -eq 0 ]; then
-    BATCH_SCALING_STR="--batch_scaling=false"
-else
-    BATCH_SCALING_STR="--batch_scaling=true"
+if  [ ! "${BATCH_SCALING}" ] ; then
+    BATCH_SCALING_STR="none"
+    echo "BATCH_SCALING_STRING environment variable not set - assuming \"${BATCH_SCALING_STR}\"" 1>&2
+fi
+
+if  [ "${BATCH_SCALING}" == "none" ] ; then
+    BATCH_SCALING_STR="--batch_scaling=none"
+elif  [ "${BATCH_SCALING}" == "implicit" ] ; then
+    BATCH_SCALING_STR="--batch_scaling=implicit"
+elif  [ "${BATCH_SCALING}" == "explicit" ] ; then
+    BATCH_SCALING_STR="--batch_scaling=explicit"
 fi
 
 if [ ! "${USE_SUITE_SPARSE}" ]; then
