@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 DEFINE_uint32(num_duplications, 1, "The number of duplications");
 DEFINE_uint32(num_batches, 1, "The number of batch entries");
-DEFINE_bool(batch_scaling, false, "Whether to use scaled matrices");
+DEFINE_string(batch_scaling, "none", "Whether to use scaled matrices");
 DEFINE_bool(using_suite_sparse, true,
             "Whether the suitesparse matrices are being used");
 DEFINE_string(
@@ -369,6 +369,7 @@ int main(int argc, char *argv[])
             auto ndup = FLAGS_num_duplications;
             size_type multiplier = 1;
             auto data = std::vector<gko::matrix_data<etype>>(nbatch);
+            auto scale_data = std::vector<gko::matrix_data<etype>>(nbatch);
             if (FLAGS_using_suite_sparse) {
                 GKO_ASSERT(ndup == nbatch);
                 std::string fname = test_case["filename"].GetString();
@@ -377,11 +378,23 @@ int main(int argc, char *argv[])
                 multiplier = 1;
             } else {
                 for (size_type i = 0; i < data.size(); ++i) {
-                    std::string fname =
+                    std::string mat_str;
+                    if (FLAGS_batch_scaling == "implicit") {
+                        mat_str = "A_scaled.mtx";
+                    } else {
+                        mat_str = "A.mtx";
+                    }
+                    std::string fbase =
                         std::string(test_case["problem"].GetString()) + "/" +
-                        std::to_string(i) + "/A.mtx";
+                        std::to_string(i) + "/";
+                    std::string fname = fbase + mat_str;
                     std::ifstream mtx_fd(fname);
                     data[i] = gko::read_raw<etype>(mtx_fd);
+                    if (FLAGS_batch_scaling == "explicit") {
+                        std::string scale_fname = fbase + "S.mtx";
+                        std::ifstream scale_fd(scale_fname);
+                        scale_data[i] = gko::read_raw<etype>(scale_fd);
+                    }
                 }
                 multiplier = ndup;
             }
@@ -397,9 +410,15 @@ int main(int argc, char *argv[])
                 if (FLAGS_rhs_generation == "file") {
                     std::vector<gko::matrix_data<etype>> bdata(nbatch);
                     for (size_type i = 0; i < bdata.size(); ++i) {
+                        std::string b_str;
+                        if (FLAGS_batch_scaling == "implicit") {
+                            b_str = "b_scaled.mtx";
+                        } else {
+                            b_str = "b.mtx";
+                        }
                         std::string fname =
                             std::string(test_case["problem"].GetString()) +
-                            "/" + std::to_string(i) + "/b.mtx";
+                            "/" + std::to_string(i) + "/" + b_str;
                         std::ifstream b_fd(fname);
                         bdata[i] = gko::read_raw<etype>(b_fd);
                     }
