@@ -44,15 +44,44 @@ namespace validate {
  *
  * @param A the input matrix which is tested
  */
-bool is_symmetric(const LinOp *A) { return false; }
+bool is_symmetric(const LinOp *A, const float tolerance = 0.0);
+
+/**
+ * Tests whether a given matrix is symmetric
+ *
+ * @param A the input matrix which is tested
+ */
+bool has_non_zero_diagonal(const LinOp *A) { return false; }
 
 /**
  * Tests whether the given row_ptrs are in an ascending order
  *
  * @param row_ptrs the array which is to be tested
+ * @param num_entries length of the array which is to be tested
  */
 template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
+
+/**
+ * Tests whether the elements of the given array are within specified bounds
+ *
+ * @param row_ptrs the array which is to be tested
+ * @param num_entries length of the array which is to be tested
+ */
+template <typename IndexType>
+bool is_within_bounds(const IndexType *idxs, const IndexType lower_bound,
+                      const IndexType upper_bound);
+
+
+/**
+ * Tests whether the elements of the given array are within specified bounds
+ *
+ * @param row_ptrs the array which is to be tested
+ * @param num_entries length of the array which is to be tested
+ */
+template <typename ValueType>
+bool is_finite(const ValueType *values, const size_type num_entries);
+
 
 }  // namespace validate
 }  // namespace gko
