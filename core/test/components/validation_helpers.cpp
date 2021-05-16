@@ -33,11 +33,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 
 #include "core/components/validation_helpers.hpp"
 #include "core/test/utils.hpp"
 
 namespace {
+
+template <typename ValueIndexType>
+class IsSymmetric : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Coo<value_type, index_type>;
+
+    IsSymmetric()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx(gko::matrix::Coo<value_type, index_type>::create(
+              exec, gko::dim<2>{3, 3}, 9))
+    {
+        value_type *v = mtx->get_values();
+        index_type *c = mtx->get_col_idxs();
+        index_type *r = mtx->get_row_idxs();
+
+        // clang-format off
+        r[0] = 0; r[3] = 1; r[6] = 2;
+        r[1] = 0; r[4] = 1; r[7] = 2;
+        r[2] = 0; r[5] = 1; r[8] = 2;
+
+        c[0] = 0; c[3] = 0; c[6] = 0;
+        c[1] = 1; c[4] = 1; c[7] = 1;
+        c[2] = 2; c[5] = 2; c[8] = 2;
+
+        v[0] = 1; v[3] = 2; v[6] = 3;
+        v[1] = 2; v[4] = 1; v[7] = 4;
+        v[2] = 3; v[5] = 4; v[8] = 1;
+        // clang-format on
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Mtx> mtx;
+};
+
+TYPED_TEST_SUITE(IsSymmetric, gko::test::ValueIndexTypes);
+
+// TODO expand to other matrix formats
+TYPED_TEST(IsSymmetric, ReturnsTrueOnSymmetric)
+{
+    ASSERT_EQ(gko::validate::is_symmetric(this->mtx.get(), 1e-32), true);
+}
+
 
 template <typename T>
 class IsRowOrdered : public ::testing::Test {
