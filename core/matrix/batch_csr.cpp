@@ -244,7 +244,6 @@ void BatchCsr<ValueType, IndexType>::batch_scale_impl(
     const BatchLinOp *const right_scale_op)
 {
     auto exec = this->get_executor();
-    const auto nrows_entry = this->get_size().at(0)[0];
     const auto left = static_cast<const BatchDense<ValueType> *>(left_scale_op);
     const auto right =
         static_cast<const BatchDense<ValueType> *>(right_scale_op);
