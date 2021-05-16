@@ -377,12 +377,14 @@ int main(int argc, char *argv[])
 
     // generate the solver factory object
     auto solver_fac =
-        gko::solver::BatchGmres<ValueType>::build()
+        gko::solver::BatchIdr<ValueType>::build()
             .with_abs_residual_tol(1e-11)
             .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
-            .with_max_iterations(500)
+            .with_max_iterations(20)
             .with_preconditioner("none")
-            .with_restart(5)
+            .with_smoothing(true)
+            .with_deterministic(true)
+            .with_subspace_dim(2)
             .on(exec);
 
     // generate the solver object
