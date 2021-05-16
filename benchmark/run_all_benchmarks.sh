@@ -132,9 +132,11 @@ elif [ "${SOLVERS_RHS}" == "1" ]; then
     SOLVERS_RHS_FLAG="--rhs_generation=1"
 elif [ "${SOLVERS_RHS}" == "sinus" ]; then
     SOLVERS_RHS_FLAG="--rhs_generation=sinus"
+elif [ "${SOLVERS_RHS}" == "file" ]; then
+    SOLVERS_RHS_FLAG="--rhs_generation=file"
 else
     echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
-    echo "The following values are supported: \"1\", \"random\" and \"sinus\"" 1>&2
+    echo "The following values are supported: \"1\", \"random\", \"sinus\" and \"file\" " 1>&2
     exit 1
 fi
 
@@ -337,6 +339,7 @@ run_batch_spmv_benchmarks() {
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
                 --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
+                "${SOLVERS_RHS_FLAG}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
