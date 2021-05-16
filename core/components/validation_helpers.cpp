@@ -31,9 +31,63 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/components/validation_helpers.hpp"
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
+
+#include <algorithm>
+#include <cmath>
 
 namespace gko {
 namespace validate {
+
+template <class ValueType, class IndexType>
+bool is_symmetric_impl(const LinOp *matrix, const float tolerance)
+{
+    matrix_data<ValueType, IndexType> data{};
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+        ->write(data);
+
+    matrix_data<ValueType, IndexType> data_t{data};
+    for (auto &nonzeros : data.nonzeros) {
+        std::swap(nonzeros.row, nonzeros.column);
+    }
+
+    data.ensure_row_major_order();
+    data_t.ensure_row_major_order();
+
+    return std::equal(
+        data.nonzeros.begin(), data.nonzeros.end(), data_t.nonzeros.begin(),
+        [tolerance](const auto v1, const auto v2) {
+            return std::abs((v1.value - v2.value) / v1.value) < tolerance;
+        });
+}
+
+
+#define GKO_CALL_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
+    _macro(float, int32);                                          \
+    _macro(double, int32);                                         \
+    _macro(float, int64);                                          \
+    _macro(double, int64);
+
+
+#define GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
+    GKO_CALL_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
+    _macro(std::complex<float>, int32);                         \
+    _macro(std::complex<double>, int32);                        \
+    _macro(std::complex<float>, int64);                         \
+    _macro(std::complex<double>, int64);
+
+#define CALL_AND_RETURN_IF_CASTABLE(T1, T2)                           \
+    if (dynamic_cast<const WritableToMatrixData<T1, T2> *>(matrix)) { \
+        return is_symmetric_impl<T1, T2>(matrix, tolerance);          \
+    }
+
+bool is_symmetric(const LinOp *matrix, const float tolerance)
+{
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(CALL_AND_RETURN_IF_CASTABLE);
+    return false;
+}
+
 
 template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
@@ -50,6 +104,19 @@ bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
     bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ROW_ORDERED);
+
+
+template <typename ValueType>
+bool is_finite(const ValueType *values, const size_type num_entries)
+{
+    for (size_type i = 0; i < num_entries; ++i) {
+        if (!std::isfinite(values[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 }  // namespace validate
 
