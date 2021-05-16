@@ -592,7 +592,7 @@ public:
         this->batch_scale_impl(left_scale, right_scale);
     }
 
-protected:
+private:
     virtual void batch_scale_impl(const BatchLinOp *left_scale,
                                   const BatchLinOp *right_scale) = 0;
 };
@@ -622,7 +622,7 @@ public:
         return right_scale_;
     }
 
-protected:
+private:
     /**
      * Sets the batch scaling vectors so that they can accessed
      * by the solver kernels.
