@@ -655,6 +655,35 @@ protected:
     }
 
     /**
+     * Creates a BatchDense matrix by duplicating BatchDense matrix
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_duplications  The number of times to duplicate
+     * @param input  The matrix to be duplicated.
+     */
+    BatchDense(std::shared_ptr<const Executor> exec, size_type num_duplications,
+               const BatchDense<value_type> *input)
+        : EnableBatchLinOp<BatchDense>(
+              exec, gko::batch_dim<2>(
+                        input->get_num_batch_entries() * num_duplications,
+                        input->get_size().at(0))),
+          stride_{gko::batch_stride(
+              input->get_num_batch_entries() * num_duplications,
+              input->get_stride().at(0))},
+          values_(exec, compute_batch_mem(this->get_size(), stride_))
+    {
+        num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
+            exec->get_master(), this->get_size(), stride_);
+        size_type offset = 0;
+        for (size_type i = 0; i < num_duplications; ++i) {
+            exec->copy_from(
+                input->get_executor().get(), input->get_num_stored_elements(),
+                input->get_const_values(), this->get_values() + offset);
+            offset += input->get_num_stored_elements();
+        }
+    }
+
+    /**
      * Creates a BatchDense matrix with the same configuration as the callers
      * matrix.
      *
