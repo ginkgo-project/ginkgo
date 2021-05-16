@@ -63,6 +63,14 @@ DEFINE_uint32(num_batches, 1, "The number of batch entries");
 DEFINE_bool(batch_scaling, false, "Whether to use scaled matrices");
 DEFINE_bool(using_suite_sparse, true,
             "Whether the suitesparse matrices are being used");
+DEFINE_string(
+    rhs_generation, "none",
+    "Method used to generate the right hand side. Supported values are:"
+    "`1`, `random`, `sinus`. `1` sets all values of the right hand side to 1, "
+    "`random` assigns the values to a uniformly distributed random number "
+    "in [-1, 1), and `sinus` assigns b = A * (s / |s|) with A := system matrix,"
+    " s := vector with s(idx) = sin(idx) for non-complex types, and "
+    "s(idx) = sin(2*idx) + i * sin(2*idx+1).");
 
 
 template <typename ValueType>
@@ -378,11 +386,34 @@ int main(int argc, char *argv[])
                 multiplier = ndup;
             }
 
-            auto b = create_batch_matrix<etype>(
-                exec,
-                gko::batch_dim<2>(nbatch * multiplier,
-                                  gko::dim<2>{data[0].size[0], nrhs}),
-                engine);
+            auto b = batch_vec<etype>::create(exec);
+            if (FLAGS_using_suite_sparse) {
+                b = create_batch_matrix<etype>(
+                    exec,
+                    gko::batch_dim<2>(nbatch * multiplier,
+                                      gko::dim<2>{data[0].size[0], nrhs}),
+                    engine);
+            } else {
+                if (FLAGS_rhs_generation == "file") {
+                    std::vector<gko::matrix_data<etype>> bdata(nbatch);
+                    for (size_type i = 0; i < bdata.size(); ++i) {
+                        std::string fname =
+                            std::string(test_case["problem"].GetString()) +
+                            "/" + std::to_string(i) + "/b.mtx";
+                        std::ifstream b_fd(fname);
+                        bdata[i] = gko::read_raw<etype>(b_fd);
+                    }
+                    auto temp_b = batch_vec<etype>::create(exec);
+                    temp_b->read(bdata);
+                    b = batch_vec<etype>::create(exec, ndup, temp_b.get());
+                } else {
+                    b = create_batch_matrix<etype>(
+                        exec,
+                        gko::batch_dim<2>(nbatch * multiplier,
+                                          gko::dim<2>{data[0].size[0], nrhs}),
+                        engine);
+                }
+            }
             auto x = create_batch_matrix<etype>(
                 exec,
                 gko::batch_dim<2>(nbatch * multiplier,
