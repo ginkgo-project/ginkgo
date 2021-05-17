@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/range.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
 #include "reference/components/format_conversion.hpp"
@@ -77,11 +78,8 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        std::array<size_type, 3>{nbnz, static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
-        vals};
+        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -118,16 +116,13 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     const int bs = a->get_block_size();
     const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
     const IndexType nbrows = a->get_num_block_rows();
+    const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        std::array<size_type, 3>{a->get_num_stored_blocks(),
-                                 static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
-        vals};
+        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
