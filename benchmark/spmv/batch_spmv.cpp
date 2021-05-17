@@ -209,11 +209,11 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        auto nbatch = FLAGS_num_duplications;
+        auto n_dup = FLAGS_num_duplications;
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
         auto system_matrix = share(
-            formats::batch_matrix_factory2.at(format_name)(exec, nbatch, data));
+            formats::batch_matrix_factory2.at(format_name)(exec, n_dup, data));
 
         std::clog << "Batch Matrix has: "
                   << system_matrix->get_num_batch_entries()
@@ -226,18 +226,6 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
-        // check the residual
-        if (FLAGS_detailed) {
-            auto x_clone = clone(x);
-            exec->synchronize();
-            system_matrix->apply(lend(b), lend(x_clone));
-            exec->synchronize();
-            auto max_relative_norm2 =
-                compute_batch_max_relative_norm2(lend(x_clone), lend(answer));
-            // FIXME
-            // add_or_set_member(spmv_case[format_name], "max_relative_norm2",
-            //                   max_relative_norm2, allocator);
-        }
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
@@ -468,10 +456,6 @@ int main(int argc, char *argv[])
                 }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
-                if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
-                    auto performance =
-                        spmv_case[format_name.c_str()]["time"].GetDouble();
-                }
                 backup_results(test_cases);
             }
         } catch (const std::exception &e) {

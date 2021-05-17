@@ -200,7 +200,7 @@ std::unique_ptr<MatrixType> read_batch_matrix_from_data(
  * @return a `unique_pointer` to the created matrix
  */
 template <typename MatrixType>
-std::unique_ptr<MatrixType> read_batch_matrix_from_data2(
+std::unique_ptr<MatrixType> read_batch_matrix_from_batch_data(
     std::shared_ptr<const gko::Executor> exec, const int num_duplications,
     const std::vector<gko::matrix_data<etype>>& data)
 {
@@ -328,7 +328,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
                                 const std::vector<gko::matrix_data<etype>>&)>>
     batch_matrix_factory2{
         {"batch_csr",
-         read_batch_matrix_from_data2<gko::matrix::BatchCsr<etype>>}};
+         read_batch_matrix_from_batch_data<gko::matrix::BatchCsr<etype>>}};
 
 
 const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
