@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 
 
+#include <iostream>
 #include <memory>
 
 
@@ -40,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-#include <iostream>
+
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -49,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/test/utils.hpp"
 
 
 namespace {
@@ -57,7 +57,10 @@ namespace {
 
 using namespace gko::kernels::dpcpp;
 using KCfg = gko::ConfigSet<12, 7>;
-
+constexpr auto default_config_list =
+    ::gko::syn::value_list<int, KCfg::encode(64, 64), KCfg::encode(32, 32),
+                           KCfg::encode(16, 16), KCfg::encode(8, 8),
+                           KCfg::encode(4, 4)>();
 
 class CooperativeGroups : public ::testing::Test {
 protected:
@@ -69,17 +72,6 @@ protected:
     {
         *result.get_data() = true;
         dresult = result;
-    }
-
-    template <typename Kernel>
-    void test(Kernel kernel)
-    {
-        // functioname kernel
-        kernel(1, config::warp_size, 0, dpcpp->get_queue(), dresult.get_data());
-        result = dresult;
-        auto success = *result.get_const_data();
-
-        ASSERT_TRUE(success);
     }
 
     template <typename Kernel>
@@ -114,13 +106,13 @@ template <int config>
 [[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_shuffle(
     bool *s, sycl::nd_item<3> item_ct1)
 {
-    auto group = group::tiled_partition<KCfg::decode<0>(config)>(
+    auto group = group::tiled_partition<KCfg::decode<1>(config)>(
         group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == sycl::max(0, (int)(i - 1)));
     test_assert(s, group.shfl_down(i, 1) ==
                        sycl::min((unsigned int)(i + 1),
-                                 (unsigned int)(KCfg::decode<0>(config) - 1)));
+                                 (unsigned int)(KCfg::decode<1>(config) - 1)));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
@@ -147,17 +139,13 @@ void cg_shuffle_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                             bool *s)
 {
     auto exec_info = exec->get_const_exec_info();
-    constexpr auto default_config_list =
-        ::gko::syn::value_list<int, KCfg::encode(32, 32), KCfg::encode(16, 16),
-                               KCfg::encode(8, 8), KCfg::encode(4, 4)>();
-    std::cout << "block.x " << block.x << std::endl;
     cg_shuffle_config(
         default_config_list,
         // validate
         [&exec_info, &block](int config) {
             return exec_info.validate(KCfg::decode<0>(config),
                                       KCfg::decode<1>(config)) &&
-                   (KCfg::decode<1>(config) == block.x);
+                   (KCfg::decode<0>(config) == block.x);
         },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
@@ -170,80 +158,156 @@ TEST_F(CooperativeGroups, Shuffle)
 }
 
 
-void cg_all(bool *s, sycl::nd_item<3> item_ct1)
+template <int config>
+[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_all(
+    bool *s, sycl::nd_item<3> item_ct1)
 {
-    auto group = group::tiled_partition<config::warp_size>(
+    auto group = group::tiled_partition<KCfg::decode<1>(config)>(
         group::this_thread_block(item_ct1));
     test_assert(s, group.all(true));
     test_assert(s, !group.all(false));
-    test_assert(s, !group.all(item_ct1.get_local_id(2) < 13));
+    test_assert(s, group.all(item_ct1.get_local_id(2) < 13) ==
+                       KCfg::decode<1>(config) < 13);
 }
 
+template <int config>
 void cg_all_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                  sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
         cgh.parallel_for(
-            sycl::nd_range<3>(global_range, local_range),
-            [=](sycl::nd_item<3> item_ct1) { cg_all(s, item_ct1); });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) { cg_all<config>(s, item_ct1); });
     });
 }
 
-TEST_F(CooperativeGroups, All) { test(cg_all_host); }
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all_config, cg_all_host)
 
-
-void cg_any(bool *s, sycl::nd_item<3> item_ct1)
+void cg_all_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                        sycl::queue *stream,
+                        std::shared_ptr<const gko::DpcppExecutor> exec, bool *s)
 {
-    auto group = group::tiled_partition<config::warp_size>(
+    auto exec_info = exec->get_const_exec_info();
+    cg_all_config(
+        default_config_list,
+        // validate
+        [&exec_info, &block](int config) {
+            return exec_info.validate(KCfg::decode<0>(config),
+                                      KCfg::decode<1>(config)) &&
+                   (KCfg::decode<0>(config) == block.x);
+        },
+        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
+        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
+        grid, block, dynamic_shared_memory, stream, s);
+}
+
+TEST_F(CooperativeGroups, All) { test_all_subgroup(cg_all_config_call); }
+
+
+template <int config>
+[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_any(
+    bool *s, sycl::nd_item<3> item_ct1)
+{
+    auto group = group::tiled_partition<KCfg::decode<1>(config)>(
         group::this_thread_block(item_ct1));
     test_assert(s, group.any(true));
     test_assert(s, group.any(item_ct1.get_local_id(2) == 0));
     test_assert(s, !group.any(false));
 }
 
+template <int config>
 void cg_any_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                  sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
         cgh.parallel_for(
-            sycl::nd_range<3>(global_range, local_range),
-            [=](sycl::nd_item<3> item_ct1) { cg_any(s, item_ct1); });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) { cg_any<config>(s, item_ct1); });
     });
 }
 
-TEST_F(CooperativeGroups, Any) { test(cg_any_host); }
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any_config, cg_any_host)
 
-
-void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
+void cg_any_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                        sycl::queue *stream,
+                        std::shared_ptr<const gko::DpcppExecutor> exec, bool *s)
 {
-    auto group = group::tiled_partition<config::warp_size>(
+    auto exec_info = exec->get_const_exec_info();
+    cg_any_config(
+        default_config_list,
+        // validate
+        [&exec_info, &block](int config) {
+            return exec_info.validate(KCfg::decode<0>(config),
+                                      KCfg::decode<1>(config)) &&
+                   (KCfg::decode<0>(config) == block.x);
+        },
+        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
+        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
+        grid, block, dynamic_shared_memory, stream, s);
+}
+
+TEST_F(CooperativeGroups, Any) { test_all_subgroup(cg_any_config_call); }
+
+
+template <int Size>
+config::lane_mask_type active_mask()
+{
+    return (config::lane_mask_type{1} << Size) - 1;
+}
+
+template <>
+config::lane_mask_type active_mask<64>()
+{
+    return ~config::lane_mask_type{};
+}
+
+
+template <int config>
+[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_ballot(
+    bool *s, sycl::nd_item<3> item_ct1)
+{
+    constexpr auto subgroup_size = KCfg::decode<1>(config);
+    auto group = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    auto active = ~(~config::lane_mask_type{} << config::warp_size);
+    auto active = active_mask<subgroup_size>();
     test_assert(s, group.ballot(false) == 0);
     test_assert(s, group.ballot(true) == (~config::lane_mask_type{} & active));
     test_assert(s, group.ballot(item_ct1.get_local_id(2) < 4) == 0xf);
 }
 
+template <int config>
 void cg_ballot_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                     sycl::queue *stream, bool *s)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
         cgh.parallel_for(
-            sycl::nd_range<3>(global_range, local_range),
-            [=](sycl::nd_item<3> item_ct1) { cg_ballot(s, item_ct1); });
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) { cg_ballot<config>(s, item_ct1); });
     });
 }
 
-TEST_F(CooperativeGroups, Ballot) { test(cg_ballot_host); }
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot_config, cg_ballot_host)
+
+void cg_ballot_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                           sycl::queue *stream,
+                           std::shared_ptr<const gko::DpcppExecutor> exec,
+                           bool *s)
+{
+    auto exec_info = exec->get_const_exec_info();
+    cg_ballot_config(
+        default_config_list,
+        // validate
+        [&exec_info, &block](int config) {
+            return exec_info.validate(KCfg::decode<0>(config),
+                                      KCfg::decode<1>(config)) &&
+                   (KCfg::decode<0>(config) == block.x);
+        },
+        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
+        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
+        grid, block, dynamic_shared_memory, stream, s);
+}
+
+TEST_F(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_config_call); }
 
 
 }  // namespace
