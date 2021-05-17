@@ -68,7 +68,38 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType>* const a,
           const matrix::Dense<ValueType>* const b,
-          matrix::Dense<ValueType>* const c) GKO_NOT_IMPLEMENTED;
+          matrix::Dense<ValueType>* const c)
+{
+    const int bs = a->get_block_size();
+    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const IndexType nbrows = a->get_num_block_rows();
+    const size_type nbnz = a->get_num_stored_blocks();
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+
+#pragma omp parallel for
+    for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
+             ++i) {
+            c->get_values()[i] = zero<ValueType>();
+        }
+        for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+             ++inz) {
+            for (int ib = 0; ib < bs; ib++) {
+                const IndexType row = ibrow * bs + ib;
+                for (int jb = 0; jb < bs; jb++) {
+                    const auto val = avalues(inz, ib, jb);
+                    const auto col = col_idxs[inz] * bs + jb;
+                    for (size_type j = 0; j < nvecs; ++j) {
+                        c->at(row, j) += val * b->at(col, j);
+                    }
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
@@ -79,7 +110,39 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* const a,
                    const matrix::Dense<ValueType>* const b,
                    const matrix::Dense<ValueType>* const beta,
-                   matrix::Dense<ValueType>* const c) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* const c)
+{
+    const int bs = a->get_block_size();
+    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const IndexType nbrows = a->get_num_block_rows();
+    const size_type nbnz = a->get_num_stored_blocks();
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+
+#pragma omp parallel for
+    for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
+             ++i)
+            c->get_values()[i] *= vbeta;
+
+        for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+             ++inz) {
+            for (int ib = 0; ib < bs; ib++) {
+                const IndexType row = ibrow * bs + ib;
+                for (int jb = 0; jb < bs; jb++) {
+                    const auto val = avalues(inz, ib, jb);
+                    const auto col = col_idxs[inz] * bs + jb;
+                    for (size_type j = 0; j < nvecs; ++j)
+                        c->at(row, j) += valpha * val * b->at(col, j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
