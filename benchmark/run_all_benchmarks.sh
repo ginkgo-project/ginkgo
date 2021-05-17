@@ -212,40 +212,18 @@ else
     exit 1
 fi
 
-# This allows using a matrix list file for benchmarking.
-#
-# Each matrix on each line is duplicated NUM_BATCH_DUP times
-# if USE_SUITE_SPARSE is on
-#
-# The file should contains a suitesparse matrix on each line.
-# The allowed formats to target suitesparse matrix is:
-#   id or group/name or name.
-# Example:
-# 1903
-# Freescale/circuit5M
-# thermal2
-if [ ! "${BATCH_MATRIX_LIST_FILE}" ]; then
-    use_batch_matrix_list_file=0
-elif [ -f "${BATCH_MATRIX_LIST_FILE}" ]; then
-    use_batch_matrix_list_file=1
-    echo "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE}"
-else
-    echo -e "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE} but it cannot be found."
-    exit 1
-fi
-
 # This allows using a folder to automatically read the files in the folder into a matrix.
 # The folder structure for a matrix class with two batch entries should look like this:
 #
 # matrix_class
-# \__1
-#     \__A.mtx
-#     \__b.mtx
-#     \__x0.mtx
-# \__2
-#     \__A.mtx
-#     \__b.mtx
-#     \__x0.mtx
+#    \__1
+#        \__A.mtx
+#        \__b.mtx
+#        \__x0.mtx
+#    \__2
+#        \__A.mtx
+#        \__b.mtx
+#        \__x0.mtx
 if [ ! "${BATCH_MATRIX_FOLDER}" ]; then
     use_batch_matrix=0
 elif [ -d "${BATCH_MATRIX_FOLDER}" ]; then
@@ -257,6 +235,26 @@ elif [ -d "${BATCH_MATRIX_FOLDER}" ]; then
     fi
 else
     echo -e "A matrix folder was set to ${BATCH_MATRIX_FOLDER} but it cannot be found."
+    exit 1
+fi
+
+# This allows using a batch matrix list file for benchmarking.
+#
+# Each list must contain the batch matrix files in a hierarchy, as shown above and
+# each matrix class must be in a separate line.
+#
+# Example:
+# dodecane_lu
+# gri30
+if [ ! "${BATCH_MATRIX_LIST_FILE}" ] && [ -d "${BATCH_MATRIX_FOLDER}" ]; then
+    echo -e "A batch matrix folder was set to ${BATCH_MATRIX_FOLDER} , but no BATCH_MATRIX_LIST_FILE was set."
+    exit 1
+elif [ ! "${BATCH_MATRIX_LIST_FILE}" ] && [ ! "${BATCH_MATRIX_FOLDER}" ]; then
+    use_batch_matrix=0
+elif [ -f "${BATCH_MATRIX_LIST_FILE}" ]; then
+    echo "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE}"
+else
+    echo -e "A batch matrix list file was set to ${BATCH_MATRIX_LIST_FILE} but it cannot be found."
     exit 1
 fi
 
