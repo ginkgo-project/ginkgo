@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_TYPES_HPP_
 
 
+#include <array>
 #include <cassert>
 #include <climits>
 #include <complex>
@@ -196,24 +197,73 @@ constexpr size_type byte_size = CHAR_BIT;
 /**
  * Config type
  */
-using Config = int;
+namespace helper {
 
-constexpr int config_scaler = 1000;
 
-constexpr Config config_set(int block_size, int warp_size)
+template <size_type current_size>
+constexpr int mask()
 {
-    return block_size * config_scaler + warp_size;
+    return (1 << (current_size - 1)) | mask<current_size - 1>();
 }
 
-constexpr int get_warp_size(Config config_set)
+template <>
+constexpr int mask<0>()
 {
-    return config_set % config_scaler;
+    return 0;
 }
 
-constexpr int get_block_size(Config config_set)
+template <int num_groups, int current_shift>
+constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
+    const std::array<char, num_groups> &bits)
 {
-    return config_set / config_scaler;
+    return 0;
 }
+
+template <int num_groups, int current_shift>
+constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
+    const std::array<char, num_groups> &bits)
+{
+    return bits[current_shift + 1] +
+           shift<num_groups, (current_shift + 1)>(bits);
+}
+
+
+}  // namespace helper
+
+
+template <int... num_bits>
+class ConfigSet {
+public:
+    static constexpr size_type num_groups = sizeof...(num_bits);
+    static constexpr std::array<char, num_groups> bits{num_bits...};
+
+    template <int position>
+    static constexpr int decode(int encoded)
+    {
+        static_assert(position < num_groups,
+                      "This position is over the bounds.");
+        constexpr int shift = helper::shift<num_groups, position>(bits);
+        constexpr int mask = helper::mask<bits[position]>();
+        return (encoded >> shift) & mask;
+    }
+
+    template <size_type current_iter>
+    static constexpr std::enable_if_t<(current_iter == num_groups), int>
+    encode()
+    {
+        return 0;
+    }
+
+    template <size_type current_iter = 0, typename First, typename... Rest>
+    static constexpr std::enable_if_t<(current_iter < num_groups), int> encode(
+        First first, Rest &&... rest)
+    {
+        constexpr int shift = helper::shift<num_groups, current_iter>(bits);
+        return (first << shift) |
+               encode<current_iter + 1>(std::forward<Rest>(rest)...);
+    }
+};
+
 
 /**
  * Evaluates if all template arguments Args fulfill std::is_integral. If that is

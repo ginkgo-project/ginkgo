@@ -56,6 +56,7 @@ namespace {
 
 
 using namespace gko::kernels::dpcpp;
+using KCfg = gko::ConfigSet<12, 7>;
 
 
 class CooperativeGroups : public ::testing::Test {
@@ -109,23 +110,22 @@ void test_assert(bool *success, bool partial)
 }
 
 // kernel implementation
-template <gko::Config config>
-[[intel::reqd_work_group_size(1, 1, gko::get_warp_size(config))]] void
-cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
+template <int config>
+[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_shuffle(
+    bool *s, sycl::nd_item<3> item_ct1)
 {
-    auto group = group::tiled_partition<gko::get_warp_size(config)>(
+    auto group = group::tiled_partition<KCfg::decode<0>(config)>(
         group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == sycl::max(0, (int)(i - 1)));
-    test_assert(s,
-                group.shfl_down(i, 1) ==
-                    sycl::min((unsigned int)(i + 1),
-                              (unsigned int)(gko::get_warp_size(config) - 1)));
+    test_assert(s, group.shfl_down(i, 1) ==
+                       sycl::min((unsigned int)(i + 1),
+                                 (unsigned int)(KCfg::decode<0>(config) - 1)));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
 // group all kernel things together
-template <gko::Config config>
+template <int config>
 void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      sycl::queue *stream, bool *s)
 {
@@ -148,16 +148,16 @@ void cg_shuffle_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 {
     auto exec_info = exec->get_const_exec_info();
     constexpr auto default_config_list =
-        ::gko::syn::value_list<gko::Config, gko::config_set(32, 32),
-                               gko::config_set(16, 16), gko::config_set(8, 8),
-                               gko::config_set(4, 4)>();
+        ::gko::syn::value_list<int, KCfg::encode(32, 32), KCfg::encode(16, 16),
+                               KCfg::encode(8, 8), KCfg::encode(4, 4)>();
     std::cout << "block.x " << block.x << std::endl;
     cg_shuffle_config(
         default_config_list,
         // validate
-        [&exec_info, &block](gko::Config config) {
-            return exec_info.validate(config) &&
-                   (gko::get_warp_size(config) == block.x);
+        [&exec_info, &block](int config) {
+            return exec_info.validate(KCfg::decode<0>(config),
+                                      KCfg::decode<1>(config)) &&
+                   (KCfg::decode<1>(config) == block.x);
         },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),

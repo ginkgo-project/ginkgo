@@ -815,11 +815,9 @@ protected:
         /**
          * The validate function for Config
          */
-        bool validate(Config config)
+        bool validate(int blocksize, int warpsize)
         {
             bool allowed = false;
-            auto blocksize = get_block_size(config);
-            auto warpsize = get_warp_size(config);
             for (auto &i : subgroup_sizes) {
                 allowed |= (i == warpsize);
             }
