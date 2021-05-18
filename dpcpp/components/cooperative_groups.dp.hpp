@@ -312,7 +312,7 @@ public:
      */
     __dpct_inline__ mask_type ballot(int predicate) const noexcept
     {
-        return (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0);
+        return (predicate != 0) ? mask_type(1) : mask_type(0);
     }
 
     /**

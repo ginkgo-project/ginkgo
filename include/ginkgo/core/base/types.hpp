@@ -194,24 +194,45 @@ using default_precision = double;
 constexpr size_type byte_size = CHAR_BIT;
 
 
+namespace detail {
+
+
 /**
- * Config type
+ * mask gives the integer with Size activated bits in the end
+ *
+ * @tparam Size  the number of activated bits
+ * @tparam ValueType  the type of mask, which uses unsigned int as default
+ *
+ * @return the ValueType with Size activated bits in the end
  */
-namespace helper {
-
-
-template <size_type current_size>
-constexpr int mask()
+template <int Size, typename ValueType = unsigned int>
+constexpr std::enable_if_t<(Size < sizeof(ValueType) * 8), ValueType> mask()
 {
-    return (1 << (current_size - 1)) | mask<current_size - 1>();
+    return (ValueType{1} << Size) - 1;
 }
 
-template <>
-constexpr int mask<0>()
+/**
+ * @copydoc mask()
+ *
+ * @note this is special case for the Size = the number of bits of ValueType
+ */
+template <int Size, typename ValueType = unsigned int>
+constexpr std::enable_if_t<Size == sizeof(ValueType) * 8, ValueType> mask()
 {
-    return 0;
+    return ~ValueType{};
 }
 
+
+/**
+ * shift calculates the number of bits for shifting
+ *
+ * @tparam num_groups  the number of elements in array
+ * @tparam current_shift  the current position of shifting
+ *
+ * @return the number of shifting bits
+ *
+ * @note this is the last case of nested template
+ */
 template <int num_groups, int current_shift>
 constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
     const std::array<char, num_groups> &bits)
@@ -219,6 +240,11 @@ constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
     return 0;
 }
 
+/**
+ * @copydoc shift(const std::array<char, num_groups>)
+ *
+ * @note this is the usual case of nested template
+ */
 template <int num_groups, int current_shift>
 constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
     const std::array<char, num_groups> &bits)
@@ -228,25 +254,51 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
 }
 
 
-}  // namespace helper
+}  // namespace detail
 
 
+/**
+ * ConfigSet is a way to embed several information into one integer by given
+ * certain bits. The usage will be the following
+ * Set the method with bits Cfg = ConfigSet<nb_1, nb_2, ..., nb_k>
+ * Encode the given infomation encoded = Cfg::encode(i_1, i_2, ..., i_k)
+ * Decode the specific position information i_t = Cfg::decode<t>(encoded)
+ * The encoded result will use 32 bits to record
+ * rrrrr1..12....2...k..k, which 1/2/k means the bits store the information for
+ * 1/2/k position and r is for rest of unused bits.
+ *
+ * @tparam num_bits...  the number of bits for each position.
+ */
 template <int... num_bits>
 class ConfigSet {
 public:
     static constexpr size_type num_groups = sizeof...(num_bits);
     static constexpr std::array<char, num_groups> bits{num_bits...};
 
+    /**
+     * Decodes the `position` information from encoded
+     *
+     * @tparam position  the position of desired information
+     *
+     * @param encoded  the encoded integer
+     *
+     * @return the decoded information at position
+     */
     template <int position>
     static constexpr int decode(int encoded)
     {
         static_assert(position < num_groups,
                       "This position is over the bounds.");
-        constexpr int shift = helper::shift<num_groups, position>(bits);
-        constexpr int mask = helper::mask<bits[position]>();
+        constexpr int shift = detail::shift<num_groups, position>(bits);
+        constexpr auto mask = detail::mask<bits[position]>();
         return (encoded >> shift) & mask;
     }
 
+    /**
+     * Encodes the information with given bit set to encoded integer.
+     *
+     * @note the last case of nested template.
+     */
     template <size_type current_iter>
     static constexpr std::enable_if_t<(current_iter == num_groups), int>
     encode()
@@ -254,11 +306,22 @@ public:
         return 0;
     }
 
+    /**
+     * Encodes the information with given bit set to encoded integer.
+     *
+     * @tparam current_iter  the encoded place
+     * @tparam First  the current_iter type
+     * @tparam Rest...  the rest information
+     *
+     * @param informations... the information will be encoded
+     *
+     * @return the encoded integer
+     */
     template <size_type current_iter = 0, typename First, typename... Rest>
     static constexpr std::enable_if_t<(current_iter < num_groups), int> encode(
         First first, Rest &&... rest)
     {
-        constexpr int shift = helper::shift<num_groups, current_iter>(bits);
+        constexpr int shift = detail::shift<num_groups, current_iter>(bits);
         return (first << shift) |
                encode<current_iter + 1>(std::forward<Rest>(rest)...);
     }

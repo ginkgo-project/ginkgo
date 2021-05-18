@@ -30,67 +30,89 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_DIM3_DP_HPP_
-#define GKO_DPCPP_BASE_DIM3_DP_HPP_
+#include "dpcpp/base/dim3.dp.hpp"
 
 
 #include <CL/sycl.hpp>
 
 
-namespace gko {
-namespace kernels {
-namespace dpcpp {
+#include <gtest/gtest.h>
 
 
-/**
- * dim3 is a cuda-like dim3 for sycl-range, which provides the same ordering as
- * cuda and gets the sycl-range in reverse ordering.
- */
-struct dim3 {
-    unsigned int x;
-    unsigned int y;
-    unsigned int z;
+namespace {
 
-    /**
-     * Creates a dim3 with x, y, z
-     *
-     * @param xval  x dim val
-     * @param yval  y dim val and default is 1
-     * @param zval  z dim val and default is 1
-     */
-    dim3(unsigned int xval, unsigned int yval = 1, unsigned int zval = 1)
-        : x(xval), y(yval), z(zval)
-    {}
 
-    /**
-     * reverse returns the range for sycl with correct ordering (reverse of
-     * cuda)
-     *
-     * @return sycl::range<3>
-     */
-    sycl::range<3> reverse() { return sycl::range<3>(z, y, x); }
+using namespace gko::kernels::dpcpp;
+
+
+class DpcppDim3 : public ::testing::Test {
+protected:
+    DpcppDim3() {}
+
+    void SetUp() {}
+
+    void TearDown() {}
 };
 
 
-/**
- * sycl_nd_range will generate the proper sycl::nd_range<3> from grid, block
- *
- * @param grid  the dim3 for grid
- * @param block  the dim3 for block
- *
- * @return sycl::nd_range<3>
- */
-inline sycl::nd_range<3> sycl_nd_range(dim3 grid, dim3 block)
+TEST_F(DpcppDim3, CanGenerate1DRange)
 {
-    auto local_range = block.reverse();
-    auto global_range = grid.reverse() * local_range;
-    return sycl::nd_range<3>(global_range, local_range);
+    dim3 block(3);
+    auto sycl_block = block.reverse();
+
+    ASSERT_EQ(block.x, 3);
+    ASSERT_EQ(block.y, 1);
+    ASSERT_EQ(block.z, 1);
+    ASSERT_EQ(sycl_block.get(0), 1);
+    ASSERT_EQ(sycl_block.get(1), 1);
+    ASSERT_EQ(sycl_block.get(2), 3);
 }
 
 
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
+TEST_F(DpcppDim3, CanGenerate2DRange)
+{
+    dim3 block(3, 5);
+    auto sycl_block = block.reverse();
+
+    ASSERT_EQ(block.x, 3);
+    ASSERT_EQ(block.y, 5);
+    ASSERT_EQ(block.z, 1);
+    ASSERT_EQ(sycl_block.get(0), 1);
+    ASSERT_EQ(sycl_block.get(1), 5);
+    ASSERT_EQ(sycl_block.get(2), 3);
+}
 
 
-#endif  // GKO_DPCPP_BASE_DIM3_DP_HPP_
+TEST_F(DpcppDim3, CanGenerate3DRange)
+{
+    dim3 block(3, 5, 7);
+    auto sycl_block = block.reverse();
+
+    ASSERT_EQ(block.x, 3);
+    ASSERT_EQ(block.y, 5);
+    ASSERT_EQ(block.z, 7);
+    ASSERT_EQ(sycl_block.get(0), 7);
+    ASSERT_EQ(sycl_block.get(1), 5);
+    ASSERT_EQ(sycl_block.get(2), 3);
+}
+
+
+TEST_F(DpcppDim3, CanGenerateNDRange)
+{
+    dim3 block(3, 5, 7);
+    dim3 grid(17, 13, 11);
+
+    auto ndrange = sycl_nd_range(grid, block);
+    auto global_size = ndrange.get_global_range();
+    auto local_size = ndrange.get_local_range();
+
+    ASSERT_EQ(local_size.get(0), 7);
+    ASSERT_EQ(local_size.get(1), 5);
+    ASSERT_EQ(local_size.get(2), 3);
+    ASSERT_EQ(global_size.get(0), 7 * 11);
+    ASSERT_EQ(global_size.get(1), 5 * 13);
+    ASSERT_EQ(global_size.get(2), 3 * 17);
+}
+
+
+}  // namespace
