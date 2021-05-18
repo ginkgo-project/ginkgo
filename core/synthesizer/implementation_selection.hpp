@@ -92,7 +92,6 @@ namespace syn {
         ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)      \
     {                                                                         \
         if (is_eligible(K)) {                                                 \
-            std::cout << "call " << K << std::endl;                           \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K>(    \
                 std::forward<InferredArgs>(args)...);                         \
         } else {                                                              \
