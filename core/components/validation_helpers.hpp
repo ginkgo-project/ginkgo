@@ -47,7 +47,7 @@ namespace validate {
 bool is_symmetric(const LinOp *A, const float tolerance = 0.0);
 
 /**
- * Tests whether a given matrix is symmetric
+ * Tests whether a given matrix has zero elements on the diagonal
  *
  * @param A the input matrix which is tested
  */
