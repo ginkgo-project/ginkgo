@@ -111,12 +111,17 @@ template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries)
 {
     for (size_type i = 0; i < num_entries; ++i) {
-        if (!std::isfinite(values[i])) {
+        if (!std::isfinite(std::abs(values[i]))) {
             return false;
         }
     }
     return true;
 }
+
+#define GKO_DECLARE_IS_FINITE(ValueType) \
+    bool is_finite(const ValueType *values, const size_type num_entries)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IS_FINITE);
 
 
 }  // namespace validate

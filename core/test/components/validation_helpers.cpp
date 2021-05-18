@@ -117,16 +117,16 @@ GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Csr)
 GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Ell)
 
 template <typename T>
-class IsRowOrdered : public ::testing::Test {
+class IndexTypeTest : public ::testing::Test {
 protected:
-    IsRowOrdered() : exec(gko::ReferenceExecutor::create()) {}
+    IndexTypeTest() : exec(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(IsRowOrdered, gko::test::IndexTypes);
+TYPED_TEST_SUITE(IndexTypeTest, gko::test::IndexTypes);
 
-TYPED_TEST(IsRowOrdered, ReturnsFalseOnUnordered)
+TYPED_TEST(IndexTypeTest, IsRowOrderedReturnsFalseOnUnordered)
 {
     gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
 
@@ -136,7 +136,7 @@ TYPED_TEST(IsRowOrdered, ReturnsFalseOnUnordered)
 }
 
 
-TYPED_TEST(IsRowOrdered, ReturnsTrueOnOrdered)
+TYPED_TEST(IndexTypeTest, IsRowOrderedeturnsTrueOnOrdered)
 {
     gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
 
@@ -144,4 +144,23 @@ TYPED_TEST(IsRowOrdered, ReturnsTrueOnOrdered)
         gko::validate::is_row_ordered(a.get_const_data(), a.get_num_elems()),
         false);
 }
+
+template <typename T>
+class ValueTypeTest : public ::testing::Test {
+protected:
+    ValueTypeTest() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::Executor> exec;
+};
+
+TYPED_TEST_SUITE(ValueTypeTest, gko::test::ValueTypes);
+
+TYPED_TEST(ValueTypeTest, IsFiniteReturnsFalseOnInf)
+{
+    gko::Array<TypeParam> a{this->exec, {0., 1., 1.0 / 0.0}};
+
+    ASSERT_EQ(gko::validate::is_finite(a.get_const_data(), a.get_num_elems()),
+              false);
+}
+
 }  // namespace

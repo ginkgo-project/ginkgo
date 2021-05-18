@@ -74,9 +74,9 @@ bool is_within_bounds(const IndexType *idxs, const IndexType lower_bound,
 
 
 /**
- * Tests whether the elements of the given array are within specified bounds
+ * Tests whether all elements of the given array are finite
  *
- * @param row_ptrs the array which is to be tested
+ * @param values the array which is to be tested
  * @param num_entries length of the array which is to be tested
  */
 template <typename ValueType>
