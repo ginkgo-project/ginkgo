@@ -138,6 +138,8 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
+// IndexType Tests
+
 TYPED_TEST_SUITE(IndexTypeTest, gko::test::IndexTypes);
 
 TYPED_TEST(IndexTypeTest, IsRowOrderedReturnsFalseOnUnordered)
@@ -158,6 +160,35 @@ TYPED_TEST(IndexTypeTest, IsRowOrderedeturnsTrueOnOrdered)
         gko::validate::is_row_ordered(a.get_const_data(), a.get_num_elems()),
         false);
 }
+
+TYPED_TEST(IndexTypeTest, IsWithinBoundsReturnsTrueBounded)
+{
+    gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
+
+    ASSERT_EQ(gko::validate::is_within_bounds<TypeParam>(
+                  a.get_const_data(), a.get_num_elems(), 0, 4),
+              true);
+}
+
+TYPED_TEST(IndexTypeTest, IsWithinBoundsReturnsFalseLowerBound)
+{
+    gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
+
+    ASSERT_EQ(gko::validate::is_within_bounds<TypeParam>(
+                  a.get_const_data(), a.get_num_elems(), 2, 4),
+              false);
+}
+
+TYPED_TEST(IndexTypeTest, IsWithinBoundsReturnsFalseUpperBound)
+{
+    gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
+
+    ASSERT_EQ(gko::validate::is_within_bounds<TypeParam>(
+                  a.get_const_data(), a.get_num_elems(), 0, 3),
+              false);
+}
+
+// ValueType Tests
 
 template <typename T>
 class ValueTypeTest : public ::testing::Test {

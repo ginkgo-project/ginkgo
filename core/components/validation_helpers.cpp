@@ -131,6 +131,24 @@ bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ROW_ORDERED);
 
+template <typename IndexType>
+bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
+                      const IndexType lower_bound, const IndexType upper_bound)
+{
+    for (size_type i = 0; i < num_entries; ++i) {
+        if (lower_bound > idxs[i] || idxs[i] >= upper_bound) {
+            return false;
+        }
+    }
+    return true;
+}
+
+#define GKO_DECLARE_IS_WITHIN_BOUNDS(IndexType)                               \
+    bool is_within_bounds(const IndexType *idxs, const size_type num_entries, \
+                          const IndexType lower_bound,                        \
+                          const IndexType upper_bound);
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_WITHIN_BOUNDS);
 
 template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries)
