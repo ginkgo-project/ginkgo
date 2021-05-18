@@ -30,8 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef DPCPP_BASE_DPCT_HPP_
-#define DPCPP_BASE_DPCT_HPP_
+#ifndef GKO_DPCPP_BASE_HELPER_HPP_
+#define GKO_DPCPP_BASE_HELPER_HPP_
+
 
 #include <utility>
 
@@ -42,6 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dim3.dp.hpp"
 
 
+/**
+ * GKO_ENABLE_DEFAULT_HOST_CONFIG gives a default host implementation for those
+ * kernels which require config but do not need explicit template parameter and
+ * share memory
+ */
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                     \
     template <int config, typename... InferredArgs>                        \
     inline void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory, \
@@ -55,6 +61,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         });                                                                \
     }
 
+/**
+ * GKO_ENABLE_DEFAULT_CONFIG_CALL gives a default config selection call
+ * implementation for those kernels which require config selection but do not
+ * need explicit template parameter
+ */
 #define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, cfg_, list_)      \
     template <typename... InferredArgs>                                    \
     void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory,        \
@@ -76,6 +87,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             stream, std::forward<InferredArgs>(args)...);                  \
     }
 
-#define __WG_BOUND__(x) [[intel::reqd_work_group_size(1, 1, x)]]
+// __WG_BOUND__ gives the cuda-like launch bound in cuda ordering
+#define __WG_BOUND_1D__(x) [[intel::reqd_work_group_size(1, 1, x)]]
+#define __WG_BOUND_2D__(x, y) [[intel::reqd_work_group_size(1, y, x)]]
+#define __WG_BOUND_3D__(x, y, z) [[intel::reqd_work_group_size(z, y, x)]]
+#define WG_BOUND_OVERLOAD(_1, _2, _3, NAME, ...) NAME
+#define __WG_BOUND__(...)                                            \
+    WG_BOUND_OVERLOAD(__VA_ARGS__, __WG_BOUND_3D__, __WG_BOUND_2D__, \
+                      __WG_BOUND_1D__, UNUSED)                       \
+    (__VA_ARGS__)
 
-#endif  // DPCPP_BASE_DPCT_HPP_
+// __WG_CONFIG_BOUND__ use ConfigSet to unpack the config
+#define __WG_CONFIG_BOUND__(CFG, cfg)                         \
+    __WG_BOUND_3D__(CFG::decode<0>(cfg), CFG::decode<1>(cfg), \
+                    CFG::decode<2>(cfg))
+
+#endif  // GKO_DPCPP_BASE_HELPER_HPP_
