@@ -66,11 +66,13 @@ DEFINE_bool(using_suite_sparse, true,
 DEFINE_string(
     rhs_generation, "none",
     "Method used to generate the right hand side. Supported values are:"
-    "`1`, `random`, `sinus`. `1` sets all values of the right hand side to 1, "
+    "`1`, `random`, `sinus`, `file` . `1` sets all values of the right hand "
+    "side to 1, "
     "`random` assigns the values to a uniformly distributed random number "
-    "in [-1, 1), and `sinus` assigns b = A * (s / |s|) with A := system matrix,"
+    "in [-1, 1), `sinus` assigns b = A * (s / |s|) with A := system matrix,"
     " s := vector with s(idx) = sin(idx) for non-complex types, and "
-    "s(idx) = sin(2*idx) + i * sin(2*idx+1).");
+    "s(idx) = sin(2*idx) + i * sin(2*idx+1) and `file` read the rhs from a "
+    "file.");
 
 
 template <typename ValueType>
