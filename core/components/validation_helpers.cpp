@@ -89,6 +89,31 @@ bool is_symmetric(const LinOp *matrix, const float tolerance)
     return false;
 }
 
+template <class ValueType, class IndexType>
+bool has_non_zero_diagonal_impl(const LinOp *matrix)
+{
+    matrix_data<ValueType, IndexType> data{};
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+        ->write(data);
+
+    for (auto &nonzero : data.nonzeros) {
+        if (nonzero.row == nonzero.column && std::abs(nonzero.value) == 0)
+            return false;
+    }
+
+    return true;
+}
+
+bool has_non_zero_diagonal(const LinOp *matrix)
+{
+#define CALL_AND_RETURN_IF_CASTABLE(T1, T2)                           \
+    if (dynamic_cast<const WritableToMatrixData<T1, T2> *>(matrix)) { \
+        return has_non_zero_diagonal_impl<T1, T2>(matrix);            \
+    }
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(CALL_AND_RETURN_IF_CASTABLE);
+#undef CALL_AND_RETURN_IF_CASTABLE
+    return false;
+}
 
 template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
