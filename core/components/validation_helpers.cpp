@@ -77,14 +77,15 @@ bool is_symmetric_impl(const LinOp *matrix, const float tolerance)
     _macro(std::complex<float>, int64);                         \
     _macro(std::complex<double>, int64);
 
+
+bool is_symmetric(const LinOp *matrix, const float tolerance)
+{
 #define CALL_AND_RETURN_IF_CASTABLE(T1, T2)                           \
     if (dynamic_cast<const WritableToMatrixData<T1, T2> *>(matrix)) { \
         return is_symmetric_impl<T1, T2>(matrix, tolerance);          \
     }
-
-bool is_symmetric(const LinOp *matrix, const float tolerance)
-{
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(CALL_AND_RETURN_IF_CASTABLE);
+#undef CALL_AND_RETURN_IF_CASTABLE
     return false;
 }
 
