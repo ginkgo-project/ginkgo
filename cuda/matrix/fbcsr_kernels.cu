@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/block_sizes.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_block_bindings.hpp"
 #include "cuda/base/math.hpp"
@@ -203,9 +205,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
 
 
+namespace {
+
 template <int mat_blk_sz, typename ValueType, typename IndexType>
-static void transpose_blocks_impl(
-    matrix::Fbcsr<ValueType, IndexType> *const mat)
+void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
+                           matrix::Fbcsr<ValueType, IndexType> *const mat)
 {
     constexpr int subwarp_size = config::warp_size;
     const size_type nbnz = mat->get_num_stored_blocks();
@@ -216,6 +220,11 @@ static void transpose_blocks_impl(
     kernel::transpose_blocks<mat_blk_sz, subwarp_size>
         <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
 }
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_blocks,
+                                    transpose_blocks_impl);
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -243,17 +252,10 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             copyValues, idxBase, buffer);
 
         // transpose blocks
-        if (bs == 2) {
-            transpose_blocks_impl<2>(trans);
-        } else if (bs == 3) {
-            transpose_blocks_impl<3>(trans);
-        } else if (bs == 4) {
-            transpose_blocks_impl<4>(trans);
-        } else if (bs == 7) {
-            transpose_blocks_impl<7>(trans);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        select_transpose_blocks(
+            fixedblock::compiled_kernels(),
+            [bs](int compiled_block_size) { return bs == compiled_block_size; },
+            syn::value_list<int>(), syn::type_list<>(), trans);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

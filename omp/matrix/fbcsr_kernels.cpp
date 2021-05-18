@@ -48,8 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "accessor/block_col_major.hpp"
+#include "core/base/block_sizes.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -327,8 +329,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
+namespace {
+
 template <int mat_blk_sz, typename ValueType, typename IndexType>
-static void sort_by_column_index_impl(
+void sort_by_column_index_impl(
+    syn::value_list<int, mat_blk_sz>,
     matrix::Fbcsr<ValueType, IndexType> *const to_sort)
 {
     auto row_ptrs = to_sort->get_const_row_ptrs();
@@ -359,22 +364,20 @@ static void sort_by_column_index_impl(
     }
 }
 
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_sort_col_idx,
+                                    sort_by_column_index_impl);
+
+}  // namespace
+
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const OmpExecutor> exec,
                           matrix::Fbcsr<ValueType, IndexType>* const to_sort)
 {
     const int bs = to_sort->get_block_size();
-    if (bs == 2) {
-        sort_by_column_index_impl<2>(to_sort);
-    } else if (bs == 3) {
-        sort_by_column_index_impl<3>(to_sort);
-    } else if (bs == 4) {
-        sort_by_column_index_impl<4>(to_sort);
-    } else if (bs == 7) {
-        sort_by_column_index_impl<7>(to_sort);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    select_sort_col_idx(
+        fixedblock::compiled_kernels(),
+        [bs](int compiled_block_size) { return bs == compiled_block_size; },
+        syn::value_list<int>(), syn::type_list<>(), to_sort);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
