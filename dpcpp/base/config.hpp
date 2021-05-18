@@ -50,11 +50,6 @@ struct config {
     using lane_mask_type = uint64;
 
     /**
-     * The number of threads within a DPCPP warp.
-     */
-    static constexpr uint32 warp_size = 32;
-
-    /**
      * The bitmask of the entire warp.
      */
     static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
