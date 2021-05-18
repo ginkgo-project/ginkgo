@@ -823,6 +823,19 @@ protected:
             }
             return allowed && (blocksize <= max_workgroup_size);
         }
+
+        auto validate_function() const
+        {
+            return [subgroup_sizes = subgroup_sizes,
+                    max_workgroup_size = max_workgroup_size](int blocksize,
+                                                             int warpsize) {
+                bool allowed = false;
+                for (auto &i : subgroup_sizes) {
+                    allowed |= (i == warpsize);
+                }
+                return allowed && (blocksize <= max_workgroup_size);
+            };
+        }
     };
 
 public:

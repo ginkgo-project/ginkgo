@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/helper.hpp"
 
 
 namespace {
@@ -170,43 +171,20 @@ template <int config>
                        KCfg::decode<1>(config) < 13);
 }
 
-template <int config>
-void cg_all_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, bool *s)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { cg_all<config>(s, item_ct1); });
-    });
-}
-
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_all_host, cg_all)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all_config, cg_all_host)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_config_call, cg_all_config, KCfg,
+                               default_config_list)
 
-void cg_all_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                        sycl::queue *stream,
-                        std::shared_ptr<const gko::DpcppExecutor> exec, bool *s)
+TEST_F(CooperativeGroups, All)
 {
-    auto exec_info = exec->get_const_exec_info();
-    cg_all_config(
-        default_config_list,
-        // validate
-        [&exec_info, &block](int config) {
-            return exec_info.validate(KCfg::decode<0>(config),
-                                      KCfg::decode<1>(config)) &&
-                   (KCfg::decode<0>(config) == block.x);
-        },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        grid, block, dynamic_shared_memory, stream, s);
+    test_all_subgroup(cg_all_config_call<bool *>);
 }
-
-TEST_F(CooperativeGroups, All) { test_all_subgroup(cg_all_config_call); }
 
 
 template <int config>
-[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_any(
-    bool *s, sycl::nd_item<3> item_ct1)
+__WG_BOUND__(KCfg::decode<0>(config))
+void cg_any(bool *s, sycl::nd_item<3> item_ct1)
 {
     auto group = group::tiled_partition<KCfg::decode<1>(config)>(
         group::this_thread_block(item_ct1));
@@ -215,38 +193,15 @@ template <int config>
     test_assert(s, !group.any(false));
 }
 
-template <int config>
-void cg_any_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, bool *s)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { cg_any<config>(s, item_ct1); });
-    });
-}
-
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_any_host, cg_any)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any_config, cg_any_host)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_config_call, cg_any_config, KCfg,
+                               default_config_list)
 
-void cg_any_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                        sycl::queue *stream,
-                        std::shared_ptr<const gko::DpcppExecutor> exec, bool *s)
+TEST_F(CooperativeGroups, Any)
 {
-    auto exec_info = exec->get_const_exec_info();
-    cg_any_config(
-        default_config_list,
-        // validate
-        [&exec_info, &block](int config) {
-            return exec_info.validate(KCfg::decode<0>(config),
-                                      KCfg::decode<1>(config)) &&
-                   (KCfg::decode<0>(config) == block.x);
-        },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        grid, block, dynamic_shared_memory, stream, s);
+    test_all_subgroup(cg_any_config_call<bool *>);
 }
-
-TEST_F(CooperativeGroups, Any) { test_all_subgroup(cg_any_config_call); }
 
 
 template <int Size>
@@ -263,8 +218,8 @@ config::lane_mask_type active_mask<64>()
 
 
 template <int config>
-[[intel::reqd_work_group_size(1, 1, KCfg::decode<0>(config))]] void cg_ballot(
-    bool *s, sycl::nd_item<3> item_ct1)
+__WG_BOUND__(KCfg::decode<0>(config))
+void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto subgroup_size = KCfg::decode<1>(config);
     auto group = group::tiled_partition<subgroup_size>(
@@ -275,39 +230,15 @@ template <int config>
     test_assert(s, group.ballot(item_ct1.get_local_id(2) < 4) == 0xf);
 }
 
-template <int config>
-void cg_ballot_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                    sycl::queue *stream, bool *s)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { cg_ballot<config>(s, item_ct1); });
-    });
-}
-
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_ballot_host, cg_ballot)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot_config, cg_ballot_host)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_config_call, cg_ballot_config, KCfg,
+                               default_config_list)
 
-void cg_ballot_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                           sycl::queue *stream,
-                           std::shared_ptr<const gko::DpcppExecutor> exec,
-                           bool *s)
+TEST_F(CooperativeGroups, Ballot)
 {
-    auto exec_info = exec->get_const_exec_info();
-    cg_ballot_config(
-        default_config_list,
-        // validate
-        [&exec_info, &block](int config) {
-            return exec_info.validate(KCfg::decode<0>(config),
-                                      KCfg::decode<1>(config)) &&
-                   (KCfg::decode<0>(config) == block.x);
-        },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        grid, block, dynamic_shared_memory, stream, s);
+    test_all_subgroup(cg_ballot_config_call<bool *>);
 }
-
-TEST_F(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_config_call); }
 
 
 }  // namespace
