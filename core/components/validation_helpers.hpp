@@ -63,14 +63,17 @@ template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
 
 /**
- * Tests whether the elements of the given array are within specified bounds
+ * Tests whether the elements of the given array are within [lower_bound,
+ * upper_bound)
  *
  * @param row_ptrs the array which is to be tested
  * @param num_entries length of the array which is to be tested
+ * @param lower_bound the lower bound
+ * @param upper_bound the upper bound
  */
 template <typename IndexType>
-bool is_within_bounds(const IndexType *idxs, const IndexType lower_bound,
-                      const IndexType upper_bound);
+bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
+                      const IndexType lower_bound, const IndexType upper_bound);
 
 
 /**
