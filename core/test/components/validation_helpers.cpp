@@ -42,7 +42,7 @@ namespace {
 
 #define GKO_DEFINE_ISSYMMETRIC(MATRIX_TYPE)                                   \
     template <typename ValueIndexType>                                        \
-    class IsSymmetric##MATRIX_TYPE : public ::testing::Test {                 \
+    class MatrixTest##MATRIX_TYPE : public ::testing::Test {                  \
     protected:                                                                \
         using value_type =                                                    \
             typename std::tuple_element<0, decltype(ValueIndexType())>::type; \
@@ -50,7 +50,7 @@ namespace {
             typename std::tuple_element<1, decltype(ValueIndexType())>::type; \
         using Mtx = gko::matrix::Coo<value_type, index_type>;                 \
                                                                               \
-        IsSymmetric##MATRIX_TYPE()                                            \
+        MatrixTest##MATRIX_TYPE()                                             \
             : exec(gko::ReferenceExecutor::create()),                         \
               mtx(gko::matrix::Coo<value_type, index_type>::create(           \
                   exec, gko::dim<2>{3, 3}, 9))                                \
@@ -98,18 +98,32 @@ namespace {
 #define GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(MATRIX_TYPE)                     \
     GKO_DEFINE_ISSYMMETRIC(MATRIX_TYPE);                                      \
                                                                               \
-    TYPED_TEST_SUITE(IsSymmetric##MATRIX_TYPE, gko::test::ValueIndexTypes);   \
+    TYPED_TEST_SUITE(MatrixTest##MATRIX_TYPE, gko::test::ValueIndexTypes);    \
                                                                               \
-    TYPED_TEST(IsSymmetric##MATRIX_TYPE, ReturnsTrueOnSymmetric)              \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsTrueOnSymmetric)               \
     {                                                                         \
         ASSERT_EQ(gko::validate::is_symmetric(this->mtx.get(), 1e-32), true); \
     }                                                                         \
                                                                               \
-    TYPED_TEST(IsSymmetric##MATRIX_TYPE, ReturnsFalseOnAsymmetric)            \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsFalseOnAsymmetric)             \
     {                                                                         \
         auto asym_mtx = this->mtx->clone();                                   \
         asym_mtx->get_values()[2] = 0;                                        \
         ASSERT_EQ(gko::validate::is_symmetric(asym_mtx.get(), 1e-32), false); \
+    }                                                                         \
+                                                                              \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsTrueOnNonZeroDiagonal)         \
+    {                                                                         \
+        auto asym_mtx = this->mtx->clone();                                   \
+        ASSERT_EQ(gko::validate::has_non_zero_diagonal(this->mtx.get()),      \
+                  true);                                                      \
+    }                                                                         \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsFalseOnZeroDiagonal)           \
+    {                                                                         \
+        auto asym_mtx = this->mtx->clone();                                   \
+        asym_mtx->get_values()[0] = 0;                                        \
+        ASSERT_EQ(gko::validate::has_non_zero_diagonal(asym_mtx.get()),       \
+                  false);                                                     \
     }
 
 GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Coo)
