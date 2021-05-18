@@ -426,9 +426,9 @@ parse_batch_matrix_list() {
 }
 
 if [ $use_batch_matrix -eq 1 ]; then
-    BATCH_MATRIX_LIST=$(parse_batch_matrix_list $BATCH_MATRIX_LIST_FILE)
-    NUM_BATCH_MATS=${#BATCH_MATRIX_LIST[@]}
-    echo "Number of matrices: ${NUM_BATCH_MATS} and the matrices are: ${BATCH_MATRIX_LIST}"
+    BATCH_MATRIX_TYPES_LIST=$(parse_batch_matrix_list $BATCH_MATRIX_LIST_FILE)
+    NUM_BATCH_MAT_TYPES=${#BATCH_MATRIX_TYPES_LIST[@]}
+    echo "Number of matrices: ${NUM_BATCH_MAT_TYPES} and the matrices are: ${BATCH_MATRIX_TYPES_LIST}"
 fi
 
 # Creates an input file for the batch matrix
@@ -443,8 +443,8 @@ EOT
 }
 
 if [ $use_batch_matrix -eq 1 ]; then
-    for (( p=0; p < ${NUM_BATCH_MATS}; ++p )); do
-        i=${BATCH_MATRIX_LIST[$((p))]}
+    for (( p=0; p < ${NUM_BATCH_MAT_TYPES}; ++p )); do
+        i=${BATCH_MATRIX_TYPES_LIST[$((p))]}
         lmat=$(echo "$i" | sed 's/^[[:space:]]*//')
         echo -e "Processing matrix: $lmat"
         RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}"
@@ -454,7 +454,7 @@ if [ $use_batch_matrix -eq 1 ]; then
         NUM_BATCH_ENTRIES=$(count_num_batch_entries "${BATCH_MATRIX_FOLDER}/${lmat}")
 
         if [ "${BENCHMARK}" == "batch_spmv" ]; then
-            echo -e "(${p}/${NUM_BATCH_MATS}) Running Batch SpMV for ${lmat} class" 1>&2
+            echo -e "(${p}/${NUM_BATCH_MAT_TYPES}) Running Batch SpMV for ${lmat} class" 1>&2
             run_batch_spmv_benchmarks "${RESULT_FILE}"
         fi
     done
