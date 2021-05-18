@@ -240,7 +240,7 @@ TYPED_TEST(Overlap, CanBeCreatedWithDuplicatedElements)
     EXPECT_EQ(a.get_unidirectional_array()[2], true);
     EXPECT_EQ(a.get_overlap_at_start_array()[0], false);
     EXPECT_EQ(a.get_overlap_at_start_array()[1], false);
-    EXPECT_EQ(a.get_overlap_at_start_array()[2], false);
+    EXPECT_EQ(a.get_overlap_at_start_array()[2], true);
 }
 
 
