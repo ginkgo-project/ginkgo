@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_CORE_COMPONENTS_VALIDATION_HELPERS_HPP_
-#define GKO_CORE_COMponents_VALIDATION_HELPERS_HPP_
+#define GKO_CORE_COMPONENTS_VALIDATION_HELPERS_HPP_
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -51,7 +51,7 @@ bool is_symmetric(const LinOp *A, const float tolerance = 0.0);
  *
  * @param A the input matrix which is tested
  */
-bool has_non_zero_diagonal(const LinOp *A) { return false; }
+bool has_non_zero_diagonal(const LinOp *A);
 
 /**
  * Tests whether the given row_ptrs are in an ascending order
