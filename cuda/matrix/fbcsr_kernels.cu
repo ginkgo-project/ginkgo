@@ -140,7 +140,39 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* c)
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        {
+            cusparse::pointer_mode_guard pm_guard(handle);
+            const auto alphp = alpha->get_const_values();
+            const auto betap = beta->get_const_values();
+            auto descr = cusparse::create_mat_descr();
+            const auto row_ptrs = a->get_const_row_ptrs();
+            const auto col_idxs = a->get_const_col_idxs();
+            const auto values = a->get_const_values();
+            const int bs = a->get_block_size();
+            const IndexType mb = a->get_num_block_rows();
+            const IndexType nb = a->get_num_block_cols();
+            const auto nnzb =
+                static_cast<IndexType>(a->get_num_stored_blocks());
+            const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
+            assert(nrhs == c->get_size()[1]);
+            if (nrhs == 1) {
+                cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb,
+                                nb, nnzb, alphp, descr, values, row_ptrs,
+                                col_idxs, bs, b->get_const_values(), betap,
+                                c->get_values());
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+
+            cusparse::destroy(descr);
+        }
+    } else
+        GKO_NOT_IMPLEMENTED;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
