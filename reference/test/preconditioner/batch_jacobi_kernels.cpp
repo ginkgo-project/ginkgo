@@ -64,7 +64,6 @@ protected:
     const size_t nbatch = 2;
     const int nrows = 3;
     std::shared_ptr<const Mtx> mtx;
-    static constexpr real_type eps = std::numeric_limits<real_type>::epsilon();
 
     std::unique_ptr<Mtx> get_matrix()
     {
@@ -90,6 +89,7 @@ TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
 TYPED_TEST(BatchJacobi, AppliesToSingleVector)
 {
+    using value_type = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
     auto xex = gko::batch_initialize<BDense>(
         {{-1.0, -3.0, 20.0}, {2.0, 1.25, -12.0}}, this->exec);
@@ -101,7 +101,8 @@ TYPED_TEST(BatchJacobi, AppliesToSingleVector)
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, this->eps);
+    const auto eps = r<value_type>::value;
+    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, eps);
 }
 
 TYPED_TEST(BatchJacobi, AppliesToMultipleVectors)
@@ -122,7 +123,8 @@ TYPED_TEST(BatchJacobi, AppliesToMultipleVectors)
     gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, this->eps);
+    const auto eps = r<T>::value;
+    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, eps);
 }
 
 }  // namespace
