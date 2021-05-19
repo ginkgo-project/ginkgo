@@ -255,6 +255,32 @@ void Csr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
+    Bccoo<ValueType, IndexType>* result) const GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto exec = this->get_executor();
+    auto tmp = Coo<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements());
+    tmp->values_ = this->values_;
+    tmp->col_idxs_ = this->col_idxs_;
+    exec->run(csr::make_convert_to_coo(this, tmp.get()));
+    tmp->move_to(result);
+}
+*/
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+    this->convert_to(result);
+}
+*/
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
     Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();

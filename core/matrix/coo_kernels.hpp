@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -80,23 +81,31 @@ namespace kernels {
                        const matrix::Coo<ValueType, IndexType>* source, \
                        matrix::Dense<ValueType>* result)
 
+#define GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Coo<ValueType, IndexType>* source, \
+                          matrix::Bccoo<ValueType, IndexType>* result,     \
+                          size_type block_size)
+
 #define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
                           const matrix::Coo<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>            \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 

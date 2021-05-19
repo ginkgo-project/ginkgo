@@ -50,6 +50,9 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType, typename IndexType>
+class Bccoo;
+
 template <typename ValueType>
 class Dense;
 
@@ -79,6 +82,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableCreateMethod<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Bccoo<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
@@ -87,6 +91,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
                 remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
+    friend class Bccoo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
@@ -109,6 +114,7 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
+    using size_type = gko::size_type;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 
@@ -116,6 +122,14 @@ public:
         Coo<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
+
+    //    void convert_to(size_type block_size, Bccoo<ValueType, IndexType>
+    //    *other) const override;
+    void convert_to(Bccoo<ValueType, IndexType>* other) const override;
+
+    //    void move_to(size_type block_size, Bccoo<ValueType, IndexType> *other)
+    //    override;
+    void move_to(Bccoo<ValueType, IndexType>* other) override;
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 

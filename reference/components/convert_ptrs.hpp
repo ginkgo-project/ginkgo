@@ -59,6 +59,43 @@ inline void convert_ptrs_to_idxs(const IndexType* ptrs, size_type num_rows,
 
 
 }  // namespace csr
+
+
+template <typename ValueType, typename IndexType>
+inline size_type mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                                const IndexType* row_idxs,
+                                const IndexType* col_idxs,
+                                const IndexType num_rows,
+                                const IndexType block_size) GKO_NOT_IMPLEMENTED;
+/*
+{
+    size_type p = 0;
+    for (size_type b = 0; b < nb; b++) {
+        size_type k = b * BLOCK;
+        size_type r = row_idxs[k];
+        size_type c = 0;
+        for (size_type l = 0; l < BLOCK && k < nz; l++, k++) {
+            if (row_idxs[k] != r) { // new row
+                r = row_idxs[k];
+                c = 0;
+                p++;
+            }
+            size_type d = col_idxs[k] - c;
+            if (d < 0x7d) {
+                p++;
+            } else if (d < 0xffff) {
+                p += 3;
+            } else {
+                p += 5;
+            }
+            c = col_idxs[k];
+        }
+    }
+    return p;
+}
+*/
+
+
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

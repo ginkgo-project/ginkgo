@@ -56,47 +56,50 @@ protected:
           mtx(gko::matrix::Bccoo<value_type, index_type>::create(
               exec, gko::dim<2>{2, 3}, 4))
     {
-        value_type* v = mtx->get_values();
-        index_type* c = mtx->get_col_idxs();
-        index_type* r = mtx->get_row_idxs();
-        r[0] = 0;
-        r[1] = 0;
-        r[2] = 0;
-        r[3] = 1;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 2;
-        c[3] = 1;
-        v[0] = 1.0;
-        v[1] = 3.0;
-        v[2] = 2.0;
-        v[3] = 5.0;
+        /*
+// value_type *v = mtx->get_values();
+// index_type *c = mtx->get_col_idxs();
+// index_type *r = mtx->get_row_idxs();
+r[0] = 0;
+r[1] = 0;
+r[2] = 0;
+r[3] = 1;
+c[0] = 0;
+c[1] = 1;
+c[2] = 2;
+c[3] = 1;
+v[0] = 1.0;
+v[1] = 3.0;
+v[2] = 2.0;
+v[3] = 5.0;
+        */
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
-    {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_idxs();
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 0);
-        EXPECT_EQ(r[2], 0);
-        EXPECT_EQ(r[3], 1);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{3.0});
-        EXPECT_EQ(v[2], value_type{2.0});
-        EXPECT_EQ(v[3], value_type{5.0});
-    }
-
+    void assert_equal_to_original_mtx(const Mtx* m) GKO_NOT_IMPLEMENTED;
+    /*
+        {
+            auto v = m->get_const_values();
+            auto c = m->get_const_col_idxs();
+            auto r = m->get_const_row_idxs();
+            ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+            ASSERT_EQ(m->get_num_stored_elements(), 4);
+            EXPECT_EQ(r[0], 0);
+            EXPECT_EQ(r[1], 0);
+            EXPECT_EQ(r[2], 0);
+            EXPECT_EQ(r[3], 1);
+            EXPECT_EQ(c[0], 0);
+            EXPECT_EQ(c[1], 1);
+            EXPECT_EQ(c[2], 2);
+            EXPECT_EQ(c[3], 1);
+            EXPECT_EQ(v[0], value_type{1.0});
+            EXPECT_EQ(v[1], value_type{3.0});
+            EXPECT_EQ(v[2], value_type{2.0});
+            EXPECT_EQ(v[3], value_type{5.0});
+        }
+    */
     void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));

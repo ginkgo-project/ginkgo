@@ -54,6 +54,9 @@ template <typename ValueType, typename IndexType>
 class Coo;
 
 template <typename ValueType, typename IndexType>
+class Bccoo;
+
+template <typename ValueType, typename IndexType>
 class Ell;
 
 template <typename ValueType, typename IndexType>
@@ -128,6 +131,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<Bccoo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
@@ -145,6 +149,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
+    friend class Bccoo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, IndexType>;
@@ -726,6 +731,10 @@ public:
     void convert_to(Dense<ValueType>* other) const override;
 
     void move_to(Dense<ValueType>* other) override;
+
+    void convert_to(Bccoo<ValueType, IndexType>* result) const override;
+
+    void move_to(Bccoo<ValueType, IndexType>* result) override;
 
     void convert_to(Coo<ValueType, IndexType>* result) const override;
 

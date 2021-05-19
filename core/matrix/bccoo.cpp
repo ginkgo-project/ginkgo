@@ -138,16 +138,17 @@ void Bccoo<ValueType, IndexType>::apply2_impl(
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
-    GKO_NOT_IMPLEMENTED;
-/*
+// GKO_NOT_IMPLEMENTED;
+/* */
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
+    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     result->data_ = this->data_;
     result->rows_ = this->rows_;
     result->offsets_ = this->offsets_;
     result->set_size(this->get_size());
 }
-*/
+/* */
+
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(
@@ -168,8 +169,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
+        exec, this->get_size(), this->get_num_stored_elements());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
