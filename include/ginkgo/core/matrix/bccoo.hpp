@@ -120,9 +120,9 @@ class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
                   remove_complex<Bccoo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Bccoo>;
     friend class EnablePolymorphicObject<Bccoo, LinOp>;
-    friend class Coo<ValueType, IndexType>;
-    friend class Csr<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    // friend class Coo<ValueType, IndexType>; // JIAE & TG
+    // friend class Csr<ValueType, IndexType>; // JIAE & TG
+    // friend class Dense<ValueType>;          // JIAE & TG
     //    friend class BccooBuilder<ValueType, IndexType>; // JIAE
     friend class Bccoo<to_complex<ValueType>, IndexType>;
 
@@ -318,13 +318,36 @@ protected:
      * @param num_blocks    number of blocks
      * @param num_bytes     number of bytes
      */
+    /*
+        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size =
+       dim<2>{}, size_type num_nonzeros = {}, size_type num_blocks = {},
+              size_type num_bytes = {})
+            : EnableLinOp<Bccoo>(exec, size),
+              rows_(exec, num_blocks),
+              offsets_(exec, num_blocks + 1),
+              data_(exec, num_bytes),
+                                            num_nonzeros_{num_nonzeros}
+        {}
+    */
+
+    /**
+     * Creates an uninitialized BCCOO matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of nonzeros
+     * @param block_size    number of nonzeros in each block
+     * @param num_bytes     number of bytes
+     */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-          size_type num_nonzeros = {}, size_type num_blocks = {},
+          size_type num_nonzeros = {}, size_type block_size = {},
           size_type num_bytes = {})
         : EnableLinOp<Bccoo>(exec, size),
-          rows_(exec, num_blocks),
-          offsets_(exec, num_blocks + 1),
-          data_(exec, num_bytes)
+          rows_(exec, (num_nonzeros - 1) / block_size + 1),
+          offsets_(exec, (num_nonzeros - 1) / block_size + 2),
+          data_(exec, num_bytes),
+          num_nonzeros_{num_nonzeros},
+          block_size{block_size}
     {}
 
     /**
@@ -378,8 +401,9 @@ private:
     // array<index_type> row_idxs_;
 
     array<index_type> rows_;
-    array<index_type> offsets_;
+    array<index_type> offsets_;  // To fix to int64 should be a better option
     array<uint8> data_;
+    size_type block_size;
     size_type num_nonzeros_;
     // size_type num_blocks_;
     // size_type num_bytes_;
