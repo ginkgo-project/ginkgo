@@ -45,20 +45,10 @@ namespace {
 using namespace gko::kernels::dpcpp;
 
 
-class DpcppDim3 : public ::testing::Test {
-protected:
-    DpcppDim3() {}
-
-    void SetUp() {}
-
-    void TearDown() {}
-};
-
-
-TEST_F(DpcppDim3, CanGenerate1DRange)
+TEST(DpcppDim3, CanGenerate1DRange)
 {
     dim3 block(3);
-    auto sycl_block = block.reverse();
+    auto sycl_block = block.get_range();
 
     ASSERT_EQ(block.x, 3);
     ASSERT_EQ(block.y, 1);
@@ -69,10 +59,10 @@ TEST_F(DpcppDim3, CanGenerate1DRange)
 }
 
 
-TEST_F(DpcppDim3, CanGenerate2DRange)
+TEST(DpcppDim3, CanGenerate2DRange)
 {
     dim3 block(3, 5);
-    auto sycl_block = block.reverse();
+    auto sycl_block = block.get_range();
 
     ASSERT_EQ(block.x, 3);
     ASSERT_EQ(block.y, 5);
@@ -83,10 +73,10 @@ TEST_F(DpcppDim3, CanGenerate2DRange)
 }
 
 
-TEST_F(DpcppDim3, CanGenerate3DRange)
+TEST(DpcppDim3, CanGenerate3DRange)
 {
     dim3 block(3, 5, 7);
-    auto sycl_block = block.reverse();
+    auto sycl_block = block.get_range();
 
     ASSERT_EQ(block.x, 3);
     ASSERT_EQ(block.y, 5);
@@ -97,7 +87,7 @@ TEST_F(DpcppDim3, CanGenerate3DRange)
 }
 
 
-TEST_F(DpcppDim3, CanGenerateNDRange)
+TEST(DpcppDim3, CanGenerateNDRange)
 {
     dim3 block(3, 5, 7);
     dim3 grid(17, 13, 11);

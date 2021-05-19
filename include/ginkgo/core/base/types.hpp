@@ -268,6 +268,8 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
  * 1/2/k position and r is for rest of unused bits.
  *
  * @tparam num_bits...  the number of bits for each position.
+ *
+ * @note the num_bit is required at least $log_2(maxval) + 1$
  */
 template <int... num_bits>
 class ConfigSet {
@@ -285,7 +287,7 @@ public:
      * @return the decoded information at position
      */
     template <int position>
-    static constexpr int decode(int encoded)
+    static constexpr unsigned decode(unsigned encoded)
     {
         static_assert(position < num_groups,
                       "This position is over the bounds.");
@@ -300,7 +302,7 @@ public:
      * @note the last case of nested template.
      */
     template <size_type current_iter>
-    static constexpr std::enable_if_t<(current_iter == num_groups), int>
+    static constexpr std::enable_if_t<(current_iter == num_groups), unsigned>
     encode()
     {
         return 0;
@@ -310,16 +312,16 @@ public:
      * Encodes the information with given bit set to encoded integer.
      *
      * @tparam current_iter  the encoded place
-     * @tparam First  the current_iter type
-     * @tparam Rest...  the rest information
+     * @tparam Rest...  the rest type
      *
-     * @param informations... the information will be encoded
+     * @param first  the current encoded information
+     * @param rest...  the rest of others information waits for encoding
      *
      * @return the encoded integer
      */
-    template <size_type current_iter = 0, typename First, typename... Rest>
-    static constexpr std::enable_if_t<(current_iter < num_groups), int> encode(
-        First first, Rest &&... rest)
+    template <size_type current_iter = 0, typename... Rest>
+    static constexpr std::enable_if_t<(current_iter < num_groups), unsigned>
+    encode(unsigned first, Rest &&... rest)
     {
         constexpr int shift = detail::shift<num_groups, current_iter>(bits);
         return (first << shift) |
