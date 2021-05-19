@@ -110,12 +110,12 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rhs = b->get_size()[1];
     const auto sentinel_row = a->get_size()[0] + 1;
     const auto nnz = a->get_num_stored_elements();
-    const auto num_threads = omp_get_max_threads();
-    const auto work_per_thread =
-        static_cast<size_type>(ceildiv(nnz, num_threads));
 
-#pragma omp parallel num_threads(num_threads)
+#pragma omp parallel
     {
+        const auto num_threads = omp_get_num_threads();
+        const auto work_per_thread =
+            static_cast<size_type>(ceildiv(nnz, num_threads));
         const auto thread_id = static_cast<size_type>(omp_get_thread_num());
         const auto begin = work_per_thread * thread_id;
         const auto end = std::min(begin + work_per_thread, nnz);
@@ -164,13 +164,13 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rhs = b->get_size()[1];
     const auto sentinel_row = a->get_size()[0] + 1;
     const auto nnz = a->get_num_stored_elements();
-    const auto num_threads = omp_get_max_threads();
-    const auto work_per_thread =
-        static_cast<size_type>(ceildiv(nnz, num_threads));
     const auto scale = alpha->at(0, 0);
 
-#pragma omp parallel num_threads(num_threads)
+#pragma omp parallel
     {
+        const auto num_threads = omp_get_num_threads();
+        const auto work_per_thread =
+            static_cast<size_type>(ceildiv(nnz, num_threads));
         const auto thread_id = static_cast<size_type>(omp_get_thread_num());
         const auto begin = work_per_thread * thread_id;
         const auto end = std::min(begin + work_per_thread, nnz);
