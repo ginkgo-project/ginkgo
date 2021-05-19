@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -77,6 +78,12 @@ namespace kernels {
                           const matrix::Coo<ValueType, IndexType> *source, \
                           matrix::Dense<ValueType> *result)
 
+#define GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Coo<ValueType, IndexType> *source, \
+                          matrix::Bccoo<ValueType, IndexType> *result,     \
+                          size_type block_size)
+
 #define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Coo<ValueType, IndexType> *source, \
@@ -96,6 +103,8 @@ namespace kernels {
     GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>              \

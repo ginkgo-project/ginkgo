@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -62,6 +63,7 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
+GKO_REGISTER_OPERATION(convert_to_bccoo, coo::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
@@ -141,6 +143,38 @@ void Coo<ValueType, IndexType>::move_to(
     this->convert_to(result);
 }
 
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    //		size_type block_size,
+    Bccoo<ValueType, IndexType> *result) const GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto exec = this->get_executor();
+    auto tmp = Bccoo<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+                                mem_size_bccoo(exec, this->get_row_idxs_,
+this->col_idxs_, this->get_size()[0],block_size));
+}
+*/
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(
+    //		size_type block_size,
+    Bccoo<ValueType, IndexType> *result) GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
+    tmp->values_ = std::move(this->values_);
+    tmp->col_idxs_ = std::move(this->col_idxs_);
+    exec->run(coo::make_convert_to_csr(this, tmp.get()));
+    tmp->make_srow();
+    tmp->move_to(result);
+}
+*/
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(

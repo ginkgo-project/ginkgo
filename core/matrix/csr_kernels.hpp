@@ -93,6 +93,11 @@ namespace kernels {
                           const matrix::Csr<ValueType, IndexType> *source, \
                           matrix::Dense<ValueType> *result)
 
+#define GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType> *source, \
+                          matrix::Bccoo<ValueType, IndexType> *result)
+
 #define GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)      \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Csr<ValueType, IndexType> *source, \

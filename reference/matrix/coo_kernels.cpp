@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -141,6 +142,25 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
 {
     convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType> *source,
+                      matrix::Bccoo<ValueType, IndexType> *result,
+                      size_type block_size) GKO_NOT_IMPLEMENTED;
+/* */
+{
+    auto num_rows = result->get_size()[0];
+    const auto nnz = result->get_num_stored_elements();
+
+    const auto source_row_idxs = source->get_const_row_idxs();
+    const auto source_col_idxs = source->get_const_col_idxs();
+
+    const auto mem_size = mem_size_bccoo(exec, source_row_idxs, source_col_idxs,
+                                         num_rows, block_size);
+}
+/* */
 
 
 template <typename ValueType, typename IndexType>
