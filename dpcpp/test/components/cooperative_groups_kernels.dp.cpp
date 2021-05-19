@@ -70,8 +70,8 @@ protected:
     CooperativeGroups()
         : ref(gko::ReferenceExecutor::create()),
           dpcpp(gko::DpcppExecutor::create(0, ref)),
-          max_test_case(3),
-          max_num(max_test_case * 64),
+          test_case(3),
+          max_num(test_case * 64),
           result(ref, max_num),
           dresult(dpcpp)
     {
@@ -87,7 +87,7 @@ protected:
         auto subgroup_size = GetParam();
         auto exec_info = dpcpp->get_const_exec_info();
         if (exec_info.validate(subgroup_size, subgroup_size)) {
-            for (int i = 0; i < max_test_case * subgroup_size; i++) {
+            for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
 
@@ -102,7 +102,7 @@ protected:
         }
     }
 
-    int max_test_case;
+    int test_case;
     int max_num;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::DpcppExecutor> dpcpp;
@@ -110,13 +110,6 @@ protected:
     gko::Array<bool> dresult;
 };
 
-
-void test_assert(bool *success, bool partial)
-{
-    if (!partial) {
-        *success = false;
-    }
-}
 
 // kernel implementation
 template <int config>

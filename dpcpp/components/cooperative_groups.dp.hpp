@@ -348,7 +348,7 @@ private:
 using detail::thread_block_tile;
 
 
-// Only support tile_partition with 8, 16, 32.
+// Only support tile_partition with 2, 4, 8, 16, 32, 64.
 template <unsigned Size, typename Group>
 __dpct_inline__
     std::enable_if_t<(Size > 1) && Size <= 64 && !(Size & (Size - 1)),

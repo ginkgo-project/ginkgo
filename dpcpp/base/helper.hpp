@@ -45,18 +45,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * GKO_ENABLE_DEFAULT_HOST_CONFIG gives a default host implementation for those
- * kernels which require config but do not need explicit template parameter and
- * share memory
+ * kernels which require encoded config but do not need explicit template
+ * parameter and share memory
+ *
+ * @param name_  the name of the host function with config
+ * @param kernel_  the kernel name
  */
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                     \
-    template <int config, typename... InferredArgs>                        \
+    template <int encoded, typename... InferredArgs>                       \
     inline void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory, \
-                      sycl::queue *stream, InferredArgs... args)           \
+                      sycl::queue *queue, InferredArgs... args)            \
     {                                                                      \
-        stream->submit([&](sycl::handler &cgh) {                           \
+        queue->submit([&](sycl::handler &cgh) {                            \
             cgh.parallel_for(sycl_nd_range(grid, block),                   \
                              [=](sycl::nd_item<3> item_ct1) {              \
-                                 kernel_<config>(args..., item_ct1);       \
+                                 kernel_<encoded>(args..., item_ct1);      \
                              });                                           \
         });                                                                \
     }
@@ -65,11 +68,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * GKO_ENABLE_DEFAULT_CONFIG_CALL gives a default config selection call
  * implementation for those kernels which require config selection but do not
  * need explicit template parameter
+ *
+ * @param name_  the name of the calling function
+ * @param callable_  the host function with selection
+ * @param cfg_  the ConfigSet for encode/decode method
+ * @param list_  the list for encoded config selection, whose value should be
+ *               available to decode<0> for blocksize and decode<1> for
+ *               subgroup_size by cfg_
  */
 #define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, cfg_, list_)      \
     template <typename... InferredArgs>                                    \
     void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory,        \
-               sycl::queue *stream,                                        \
+               sycl::queue *queue,                                         \
                std::shared_ptr<const gko::DpcppExecutor> exec,             \
                InferredArgs... args)                                       \
     {                                                                      \
@@ -84,7 +94,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(), \
             ::gko::syn::value_list<gko::size_type>(),                      \
             ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory, \
-            stream, std::forward<InferredArgs>(args)...);                  \
+            queue, std::forward<InferredArgs>(args)...);                   \
     }
 
 // __WG_BOUND__ gives the cuda-like launch bound in cuda ordering

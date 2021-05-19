@@ -155,8 +155,6 @@ CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_R
 
 # This part capture the main header and give the possible fail arrangement information
 while IFS='' read -r line || [ -n "$line" ]; do
-    # if [ "${line}" = '#include "hip/hip_runtime.h"' ] && [ "${SKIP}" = "true" ]; then
-    #     HAS_HIP_RUNTIME="true"
     if [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
         DURING_LICENSE="true"
         if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
@@ -268,9 +266,6 @@ fi
 # Arrange the remain files and give
 if [ -f "${CONTENT}" ]; then
     add_regroup
-    # if [ "${HAS_HIP_RUNTIME}" = "true" ]; then
-    #     echo "#include <hip/hip_runtime.h>" > temp
-    # fi
     head -n -${KEEP_LINES} ${CONTENT} >> temp
     if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
         # Ignore the last line #endif
