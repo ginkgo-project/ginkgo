@@ -248,6 +248,53 @@ protected:
           row_ptrs_(exec, (size[0]) + 1)
     {}
 
+
+    /**
+     * Creates an BatchCsr matrix by duplicating a CSR matrix
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_batch_entries  the number of batches to be stored
+     * @param csr_mat  the csr matrix to be duplicated
+     */
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const size_type num_batch_entries,
+             const matrix::Csr<value_type, index_type> *csr_mat)
+        : EnableBatchLinOp<BatchCsr>(
+              exec, batch_dim<2>(num_batch_entries, csr_mat->get_size())),
+          values_(exec, csr_mat->get_num_stored_elements() * num_batch_entries),
+          col_idxs_(exec, csr_mat->get_num_stored_elements()),
+          row_ptrs_(exec, (csr_mat->get_size()[0]) + 1)
+    {
+        batch_duplicator(exec, num_batch_entries,
+                         csr_mat->get_num_stored_elements(), csr_mat, this);
+    }
+
+    /**
+     * Creates an BatchCsr matrix by duplicating a BatchCsr matrix
+     *
+     * @param exec  Executor associated to the matrix
+     * @param num_duplications  the number of times the entire input batch
+     *                          matrix has to be duplicated
+     * @param batch_mat  the BatchCsr matrix to be duplicated
+     */
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const size_type num_duplications,
+             const matrix::BatchCsr<value_type, index_type> *batch_mat)
+        : EnableBatchLinOp<BatchCsr>(
+              exec, batch_dim<2>(
+                        num_duplications * batch_mat->get_num_batch_entries(),
+                        batch_mat->get_size().at(0))),
+          values_(exec,
+                  batch_mat->get_num_stored_elements() * num_duplications),
+          col_idxs_(exec, batch_mat->get_num_stored_elements() /
+                              batch_mat->get_num_batch_entries()),
+          row_ptrs_(exec, (batch_mat->get_size().at(0)[0]) + 1)
+    {
+        batch_duplicator(exec, num_duplications, col_idxs_.get_num_elems(),
+                         batch_mat, this);
+    }
+
+
     /**
      * Creates a BatchCsr matrix from already allocated (and initialized) row
      * pointer, column index and value arrays.
@@ -295,6 +342,30 @@ protected:
                     const BatchLinOp *beta, BatchLinOp *x) const override;
 
 private:
+    template <typename MatrixType>
+    void batch_duplicator(std::shared_ptr<const Executor> exec,
+                          const size_type num_batch_entries,
+                          const size_type col_idxs_size,
+                          const MatrixType *input,
+                          BatchCsr<value_type, index_type> *output)
+    {
+        auto row_ptrs = output->get_row_ptrs();
+        auto col_idxs = output->get_col_idxs();
+        auto values = output->get_values();
+        size_type offset = 0;
+        size_type num_nnz = input->get_num_stored_elements();
+        for (size_type i = 0; i < num_batch_entries; ++i) {
+            exec->copy_from(input->get_executor().get(), num_nnz,
+                            input->get_const_values(), values + offset);
+            offset += num_nnz;
+        }
+        exec->copy_from(input->get_executor().get(), col_idxs_size,
+                        input->get_const_col_idxs(), col_idxs);
+        exec->copy_from(input->get_executor().get(),
+                        output->get_size().at(0)[0] + 1,
+                        input->get_const_row_ptrs(), row_ptrs);
+    }
+
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
