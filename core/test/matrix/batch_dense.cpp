@@ -195,6 +195,26 @@ TYPED_TEST(BatchDense, CanBeConstructedFromBatchDenseMatrices)
 }
 
 
+TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatricesByDuplication)
+{
+    using value_type = typename TestFixture::value_type;
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using size_type = gko::size_type;
+    auto mat1 = gko::initialize<DenseMtx>(
+        4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
+
+    auto bat_m = gko::matrix::BatchDense<TypeParam>::create(
+        this->exec,
+        std::vector<DenseMtx *>{mat1.get(), mat1.get(), mat1.get()});
+    auto m =
+        gko::matrix::BatchDense<TypeParam>::create(this->exec, 3, mat1.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 1e-14);
+}
+
+
 TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
