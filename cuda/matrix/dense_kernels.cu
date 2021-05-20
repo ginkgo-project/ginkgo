@@ -785,7 +785,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 {
     const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
     kernel::extract_diagonal<<<grid_dim, default_block_size>>>(
-        orig->get_size()[0], as_cuda_type(orig->get_const_values()),
+        diag->get_size()[0], as_cuda_type(orig->get_const_values()),
         orig->get_stride(), as_cuda_type(diag->get_values()));
 }
 
