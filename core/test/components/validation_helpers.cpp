@@ -166,8 +166,25 @@ TYPED_TEST(IndexTypeTest, IsRowOrderedReturnsFalseOnUnordered)
         true);
 }
 
+TYPED_TEST(IndexTypeTest, IsUniqueReturnsTrueOnUniqueIndices)
+{
+    gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
 
-TYPED_TEST(IndexTypeTest, IsRowOrderedeturnsTrueOnOrdered)
+    ASSERT_EQ(
+        gko::validate::has_unique_idxs(a.get_const_data(), a.get_num_elems()),
+        true);
+}
+
+TYPED_TEST(IndexTypeTest, IsUniqueReturnsFalseOnNonUniqueIndices)
+{
+    gko::Array<TypeParam> a{this->exec, {1, 1, 3}};
+
+    ASSERT_EQ(
+        gko::validate::has_unique_idxs(a.get_const_data(), a.get_num_elems()),
+        false);
+}
+
+TYPED_TEST(IndexTypeTest, IsRowOrderedReturnsTrueOnOrdered)
 {
     gko::Array<TypeParam> a{this->exec, {3, 2, 1}};
 
