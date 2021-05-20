@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -88,22 +89,7 @@ void strided_fill(size_type num_rows, size_type num_cols, size_type stride,
     }
 }
 
-template <typename ValueType>
-void strided_fill(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                  sycl::queue *stream, size_type num_rows, size_type num_cols,
-                  size_type stride, ValueType *mat, ValueType value)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             strided_fill(num_rows, num_cols, stride, mat,
-                                          value, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(strided_fill, strided_fill)
 
 
 template <size_type block_size, typename ValueType>
@@ -132,15 +118,11 @@ void scale(dim3 grid, dim3 block, size_t dynamic_shared_memory,
            size_type stride_x)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             scale<block_size>(num_rows, num_cols,
-                                               num_alpha_cols, alpha, x,
-                                               stride_x, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                scale<block_size>(num_rows, num_cols, num_alpha_cols, alpha, x,
+                                  stride_x, item_ct1);
+            });
     });
 }
 
@@ -172,15 +154,12 @@ void add_scaled(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                 size_type stride_y)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             add_scaled<block_size>(
-                                 num_rows, num_cols, num_alpha_cols, alpha, x,
-                                 stride_x, y, stride_y, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                add_scaled<block_size>(num_rows, num_cols, num_alpha_cols,
+                                       alpha, x, stride_x, y, stride_y,
+                                       item_ct1);
+            });
     });
 }
 
@@ -207,14 +186,10 @@ void add_scaled_diag(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      ValueType *y, size_type stride_y)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             add_scaled_diag(size, alpha, diag, y, stride_y,
-                                             item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                add_scaled_diag(size, alpha, diag, y, stride_y, item_ct1);
+            });
     });
 }
 
@@ -234,7 +209,7 @@ void compute_partial_reduce(size_type num_rows, OutType *__restrict__ work,
     const auto global_id =
         thread::get_thread_id<config::warp_size, warps_per_block>(item_ct1);
 
-    OutType *tmp_work_array=*tmp_work;
+    OutType *tmp_work_array = *tmp_work;
     auto tmp = zero<OutType>();
     for (auto i = global_id; i < num_rows; i += block_size * num_blocks) {
         tmp = reduce_op(tmp, get_value(i));
@@ -243,8 +218,7 @@ void compute_partial_reduce(size_type num_rows, OutType *__restrict__ work,
     tmp_work_array[local_id] = tmp;
 
     ::gko::kernels::dpcpp::reduce(group::this_thread_block(item_ct1),
-                                  tmp_work_array,
-                                  reduce_op);
+                                  tmp_work_array, reduce_op);
 
     if (local_id == 0) {
         work[thread::get_block_id(item_ct1)] = tmp_work_array[0];
@@ -267,12 +241,11 @@ void finalize_reduce_computation(
     for (auto i = local_id; i < size; i += block_size) {
         tmp = reduce_op(tmp, work[i]);
     }
-    ValueType *tmp_work_array=*tmp_work;
+    ValueType *tmp_work_array = *tmp_work;
     tmp_work_array[local_id] = tmp;
 
     ::gko::kernels::dpcpp::reduce(group::this_thread_block(item_ct1),
-                                  tmp_work_array,
-                                  reduce_op);
+                                  tmp_work_array, reduce_op);
 
     if (local_id == 0) {
         *result = finalize_op(tmp_work_array[0]);
@@ -309,17 +282,14 @@ void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             compute_partial_dot<block_size>(
-                                 num_rows, x, stride_x, y, stride_y, work,
-                                 item_ct1,
-                                 (UninitializedArray<ValueType, block_size> *)
-                                     tmp_work_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                compute_partial_dot<block_size>(
+                    num_rows, x, stride_x, y, stride_y, work, item_ct1,
+                    (UninitializedArray<ValueType, block_size> *)
+                        tmp_work_acc_ct1.get_pointer());
+            });
     });
 }
 
@@ -348,10 +318,8 @@ void finalize_dot_computation(dim3 grid, dim3 block,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_dot_computation<block_size>(
                                  size, work, result, item_ct1,
@@ -388,12 +356,9 @@ void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
             sycl::access::mode::read_write, sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
         cgh.parallel_for(
-            sycl::nd_range<3>(global_range, local_range),
-            [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 compute_partial_norm2<block_size>(
                     num_rows, x, stride_x, work, item_ct1,
                     (UninitializedArray<remove_complex<ValueType>, block_size>
@@ -427,10 +392,8 @@ void finalize_norm2_computation(dim3 grid, dim3 block,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_norm2_computation<block_size>(
                                  size, work, result, item_ct1,
@@ -472,15 +435,11 @@ void fill_in_coo(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                  IndexType *col_idxs, ValueType *values)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_coo(num_rows, num_cols, stride, row_ptrs,
-                                         source, row_idxs, col_idxs, values,
-                                         item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                fill_in_coo(num_rows, num_cols, stride, row_ptrs, source,
+                            row_idxs, col_idxs, values, item_ct1);
+            });
     });
 }
 
@@ -516,10 +475,7 @@ void count_nnz_per_row(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        const ValueType *work, IndexType *result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              count_nnz_per_row(num_rows, num_cols, stride, work,
                                                result, item_ct1);
@@ -556,10 +512,7 @@ void fill_in_csr(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                  IndexType *col_idxs, ValueType *values)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              fill_in_csr(num_rows, num_cols, stride, source,
                                          row_ptrs, col_idxs, values, item_ct1);
@@ -606,10 +559,7 @@ void fill_in_ell(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                  IndexType *col_ptrs, ValueType *values)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              fill_in_ell(num_rows, num_cols, source_stride,
                                          source, max_nnz_per_row, result_stride,
@@ -662,16 +612,12 @@ void calculate_slice_lengths(dim3 grid, dim3 block,
                              size_type *slice_lengths, size_type *slice_sets)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             calculate_slice_lengths(num_rows, slice_size,
-                                                     slice_num, stride_factor,
-                                                     nnz_per_row, slice_lengths,
-                                                     slice_sets, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                calculate_slice_lengths(num_rows, slice_size, slice_num,
+                                        stride_factor, nnz_per_row,
+                                        slice_lengths, slice_sets, item_ct1);
+            });
     });
 }
 
@@ -717,16 +663,12 @@ void fill_in_sellp(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                    size_type *slice_sets, IndexType *col_idxs, ValueType *vals)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_sellp(num_rows, num_cols, slice_size,
-                                           stride, source, slice_lengths,
-                                           slice_sets, col_idxs, vals,
-                                           item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                fill_in_sellp(num_rows, num_cols, slice_size, stride, source,
+                              slice_lengths, slice_sets, col_idxs, vals,
+                              item_ct1);
+            });
     });
 }
 
@@ -755,10 +697,8 @@ void reduce_max_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              reduce_max_nnz(size, nnz_per_row, result, item_ct1,
                                             dpct_local_acc_ct1.get_pointer());
@@ -804,15 +744,11 @@ void reduce_max_nnz_per_slice(dim3 grid, dim3 block,
                               const size_type *nnz_per_row, size_type *result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             reduce_max_nnz_per_slice(
-                                 num_rows, slice_size, stride_factor,
-                                 nnz_per_row, result, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                reduce_max_nnz_per_slice(num_rows, slice_size, stride_factor,
+                                         nnz_per_row, result, item_ct1);
+            });
     });
 }
 
@@ -841,15 +777,12 @@ void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
 
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             reduce_total_cols(
-                                 num_slices, max_nnz_per_slice, result,
-                                 item_ct1, dpct_local_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                reduce_total_cols(num_slices, max_nnz_per_slice, result,
+                                  item_ct1, dpct_local_acc_ct1.get_pointer());
+            });
     });
 }
 
@@ -878,15 +811,11 @@ void symm_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                   size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             symm_permute(num_rows, num_cols, perm_idxs, orig,
-                                          stride_orig, result, stride_result,
-                                          item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                symm_permute(num_rows, num_cols, perm_idxs, orig, stride_orig,
+                             result, stride_result, item_ct1);
+            });
     });
 }
 
@@ -915,15 +844,11 @@ void inv_symm_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                       ValueType *result, size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             inv_symm_permute(num_rows, num_cols, perm_idxs,
-                                              orig, stride_orig, result,
-                                              stride_result, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                inv_symm_permute(num_rows, num_cols, perm_idxs, orig,
+                                 stride_orig, result, stride_result, item_ct1);
+            });
     });
 }
 
@@ -952,15 +877,11 @@ void row_gather(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                 size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             row_gather(num_rows, num_cols, perm_idxs, orig,
-                                        stride_orig, result, stride_result,
-                                        item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                row_gather(num_rows, num_cols, perm_idxs, orig, stride_orig,
+                           result, stride_result, item_ct1);
+            });
     });
 }
 
@@ -989,15 +910,11 @@ void column_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                     size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             column_permute(num_rows, num_cols, perm_idxs, orig,
-                                            stride_orig, result, stride_result,
-                                            item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                column_permute(num_rows, num_cols, perm_idxs, orig, stride_orig,
+                               result, stride_result, item_ct1);
+            });
     });
 }
 
@@ -1026,10 +943,7 @@ void inverse_row_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          ValueType *result, size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              inverse_row_permute(num_rows, num_cols, perm_idxs,
                                                  orig, stride_orig, result,
@@ -1064,26 +978,21 @@ void inverse_column_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                             ValueType *result, size_type stride_result)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             inverse_column_permute(
-                                 num_rows, num_cols, perm_idxs, orig,
-                                 stride_orig, result, stride_result, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                inverse_column_permute(num_rows, num_cols, perm_idxs, orig,
+                                       stride_orig, result, stride_result,
+                                       item_ct1);
+            });
     });
 }
-
 
 template <typename ValueType>
 void extract_diagonal(size_type problem_size,
                       const ValueType *__restrict__ orig, size_type stride_orig,
                       ValueType *__restrict__ diag, sycl::nd_item<3> item_ct1)
 {
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
+    const auto tidx = thread::get_thread_id_flat<int>(item_ct1);
     if (tidx < problem_size) {
         diag[tidx] = orig[tidx * stride_orig + tidx];
     }
@@ -1096,10 +1005,7 @@ void extract_diagonal(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                       ValueType *diag)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              extract_diagonal(problem_size, orig, stride_orig,
                                               diag, item_ct1);
@@ -1117,7 +1023,7 @@ void inplace_absolute_dense(size_type num_rows, size_type num_cols,
     auto row = tidx / num_cols;
     auto col = tidx % num_cols;
     if (row < num_rows) {
-        data[row * stride + col] = dpcpp::abs(data[row * stride + col]);
+        data[row * stride + col] = std::abs(data[row * stride + col]);
     }
 }
 
@@ -1128,10 +1034,7 @@ void inplace_absolute_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                             size_type stride)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              inplace_absolute_dense(num_rows, num_cols, data,
                                                     stride, item_ct1);
@@ -1151,7 +1054,7 @@ void outplace_absolute_dense(size_type num_rows, size_type num_cols,
     auto row = tidx / num_cols;
     auto col = tidx % num_cols;
     if (row < num_rows) {
-        out[row * stride_out + col] = dpcpp::abs(in[row * stride_in + col]);
+        out[row * stride_out + col] = std::abs(in[row * stride_in + col]);
     }
 }
 
@@ -1164,15 +1067,11 @@ void outplace_absolute_dense(dim3 grid, dim3 block,
                              size_type stride_out)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             outplace_absolute_dense(num_rows, num_cols, in,
-                                                     stride_in, out, stride_out,
-                                                     item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                outplace_absolute_dense(num_rows, num_cols, in, stride_in, out,
+                                        stride_out, item_ct1);
+            });
     });
 }
 
@@ -1198,10 +1097,7 @@ void make_complex(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                   size_type stride_out)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              make_complex(num_rows, num_cols, in, stride_in,
                                           out, stride_out, item_ct1);
@@ -1231,10 +1127,7 @@ void get_real(dim3 grid, dim3 block, size_t dynamic_shared_memory,
               remove_complex<ValueType> *out, size_type stride_out)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              get_real(num_rows, num_cols, in, stride_in, out,
                                       stride_out, item_ct1);
@@ -1264,10 +1157,7 @@ void get_imag(dim3 grid, dim3 block, size_t dynamic_shared_memory,
               remove_complex<ValueType> *out, size_type stride_out)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
-
-        cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
+        cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              get_imag(num_rows, num_cols, in, stride_in, out,
                                       stride_out, item_ct1);
@@ -1288,10 +1178,9 @@ void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
     using namespace oneapi::mkl;
     oneapi::mkl::blas::row_major::gemm(
         *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-        c->get_size()[0], c->get_size()[1], a->get_size()[1],
-        one<ValueType>(), a->get_const_values(), a->get_stride(),
-        b->get_const_values(), b->get_stride(), zero<ValueType>(),
-        c->get_values(), c->get_stride());
+        c->get_size()[0], c->get_size()[1], a->get_size()[1], one<ValueType>(),
+        a->get_const_values(), a->get_stride(), b->get_const_values(),
+        b->get_stride(), zero<ValueType>(), c->get_values(), c->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
@@ -1347,8 +1236,7 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
             kernel::compute_partial_dot<block_size>(
                 grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
                 x->get_const_values() + col, x->get_stride(),
-                y->get_const_values() + col, y->get_stride(),
-                work.get_data());
+                y->get_const_values() + col, y->get_stride(), work.get_data());
             kernel::finalize_dot_computation<block_size>(
                 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
@@ -1397,8 +1285,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             kernel::compute_partial_norm2<block_size>(
                 grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-                x->get_const_values() + col, x->get_stride(),
-                work.get_data());
+                x->get_const_values() + col, x->get_stride(), work.get_data());
             kernel::finalize_norm2_computation<block_size>(
                 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
@@ -1433,8 +1320,7 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
     kernel::fill_in_coo(grid_dim, default_block_size, 0, exec->get_queue(),
                         num_rows, num_cols, stride,
                         nnz_prefix_sum.get_const_data(),
-                        source->get_const_values(), row_idxs, col_idxs,
-                        values);
+                        source->get_const_values(), row_idxs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1455,9 +1341,8 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     auto stride = source->get_stride();
 
-    const auto rows_per_block = ceildiv(default_block_size,
-    config::warp_size); const auto grid_dim_nnz =
-    ceildiv(source->get_size()[0], rows_per_block);
+    const auto rows_per_block = ceildiv(default_block_size, config::warp_size);
+    const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
     kernel::count_nnz_per_row(grid_dim_nnz, default_block_size, 0,
                               exec->get_queue(), num_rows, num_cols, stride,
@@ -1468,9 +1353,8 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                        num_rows, num_cols, stride,
-                        source->get_const_values(), row_ptrs, col_idxs,
-                        values);
+                        num_rows, num_cols, stride, source->get_const_values(),
+                        row_ptrs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1546,8 +1430,8 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
         std::cout << "calculate_slice_lengths" << std::endl;
         kernel::calculate_slice_lengths(
             grid_dim, config::warp_size, 0, exec->get_queue(), num_rows,
-            slice_size, slice_num, stride_factor,
-            nnz_per_row.get_const_data(), slice_lengths, slice_sets);
+            slice_size, slice_num, stride_factor, nnz_per_row.get_const_data(),
+            slice_lengths, slice_sets);
         exec->synchronize();
         std::cout << "calculate_slice_lengths finish" << std::endl;
     }
@@ -1559,9 +1443,9 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
     if (grid_dim > 0) {
         std::cout << "fill_in_sellp" << std::endl;
         kernel::fill_in_sellp(grid_dim, default_block_size, 0,
-                              exec->get_queue(), num_rows, num_cols,
-                              slice_size, stride, source->get_const_values(),
-                              slice_lengths, slice_sets, col_idxs, vals);
+                              exec->get_queue(), num_rows, num_cols, slice_size,
+                              stride, source->get_const_values(), slice_lengths,
+                              slice_sets, col_idxs, vals);
         exec->synchronize();
         std::cout << "fill_in_sellp finish" << std::endl;
     }
@@ -1622,8 +1506,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
     kernel::reduce_max_nnz(1, default_block_size,
                            default_block_size * sizeof(size_type),
                            exec->get_queue(), grid_dim,
-                           block_results.get_const_data(),
-                           d_result.get_data());
+                           block_results.get_const_data(), d_result.get_data());
 
     *result = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -1643,10 +1526,9 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 grid_size(grid_x, 1, 1);
     if (grid_x > 0) {
         kernel::count_nnz_per_row(
-            grid_size, block_size, 0, exec->get_queue(),
-            source->get_size()[0], source->get_size()[1],
-            source->get_stride(), source->get_const_values(),
-            result->get_data());
+            grid_size, block_size, 0, exec->get_queue(), source->get_size()[0],
+            source->get_size()[1], source->get_stride(),
+            source->get_const_values(), result->get_data());
     }
 }
 
@@ -1676,8 +1558,7 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
 
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
-    auto grid_dim = ceildiv(slice_num * config::warp_size,
-    default_block_size);
+    auto grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
 
     kernel::reduce_max_nnz_per_slice(
         grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
