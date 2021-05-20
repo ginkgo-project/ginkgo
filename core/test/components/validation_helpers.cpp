@@ -38,6 +38,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/validation_helpers.hpp"
 #include "core/test/utils.hpp"
 
+#include <complex>
+#include <limits>
+
+namespace gko {
+namespace test {
+using RealValueTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float>;
+#else
+    ::testing::Types<float, double>;
+#endif
+}  // namespace test
+}  // namespace gko
+
+
 namespace {
 
 #define GKO_DEFINE_ISSYMMETRIC(MATRIX_TYPE)                                   \
@@ -191,18 +206,41 @@ TYPED_TEST(IndexTypeTest, IsWithinBoundsReturnsFalseUpperBound)
 // ValueType Tests
 
 template <typename T>
-class ValueTypeTest : public ::testing::Test {
+class RealValueTypeTest : public ::testing::Test {
 protected:
-    ValueTypeTest() : exec(gko::ReferenceExecutor::create()) {}
+    RealValueTypeTest() : exec(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(ValueTypeTest, gko::test::ValueTypes);
+TYPED_TEST_SUITE(RealValueTypeTest, gko::test::RealValueTypes);
 
-TYPED_TEST(ValueTypeTest, IsFiniteReturnsFalseOnInf)
+TYPED_TEST(RealValueTypeTest, IsFiniteReturnsFalseOnInf)
 {
-    gko::Array<TypeParam> a{this->exec, {0., 1., 1.0 / 0.0}};
+    TypeParam inf = std::numeric_limits<TypeParam>::infinity();
+    gko::Array<TypeParam> a{this->exec, {1., 3., 6.}};
+    a.get_data()[2] = inf;
+
+
+    ASSERT_EQ(gko::validate::is_finite(a.get_const_data(), a.get_num_elems()),
+              false);
+}
+template <typename T>
+class ComplexValueTypeTest : public ::testing::Test {
+protected:
+    ComplexValueTypeTest() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::Executor> exec;
+};
+
+TYPED_TEST_SUITE(ComplexValueTypeTest, gko::test::ComplexValueTypes);
+TYPED_TEST(ComplexValueTypeTest, IsFiniteReturnsFalseOnInf)
+{
+    TypeParam inf =
+        std::numeric_limits<typename TypeParam::value_type>::infinity();
+    gko::Array<TypeParam> a{this->exec, {0., 1., 0.}};
+    a.get_data()[0] = std::complex<typename TypeParam::value_type>(inf);
+
 
     ASSERT_EQ(gko::validate::is_finite(a.get_const_data(), a.get_num_elems()),
               false);
