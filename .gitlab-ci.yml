@@ -98,6 +98,7 @@ include:
       CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
@@ -145,6 +146,7 @@ include:
             ninja validate_all_examples
         fi
       fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
@@ -718,7 +720,7 @@ build/dpcpp/cpu/release/static:
     BUILD_DPCPP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
-    SYCL_DEVICE_FILTER: "CPU"
+    SYCL_DEVICE_TYPE: "CPU"
 
 build/dpcpp/igpu/release/static:
   <<: *default_build_with_test
@@ -733,7 +735,7 @@ build/dpcpp/igpu/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_FILTER: "GPU"
+    SYCL_DEVICE_FILTER: "Level_Zero:GPU"
 
 build/dpcpp/dgpu/debug/shared:
   <<: *default_build_with_test
