@@ -824,7 +824,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 {
     const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
     hipLaunchKernelGGL(kernel::extract_diagonal, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, orig->get_size()[0],
+                       dim3(default_block_size), 0, 0, diag->get_size()[0],
                        as_hip_type(orig->get_const_values()),
                        orig->get_stride(), as_hip_type(diag->get_values()));
 }
