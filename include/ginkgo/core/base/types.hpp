@@ -418,6 +418,68 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _enable_macro(DpcppExecutor, dpcpp);            \
     _enable_macro(CudaExecutor, cuda)
 
+/**
+ * This helper macro handles consistent expansion of __VA_ARGS__ for MSVC and
+ * other compilers.
+ *
+ * Consider the following example given on https://bit.ly/3wp8PqT
+ *
+ * #define MACRO_WITH_3_PARAMS(p1, p2, p3) P1 = p1 | P2 = p2 | P3 = p3
+ * #define MACRO_VA_ARGS(...) MACRO_WITH_3_PARAMS( __VA_ARGS__)
+ * MACRO_VA_ARGS(foo, bar, baz)
+ *
+ * On MSVC this is expanded into
+ * P1 = foo, bar, baz | P2 =  | P3 =
+ *
+ * In order to expand the macro consitently PASS_ON can be applied
+ * #define MACRO_VA_ARGS(...) PASS_ON(PASS_ON(MACRO_WITH_3_PARAMS)(
+ * __VA_ARGS__))
+ */
+#define PASS_ON(...) __VA_ARGS__
+
+/**
+ * Calls a macro with variable number of arguments.
+ *
+ * The macro uses PASS_ON to expand __VA_ARGS__. This is needed to have
+ * consistent behaviour among MSVC and other compilers.
+ *
+ * @param _macro  The macro which is to be expanded.
+ */
+#define GKO_APPLY_MACRO(_macro, ...) PASS_ON(PASS_ON(_macro)(__VA_ARGS__))
+
+/**
+ * Expands a macro for each  non_complex value and index type compiled by
+ * Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ * @param ...     Optional parameters which are passed to _macro
+ * @param ...     Optional parameters which are passed to _macro
+ */
+#define GKO_CALL_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro, ...) \
+    GKO_APPLY_MACRO(_macro, float, int32, ##__VA_ARGS__);               \
+    GKO_APPLY_MACRO(_macro, double, int32, ##__VA_ARGS__);              \
+    GKO_APPLY_MACRO(_macro, float, int64, ##__VA_ARGS__);               \
+    GKO_APPLY_MACRO(_macro, double, int64, ##__VA_ARGS__)
+
+
+/**
+ * Expands a macro for each value and index type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ * @param ...     Optional parameters which are passed to _macro
+ */
+#define GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro, ...)                    \
+    GKO_CALL_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro, ##__VA_ARGS__); \
+    GKO_APPLY_MACRO(_macro, std::complex<float>, int32, ##__VA_ARGS__);        \
+    GKO_APPLY_MACRO(_macro, std::complex<float>, int64, ##__VA_ARGS__);        \
+    GKO_APPLY_MACRO(_macro, std::complex<double>, int32, ##__VA_ARGS__);       \
+    GKO_APPLY_MACRO(_macro, std::complex<double>, int64, ##__VA_ARGS__)
 
 /**
  * Instantiates a template for each non-complex value type compiled by Ginkgo.
@@ -525,10 +587,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _macro(double, int64) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
-    template _macro(float, int32);                                        \
-    template _macro(double, int32);                                       \
-    template _macro(float, int64);                                        \
-    template _macro(double, int64)
+    GKO_CALL_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(template _macro)
 #endif
 
 
@@ -550,12 +609,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template <>                                                        \
     _macro(std::complex<double>, int64) GKO_NOT_IMPLEMENTED
 #else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
-    template _macro(std::complex<float>, int32);                       \
-    template _macro(std::complex<double>, int32);                      \
-    template _macro(std::complex<float>, int64);                       \
-    template _macro(std::complex<double>, int64)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro) \
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(template _macro)
 #endif
 
 
@@ -631,6 +686,5 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 }  // namespace gko
-
 
 #endif  // GKO_PUBLIC_CORE_BASE_TYPES_HPP_
