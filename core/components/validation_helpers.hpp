@@ -63,6 +63,15 @@ template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
 
 /**
+ * Tests whether the elements of the given index array are within unique
+ *
+ * @param idxs the sorted array which is to be tested
+ * @param num_entries length of the array which is to be tested
+ */
+template <typename IndexType>
+bool has_unique_idxs(const IndexType *idxs, const size_type num_entries);
+
+/**
  * Tests whether the elements of the given array are within [lower_bound,
  * upper_bound)
  *

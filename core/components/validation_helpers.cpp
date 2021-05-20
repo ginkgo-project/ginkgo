@@ -98,6 +98,22 @@ bool has_non_zero_diagonal(const LinOp *matrix)
 #undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
 template <typename IndexType>
+bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
+{
+    for (size_type i = 1; i < num_entries; ++i) {
+        if (idxs[i - 1] == idxs[i]) {
+            return false;
+        }
+    }
+    return true;
+};
+
+#define GKO_DECLARE_HAS_UNIQUE_IDXS(IndexType) \
+    bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_HAS_UNIQUE_IDXS);
+
+template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
 {
     for (size_type i = 1; i < num_entries; ++i) {
