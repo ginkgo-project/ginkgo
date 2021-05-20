@@ -216,8 +216,8 @@ void reduce_add_array(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             block_sum_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
+        auto local_range = block.get_range();
+        auto global_range = grid.get_range() * local_range;
 
         cgh.parallel_for(
             sycl::nd_range<3>(global_range, local_range),

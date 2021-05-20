@@ -189,8 +189,8 @@ void start_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             prefix_helper_acc_ct1(cgh);
 
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
+        auto local_range = block.get_range();
+        auto global_range = grid.get_range() * local_range;
 
         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
                          [=](sycl::nd_item<3> item_ct1) {
@@ -240,8 +240,8 @@ void finalize_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          ValueType *elements, const ValueType *block_sum)
 {
     stream->submit([&](sycl::handler &cgh) {
-        auto local_range = block.reverse();
-        auto global_range = grid.reverse() * local_range;
+        auto local_range = block.get_range();
+        auto global_range = grid.get_range() * local_range;
 
         cgh.parallel_for(sycl::nd_range<3>(global_range, local_range),
                          [=](sycl::nd_item<3> item_ct1) {

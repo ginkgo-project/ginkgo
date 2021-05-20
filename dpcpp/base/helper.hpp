@@ -47,6 +47,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
+ * GKO_ENABLE_DEFAULT_HOST gives a default host implementation for those
+ * kernels which require encoded config but do not need explicit template
+ * parameter and share memory
+ *
+ * @param name_  the name of the host function with config
+ * @param kernel_  the kernel name
+ */
+#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                     \
+    template <typename... InferredArgs>                             \
+    void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory, \
+               sycl::queue *queue, InferredArgs... args)            \
+    {                                                               \
+        queue->submit([&](sycl::handler &cgh) {                     \
+            cgh.parallel_for(sycl_nd_range(grid, block),            \
+                             [=](sycl::nd_item<3> item_ct1) {       \
+                                 kernel_(args..., item_ct1);        \
+                             });                                    \
+        });                                                         \
+    }
+
+
+/**
  * GKO_ENABLE_DEFAULT_HOST_CONFIG gives a default host implementation for those
  * kernels which require encoded config but do not need explicit template
  * parameter and share memory
