@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 #include "core/log/batch_logging.hpp"
 
@@ -44,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace batch_idr {
 
-constexpr int max_subspace_dim = 6;
+constexpr int max_subspace_dim = 4;
 
 /**
  * Options controlling the batch Idr solver.
