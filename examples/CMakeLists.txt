@@ -3,6 +3,7 @@ option(GINKGO_RUN_EXAMPLES " Compile run and validation targets for the examples
 
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
+    # batched-solver
     cb-gmres
     custom-logger
     ginkgo-ranges
