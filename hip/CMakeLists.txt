@@ -191,6 +191,7 @@ set(GINKGO_HIP_SOURCES
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
     ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
     ../common/solver/cg_kernels.cpp
     )
 
