@@ -141,10 +141,10 @@ const ValueType *map_to_device(const Array<ValueType> &mtx)
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void DpcppExecutor::run_kernel(KernelFunction fn, size_type size,
-                               KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs &&... args)
 {
-    this->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
         kernels::dpcpp::generic_kernel_1d(
             cgh, size, fn, kernels::dpcpp::map_to_device(args)...);
     });
@@ -152,10 +152,10 @@ void DpcppExecutor::run_kernel(KernelFunction fn, size_type size,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void DpcppExecutor::run_kernel(KernelFunction fn, dim<2> size,
-                               KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
 {
-    this->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
         kernels::dpcpp::generic_kernel_2d(
             cgh, size[0], size[1], fn, kernels::dpcpp::map_to_device(args)...);
     });

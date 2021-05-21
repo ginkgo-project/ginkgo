@@ -58,7 +58,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *rho,
                 Array<stopping_status> *stop_status)
 {
-    exec->run_kernel(
+    run_kernel(
+        exec,
         [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
                       auto q, auto prev_rho, auto rho, auto stop) {
             if (row == 0) {
@@ -84,7 +85,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    exec->run_kernel(
+    run_kernel(
+        exec,
         [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
                       auto prev_rho, auto stop) {
             if (!stop[col].has_stopped() &&
@@ -108,7 +110,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    exec->run_kernel(
+    run_kernel(
+        exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
                       auto beta, auto rho, auto stop) {
             if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {

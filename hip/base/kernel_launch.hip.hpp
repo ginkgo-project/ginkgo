@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "hip/base/device_guard.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
@@ -153,9 +154,10 @@ const hip_type<ValueType> *map_to_device(const Array<ValueType> &mtx)
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void HipExecutor::run_kernel(KernelFunction fn, size_type size,
-                             KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs &&... args)
 {
+    hip::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = kernels::hip::default_block_size;
     auto num_blocks = ceildiv(size, block_size);
     hipLaunchKernelGGL(kernels::hip::generic_kernel_1d, num_blocks, block_size,
@@ -164,9 +166,10 @@ void HipExecutor::run_kernel(KernelFunction fn, size_type size,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void HipExecutor::run_kernel(KernelFunction fn, dim<2> size,
-                             KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
 {
+    hip::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = kernels::hip::default_block_size;
     auto num_blocks = ceildiv(size[0] * size[1], block_size);
     hipLaunchKernelGGL(kernels::hip::generic_kernel_2d, num_blocks, block_size,
