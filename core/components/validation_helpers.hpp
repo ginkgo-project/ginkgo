@@ -44,14 +44,28 @@ namespace validate {
  *
  * @param A the input matrix which is tested
  */
-bool is_symmetric(const LinOp *A, const float tolerance = 0.0);
+bool is_symmetric(const LinOp *matrix, const float tolerance = 0.0);
 
 /**
  * Tests whether a given matrix has zero elements on the diagonal
  *
  * @param A the input matrix which is tested
  */
-bool has_non_zero_diagonal(const LinOp *A);
+bool has_non_zero_diagonal(const LinOp *matrix);
+
+/**
+ * Tests whether a given matrix is a lower triangular matrix
+ *
+ * @param A the input matrix which is tested
+ */
+bool is_lower_triangular(const LinOp *matrix);
+
+/**
+ * Tests whether a given matrix is an upper triangular matrix
+ *
+ * @param A the input matrix which is tested
+ */
+bool is_upper_triangular(const LinOp *matrix);
 
 /**
  * Tests whether the given row_ptrs are in an ascending order

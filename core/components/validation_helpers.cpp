@@ -95,6 +95,40 @@ bool has_non_zero_diagonal(const LinOp *matrix)
                                            has_non_zero_diagonal_impl, matrix)
     return false;
 }
+
+template <class ValueType, class IndexType>
+bool is_triangular_impl(const LinOp *matrix, const bool upper)
+{
+    matrix_data<ValueType, IndexType> data{};
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+        ->write(data);
+
+    auto predicate = [upper](const IndexType i1, const IndexType i2) {
+        return upper ? i1 > i2 : i2 > i1;
+    };
+
+    for (auto &nonzero : data.nonzeros) {
+        if (predicate(nonzero.row, nonzero.column)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+bool is_lower_triangular(const LinOp *matrix)
+{
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
+                                           is_diagonal_impl, matrix, false)
+    return false;
+}
+
+bool is_upper_triangular(const LinOp *matrix)
+{
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
+                                           is_diagonal_impl, matrix, true)
+    return false;
+}
 #undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
 template <typename IndexType>
@@ -106,7 +140,7 @@ bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
         }
     }
     return true;
-};
+}
 
 #define GKO_DECLARE_HAS_UNIQUE_IDXS(IndexType) \
     bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
