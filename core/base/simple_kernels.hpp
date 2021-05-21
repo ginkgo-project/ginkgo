@@ -30,29 +30,35 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/simple_kernels.hpp"
-#include "core/components/precision_conversion.hpp"
+#ifndef GKO_CORE_BASE_SIMPLE_KERNELS_HPP_
+#define GKO_CORE_BASE_SIMPLE_KERNELS_HPP_
 
 
-namespace gko {
-namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-namespace components {
+#if defined(GKO_COMPILING_CUDA)
+
+#include "cuda/base/kernel_launch.cuh"
+#define GKO_DEVICE_NAMESPACE cuda
+
+#elif defined(GKO_COMPILING_HIP)
+
+#include "hip/base/kernel_launch.hip.hpp"
+#define GKO_DEVICE_NAMESPACE hip
+
+#elif defined(GKO_COMPILING_DPCPP)
+
+#include "dpcpp/base/kernel_launch.dp.hpp"
+#define GKO_DEVICE_NAMESPACE dpcpp
+
+#elif defined(GKO_COMPILING_OMP)
+
+#include "omp/base/kernel_launch.hpp"
+#define GKO_DEVICE_NAMESPACE omp
+
+#else
+
+#error "This file should only be used inside Ginkgo device compilation"
+
+#endif
 
 
-template <typename SourceType, typename TargetType>
-void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
-                       size_type size, const SourceType *in, TargetType *out)
-{
-    exec->run_kernel(
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
-        size, in, out);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
-
-
-}  // namespace components
-}  // namespace GKO_DEVICE_NAMESPACE
-}  // namespace kernels
-}  // namespace gko
+#endif  // GKO_CORE_BASE_SIMPLE_KERNELS_HPP_

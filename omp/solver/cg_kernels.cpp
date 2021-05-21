@@ -31,17 +31,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/cg_kernels.hpp"
+#include "core/base/simple_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "omp/base/kernel_launch.hpp"
-
-
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The CG solver namespace.
  *
@@ -51,7 +49,7 @@ namespace cg {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const OmpExecutor> exec,
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
@@ -78,7 +76,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const OmpExecutor> exec,
+void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
@@ -100,7 +98,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const OmpExecutor> exec,
+void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
@@ -124,6 +122,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
-}  // namespace omp
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

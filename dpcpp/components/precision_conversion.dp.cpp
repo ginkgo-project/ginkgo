@@ -30,15 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/base/simple_kernels.hpp"
 #include "core/components/precision_conversion.hpp"
-
-
-#include "dpcpp/base/kernel_launch.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
@@ -55,6 +53,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
 
 }  // namespace components
-}  // namespace dpcpp
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

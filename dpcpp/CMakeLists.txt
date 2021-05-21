@@ -50,6 +50,7 @@ target_sources(ginkgo_dpcpp
     stop/residual_norm_kernels.dp.cpp)
 
 ginkgo_compile_features(ginkgo_dpcpp)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl)
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)

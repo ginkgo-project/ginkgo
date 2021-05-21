@@ -31,14 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/components/precision_conversion.hpp"
-
-
-#include "omp/base/kernel_launch.hpp"
+#include "core/base/simple_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
@@ -55,6 +53,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
 
 }  // namespace components
-}  // namespace omp
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
