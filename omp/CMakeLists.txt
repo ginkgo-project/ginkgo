@@ -43,6 +43,7 @@ target_sources(ginkgo_omp
     stop/residual_norm_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
+target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
 
 # The dependency to OpenMP's potential pthread dependency needs to be public
 # because well, it's a long story:
