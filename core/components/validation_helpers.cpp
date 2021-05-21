@@ -165,6 +165,25 @@ bool is_finite(const ValueType *values, const size_type num_entries)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IS_FINITE);
 
 
+template <typename IndexType>
+bool is_consecutive(const IndexType *idxs, const size_type num_entries,
+                    const IndexType max_gap)
+{
+    for (size_type i = 1; i < num_entries; ++i) {
+        const IndexType gap = idxs[i] - idxs[i - 1];
+        if (gap > max_gap) {
+            return false;
+        }
+    }
+    return true;
+}
+
+#define GKO_DECLARE_IS_CONSECUTIVE(IndexType)                               \
+    bool is_consecutive(const IndexType *idxs, const size_type num_entries, \
+                        const IndexType max_gap)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_CONSECUTIVE);
+
 }  // namespace validate
 
 }  // namespace gko
