@@ -68,7 +68,12 @@ add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES    
     ../common/components/precision_conversion.cpp
     ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
     ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
     )
 target_sources(ginkgo_cuda
     PRIVATE
@@ -106,14 +111,9 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
-    solver/bicg_kernels.cu
-    solver/bicgstab_kernels.cu
-    solver/cgs_kernels.cu
-    solver/fcg_kernels.cu
     solver/gmres_kernels.cu
     solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
-    solver/ir_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu

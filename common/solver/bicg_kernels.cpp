@@ -33,18 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/bicg_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include "core/base/simple_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The BICG solver namespace.
  *
@@ -53,14 +50,8 @@ namespace cuda {
 namespace bicg {
 
 
-constexpr int default_block_size = 512;
-
-
-#include "common/solver/bicg_kernels.hpp.inc"
-
-
 template <typename ValueType>
-void initialize(std::shared_ptr<const CudaExecutor> exec,
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
@@ -69,49 +60,58 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
                 matrix::Dense<ValueType> *q2,
                 Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
-
-    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        b->get_size()[0], b->get_size()[1], b->get_stride(),
-        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-        as_cuda_type(q->get_values()), as_cuda_type(r2->get_values()),
-        as_cuda_type(z2->get_values()), as_cuda_type(p2->get_values()),
-        as_cuda_type(q2->get_values()), as_cuda_type(prev_rho->get_values()),
-        as_cuda_type(rho->get_values()), as_cuda_type(stop_status->get_data()));
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                      auto q, auto prev_rho, auto rho, auto r2, auto z2,
+                      auto p2, auto q2, auto stop) {
+            if (row == 0) {
+                rho[col] = zero(rho[col]);
+                prev_rho[col] = one(prev_rho[col]);
+                stop[col].reset();
+            }
+            r(row, col) = b(row, col);
+            r2(row, col) = b(row, col);
+            z(row, col) = zero(z(row, col));
+            p(row, col) = zero(p(row, col));
+            q(row, col) = zero(q(row, col));
+            z2(row, col) = zero(z2(row, col));
+            p2(row, col) = zero(p2(row, col));
+            q2(row, col) = zero(q2(row, col));
+        },
+        p->get_size(), b, r, z, p, q, prev_rho, rho, r2, z2, p2, q2,
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const CudaExecutor> exec,
+void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(),
-        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
-        as_cuda_type(p2->get_values()), as_cuda_type(z2->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(prev_rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto p2, auto z2,
+                      auto rho, auto prev_rho, auto stop) {
+            if (!stop[col].has_stopped()) {
+                auto tmp = safe_divide(rho[col], prev_rho[col]);
+                p(row, col) = z(row, col) + tmp * p(row, col);
+                p2(row, col) = z2(row, col) + tmp * p2(row, col);
+            }
+        },
+        p->get_size(), p, z, p2, z2, rho, prev_rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const CudaExecutor> exec,
+void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *r2, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
@@ -120,25 +120,24 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-
-    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
-        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-        as_cuda_type(r2->get_values()), as_cuda_type(p->get_const_values()),
-        as_cuda_type(q->get_const_values()),
-        as_cuda_type(q2->get_const_values()),
-        as_cuda_type(beta->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(stop_status->get_const_data()));
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto r2, auto p,
+                      auto q, auto q2, auto beta, auto rho, auto stop) {
+            if (!stop[col].has_stopped()) {
+                auto tmp = safe_divide(rho[col], beta[col]);
+                x(row, col) += tmp * p(row, col);
+                r(row, col) -= tmp * q(row, col);
+                r2(row, col) -= tmp * q2(row, col);
+            }
+        },
+        p->get_size(), x, r, r2, p, q, q2, beta, rho, *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_2_KERNEL);
 
 
 }  // namespace bicg
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
