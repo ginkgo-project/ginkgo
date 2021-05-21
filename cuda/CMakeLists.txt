@@ -65,6 +65,10 @@ find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+set(GKO_CUDA_COMMON_SOURCES    
+    ../common/components/precision_conversion.cpp
+    ../common/solver/cg_kernels.cpp
+    )
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
@@ -72,7 +76,6 @@ target_sources(ginkgo_cuda
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu
-    components/precision_conversion.cu
     components/prefix_sum.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
@@ -104,7 +107,6 @@ target_sources(ginkgo_cuda
     reorder/rcm_kernels.cu
     solver/bicg_kernels.cu
     solver/bicgstab_kernels.cu
-    solver/cg_kernels.cu
     solver/cgs_kernels.cu
     solver/fcg_kernels.cu
     solver/gmres_kernels.cu
@@ -114,7 +116,13 @@ target_sources(ginkgo_cuda
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
-    stop/residual_norm_kernels.cu)
+    stop/residual_norm_kernels.cu
+    ${GKO_CUDA_COMMON_SOURCES}
+    )
+# override the default language mapping for the common files, set them to CUDA
+foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
+    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
+endforeach(source_file)
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()

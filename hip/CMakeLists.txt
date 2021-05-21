@@ -149,7 +149,6 @@ set(GINKGO_HIP_SOURCES
     base/version.hip.cpp
     components/absolute_array.hip.cpp
     components/fill_array.hip.cpp
-    components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
@@ -181,7 +180,6 @@ set(GINKGO_HIP_SOURCES
     reorder/rcm_kernels.hip.cpp
     solver/bicg_kernels.hip.cpp
     solver/bicgstab_kernels.hip.cpp
-    solver/cg_kernels.hip.cpp
     solver/cgs_kernels.hip.cpp
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
@@ -191,7 +189,10 @@ set(GINKGO_HIP_SOURCES
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
-    stop/residual_norm_kernels.hip.cpp)
+    stop/residual_norm_kernels.hip.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/solver/cg_kernels.cpp
+    )
 
 set(GINKGO_HIP_NVCC_ARCH "")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
