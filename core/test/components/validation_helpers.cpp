@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/components/validation_helpers.hpp"
 #include "core/test/utils.hpp"
@@ -55,6 +56,7 @@ using RealValueTypes =
 
 namespace {
 
+/* clang-format off */
 #define GKO_DEFINE_ISSYMMETRIC(MATRIX_TYPE)                                   \
     template <typename ValueIndexType>                                        \
     class MatrixTest##MATRIX_TYPE : public ::testing::Test {                  \
@@ -63,52 +65,82 @@ namespace {
             typename std::tuple_element<0, decltype(ValueIndexType())>::type; \
         using index_type =                                                    \
             typename std::tuple_element<1, decltype(ValueIndexType())>::type; \
-        using Mtx = gko::matrix::Coo<value_type, index_type>;                 \
+        using Mtx = gko::matrix::MATRIX_TYPE<value_type, index_type>;         \
                                                                               \
         MatrixTest##MATRIX_TYPE()                                             \
             : exec(gko::ReferenceExecutor::create()),                         \
-              mtx(gko::matrix::Coo<value_type, index_type>::create(           \
-                  exec, gko::dim<2>{3, 3}, 9))                                \
+            sym_mtx(                                                          \
+                gko::matrix::MATRIX_TYPE<value_type, index_type>::create(     \
+                  exec, gko::dim<2>{3, 3}, 7)),                               \
+            l_triangular_mtx(                                                 \
+                gko::matrix::MATRIX_TYPE<value_type, index_type>::create(     \
+                  exec, gko::dim<2>{3, 3}, 5)),                                \
+            u_triangular_mtx(                                                 \
+                gko::matrix::MATRIX_TYPE<value_type, index_type>::create(     \
+                  exec, gko::dim<2>{3, 3}, 5))                                \
         {                                                                     \
-            value_type *v = mtx->get_values();                                \
                                                                               \
-            index_type *c = mtx->get_col_idxs();                              \
-            index_type *r = mtx->get_row_idxs();                              \
+            auto coo_sym_mtx(                                                 \
+                gko::matrix::Coo<value_type, index_type>::create(             \
+                  exec, gko::dim<2>{3, 3}, 7));                               \
                                                                               \
+            value_type *v = coo_sym_mtx->get_values();                        \
+            index_type *c = coo_sym_mtx->get_col_idxs();                      \
+            index_type *r = coo_sym_mtx->get_row_idxs();                      \
+            /* set values of symmetric matrix */                              \
+            r[0] = 0; r[1] = 0;                                               \
+            r[2] = 1; r[3] = 1; r[4] = 1;                                     \
+                      r[5] = 2; r[6] = 2;                                     \
+                                                                              \
+            c[0] = 0; c[1] = 1;                                               \
+            c[2] = 0; c[3] = 1; c[4] = 2;                                     \
+                      c[5] = 1; c[6] = 2;                                     \
+                                                                              \
+            v[0] = 1; v[1] = 2;                                               \
+            v[2] = 2; v[3] = 1; v[4] = 4;                                     \
+                      v[5] = 4; v[6] = 1;                                     \
+                                                                              \
+            coo_sym_mtx->convert_to(sym_mtx.get());                           \
+                                                                              \
+            auto coo_triangular_mtx(                                          \
+                gko::matrix::Coo<value_type, index_type>::create(             \
+                  exec, gko::dim<2>{3, 3}, 5));                               \
+                                                                              \
+            v = coo_triangular_mtx->get_values();                             \
+            c = coo_triangular_mtx->get_col_idxs();                           \
+            r = coo_triangular_mtx->get_row_idxs();                           \
+            /* set values of lower triangular matrix */                       \
             r[0] = 0;                                                         \
-            r[3] = 1;                                                         \
-            r[6] = 2;                                                         \
-            r[1] = 0;                                                         \
-            r[4] = 1;                                                         \
-            r[7] = 2;                                                         \
-            r[2] = 0;                                                         \
-            r[5] = 1;                                                         \
-            r[8] = 2;                                                         \
+            r[1] = 1; r[2] = 1;                                               \
+                      r[3] = 2; r[4] = 2;                                     \
                                                                               \
             c[0] = 0;                                                         \
-            c[3] = 0;                                                         \
-            c[6] = 0;                                                         \
-            c[1] = 1;                                                         \
-            c[4] = 1;                                                         \
-            c[7] = 1;                                                         \
-            c[2] = 2;                                                         \
-            c[5] = 2;                                                         \
-            c[8] = 2;                                                         \
+            c[1] = 0; c[2] = 1;                                               \
+                      c[3] = 1; c[4] = 2;                                     \
                                                                               \
             v[0] = 1;                                                         \
-            v[3] = 2;                                                         \
-            v[6] = 3;                                                         \
-            v[1] = 2;                                                         \
-            v[4] = 1;                                                         \
-            v[7] = 4;                                                         \
-            v[2] = 3;                                                         \
-            v[5] = 4;                                                         \
-            v[8] = 1;                                                         \
+            v[1] = 2; v[2] = 1;                                               \
+                      v[3] = 4; v[4] = 1;                                     \
+                                                                              \
+            coo_triangular_mtx->convert_to(l_triangular_mtx.get());           \
+            /* set values of upper triangular matrix */                       \
+            c[0] = 0;                                                         \
+            c[1] = 1; c[2] = 1;                                               \
+                      c[3] = 2; c[4] = 2;                                     \
+                                                                              \
+            r[0] = 0;                                                         \
+            r[1] = 0; r[2] = 1;                                               \
+                      r[3] = 1; r[4] = 2;                                     \
+                                                                              \
+            coo_triangular_mtx->convert_to(u_triangular_mtx.get());           \
         }                                                                     \
                                                                               \
         std::shared_ptr<const gko::Executor> exec;                            \
-        std::unique_ptr<Mtx> mtx;                                             \
+        std::unique_ptr<Mtx> sym_mtx;                                         \
+        std::unique_ptr<Mtx> l_triangular_mtx;                                \
+        std::unique_ptr<Mtx> u_triangular_mtx;                                \
     }
+/* clang-format on */
 
 #define GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(MATRIX_TYPE)                     \
     GKO_DEFINE_ISSYMMETRIC(MATRIX_TYPE);                                      \
@@ -117,33 +149,51 @@ namespace {
                                                                               \
     TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsTrueOnSymmetric)               \
     {                                                                         \
-        ASSERT_EQ(gko::validate::is_symmetric(this->mtx.get(), 1e-32), true); \
+        ASSERT_EQ(gko::validate::is_symmetric(this->sym_mtx.get(), 1e-32),    \
+                  true);                                                      \
     }                                                                         \
                                                                               \
     TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsFalseOnAsymmetric)             \
     {                                                                         \
-        auto asym_mtx = this->mtx->clone();                                   \
+        auto asym_mtx = this->sym_mtx->clone();                               \
         asym_mtx->get_values()[2] = 0;                                        \
         ASSERT_EQ(gko::validate::is_symmetric(asym_mtx.get(), 1e-32), false); \
     }                                                                         \
                                                                               \
     TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsTrueOnNonZeroDiagonal)         \
     {                                                                         \
-        auto asym_mtx = this->mtx->clone();                                   \
-        ASSERT_EQ(gko::validate::has_non_zero_diagonal(this->mtx.get()),      \
+        auto asym_mtx = this->sym_mtx->clone();                               \
+        ASSERT_EQ(gko::validate::has_non_zero_diagonal(this->sym_mtx.get()),  \
                   true);                                                      \
     }                                                                         \
     TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsFalseOnZeroDiagonal)           \
     {                                                                         \
-        auto asym_mtx = this->mtx->clone();                                   \
+        auto asym_mtx = this->sym_mtx->clone();                               \
         asym_mtx->get_values()[0] = 0;                                        \
         ASSERT_EQ(gko::validate::has_non_zero_diagonal(asym_mtx.get()),       \
                   false);                                                     \
+    }                                                                         \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsTrueOnCorrectTriangular)       \
+    {                                                                         \
+        ASSERT_EQ(                                                            \
+            gko::validate::is_lower_triangular(this->l_triangular_mtx.get()), \
+            true);                                                            \
+        ASSERT_EQ(                                                            \
+            gko::validate::is_upper_triangular(this->u_triangular_mtx.get()), \
+            true);                                                            \
+    }                                                                         \
+    TYPED_TEST(MatrixTest##MATRIX_TYPE, ReturnsFalesOnFalseTriangular)        \
+    {                                                                         \
+        ASSERT_EQ(                                                            \
+            gko::validate::is_lower_triangular(this->u_triangular_mtx.get()), \
+            false);                                                           \
+        ASSERT_EQ(                                                            \
+            gko::validate::is_upper_triangular(this->l_triangular_mtx.get()), \
+            false);                                                           \
     }
 
 GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Coo)
 GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Csr)
-GKO_TYPED_TEST_SUITE_FOR_MATRIX_TYPE(Ell)
 
 template <typename T>
 class IndexTypeTest : public ::testing::Test {
