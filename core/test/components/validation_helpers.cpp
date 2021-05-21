@@ -220,6 +220,23 @@ TYPED_TEST(IndexTypeTest, IsWithinBoundsReturnsFalseUpperBound)
               false);
 }
 
+TYPED_TEST(IndexTypeTest, IsConsecutiveReturnsTrueConsecutive)
+{
+    gko::Array<TypeParam> a{this->exec, {1, 3, 5}};
+
+    ASSERT_EQ(gko::validate::is_consecutive<TypeParam>(a.get_const_data(),
+                                                       a.get_num_elems(), 2),
+              true);
+}
+
+TYPED_TEST(IndexTypeTest, IsConsecutiveReturnsFalseNonConesecutive)
+{
+    gko::Array<TypeParam> a{this->exec, {1, 4, 8}};
+
+    ASSERT_EQ(gko::validate::is_consecutive<TypeParam>(a.get_const_data(),
+                                                       a.get_num_elems(), 2),
+              false);
+}
 // ValueType Tests
 
 template <typename T>
@@ -242,6 +259,7 @@ TYPED_TEST(RealValueTypeTest, IsFiniteReturnsFalseOnInf)
     ASSERT_EQ(gko::validate::is_finite(a.get_const_data(), a.get_num_elems()),
               false);
 }
+
 template <typename T>
 class ComplexValueTypeTest : public ::testing::Test {
 protected:

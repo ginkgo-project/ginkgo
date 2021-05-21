@@ -56,7 +56,7 @@ bool has_non_zero_diagonal(const LinOp *A);
 /**
  * Tests whether the given row_ptrs are in an ascending order
  *
- * @param row_ptrs the array which is to be tested
+ * @param row_ptrs the sorted array which is to be tested
  * @param num_entries length of the array which is to be tested
  */
 template <typename IndexType>
@@ -95,6 +95,15 @@ template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries);
 
 
+/**
+ * Tests whether the difference between adjacent elements is below a threshold
+ *
+ * @param idxs the sorted array which is to be tested
+ * @param num_entries length of the array which is to be tested
+ */
+template <typename IndexType>
+bool is_consecutive(const IndexType *idxs, const size_type num_entries,
+                    const IndexType max_gap);
 }  // namespace validate
 }  // namespace gko
 
