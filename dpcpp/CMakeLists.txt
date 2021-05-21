@@ -34,21 +34,21 @@ target_sources(ginkgo_dpcpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
-    solver/bicg_kernels.dp.cpp
-    solver/bicgstab_kernels.dp.cpp
-    solver/cgs_kernels.dp.cpp
-    solver/fcg_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
-    solver/ir_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ../common/components/precision_conversion.cpp
     ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
     ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
     )
 
 ginkgo_compile_features(ginkgo_dpcpp)

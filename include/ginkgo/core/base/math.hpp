@@ -1008,6 +1008,24 @@ is_finite(const T &value)
 }
 
 
+/**
+ * Computes the quotient of the given parameters, guarding against division by
+ * zero.
+ *
+ * @tparam T  value type of the parameters
+ *
+ * @param a  the first parameter
+ * @param b  the second parameter
+ *
+ * @return the value of `a / b` if b is non-zero, zero otherwise.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
+{
+    return b == zero<T>() ? zero<T>() : a / b;
+}
+
+
 }  // namespace gko
 
 

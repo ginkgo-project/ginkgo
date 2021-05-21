@@ -178,21 +178,21 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
-    solver/bicg_kernels.hip.cpp
-    solver/bicgstab_kernels.hip.cpp
-    solver/cgs_kernels.hip.cpp
-    solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
-    solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
     ../common/components/precision_conversion.cpp
     ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
     ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
     )
 
 set(GINKGO_HIP_NVCC_ARCH "")

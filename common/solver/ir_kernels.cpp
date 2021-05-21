@@ -33,15 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/ir_kernels.hpp"
 
 
-#include <ginkgo/core/base/math.hpp>
-
-
-#include "cuda/components/thread_ids.cuh"
+#include "core/base/simple_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The IR solver namespace.
  *
@@ -50,25 +47,16 @@ namespace cuda {
 namespace ir {
 
 
-constexpr int default_block_size = 512;
-
-
-#include "common/solver/ir_kernels.hpp.inc"
-
-
-void initialize(std::shared_ptr<const CudaExecutor> exec,
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 Array<stopping_status> *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
-                         1);
-
-    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        stop_status->get_num_elems(), stop_status->get_data());
+    run_kernel(
+        exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
+        stop_status->get_num_elems(), *stop_status);
 }
 
 
 }  // namespace ir
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

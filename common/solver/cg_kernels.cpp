@@ -68,9 +68,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 stop[col].reset();
             }
             r(row, col) = b(row, col);
-            z(row, col) = zero(z(row, col));
-            p(row, col) = zero(p(row, col));
-            q(row, col) = zero(q(row, col));
+            z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
         },
         p->get_size(), b, r, z, p, q, prev_rho, rho, *stop_status);
 }
@@ -89,9 +87,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
                       auto prev_rho, auto stop) {
-            if (!stop[col].has_stopped() &&
-                prev_rho[col] != zero(prev_rho[col])) {
-                auto tmp = rho[col] / prev_rho[col];
+            if (!stop[col].has_stopped()) {
+                auto tmp = safe_divide(rho[col], prev_rho[col]);
                 p(row, col) = z(row, col) + tmp * p(row, col);
             }
         },
@@ -114,8 +111,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
                       auto beta, auto rho, auto stop) {
-            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
-                auto tmp = rho[col] / beta[col];
+            if (!stop[col].has_stopped()) {
+                auto tmp = safe_divide(rho[col], beta[col]);
                 x(row, col) += tmp * p(row, col);
                 r(row, col) -= tmp * q(row, col);
             }
