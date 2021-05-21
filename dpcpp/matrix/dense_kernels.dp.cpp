@@ -92,14 +92,12 @@ void strided_fill(size_type num_rows, size_type num_cols, size_type stride,
 GKO_ENABLE_DEFAULT_HOST(strided_fill, strided_fill)
 
 
-template <size_type block_size, typename ValueType>
+template <typename ValueType>
 void scale(size_type num_rows, size_type num_cols, size_type num_alpha_cols,
            const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
            size_type stride_x, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto warps_per_block = block_size / config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<config::warp_size, warps_per_block>(item_ct1);
+    const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_id = global_id / num_cols;
     const auto col_id = global_id % num_cols;
     const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
@@ -111,32 +109,16 @@ void scale(size_type num_rows, size_type num_cols, size_type num_alpha_cols,
     }
 }
 
-template <size_type block_size, typename ValueType>
-void scale(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-           sycl::queue *stream, size_type num_rows, size_type num_cols,
-           size_type num_alpha_cols, const ValueType *alpha, ValueType *x,
-           size_type stride_x)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                scale<block_size>(num_rows, num_cols, num_alpha_cols, alpha, x,
-                                  stride_x, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(scale, scale)
 
-
-template <size_type block_size, typename ValueType>
+template <typename ValueType>
 void add_scaled(size_type num_rows, size_type num_cols,
                 size_type num_alpha_cols, const ValueType *__restrict__ alpha,
                 const ValueType *__restrict__ x, size_type stride_x,
                 ValueType *__restrict__ y, size_type stride_y,
                 sycl::nd_item<3> item_ct1)
 {
-    constexpr auto warps_per_block = block_size / config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<config::warp_size, warps_per_block>(item_ct1);
+    const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_id = global_id / num_cols;
     const auto col_id = global_id % num_cols;
     const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
@@ -146,22 +128,7 @@ void add_scaled(size_type num_rows, size_type num_cols,
     }
 }
 
-template <size_type block_size, typename ValueType>
-void add_scaled(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, size_type num_rows, size_type num_cols,
-                size_type num_alpha_cols, const ValueType *alpha,
-                const ValueType *x, size_type stride_x, ValueType *y,
-                size_type stride_y)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                add_scaled<block_size>(num_rows, num_cols, num_alpha_cols,
-                                       alpha, x, stride_x, y, stride_y,
-                                       item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(add_scaled, add_scaled)
 
 
 template <typename ValueType>
@@ -179,19 +146,7 @@ void add_scaled_diag(size_type size, const ValueType *__restrict__ alpha,
     y[tidx * stride_y + tidx] += alpha[0] * diag[tidx];
 }
 
-template <typename ValueType>
-void add_scaled_diag(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue *stream, size_type size,
-                     const ValueType *alpha, const ValueType *diag,
-                     ValueType *y, size_type stride_y)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                add_scaled_diag(size, alpha, diag, y, stride_y, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(add_scaled_diag, add_scaled_diag)
 
 
 template <size_type block_size, typename OutType, typename CallableGetValue,
@@ -282,7 +237,6 @@ void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 compute_partial_dot<block_size>(
@@ -317,7 +271,6 @@ void finalize_dot_computation(dim3 grid, dim3 block,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
-
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
@@ -355,7 +308,6 @@ void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
             UninitializedArray<remove_complex<ValueType>, block_size>, 0,
             sycl::access::mode::read_write, sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
-
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -427,21 +379,7 @@ void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_coo(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows, size_type num_cols,
-                 size_type stride, const size_type *row_ptrs,
-                 const ValueType *source, IndexType *row_idxs,
-                 IndexType *col_idxs, ValueType *values)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                fill_in_coo(num_rows, num_cols, stride, row_ptrs, source,
-                            row_idxs, col_idxs, values, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo)
 
 
 template <typename ValueType, typename IndexType>
@@ -505,20 +443,7 @@ void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_csr(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows, size_type num_cols,
-                 size_type stride, const ValueType *source, IndexType *row_ptrs,
-                 IndexType *col_idxs, ValueType *values)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_csr(num_rows, num_cols, stride, source,
-                                         row_ptrs, col_idxs, values, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr)
 
 
 template <typename ValueType, typename IndexType>
@@ -551,22 +476,7 @@ void fill_in_ell(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_ell(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows, size_type num_cols,
-                 size_type source_stride, const ValueType *source,
-                 size_type max_nnz_per_row, size_type result_stride,
-                 IndexType *col_ptrs, ValueType *values)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_ell(num_rows, num_cols, source_stride,
-                                         source, max_nnz_per_row, result_stride,
-                                         col_ptrs, values, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_ell, fill_in_ell)
 
 
 void calculate_slice_lengths(size_type num_rows, size_type slice_size,
@@ -655,22 +565,7 @@ void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_sellp(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                   sycl::queue *stream, size_type num_rows, size_type num_cols,
-                   size_type slice_size, size_type stride,
-                   const ValueType *source, size_type *slice_lengths,
-                   size_type *slice_sets, IndexType *col_idxs, ValueType *vals)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                fill_in_sellp(num_rows, num_cols, slice_size, stride, source,
-                              slice_lengths, slice_sets, col_idxs, vals,
-                              item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_sellp, fill_in_sellp)
 
 
 void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
@@ -777,7 +672,6 @@ void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
 
-
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 reduce_total_cols(num_slices, max_nnz_per_slice, result,
@@ -803,21 +697,7 @@ void symm_permute(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void symm_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                  sycl::queue *stream, size_type num_rows, size_type num_cols,
-                  const IndexType *perm_idxs, const ValueType *orig,
-                  size_type stride_orig, ValueType *result,
-                  size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                symm_permute(num_rows, num_cols, perm_idxs, orig, stride_orig,
-                             result, stride_result, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(symm_permute, symm_permute)
 
 
 template <typename IndexType, typename ValueType>
@@ -836,21 +716,7 @@ void inv_symm_permute(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void inv_symm_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                      sycl::queue *stream, size_type num_rows,
-                      size_type num_cols, const IndexType *perm_idxs,
-                      const ValueType *orig, size_type stride_orig,
-                      ValueType *result, size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_symm_permute(num_rows, num_cols, perm_idxs, orig,
-                                 stride_orig, result, stride_result, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inv_symm_permute, inv_symm_permute)
 
 
 template <typename IndexType, typename ValueType>
@@ -869,21 +735,7 @@ void row_gather(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void row_gather(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                sycl::queue *stream, size_type num_rows, size_type num_cols,
-                const IndexType *perm_idxs, const ValueType *orig,
-                size_type stride_orig, ValueType *result,
-                size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                row_gather(num_rows, num_cols, perm_idxs, orig, stride_orig,
-                           result, stride_result, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(row_gather, row_gather)
 
 
 template <typename IndexType, typename ValueType>
@@ -902,21 +754,7 @@ void column_permute(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void column_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                    sycl::queue *stream, size_type num_rows, size_type num_cols,
-                    const IndexType *perm_idxs, const ValueType *orig,
-                    size_type stride_orig, ValueType *result,
-                    size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                column_permute(num_rows, num_cols, perm_idxs, orig, stride_orig,
-                               result, stride_result, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(column_permute, column_permute)
 
 
 template <typename IndexType, typename ValueType>
@@ -935,22 +773,7 @@ void inverse_row_permute(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void inverse_row_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_rows,
-                         size_type num_cols, const IndexType *perm_idxs,
-                         const ValueType *orig, size_type stride_orig,
-                         ValueType *result, size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             inverse_row_permute(num_rows, num_cols, perm_idxs,
-                                                 orig, stride_orig, result,
-                                                 stride_result, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inverse_row_permute, inverse_row_permute)
 
 
 template <typename IndexType, typename ValueType>
@@ -970,22 +793,8 @@ void inverse_column_permute(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename IndexType, typename ValueType>
-void inverse_column_permute(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                            sycl::queue *stream, size_type num_rows,
-                            size_type num_cols, const IndexType *perm_idxs,
-                            const ValueType *orig, size_type stride_orig,
-                            ValueType *result, size_type stride_result)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inverse_column_permute(num_rows, num_cols, perm_idxs, orig,
-                                       stride_orig, result, stride_result,
-                                       item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inverse_column_permute, inverse_column_permute)
+
 
 template <typename ValueType>
 void extract_diagonal(size_type problem_size,
@@ -998,20 +807,7 @@ void extract_diagonal(size_type problem_size,
     }
 }
 
-template <typename ValueType>
-void extract_diagonal(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                      sycl::queue *stream, size_type problem_size,
-                      const ValueType *orig, size_type stride_orig,
-                      ValueType *diag)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             extract_diagonal(problem_size, orig, stride_orig,
-                                              diag, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal)
 
 
 template <typename ValueType>
@@ -1027,20 +823,7 @@ void inplace_absolute_dense(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType>
-void inplace_absolute_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                            sycl::queue *stream, size_type num_rows,
-                            size_type num_cols, ValueType *data,
-                            size_type stride)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             inplace_absolute_dense(num_rows, num_cols, data,
-                                                    stride, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(inplace_absolute_dense, inplace_absolute_dense)
 
 
 template <typename ValueType>
@@ -1058,22 +841,7 @@ void outplace_absolute_dense(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType>
-void outplace_absolute_dense(dim3 grid, dim3 block,
-                             size_t dynamic_shared_memory, sycl::queue *stream,
-                             size_type num_rows, size_type num_cols,
-                             const ValueType *in, size_type stride_in,
-                             remove_complex<ValueType> *out,
-                             size_type stride_out)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                outplace_absolute_dense(num_rows, num_cols, in, stride_in, out,
-                                        stride_out, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(outplace_absolute_dense, outplace_absolute_dense)
 
 
 template <typename ValueType, typename ComplexType>
@@ -1090,20 +858,7 @@ void make_complex(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType, typename ComplexType>
-void make_complex(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                  sycl::queue *stream, size_type num_rows, size_type num_cols,
-                  const ValueType *in, size_type stride_in, ComplexType *out,
-                  size_type stride_out)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             make_complex(num_rows, num_cols, in, stride_in,
-                                          out, stride_out, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(make_complex, make_complex)
 
 
 template <typename ValueType>
@@ -1120,20 +875,7 @@ void get_real(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType>
-void get_real(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-              sycl::queue *stream, size_type num_rows, size_type num_cols,
-              const ValueType *in, size_type stride_in,
-              remove_complex<ValueType> *out, size_type stride_out)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             get_real(num_rows, num_cols, in, stride_in, out,
-                                      stride_out, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(get_real, get_real)
 
 
 template <typename ValueType>
@@ -1150,20 +892,7 @@ void get_imag(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType>
-void get_imag(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-              sycl::queue *stream, size_type num_rows, size_type num_cols,
-              const ValueType *in, size_type stride_in,
-              remove_complex<ValueType> *out, size_type stride_out)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             get_imag(num_rows, num_cols, in, stride_in, out,
-                                      stride_out, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(get_imag, get_imag)
 
 
 }  // namespace kernel
