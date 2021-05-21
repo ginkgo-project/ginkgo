@@ -90,49 +90,53 @@ void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
 }
 
 
-template <typename ValueType>
-matrix_accessor<ValueType> map_to_device(matrix::Dense<ValueType> *mtx)
-{
-    return {mtx->get_values(), mtx->get_stride()};
-}
+template <typename T>
+struct device_map_impl {
+    using type = std::decay_t<T>;
+    static type map_to_device(T in) { return in; }
+};
 
 template <typename ValueType>
-matrix_accessor<const ValueType> map_to_device(
-    const matrix::Dense<ValueType> *mtx)
-{
-    return {mtx->get_const_values(), mtx->get_stride()};
-}
+struct device_map_impl<matrix::Dense<ValueType> *&> {
+    using type = matrix_accessor<ValueType>;
+    static type map_to_device(matrix::Dense<ValueType> *mtx)
+    {
+        return {mtx->get_values(), mtx->get_stride()};
+    }
+};
 
 template <typename ValueType>
-typename std::enable_if<std::is_arithmetic<ValueType>::value, ValueType>::type *
-map_to_device(ValueType *data)
-{
-    return data;
-}
+struct device_map_impl<const matrix::Dense<ValueType> *&> {
+    using type = matrix_accessor<const ValueType>;
+    static type map_to_device(const matrix::Dense<ValueType> *mtx)
+    {
+        return {mtx->get_const_values(), mtx->get_stride()};
+    }
+};
 
 template <typename ValueType>
-std::complex<ValueType> *map_to_device(std::complex<ValueType> *data)
-{
-    return data;
-}
+struct device_map_impl<Array<ValueType> &> {
+    using type = ValueType *;
+    static type map_to_device(Array<ValueType> &array)
+    {
+        return array.get_data();
+    }
+};
 
 template <typename ValueType>
-const std::complex<ValueType> *map_to_device(
-    const std::complex<ValueType> *data)
-{
-    return data;
-}
+struct device_map_impl<const Array<ValueType> &> {
+    using type = const ValueType *;
+    static type map_to_device(const Array<ValueType> &array)
+    {
+        return array.get_const_data();
+    }
+};
 
-template <typename ValueType>
-ValueType *map_to_device(Array<ValueType> &mtx)
-{
-    return mtx.get_data();
-}
 
-template <typename ValueType>
-const ValueType *map_to_device(const Array<ValueType> &mtx)
+template <typename T>
+typename device_map_impl<T>::type map_to_device(T &&param)
 {
-    return mtx.get_const_data();
+    return device_map_impl<T>::map_to_device(param);
 }
 
 
