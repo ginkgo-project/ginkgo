@@ -829,12 +829,23 @@ TEST_F(Dense, IsInverseColPermutable)
 }
 
 
-TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
+TEST_F(Dense, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
 {
     set_up_apply_data();
 
     auto diag = x->extract_diagonal();
     auto ddiag = dx->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag = y->extract_diagonal();
+    auto ddiag = dy->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }

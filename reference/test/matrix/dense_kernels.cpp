@@ -83,7 +83,9 @@ protected:
           mtx5(gko::initialize<Mtx>(
               {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}, exec)),
           mtx6(gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec)),
-          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec))
+          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec)),
+          mtx8(gko::initialize<Mtx>(
+              {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({-3.0, 3.0})}, exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -94,6 +96,7 @@ protected:
     std::unique_ptr<Mtx> mtx5;
     std::unique_ptr<Mtx> mtx6;
     std::unique_ptr<Mtx> mtx7;
+    std::unique_ptr<Mtx> mtx8;
 
     std::ranlux48 rand_engine;
 
@@ -2383,7 +2386,7 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 }
 
 
-TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
+TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrix)
 {
     using T = typename TestFixture::value_type;
 
@@ -2397,6 +2400,24 @@ TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
     ASSERT_EQ(diag->get_size()[1], 2);
     ASSERT_EQ(diag->get_values()[0], T{1.});
     ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
+{
+    using T = typename TestFixture::value_type;
+
+    // clang-format off
+    // { 1.0, -1.0},
+    // {-2.0,  2.0},
+    // {-3.0,  3.0}
+    // clang-format on
+    auto diag = this->mtx8->extract_diagonal();
+
+    ASSERT_EQ(diag->get_size()[0], 2);
+    ASSERT_EQ(diag->get_size()[1], 2);
+    ASSERT_EQ(diag->get_values()[0], T{1.});
+    ASSERT_EQ(diag->get_values()[1], T{2.});
 }
 
 
