@@ -46,7 +46,8 @@ template <typename SourceType, typename TargetType>
 void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
                        size_type size, const SourceType *in, TargetType *out)
 {
-    exec->run_kernel(
+    run_kernel(
+        exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
         size, in, out);
 }

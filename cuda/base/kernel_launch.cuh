@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "cuda/base/device_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
@@ -150,9 +151,10 @@ const cuda_type<ValueType> *map_to_device(const Array<ValueType> &mtx)
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void CudaExecutor::run_kernel(KernelFunction fn, size_type size,
-                              KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs &&... args)
 {
+    cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = kernels::cuda::default_block_size;
     auto num_blocks = ceildiv(size, block_size);
     kernels::cuda::generic_kernel_1d<<<num_blocks, block_size>>>(
@@ -161,9 +163,10 @@ void CudaExecutor::run_kernel(KernelFunction fn, size_type size,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void CudaExecutor::run_kernel(KernelFunction fn, dim<2> size,
-                              KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
 {
+    cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = kernels::cuda::default_block_size;
     auto num_blocks = ceildiv(size[0] * size[1], block_size);
     kernels::cuda::generic_kernel_2d<<<num_blocks, block_size>>>(

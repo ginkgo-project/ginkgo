@@ -115,8 +115,8 @@ const ValueType *map_to_device(const Array<ValueType> &mtx)
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void OmpExecutor::run_kernel(KernelFunction fn, size_type size,
-                             KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs &&... args)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
@@ -126,8 +126,8 @@ void OmpExecutor::run_kernel(KernelFunction fn, size_type size,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void OmpExecutor::run_kernel(KernelFunction fn, dim<2> size,
-                             KernelArgs &&... args) const
+void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size[0] * size[1]; i++) {
