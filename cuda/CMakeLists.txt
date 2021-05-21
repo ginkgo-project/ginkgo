@@ -67,6 +67,7 @@ find_library(CURAND curand
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES    
     ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
     ../common/solver/cg_kernels.cpp
     )
 target_sources(ginkgo_cuda

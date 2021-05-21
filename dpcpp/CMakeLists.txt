@@ -47,6 +47,7 @@ target_sources(ginkgo_dpcpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
     ../common/solver/cg_kernels.cpp
     )
 
