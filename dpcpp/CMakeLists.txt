@@ -13,7 +13,6 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
-    components/precision_conversion.dp.cpp
     components/prefix_sum.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
@@ -37,7 +36,6 @@ target_sources(ginkgo_dpcpp
     reorder/rcm_kernels.dp.cpp
     solver/bicg_kernels.dp.cpp
     solver/bicgstab_kernels.dp.cpp
-    solver/cg_kernels.dp.cpp
     solver/cgs_kernels.dp.cpp
     solver/fcg_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
@@ -47,7 +45,10 @@ target_sources(ginkgo_dpcpp
     solver/lower_trs_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
-    stop/residual_norm_kernels.dp.cpp)
+    stop/residual_norm_kernels.dp.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/solver/cg_kernels.cpp
+    )
 
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)

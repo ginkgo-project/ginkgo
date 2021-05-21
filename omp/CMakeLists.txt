@@ -6,7 +6,6 @@ target_sources(ginkgo_omp
     base/version.cpp
     components/absolute_array.cpp
     components/fill_array.cpp
-    components/precision_conversion.cpp
     components/prefix_sum.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
@@ -30,7 +29,6 @@ target_sources(ginkgo_omp
     reorder/rcm_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
-    solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
@@ -40,7 +38,10 @@ target_sources(ginkgo_omp
     solver/lower_trs_kernels.cpp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
-    stop/residual_norm_kernels.cpp)
+    stop/residual_norm_kernels.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/solver/cg_kernels.cpp
+    )
 
 ginkgo_compile_features(ginkgo_omp)
 target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
