@@ -101,51 +101,53 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
 }
 
 
-template <typename ValueType>
-matrix_accessor<hip_type<ValueType>> map_to_device(
-    matrix::Dense<ValueType> *mtx)
-{
-    return {as_hip_type(mtx->get_values()), mtx->get_stride()};
-}
+template <typename T>
+struct device_map_impl {
+    using type = std::decay_t<hip_type<T>>;
+    static type map_to_device(T in) { return as_hip_type(in); }
+};
 
 template <typename ValueType>
-matrix_accessor<const hip_type<ValueType>> map_to_device(
-    const matrix::Dense<ValueType> *mtx)
-{
-    return {as_hip_type(mtx->get_const_values()), mtx->get_stride()};
-}
+struct device_map_impl<matrix::Dense<ValueType> *&> {
+    using type = matrix_accessor<hip_type<ValueType>>;
+    static type map_to_device(matrix::Dense<ValueType> *mtx)
+    {
+        return {as_hip_type(mtx->get_values()), mtx->get_stride()};
+    }
+};
 
 template <typename ValueType>
-typename std::enable_if<std::is_arithmetic<ValueType>::value,
-                        hip_type<ValueType>>::type *
-map_to_device(ValueType *data)
-{
-    return as_hip_type(data);
-}
+struct device_map_impl<const matrix::Dense<ValueType> *&> {
+    using type = matrix_accessor<const hip_type<ValueType>>;
+    static type map_to_device(const matrix::Dense<ValueType> *mtx)
+    {
+        return {as_hip_type(mtx->get_const_values()), mtx->get_stride()};
+    }
+};
 
 template <typename ValueType>
-hip_type<std::complex<ValueType>> *map_to_device(std::complex<ValueType> *data)
-{
-    return as_hip_type(data);
-}
+struct device_map_impl<Array<ValueType> &> {
+    using type = hip_type<ValueType> *;
+    static type map_to_device(Array<ValueType> &array)
+    {
+        return as_hip_type(array.get_data());
+    }
+};
 
 template <typename ValueType>
-const hip_type<std::complex<ValueType>> *map_to_device(
-    const std::complex<ValueType> *data)
-{
-    return as_hip_type(data);
-}
+struct device_map_impl<const Array<ValueType> &> {
+    using type = const hip_type<ValueType> *;
+    static type map_to_device(const Array<ValueType> &array)
+    {
+        return as_hip_type(array.get_const_data());
+    }
+};
 
-template <typename ValueType>
-hip_type<ValueType> *map_to_device(Array<ValueType> &mtx)
-{
-    return as_hip_type(mtx.get_data());
-}
 
-template <typename ValueType>
-const hip_type<ValueType> *map_to_device(const Array<ValueType> &mtx)
+template <typename T>
+typename device_map_impl<T>::type map_to_device(T &&param)
 {
-    return as_hip_type(mtx.get_const_data());
+    return device_map_impl<T>::map_to_device(param);
 }
 
 
