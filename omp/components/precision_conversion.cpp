@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/components/precision_conversion.hpp"
+
+
 #include "core/base/simple_kernels.hpp"
 
 

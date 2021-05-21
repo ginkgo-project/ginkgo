@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_KERNEL_LAUNCH_HPP_
-#define GKO_CUDA_BASE_KERNEL_LAUNCH_HPP_
+#ifndef GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
+#define GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -104,14 +104,12 @@ matrix_accessor<cuda_type<ValueType>> map_to_device(
     return {as_cuda_type(mtx->get_values()), mtx->get_stride()};
 }
 
-
 template <typename ValueType>
 matrix_accessor<const cuda_type<ValueType>> map_to_device(
     const matrix::Dense<ValueType> *mtx)
 {
     return {as_cuda_type(mtx->get_const_values()), mtx->get_stride()};
 }
-
 
 template <typename ValueType>
 typename std::enable_if<std::is_arithmetic<ValueType>::value,
@@ -121,13 +119,11 @@ map_to_device(ValueType *data)
     return as_cuda_type(data);
 }
 
-
 template <typename ValueType>
 cuda_type<std::complex<ValueType>> *map_to_device(std::complex<ValueType> *data)
 {
     return as_cuda_type(data);
 }
-
 
 template <typename ValueType>
 const cuda_type<std::complex<ValueType>> *map_to_device(
@@ -136,13 +132,11 @@ const cuda_type<std::complex<ValueType>> *map_to_device(
     return as_cuda_type(data);
 }
 
-
 template <typename ValueType>
 cuda_type<ValueType> *map_to_device(Array<ValueType> &mtx)
 {
     return as_cuda_type(mtx.get_data());
 }
-
 
 template <typename ValueType>
 const cuda_type<ValueType> *map_to_device(const Array<ValueType> &mtx)
@@ -179,4 +173,4 @@ void CudaExecutor::run_kernel(KernelFunction fn, dim<2> size,
 
 }  // namespace gko
 
-#endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_HPP_
+#endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_

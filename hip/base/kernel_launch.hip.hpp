@@ -107,14 +107,12 @@ matrix_accessor<hip_type<ValueType>> map_to_device(
     return {as_hip_type(mtx->get_values()), mtx->get_stride()};
 }
 
-
 template <typename ValueType>
 matrix_accessor<const hip_type<ValueType>> map_to_device(
     const matrix::Dense<ValueType> *mtx)
 {
     return {as_hip_type(mtx->get_const_values()), mtx->get_stride()};
 }
-
 
 template <typename ValueType>
 typename std::enable_if<std::is_arithmetic<ValueType>::value,
@@ -124,13 +122,11 @@ map_to_device(ValueType *data)
     return as_hip_type(data);
 }
 
-
 template <typename ValueType>
 hip_type<std::complex<ValueType>> *map_to_device(std::complex<ValueType> *data)
 {
     return as_hip_type(data);
 }
-
 
 template <typename ValueType>
 const hip_type<std::complex<ValueType>> *map_to_device(
@@ -139,13 +135,11 @@ const hip_type<std::complex<ValueType>> *map_to_device(
     return as_hip_type(data);
 }
 
-
 template <typename ValueType>
 hip_type<ValueType> *map_to_device(Array<ValueType> &mtx)
 {
     return as_hip_type(mtx.get_data());
 }
-
 
 template <typename ValueType>
 const hip_type<ValueType> *map_to_device(const Array<ValueType> &mtx)

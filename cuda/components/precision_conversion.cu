@@ -30,8 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/simple_kernels.hpp"
 #include "core/components/precision_conversion.hpp"
+
+
+#include "core/base/simple_kernels.hpp"
 
 
 namespace gko {

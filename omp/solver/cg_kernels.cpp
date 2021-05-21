@@ -31,10 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/cg_kernels.hpp"
-#include "core/base/simple_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
+
+
+#include "core/base/simple_kernels.hpp"
 
 
 namespace gko {

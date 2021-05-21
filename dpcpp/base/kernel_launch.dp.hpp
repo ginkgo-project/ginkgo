@@ -53,9 +53,6 @@ namespace kernels {
 namespace dpcpp {
 
 
-constexpr auto default_block_size = 512;
-
-
 template <typename ValueType>
 struct matrix_accessor {
     ValueType *data;
@@ -99,14 +96,12 @@ matrix_accessor<ValueType> map_to_device(matrix::Dense<ValueType> *mtx)
     return {mtx->get_values(), mtx->get_stride()};
 }
 
-
 template <typename ValueType>
 matrix_accessor<const ValueType> map_to_device(
     const matrix::Dense<ValueType> *mtx)
 {
     return {mtx->get_const_values(), mtx->get_stride()};
 }
-
 
 template <typename ValueType>
 typename std::enable_if<std::is_arithmetic<ValueType>::value, ValueType>::type *
@@ -115,13 +110,11 @@ map_to_device(ValueType *data)
     return data;
 }
 
-
 template <typename ValueType>
 std::complex<ValueType> *map_to_device(std::complex<ValueType> *data)
 {
     return data;
 }
-
 
 template <typename ValueType>
 const std::complex<ValueType> *map_to_device(
@@ -130,13 +123,11 @@ const std::complex<ValueType> *map_to_device(
     return data;
 }
 
-
 template <typename ValueType>
 ValueType *map_to_device(Array<ValueType> &mtx)
 {
     return mtx.get_data();
 }
-
 
 template <typename ValueType>
 const ValueType *map_to_device(const Array<ValueType> &mtx)
@@ -172,5 +163,6 @@ void DpcppExecutor::run_kernel(KernelFunction fn, dim<2> size,
 
 
 }  // namespace gko
+
 
 #endif  // GKO_DPCPP_BASE_KERNEL_LAUNCH_DP_HPP_
