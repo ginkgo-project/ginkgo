@@ -63,6 +63,7 @@ namespace dense {
 
 GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
+GKO_REGISTER_OPERATION(copy, dense::copy);
 GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
@@ -324,6 +325,34 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
     exec->run(dense::make_compute_norm2(this, dense_res.get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Dense<ValueType> *result) const
+{
+    if (result->get_size() && result->get_size() == this->get_size()) {
+        // it's important we clone the const *this instead of result, since
+        // otherwise the copy_back_deleter of the temporary_clone calls
+        // convert_to again with the same dimensions, causing an infinite
+        // recursion. For the same reason we need to check that the result size
+        // is not zero, since otherwise it could come from the initial
+        // convert_to call in make_temporary_clone.
+        auto exec = result->get_executor();
+        exec->run(
+            dense::make_copy(make_temporary_clone(exec, this).get(), result));
+    } else {
+        result->values_ = this->values_;
+        result->stride_ = this->stride_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
 }
 
 

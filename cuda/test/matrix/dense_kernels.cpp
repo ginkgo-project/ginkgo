@@ -190,6 +190,23 @@ protected:
 };
 
 
+TEST_F(Dense, CudaCopyRespectsStride)
+{
+    set_up_vector_data(3);
+    auto result = Mtx::create(cuda, dx->get_size(), dx->get_size()[1] + 1);
+    double val = 123456789.0;
+    auto original_data = result->get_values();
+    auto padding_ptr = original_data + dx->get_size()[1];
+    cuda->copy_from(ref.get(), 1, &val, padding_ptr);
+
+    dx->convert_to(result.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dx, 0);
+    ASSERT_EQ(cuda->copy_val_to_host(padding_ptr), val);
+    ASSERT_EQ(result->get_values(), original_data);
+}
+
+
 TEST_F(Dense, CudaFillIsEquivalentToRef)
 {
     set_up_vector_data(3);
@@ -199,7 +216,7 @@ TEST_F(Dense, CudaFillIsEquivalentToRef)
     dx->fill(42);
     result->copy_from(dx.get());
 
-    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, x, 0);
 }
 
 
