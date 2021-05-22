@@ -114,6 +114,93 @@ typename device_map_impl<T>::type map_to_device(T &&param)
 }
 
 
+template <typename ValueType>
+struct compact_dense_wrapper {
+    ValueType *data;
+};
+
+
+template <typename ValueType>
+compact_dense_wrapper<ValueType> compact(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_values()};
+}
+
+
+template <typename ValueType>
+compact_dense_wrapper<const ValueType> compact(
+    const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_const_values()};
+}
+
+
+template <typename ValueType>
+ValueType *vector(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_values();
+}
+
+
+template <typename ValueType>
+const ValueType *vector(const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_const_values();
+}
+
+
+template <typename T>
+struct device_unpack_1d_impl {
+    using type = T;
+    static type unpack(T param, size_type, size_type) { return param; }
+};
+
+
+template <typename T>
+struct device_unpack_2d_impl {
+    using type = T;
+    static type unpack(T param, size_type, size_type, size_type, size_type)
+    {
+        return param;
+    }
+};
+
+template <typename ValueType>
+struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
+    using type = matrix_accessor<ValueType>;
+    static type unpack(compact_dense_wrapper<ValueType> param, size_type,
+                       size_type, size_type, size_type num_cols)
+    {
+        return {param.data, num_cols};
+    }
+};
+
+
+template <typename T>
+typename device_unpack_1d_impl<typename device_map_impl<T>::type>::type
+map_unpack_to_device(T &&param, size_type i, size_type size)
+{
+    return device_unpack_1d_impl<typename device_map_impl<T>::type>::unpack(
+        device_map_impl<T>::map_to_device(param), i, size);
+}
+
+
+template <typename T>
+typename device_unpack_2d_impl<typename device_map_impl<T>::type>::type
+map_unpack_to_device(T &&param, size_type row, size_type col,
+                     size_type num_rows, size_type num_cols)
+{
+    return device_unpack_2d_impl<typename device_map_impl<T>::type>::unpack(
+        device_map_impl<T>::map_to_device(param), row, col, num_rows, num_cols);
+}
+
+
 }  // namespace omp
 }  // namespace kernels
 
@@ -124,7 +211,9 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
-        [&]() { fn(i, kernels::omp::map_to_device(args)...); }();
+        [&]() {
+            fn(i, kernels::omp::map_unpack_to_device(args, i, size)...);
+        }();
     }
 }
 
@@ -137,7 +226,11 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
     for (size_type i = 0; i < size[0] * size[1]; i++) {
         auto row = i / size[1];
         auto col = i % size[1];
-        [&]() { fn(row, col, kernels::omp::map_to_device(args)...); }();
+        [&]() {
+            fn(row, col,
+               kernels::omp::map_unpack_to_device(args, row, col, size[0],
+                                                  size[1])...);
+        }();
     }
 }
 

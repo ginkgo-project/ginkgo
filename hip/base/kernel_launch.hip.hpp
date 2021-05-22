@@ -75,32 +75,6 @@ struct matrix_accessor {
 };
 
 
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
-    size_type size, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    if (tidx >= size) {
-        return;
-    }
-    fn(tidx, args...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
-    size_type rows, size_type cols, KernelFunction fn, KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat();
-    auto col = tidx % cols;
-    auto row = tidx / cols;
-    if (row >= rows) {
-        return;
-    }
-    fn(row, col, args...);
-}
-
-
 template <typename T>
 struct device_map_impl {
     using type = std::decay_t<hip_type<T>>;
@@ -148,6 +122,108 @@ template <typename T>
 typename device_map_impl<T>::type map_to_device(T &&param)
 {
     return device_map_impl<T>::map_to_device(param);
+}
+
+
+template <typename ValueType>
+struct compact_dense_wrapper {
+    ValueType *data;
+};
+
+
+template <typename ValueType>
+compact_dense_wrapper<hip_type<ValueType>> compact(
+    matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {as_hip_type(mtx->get_values())};
+}
+
+
+template <typename ValueType>
+compact_dense_wrapper<const hip_type<ValueType>> compact(
+    const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {as_hip_type(mtx->get_const_values())};
+}
+
+
+template <typename ValueType>
+hip_type<ValueType> *vector(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return as_hip_type(mtx->get_values());
+}
+
+
+template <typename ValueType>
+const hip_type<ValueType> *vector(const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return as_hip_type(mtx->get_const_values());
+}
+
+
+template <typename T>
+struct device_unpack_1d_impl {
+    using type = T;
+    static __device__ __forceinline__ type unpack(T param, size_type, size_type)
+    {
+        return param;
+    }
+};
+
+
+template <typename T>
+struct device_unpack_2d_impl {
+    using type = T;
+    static __device__ __forceinline__ type unpack(T param, size_type, size_type,
+                                                  size_type, size_type)
+    {
+        return param;
+    }
+};
+
+template <typename ValueType>
+struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
+    using type = matrix_accessor<ValueType>;
+    static __device__ __forceinline__ type
+    unpack(compact_dense_wrapper<ValueType> param, size_type, size_type,
+           size_type, size_type num_cols)
+    {
+        return {param.data, num_cols};
+    }
+};
+
+
+template <typename KernelFunction, typename... KernelArgs>
+__global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
+    size_type size, KernelFunction fn, KernelArgs... args)
+{
+    auto tidx = thread::get_thread_id_flat();
+    if (tidx >= size) {
+        return;
+    }
+    fn(tidx, device_unpack_1d_impl<KernelArgs>::unpack(args, tidx, size)...);
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+__global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
+    size_type rows, size_type cols, KernelFunction fn, KernelArgs... args)
+{
+    auto tidx = thread::get_thread_id_flat();
+    auto col = tidx % cols;
+    auto row = tidx / cols;
+    if (row >= rows) {
+        return;
+    }
+    fn(row, col,
+       device_unpack_2d_impl<KernelArgs>::unpack(args, row, col, rows,
+                                                 cols)...);
 }
 
 

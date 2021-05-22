@@ -70,7 +70,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             r(row, col) = b(row, col);
             z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
         },
-        p->get_size(), b, r, z, p, q, prev_rho, rho, *stop_status);
+        p->get_size(), b, compact(r), compact(z), compact(p), compact(q),
+        vector(prev_rho), vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -92,7 +93,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p(row, col) = z(row, col) + tmp * p(row, col);
             }
         },
-        p->get_size(), p, z, rho, prev_rho, *stop_status);
+        p->get_size(), compact(p), compact(z), vector(rho), vector(prev_rho),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -117,7 +119,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= tmp * q(row, col);
             }
         },
-        x->get_size(), x, r, p, q, beta, rho, *stop_status);
+        x->get_size(), x, compact(r), compact(p), compact(q), vector(beta),
+        vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
