@@ -67,29 +67,6 @@ struct matrix_accessor {
 };
 
 
-template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
-                       KernelArgs... args)
-{
-    cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
-        fn(static_cast<size_type>(idx_id[0]), args...);
-    });
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
-                       KernelFunction fn, KernelArgs... args)
-{
-    cgh.parallel_for(sycl::range<1>{rows * cols}, [=](sycl::id<1> idx_id) {
-        auto idx = static_cast<size_type>(idx_id[0]);
-        auto row = idx / cols;
-        auto col = idx % cols;
-        fn(row, col, args...);
-    });
-}
-
-
 template <typename T>
 struct device_map_impl {
     using type = std::decay_t<T>;
@@ -137,6 +114,100 @@ template <typename T>
 typename device_map_impl<T>::type map_to_device(T &&param)
 {
     return device_map_impl<T>::map_to_device(param);
+}
+
+
+template <typename ValueType>
+struct compact_dense_wrapper {
+    ValueType *data;
+};
+
+
+template <typename ValueType>
+compact_dense_wrapper<ValueType> compact(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_values()};
+}
+
+
+template <typename ValueType>
+compact_dense_wrapper<const ValueType> compact(
+    const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_const_values()};
+}
+
+
+template <typename ValueType>
+ValueType *vector(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_values();
+}
+
+
+template <typename ValueType>
+const ValueType *vector(const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_const_values();
+}
+
+
+template <typename T>
+struct device_unpack_1d_impl {
+    using type = T;
+    static type unpack(T param, size_type, size_type) { return param; }
+};
+
+
+template <typename T>
+struct device_unpack_2d_impl {
+    using type = T;
+    static type unpack(T param, size_type, size_type, size_type, size_type)
+    {
+        return param;
+    }
+};
+
+template <typename ValueType>
+struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
+    using type = matrix_accessor<ValueType>;
+    static type unpack(compact_dense_wrapper<ValueType> param, size_type,
+                       size_type, size_type, size_type num_cols)
+    {
+        return {param.data, num_cols};
+    }
+};
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
+                       KernelArgs... args)
+{
+    cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
+        auto idx = static_cast<size_type>(idx_id[0]);
+        fn(idx, device_unpack_1d_impl<KernelArgs>::unpack(args, idx, size)...);
+    });
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
+                       KernelFunction fn, KernelArgs... args)
+{
+    cgh.parallel_for(sycl::range<1>{rows * cols}, [=](sycl::id<1> idx_id) {
+        auto idx = static_cast<size_type>(idx_id[0]);
+        auto row = idx / cols;
+        auto col = idx % cols;
+        fn(row, col,
+           device_unpack_2d_impl<KernelArgs>::unpack(args, row, col, rows,
+                                                     cols)...);
+    });
 }
 
 

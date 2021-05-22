@@ -77,8 +77,10 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             rr(row, col) = z(row, col) = v(row, col) = s(row, col) =
                 t(row, col) = y(row, col) = p(row, col) = zero(rr(row, col));
         },
-        p->get_size(), b, r, rr, y, s, t, z, v, p, prev_rho, rho, alpha, beta,
-        gamma, omega, *stop_status);
+        p->get_size(), b, compact(r), compact(rr), compact(y), compact(s),
+        compact(t), compact(z), compact(v), compact(p), vector(prev_rho),
+        vector(rho), vector(alpha), vector(beta), vector(gamma), vector(omega),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -105,7 +107,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                               tmp * (p(row, col) - omega[col] * v(row, col));
             }
         },
-        p->get_size(), r, p, v, rho, prev_rho, alpha, omega, *stop_status);
+        p->get_size(), compact(r), compact(p), compact(v), vector(rho),
+        vector(prev_rho), vector(alpha), vector(omega), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -132,7 +135,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 s(row, col) = r(row, col) - tmp * v(row, col);
             }
         },
-        r->get_size(), r, s, v, rho, alpha, beta, *stop_status);
+        r->get_size(), compact(r), compact(s), compact(v), vector(rho),
+        vector(alpha), vector(beta), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
@@ -161,7 +165,8 @@ void step_3(
                 r(row, col) = s(row, col) - tmp * t(row, col);
             }
         },
-        r->get_size(), x, r, s, t, y, z, alpha, beta, gamma, omega,
+        r->get_size(), x, compact(r), compact(s), compact(t), compact(y),
+        compact(z), vector(alpha), vector(beta), vector(gamma), vector(omega),
         *stop_status);
 }
 
@@ -183,7 +188,7 @@ void finalize(std::shared_ptr<const DefaultExecutor> exec,
                 stop[col].finalize();
             }
         },
-        x->get_size(), x, y, alpha, *stop_status);
+        x->get_size(), x, compact(y), vector(alpha), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);

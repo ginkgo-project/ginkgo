@@ -79,8 +79,10 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
                 v_hat(row, col) = t(row, col) = zero(u(row, col));
         },
-        p->get_size(), b, r, r_tld, p, q, u, u_hat, v_hat, t, alpha, beta,
-        gamma, prev_rho, rho, *stop_status);
+        p->get_size(), b, compact(r), compact(r_tld), compact(p), compact(q),
+        compact(u), compact(u_hat), compact(v_hat), compact(t), vector(alpha),
+        vector(beta), vector(gamma), vector(prev_rho), vector(rho),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
@@ -108,7 +110,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                     u(row, col) + tmp * (q(row, col) + tmp * p(row, col));
             }
         },
-        p->get_size(), r, u, p, q, beta, rho, prev_rho, *stop_status);
+        p->get_size(), compact(r), compact(u), compact(p), compact(q),
+        vector(beta), vector(rho), vector(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -136,7 +139,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 t(row, col) = u(row, col) + q(row, col);
             }
         },
-        u->get_size(), u, v_hat, q, t, alpha, rho, gamma, *stop_status);
+        u->get_size(), compact(u), compact(v_hat), compact(q), compact(t),
+        vector(alpha), vector(rho), vector(gamma), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
@@ -157,7 +161,8 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= alpha[col] * t(row, col);
             }
         },
-        t->get_size(), t, u_hat, r, x, alpha, *stop_status);
+        t->get_size(), compact(t), compact(u_hat), compact(r), x, vector(alpha),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
