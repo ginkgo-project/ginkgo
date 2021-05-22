@@ -33,46 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void scale(
-    size_type num_rows, size_type num_cols, size_type num_alpha_cols,
-    const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
-    size_type stride_x)
-{
-    constexpr auto warps_per_block = block_size / config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<config::warp_size, warps_per_block>();
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
-    if (row_id < num_rows) {
-        x[row_id * stride_x + col_id] =
-            alpha[alpha_id] == zero<ValueType>()
-                ? zero<ValueType>()
-                : x[row_id * stride_x + col_id] * alpha[alpha_id];
-    }
-}
-
-
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void add_scaled(
-    size_type num_rows, size_type num_cols, size_type num_alpha_cols,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ x,
-    size_type stride_x, ValueType *__restrict__ y, size_type stride_y)
-{
-    constexpr auto warps_per_block = block_size / config::warp_size;
-    const auto global_id =
-        thread::get_thread_id<config::warp_size, warps_per_block>();
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
-    if (row_id < num_rows && alpha[alpha_id] != zero<ValueType>()) {
-        y[row_id * stride_y + col_id] +=
-            x[row_id * stride_x + col_id] * alpha[alpha_id];
-    }
-}
-
-
 template <size_type block_size, typename OutType, typename CallableGetValue,
           typename CallableReduce>
 __device__ void compute_partial_reduce(size_type num_rows,

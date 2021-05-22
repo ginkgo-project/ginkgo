@@ -85,23 +85,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
-
-
-template <typename ValueType>
-void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
-                const matrix::Dense<ValueType> *alpha,
-                const matrix::Dense<ValueType> *x,
-                matrix::Dense<ValueType> *y) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,

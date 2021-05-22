@@ -118,58 +118,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
-{
-    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        cublas::scal(exec->get_cublas_handle(), x->get_size()[0],
-                     alpha->get_const_values(), x->get_values(),
-                     x->get_stride());
-    } else {
-        // TODO: tune this parameter
-        constexpr auto block_size = default_block_size;
-        const dim3 grid_dim =
-            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-        const dim3 block_dim{config::warp_size, 1,
-                             block_size / config::warp_size};
-        kernel::scale<block_size><<<grid_dim, block_dim>>>(
-            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
-            as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(x->get_values()), x->get_stride());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
-
-
-template <typename ValueType>
-void add_scaled(std::shared_ptr<const CudaExecutor> exec,
-                const matrix::Dense<ValueType> *alpha,
-                const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
-{
-    if (cublas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        cublas::axpy(exec->get_cublas_handle(), x->get_size()[0],
-                     alpha->get_const_values(), x->get_const_values(),
-                     x->get_stride(), y->get_values(), y->get_stride());
-    } else {
-        // TODO: tune this parameter
-        constexpr auto block_size = default_block_size;
-        const dim3 grid_dim =
-            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-        const dim3 block_dim{config::warp_size, 1,
-                             block_size / config::warp_size};
-        kernel::add_scaled<block_size><<<grid_dim, block_dim>>>(
-            x->get_size()[0], x->get_size()[1], alpha->get_size()[1],
-            as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(x->get_const_values()), x->get_stride(),
-            as_cuda_type(y->get_values()), y->get_stride());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
