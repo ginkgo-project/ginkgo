@@ -34,6 +34,22 @@ namespace kernel {
 
 
 template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void strided_copy(
+    size_type num_rows, size_type num_cols, size_type in_stride,
+    size_type out_stride, const ValueType *__restrict__ input,
+    ValueType *__restrict__ output)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        output[row_id * out_stride + col_id] =
+            input[row_id * in_stride + col_id];
+    }
+}
+
+
+template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void strided_fill(
     size_type num_rows, size_type num_cols, size_type stride,
     ValueType *__restrict__ mat, ValueType value)

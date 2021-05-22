@@ -115,6 +115,25 @@ protected:
 TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
 
 
+TYPED_TEST(Dense, CopyRespectsStride)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m =
+        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
+    auto m2 =
+        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 1}, 2);
+    auto original_data = m2->get_values();
+    original_data[1] = TypeParam{3.0};
+
+    m->convert_to(m2.get());
+
+    EXPECT_EQ(m2->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m2->at(1, 0), value_type{2.0});
+    EXPECT_EQ(m2->get_values(), original_data);
+    EXPECT_EQ(original_data[1], TypeParam{3.0});
+}
+
+
 TYPED_TEST(Dense, CanBeFilledWithValue)
 {
     using value_type = typename TestFixture::value_type;

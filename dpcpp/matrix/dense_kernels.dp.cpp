@@ -85,6 +85,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<ValueType> *input,
+          matrix::Dense<ValueType> *output) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COPY_KERNEL);
+
+
+template <typename ValueType>
 void fill(std::shared_ptr<const DefaultExecutor> exec,
           matrix::Dense<ValueType> *mat, ValueType value) GKO_NOT_IMPLEMENTED;
 
