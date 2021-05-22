@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_SYNTHESIZER_CONTAINERS_HPP_
 
 
+#include <array>
 #include <type_traits>
 
 
@@ -111,6 +112,13 @@ struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start >= End)>> {
 
 template <typename T>
 using as_list = typename detail::as_list_impl<T>::type;
+
+
+template <typename T, T... Value>
+constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
+{
+    return std::array<T, sizeof...(Value)>{Value...};
+}
 
 
 }  // namespace syn
