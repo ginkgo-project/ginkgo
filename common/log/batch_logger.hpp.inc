@@ -80,6 +80,9 @@ public:
         const size_type batch_idx, const int iter,
         const real_type *const res_norm, const uint32 converged)
     {
+        if (iter == 0) {
+            init_converged_ = 0 - (1 << nrhs_);
+        }
         // Maybe this can/should be optimized? It might not be worth the effort.
         if (converged != init_converged_ || iter >= max_iters_ - 2) {
             for (int j = threadIdx.x; j < nrhs_; j += blockDim.x) {
