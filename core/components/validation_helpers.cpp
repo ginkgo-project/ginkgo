@@ -40,6 +40,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace validate {
 
+template <typename F>
+bool all_of(const size_type num_entries, F &&pred)
+{
+    for (size_type i = 0; i < num_entries; ++i) {
+        if (!pred(i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 template <class ValueType, class IndexType>
 bool is_symmetric_impl(const LinOp *matrix, const float tolerance)
 {
@@ -74,6 +85,7 @@ bool is_symmetric(const LinOp *matrix, const float tolerance)
     return false;
 }
 
+// TODO check also if every diagonal element is present
 template <class ValueType, class IndexType>
 bool has_non_zero_diagonal_impl(const LinOp *matrix)
 {
@@ -81,12 +93,40 @@ bool has_non_zero_diagonal_impl(const LinOp *matrix)
     dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
         ->write(data);
 
-    for (auto &nonzero : data.nonzeros) {
-        if (nonzero.row == nonzero.column && std::abs(nonzero.value) == 0)
-            return false;
-    }
+    size_type num_diag_els = 0;
+    size_type num_elems = data.nonzeros.size();
 
-    return true;
+    return all_of(num_elems,
+                  [&data, &num_diag_els, num_elems](const size_type i) {
+                      const IndexType row = data.nonzeros[i].row;
+                      const IndexType col = data.nonzeros[i].column;
+                      const ValueType val = data.nonzeros[i].value;
+
+                      // if row index is > than the number of diagonal elements
+                      // found an diagonal element is already missing
+                      if (row > num_diag_els) return false;
+
+                      const bool is_diag = row == col;
+                      const bool is_zero = std::abs(val) == 0;
+
+                      if (is_diag) {
+                          if (!is_zero) {
+                              num_diag_els++;
+                          } else {
+                              return false;
+                          }
+                      }
+
+                      const bool final_element = i == num_elems - 1;
+                      const bool missing_diag = num_diag_els == row;
+
+                      // the final element could be
+                      if (final_element && missing_diag) {
+                          return is_diag;
+                      }
+
+                      return true;
+                  });
 }
 
 bool has_non_zero_diagonal(const LinOp *matrix)
@@ -119,27 +159,24 @@ bool is_triangular_impl(const LinOp *matrix, const bool upper)
 bool is_lower_triangular(const LinOp *matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
-                                           is_diagonal_impl, matrix, false)
+                                           is_triangular_impl, matrix, false)
     return false;
 }
 
 bool is_upper_triangular(const LinOp *matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
-                                           is_diagonal_impl, matrix, true)
+                                           is_triangular_impl, matrix, true)
     return false;
 }
 #undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
+
 template <typename IndexType>
 bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
 {
-    for (size_type i = 1; i < num_entries; ++i) {
-        if (idxs[i - 1] == idxs[i]) {
-            return false;
-        }
-    }
-    return true;
+    return all_of(num_entries - 1,
+                  [idxs](const size_type i) { return idxs[i] != idxs[i + 1]; });
 }
 
 #define GKO_DECLARE_HAS_UNIQUE_IDXS(IndexType) \
@@ -150,12 +187,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_HAS_UNIQUE_IDXS);
 template <typename IndexType>
 bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
 {
-    for (size_type i = 1; i < num_entries; ++i) {
-        if (row_ptrs[i - 1] > row_ptrs[i]) {
-            return false;
-        }
-    }
-    return true;
+    return all_of(num_entries - 1, [row_ptrs](const size_type i) {
+        return row_ptrs[i] <= row_ptrs[i + 1];
+    });
 }
 
 #define GKO_DECLARE_IS_ROW_ORDERED(IndexType) \
@@ -167,12 +201,10 @@ template <typename IndexType>
 bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
                       const IndexType lower_bound, const IndexType upper_bound)
 {
-    for (size_type i = 0; i < num_entries; ++i) {
-        if (lower_bound > idxs[i] || idxs[i] >= upper_bound) {
-            return false;
-        }
-    }
-    return true;
+    return all_of(num_entries,
+                  [idxs, lower_bound, upper_bound](const size_type i) {
+                      return (idxs[i] >= lower_bound && idxs[i] < upper_bound);
+                  });
 }
 
 #define GKO_DECLARE_IS_WITHIN_BOUNDS(IndexType)                               \
@@ -185,12 +217,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_WITHIN_BOUNDS);
 template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries)
 {
-    for (size_type i = 0; i < num_entries; ++i) {
-        if (!std::isfinite(std::abs(values[i]))) {
-            return false;
-        }
-    }
-    return true;
+    return all_of(num_entries, [values](const size_type i) {
+        return (std::isfinite(std::abs(values[i])));
+    });
 }
 
 #define GKO_DECLARE_IS_FINITE(ValueType) \
@@ -203,13 +232,9 @@ template <typename IndexType>
 bool is_consecutive(const IndexType *idxs, const size_type num_entries,
                     const IndexType max_gap)
 {
-    for (size_type i = 1; i < num_entries; ++i) {
-        const IndexType gap = idxs[i] - idxs[i - 1];
-        if (gap > max_gap) {
-            return false;
-        }
-    }
-    return true;
+    return all_of(num_entries - 1, [idxs, max_gap](const size_type i) {
+        return (idxs[i + 1] - idxs[i]) <= max_gap;
+    });
 }
 
 #define GKO_DECLARE_IS_CONSECUTIVE(IndexType)                               \
