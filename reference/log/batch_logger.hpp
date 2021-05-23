@@ -87,6 +87,9 @@ public:
     void log_iteration(const size_type batch_idx, const int iter,
                        const real_type *const res_norm, const uint32 converged)
     {
+        if (iter == 0) {
+            init_converged_ = 0 - (1 << nrhs_);
+        }
         if (converged != init_converged_ || iter >= max_iters_ - 1) {
             for (int j = 0; j < nrhs_; j++) {
                 const uint32 jconv = converged & (1 << j);
