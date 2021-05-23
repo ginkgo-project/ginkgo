@@ -56,15 +56,8 @@ public:
 
     /**
      * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Jacobi preconditioner, this is unnecessary, but this function is
-     * part of a 'batch preconditioner interface' because other preconditioners
-     * may need it.
      */
-    static int dynamic_work_size(int, int)
-    {
-        return batch_config<ValueType>::max_num_rows;
-    }
+    static int dynamic_work_size(const int nrows, int) { return nrows; }
 
     /**
      * Sets the input and generates the preconditioner by storing the inverse
