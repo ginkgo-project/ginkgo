@@ -79,16 +79,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, cfg_, list_)      \
     template <typename... InferredArgs>                                    \
     void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory,        \
-               sycl::queue *queue,                                         \
-               std::shared_ptr<const gko::DpcppExecutor> exec,             \
-               InferredArgs... args)                                       \
+               sycl::queue *queue, InferredArgs... args)                   \
     {                                                                      \
-        auto exec_info = exec->get_const_exec_info();                      \
         callable_(                                                         \
             list_,                                                         \
-            [&exec_info, &block](int config) {                             \
-                return exec_info.validate(cfg_::decode<0>(config),         \
-                                          cfg_::decode<1>(config)) &&      \
+            [&block, &queue](unsigned int config) {                        \
+                return gko::kernels::dpcpp::validate(                      \
+                           queue, cfg_::decode<0>(config),                 \
+                           cfg_::decode<1>(config)) &&                     \
                        (cfg_::decode<0>(config) == block.x);               \
             },                                                             \
             ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(), \
@@ -111,5 +109,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __WG_CONFIG_BOUND__(CFG, cfg)                         \
     __WG_BOUND_3D__(CFG::decode<0>(cfg), CFG::decode<1>(cfg), \
                     CFG::decode<2>(cfg))
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+
+
+bool validate(sycl::queue *queue, unsigned int workgroup_size,
+              unsigned int subgroup_size)
+{
+    auto device = queue->get_device();
+    auto subgroup_size_list =
+        device.get_info<cl::sycl::info::device::sub_group_sizes>();
+    auto max_workgroup_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+    bool allowed = false;
+    for (auto &i : subgroup_size_list) {
+        allowed |= (i == subgroup_size);
+    }
+    return allowed && (workgroup_size <= max_workgroup_size);
+}
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
 
 #endif  // GKO_DPCPP_BASE_HELPER_HPP_

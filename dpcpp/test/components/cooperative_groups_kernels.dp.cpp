@@ -85,14 +85,14 @@ protected:
     void test_all_subgroup(Kernel kernel)
     {
         auto subgroup_size = GetParam();
-        auto exec_info = dpcpp->get_const_exec_info();
-        if (exec_info.validate(subgroup_size, subgroup_size)) {
+        auto queue = dpcpp->get_queue();
+        if (gko::kernels::dpcpp::validate(queue, subgroup_size,
+                                          subgroup_size)) {
             for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
 
-            kernel(1, subgroup_size, 0, dpcpp->get_queue(), dpcpp,
-                   dresult.get_data());
+            kernel(1, subgroup_size, 0, dpcpp->get_queue(), dresult.get_data());
 
             // each subgreoup size segment for one test
             GKO_ASSERT_ARRAY_EQ(result, dresult);
@@ -131,9 +131,9 @@ void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 // group all kernel things together
 template <int config>
 void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue *stream, bool *s)
+                     sycl::queue *queue, bool *s)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              cg_shuffle<config>(s, item_ct1);
@@ -146,22 +146,19 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_shuffle_config, cg_shuffle_host)
 
 // the call
 void cg_shuffle_config_call(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                            sycl::queue *stream,
-                            std::shared_ptr<const gko::DpcppExecutor> exec,
-                            bool *s)
+                            sycl::queue *queue, bool *s)
 {
-    auto exec_info = exec->get_const_exec_info();
     cg_shuffle_config(
         default_config_list,
         // validate
-        [&exec_info, &block](int config) {
-            return exec_info.validate(KCfg::decode<0>(config),
-                                      KCfg::decode<1>(config)) &&
+        [&block, &queue](unsigned int config) {
+            return gko::kernels::dpcpp::validate(queue, KCfg::decode<0>(config),
+                                                 KCfg::decode<1>(config)) &&
                    (KCfg::decode<0>(config) == block.x);
         },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        grid, block, dynamic_shared_memory, stream, s);
+        grid, block, dynamic_shared_memory, queue, s);
 }
 
 TEST_P(CooperativeGroups, Shuffle)
@@ -185,15 +182,11 @@ void cg_all(bool *s, sycl::nd_item<3> item_ct1)
         group.all(item_ct1.get_local_id(2) < 13) == sg_size < 13;
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_all_host, cg_all)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all_config, cg_all_host)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_config_call, cg_all_config, KCfg,
-                               default_config_list)
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_all, cg_all)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all, cg_all)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, KCfg, default_config_list)
 
-TEST_P(CooperativeGroups, All)
-{
-    test_all_subgroup(cg_all_config_call<bool *>);
-}
+TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool *>); }
 
 
 template <int config>
@@ -210,15 +203,11 @@ void cg_any(bool *s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = !group.any(false);
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_any_host, cg_any)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any_config, cg_any_host)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_config_call, cg_any_config, KCfg,
-                               default_config_list)
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_any, cg_any)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any, cg_any)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, KCfg, default_config_list)
 
-TEST_P(CooperativeGroups, Any)
-{
-    test_all_subgroup(cg_any_config_call<bool *>);
-}
+TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool *>); }
 
 
 template <int config>
@@ -236,15 +225,12 @@ void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = group.ballot(item_ct1.get_local_id(2) < 4) == 0xf;
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_ballot_host, cg_ballot)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot_config, cg_ballot_host)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_config_call, cg_ballot_config, KCfg,
+GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_ballot, cg_ballot)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot, cg_ballot)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_call, cg_ballot, KCfg,
                                default_config_list)
 
-TEST_P(CooperativeGroups, Ballot)
-{
-    test_all_subgroup(cg_ballot_config_call<bool *>);
-}
+TEST_P(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_call<bool *>); }
 
 INSTANTIATE_TEST_SUITE_P(DifferentSubgroup, CooperativeGroups,
                          testing::Values(4, 8, 16, 32, 64),
