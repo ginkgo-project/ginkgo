@@ -46,10 +46,6 @@ public:
 
     /**
      * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Jacobi preconditioner, this is unnecessary, but this function is
-     * part of a 'batch preconditioner interface' because other preconditioners
-     * may need it.
      */
     __host__ __device__ static constexpr int dynamic_work_size(
         const int num_rows, int)
