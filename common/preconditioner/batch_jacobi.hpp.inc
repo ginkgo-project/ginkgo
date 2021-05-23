@@ -76,10 +76,8 @@ public:
             for (int j = mat.row_ptrs[irow] + tile.thread_rank();
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
                 const int found = (mat.col_idxs[j] == irow);
-                const uint32 foundbits = tile.ballot(found);
-                if (foundbits && tile.thread_rank() == 0) {
-                    const int posj = ffs(foundbits) - 1;
-                    work_[irow] = one<ValueType>() / mat.values[j + posj];
+                if (found) {
+                    work_[irow] = one<ValueType>() / mat.values[j];
                 }
             }
         }
