@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
