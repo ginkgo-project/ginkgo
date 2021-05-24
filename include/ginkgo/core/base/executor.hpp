@@ -813,7 +813,6 @@ protected:
         std::vector<int> closest_pu_ids{};
     };
 
-protected:
     /**
      * Gets the exec info struct
      *
