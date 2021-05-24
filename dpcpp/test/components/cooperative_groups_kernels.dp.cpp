@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #include "core/synthesizer/implementation_selection.hpp"
@@ -60,12 +61,12 @@ namespace {
 using namespace gko::kernels::dpcpp;
 using KCfg = gko::ConfigSet<12, 7>;
 constexpr auto default_config_list =
-    ::gko::syn::value_list<int, KCfg::encode(64, 64), KCfg::encode(32, 32),
-                           KCfg::encode(16, 16), KCfg::encode(8, 8),
-                           KCfg::encode(4, 4)>();
+    ::gko::syn::value_list<::gko::ConfigSetType, KCfg::encode(64, 64),
+                           KCfg::encode(32, 32), KCfg::encode(16, 16),
+                           KCfg::encode(8, 8), KCfg::encode(4, 4)>();
 
 
-class CooperativeGroups : public testing::TestWithParam<int> {
+class CooperativeGroups : public testing::TestWithParam<unsigned int> {
 protected:
     CooperativeGroups()
         : ref(gko::ReferenceExecutor::create()),
@@ -112,7 +113,7 @@ protected:
 
 
 // kernel implementation
-template <int config>
+template <::gko::ConfigSetType config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -167,7 +168,7 @@ TEST_P(CooperativeGroups, Shuffle)
 }
 
 
-template <int config>
+template <::gko::ConfigSetType config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_all(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -189,7 +190,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, KCfg, default_config_list)
 TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool *>); }
 
 
-template <int config>
+template <::gko::ConfigSetType config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_any(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -210,7 +211,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, KCfg, default_config_list)
 TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool *>); }
 
 
-template <int config>
+template <::gko::ConfigSetType config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -232,8 +233,10 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_call, cg_ballot, KCfg,
 
 TEST_P(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_call<bool *>); }
 
+
 INSTANTIATE_TEST_SUITE_P(DifferentSubgroup, CooperativeGroups,
                          testing::Values(4, 8, 16, 32, 64),
                          testing::PrintToStringParamName());
+
 
 }  // namespace

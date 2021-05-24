@@ -257,6 +257,9 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
 }  // namespace detail
 
 
+// a shortcut type for ConfigSet
+using ConfigSetType = unsigned int;
+
 /**
  * ConfigSet is a way to embed several information into one integer by given
  * certain bits. The usage will be the following
@@ -287,7 +290,7 @@ public:
      * @return the decoded information at position
      */
     template <int position>
-    static constexpr unsigned decode(unsigned encoded)
+    static constexpr ConfigSetType decode(ConfigSetType encoded)
     {
         static_assert(position < num_groups,
                       "This position is over the bounds.");
@@ -302,7 +305,8 @@ public:
      * @note the last case of nested template.
      */
     template <size_type current_iter>
-    static constexpr std::enable_if_t<(current_iter == num_groups), unsigned>
+    static constexpr std::enable_if_t<(current_iter == num_groups),
+                                      ConfigSetType>
     encode()
     {
         return 0;
@@ -320,8 +324,9 @@ public:
      * @return the encoded integer
      */
     template <size_type current_iter = 0, typename... Rest>
-    static constexpr std::enable_if_t<(current_iter < num_groups), unsigned>
-    encode(unsigned first, Rest &&... rest)
+    static constexpr std::enable_if_t<(current_iter < num_groups),
+                                      ConfigSetType>
+    encode(ConfigSetType first, Rest &&... rest)
     {
         constexpr int shift = detail::shift<num_groups, current_iter>(bits);
         return (first << shift) |

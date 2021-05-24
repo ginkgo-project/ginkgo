@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 #include "dpcpp/base/dim3.dp.hpp"
 
 
@@ -52,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param kernel_  the kernel name
  */
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                     \
-    template <int encoded, typename... InferredArgs>                       \
+    template <::gko::ConfigSetType encoded, typename... InferredArgs>      \
     inline void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory, \
                       sycl::queue *queue, InferredArgs... args)            \
     {                                                                      \
@@ -83,7 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     {                                                                      \
         callable_(                                                         \
             list_,                                                         \
-            [&block, &queue](unsigned int config) {                        \
+            [&block, &queue](::gko::ConfigSetType config) {                \
                 return gko::kernels::dpcpp::validate(                      \
                            queue, cfg_::decode<0>(config),                 \
                            cfg_::decode<1>(config)) &&                     \
