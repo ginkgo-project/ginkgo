@@ -124,7 +124,8 @@ __dpct_inline__ size_type get_local_warp_id(sycl::nd_item<3> item_ct1)
 template <int subwarp_size>
 __dpct_inline__ size_type get_local_subwarp_id(sycl::nd_item<3> item_ct1)
 {
-    constexpr auto subwarps_per_warp = config::warp_size / subwarp_size;
+    // dpcpp does not have subwarp.
+    constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
     return get_local_warp_id(item_ct1) * subwarps_per_warp +
            item_ct1.get_local_id(1);
 }
@@ -195,7 +196,8 @@ __dpct_inline__ size_type get_warp_id(sycl::nd_item<3> item_ct1)
 template <int subwarp_size, int warps_per_block>
 __dpct_inline__ size_type get_subwarp_id(sycl::nd_item<3> item_ct1)
 {
-    constexpr auto subwarps_per_warp = config::warp_size / subwarp_size;
+    // dpcpp dose not have subwarp
+    constexpr auto subwarps_per_warp = subwarp_size / subwarp_size;
     return get_warp_id<warps_per_block>(item_ct1) * subwarps_per_warp +
            item_ct1.get_local_id(1);
 }
