@@ -46,10 +46,6 @@ public:
 
     /**
      * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Jacobi preconditioner, this is unnecessary, but this function is
-     * part of a 'batch preconditioner interface' because other preconditioners
-     * may need it.
      */
     __host__ __device__ static constexpr int dynamic_work_size(
         const int num_rows, int)
@@ -80,10 +76,8 @@ public:
             for (int j = mat.row_ptrs[irow] + tile.thread_rank();
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
                 const int found = (mat.col_idxs[j] == irow);
-                const uint32 foundbits = tile.ballot(found);
-                if (foundbits && tile.thread_rank() == 0) {
-                    const int posj = ffs(foundbits) - 1;
-                    work_[irow] = one<ValueType>() / mat.values[j + posj];
+                if (found) {
+                    work_[irow] = one<ValueType>() / mat.values[j];
                 }
             }
         }
