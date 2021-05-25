@@ -94,7 +94,7 @@ protected:
 
     void set_up_apply_data(int num_vectors = 1)
     {
-        const size_t batch_size = mtx_size.get_num_batches();
+        const size_t batch_size = mtx_size.get_num_batch_entries();
         const int nrows = mtx_size.at()[0];
         const int ncols = mtx_size.at()[1];
         mtx = Mtx::create(ref);
@@ -121,7 +121,7 @@ protected:
 
     void set_up_apply_complex_data()
     {
-        const size_t batch_size = mtx_size.get_num_batches();
+        const size_t batch_size = mtx_size.get_num_batch_entries();
         const int nrows = mtx_size.at()[0];
         const int ncols = mtx_size.at()[1];
         complex_mtx = ComplexMtx::create(ref);
@@ -150,7 +150,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
-    const gko::batch_dim mtx_size;
+    const gko::batch_dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
@@ -232,7 +232,7 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
 {
     set_up_apply_data();
-    const size_t batch_size = mtx_size.get_num_batches();
+    const size_t batch_size = mtx_size.get_num_batch_entries();
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
     auto ref_left_scale = gen_mtx<Vec>(1, nrows, 1, 1);
