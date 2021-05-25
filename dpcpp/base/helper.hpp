@@ -79,18 +79,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *               available to decode<0> for blocksize and decode<1> for
  *               subgroup_size by cfg_
  */
-#define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, cfg_, list_)      \
+#define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, list_)            \
     template <typename... InferredArgs>                                    \
-    void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory,        \
-               sycl::queue *queue, InferredArgs... args)                   \
+    void name_(::gko::ConfigSetType desired_cfg, dim3 grid, dim3 block,    \
+               size_t dynamic_shared_memory, sycl::queue *queue,           \
+               InferredArgs... args)                                       \
     {                                                                      \
         callable_(                                                         \
             list_,                                                         \
-            [&block, &queue](::gko::ConfigSetType config) {                \
-                return gko::kernels::dpcpp::validate(                      \
-                           queue, cfg_::decode<0>(config),                 \
-                           cfg_::decode<1>(config)) &&                     \
-                       (cfg_::decode<0>(config) == block.x);               \
+            [&desired_cfg](::gko::ConfigSetType cfg) {                     \
+                return cfg == desired_cfg;                                 \
             },                                                             \
             ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(), \
             ::gko::syn::value_list<gko::size_type>(),                      \
