@@ -90,9 +90,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
-                 gko::batch::to_const(x_shared_entry),
-                 static_cast<ValueType>(1.0), r_shared_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                         gko::batch::to_const(x_shared_entry),
+                         static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
@@ -468,7 +468,7 @@ __global__ void apply_kernel(
         const gko::batch_csr::BatchEntry<const ValueType> mat_shared_entry{
             a_vals_sh, a_col_idxs_sh, a_row_ptrs_sh, 2, 2};
 
-        spmv_ker(mat_shared_entry, b_shared_entry, sol_shared_entry);
+        spmv_kernel(mat_shared_entry, b_shared_entry, sol_shared_entry);
 
         __syncthreads();
 
@@ -616,8 +616,8 @@ __global__ void apply_kernel(
 
         const ValueType beta = static_cast<ValueType>(-1);
 
-        adv_spmv_ker(alpha, mat_shared_entry, b_shared_entry, beta,
-                     sol_shared_entry);
+        advanced_spmv_kernel(alpha, mat_shared_entry, b_shared_entry, beta,
+                             sol_shared_entry);
 
         __syncthreads();
 
@@ -934,8 +934,9 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // v = A * p_hat
-            spmv_ker(A_global_entry, gko::batch::to_const(p_hat_shared_entry),
-                     v_shared_entry);
+            spmv_kernel(A_global_entry,
+                        gko::batch::to_const(p_hat_shared_entry),
+                        v_shared_entry);
 
             __syncthreads();
 
@@ -1002,8 +1003,9 @@ __global__ void apply_kernel(
 
 
             // t = A * s_hat
-            spmv_ker(A_global_entry, gko::batch::to_const(s_hat_shared_entry),
-                     t_shared_entry);
+            spmv_kernel(A_global_entry,
+                        gko::batch::to_const(s_hat_shared_entry),
+                        t_shared_entry);
             __syncthreads();
 
             // omega_new = <t,s> / <t,t>

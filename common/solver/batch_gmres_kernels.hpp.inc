@@ -106,9 +106,9 @@ __device__ __forceinline__ void initialize(
 
 
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
-                 gko::batch::to_const(x_shared_entry),
-                 static_cast<ValueType>(1.0), r_shared_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                         gko::batch::to_const(x_shared_entry),
+                         static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
@@ -269,7 +269,7 @@ __device__ __forceinline__ void arnoldi(
         w_temp_sh, w_shared_entry.stride, w_shared_entry.num_rows,
         w_shared_entry.num_rhs};
 
-    spmv_ker(A_global_entry, v_i_shared_entry, w_temp_shared_entry);
+    spmv_kernel(A_global_entry, v_i_shared_entry, w_temp_shared_entry);
 
     __syncthreads();
 
@@ -926,9 +926,9 @@ __global__ void apply_kernel(
             copy(b_global_entry, r_shared_entry, converged);
             __syncthreads();
             // r = r - A*x
-            adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
-                         gko::batch::to_const(x_shared_entry),
-                         static_cast<ValueType>(1.0), r_shared_entry);
+            advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                                 gko::batch::to_const(x_shared_entry),
+                                 static_cast<ValueType>(1.0), r_shared_entry);
             __syncthreads();
 
 

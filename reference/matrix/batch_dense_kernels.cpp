@@ -168,7 +168,8 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
-    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
