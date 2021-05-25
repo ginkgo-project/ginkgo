@@ -306,16 +306,15 @@ void solve_system(const std::string &sol_name,
         }
         size_type nrhs = b->get_size().at(0)[1];
         if (FLAGS_warmup > 0) {
-            add_or_set_member(solver_json["apply"], "num_iters",
+            add_or_set_member(solver_json, "num_iters",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
             for (size_type i = 0; i < nbatch; ++i) {
-                add_or_set_member(solver_json["apply"]["num_iters"],
-                                  std::to_string(i).c_str(),
-                                  rapidjson::Value(rapidjson::kArrayType),
-                                  allocator);
+                add_or_set_member(
+                    solver_json["num_iters"], std::to_string(i).c_str(),
+                    rapidjson::Value(rapidjson::kArrayType), allocator);
                 for (size_type j = 0; j < nrhs; ++j) {
-                    solver_json["apply"]["num_iters"][std::to_string(i).c_str()]
+                    solver_json["num_iters"][std::to_string(i).c_str()]
                         .PushBack(logger->get_num_iterations()
                                       .get_const_data()[i * nrhs + j],
                                   allocator);
@@ -356,20 +355,22 @@ void solve_system(const std::string &sol_name,
                 solver->add_logger(logger);
                 solver->apply(lend(b), lend(x_clone));
                 solver->remove_logger(gko::lend(logger));
-                add_or_set_member(solver_json["apply"], "final_resnorms",
+                add_or_set_member(solver_json["apply"], "implicit_resnorms",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
                 for (size_type i = 0; i < nbatch; ++i) {
-                    add_or_set_member(solver_json["apply"]["final_resnorms"],
+                    add_or_set_member(solver_json["apply"]["implicit_resnorms"],
                                       std::to_string(i).c_str(),
                                       rapidjson::Value(rapidjson::kArrayType),
                                       allocator);
                     for (size_type j = 0; j < nrhs; ++j) {
-                        solver_json["apply"]["final_resnorms"][std::to_string(i)
-                                                                   .c_str()]
-                            .PushBack(logger->get_residual_norm()
-                                          ->get_const_values()[i * nrhs + j],
-                                      allocator);
+                        solver_json["apply"]["implicit_resnorms"]
+                                   [std::to_string(i).c_str()]
+                                       .PushBack(
+                                           logger->get_residual_norm()
+                                               ->get_const_values()[i * nrhs +
+                                                                    j],
+                                           allocator);
                     }
                 }
             }
@@ -393,14 +394,21 @@ void solve_system(const std::string &sol_name,
             solver->apply(lend(b), lend(x_clone));
             apply_timer->toc();
 
-            // if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
-            //     !FLAGS_overhead) {
-            //     auto residual = compute_residual_norm(lend(system_matrix),
-            //                                           lend(b),
-            //                                           lend(x_clone));
-            //     add_or_set_member(solver_json, "residual_norm", residual,
-            //                       allocator);
-            // }
+            if (b->get_size().at(0)[1] == 1 && i == FLAGS_repetitions - 1 &&
+                !FLAGS_overhead) {
+                auto residual = compute_batch_residual_norm(
+                    lend(system_matrix), lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "residual_norm",
+                                  rapidjson::Value(rapidjson::kObjectType),
+                                  allocator);
+                for (size_type i = 0; i < nbatch; ++i) {
+                    add_or_set_member(
+                        solver_json["residual_norm"], std::to_string(i).c_str(),
+                        rapidjson::Value(rapidjson::kArrayType), allocator);
+                    solver_json["residual_norm"][std::to_string(i).c_str()]
+                        .PushBack(residual[i], allocator);
+                }
+            }
         }
         add_or_set_member(solver_json["generate"], "time",
                           generate_timer->compute_average_time(), allocator);
