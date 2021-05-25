@@ -361,8 +361,9 @@ TEST(BatchRich, CanSolveWithoutScaling)
     const RT tol = std::numeric_limits<RT>::epsilon();
     std::shared_ptr<gko::ReferenceExecutor> exec =
         gko::ReferenceExecutor::create();
+    const int maxits = 10000;
     auto batchrich_factory = Solver::build()
-                                 .with_max_iterations(10000)
+                                 .with_max_iterations(maxits)
                                  .with_rel_residual_tol(tol * 200)
                                  .with_relaxation_factor(RT{0.98})
                                  .on(exec);
@@ -409,6 +410,7 @@ TEST(BatchRich, CanSolveWithoutScaling)
         for (int j = 0; j < nrhs; j++) {
             ASSERT_LE(rnorm->at(ib, 0, j) / bnorm->at(ib, 0, j), tol * 200);
             ASSERT_GT(iter_array.get_const_data()[ib * nrhs + j], 0);
+            ASSERT_LE(iter_array.get_const_data()[ib * nrhs + j], maxits);
         }
     }
     GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, tol);
