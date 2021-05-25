@@ -76,11 +76,11 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{"none", 10, 1e-6, 1e-11,
-                         gko::stop::batch::ToleranceType::absolute};
+    const Options opts_1{gko::preconditioner::batch::type::none, 10, 1e-6,
+                         1e-11, gko::stop::batch::ToleranceType::absolute};
     const int nrhs = 2;
-    const Options opts_m{"none", 10, 1e-6, 1e-11,
-                         gko::stop::batch::ToleranceType::absolute};
+    const Options opts_m{gko::preconditioner::batch::type::none, 10, 1e-6,
+                         1e-11, gko::stop::batch::ToleranceType::absolute};
 
 
     struct LinSys {
@@ -224,8 +224,8 @@ protected:
                 {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
             this->exec);
 
-        const Options opts{"none", 10, 1e-6, 1e-11,
-                           gko::stop::batch::ToleranceType::absolute};
+        const Options opts{gko::preconditioner::batch::type::none, 10, 1e-6,
+                           1e-11, gko::stop::batch::ToleranceType::absolute};
         std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
         gko::log::BatchLogData<value_type> logdata;
         logdata.res_norms =
@@ -361,7 +361,7 @@ TYPED_TEST(BatchCg, CoreSolvesSystemJacobi)
         Solver::build()
             .with_max_iterations(100)
             .with_rel_residual_tol(1e-6f)
-            .with_preconditioner("jacobi")
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
     const int nrhs_1 = 1;
