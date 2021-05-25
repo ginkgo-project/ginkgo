@@ -69,9 +69,6 @@ class BenchmarkOperation {
 public:
     virtual ~BenchmarkOperation() = default;
 
-    virtual void write_error(rapidjson::Value &blas_case,
-                             rapidjson::MemoryPoolAllocator<> &allocator)
-    {}
     virtual gko::size_type get_flops() const = 0;
     virtual gko::size_type get_memory() const = 0;
     virtual void prepare(){};
@@ -442,6 +439,7 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
 
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+            op->prepare();
             exec->synchronize();
             op->run();
             exec->synchronize();
@@ -450,6 +448,7 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+            op->prepare();
             exec->synchronize();
             timer->tic();
             op->run();
@@ -481,7 +480,17 @@ int main(int argc, char *argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's BLAS-like "
-        "operations.\n";
+        "operations.\nParameters for a benchmark case are:\n"
+        "    n: number of rows for vectors and gemm output (required)\n"
+        "    r: number of columns for vectors (optional, default 1)\n"
+        "    m: number of columns for gemm output (optional, default n)\n"
+        "    k: inner dimension of the gemm (optional, default n)\n"
+        "    stride: storage stride for both vectors (optional, default r)\n"
+        "    stride_x: stride for input vector x (optional, default r)\n"
+        "    stride_y: stride for in/out vector y (optional, default r)\n"
+        "    stride_A: stride for A matrix in gemm (optional, default k)\n"
+        "    stride_B: stride for B matrix in gemm (optional, default m)\n"
+        "    stride_C: stride for C matrix in gemm (optional, default m)\n";
     std::string format = std::string() + "  [\n    { \"n\": 100 },\n" +
                          "    { \"n\": 200, \"m\": 200, \"k\": 200 }\n" +
                          "  ]\n\n";
