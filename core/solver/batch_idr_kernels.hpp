@@ -53,7 +53,7 @@ constexpr int max_subspace_dim = 4;
  */
 template <typename RealType>
 struct BatchIdrOptions {
-    std::string preconditioner;
+    preconditioner::batch::type preconditioner;
     int max_its;
     RealType rel_residual_tol;
     RealType abs_residual_tol;
