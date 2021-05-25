@@ -64,7 +64,11 @@ public:
 
     /**
      * Logs an iteration of the solver, though does nothing for most iterations.
+     * This MUST be called at the zeroth iteration of the solver for every
+     * batch entry.
      *
+     * Initially at iteration 0, the stored converged bitset is reset to start
+     * a new solve, and the final iteration counts array is initialized.
      * Records the residual for all RHSs whenever the convergence bitset
      * changes state. Further, records the iteration count whenever the
      * convergence state of a specific RHS changes for the better.
@@ -82,9 +86,12 @@ public:
     {
         if (iter == 0) {
             init_converged_ = 0 - (1 << nrhs_);
+            for (int j = threadIdx.x; j < nrhs_; j += blockDim.x) {
+                final_iters_[batch_idx * nrhs_ + j] = max_iters_ - 1;
+            }
         }
         // Maybe this can/should be optimized? It might not be worth the effort.
-        if (converged != init_converged_ || iter >= max_iters_ - 2) {
+        if (converged != init_converged_ || iter >= max_iters_ - 1) {
             for (int j = threadIdx.x; j < nrhs_; j += blockDim.x) {
                 const uint32 jconv = converged & (1 << j);
                 const uint32 old_jconv = init_converged_ & (1 << j);
