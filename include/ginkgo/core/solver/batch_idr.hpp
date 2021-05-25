@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
+#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -189,7 +189,8 @@ public:
         /**
          * Inner preconditioner descriptor.
          */
-        std::string GKO_FACTORY_PARAMETER_SCALAR(preconditioner, "none");
+        preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, preconditioner::batch::type::none);
 
         /**
          * Maximum number iterations allowed.
@@ -278,10 +279,6 @@ protected:
         kappa_ = parameters_.kappa;
         deterministic_ = parameters_.deterministic;
         smoothing_ = parameters_.smoothing;
-        if (!gko::preconditioner::batch::is_valid_preconditioner_string(
-                parameters_.preconditioner)) {
-            GKO_NOT_IMPLEMENTED;
-        }
     }
 
 private:
