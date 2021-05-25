@@ -53,7 +53,7 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
                                                    ValueType &total_sum,
                                                    Group subwarp)
 {
-    prefix_sum = inclusive ? element : zero<ValueType>();
+    prefix_sum = inclusive * element;
     total_sum = element;
 #pragma unroll
     // hypercube prefix sum
