@@ -332,7 +332,8 @@ int main(int argc, char *argv[])
         right_scale_dense_batch_cpu =
             gko::clone(exec->get_master(), left_scale_dense_batch);
     for (int ibatch = 0;
-         ibatch < right_scale_dense_batch_cpu->get_num_batches(); ibatch++) {
+         ibatch < right_scale_dense_batch_cpu->get_num_batch_entries();
+         ibatch++) {
         GKO_ASSERT_EQ(right_scale_dense_batch_cpu->get_size().at(ibatch)[1], 1);
 
         for (int irow = 0;
@@ -353,22 +354,22 @@ int main(int argc, char *argv[])
     // convert the batches to uniform batches
 
     // x_dense_batch->get_size().check_size_equality(); //not allowed as
-    // get_size() retuns a const reference to batch_dim object - part of the
+    // get_size() retuns a const reference to batch_dim<> object - part of the
     // batch matrix class (- which is a batchlinop ), and check_size_equality()
-    // is a non const member function of batch_dim class
-    gko::batch_dim batch_sz_x = x_dense_batch->get_size();
+    // is a non const member function of batch_dim<> class
+    gko::batch_dim<> batch_sz_x = x_dense_batch->get_size();
     batch_sz_x.check_size_equality();
     x_dense_batch->set_size(batch_sz_x);
 
-    gko::batch_dim batch_sz_b = b_dense_batch->get_size();
+    gko::batch_dim<> batch_sz_b = b_dense_batch->get_size();
     batch_sz_b.check_size_equality();
     b_dense_batch->set_size(batch_sz_b);
 
-    gko::batch_dim batch_sz_lt = left_scale_dense_batch->get_size();
+    gko::batch_dim<> batch_sz_lt = left_scale_dense_batch->get_size();
     batch_sz_lt.check_size_equality();
     left_scale_dense_batch->set_size(batch_sz_lt);
 
-    gko::batch_dim batch_sz_rt = right_scale_dense_batch->get_size();
+    gko::batch_dim<> batch_sz_rt = right_scale_dense_batch->get_size();
     batch_sz_rt.check_size_equality();
     right_scale_dense_batch->set_size(batch_sz_rt);
 
